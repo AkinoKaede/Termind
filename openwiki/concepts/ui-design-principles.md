@@ -3,7 +3,12 @@ type: design guide
 title: UI Design Principles and Shared Presentation Boundaries
 description: "Source-backed UI principles for TFM and TFI: semantic visual systems, native interaction, shared forms and presentation values, stable rendering identity, accessibility, localization and safe extension boundaries."
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
+  - id: openwiki-source-a51ca858a040a90d4ab9c1c4
+    resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
@@ -18,6 +23,10 @@ sources:
     resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
   - id: openwiki-source-db3eac4d3fbf63570c0e0d56
     resource: repo://Frameworks/TermindPresentation/SingleLineTextInput.swift
+  - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
+    resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
+  - id: openwiki-source-667f8dcadd921c1910c5026c
+    resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
@@ -30,6 +39,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-60d390fe6fbfea55a2a8230a
+    resource: repo://TFI/App/MobileFeatureRegistry.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-99e98ad50ba8a7c6df018977
@@ -44,6 +55,8 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-5503f969776cb509a7d69160
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
+  - id: openwiki-source-e21fae39ef7af76f86acbff6
+    resource: repo://TFI/Features/Settings/MobileSettingsView.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
     resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
@@ -94,6 +107,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-ba160208435f3410138a3539
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
@@ -110,8 +125,12 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-dc392b9979d99f5026bdeadf
+    resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
+  - id: openwiki-source-44cb7a6172854edbfc9b5ccb
+    resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-2891f940e682279163740c83
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
@@ -120,10 +139,7 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T17:44:09.687Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -153,11 +169,11 @@ flowchart TD
     Mobile --> UIKit[UIKit terminal / list / input adapters]
 ```
 
-The shared layer supplies values and fields; each app composes and owns its native shell.
+The shared layer supplies values and fields; each app composes and owns its native shell. Shared presentation copy also lives here: `AppStrings` is a resource-backed semantic vocabulary divided into feature-specific extensions rather than a second app-local copy. Resources are created on demand; `AppLocalization.resolve` resolves against the selected locale and the app's main-bundle localization. Use `.swiftUIKey` for SwiftUI APIs requiring a `LocalizedStringKey`, preserving interpolation metadata; resolve to `String` at native menu boundaries. The copy-owner test rejects app-local `AppStrings` declarations, while presentation-copy tests check locale-specific menus, plural/interpolated messages and the SwiftUI bridge in English and both Chinese scripts. Keep platform-specific phrasing in explicit variants instead of making shared copy control platform behavior.
 
 These arrows show conceptual dependencies and consumption, not an exhaustive target dependency graph. See [System Boundaries](/openwiki/architecture/system-boundaries.md) for the broader module structure.
 
-`TermindPresentation` is allowed to contain SwiftUI views. It is **not** a transport-free name attached to an arbitrary bag of platform code: architecture tests forbid it from importing either app, AppKit, UIKit, SwiftData, GRDB, Persistence or RemoteInfrastructure. Native adapters remain app-owned. Shared non-presentation frameworks have their own boundaries; do not apply one blanket “no UI anywhere in Frameworks” rule.
+`TermindPresentation` is allowed to contain SwiftUI views. The dedicated `sharedPresentationHasNoPlatformOrStorageDependency` architecture test forbids imports of either app (`Termind`, `TermindIOS`), AppKit, UIKit, SwiftData, GRDB, `TermindPersistence`, `TermindRemoteInfrastructure`, `TermindInfrastructure` and StoreKit. The separate `listViewKitIsLimitedToNativeListWorkloads` test limits `ListViewKit` importers to approved native-list workloads; it is not a blanket ban on SwiftUI in shared presentation. Native adapters remain app-owned. The other shared frameworks have different import rules, so do not generalize this test to every framework.
 
 Useful shared pieces include:
 
@@ -167,6 +183,28 @@ Useful shared pieces include:
 - Shared input-editing policies and environment hooks through which an app supplies native behavior.
 
 Not suitable for moving into a generic shared view are a window's selected pane, a scene's navigation stack, a native terminal owner, credential resolution, connection teardown or repository mutation. Sharing a form does not make its save, authorization or lifetime policy shared automatically.
+
+### Settings navigation is app-owned
+
+Desktop `RootView` mounts `SettingsPageView` when the window selects Settings. `WindowModel.openSettings(route:)` remembers the displaced destination; the page switches on the window's `settingsRoute` instead of pushing a shared navigation stack. The index offers App, Terminal, Connections, AI and Sync categories (Developer only in debug builds); Logging is a separate optional debug row, and Pro opens a paywall rather than becoming a category. AI has provider, model-list, MCP and skill detail routes; a terminal configuration detail belongs under Terminal. A category returns to the index, provider models return to their provider, AI details return to AI, terminal configuration returns to Terminal, and Logging returns to the index. The window toolbar Back calls `navigateBackInSettings`: it follows `SettingsRoute.parent` until the index, then closes Settings and restores the displaced destination, falling back to Vault if a remembered workspace has disappeared. Paywall presentation must not replace the route or consume this return destination.
+
+```mermaid
+flowchart TD
+    Previous["Window destination"] --> Open["Open Settings and remember destination"]
+    Open --> Index["Settings index"]
+    Index --> Category["Category page"]
+    Index --> Logging["Logging detail"]
+    Index --> Paywall["Pro paywall over Settings"]
+    Category --> Detail["AI or Terminal detail"]
+    Detail -->|Back to parent| Category
+    Logging -->|Back| Index
+    Category -->|Back| Index
+    Index -->|Back| Restore["Restore destination or Vault fallback"]
+```
+
+Desktop Settings routing and the toolbar Back action preserve the window's return destination; the paywall is independent of the Settings route.
+
+`SettingsPageView` also cleans up provisional AI configuration on route changes or disappearance: an empty provider draft is discarded except when moving between that provider and its model list; a newly created MCP server is discarded if invalid or its namespace cannot be locked; a new skill with any useful name, summary or body survives as a draft. Do not move this cleanup into shared form fields. On mobile, the Settings feature is registered in `MobileFeatureRegistry`; `MobileRootView` gives each registered tab its own `NavigationStack`, and `MobileSettingsView` uses native `NavigationLink`s for categories and an app-owned paywall sheet. Sharing labels or fields does **not** imply sharing the desktop `SettingsRoute` hierarchy. `SettingsNavigationTests` checks parent routes, Back/restore/fallback and the independence of paywall navigation; `ArchitectureBoundaryTests` separately checks the shared presentation import boundary.
 
 ## 2. Use semantic visual roles, not per-feature themes
 

@@ -3,6 +3,9 @@ type: architecture map
 title: Module and Directory Architecture Map
 description: A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
 tags: [architecture, modules, directories, dependencies, ownership]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -24,6 +27,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
+  - id: openwiki-source-0bf5c5e49b55e95efb864567
+    resource: repo://Frameworks/TermindPresentation/LinuxDistributionBrandColor.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
@@ -52,10 +57,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Module and Directory Architecture Map
@@ -83,7 +85,7 @@ These are orientation guides, not replacements for [System Boundaries](system-bo
 | `Frameworks/TermindPersistence` | SwiftData models, historical schemas, migrations, stores, container factory, and GRDB-backed memory. | Owns stored representation, not a window or scene. |
 | `Frameworks/TermindInfrastructure` | General concrete services: CloudKit, commerce, speech, logging, importers, and metrics parsing. | Separate from remote transport mechanics. |
 | `Frameworks/TermindRemoteInfrastructure` | SSH/SFTP/Telnet, remote credentials, transfers, forwarding, sampling, and host-aware Agent tools. | Owns protocol machinery, not native interaction surfaces. |
-| `Frameworks/TermindPresentation` | Reusable SwiftUI content, forms, formatting, transcript policy, and terminal appearance. | Does not own AppKit/UIKit surfaces or persistence. |
+| `Frameworks/TermindPresentation` | Reusable SwiftUI content, forms, formatting, transcript policy, and terminal appearance. | Not a persistence or native-app owner; some shared views use conditional AppKit/UIKit for platform-specific rendering. |
 | `TFM` / `TFI` | Native composition, interaction, navigation, adapters, and runtime lifetimes. | macOS windows and mobile scenes are deliberately different owners. |
 | `Frameworks/Resources` | Shared bundle assets, localization, model catalogs, and privacy metadata. | A resource group, not a seventh framework. |
 | `AgentKit` | Reference checkout of the separately versioned, host-neutral agent package. | Xcode consumes the resolved remote package, not this checkout. |
@@ -147,6 +149,21 @@ This split is also a placement rule: shared behavior belongs with its existing o
 
 ## Composition and state boundaries
 
+The composition boundary is directional: app entrypoints choose concrete adapters and inject them into shared feature models; the resulting workspaces have a different owner on each platform. A scene or window route is not a durable store or a transport.
+
+```mermaid
+flowchart LR
+    DesktopEntry["TermindApp"] --> DesktopApp["AppModel and shared stores"]
+    DesktopEntry --> DesktopWindow["WindowModel per main window"]
+    DesktopWindow --> DesktopWorkspaces["Window workspaces"]
+    MobileEntry["TermindIOSApp"] --> MobileApp["MobileAppModel and live workspaces"]
+    MobileEntry --> MobileRoot["MobileRootView"]
+    MobileRoot --> MobileScene["MobileSceneModel per scene"]
+    MobileScene -->|"selects by ID"| MobileApp
+```
+
+Composition and navigation lifetimes: desktop windows own their workspace collection, while mobile scenes reference app-owned live workspaces.
+
 `TFM/App/TermindApp.swift` is the desktop `@main` entrypoint. It opens the Persistence container, wires stores, Keychain-backed secrets, sync and connection coordinators into an app-wide `AppModel`, and injects that model and container into each `WindowGroup` root. Each main window receives its own `WindowModel`; a separate authentication window uses the shared app environment. A failed desktop database open ends launch with `fatalError`. On mobile, `TFI/App/TermindIOSApp.swift` is the actual `@main`, **not** `MobileAppModel.swift`: it chooses live versus test dependencies, creates one `MobileAppModel` and supplies its container to the scene root, or shows an unavailable-content view if initialization throws. `MobileAppModel` assembles SwiftData, Keychain or in-memory secrets, remote services, sync coordinators, Assistant and workspaces. In the in-memory/test path it disables live sync and Live Activities. `MobileSceneModel` resolves selected workspace IDs against app-owned live instances rather than owning connections itself.
 
 - **Process-wide:** shared stores, service coordinators, and application models.
@@ -159,4 +176,4 @@ For lifetime diagrams, continue with [Native App Directory Responsibilities](nat
 
 ## Verifying a boundary change
 
-`TFMTests/ArchitectureBoundaryTests.swift` checks import and ownership restrictions: Domain stays free of platform and transport libraries, Application cannot construct concrete implementations, Persistence cannot import Infrastructure or Remote Infrastructure, shared Presentation avoids app and storage dependencies, and native Features do not reach directly into storage or transports. It also checks that the forwarding benchmark is not pulled into apps or tests and that AgentKit-owned runtime types are not redefined in the app. These source-level guards complement rather than replace the Xcode target graph: when moving a capability, inspect both the destination target's dependency/package-product list and these tests. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).
+`TFMTests/ArchitectureBoundaryTests.swift` supplies **source-level** guards alongside the Xcode target graph, not a blanket ban on UI or platform APIs everywhere. Its import scan excludes `Termind` and `TermindIOS` plus AppKit, UIKit, IOKit, and ServiceManagement from Domain, Application, Infrastructure, Remote Infrastructure, and Persistence; the separate Presentation check excludes app imports, storage and implementation modules, StoreKit, AppKit, and UIKit. However, the import helper checks only exact `import Module` lines, and shared Presentation currently uses conditional AppKit/UIKit imports for rendering; treat those platform exclusions as test intentions, not proof that every shared view is platform-agnostic. Domain also excludes storage, transport, and UI libraries; Application excludes concrete implementation imports and selected construction tokens; Persistence excludes Infrastructure and Remote Infrastructure imports. Native UI and feature restrictions are scoped: mobile `Application` excludes UI and storage imports, mobile `UI` excludes storage and Remote Infrastructure imports, desktop `Features` excludes selected storage and transport imports, and feature directories are checked for specific direct construction/access tokens. This does **not** forbid all framework imports in every native feature. The test also rejects declarations of a named subset of AgentKit-owned runtime types in the desktop source tree, not every AgentKit-related type across the repository; Termind still owns host-specific tool registrations. Further checks protect SwiftData model/repository placement and the forwarding benchmark's independence from app/test targets. When moving a capability, inspect both target/package-product edges and the precise test scope. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).

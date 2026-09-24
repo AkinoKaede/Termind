@@ -3,6 +3,9 @@ type: architecture
 title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -60,16 +63,17 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
+  - id: openwiki-source-39248df19c48bb72235c6e8d
+    resource: repo://TFMTests/AppTestHostTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+  - id: openwiki-source-a08489338be00125d646c77e
+    resource: repo://TFMTests/VisibleWindowTestTrait.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -100,7 +104,9 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindApp.init()` is the desktop composition root. It determines whether it is running tests or a debug screenshot demo, constructs one SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the reusable device directory, and the common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
+`TermindApp.init()` is the desktop composition root. Before opening data it cleans previous context attachments, sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language). A normal launch constructs one on-disk SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
+
+**Debug test and screenshot launches still run the real app entrypoint, but not the normal disk-backed runtime.** XCTest detection uses `XCTestConfigurationFilePath` in DEBUG; it selects an in-memory container, a private metrics defaults suite, disabled file logging, unrestricted test Pro access, no Vault/Settings/Metrics cloud coordinators, no local host defaults or production memory store, and a window size store without persisted defaults. A screenshot-demo configuration also uses an in-memory container but returns early with demo hosts, AI, metrics and onboarding instead of constructing the normal production services. Neither path is a fallback for a failed production database open: construction errors still fail startup.
 
 ```mermaid
 flowchart TD
@@ -131,7 +137,9 @@ This diagram shows the desktop composition root and the split between one app ru
 
 The model keeps only weak registrations for open `WindowModel`s. Registration injects shared stores and coordinators into a window and attaches that window's assistant library to the process-wide conversation store. Fan-out operations—such as a host route change or deletion—find registered windows and disconnect or close the affected window-owned workspaces. A desktop deletion request first persists the repository marker/outbox jobs, clears local histories and projects the Host away; the registered outbox handlers close panes across windows, cancel transfers, stop forwarding and finalize repository cleanup. A failed request reports a storage error instead of projecting the removal. This is coordination, not ownership transfer: the window remains responsible for its own UI and workspaces.
 
-`TermindApp` creates a `WindowGroup(id: "main", for: UUID.self)`. Each scene receives a fresh `WindowModel`, places it in `RootView`, and injects the same `AppModel` and SwiftData container through the SwiftUI environment. `RootView` registers the window on appearance. The independent `Authentication Request` window is intentionally reserved for external authentication presentation rather than normal Window-menu creation.
+`TermindApp` creates a `WindowGroup(id: "main", for: UUID.self)`. Each scene receives a fresh `WindowModel` (except a request-less debug screenshot scene, which can receive demo window state), places it in `RootView`, and injects the same `AppModel` and SwiftData container through the SwiftUI environment. `RootView` retains that model in `@State`, registers it on appearance, and exposes it via the environment and focused scene value. The independent `Authentication Request` window shares app dependencies but is reserved for external authentication presentation; `.commandsRemoved()` prevents normal Window-menu creation.
+
+**Scene policy is separate from store policy.** In DEBUG, a default XCTest host suppresses automatic launch of both the main and authentication scenes unless `TERMIND_WINDOW_TESTS=1` or screenshot-demo mode is active. Tests disable restoration for both scenes even when visible windows are opted in; screenshot mode disables main-scene restoration, while ordinary launches use automatic launch and restoration. The delegate also refuses Dock reopen while test-window suppression applies, refuses to quit the test host when its last fixture window closes, and skips starting metrics activity/menu in tests. Explicit window/focus tests use `.requiresVisibleWindow` and opt in with `TERMIND_WINDOW_TESTS=1` (or Xcode's `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` forwarding); suppression is not a ban on explicitly created offscreen test fixtures. The default test-host checks assert no visible windows and no reopen.
 
 ### Window-local desktop state
 
@@ -139,13 +147,13 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 
 A host-opening action is centralized in `AppModel`, which chooses the requested protocol, but it opens into the caller's `WindowModel`. That window assigns one connection-history event to each saved-host SSH, Telnet or SFTP pane. Closing the pane/workspace ends the event before disconnecting, while moving a live pane preserves it and reopening creates a new event. External temporary and Serial panes are not recorded; a crash may leave `endedAt` absent. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
 
-`MainWindowCoordinator` binds native `NSWindow`s to `WindowModel`s. It processes new-window and workspace-move requests, preserves system-restored frames, saves normal window size only at appropriate boundaries, and unregisters then closes a model when its native window closes. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
+`MainWindowCoordinator` binds native `NSWindow`s to `WindowModel`s. It processes new-window and workspace-move requests, preserves system-restored frames (a restored scene has no pending move request), saves normal window size only at appropriate boundaries, and unregisters then closes a model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
 
 ### Desktop lifecycle and termination
 
-The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
+The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. For quiet login launches it hides the normally constructed window rather than running window-less; a one-shot key-window observer and three-second disarm prevent a later user-opened window from being hidden. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
 
-Shutdown is deliberately idempotent and bounded by the delegate. It fences new assistant runs, cancels pending run preparation, stops all stored conversations and waits for their terminal saves; it also suspends memory and edit monitoring, stops metrics and speech, closes windows, and cancels SFTP work, external authentication, forwarding, and the outbox. It concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools **after** the assistant drains. The delegate replies to macOS when cleanup completes or after a three-second fallback; that bound applies to the quit reply, not a guarantee that every asynchronous drain finished. `applicationWillTerminate` repeats cleanup safely.
+Shutdown is deliberately idempotent and bounded by the delegate. `applicationShouldTerminate` returns `.terminateLater` while it rechecks external SFTP edits; if pending changes exist and the user cancels the alert, it replies `false`, clears the pending-termination flag and does **not** start cleanup. An accepted quit saves the ordinary window size before cleanup. `shutdownForTermination()` immediately fences assistant admission, cancels pending run preparation, stops the app-wide conversation store (including conversations no longer shown in a registered window) and awaits terminal saves; it also suspends memory and edit monitoring, shuts down metrics and speech, closes registered windows, and cancels SFTP work, external authentication, forwarding and the outbox. It concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools **after** the assistant drains. Repeated calls return the same cleanup task. The delegate replies `true` to macOS when cleanup finishes or after a once-only three-second fallback; that bound applies to the quit reply, **not** a guarantee that every asynchronous drain finished. `applicationWillTerminate` repeats cleanup safely.
 
 ## Mobile composition
 
@@ -237,7 +245,8 @@ Tests exercise the lifetime contracts rather than merely constructing views:
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
 - `MobileBackgroundControllerTests` covers stale callbacks, exactly-once task retirement, synchronous expiration during lease acquisition and invalid UIKit identifiers; `MobileAppTests` covers scene removal and quick versus expired foreground returns.
 - `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
-- `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, waits for terminal saves before closing agent resources, fences new work, and replies once even when the three-second fallback wins.
+- `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.
+- `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins.
 - `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.
 - `ExternalConnectionURLTests` verifies external desktop connections are temporary and unsaved, including the Telnet-password confirmation boundary.

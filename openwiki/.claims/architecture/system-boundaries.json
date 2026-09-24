@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:70bc54bbf1c2da2b34e500a403c70203791f10430ee4ba3d69f9de85b70608d2",
+  "pageVersion": "sha256:5da26732bd32ecc9204c2c8c832f9607e8c614aaa83c5f5a8cd2d4a636dab549",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -11,30 +11,18 @@
           "version": "repo-lines-v1:sha256:5bf8f722418eac38057a37c2f664f7f78762650fe7e8d0d55318d6aa97bcaba3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjM4YmQ4MDg4Y2Q5OGMyYTJiZjdjZWUwMjg2NjU0OTRlOTA0MGI0YmIzNTBhYjMwY2VjOThmMmZmNDlkMjUyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQxNDRhYTY2MzdkYjRiY2Q3MWYxZmE2NDc0MGI1YTJmMDk1YzZiYWYyM2JlOWU1NzJhMGE4Y2VkODJkNzIyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ1ZDk4ZDMyNTIxNzM5OGEyYzA4Mzg5YzFlMjg1MDQyMTA2MDQ2OGUzYzI5ODdhODRiMDFjNDM0ZWU2ZDcyZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWQwMTdmYTAzMWI3MzUzMDUxZTQ5YWQxNjI0YTFhNjBlMjAzYzhmYTljN2QxYjE0YjY2ZjU3YjlkMTU5Mzg5NSJ9"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L189",
-          "version": "repo-lines-v1:sha256:0d3b3a4cd81181b5228a2cfa0b6a89f30ffcaa8a77112e9c8ed819cc29a59663:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NDI5ODQ5YmU0MTZhMzMzMmY5NTcyYmY1NTM5ZDkzOTZjNDEzMjY1MWE4MzhiZGRhZGIzN2IwNzg1OWViMmUifQ"
-        },
-        {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         }
       ]
     },
     {
       "id": "claim_07d6c15b703242fa94b68c4f347d23a1",
-      "statement": "ArchitectureBoundaryTests use exact import and selected-concrete-symbol scans: Domain disallows specified platform/UI, storage, security, network, commerce, SSH and terminal imports; shared Application disallows specified UI/storage/transport imports and selected concrete infrastructure symbols; Presentation disallows platform UI, persistence and Remote Infrastructure imports. Desktop and mobile source subroots have separate, narrower guards.",
+      "statement": "ArchitectureBoundaryTests apply distinct exact import checks rather than blanket prohibitions: Domain excludes its specified UI/storage/security/network/commerce/SSH/terminal imports; shared Application additionally excludes TermindInfrastructure, TermindPersistence and SwiftData, and Persistence excludes Infrastructure and Remote Infrastructure. The five non-presentation frameworks exclude app targets and specified native UI/system imports, while Presentation has its own rule excluding app targets, UIKit, AppKit, storage, Infrastructure, Remote Infrastructure and StoreKit but permitting SwiftUI.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L189",
-          "version": "repo-lines-v1:sha256:0d3b3a4cd81181b5228a2cfa0b6a89f30ffcaa8a77112e9c8ed819cc29a59663:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3ZGE0ZTRmODRkMjdmYjAxMTA1N2E3YjdmMzE0ODI3NmQyOWUyOTUyNDU3ZWE4ZTYyMmUzMmU4MWU4NTVlYmMifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L245-L284",
-          "version": "repo-lines-v1:sha256:146f497ac082e0d24fde43c2c3634ae38d1859c8e7bbbf409a449786b408834c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwODJlYzhiMDRiNTlhNjdhZWFhYmYxOTVkNWE5Y2I4YWJkMGE3NjBjZDc4YjE1MTNhNzg3MTA0MGE3N2Y0Y2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ODVjOTkxNGE0ZTFmMmY4YzUzZGM1MzYyODQ3NjI5MGQwZDAxYmFkZTA0NzQzYjVlNjczOGYyNTk4Y2M0YTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMWEzMTY4MmVjNjVjMDk2NWZhMjRjYzEyZDEwODJiNjhlYzk2NTRmYWIzYzM4YTllYjAwZmVhMTgxMTFhM2IifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
-          "version": "repo-lines-v1:sha256:08c476cc632f29ebd0f9b7221558d60dc77bb9ac8d88d819e4d8841a8372d835:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NWJlNTRjNmM2MGZmZjQ5ZTllOTU1Mzg1YjMzZTc4ZTRkNGQ4ZDJkNmUwMWQzMzJkNjhiNjg3MTA0OTkxYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiZDllMTYwYTMyNWIzNzgxZTQ5M2JlYjYxM2EzZjhjZWMyZTNkZDQ1OTVjODgzMDg2MTQzMTVkODZhYjdjYTgifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
         }
       ]
     },
@@ -78,7 +66,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         }
       ]
     },
@@ -184,7 +172,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         },
         {
           "resource": "repo://TFM/Platform/MacDeviceName.swift",
@@ -230,7 +218,7 @@
       "evidence": [
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:cba31c98549c0bb9eee68a82b0924fa9c6433e6d9a37e82b549af9432e2f2757"
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
         }
       ]
     },
@@ -247,10 +235,56 @@
           "version": "repo-lines-v1:sha256:fca958a7ad62418ce0a9e8b6086dc052497d2a11aba31a72de600c9fb3446d61:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWZmNzZlNDczNTc5ZjY2ZjA4ZDYwNzE5YWQ5ZWI0MGZhZGRhN2M5ZTE2NjFlZjY4MzM5MzAyZDYwNDI3ZDFhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjdlNmMwMmJkYjc5NzI3MjI1ZDU2Y2UwOThlNjgyNWQ4MTFiZWFkOGRlMDcyYTEyOTA4NTllNWE5NmNmODQ0NiJ9"
         }
       ]
+    },
+    {
+      "id": "claim_76ac57d610d04da49cb1f6807d768594",
+      "statement": "Desktop Application rejects its specified UI/storage/transport imports and desktop Features rejects specified storage/transport imports; mobile Application rejects SwiftUI, UIKit, SwiftData, GRDB and TermindPersistence while mobile UI rejects SwiftData, GRDB, TermindPersistence and TermindRemoteInfrastructure. Selected concrete-symbol checks apply to shared Application, desktop Application/Features and mobile Features, not mobile Application/UI.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+        }
+      ]
+    },
+    {
+      "id": "claim_e4f31aa2cfee4a1ea67b16710ce0ab73",
+      "statement": "ArchitectureBoundaryTests separately reject SwiftData repository declarations outside Persistence across apps, shared frameworks including Remote Infrastructure and Presentation, bridge, benchmark, widget and workspace-activity support; a declaration parser distinguishes definitions from mere references and requires a repository declaration in Persistence.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/swiftdata-repository-declarations.sh",
+          "version": "repo-file-v1:sha256:203aa343c49de9718ed1481fc0c5dd047202bebb7559f3a8a515b9e9ace96763"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+        }
+      ]
+    },
+    {
+      "id": "claim_0409598d88a44f24a64ebb556d02fccc",
+      "statement": "Desktop AppDependencies groups injected repository, remote connection, synchronization, logging, and optional shutdown services and offers in-memory host dependencies for tests; mobile live dependencies share a logged RemoteConnectionCoordinator across workspace and metrics services, whereas testing dependencies default to in-memory storage and replaceable services.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppDependencies.swift",
+          "version": "repo-file-v1:sha256:b9c7b9c73b191cdd8258d18c2a5f8cfd43ff774aea1d6c96a7d634de7f712179"
+        },
+        {
+          "resource": "repo://TFI/App/TermindIOSApp.swift",
+          "version": "repo-file-v1:sha256:e9b1f42fece05a48a98387a1c658a59225b62cdc85338269a6e04c3fea6e68f0"
+        },
+        {
+          "resource": "repo://TFM/App/AppDependencies.swift",
+          "version": "repo-file-v1:sha256:b35f9e1c3d3976abf2fac5fa1650429652983bc3c14459be73cc2cb4cd330bbb"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T01:58:11.184Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

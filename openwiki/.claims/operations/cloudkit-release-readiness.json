@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ca6fe1e6d38481b7e92b09c44bcf391ba3c18250e658b39e774491480747b2fe",
+  "pageVersion": "sha256:3fdb6fea6ac8d8927120a183ee809996260dd8b78d2cb2acd9573701d5e9ff56",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -201,10 +201,78 @@
           "version": "repo-file-v1:sha256:fb1177900e93b9a2d3f30d4b728e61381d7d1336226ac22610e85779b8d0dadc"
         }
       ]
+    },
+    {
+      "id": "claim_d9bd498c7bb54f79af60a63cf83c303c",
+      "statement": "The shared SwiftData container uses V34 and the migration plan with CloudKit mirroring disabled; the plan preserves a frozen V28 Host endpoint on the V27→V28→V30→V31→V34 upgrade path, while V29, V32 and V33 are not migration endpoints.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L748-L815",
+          "version": "repo-lines-v1:sha256:4b4ed3e06b0a78e93f812452711c7de7ffdfa90036e002c9a801562d8dd2caee:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5ZDdjY2VkZmM5NzFlYzg0YTY4ZGJhYzZlNDg5NTI3ZGJhZDVhMjcxNmQ4NzRlOGYzZjgwMTJjYTFkMWQ5ZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNzEzMGYzYzFhZWM1ZDRiODIxZjcwODBmYzFkZDUyNzRmNWQ4M2VjYzdmMWRlZjJlNzU2Y2Y5MTIwZDIxN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L883-L909",
+          "version": "repo-lines-v1:sha256:c48361cb01db8f7aaa9df243e632fac2fa84552f08bacd3ae48f32c70948cdbf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyOGVjZTU4Nzc5NTgyZmI0YmY3Zjc4NTJkNzBjOGE0NWZlMjU3YWIyNTc5NTZiMDU0N2NhZDc3ODkwNjNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNTE1MDdlYTM2YmZiNzAxMWE3NzhiZjcxMWIxNWUzN2U0Y2Q0ZmE5M2UzY2RiNDBhMjhmNzI1YjZlMTM2ZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L23",
+          "version": "repo-lines-v1:sha256:8c60738deb877ed1b9047d779675ce26ace9d679e2bf4e8b9e6eed90258d3fce:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e06d853729a54aeb97f6e6851e8d6c6b",
+      "statement": "V28's stored Host port, identityID and charset survive V28→V30 as SSH-specific values, while Telnet fields are introduced with disabled and default values; changing historical persisted shapes would jeopardize installed-store compatibility.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift#L7-L35",
+          "version": "repo-lines-v1:sha256:48595ba6a10953470c8fa461f76ad38ded5dd2673a3af0ed5c5fbcdee3ed40fd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1YmNjZjg3NmJjMDFjZDNmMDU4YWZmZTBjZWJiYzU3ZTkyNTBmMGM5ZWI5ODlkMjAxODM0NDExOTFkYTk5NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjMzhlN2E1MTJhYWNkZmM1YTZjYjAzZWM4NDBmODkzZGE2YzMyYmJiZjIxNjljMDhlNDJhNjViMjQ3ZDdhYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NDIxYWM2M2VmOGRjMzlmNDZjZmZjNzllZDFjMDQ2ZTg2MmUwMmE1NGY3MzRhYjYxYTJmMmRjZmE3YTNhODAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift#L7-L48",
+          "version": "repo-lines-v1:sha256:822a0928dd1f722d9b0733d7b73d2be2c33875af01d165875cdd4c941941a90d:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNjUwOGQ1YTdmMTg4YjhiMGU0ZjhiODFhNGJiZjgzY2RjYmNjY2JlMWMzMWQ2MThiNjQzZGYxYWM3YjFmNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjMzhlN2E1MTJhYWNkZmM1YTZjYjAzZWM4NDBmODkzZGE2YzMyYmJiZjIxNjljMDhlNDJhNjViMjQ3ZDdhYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NDIxYWM2M2VmOGRjMzlmNDZjZmZjNzllZDFjMDQ2ZTg2MmUwMmE1NGY3MzRhYjYxYTJmMmRjZmE3YTNhODAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift#L92-L113",
+          "version": "repo-lines-v1:sha256:d4c3f6b04a4410518a99104ec119f1cf0ee8976d5e4f858697af6eb1a80cb2dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3NWRlZmY2MzY2MmFiOTZiNDQyNWEzNmU1ZDg5MzA1YzgzYzc2MTkyYjVjNzcxMTgzODQ5ZjY2ZDQ5MzBmMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmMzkzOThkYjE5ZDhiNTViMjA0MmRlMTMyOTI1NWViNDE4Y2I3MWVmY2Q5YjEyMzFmODk4ODY1NmZiMjQwODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OTc1ODkwMWNiNDI4N2M3MGZhNTY4ZTlmZTgxMWNiYjY4Mjk3MTU0MmIzZjAwMGUzY2ZjNWQxNjlhYjAyMWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4bbc9c1130e14f2d92c92ae2b77c7705",
+      "statement": "The historical synthetic V28 disk fixture is generated against an older Persistence build rather than current models; its compatibility test copies the disk store, opens it twice through the normal container factory, and checks retained Host and related Vault data, default Telnet fields, device/history backfill and workspace defaults.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L60-L144",
+          "version": "repo-lines-v1:sha256:4561b141f81b56941320a35e8389bea59dc6291fc22b2e7b359b58f0ed816631:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkZmY4ZDRjNGJlMTRmZDZjZjc4YmQ1ZmI2N2JkNTNkNGVjZWI0MTljNjVhMzFhNWQ2OTQ3NzA2OWE2Y2ExMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZjBmY2E5ODUzMjVjMDQ5ZTY0ZWE5ZmE2MTE3ZjI4NjY0YTcxNzlkMGY2NWEyNjRiNTcyOGNiMTg5NTA4MTIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L887-L907",
+          "version": "repo-lines-v1:sha256:3b2210e481a8147ee7a43ad5ba997d358ecc2ea6c04ba60e0cc96cf4548bf98d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5NWYyM2YzNzI1ZTkzNTU0ZjQwNGNhMzBhMWUzOWY0YTU1OGU3NmU5MWY5MThkZDBmNDE0Y2JkMGU3MmUwZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3ZGNkMjg5MWJlMDA0OGJkZjgyZmViMDU5YjJlM2RhOWNhNDJmMmU1ODllMTg1MDQ3MzVmMWU4NDYzNTFiZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhZWQ3YzJkNTQ2YTEwZmI3ZDRkZjM1NWE3ODZlOGViZTRjZTJiMzgxMzZmNTI5ODVlNWVmOTAwYjgxMTBiMDEifQ"
+        },
+        {
+          "resource": "repo://Scripts/generate-v28-fixture.swift#L6-L21",
+          "version": "repo-lines-v1:sha256:4f7f40344507ad155a1f284dccbb5654a2485548e8ae55bfe045f55c3a1d4749:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2ZmMwZjM3MzFlNjkwMGFhZmQ5ZDQ5NTczODIzZjc1NzQzM2Y3ZTc0OWY2OTQxYjNmZWU4ZDI3YzFjZDRhNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmYWY5OWU1MjY5MGI1YjQxNzJmNzFhOTgwOTYwMDRlOTc5N2Q3M2I5ODllMzAyNGQyNzcyODI3NTI2MmYxYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNDEzOTNjODU0MWVjYzQwZTdjMzZiM2Y2MmQ0YTFmMDY5MWRmOTI3NzZkM2E1YzRhYWU2OWQ4OWFhYTZhOWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MzM3ZGI0ZjFhOTM5ZTllODc1ZjA5MzM0NmU3OTRiMjlhZjI3YTU1MThhNzg2Zjg0MWVjNjFmNGJlODBhOWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0b988903106b49299748ae7421068475",
+      "statement": "The mobile V28 startup test instantiates the app twice using the migrated disk container and checks Host, identity and history projections; it is an in-process fixture integration check rather than proof of signed-device installation upgrade or CloudKit delivery.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L11-L23",
+          "version": "repo-lines-v1:sha256:9695ebe26846d201675edfe4e44e6558dc7af1791205abc9adc27563d41ed6da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4YWU2MDczOTViZjM1MjFhMWUzZThmYWZlOTM5MDQzNTE0MTBiMGFkMjU1MjdkODQ3OWRlZjlmN2UxYmFlODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmYTMwYTU3YzgzMTk5ZWRmMDI5MzNhNDFlNmFiNmQwNzQ3ZjYwMTI1NDg3YjExNTE0Y2JlZWRlZWQxZmMzN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileAppTests.swift#L34-L63",
+          "version": "repo-lines-v1:sha256:99e8c3c311bf8ac02b14dd46b5be07ae2a313a7dec6b6fc526610ce40e400ee5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwNmQwMjc3NGU4ZGE1NWVmNGQyYWYxZGUyNDliYmFkNmVlMWU4Y2FhNWM0OGYyNWY5ZjQxMTA4MjI0ZjVlZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5NTkyZjUxY2NiZGExM2ZlMzVjNTI4ZWQ4NWQ0OGNlYzBlN2ZhNGI4YjMxMTBiMjAyYTkxOWY3MjU2NGQ0OTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNDU3YjJhYWRhZTY4NzQzNzY2M2EyNTQxN2Y5MGRkNTQ1MTMxNmViZjQzN2Q1MDY5MTQ3ZTY2NzhhZDg3MmMifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T01:58:11.184Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

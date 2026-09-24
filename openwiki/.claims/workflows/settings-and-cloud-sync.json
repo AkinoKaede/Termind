@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:99d2b239428f25d840b99f415eab5ff6fa482e27820addafa7f175fb77fb805d",
+  "pageVersion": "sha256:79baf476eb5467b8d8b21e95dd285faa364f3ce83175ccf7f9598519a9df8f11",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -353,10 +353,82 @@
           "version": "repo-file-v1:sha256:f7f74f7c300cfaaf1eacdb9f9fb162aa6e9fade3efbb8d6142476d53e4e28b59"
         }
       ]
+    },
+    {
+      "id": "claim_9c12b6015a734671b748f80e1ada2d0f",
+      "statement": "The desktop Sync settings route renders `SyncSettings`, whose master toggle requires Vault-sync Pro access, reconciles app-wide access and attempts custom Host password migration to iCloud Keychain when enabled; the Vault selection also attempts that migration, while category selections independently set coordinator enablement and expose status, retry and account-merge controls.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L151-L190",
+          "version": "repo-lines-v1:sha256:66a0ed585ba5eda17bb4962ba4bcb0bbaff51dda76dca39a0f59351bfa108eb2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZDE3ODg3ZDhiOWFjYjJlZjc4ZGRkZmJiNTJkMWEzM2UwZWI2MDRlMmU1NDczMjI5OGZhNmUyMjgyMjc3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SyncSettings.swift#L6-L107",
+          "version": "repo-lines-v1:sha256:cec04eeaafa3c1f73a9f9162fd52675bc175b4649c606ff17bf1ce9dc237491a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMjIyODE3ODM0MzU1ZTY3ODBkYTZlMzE2ZTAxYmEwNmIyOWViYjBjODRiM2I1MzAyZmNjOWFmZDQyMzBiNjBiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3ZjgzMzJmYTk5NjExMTAyYmI4MjkxM2E2YzAxZWFlOTdkNzkzMjdiZTU1YmU2NTg2MTAzN2NmNDhkZmFkOTIyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_9b99b2f9d0ab4c8bad272d0bd8888d7a",
+      "statement": "V28's local Host model stores SSH connection properties as `port`, `identityID` and `charset`; the V28→V30 lightweight migration retains those property names as SSH fields and supplies default-disabled Telnet settings, while the live Host projection supports separate SSH and Telnet profiles.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L757-L775",
+          "version": "repo-lines-v1:sha256:54515ad245652519758936aec589aab32d1e2640f4f321f4d1e31335367860ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNTY5MjAzNmI4ODhlYmYzYjc5YjEzNWU0MDMyN2YxYTFhNzFlZjY1MWM5OTI3ZjE2MWQwNzFmN2Y5MWMzMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1Y2Q2ZWE5MDNjYmNmYmRiMmViNzE3NjY5ZjViMzY3NmUyMTlmMmZlZDc4YTY1ZTNkNzE1MTE1NTI1ZWRhOWMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift#L7-L35",
+          "version": "repo-lines-v1:sha256:48595ba6a10953470c8fa461f76ad38ded5dd2673a3af0ed5c5fbcdee3ed40fd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1YmNjZjg3NmJjMDFjZDNmMDU4YWZmZTBjZWJiYzU3ZTkyNTBmMGM5ZWI5ODlkMjAxODM0NDExOTFkYTk5NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjMzhlN2E1MTJhYWNkZmM1YTZjYjAzZWM4NDBmODkzZGE2YzMyYmJiZjIxNjljMDhlNDJhNjViMjQ3ZDdhYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NDIxYWM2M2VmOGRjMzlmNDZjZmZjNzllZDFjMDQ2ZTg2MmUwMmE1NGY3MzRhYjYxYTJmMmRjZmE3YTNhODAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift#L132-L249",
+          "version": "repo-lines-v1:sha256:8d877b4b722f723e8ee6fe53c6d05397973686efc9859a46518cd8c4eeacf50b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhMmQ0NjhiYjc5MjE0YjE4ZDE2MjAzODVjNGFlZjI1NGFjMWJjZjgyOGM5ZjgxY2IwZTViM2M3N2UzNTVkMDY0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiY2IyZTFhYWQ5ZDNmZDlmOGQ1Yjc0ZDM2NWI0ODgzNmM5NzRkN2Q2MzY3YzU3NDBlNzcwZDhjYWVjOTg1ZDdiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiNGEzNjVhOTBlYzExZTkwNDMyNzUyY2Y5Mzc2ZWM1ZWQzNmI4MGJhNWU4ZTY4NTRmY2Y5ODk3MGQzMDQ0NDY5In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift#L7-L29",
+          "version": "repo-lines-v1:sha256:df7f6bde434ad4e9f105dfa907684aedea0fe4acc2f3139c7915f165a53a52e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNjUwOGQ1YTdmMTg4YjhiMGU0ZjhiODFhNGJiZjgzY2RjYmNjY2JlMWMzMWQ2MThiNjQzZGYxYWM3YjFmNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2NjU3ZjYwMzUzNDE3ODFlMGQ5MmJmNmUxYjlkNDIwMWUxYTUxNzIxZjk0YjY0ZTg3ZmY3MjNhZWNjMDAxMWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzYjhkZWYyZGM0MmU0NGNhNzM3ZDg2ODI0ZjhmZDY4ZjNlMDdiZjk0NGNlMjBlOGI5YjlhZDM0MjAzMTRjNDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_16ad59a234184f1e803b341427176e24",
+      "statement": "The local V28 Host migration does not itself change the Vault cloud protocol: `HostPersistence` loads migrated Hosts into a Vault snapshot and bootstraps/diffs its journal, while Host Vault records remain V1 envelopes; Host Codable retains legacy SSH wire keys and uses backward-compatible defaults for newer protocol fields.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/Host.swift#L314-L385",
+          "version": "repo-lines-v1:sha256:99634d72db7ba2f0b13ed419c26184fa98a8d03a8b7254e5c85e410b4188115c:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTdjOWNjZTZhYWY4OTM2Yjk0NTVhN2ZmOTA3MWMxNjNjZjNmMGViMDQxY2JmZjViOTQ3YWRjYTBkNTVlOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMzY0NjYxNThlYWRlMWYyMTBiMjg1NmRiMjc1ZmJlNDViNTVlZjhmMDdmMDRjNmZhNmFlMDFiNDcxNTdhZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzYjZhNWZiOTJlY2IwODRlYjcyMTliYjZmNWJmYTY4YmNlMWM4ZGQwNDNlNjU4ZTI3NDQxOGJhNTNiNzdlMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZGVlZDg0Y2E4MGNhYjQzNGUxZjY0NDAyOGExODBiYTRkNWFmMTJmYjE0MDgxOGQ4MWEwNDdkNDhkMzAyY2QifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift#L3-L35",
+          "version": "repo-lines-v1:sha256:814424b4967ba512411958dddd5c7010c1eb626878378f92985dc689f4c4a98a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZDRjNDNmZWQ0YjliYTU3ZWM3YjlmYzQwMjllNTdhY2Y4NDBkOWIxMTdlMzRmYTlkNjk1ZTE3OGY2Y2ExNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliYTgyZmY0OGFjMWI3MTg1OTE5YjQzYzMzYTc2NzNlMDMzZDAyNmUyNTc2ODU5NTUxZTcxZDIxMDY0Njk3ODYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift#L76-L132",
+          "version": "repo-lines-v1:sha256:73ec843bd056029e2448b7853227d5691576e736f23411f1688507ffcff2c6b7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3NmE4MzA2NTBjOTkzZWQ3NjE4ZjBhMDhmYmZmOTU3MzQzY2FlNjIzNmJmNThmNjMyNWRkNWRiYTJjNjkxMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzNzkzNzNhYTE4MzRlNThmODdjZmJjYjFkNGNiNWRiNzViNjc1OGZkYTlmZDA2MWFiYTE5OWMwNzI1NThhNTkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L16-L63",
+          "version": "repo-lines-v1:sha256:966ac12efc1c2b09b658618d127306218aef5047b26e401860b504ed4329d93b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4Y2U4MzMyMDVkNTUxNjkxY2Y4MmZmM2U3NGYzNGE1ZWQwYjg2MzFkNmYzYTZjMGJlYjNhNTJlOTVjNThjMWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwNGYzODBlYjE5ZmQ0MDIwNzE1YTVlN2RhMzI4NzRkMmYwNGI3ZTA3YWNiOGYyMGVlNjcxODYzODdhMzJjY2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjYWM1YTJhYjFkNGIyN2YxOGQ3ZGQ4YjYzYmZjYzg1M2I4ZTYyNTA1NTVlYzlhZWYyMmY1YzQwZmM0MjljYTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2NjU1OGM3NmE1MjI1YjVlMGZkMTdjMmJiMzc2Yzk3MDc5NGE2ZjYxM2Q0ODRlY2I1MzE0OTM5MTMxZTUwOGQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L22",
+          "version": "repo-lines-v1:sha256:b674d7c2d231d5b2d374e10cd417076ab8795bb2bc586fc20b530a68b283e3ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_18ad2d4336a34d6899c09a1ec2fca2ec",
+      "statement": "The V28 compatibility fixture tests local migration and repeated reopening through `TermindPersistence.makeContainer`, verifying preservation of Host SSH settings, default-disabled Telnet settings, related Vault state, and default workspace preferences; it is not a CloudKit replica test.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L60-L144",
+          "version": "repo-lines-v1:sha256:4561b141f81b56941320a35e8389bea59dc6291fc22b2e7b359b58f0ed816631:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkZmY4ZDRjNGJlMTRmZDZjZjc4YmQ1ZmI2N2JkNTNkNGVjZWI0MTljNjVhMzFhNWQ2OTQ3NzA2OWE2Y2ExMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZjBmY2E5ODUzMjVjMDQ5ZTY0ZWE5ZmE2MTE3ZjI4NjY0YTcxNzlkMGY2NWEyNjRiNTcyOGNiMTg5NTA4MTIifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

@@ -1,8 +1,11 @@
 ---
 type: architecture-contract
 title: Cross-Cutting Engineering Invariants
-description: Cross-platform safety boundaries for durable Host deletion, Assistant preparation and run persistence, workspace restoration, and app-scoped services. Use this page to check ordering and lifecycle assumptions before changing shared behavior.
+description: Cross-platform ownership and test-host contracts, localization gates, and safety boundaries for persistence, remote sessions, Assistant runs, and app-scoped lifecycles.
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -92,6 +95,12 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-f6e4a8e5d7aef42804ab0509
     resource: repo://Scripts/check-presentation-copy.swift
+  - id: openwiki-source-41a7ded3800c9422f058a3ef
+    resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-de562e98d49cbf6502c23c13
+    resource: repo://Scripts/normalize-string-catalogs.py
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -122,6 +131,8 @@ sources:
     resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -142,14 +153,17 @@ sources:
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-dc392b9979d99f5026bdeadf
+    resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+  - id: openwiki-source-a08489338be00125d646c77e
+    resource: repo://TFMTests/VisibleWindowTestTrait.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -171,7 +185,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindApplication | Ports, feature models, connection/import policy, remote-file-system and sync/outbox use cases; Domain, AgentKit. |
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
-| TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. |
+| TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
 | TermindPersistence | All SwiftData models, historical schemas, V34 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
@@ -187,15 +201,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   migration. `makeContainer` fixes the complete schema/plan; one container per process serves all scenes. Never
   recreate a failed store silently. macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
-- Architecture tests fail closed on absent/empty production roots. Source checks guard dependencies, native-list
-  allowlists, AgentKit/SwiftData ownership and the single `AppStrings` declaration outside the apps; Strings files cannot
-  import app targets, AppKit/UIKit, TermindInfrastructure or TermindPersistence. The SwiftSyntax-based
-  `Scripts/check-presentation-copy.sh` detects selected UI-literal patterns in TFM/TFI; run it with
-  `Scripts/check-zh-localization.sh`. Neither check proves semantic reuse, correct runtime rendering or every possible
-  literal, so copy and wiring still need behavioral/visual coverage. Mobile and shared-framework import checks prohibit
-  storage/transport construction in feature layers; the CloudKit delegate check additionally requires all sync
-  delegates to use the shared lifecycle upload gate and quarantine/conflict validation rather than ad hoc change
-  batches. These are source-boundary checks, not a substitute for behavioral sync or UI tests.
+- `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens.
+- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings. The CloudKit delegate check requires lifecycle batch/upload gates and quarantine/conflict handling, not ad hoc engine batches. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
+- App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
+- The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes

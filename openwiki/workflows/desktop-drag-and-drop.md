@@ -5,7 +5,7 @@ description: "Native drag sources, live drop routing, split previews, cancellati
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T17:55:27.475Z
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -15,6 +15,8 @@ sources:
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-564c1a0cc523e70840b9fc66
@@ -51,7 +53,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # TFM Drag and Drop: Workspaces, Panes, and Assistant
@@ -190,6 +192,8 @@ sequenceDiagram
     Coordinator->>Coordinator: Position and fit destination window
 ```
 
+Live layout ownership changes only when the requested destination window registers.
+
 The request stores a weak source, the move identity, ordinary source size and optional release point. Repeated requests for the same source and move reuse the pending request ID. If the scene factory is absent or the requested source/pane is invalid, no ownership mutation occurs.
 
 Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
@@ -227,7 +231,7 @@ Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift
 | Ownership loss, reconnect, changed history or late request | `WorkspaceWindowMoveTests`: destination delay, duplicate requests, lone-pane identity, closed sources, reversed arrival order and window placement. |
 | Assistant hidden receiver or active-row eligibility | `AssistantConversationListDropTests`; `AssistantConversationOperationsTests` covers persistence failure and preserved activity; `WindowStateTests` covers stable manual order. |
 
-Run the relevant logic suites without visible-window opt-in first, keeping dependency resolution pinned:
+Run the offscreen policy, geometry and lifecycle cases without visible-window opt-in first, keeping dependency resolution pinned. The suite selection below also includes three `WorkspaceNavigatorDropTests` mouse/session cases that will be skipped by default; an `NSWindow` fixture alone does not require the gate if it stays offscreen.
 
 ```sh
 xcodebuild -quiet -project Termind.xcodeproj -scheme TFM \
@@ -241,7 +245,7 @@ xcodebuild -quiet -project Termind.xcodeproj -scheme TFM \
   -only-testing:TFMTests/AssistantConversationListDropTests test
 ```
 
-Real mouse/List interaction cases use `.requiresVisibleWindow`. Opt in narrowly; these tests can show windows and take focus. Keep parentheses in a Swift Testing single-test filter and verify that the result bundle contains the intended test rather than trusting a zero exit status alone:
+The `WorkspaceNavigatorDropTests` single-click, native mouse-session and split-workspace tear-off cases use `.requiresVisibleWindow` because they call `makeKeyAndOrderFront` (the tear-off case also orders another window and activates the app). The trait skips these cases unless the **test host** sees `TERMIND_WINDOW_TESTS=1`; the Xcode command-line prefix `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` forwards that value. The Debug app also suppresses automatic test-window launch by default, but this does not replace the per-test gate. Opt in only when changing real mouse/List or focus behavior, with `-parallel-testing-enabled NO` and a narrow filter. In Xcode's Test action, set `TERMIND_WINDOW_TESTS=1` directly. Keep parentheses in a Swift Testing single-test filter and verify that the result bundle contains the intended test rather than trusting a zero exit status alone:
 
 ```sh
 TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -quiet \

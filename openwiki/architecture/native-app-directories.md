@@ -3,6 +3,9 @@ type: architecture directory guide
 title: Native App Directory Responsibilities
 description: Directory ownership in the macOS and iOS apps, including desktop window composition, MCP transfer policy, and mobile scene, sync, and background lifetimes.
 tags: [architecture, directories, macos, ios, ipados, navigation, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -74,6 +77,8 @@ sources:
     resource: repo://TFM/Application/Serial/SerialPortService.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-391dd36408ff1c7fc7c1c335
+    resource: repo://TFM/Features/Settings/MCPSettings.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-a93c339a06b550013d027e29
@@ -108,12 +113,11 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
+  - id: openwiki-source-44cb7a6172854edbfc9b5ccb
+    resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Native App Directory Responsibilities
@@ -163,7 +167,7 @@ The app composition roots also adapt platform device naming into the shared devi
 | `Transfers` | SFTP browser/channel state and remote-file operations, distinct from the process-wide transfer queue. |
 | `Workspaces` | Persistable connection-intent descriptors and connection-history coordination, not live terminal surfaces. |
 
-The mobile service contracts can mention remote types, but do not construct the live transport implementation. Architecture checks prohibit UI and persistence imports in app Application directories; they do not make every platform-local type a portable shared-framework type.
+The mobile service contracts can mention remote types, but do not construct the live transport implementation. `ArchitectureBoundaryTests` checks different boundaries for the two app Application directories: both reject UI and concrete implementation access, but the mobile checks also reject SwiftData, GRDB and `TermindPersistence`, while the desktop checks prohibit AppKit, Security, Network and other concrete framework imports and scan for direct persistence/transport construction. Feature code is likewise checked for concrete construction; neither app-local Application directory is thereby a portable shared-framework layer. The same tests enforce that `@Model` schemas and `SwiftData*Repository` declarations stay in `TermindPersistence`, even though desktop `Infrastructure/Database` can provide convenience adapters over those repositories.
 
 The desktop MCP split illustrates **placement versus lifetime**. `MCPServerController` in `App` owns the server configuration and coordinates start/stop, Pro gating, port changes, token rotation and transfer shutdown. Its `MCPServerTools` in `Application/MCPServer` owns the exported tool registry and upload/download coordinators; it wires authenticated SFTP operations from shared remote infrastructure. `Infrastructure/Networking` serves loopback HTTP bytes, `Infrastructure/MCP` handles protocol sessions, and `Infrastructure/Security` stores the server token. A tool call creates a run-bound upload ticket; the controller routes a `PUT /uploads/{id}` stream to `MCPUploadCoordinator.prepare`, which checks origin, bearer upload token, method, headers, remaining length and acknowledged resume offset **before** claiming capacity or starting audit/transfer work. A disconnect or recoverable transfer failure can pause a ticket for retry at its acknowledged offset; integrity failure, cancellation or expiry cannot be retried. Commit succeeds only after the remote streaming operation returns; session/host revocation and server stop cancel tickets and drain tasks. The transfer budget and audit belong to application operations, not the view that exposes settings. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external protocol.
 
@@ -187,7 +191,7 @@ Every current immediate child of either `Features` directory is included here.
 | `QuickOpen` | Keyboard-oriented quick navigation/connection surface. | Not present. |
 | `SFTP` | Browser, channel model, file context menus, and Open With menu. | Browser, remote text editor, edit preview, and browsing/download history. |
 | `SSHImport` | Desktop SSH-config/key import preview and selection UI. | Not present. |
-| `Settings` | App/terminal/sync settings, AI providers/models/roles, skills, MCP client/server setup, web search, developer options, and log-file management. | App/terminal/SFTP/sync settings, AI providers/models, remote MCP configuration, skills, and logging. No desktop loopback MCP-server setup surface. |
+| `Settings` | Window-local settings index and detail routes for app/startup, terminal, SSH/SFTP connections, AI providers/models/roles, skills, MCP client and local server, web search, sync, logging, and debug-only developer options. The pages edit app-owned models rather than own the sync or MCP server lifetime. | App/terminal/SFTP/sync settings, AI providers/models, remote MCP configuration, skills, and logging. No desktop loopback MCP-server setup surface. |
 | `Shell` | Window destination/route and title values. | Mobile destination and navigation values. **Neither folder is the remote shell protocol implementation.** |
 | `Sidebar` | One window-local column with Navigator, contextual Assistant, Snippets and focus-sensitive History modes; the window model owns mode and visibility. | Not present; mobile uses its registered tab/sidebar navigation shell. |
 | `Snippets` | Snippet library and actions. | Mobile snippet library and actions. |
@@ -225,13 +229,17 @@ flowchart TD
 
 Mobile navigation dispatches scene-local intent to app-owned data and runtime; the Vault file is not the lifetime boundary.
 
-On macOS, `TermindApp` creates one `AppModel` and SwiftData container, but its `WindowGroup` creates a `WindowModel` for each `RootView`. `RootView` mounts `WindowSidebarView` in a `NavigationSplitView` beside a persistent detail deck. Sidebar mode and visibility are per-window: the rail chooses Navigator, compact Assistant, Snippets or History. History shows command history for a focused SSH pane, browse history for SFTP, or connection history otherwise; it is disabled for focused serial/Telnet panes, and an invalid current History mode falls back to Snippets. Clicking Assistant outside a workspace navigates to the full Assistant destination, while Navigator returns from it; assigning a mode for presentation alone is not the same as activating its navigation behavior. `TFMTests/WindowSidebarTests.swift` covers window isolation and the focused-serial fallback; `TFITests/MobileVaultFeatureTests.swift` covers host menu filtering, duplication, group deletion and proxy defaults, and `TFITests/MobileConnectionPickerTests.swift` covers History's limit and search.
+On macOS, `TermindApp` creates one `AppModel` and SwiftData container, but its `WindowGroup` creates a `WindowModel` for each `RootView`, injecting the shared app and container. It also declares a separate external-authentication `Window` scene; the native `AppDelegate` manages activation, reopen, login-launch behavior and termination rather than making any Settings page an app lifecycle owner. In particular, quit first rechecks pending SFTP edits and may cancel termination; after consent it saves window size and starts app shutdown, replying once after cleanup or a three-second timeout. The app's database-open failure is fatal at composition time, not a Settings error.
+
+`RootView` mounts `WindowSidebarView` in a `NavigationSplitView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers the deck without unmounting its workspace views and sessions. Sidebar mode and visibility are per-window: the rail chooses Navigator, compact Assistant, Snippets or History. History shows command history for a focused SSH pane, browse history for SFTP, or connection history otherwise; it is disabled for focused serial/Telnet panes, and an invalid current History mode falls back to Snippets. Clicking Assistant outside a workspace navigates to the full Assistant destination, while Navigator returns from it; assigning a mode for presentation alone is not the same as activating its navigation behavior.
+
+Settings is a **window destination**, not a second app-wide scene. `RootView` displays `SettingsPageView` for `.settings`; `WindowModel.settingsRoute` records the index, category or detail route and remembers the destination Settings replaced. Back walks the route's parent before closing; closing resets to index and restores the previous destination, falling back to Vault if its workspace was removed. `SettingsPageView` assembles the category forms and detail editors, with remote MCP editor access guarded by Pro; its `MCPServerSettings` route edits the app's local server configuration, not the HTTP listener. Leaving provider, MCP server or skill editors discards qualifying empty drafts; nonempty skill drafts remain available and an MCP draft must lock a unique namespace. App preferences and service models remain app-owned, while only transient route and newly-created-provider UI state belong to the window/view. `TFMTests/SettingsNavigationTests.swift` covers back/return behavior, removed-workspace fallback and draft policy; `TFMTests/WindowSidebarTests.swift` covers window isolation and the focused-serial fallback. `TFITests/MobileVaultFeatureTests.swift` covers host menu filtering, duplication, group deletion and proxy defaults, and `TFITests/MobileConnectionPickerTests.swift` covers History's limit and search.
 
 ## Infrastructure subdirectories
 
 | TFM directory | Responsibility |
 | --- | --- |
-| `Database` | App-facing SwiftData adapters and convenience wiring for history/audit models. It uses Persistence-owned entities; it does not define a second model schema. |
+| `Database` | App-facing SwiftData convenience wiring for history models using repositories declared in `TermindPersistence`; it does not define a second model schema or repository implementation. |
 | `Repositories` | Factories that connect feature/library models to persistent stores. |
 | `MCP` | MCP protocol/session handling on top of the local HTTP transport. |
 | `Networking` | Loopback HTTP listener and request/response transport. |

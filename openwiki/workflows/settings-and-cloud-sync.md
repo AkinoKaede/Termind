@@ -3,6 +3,9 @@ type: synchronization workflow
 title: Settings, Vault, Metrics, and Cloud Sync Workflow
 description: How Termind independently synchronizes Vault, Settings, and Metrics through CloudKit, including lifecycle gates, durable journals, account and environment transitions, conflict handling, and AI-secret upload authorization.
 tags: [cloudkit, synchronization, settings, vault, metrics, secrets, swiftdata]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
@@ -10,6 +13,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-9bd2b93db78747d6956c2405
+    resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-a9afccb62e1c69e5a0fbf46c
@@ -26,6 +31,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-07774a741f517493204edd63
     resource: repo://Frameworks/TermindPersistence/MetricsSyncJournal.swift
   - id: openwiki-source-65a2da12a42f42fb0850078e
@@ -46,6 +53,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-a0d614d618b11f103ec246ae
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
+  - id: openwiki-source-7a9c6d90cba4ebd1d1398673
+    resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-79e0f2a939e874c6a6803c19
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
+  - id: openwiki-source-8fda0c115d3df709fffe110c
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
   - id: openwiki-source-15e5026028d13d2202844f68
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
@@ -62,14 +75,17 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-8428b9f5de49b8a561d93fa5
+    resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+  - id: openwiki-source-cfe2a6b22338023c37a5b503
+    resource: repo://TFM/Features/Settings/SettingsPageView.swift
+  - id: openwiki-source-0a0c39623be1c4e870d0f538
+    resource: repo://TFM/Features/Settings/SyncSettings.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Settings, Vault, Metrics, and Cloud Sync Workflow
@@ -79,6 +95,8 @@ Termind synchronizes three **independent categories** in the private `iCloud.com
 This workflow is CloudKit replication built around a SwiftData journal, not SwiftData’s CloudKit integration. `TermindPersistence` owns the journal models and the coordinator applies accepted remote envelopes back through the relevant persistence facade. Platform app models own coordinator lifetime and apply resulting snapshots to their runtime models.
 
 ## Categories, switches, and runtime ownership
+
+On desktop `SettingsPageView` routes the Sync category to `SyncSettings`. Its master switch checks the Pro capability, reconciles app-wide access, and, when enabled, attempts to move custom Host passwords into iCloud Keychain; Vault selection does the same migration. The category checkboxes change their own coordinator's enable state and show per-category status, retry, or account-merge confirmation. This UI is a control surface, not the store migration or CloudKit engine itself.
 
 | Category | Coordinator and zone | Content boundary | Default control |
 | --- | --- | --- | --- |
@@ -94,19 +112,18 @@ All master and category switches default on. A category is enabled only when the
 
 Every coordinator adapts its own journal to `CloudSyncLifecycleStore` and implements `CKSyncEngineDelegate`; the lifecycle owns the engine session and operation generation. It first checks the CloudKit account and user record, binds or requests confirmation for the account, prepares scoped safety state, resets incompatible CloudKit metadata when needed, commits a recovery checkpoint, creates an engine, restores only uploadable journal record names, ensures its zone exists, and fetches that zone. **No send is authorized until that fetch succeeds for the current engine.** Local edits still enter the durable journal while sync is paused or while the fetch is in progress.
 
-<!-- openwiki: mermaid parse failed and this diagram was converted to a text fence so it does not break rendering. Fix the diagram source and restore the mermaid fence. Parser error: Heuristic: a semicolon inside a label breaks rendering; rephrase the label. -->
-```text
+```mermaid
 flowchart TD
-    Enabled{"Master and category enabled?"} -->|No| Paused["Paused; retain local journal"]
+    Enabled{"Master and category enabled?"} -->|No| Paused["Paused and retain local journal"]
     Enabled -->|Yes| Account{"Account available and binding accepted?"}
     Account -->|No| Waiting["Wait for account or merge confirmation"]
     Account -->|Yes| Prepare["Prepare scope and persist recovery checkpoint"]
-    Prepare --> Engine["Create engine; restore eligible queue; ensure zone"]
+    Prepare --> Engine["Create engine and restore eligible queue and ensure zone"]
     Engine --> Fetch["Fetch with current engine"]
-    Fetch -->|Processing failure| Retired["Retire engine; retain recovery and local edits"]
+    Fetch -->|Processing failure| Retired["Retire engine and retain recovery and local edits"]
     Fetch -->|Successful completion| Gate{"Pending record blocked in this scope?"}
-    Gate -->|Yes| Held["Retain local intent; exclude from uploads"]
-    Gate -->|No| Provider["Recheck engine, scope and journal in provider"]
+    Gate -->|Yes| Held["Retain local intent and exclude from uploads"]
+    Gate -->|No| Provider["Recheck engine and scope and journal in provider"]
     Provider --> Send["Send eligible record"]
 ```
 
@@ -144,6 +161,8 @@ On fetch, coordinators process only their zone and accepted record types. They d
 Merge is deterministic: newer versions win; an older remote value causes the local value to be requeued. For equal versions whose payloads differ, encoded bytes provide a deterministic tie-breaker. Settings and Metrics additionally collapse multiple fetched versions of one key before deciding, so batch delivery order does not affect the result. A `serverRecordChanged` save failure runs the server record through the same validation path as a fetch. A supported envelope either establishes an identical local version as uploaded or requeues the winning local result; an unsupported envelope is quarantined instead of silently retrying a stale local payload. Successful sends clear `needsUpload` only if the journal still holds the sent version, so a newer local edit cannot be incorrectly acknowledged.
 
 Vault projections deliberately remove device-local presentation metadata from envelopes: group and package expansion is normalized rather than synchronized. The live V33 Identity shape no longer contains `lastUsedAt` usage metadata. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH, SFTP and workspace preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
+
+**Host schema versus cloud wire format:** `TermindSchemaV28HostModels.PersistentHost` is a frozen *local* SwiftData shape with one SSH `port`, `identityID`, and `charset`; the V28→V30 migration keeps those stored property names in the successor Host model as SSH fields and defaults the new Telnet profile to disabled, port 23 and UTF-8. The live `PersistentHost` projection retains independent SSH and Telnet profiles. This migration does not create a Settings record or a new Vault zone: `HostPersistence` reads the migrated Host into a `VaultSnapshot`, bootstraps or diffs its Vault journal, and the existing `VaultItem` host envelope still uses format V1. `Host`'s Codable keys keep `port`, `identityID`, and `charset` for SSH, while new protocol flags and Telnet fields have backward-compatible decode defaults. Do not treat a successful V28 local-store reopen as proof of mixed-version CloudKit writes or account synchronization.
 
 Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 250 and journals tombstones for the overflow, allowing devices to converge. Launch-time pruning can discard overflow journal rows that never reached CloudKit; previously uploaded overflow receives tombstones. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
 
@@ -191,6 +210,7 @@ When evolving a record, retain decode compatibility and validation. Unsupported 
 
 ## Focused verification
 
+- `FrameworkTests/PersistenceCompatibilityTests.swift` opens a copied V28 store twice through `TermindPersistence.makeContainer`, checking the Host's legacy SSH port/identity/charset, disabled-default Telnet profile, associated Vault data and journal state, and default workspace preferences after Settings preparation; this is a local migration/reopen fixture, not a CloudKit sync test. `FrameworkTests/HostProtocolTests.swift` separately checks live Host protocol defaults and persistence projection.
 - `FrameworkTests/CloudSyncLifecycleTests.swift` verifies fetch gating, accumulated local changes, retry behavior, operation/engine retirement, account confirmation/reset ordering, environment and zone resets, and error-status precedence.
 - `FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift` verifies category isolation and confirms that Settings secret authorization follows a successful fetch and is revoked on account retirement.
 - `CloudSyncSafetyTests` runs all three real coordinators behind fake transport, checking actual batches/providers, conflict quarantine, compatible peers, tombstones/recreation, retry/restart, failed-unblock rollback and status hints.

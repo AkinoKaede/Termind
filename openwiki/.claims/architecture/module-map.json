@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c49415f8bc3f829076c2361a4f7e5a7f8ebcfe6ea0548bee4d615d0ad7df8ee6",
+  "pageVersion": "sha256:751205f27f04ee23745dd8b6b671c9a7dd342d6e1dffb1cc4a5d00b31733bea7",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -8,21 +8,21 @@
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         }
       ]
     },
     {
       "id": "claim_2324a55cebbd45be98b1e10c43bd8612",
-      "statement": "Shared frameworks cannot import either app target, while Domain, Application and Presentation have additional implementation and platform restrictions enforced by ArchitectureBoundaryTests.",
+      "statement": "ArchitectureBoundaryTests check app-target imports and selected implementation and platform imports across shared frameworks: five non-Presentation frameworks share a no-app-import list, Presentation has its own storage and platform import list, and Domain and Application receive additional restrictions; these exact-import guards are not a universal prohibition on conditional platform UI in Presentation.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L164-L187",
-          "version": "repo-lines-v1:sha256:45ac2d747c736c3bb9821104587d21ef897e4ec32ff8b25b11479a6ca7608f89:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3OTk5ZWY4ZDk0Y2NkYzU3ZmJhZDE1NzllYmJkZTM4YjIwYTUyNDk0ZGMyYWYxNGFiZGU2MjY5NmJiMTMwOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNzgzMjY0N2Y5NWFkMDc0NDExNjM1OThlMWU5MDhiZDM0YmUxMTBkNjNkZGE1N2FjMTc5NjIwM2VjZmNmYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYifQ"
+          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionBrandColor.swift",
+          "version": "repo-file-v1:sha256:dc888ab474f9bf142ccbe6f491d10866aad087367807b170f91f61d19debcc3c"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L70-L122",
-          "version": "repo-lines-v1:sha256:99e13181818902dd10a0752232d9b88d1202274b2d8bb1f6662e37bd185bcdb5:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkOTZjN2U3ZTUxOGViZWYxZjQ2ZGJiNmM3OGRmYTM5MjBkZjE3OGE0NmQ1MTQ0MGFjY2YwNjc3ZTE5YjMyMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5MjdkODJhMjlhYzUyNjBiY2I0NjJkZjEwYmI2MmQ3ZjUwODg1ZjAwNWVmY2MwMTcyY2Y0ZjRjMDliZjE0MTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3MzQyYWI0YTU1NDg5ZmFhZjMxZDM3NTgwY2YzZjI5MmYxZmUwMjI2MzhhMWRkZGQxNzM0YTBiYzZkM2ZhZjAifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
         }
       ]
     },
@@ -40,7 +40,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -62,7 +62,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         },
         {
           "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         }
       ]
     },
@@ -144,7 +144,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         }
       ]
     },
@@ -158,7 +158,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         }
       ]
     },
@@ -242,7 +242,7 @@
       "evidence": [
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L189",
-          "version": "repo-lines-v1:sha256:5e582ad2f3ec4728109feafbf32361c1b58e79da16cc678a79d1606293005434:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3ZGE0ZTRmODRkMjdmYjAxMTA1N2E3YjdmMzE0ODI3NmQyOWUyOTUyNDU3ZWE4ZTYyMmUzMmU4MWU4NTVlYmMifQ"
+          "version": "repo-lines-v1:sha256:596e28f0be427d781f699f2ec66edc6540d7ed4daa80117fac0d53acf4bf9434:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3ZGE0ZTRmODRkMjdmYjAxMTA1N2E3YjdmMzE0ODI3NmQyOWUyOTUyNDU3ZWE4ZTYyMmUzMmU4MWU4NTVlYmMifQ"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L221-L236",
@@ -279,10 +279,42 @@
           "version": "repo-lines-v1:sha256:c0afba6920715469b1143421a486cab4c58af4d861f4f079b3c67a50a57cc3c9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxNTg2NDk5Mjk3MTM5ZTRkMWUwMTM1MTU3MDkyNGM1Nzk5MTUyOTI3ZGJiMDM0MDI5MzljNDhkY2RlZjczYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmYWQxMjFmZGRlZGRmNGU0NzJmYzUyZDgxNDU3Y2VmMThjYmU2ZDg0MzNiMjQ0Y2NmMmYxMjYyNmRmNjc5YzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YzJjMzg2MTg1ZDA1MGMyNzY2Y2RkNDZjZDM3OTg2ZTY3NmRhYmU1ZmEwNDk2MTE1ZGQ0M2U5M2ZkNjYxMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjMDlmOGY2NDVmNjBmNGRjZGE1MGIxY2IxMzBmMDJmZGY5M2E4YTRkYjY4OWI2ZjBhZGNmYjBkMmQyNDRhYTEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_a0e27081121948aeb3e1e435b9f8cd3a",
+      "statement": "Shared Presentation has conditional AppKit and UIKit imports for rendering despite the architecture test's exact-line import exclusions; the import guard matches only unindented `import Module` lines, so it does not prove that all shared presentation views are platform-independent.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionBrandColor.swift",
+          "version": "repo-file-v1:sha256:dc888ab474f9bf142ccbe6f491d10866aad087367807b170f91f61d19debcc3c"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+        }
+      ]
+    },
+    {
+      "id": "claim_b5515606ef1b471fab01f25d11947ad8",
+      "statement": "ArchitectureBoundaryTests enforce selected import and construction restrictions on native Application, UI and Features directories rather than a universal ban on native feature imports of shared frameworks; the AgentKit shadow-declaration guard scans the desktop source tree for an explicit set of runtime type names, not every AgentKit-related type across all targets.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
+          "version": "repo-file-v1:sha256:48b3039f44d716afaacc3e0986a88fcaad3a32d6fa00a68dba265b82e0efc284"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T01:58:11.184Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

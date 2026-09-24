@@ -1,7 +1,7 @@
 # Files
 
 - [TFM Desktop UI Architecture](desktop-ui.md) - How the macOS app composes its native window shell, persistent workspace deck, split panes, management pages and Assistant surfaces, with explicit UI-state and runtime ownership.
-- [Cross-Cutting Engineering Invariants](engineering-invariants.md) - Cross-platform safety boundaries for durable Host deletion, Assistant preparation and run persistence, workspace restoration, and app-scoped services. Use this page to check ordering and lifecycle assumptions before changing shared behavior.
+- [Cross-Cutting Engineering Invariants](engineering-invariants.md) - Cross-platform ownership and test-host contracts, localization gates, and safety boundaries for persistence, remote sessions, Assistant runs, and app-scoped lifecycles.
 - [TFI Mobile UI Architecture](mobile-ui.md) - How the iPhone/iPad app composes registered feature stacks, scene-local navigation, shared runtimes, adaptive content regions, native terminal/transcript surfaces and mobile interaction policies.
 - [Module and Directory Architecture Map](module-map.md) - A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
 - [Native App Directory Responsibilities](native-app-directories.md) - Directory ownership in the macOS and iOS apps, including desktop window composition, MCP transfer policy, and mobile scene, sync, and background lifetimes.

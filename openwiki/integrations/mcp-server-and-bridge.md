@@ -3,6 +3,9 @@ type: integration guide
 title: MCP Server, Transfer APIs, and Stdio Bridge
 description: How the desktop MCP listener and stdio bridge expose local host tools and scoped HTTP SFTP transfers, including ticket states and failure recovery. Distinguishes macOS server ownership from the iOS remote MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -16,8 +19,12 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
+  - id: openwiki-source-8a6e94328a445c3566ef9d57
+    resource: repo://TFM/Application/MCPServer/MCPDownloadCoordinator.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
+  - id: openwiki-source-396f97a332870d48c065d7e9
+    resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
   - id: openwiki-source-d485ebb339c77875a3b2701e
     resource: repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift
   - id: openwiki-source-ef4c6426a19087a6c49e4841
@@ -44,10 +51,7 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # MCP Server, Transfer APIs, and Stdio Bridge
@@ -139,7 +143,29 @@ Tool audit records are registered per MCP session. The UI can show client, tool,
 
 ## Capability-based SFTP transfers
 
-Large or binary data does not travel in the 4 MiB MCP body. An MCP call creates a transfer ticket and returns a loopback URL, method, scoped Bearer capability, and identifier; status is queried using the ticket ID through MCP. Ticket creation itself does not open SSH, local files, or the remote source.
+Large or binary data does not travel in the 4 MiB MCP body. An MCP call creates a transfer ticket and returns a loopback URL, method, scoped Bearer capability, and identifier; status is queried using the ticket ID through MCP. Ticket creation validates the arguments and configured host and allocates a ticket through the normal tool executor; it does **not** open SSH, SFTP, a local file, or the remote source. The client owns its local file and sends or saves its bytes separately. Only a valid HTTP `PUT` or `GET` claims an active transfer slot and starts the dedicated SFTP operation. The byte route authenticates the ticket capability rather than a second MCP session header, but the server checks that the issuing run remains registered. Status lookup requires that same run ID; knowing another session's ticket ID is insufficient.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant MCP as MCP protocol and tools
+    participant Tickets as Transfer coordinator
+    participant HTTP as Loopback byte route
+    participant SFTP as SSH authentication and SFTP
+    Client->>MCP: tools/call create upload or download ticket
+    MCP->>Tickets: validate host and allocate run bound ticket
+    Tickets-->>Client: URL and scoped Bearer capability
+    Client->>HTTP: PUT or GET with ticket capability
+    HTTP->>Tickets: validate capability and claim capacity
+    Tickets->>SFTP: open dedicated authenticated transfer
+    SFTP-->>HTTP: stream or commit bytes
+    HTTP-->>Client: byte response or transfer error
+    Client->>MCP: tools/call status with ticket ID
+    MCP->>Tickets: lookup for owning run
+    Tickets-->>Client: state and progress
+```
+
+Ticket creation and byte delivery are separate authorization and I/O phases; status remains tied to the originating MCP run.
 
 Upload and download are separate state machines and separate capabilities, even though they share a global budget of four active slots. Each ticket is bound to the creating MCP session/run, host, remote path, direction and intent; its 256-bit token expires after ten minutes. Waiting and paused tickets expire, while active work is allowed to finish. Each direction permits up to 64 unfinished tickets, retains up to 256 terminal records for 30 minutes, and terminal status remains queryable during that retention interval **while the owning session still exists**. Host/session revocation, server stop, token rotation, or disabling the matching direction cancels/revokes work. Ticket creation only validates request/host and allocates a capability; the subsequent HTTP claim acquires a shared active slot (or returns `429` without consuming a waiting ticket). The session activity check covers live work, unexpired paused tickets, and recently audited completions so a long-running transfer and its status remain queryable past normal session idle expiry.
 
@@ -217,7 +243,7 @@ For direct HTTP clients, settings generates quoted setup commands for Claude Cod
 * Enable the server in macOS settings only after Pro access is available, generate or rotate a token, then copy a client registration command. Treat that token like a local credential and update every client after rotation, port change, or moving the app when using the bridge.
 * Use the server status and connected-client count to distinguish stopped, starting, ready, and failed listener state. Listener failures stop transfers; invalid port/token storage disables activation rather than exposing a partially configured server.
 * To immediately cut off an external client, disable the server or rotate its token. To reduce surface area, disable individual tools; disabling either transfer tool revokes its tickets.
-* Test changes at the correct seam: `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, session-bound secrets, and ticket creation; `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
+* Test changes at the correct seam: `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
 
 ## Related pages
 

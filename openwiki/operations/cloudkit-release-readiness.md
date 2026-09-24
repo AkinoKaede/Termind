@@ -3,6 +3,9 @@ type: release-readiness
 title: CloudKit Schema Deployment and Signed-Device Release Readiness
 description: Production CloudKit schema, compatibility, and signed-device checks for Vault, Settings, SFTP preferences, Metrics, and Keychain-backed secrets.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -34,6 +37,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-a0d614d618b11f103ec246ae
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
+  - id: openwiki-source-7a9c6d90cba4ebd1d1398673
+    resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-79e0f2a939e874c6a6803c19
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
+  - id: openwiki-source-8fda0c115d3df709fffe110c
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -46,22 +55,25 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-8428b9f5de49b8a561d93fa5
+    resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-25a5163498969aef5057c698
     resource: repo://FrameworkTests/SettingsPortTests.swift
   - id: openwiki-source-fce837c614f18611765f3804
     resource: repo://FrameworkTests/SFTPSettingsSyncTests.swift
   - id: openwiki-source-a6f48b126bfcd6573fe06736
     resource: repo://FrameworkTests/SFTPSettingsTests.swift
+  - id: openwiki-source-294dd6a8637abdafe40e9570
+    resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-25a2df896b93f410289e8512
     resource: repo://TFI/TFI.entitlements
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # CloudKit Schema Deployment and Signed-Device Release Readiness
@@ -110,6 +122,22 @@ Current defaults are 30 global transfers, 10 per Host, and Smart topology. The a
 
 For a release check, change 30/10 to 100/50, close Settings, and verify that another device adopts the new pair without interrupting active transfers. Repeat while offline and while the Settings category or master switch is paused, then resume. Include a device retaining 3/2 and, where compatibility testing is available, an older client that continues syncing the pre-existing record types while ignoring `SFTPPreferencesItem`.
 
+## Installed V28 store upgrade gate
+
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared V34 schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+
+```mermaid
+flowchart TD
+    Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
+    Factory --> Local["V28 to V30 to V31 to V34"]
+    Local --> Verify["Load Vault data and reopen store"]
+    Verify --> Device["Signed device upgrade and relaunch"]
+    Device --> Cloud["Independent CloudKit delivery checks"]
+```
+This is the evidence ladder for upgrading an installed store; each step establishes a different release property.
+
+The checked-in `V28.store` was generated against the historical Persistence build with synthetic data and no passwords or private keys. `PersistenceCompatibilityTests.version28FixtureMigratesAndReopensWithoutLosingData` copies it to a temporary disk path, opens it through the normal factory twice, and checks the preserved SSH port/GB18030 charset, default-disabled Telnet, identity and key references, ordered environment variables, snippet, group and known host, history and installation ID, and workspace defaults. The V31→V34 migration backfills the history event's source device from the existing Vault installation ID and creates a device record, without fabricating an end time. `MobileAppTests.startupLoadsVersion28DataAfterMigrationAndRelaunch` also constructs the mobile app twice from the migrated disk container and checks the projected Host, identity reference and history. These in-process fixtures do **not** prove an on-device installed-app upgrade, process relaunch, Keychain secret availability, mixed-version CloudKit compatibility or Production delivery. Include an upgrade of an existing signed installation with actual credentials, then relaunch and sync on another signed device in the release matrix; a fixture credential reference is not a secret.
+
 ## First-stage mixed-version safety
 
 Local schema V31 adds replica-scoped quarantine and recovery checkpoints. The current V34 schema retains that safety storage and adds the connection-history/device shapes through the direct V31→V34 migration. Those local changes do **not** add a Vault record type, change the existing zones, or raise the V1 envelope formats. Treat local database migration and cloud schema deployment as separate decisions; the distinct Settings record types in the inventory still require deployment before use.
@@ -139,11 +167,12 @@ The historical 2026-09-19 implementation record covered full TFI, focused iPad, 
 
 Release sign-off should record, separately:
 
-1. the current pinned macOS and mobile build/test results;
-2. successful Development validation and explicit Production deployment for every required zone and record type;
-3. the signed multi-device/account-switch matrix, including offline and pause/resume behavior;
-4. Keychain-delivery and migrated-token checks;
-5. the SFTP preference and mixed-version safety matrices; and
-6. the published privacy-policy version and effective date.
+1. the current pinned macOS and mobile build/test results, including historical V28 fixture migration and reopening;
+2. an installed signed-device V28 upgrade and relaunch with real credentials, separately from fixture results;
+3. successful Development validation and explicit Production deployment for every required zone and record type;
+4. the signed multi-device/account-switch matrix, including offline and pause/resume behavior;
+5. Keychain-delivery and migrated-token checks;
+6. the SFTP preference and mixed-version safety matrices; and
+7. the published privacy-policy version and effective date.
 
 See [Settings, Vault, Metrics, and Cloud Sync Workflow](/openwiki/workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for ordinary build gates.

@@ -3,11 +3,18 @@ type: testing strategy
 title: Testing Strategy and Behavioral Boundaries
 description: Focused regression strategy for Termind's shared frameworks and macOS and mobile targets, with fixtures that protect persistence, security, lifecycle, architecture, and UI contracts.
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-a298d9034d557f1b420cb306
+    resource: repo://Frameworks/TermindPresentation/ProOfferPresentation.swift
+  - id: openwiki-source-ff6aeac237822b937eb60926
+    resource: repo://Frameworks/TermindPresentation/ProPaywallContent.swift
   - id: openwiki-source-b347308e8c5cc6c0b0d29b7d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
@@ -26,12 +33,20 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-3b424584de88a1150af27f83
+    resource: repo://FrameworkTests/ProOfferPresentationTests.swift
+  - id: openwiki-source-925cc598397685e13fcf56c4
+    resource: repo://FrameworkTests/ProPaywallPresentationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-27d6a8d3b199ecf35f59fafb
+    resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-0ffab0ae6452f870ce4a0efe
+    resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
@@ -52,6 +67,10 @@ sources:
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
+  - id: openwiki-source-bc6023e93d60f0fac1bbea53
+    resource: repo://TFITests/ProPaywallRenderingTests.swift
+  - id: openwiki-source-766dc23f16ac26a41a5b5c22
+    resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
@@ -62,20 +81,21 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
+  - id: openwiki-source-1ec6004f796c8c008740f13b
+    resource: repo://TFMTests/ChooserInteractionTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
+  - id: openwiki-source-8e854eded0d88c86c59da2e5
+    resource: repo://TFMTests/ProPaywallRenderingTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -149,7 +169,9 @@ These tests do not prove unknown-field round trips through an actual historical 
 
 ### macOS: composition, security, and resource lifetime
 
-`TFMTests` owns desktop composition and native interaction seams. `ArchitectureBoundaryTests` is a source-level regression suite: it rejects forbidden imports and concrete infrastructure construction in layers that must stay abstract, confines SwiftData models to `TermindPersistence`, prevents shared frameworks from importing application targets, and prevents local declarations from shadowing types owned by AgentKit. It also checks that all three CloudKit coordinators retain the shared batch/provider/quarantine gates and that the lifecycle itself does not acquire a SwiftData or Persistence import. These source checks complement, rather than replace, the runtime safety fixtures. Run it whenever moving code, changing framework dependencies, adding persistence types, or crossing the AgentKit boundary.
+`TFMTests` owns desktop composition and native interaction seams. `ArchitectureBoundaryTests` is an executable source-boundary check, not a compiler-enforced dependency graph. Its restrictions are **per module**: Domain excludes platform UI, storage, networking, security and commerce imports; `TermindApplication` excludes implementation-framework imports, SwiftData and concrete I/O construction; macOS `Features` excludes persistence/transport imports and concrete constructors. Mobile `Application` excludes UI, SwiftData, GRDB and Persistence; mobile `UI` excludes Persistence and RemoteInfrastructure; mobile `Features` excludes concrete I/O construction. Shared frameworks cannot import app targets or platform-only APIs, `TermindPersistence` cannot import infrastructure, and `TermindPresentation` stays clear of platform, storage, StoreKit and implementation imports. Apply the corresponding rule when adding a module or relocating code, rather than assuming one blanket prohibition applies everywhere.
+
+The suite additionally scans for `@Model` outside Persistence and uses the SwiftSyntax-backed `Scripts/swiftdata-repository-declarations.sh` parser to reject **declarations** of `SwiftData*Repository` elsewhere without mistaking references, strings or comments for ownership violations. It checks app-local `AppStrings` redeclarations and a bounded list of AgentKit-owned type names, limits `ListViewKit` imports to approved native-list workloads, and keeps the forwarding benchmark independent of the app/test target. It scans CloudKit delegate files for lifecycle batch/provider/quarantine/conflict calls, and checks that `CloudSyncLifecycle` keeps its 250-record boundary without SwiftData or Persistence imports. These are source-level guardrails (mostly literal import/token checks), not proof of runtime behavior: run the CloudKit safety and lifecycle fixtures for blocked uploads and recovery. Run this suite when moving code, changing dependencies or persistence ownership, or crossing AgentKit and CloudKit boundaries.
 
 Security-sensitive tests should make the boundary explicit with a memory secret store and an authentication responder, never production secrets. `AgentHostAuthenticationTests` verifies that one-use credentials can configure an SSH/SFTP attempt without mutating the Vault unless saving was requested; it also covers route-order prompting for a jump host and destination, prompt/connection coalescing for concurrent work, cancellation before SFTP opens, rejected-credential retry, and stale authentication generations. These are safety contracts: a future refactor must not persist an ephemeral secret, merge unrelated challenges, or let an old callback erase newer authentication state.
 
@@ -192,7 +214,7 @@ External connection URLs are another ownership boundary: opening one creates an 
 
 ## UI and visible-window policy
 
-Offscreen layout and logic tests remain ordinary tests. A macOS test that presents a window or takes application focus must opt in with `.requiresVisibleWindow` on its suite or test. The trait is enabled only when the test host has `TERMIND_WINDOW_TESTS=1`; without it, those tests are skipped. Rendering and interaction suites use this convention so routine macOS validation remains headless and does not steal focus or depend on a display.
+Offscreen layout and logic tests remain ordinary tests. A macOS test that **presents a window or takes application focus** (including Dock actions, external authentication and Launch Services alerts) must opt in with `.requiresVisibleWindow` on its suite or individual test. The trait is a Swift Testing `ConditionTrait`: it enables the test only when the test host sees `TERMIND_WINDOW_TESTS=1`; otherwise that test is skipped. For example, `ChooserInteractionTests` is gated as a suite because it makes its window key, whereas individual integration tests may carry the trait without skipping their offscreen neighbors. Do not mark all rendering tests as visible-window tests: `TFMTests/ProPaywallRenderingTests.swift` uses a borderless `NSWindow` and `NSHostingView` for **offscreen** layout and bitmap capture, without making it key or activating the app, so its serialized suite runs by default. Conversely, creating a key window or changing focus requires the gate even if the test does not save a screenshot.
 
 Run a named visible-window suite only when its interaction contract changed, for example:
 
@@ -200,13 +222,20 @@ Run a named visible-window suite only when its interaction contract changed, for
 TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/ChooserInteractionTests
 ```
 
-In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. Mobile key-window integration suites are also skipped by default because UIKit presentation is process-wide: opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (forwarded as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>` filter. StoreKit tests require separate manual authorization and remain skipped by default; run `TERMIND_STOREKIT_TESTS=1` with a narrow `-only-testing:TFMTests/StoreKitTrialTests` filter. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, an opted-in window/key-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
+In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. Mobile key-window integration suites are also skipped by default because UIKit presentation is process-wide: opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (forwarded as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>` filter. `TFITests/ProPaywallRenderingTests.swift` follows that policy: its serialized test mounts `ProPaywallContent` in a `UIHostingController`, makes a temporary `UIWindow` key, then hides it and restores the previous key window. StoreKit tests require separate manual authorization and remain skipped by default; run `TERMIND_STOREKIT_TESTS=1` with a narrow `-only-testing:TFMTests/StoreKitTrialTests` filter. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, an opted-in window/key-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
+
+### Pro paywall: separate commerce policy from rendering
+
+Both apps feed StoreKit-derived status, prices, billing period and trial eligibility into shared `ProPaywallPresentation`, and supply platform colors and purchase/restore/reload/manage callbacks to shared `ProPaywallContent`; the desktop reports MCP server support, mobile does not. `FrameworkTests/ProPaywallPresentationTests.swift` checks access labels and date semantics across subscription phases, owned versus family-shared management, and the rule that missing prices or in-flight work disable purchases without hiding recovery. `ProOfferPresentationTests` uses a synthetic offer instead of contacting StoreKit: it checks plan/trial button copy, weekly StoreKit trial duration converted to full days, localized billing units and composed details for English and both Chinese locales, missing-product fields, and an injected localization callback. A locale supplied for duration formatting does not itself change the default localized label lookup; the platform view supplies its own locale-aware localization closure.
+
+The platform rendering fixtures then test the **same shared content** rather than purchasing anything: free versus subscribed, `en`/`zh-Hans`/`zh-Hant`, regular versus accessibility text, and horizontal overflow/usable scroll space at the macOS sheet size or mobile phone/tablet sizes. They attach PNGs and write previews to a temporary directory for inspection. These assertions and screenshots are layout evidence, not proof of StoreKit transaction flow or of tapped-button behavior. Use `ProAccessTests` for the desktop feature gate and separately authorized StoreKit tests for actual commerce paths.
+
 
 ## Change-to-regression matrix
 
 | Change type | Primary regression seam | Required behavior to protect |
 | --- | --- | --- |
-| Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | No reverse import, concrete implementation leak, duplicate AgentKit type, or SwiftData model outside Persistence. |
+| Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | Respect each module's import/construction rules; no app import from shared code, local shadow of guarded AgentKit types, or SwiftData model/repository outside Persistence. |
 | SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows. |
 | Assistant message-boundary edits or replacement provenance | Agent persistence/replay, conversation operations/controller, composer and mobile Assistant fixtures | Same-run prefix and graph survive, suffix backing is removed, staging adopts once, chronology remains stable, live/restore agree, and late retired writes cannot resurrect history. |
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data. |
@@ -216,7 +245,8 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 | Mobile cards or visual presentation | `MobileCardTests` for layout policy plus focused rendering/key-window suite if needed | Container width/accessibility layout and stable heights work offscreen; shared UIKit presentation is opted in and serialized. |
 | Tool approval, transcript cards, or presenter metadata | `AgentToolPresentationTests` and affected platform rendering suites | Registry IDs stay unique, legacy/restored detail agrees, and structured detail, preview and copy behavior survive. |
 | MCP upload ticket, stream, or HTTP route | `MCPUploadTests` plus affected server/session suite | Authenticated tickets remain scoped; offset/digest/commit and cancellation/cleanup state remain correct through loopback HTTP. |
-| macOS rendering or focus behavior | Focused offscreen test plus `.requiresVisibleWindow` suite when needed | Default tests stay headless; opted-in tests prove the user-visible interaction. |
+| Pro paywall copy, eligibility or layout | `ProOfferPresentationTests`, `ProPaywallPresentationTests`, platform `ProPaywallRenderingTests` | Trial durations and labels, purchase availability and recovery stay correct without StoreKit; platform layouts fit across locales and accessibility sizes, with mobile key-window rendering opted in. |
+| macOS rendering or focus behavior | Focused offscreen test plus `.requiresVisibleWindow` suite when needed | Offscreen rendering remains default; tests that present windows or take focus are explicitly opted in. |
 
 ## Execution strategy
 

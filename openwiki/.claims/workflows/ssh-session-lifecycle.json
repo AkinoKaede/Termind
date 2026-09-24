@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a89c6117702461464b0ddad1ba9944e9c4658b630225e3a4f4bbc37d60d93623",
+  "pageVersion": "sha256:f143e764f73ec36677ac186baab67e5d566e192cbfb9c7016ce813655f7828bf",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -134,7 +134,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -166,7 +166,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         }
       ]
     },
@@ -204,7 +204,7 @@
         },
         {
           "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift",
-          "version": "repo-file-v1:sha256:e0fc788e24877e6043dfa7d89ad5835df7e94f3b423fa0482e90f0e5447582aa"
+          "version": "repo-file-v1:sha256:bb052be075fed353e5e94e5f39e90ab900887cd223b8e0679bc3e7b133b4bcfc"
         }
       ]
     },
@@ -252,7 +252,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
+          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
         }
       ]
     },
@@ -273,10 +273,74 @@
           "version": "repo-file-v1:sha256:75c3d7bda5bf9ce83518666d5801cf3e01f9bbc82ed5acdc557bf17c2c6d4efc"
         }
       ]
+    },
+    {
+      "id": "claim_57916b8e9b3545d88b1a4c67adfb2602",
+      "statement": "For an Agent connection through a proxy whose saved password identity is missing, the authentication card retains the proxy-configured username while clearing the unavailable identity selection; an unsaved proxy answer changes only the attempt, while a saved answer persists proxy identity and username to the host store.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift#L204-L246",
+          "version": "repo-lines-v1:sha256:737454e1fa8a61920ee3e34c7af10bf4f36ca4935eac228e8699a2d09d1641bb:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkNWRjN2ZhYjc4NzNiMjBhOGYyNzk2ZjgzNzVhMGEwNmUyZDM5YzY3ZGEwNjg2Y2I5ZjViOTUwYjNjMGYyMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3OTdiOTZlN2ExZjVkZDg3ODA1MmY0MDRjYjUwYmE4MjQzNGQ5YTRkZDE1NWNiMzA4OGI5ZDFlZTkzYjgzZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4YjYzMWEzZjczZDAwNGU0OGVlMjNmNzliYTEyYjFlNTMxYzg4MzdhZDg5ZWMzYzA3NjBlNzlhYzJmMjUzZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMzIwODM0NWZhOThjMjQxYzgyYmExZmYwZWRiODJlN2M4MDA2OTAyYjkyN2NkZmM2OTdjMmFiMGEwZmE4MjgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L253-L289",
+          "version": "repo-lines-v1:sha256:6fa0516c8cf3114fb23aa2bf0a7d7131e29087e94e668260839495fc176f7332:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzMTUyZWUzY2VjM2EzYzU1NGMzODJlMTA2YWNkYzc0YzhjYjI0MTkwMTBiZTMyZTFlZTdhODYyMDM5YTU5YWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ZGQ1OTdlZGZjNmRlZjIzNzBhMjU2YTBhNWY3M2ZmN2E2NzEwY2ZmNGUzNDVlMmQ3MGJkN2IwMGIzYzdmYzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZTNhYTNkNTFhMzZiNWU4MWI2OWU0OTU5NTJlNWNjNzE1OTVhOGYxNDgzNjc1MTU0YTZhYzk1OWQ5NmI5NDAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L19-L52",
+          "version": "repo-lines-v1:sha256:c3b38ca0cac883982e318d3433bd5cbc81734e0f88c05718e8b0c5f6528da440:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2MWQwZDcxMmRiYmNjYWEwNTFkMDA4MGI2NmQxNWI4NGNkODBhMzBiN2QxZDhkMmJkZDIyZjk3MTdiMjc2NzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiMjYxMjQwZTk4NDk2MjA0MGJlNTU4ZDE3Y2EyNTExZWMxMWRkOTExY2NkMjRhMDNjYWE4M2ZmMTExMDkzYmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjZWMyOGNlMGI0YWNhZTljN2YwNzA4ZWI4ZDZjZWYwNTI2Nzc3MjRhYTQ1NzFlZTczZWU0OTM4ZTczNDQzNzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cf9c4121d565433cb7f7d1feb0502e8d",
+      "statement": "When Agent authentication requires an identity followed by a protected-key passphrase, the passphrase response merges into the staged identity submission instead of replacing it, preserving any password fallback for that connection.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L294-L329",
+          "version": "repo-lines-v1:sha256:d925718525a37bc092961c5c05b2ccacd440cb2910ed60bb01129e949b312713:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5OTEwNTdiNzhjNGQyMTM1ZTI0MjNiZTJjOGIxMjlhYmM5MDc4NjBmMjgxNDEzYTllMTk2MTJlYzFhYWNkMWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkYjMzOWMxN2Q0Y2M1NGU3MGM0ZmNmZWNiNjExYmI5ZTdkMzYzZjI1YjE4ZTA5MjNhMWQzMDZjYzk1OTI0ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYWMzNjNkZjhmZTRkOGUwM2Q1ZjU5YjQ4OGYzMTFiOGZiZjU1ODE1MzFhN2FiY2UwYzFhZTY0MWQ0NDhjZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3NmFkN2Y2NTdmYjVkYWVhMTA1MGVmMjc3Yjg5NmE2ZWFiMmY4ODgyNGQyNDBiOTViZGZkNzUxMzNjZWI1YTEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L259-L327",
+          "version": "repo-lines-v1:sha256:e7836618394f5671986aa1d9fcd00841da3896774446b7bacd6bc4397c1da145:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3MjZjOGI1NGFlODc3NmM0MDE5ODdiYzAwMTliOWYyYjhhMzBjYjY4N2NmYmY1YzU0ZGQ3NmQwYzZhOWU1MDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjYTg0MjI3NzlkYzUxMGRjMjM4N2RkNmZiZTdiZmQ1OWY0MDIxYmJlYmYxNjRhZGEwNmQxMzZkODAxZTRmOTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_794d08c35cdd4a7eaf7110c942621f13",
+      "statement": "Closing the last desktop window does not necessarily terminate the application: the metrics menu preference and running metrics govern whether it quits, independently of the window-owned workspace transport lifetime.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L351-L359",
+          "version": "repo-lines-v1:sha256:72b0ea3d0ed1f3a746b2322cc7dfcf974afdc9cce02dda03d97e5862dea07ce9:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZjYmYxYTMzZmU5ZDUxYjBlZjQwNzYzMzljYzEwMGFlMjBlOGFiYzk2OTZlMzk4NjBhY2JmNmU1YWQ2ZTQ4ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDYwZjQzMzI5NTZmNTMwOGY0NTY4NDJjNzExOTFhOTAyZjBkZWY4OTQyNGQ5M2MwZTExYzBhMzZlMmM1Njg2MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjc3ZDhiZmVlYmRjZDdlZWJlYWRkYzZhMjNlNjNiN2JiOTQ2ODg0ZmMwZjUxZmEyNzE4NWRlMDYxMDMxMjg1MyJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1432-L1436",
+          "version": "repo-lines-v1:sha256:692e688d2c7eb2aaf96a505bef91f40bb87e7bcef1d9138a326f0d3173799053:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzkwY2NjNTIzMGVmMWE1NmExMmNhMmI2ODlkYjY2YjM1NDZlZjgxYTdjOGQ2NzQ0NmI4YjcxNDNjZGY2YjAzMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjFlMmJjY2M1ZGZlOTMwMDI4M2NjOGUxNmU1OTBhMDAwNjVlZWY4OTk4YTMxZjQ4NzA0N2Q4ZDRkM2QyNDMxYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzM1OWRkMDg4NDA1ZjhlZTkxOWRmNmQ2NjQ2YWFhNDE4NDY0ZTcyNzIxNTQyNTNhNmFmMWM4ZmY5NTgyOTVmMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjRhNjY4ZWYwMjFjMDFlNTYxZDNiMzgxMTczZjk2YWJmZTA1NmE2MzJjNWQ4ODI2MDdhZDg1YzhjNWQ2YWU1ZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_d1eefdcbcbc248c193c3e64a3f8f4bfa",
+      "statement": "A workspace trust approval resumes the pending live host-key handshake rather than opening a separate discovery connection; the feature pauses recovery while waiting and disconnect clears pending decisions.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L126-L133",
+          "version": "repo-lines-v1:sha256:18f56a503c4a2eb4aa9fa4a4688ff3349dad5d1fe0d5583b0500ce0385fb3ce9:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWViZmM2MDFlMzAzNmU2MjI2OTU0YWM3YzlhMGY1NTVmOTc5YmE0ZGIxMTEwNTE4MmJlNDQ2YjkxMmE3OGJkYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTBmYjZlMDA4NzlmMTE4YTgwZmRmNDhmZTdiNDgxYzkxNTE3ZTc2ZTE2YTQ3ZmQwMjIzMDc2NWNlNjgwODU0NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGUwMDRjZWE4MDkyZWU3ZmJmZTI1YmJhYjgxNjIwYzMwMjM0MWE5Mjk3NjY5Y2JkNWYxMjBkMzlhM2UyM2M1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWYzYzJiZTljODg4NmMyYzVjMjgyNjM5OTgxMGZlNjIwNjRhZmFlYTI3ZGYxM2Y3NDk4YjgzZDIyZWU4MGM4OSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L180-L217",
+          "version": "repo-lines-v1:sha256:acf1352d857c544ce5f29d43d59571d546d172b9627b845a86d7494d3d5b8c1a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyOTllMzg4NGNhZGZlNGUwMzhjODk4NTEzNWU3MzgwMzMwZTBiOWY0NmMyYmZkNWUyOWJhYmNlMzIzYTI1MTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwMDhiOWJkNWE5OWIzMTIyMWQ1ODQ0NGQ4Zjg4ODEyMTJlMWE0NWUwMzNhM2U1YjExMmFjNjhiMTc1NWNjODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliYTBhNTliMjc2YmM2MGExODhmY2IzMGZhMzI1Yzg4ZjRlNjRmZjIyMGY4NzRiYzg5NGU2YzJjNzhmNGNiNjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkZTE2ZTY1YWIyOGNkYzM0NmNhYjQ1YjA4NDNjOGVkMDM2NzllMmMyNzRiNGE1ODM3NjEzYTNjMDA5YzM1MWUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L751-L756",
+          "version": "repo-lines-v1:sha256:0789f22659ee4a9a432ffa2267065dbf30cd3656c4e3094d17e360d693be85f2:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWVlNTQ2MzA2YjYxNTNmZTg5NDViNDE2MzY4YjBlMDRjY2QwMDljMGI0NGZiYzUyZWE4NzQ5YzNkNzgxMjRiMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTY5NzkzMDIxMjQ4MjU5NTQzNTM4ZTYzMTBiNTYzMTc4ZjY3ZmJhNmM3YTA3NWMwNDNhMGY4MmFmZjhmZTI0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmJjNDQ1ZGIzNGRmZGU0YTVlOTc1MGI0Mzc1NzVjMjEzMTEwMmNiNTY0YjAzZmE2MDkzYjg3NjhiZTMwMzA4YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjFjYjZiNWJkODBkOTk2YzNhZDlkZDdkNTNjYTg5MmZiNzA5NmZiYjhlODNlZGQ3NjdlMzAwNzQwZGNhOWRlYyJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T17:44:09.687Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

@@ -1,8 +1,11 @@
 ---
 type: release operations
 title: Build, Test, and Release
-description: Targeted validation gates for Termind's resolved-package Xcode builds, opt-in UI and StoreKit tests, localization, screenshots, website, and AgentKit releases.
+description: Operational validation gates for resolved-package Xcode builds, opt-in window and commerce tests, localization, screenshots, website builds, and AgentKit releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -10,12 +13,20 @@ sources:
     resource: repo://.swift-format
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
+    resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
   - id: openwiki-source-c76cbada020604024adadb22
     resource: repo://LandingPage/README.md
+  - id: openwiki-source-aa9e36be30555d3a6c7a3f6a
+    resource: repo://Scripts/check-presentation-copy.sh
+  - id: openwiki-source-f6e4a8e5d7aef42804ab0509
+    resource: repo://Scripts/check-presentation-copy.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-de562e98d49cbf6502c23c13
+    resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-6a4176e7d97bf05b3983882c
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
@@ -38,16 +49,17 @@ sources:
     resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
   - id: openwiki-source-1068a19b8ad42f734f4b4bb6
     resource: repo://TFITests/MobileSavedNameRenderingTests.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-dc392b9979d99f5026bdeadf
+    resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Build, Test, and Release
@@ -109,7 +121,7 @@ A companion change in AgentKit must also pass its equivalent command over `Sourc
 
 ## Window tests and screenshot operations
 
-Most routine tests should remain headless. macOS tests that show windows or take focus explicitly use `.requiresVisibleWindow`; the trait enables them only when the test host sees `TERMIND_WINDOW_TESTS=1`. Xcode forwards `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` into that host environment.
+Most routine tests should remain headless. macOS tests that present windows or take focus—including Dock actions, external authentication and Launch Services alerts—must use `.requiresVisibleWindow` at the suite or test level. The trait skips them unless the test host sees `TERMIND_WINDOW_TESTS=1`; for command-line runs, Xcode forwards `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` into the test host. The two safeguards are complementary: gating a test alone cannot stop XCTest from launching the real app. In Debug test runs, `TermindApp` detects the XCTest configuration and suppresses automatic launch of both the main and external-auth scenes by default, with restoration disabled. Setting `TERMIND_WINDOW_TESTS=1` allows automatic launch again; an active screenshot demo also bypasses the default suppression. This host safeguard does **not** replace the trait on a window/focus test.
 
 Opt in only for the named rendering/interaction suite being investigated:
 
@@ -117,7 +129,7 @@ Opt in only for the named rendering/interaction suite being investigated:
 TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/ChooserInteractionTests
 ```
 
-In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot tests may retain their own dedicated opt-in variables; offscreen layout and logic tests remain part of normal validation. This separation prevents a routine test run from activating the app, stealing focus, or becoming display-dependent.
+In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Run this on a machine with an appropriate display and keep the selection narrow; the opt-in also lifts the app host's automatic-window suppression. Existing screenshot tests may retain their own dedicated opt-in variables; offscreen layout and logic tests remain part of normal validation. Without the opt-in, routine runs neither execute gated focus-changing tests nor auto-open the test host's windows.
 
 ### Mobile key-window integration tests
 
@@ -162,15 +174,16 @@ The macOS script requires macOS 27.x, accepts constrained scene/locale environme
 
 ## Localization gate
 
-User-facing app text belongs in `Frameworks/Resources/Localizable.xcstrings`; bundle metadata belongs in `InfoPlist.xcstrings`. Any new or changed English string must ship with finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve format placeholders and Chinese punctuation conventions.
+Define user-facing copy as shared `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` (`AppStrings`), even for one-platform wording; the catalog compiled into each app bundle is `Frameworks/Resources/Localizable.xcstrings`, and bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. Keep identifiers and diagnostic codes with their existing owners. `STRING_CATALOG_GENERATE_SYMBOLS = NO` because `AppStrings` owns the Swift-facing API. Any new or changed English string must ship with finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions.
 
-Run the catalog gate before committing; it requires `jq` and accepts an optional catalog path:
+The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit run `Scripts/normalize-string-catalogs.py --write` for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter. The normalizer leaves translations intact and does not touch AgentKit's catalog. Before committing, run both checks (the catalog check requires `jq` and optionally accepts a catalog path):
 
 ```sh
+Scripts/check-presentation-copy.sh
 Scripts/check-zh-localization.sh
 ```
 
-The script first runs `normalize-string-catalogs.py --check`, then validates the catalog as JSON. For each Chinese locale, it rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. It exits nonzero at the first category of failure, so fix the catalog rather than bypassing the check. Run `AppLanguageTests` when language behavior changes; those tests cover canonical language preferences and ensure Simplified and Traditional Chinese resolve independently.
+The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON and, for each Chinese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, menus, plurals and SwiftUI resource bridging.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 
@@ -221,7 +234,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 1. Identify the smallest affected product surface and run its focused tests.
 2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes.
 3. Run strict Swift format lint for Swift changes.
-4. Run `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations and run `AppLanguageTests` when localization behavior changes.
+4. Run `Scripts/check-presentation-copy.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
 6. Keep visible-window, mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
 7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.

@@ -3,6 +3,9 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -96,10 +99,7 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -128,7 +128,7 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 `TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV34` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and do not assemble a partial schema per feature or scene. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
 
-The desktop root makes container opening part of initialization and uses a `KeychainSecretStore` for live composition. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors are not silently replaced with an empty database: the mobile initializer throws; desktop initialization catches and terminates with a fatal database-open error. Data availability is an explicit startup condition.
+The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. It supplies `KeychainSecretStore` for the normal composition and passes the same container to SwiftUI's main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before the live repository wiring; XCTest still uses the in-memory container but disables cloud coordinators. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors are not silently replaced with an empty database: the mobile initializer throws; desktop initialization catches and terminates with a fatal database-open error. Data availability is an explicit startup condition.
 
 ### Repository projections and atomic mutation
 
@@ -160,6 +160,18 @@ Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` h
 
 V28 is required for existing installed stores. Removing its endpoint made staged migration reject those stores with CoreData error `134504` (unknown model version). `TermindSchemaV28HostModels` restores the historical fields, defaults and model identity from the parent of `b0d35d24`; V30 retains its existing model types and order. Recovery uses the normal container factory and preserves the original database on an opening failure, rather than clearing or rebuilding it.
 
+```mermaid
+flowchart TD
+    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with V34 and migration plan"]
+    Factory --> V28["Recognize frozen V28 endpoint"]
+    V28 --> V30["Lightweight V28 to V30"]
+    V30 --> V31["Lightweight V30 to V31"]
+    V31 --> V34["Custom V31 to V34 device backfill"]
+    V34 --> Reopen["Open same migrated path again"]
+```
+
+The fixture-based path tests endpoint recognition, successive migration and reopening of the same on-disk data.
+
 Examples show why this matters:
 
 - V1–V6 identity and SSH-key shapes remain represented by frozen types so their fields and defaults retain the historical schema checksum.
@@ -169,7 +181,7 @@ Examples show why this matters:
 - V34 directly migrates released V31 stores to the Host/connection-history/device model types named V32 and the Identity type named V33, and adds workspace preferences. These type names do not imply intermediate released schema endpoints. Host and Identity replacements remove obsolete `lastUsedAt` columns. The custom migration preserves events, assigns the stable installation ID to their `sourceDeviceID`, and inserts a separate `DeviceRecord` for that installation. The event itself receives no hostname field, and the CloudKit envelope format remains V1.
 - The V31→V34 compatibility test verifies retained Identity configuration and the independent Vault journal modification date, connection origin/backfill with no invented end time, and default workspace-preference journal bootstrap. Historical Host and Identity shapes retain the old columns solely for schema compatibility.
 
-`PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and schema checksum. Migration and reopening preserve host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts and connection history, including the existing installation ID used for device backfill. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch. The suite retains V27, V30, V31 and current V34 compatibility coverage, full-schema independent in-memory containers, and new-field defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
+`PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and expected checksum and explicitly stores synthetic references, not a password or private key. The fixture uses a V28 host with SSH port and charset, ordered environment-variable name/value arrays, snippet and group IDs, an identity pointing to an SSH key and a Keychain reference, a known-host mismatch flag, a connection event without a device ID, and a preexisting Vault installation ID. The V28→V30 model preserves the old `port`, `identityID` and `charset` property names as SSH fields and supplies Telnet defaults; V30 replaces the known-host type to discard only the obsolete mismatch flag. V31→V34 backfills event origin from the installation ID and inserts a separate device row without synthesizing an end time. The fixture test copies the original store to a temporary path and calls the normal factory twice on that same path: each open asserts projected host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts, history and the installation ID/device row, plus workspace defaults after `prepare()`. This tests migration **and subsequent reopening**, not a newly created V28 store using today's model declarations; it does not test recovery from a deliberately failed open. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch, checking host/identity projections and event origin. The suite retains V27, V30, V31 and current V34 compatibility coverage, full-schema independent in-memory containers, and new-field defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
 
 ### Synchronized connection events and device directory
 

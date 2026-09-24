@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T17:44:09.687Z
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -23,6 +23,8 @@ sources:
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-cfe2a6b22338023c37a5b503
+    resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-9cfd8531aa60dcfb31f04e04
@@ -51,10 +53,14 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-23acce6fe9173a886d433b44
     resource: repo://TFMTests/AssistantConversationMenuTests.swift
+  - id: openwiki-source-a22920a2a9767ac44e072c9f
+    resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-98505b843db3ce6b8e4ca024
     resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
+  - id: openwiki-source-44cb7a6172854edbfc9b5ccb
+    resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-578f30372fe67f8688f44b76
     resource: repo://TFMTests/WindowStateTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
@@ -65,7 +71,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -99,6 +105,8 @@ flowchart TD
     Shared -. services .-> Window
 ```
 
+Window composition and state ownership; the deck stays mounted beneath foreground destinations.
+
 The main layers are:
 
 | Layer | Responsibility | What should not move into it |
@@ -109,7 +117,7 @@ The main layers are:
 | Feature views | Render projected state, present interaction, dispatch intent to owners. | Recreating connections merely because a destination appears. |
 | Reusable renderers and native bridges | Collection interaction, layout, focus/native mounting, terminal/transcript presentation. | Resource-specific repository mutations hidden behind generic drawing code. |
 
-`TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel`, while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; screenshot mode disables scene restoration.
+`TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel` (which starts at Vault/Welcome), while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. `AppModel.registerWindow` wires shared connections, histories, host and metrics services into that model and adopts the shared conversation store; its workspace list, queries, presentation routes and transcript cache remain window-local. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; in debug builds XCTest normally suppresses automatic test windows unless `TERMIND_WINDOW_TESTS=1`, and tests or screenshot mode disable main-scene restoration.
 
 `MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame.
 
@@ -128,11 +136,13 @@ sequenceDiagram
     Coordinator->>Target: open live workspace
 ```
 
+Scene-request handoff: the source keeps the session until the target's native window registers.
+
 A workspace move waits for native destination registration before changing ownership. A pane released outside its source window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
-`RootView` owns the split view, the window toolbar, search host, native window registration, title reporting, Quick Open, onboarding and app-level presentation bridges. It supplies one leading creation area, a principal Metrics page picker when applicable, and one Find slot following the content in front.
+`RootView` owns the balanced `NavigationSplitView`: `WindowSidebarView` is the single leading column and the detail holds a persistent workspace deck with Vault, Assistant, Metrics or Settings layered above it. The sidebar visibility binding reads and writes `window.showsSidebar`; column widths and the window minimum adjust for available width. The floating status bar appears only over a selected workspace. The root also owns the window toolbar, search host, native window registration, title reporting, Quick Open, onboarding and presentation bridges. It supplies one leading creation area, a principal Metrics page picker when applicable, and one Find slot following the content in front. `WindowActivityReader` reports the focused SSH remote title for the window and key-window activity without tying either to a transient pane view.
 
 The sidebar is one column whose mode rail switches between Navigator, Assistant, Snippets and History. `WindowModel.activateSidebarMode` is an **intent operation**, not just a property assignment: choosing Navigator from the full Assistant restores its prior destination, while choosing Assistant inside a workspace opens the contextual sidebar rather than hiding the terminal. Direct mode assignment remains available for presentation/restoration without these navigation side effects. History is unavailable for focused Telnet/serial sessions, and reconciliation moves away from an invalid mode.
 
@@ -147,7 +157,7 @@ Keep the following coordinates distinct:
 - **Focused pane**: the session targeted by workspace commands.
 - **Presentation route**: an editor, chooser, sheet, or other transient interaction.
 
-They influence one another, but they are not interchangeable selections. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection and recoverable close stack live in its `WorkspaceDeckModel`; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
+They influence one another, but they are not interchangeable selections. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Settings navigation uses a window-local `SettingsRoute` hierarchy: toolbar Back walks to the parent, then restores the prior destination, falling back to Vault if its workspace was removed. `SettingsPageView` cleans up incomplete provider, MCP and skill drafts on route changes or disappearance rather than treating a hidden Settings page as a persistent editor. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection and recoverable close stack live in its `WorkspaceDeckModel`; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
 
 ### Navigator interactions and workspace lifetime
 
@@ -182,6 +192,8 @@ sequenceDiagram
     end
 ```
 
+Find command routing and keyboard handoff in the focused main window.
+
 Find ownership flows through the active window; the sidebar mode does not choose the query.
 
 On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item without changing the persistent split-view branch; the toolbar slot itself is fixed by OS availability, not by navigation. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
@@ -215,6 +227,8 @@ sequenceDiagram
     Deck->>Deck: lay out active workspace at current size
 ```
 
+Destination switching parks layout, not sessions or native workspace view identity.
+
 Do not replace this with an `if selected { WorkspaceContentView(...) }` that recreates the terminal hierarchy. Equally, do not let parked workspaces handle invisible keyboard shortcuts: broadcast and terminal-find shortcut owners are explicitly disabled unless their workspace is active.
 
 The floating status bar overlays the current workspace rather than docking below it. This avoids changing the pane's available height when entering a workspace. Command-generation feedback reserves clearance above that capsule instead of competing for the same bottom edge.
@@ -247,6 +261,8 @@ flowchart LR
     Geometry --> Intent[Stable IDs and destination sibling]
     Intent --> Action[Page-owned move or business action]
 ```
+
+Managed-page rendering computes placement intent; the feature owns the resulting mutation.
 
 The renderer resolves a pointer to a section and insertion slot; it does not need to know what a Host, key or snippet means. Selection and deletion state stay with their appropriate owners. Creation belongs in the window toolbar and contextual blank-area menus rather than reintroducing a special “New” tile into each data grid.
 

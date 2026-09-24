@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7391dbb4e86cdf0b4e24c3d6d8731bdb1e5ee8e00f512f8352c88041084935f1",
+  "pageVersion": "sha256:a29579912ea05cbc2cd3810d36bc482b362019aafdc135813b9d3144ab428e4d",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -64,7 +64,7 @@
         },
         {
           "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L11",
-          "version": "repo-lines-v1:sha256:b8b2903d1009b119d2daa9cc5915fe34eab19cf61490b33adc02693393f4c95f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+          "version": "repo-lines-v1:sha256:647fdf978ecd85719df899c592ebd2386dcf8c24b7371545e9ab0dcf3e0402df:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
         }
       ]
     },
@@ -289,10 +289,108 @@
           "version": "repo-lines-v1:sha256:0b6cb21f0f1757fb3cb296d655faedee32d0eaa595497a26b5baf658ab80d29e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0NDFjM2NhNDkxMWNhYWY3OWU3YTE2OTM5ZDY3ZDg5OTY2YTg0N2ZkMDc3ZTRhZDU5ZjM0MTk3ZWFhY2QwOWY5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3YTM1NmNjMGQwZDg1YzZlMGE3N2M0MGU5NDIyNWQ2N2QwNmM2MDhlNmQwZmI5MjI2OGFkNWM2OTA4ZGRkMGY5In0"
         }
       ]
+    },
+    {
+      "id": "claim_8b23a3b66bdb44b9a0cba917ad94a10b",
+      "statement": "In Debug XCTest runs the macOS app host detects the test configuration and suppresses automatic main and external-auth window launch unless visible-window opt-in is set or a screenshot demo is active; test-mode scene restoration is disabled, so gating individual tests alone is not relied on to prevent app-host windows.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L14-L33",
+          "version": "repo-lines-v1:sha256:25a8c6dff46ec83a0b40c47dd446a1d70c15967cf565eb5ac2ccc23b9210ea1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhMmRiNjZmNGE1MzI1NzVkYzUwZmJjOTFjZjRiY2E4YjE1ZDdlOGQyYmU5ZjVjYzE4ZTA2NjI2NTljMGE1ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwNGE1NDQyNzMwZjkzNjk5ZjI1YzU0MTNiZDc0NTViMzZiYWNiYzNkMmVmZTU3MDA0MmFmMTdhNDU5OTUwNDMifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L196-L230",
+          "version": "repo-lines-v1:sha256:78f019aebda1d52b1314cea5b2016d0de3654df1128d7a353152df4c4b1901e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNTgzMDJjZDFmMDQ4ZTE3MzU1MTUxODA0NzRjYmI4M2YwZjhkZDNmN2I3ZjUyODI4ZDU1ZmUxYjg1MmIxOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZDE3ODg3ZDhiOWFjYjJlZjc4ZGRkZmJiNTJkMWEzM2UwZWI2MDRlMmU1NDczMjI5OGZhNmUyMjgyMjc3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0MTA0N2ZkYjNiOWIzMTYwZTU0NWEwOThlOGJhY2E1ODA1YTJlZmFjNGI3YWRkNmYxM2IyNDg4NWJjNmY4ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3OTYxNjQyMmZhZGE5MzNmYjVmNjE4MmEwMTZkOWQyY2QzZmUzNzA5YTc5NDZkNTY2ZGVhZjQyYmMyZGQwMmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dd11225a36704e1da07b1a76f4472da3",
+      "statement": "Presentation copy for either app is defined as shared `LocalizedStringResource` through `TermindPresentation/Strings` and cataloged in the shared app resources, while generated catalog Swift symbols are disabled in favor of the `AppStrings` API.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L48-L69",
+          "version": "repo-lines-v1:sha256:26697577d9457afd4d5953ff5464ff3ce8419e303deb7f51ea1d9644abdfc2ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
+          "version": "repo-lines-v1:sha256:fc75544a0cec27d904ec80a42dc9c6dde7922c9e73b2e1d3d66401e16002c5e1:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRhOWI3NWY2NGIxMDZlYjU0NGRlMjAxZjU5OTEyMmQ3NWFiYzQ4M2M1YjE1NmJiYTZjMDVjMGY5NTZkYmMzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQzOTNjNmIxNDE5MzcxNzhiY2QzOGZmOGMzYzllMDIwYzJhN2MwN2ExOTk1M2QyZmQ5NTQyZDBkNjFhNDczZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2390-L2400",
+          "version": "repo-lines-v1:sha256:a5e12a77a7764bfcbd2896f54217211f096a94bc1df7541e2f1159eecdaabde6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiNGY1ODNhODRkZDg3NDc4YTRlNmIxY2JhM2I0NjUyZDlhNjI5NjVmNTJhYWQ5M2I3MDJkZTU1YjlmY2Y2OWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkNDQ2NDFiZDU3YzRmZjlkZjE2NjExN2I0YjMwZmZkMjM2OWU0MjYzMmJlNzU1NjhlNTc2MmZhMjUzMDQ2MWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlNzdiMjEzMTgzZTI4YWFhMDQ1ODg2NjI4OTg3MmIzMjYwZDgyZjU4YWZlZDYxODY2NDFlM2I0MzY0NjdmYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2YjJlMTUzMzgyM2IyMmIzODkyNTcyZGEyZDMwZDMzNjhhZDY2Y2I1OWQ2OGMyODAzY2EyNzA5NmE0N2NhZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d3289095cb654c0898ea8404efd74e27",
+      "statement": "The two shared app string catalogs are maintained with manual extraction state; the normalizer's write mode preserves translations while applying Xcode-compatible formatting, and its check mode rejects drift and duplicate JSON keys. A target's stale extraction flag alone does not justify deleting a shared entry.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L56-L65",
+          "version": "repo-lines-v1:sha256:1eb06590617aef1c63c9d660962cf3826015a58f9ead873d23de2e1462f121ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNDU2ZDI2MjFhMzNhNWJmYTZiYzUwM2FmOWEyN2M3ZDJjZjE1NWFlMTFlMjlhYmQ5YmMyMjE1M2ViYmQ2NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3MjcyZTU1ZWI5NmY2YmE2ZDUyNWRjNmI1YzM2YTJlNzFkYmQyNmExYzJmMzE4NGE5NGQ3MWJmOTA5YWQxNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzMWQ4ZWFiOTUwMzE4YTFjOWM4ZTkyMDNlOTNjMWRhYWM3YmEzMzFjNDUzNzg1MDc1MDcwOTU0ZmQwMmM1YTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2NGU1MDBlMWExMTM0YTIyOTU5ODNmNTRjNDJjYmYyNWY2NWQ5ZjAwMWFjMzlmNTliNTI3MDQ5NjdkOWMzOWMifQ"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L1-L6",
+          "version": "repo-lines-v1:sha256:a4f7e4e8cd45a6a2e257248bc9cef3775d26f29a5f556dc4f80c9f52b74cddea:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDY4MmNiZGI0YzhiMDc1MThiZjQ4NmM1ODk5MGZjMzkxNzgzYWEyMGE5MTZiZmIyN2FkMjExZWIxZDVjMzY0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWVlYjY0YTVlNDE3MWJjNjIxOGQxYzVhMjRjOTYwYWY3YzUyOGYyYjBmMzU3NWFjNmFjN2VlYzE5M2ViNzM2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWFhZjc2MzdjYjZlN2U1ZGI4NWQ2MzQyNzQ2MDE0ZGYwNDFjY2Q1NThhOTIwYjI5ZWI2YWM3MTlkN2JhZjVjMiJ9"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L27-L32",
+          "version": "repo-lines-v1:sha256:d1d0362149f97c2befc73dc7843234f12a50ffe10927986dabcb9e3139658162:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzMxODk1MmU2NzhkYjUwNTY2MTViYTZlNDYxMWZkMWU1NzMyMjYwNzA4YjRmOTVjY2I1ZDhmNTNjZWUzZDg5MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzU4OWI5ODNjZWU2MDMxYjBlNTZiMjA1YmUzOWYwNDJkMWE2ZDZjN2I2NWQ4ZDg5NzBmYzMwYjhkZWYxNjEzMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTk4YjA2M2Q5YjQ3ZTY1Mzc5NjI1NTcyY2NlMTk3NjY5ZDU3NjdlMTJjMThiZTA3NTY1MmI4Y2Q5ODFjZThkNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDcyMjMxMDZmZDg3NDJiNzBlYTIzM2Y5ZGMzNTlmNGIwMmJiYjA2OWI3MjgzZWVmNzYyNDk5NTE2YmQ3YjljOCJ9"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L75-L80",
+          "version": "repo-lines-v1:sha256:6c71ea7347ff9717c89060d589415e0ed157060322ff0439a96fa684359794ff:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDk3MzhkYzIzYzYwZjQ0NmMxNGQ3MTNmOWRiODZkNWNiNWMyOTcyOTI3YjQ1MWYyZjI3OWZjYWM4ZWMzZDM5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTc0MTRjYzM0NWNjNmQ5MTY1YTdhOTk3ZWUzZGRkMjU1ZTExNjMxZjRkZWI0OWE2ZTI2MzNlNGRiNjljNTFhYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTZiNDZlMTg5ZWQyZWEzODEzZWI3OTY0ZjcwYjNkMTBjZDUxZTFhMGIyZGNkYWNhODk4N2QxNGNmOTA3NzYxMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzYxYjQ1OTI5ZjJiYjIzYjY4NWM1NDdmNjdkOGI2ZTY1NGU2NDQ5YTYzOWQyZDc2ZjVmN2VmY2ZhMWVlMGNjOSJ9"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L97-L137",
+          "version": "repo-lines-v1:sha256:04a5a77778f16a8b773d6bae16c86e041fc62aa32ca0bb19c75b50c3493d7d4f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMzk3OTMzYTI0YTgwMWVlOTIzMzI3YmQ2OWEwMTA0OWMwNzc5MTUwMjFjZjJlYzM5ZGRhNGY4MWFhODM3ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2MjMzYjNmZmVhMzJhMjNkZjUzMDY1MzQzNDhmMmRlZTc3NmE1YTZmNzRmYjUzMzE3NWRkYzUzOWE4ZmU0NjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxMTc5YzVmOTVhMDJlMTg2NTczYjkzNDhhYTYzOTZkNjZiNDUzNjgwZWEzODNjM2M1ZjUxMGFiYThhNGZlZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4f997647e9c54f8caf23bd151004f962",
+      "statement": "The presentation-copy gate uses SwiftSyntax to scan the macOS and iOS app Swift source for hard-coded presentation literals and fails with locations when such text should move to shared presentation strings; it is run alongside the Chinese catalog check.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L48-L55",
+          "version": "repo-lines-v1:sha256:a3a3a4e50d9ec51c6791c3487b4bafeaa6d323f5d9ac8d61aa62fd24f1ec0f92:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzRkY2Q2ZjFjNTFjZjNkNGEzYWM4NTBkNTM5N2RlNGJiNGJlMDE5ZWNlMWE4Y2U2M2MzZTIxN2I3MTExMWFjOSJ9"
+        },
+        {
+          "resource": "repo://Scripts/check-presentation-copy.sh#L1-L9",
+          "version": "repo-lines-v1:sha256:3d159813494cb6c9293d191af96b133579ab09fead4e5a9a86298d3d56d6e646:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjg3NWY5Mjg1NDZhZWU3ODU1Y2IxZGI5YWZjOGFiM2YxYThhMzRkNDNkZTViYmQ2MmY3MDc2ZDdiYTlmMzkxNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDQ2YWM3MWNmMTU0Y2IwMzE5ODVlMWU2MmZhZDA1YmQ3MjI4ZmYyZTQ2YmM0YTA5NWZlNjI2Zjc2ODhlMWI1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://Scripts/check-presentation-copy.swift#L26-L60",
+          "version": "repo-lines-v1:sha256:41b8485c80a5f462bd6dbaa16924bfbeb34ba18abfdaca67f4a507c62b0b0c0b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNTVkNTljNDRiY2QxMzk2NmU4N2Y5MDI2NWJhYjZmYzdiNmM1MTA4Nzg4M2Q5YmQyZDM0ODgwYmMyNjYyNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1NmQzNzFhY2NmNmY5MThiYTA2ZjZmNGQ4NDhjZWZiYzcxMmQ3ODFiYzM3NDA3N2VhNmYzMjJhMDBmMGJmNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjZmNmZjI1YzkwYmEwN2M0Y2U3Y2UxNDkxOTEwMWU4M2IwMGRjYmE0YmM1ZWI2NjNjZmRhNDlhNDY5N2ZkNTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://Scripts/check-presentation-copy.swift#L5-L18",
+          "version": "repo-lines-v1:sha256:092f3212071893f610272a62e0dee5a7c9296cffe95064fc25cc8ed65bc5ce27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYTY4ZDE3MmNlYjAzZWM2MjVmYTAwZDYyY2NkMGIwNGViYjIzOTNjMjRkMzQ1NTU0YjMwNTdmZGU4ZDQ4NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDI0NDU4MmI2ZmIwM2QyM2I4NDE1YWJlY2QzNDZiMGM5ZjQ2NmI2Zjc1MmIwNjgxODljZTdlOWEyZGMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3OTQzZmRkMjkzYzI3Yzk5YmQzZmU4MjlmOGZlY2EzYTFkZjc3MDZmYmMyNTIzZjAxNDE1ZDgzNjA3ZTVhMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NmIxOWU5ODgxNmYxMjE5NjE3ZjQzZTljMTM2ZDZiNTcxMGQ5ZmVmNzAzZmFhNThkMzVkNjY4NGIxMWYwODUifQ"
+        },
+        {
+          "resource": "repo://Scripts/check-presentation-copy.swift#L64-L87",
+          "version": "repo-lines-v1:sha256:e567e2575025771a0f17f7c9e93126a63ce6c603b8f0c2e32035f9f7731d4860:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1M2I1YzQ2NjY5ZmJhOTI5Y2YxNmEyNmEzM2U2MGVhNWIwYzFkNzg3OTc0ZTMxNzk2OTllMWU5MzMxMTFhMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjZlYjBjY2QyNTMzMWVlNTZkZDAwN2Q2MjczOGQ0NDAxMjIzMWViMmI2NDhmNzhhYjA2ODc5Y2Q5MGNkNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_753869908c9d48d992613e989a70014f",
+      "statement": "`PresentationCopyTests` provides focused regression coverage for localization resources across three languages, including native menus, count-dependent copy, and SwiftUI resource bridging, beyond the catalog validity gate.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/PresentationCopyTests.swift#L153-L179",
+          "version": "repo-lines-v1:sha256:c99e1ac8888258a65ce6ed7b442f83bff9cd4e9b26f826a3993c2d12d48700ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0M2Q0ZjYwMWU4ZTJmZTYwNTExYTIxYWY5MGVkNWM0MzYzOTVhMjlhMTE2YWY0MjljNDE5Njc1NDQ5YTc0ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzZWI4ODU5ODRkZGRiM2Y1ZDgxYzM3M2I4OTkxYjk3ZTViYzc5YWZkYmIzODk4NGJjMGU5MWQ2ZTkxZjZjOWYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/PresentationCopyTests.swift#L9-L76",
+          "version": "repo-lines-v1:sha256:2d2a60ac4e983f4d2d8ade2d753befda1825eb89a34ce6a5dd07e61f5aa70cf6:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1MWYzMTJmMTE0ZjY1ZDc1ODBhNWRjOWQyNWNhZDJiZmM3NDJmNmJhNjNlOGRmNWEzNjQ0ZTE1ZTYwNDk5NmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlYWVkMzI5NzZkYjNjMTdlMjA0ZmZjZjZmYjVlMTUwNDliMmEzYzk4MGNhNjk3ZmVmMWI4Mzk2Y2NlYzRjYjcifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T01:58:11.184Z"
+    "at": "2026-09-24T03:18:19.992Z"
   }
 }

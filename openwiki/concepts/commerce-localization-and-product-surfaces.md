@@ -3,6 +3,9 @@ type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
 description: Explains StoreKit-derived Pro access, native paywall and review ownership, localization completion rules, and the app, widget, screenshot, and marketing-site surfaces that present the product.
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -18,6 +21,10 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
   - id: openwiki-source-a298d9034d557f1b420cb306
     resource: repo://Frameworks/TermindPresentation/ProOfferPresentation.swift
+  - id: openwiki-source-ff6aeac237822b937eb60926
+    resource: repo://Frameworks/TermindPresentation/ProPaywallContent.swift
+  - id: openwiki-source-f9f51dced2f50e794fadc9ab
+    resource: repo://Frameworks/TermindPresentation/ProPaywallPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-667f8dcadd921c1910c5026c
@@ -28,6 +35,10 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Strings/Presentation.swift
   - id: openwiki-source-eae5d91412d0e2847dacd5b6
     resource: repo://FrameworkTests/AppReviewControllerTests.swift
+  - id: openwiki-source-3b424584de88a1150af27f83
+    resource: repo://FrameworkTests/ProOfferPresentationTests.swift
+  - id: openwiki-source-925cc598397685e13fcf56c4
+    resource: repo://FrameworkTests/ProPaywallPresentationTests.swift
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
   - id: openwiki-source-554fe71f1ba6efebee0d020c
@@ -38,6 +49,8 @@ sources:
     resource: repo://Scripts/check-presentation-copy.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-de562e98d49cbf6502c23c13
+    resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-9fc915d39c61b81a60426eb3
@@ -92,10 +105,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
 ---
 
 ## Scope and ownership
@@ -134,7 +144,25 @@ The gate set is intentionally narrower than the product’s general remote-works
 
 ### Native paywalls
 
-Both platforms render native SwiftUI commerce views from the same controller, but presentation is platform-owned. macOS uses a shared `ProPaywallPresenter` to elect one main-window sheet owner; iOS presents `MobileProView` as a native sheet and invokes the system subscription-management sheet. Both offer annual/lifetime selection, StoreKit-derived offer details, restore, privacy and terms links, and communicate that Family Sharing is supported and AI-provider charges are separate. On macOS, subscription management uses Apple’s account URL; only a purchaser-owned subscription is eligible for management controls, not family-shared access. `ProOfferPresentation` turns StoreKit price, billing period, free-offer duration, and eligibility into the localized button, badge, and renewal terms: it advertises a trial only when StoreKit reports an eligible free introductory offer, falls back to “Subscribe Annually” if the offer is missing or ineligible, and describes lifetime access without renewal. Both paywalls reload products when opened and disable a plan without an available validated product; the macOS paywall also exposes a price-reload action when either offer is missing.
+Both platforms use `ProPaywallContent` for the same status card, feature list, annual/lifetime picker, offer terms, restore, price reload, legal links, Family Sharing disclosure, and separate AI-provider charges. Native wrappers supply platform colors, actions, and a `ProPaywallPresentation` snapshot built from the shared controller. Its `ProAccessPresentation` maps entitlement phase, ownership, expiry, renewal and verification failure to a shared localized label and date meaning; a canceled renewal shows **Access Ends** while the subscription still grants access. Only purchaser-owned subscriptions expose Manage Subscription, not family-shared subscriptions or lifetime access. The content shows the free Metrics limit when that feature triggered the paywall, and chooses the MCP feature label using `supportsMCPServer`: macOS advertises remote tools **and** the built-in MCP server; iOS advertises remote MCP tools only. Processing and errors remain visible even when access already exists, while purchase actions otherwise follow `status.canPurchase`. Missing prices offer reload on **both** platforms; a plan requires its validated product, non-missing price and purchase permission and is disabled during processing.
+
+```mermaid
+flowchart TD
+    Gate["Pro feature gate or open Pro"] --> Platform{"Platform"}
+    Platform -->|macOS| Mac["Main-window paywall owner"]
+    Platform -->|iOS| Mobile["Mobile root sheet"]
+    Mac --> Snapshot["Controller status and validated products"]
+    Mobile --> Snapshot
+    Snapshot --> Content["Shared paywall content and offer formatting"]
+    Content --> Purchase["Purchase or restore on controller"]
+    Content --> Manage{"Purchaser-owned subscription"}
+    Manage -->|macOS| Account["Apple account subscriptions URL"]
+    Manage -->|iOS| SystemSheet["System management sheet"]
+```
+
+The common paywall content consumes platform-owned presentation snapshots and delegates commerce actions back to the shared controller.
+
+`ProPaywallPresenter` elects one macOS main-window sheet owner; `MobileRootView` binds the shared paywall flag to `MobileProView` as a native sheet. The macOS wrapper opens Apple’s subscriptions URL; iOS uses `.manageSubscriptionsSheet`. Both reload products on opening, default to annual and switch to lifetime when only that product loads, route annual/lifetime purchase and restore to the controller, and retain platform-owned close affordances. `ProOfferPresentation` formats StoreKit's annual price, billing period and eligible free introductory duration using the view locale and an explicit app-catalog localization callback. It converts `weekOfYear` trial durations into their full day count (for example two weeks becomes 14 days) because `DateComponentsFormatter` does not format StoreKit weeks; singular billing periods use localized year/month/week/day, and composite periods format one full unit. Eligibility chooses “Start Free Trial” versus “Subscribe Annually”; a missing duration suppresses the badge and trial-term detail rather than inventing a duration, even if the eligible title remains. Missing price or billing period suppresses annual detail. Lifetime copy always states one payment without renewal. The controller validates the annual product shape and free introductory offer before reporting eligibility; no hard-coded price or free-trial guarantee should replace these values.
 
 ## Review invitation policy
 
@@ -146,11 +174,11 @@ Eligibility requires at least seven days since first use, three distinct active 
 
 Define app-facing copy as semantic `LocalizedStringResource` entries in `Frameworks/TermindPresentation/Strings`, **including copy used on only one platform**. `AppStrings` groups navigation, feature and common wording for both TFM and TFI; share an entry for the same meaning and use explicit variants when the platform action or wording differs. Keep protocol values, identifiers, diagnostic codes and user-authored content with their existing owners rather than treating them as translatable UI literals. The `Strings` directory owns definitions and reusable formatting, not a shared native view or a separate resource bundle.
 
-User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `InfoPlist.xcstrings`. The separate AgentKit runtime owns its own `../AgentKit/Localizations/Localizable.xcstrings`; its catalog must be rebuilt with `../AgentKit/Scripts/build-localizations.sh` after changes because a plain Swift build copies those resources rather than compiling them.
+User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. **Both app catalogs are manual:** every entry must have `extractionState: "manual"`. Extraction by one target cannot see all shared and platform-specific usages, so a `stale` marker is not evidence that an entry can be removed; search TFM, TFI and shared modules first. Add keys and finished translations explicitly. After any catalog edit run `Scripts/normalize-string-catalogs.py --write` for canonical Xcode ordering and formatting without changing translations; `Scripts/check-zh-localization.sh` runs the read-only `--check` first. Do not run `jq -S` or a generic JSON formatter on the catalogs. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO` so generated names do not compete with `AppStrings`. The normalizer defaults to these two app catalogs and does not touch the separate AgentKit runtime catalog, `../AgentKit/Localizations/Localizable.xcstrings`; rebuild AgentKit localization with `../AgentKit/Scripts/build-localizations.sh` after its changes because a plain Swift build copies those resources rather than compiling them.
 
-An `AppStrings` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
+`AppLanguage` stores the explicit `en`, `zh-Hans`, or `zh-Hant` choice as `AppleLanguages`, removes that override for Follow System, and migrates legacy Simplified Chinese preference tags to `zh-Hans`; unsupported stored tags follow the system rather than being silently rewritten. `AppLocalization` selects the matching main-bundle localization for explicit and system locales (including regional Traditional Chinese) so imperative presentation can use the effective language. An `AppStrings` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
 
-Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers and both catalogs for finished Chinese string units. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
+Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers, preference migration, regional Traditional lookup, token terminology, placeholder ordering and selected plural structures. Catalog-wide completion and manual formatting are enforced by the shell check and normalizer, **not** by `AppLanguageTests`. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
 
 `Scripts/check-presentation-copy.sh` runs a SwiftSyntax visitor across TFM/TFI and flags selected string literals used as first arguments or named copy arguments in UI APIs, as localized string declarations, or in localized return types. Its detection is deliberately narrower than “all app text”: it excludes macros and only recognizes specified call forms; review new copy ownership and semantic reuse even when the script passes. The script checks that `Strings/AppStrings.swift` exists. `ArchitectureBoundaryTests.presentationCopyHasOneSharedOwner` prevents an app-local `AppStrings` declaration and bans app, AppKit/UIKit, TermindInfrastructure and TermindPersistence imports in the Strings directory. Run the copy check alongside `Scripts/check-zh-localization.sh`; neither replaces language-aware rendering and behavior tests. See [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md) for the ownership map.
 
@@ -158,9 +186,9 @@ Any new or changed English app string requires completed `zh-Hans` and `zh-Hant`
 
 The shared catalog is also the contract for ordinary native product surfaces, not just Pro copy. On iOS, Vault and Vault search open the Snippets and Known Hosts destinations with an optional initial query. The Known Hosts page distinguishes an empty library (“No Known Hosts”) from a search with no matches, offers “Add Known Host” in the toolbar, and exposes Edit, Copy Fingerprint, and Delete on each card. Its editor chooses “Add Known Host” or “Edit Known Host” according to whether the entry exists. The macOS Known Hosts page uses the same add/edit labels, but its empty state also offers “Import Known Hosts” and describes manual fingerprint entry; bulk deletion uses a count-dependent confirmation and warns that the next connection will require server-key verification again. Keep the platform-specific actions and warnings aligned with their `Localizable.xcstrings` keys rather than assuming the two pages have identical UI.
 
-The iOS Snippets page likewise differentiates an empty library from an unsuccessful search. Its add menu offers “New Snippet” and “New Package”; a package menu also offers “New Subpackage”, while deletion offers either removing the package and its snippets or keeping the snippets. The catalog carries these labels and the package-tree snippet-count message in both Chinese scripts. The known-host and snippet cards render their timestamps using the view's environment locale, so an explicit app language must be checked in the actual view as well as in string lookup tests. Do not translate user-authored hostnames, fingerprints, package paths, snippet titles, or scripts as interface copy.
+The iOS Snippets page likewise differentiates an empty library from an unsuccessful search. Its add menu offers “New Snippet” and “New Package”; a package menu also offers “New Subpackage”, while deletion offers either removing the package and its snippets or keeping the snippets. The catalog carries these labels and the count-dependent package-deletion message in both Chinese scripts; the section header's count is rendered as a locale-formatted number, not a separate package-tree count sentence. The known-host and snippet cards render their timestamps using the view's environment locale, so an explicit app language must be checked in the actual view as well as in string lookup tests. Do not translate user-authored hostnames, fingerprints, package paths, snippet titles, or scripts as interface copy.
 
-For focused validation, `AppLanguageTests` asserts explicit-language Pro offers, Chinese catalog completion in both `Localizable` and `InfoPlist`, and distinct Simplified/Traditional lookup; it also checks that assistant token counts use 词元/符元 without applying those terms to security-token labels. `MobileCardTests` checks the known-host editor's add/edit title selection; the opt-in `MobileCardRenderingTests` mounts the real Snippets, Known Hosts, and editor views in a UIKit window for `en`, `zh-Hans`, and `zh-Hant` (light/dark plus a large-type Known Hosts capture). When changing these labels, run the catalog check and language tests, then inspect affected on-device captures in each locale; unit-level catalog completion does not establish that search, menus, dialogs, or layouts still read correctly.
+For focused validation, `AppLanguageTests` asserts explicit-language Pro offers and distinct Simplified/Traditional lookup; it also checks that assistant token counts use 词元/符元 without applying those terms to security-token labels, that forwarding templates preserve placeholder order, and that selected tool-count resources retain appropriate plural forms. Use `Scripts/check-zh-localization.sh` for full-catalog Chinese completion and normalization across `Localizable` and `InfoPlist`. `FrameworkTests/ProOfferPresentationTests.swift` covers weekly trial conversion across three locales, eligibility, missing duration or price and caller-supplied localization; `FrameworkTests/ProPaywallPresentationTests.swift` checks phase/date labels, family ownership and canceled renewal, unavailable plans, and processing/error visibility. `MobileCardTests` checks the known-host editor's add/edit title selection; the opt-in `MobileCardRenderingTests` mounts the real Snippets, Known Hosts, and editor views in a UIKit window for `en`, `zh-Hans`, and `zh-Hant` (light/dark plus a large-type Known Hosts capture). When changing these labels, run the catalog check and language tests, then inspect affected on-device captures in each locale; unit-level catalog completion does not establish that search, menus, dialogs, or layouts still read correctly.
 
 ## Mobile Live Activity and widget boundary
 
@@ -181,5 +209,5 @@ The public site is a separate Astro app in `LandingPage/`, with strict TypeScrip
 - For an access change, update `ProFeature`/callers and `ProAccessController` together; test entitlement phases, verification failures, pending Ask to Buy, restore, and metadata failure separately. `StoreKitTrialTests` exercises the local `SKTestSession` configuration (opt in with `TERMIND_STOREKIT_TESTS=1`, ideally restricting to `TFMTests/StoreKitTrialTests`): it covers trial metadata and restoration, lifetime precedence, cancellation and catalog network errors, pending Ask to Buy approval, unverified transactions, annual purchase without an introductory offer, invalid annual product shape, and empty restore. `CommerceConfigurationTests` catches drift between product identifiers and the fixture.
 - Treat local StoreKit testing as insufficient evidence for production: configure and verify App Store Connect metadata and use Sandbox/review environments for storefront prices, subscription lifecycle, restore, Family Sharing, and cross-device behavior.
 - For paywall or review work, test both platform presenters and the shared controller’s cancellation, persistence, cooldown, and multi-surface rules. Do not infer a rating or prompt display from an attempt record.
-- For text or product-copy changes, define semantic resource entries under `TermindPresentation/Strings` and complete all three catalog languages. Run `Scripts/check-presentation-copy.sh` with `Scripts/check-zh-localization.sh`, then `PresentationCopyTests` and `AppLanguageTests` where applicable; inspect affected native screens in all three app languages and on both platforms as needed.
+- For text or product-copy changes, define semantic resource entries under `TermindPresentation/Strings` and complete both Chinese translations in the manual catalogs. Run `Scripts/normalize-string-catalogs.py --write` after catalog edits, then `Scripts/check-presentation-copy.sh` with `Scripts/check-zh-localization.sh`, `PresentationCopyTests`, `AppLanguageTests`, `ProOfferPresentationTests` and `ProPaywallPresentationTests` where applicable; inspect affected native screens in all three app languages and on both platforms as needed.
 - For widget/deep-link changes, test bounded payload construction, restoration/duplicate handling, and route validation. For marketing changes, run `npm run build` in `LandingPage/`, preserve real device chrome, and recapture affected locale/platform combinations.
