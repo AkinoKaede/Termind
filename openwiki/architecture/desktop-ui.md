@@ -1,11 +1,11 @@
 ---
 type: architecture guide
-title: TFM Desktop UI Architecture
-description: "How the macOS app composes its native window shell, persistent workspace deck, split panes, management pages and Assistant surfaces, with explicit UI-state and runtime ownership."
-tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
+title: macOS UI and Workspace Ownership
+description: How macOS window navigation, sidebar modes, workspace sessions and Vault editing routes divide responsibility between AppModel and WindowModel.
+tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -23,10 +23,14 @@ sources:
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-02eecf143fd9df60be910051
+    resource: repo://TFM/Features/Hosts/HostsPageView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
+  - id: openwiki-source-507cd94a8ae82f840ac8591f
+    resource: repo://TFM/Features/Vault/VaultView.swift
   - id: openwiki-source-9cfd8531aa60dcfb31f04e04
     resource: repo://TFM/Features/Vault/VaultWorkspaceView.swift
   - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
@@ -53,6 +57,8 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-23acce6fe9173a886d433b44
     resource: repo://TFMTests/AssistantConversationMenuTests.swift
+  - id: openwiki-source-38f1f2c3597d520d66dcdd62
+    resource: repo://TFMTests/CardMarqueeSelectionTests.swift
   - id: openwiki-source-a22920a2a9767ac44e072c9f
     resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-98505b843db3ce6b8e4ca024
@@ -71,10 +77,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# TFM Desktop UI Architecture
+# macOS UI and Workspace Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -249,6 +255,8 @@ Vault management is a list/detail workspace, not a collection of unrelated sheet
 - In a narrow detail region, the editor covers the list; the list retains its last visible size and state.
 - Editor presentation animates position and reserved space, not the form's own width.
 
+`WindowModel` owns the selected Vault page and optional `vaultWorkRoute`: `openPage` clears the work route, `openVaultWork` selects a page and detail route, and `closeVaultWork` dismisses the detail. `VaultWorkDetailView` dispatches the route to a resource-specific editor; its identity is keyed to the route. The view-local `VaultWorkEditingSession` protects dirty inline editors during page or editor transitions: an editor registers its route, dirty predicate and async commit with a token; a matching dirty transition waits for Save, Discard or Cancel, while an unchanged or clean route proceeds immediately. Save only executes the deferred transition after a successful commit; a failed save cancels it. Stale editors cannot unregister a newer editor's registration. This guard is used by the resource pages when routing away from an editor, not as a blanket guard on every direct `WindowModel` assignment.
+
 Resource pages plug into `ManagedCardPage` using typed sections, stable item IDs, externally owned selection, capabilities and page-specific presentation modifiers. `ManagedCardPageRenderer` handles the reusable interaction machinery; the page supplies business cards, section headers, drag ghosts, empty/no-results states and blank-canvas menu entries.
 
 ```mermaid
@@ -285,7 +293,7 @@ Escape handling is also scoped. In the compact Assistant, an approval or user-in
 
 ## Connection history projections and pane lifetime
 
-Desktop connection history is shared app data with two deliberately different projections. Welcome shows recent Hosts derived only from events whose stable `sourceDeviceID` matches this installation, so synchronized activity from another Mac does not reorder the local launch surface. Its row timestamp is likewise the newest local event. Deleting a Welcome recent clears every connection-history event for that Host, across protocols and synchronized devices, without deleting the Host. The contextual History sidebar instead shows the newest 100 matching events from the complete synchronized timeline. Each row keeps the protocol in its leading symbol and resolves the source device's current display name through the app-wide `DeviceDirectoryModel`; the event does not capture a hostname. Removing a row deletes only that event, while **Clear History** clears the complete timeline.
+Desktop connection history is shared app data with two deliberately different projections. Welcome shows recent Hosts derived only from events whose stable `sourceDeviceID` matches this installation, so synchronized activity from another Mac does not reorder the local launch surface. Its row timestamp is likewise the newest local event. Deleting a Welcome recent clears every connection-history event for that Host, across protocols and synchronized devices, without deleting the Host. The contextual History sidebar instead shows the newest 100 matching events from the complete synchronized timeline. Each row keeps the protocol in its leading symbol and resolves the source device's current display name through the app-wide `DeviceDirectoryModel`; the event does not capture a hostname. Device synchronization invalidates the directory cache, and a successful local rename also invalidates it, so subsequent lookups use updated names. Directory reads and writes expose `storageError` instead of throwing into the sidebar: a failed load produces no cached devices, a failed rename leaves the old local name unchanged, and a missing device name renders as “—” in the row (the current device can fall back to its local name). Removing a row deletes only that event, while **Clear History** clears the complete timeline.
 
 An event follows the pane's usage lifetime rather than every physical reconnect. `WindowModel` assigns history tracking only to saved-host SSH, Telnet and SFTP panes; local Serial panes and unsaved external targets never enter this timeline. Closing a pane or workspace records `endedAt` before disconnecting its transport. Moving a live pane between workspaces preserves the same event, and reopening a closed workspace creates a new event. A process crash can leave `endedAt` absent rather than inventing an inaccurate end time.
 
@@ -310,10 +318,10 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
-| Narrow editor or Metrics detail layout | `ResponsivePageLayoutTests`, including native table identity and retained scroll positions. |
+| Narrow editor, dirty Vault route transitions or Metrics detail layout | `ResponsivePageLayoutTests` checks narrow and resized editor identity/geometry; `CardMarqueeSelectionTests.vaultEditingSessionOffersSaveDiscardAndCancelForDirtyRoutes` checks clean, dirty, token replacement and save/discard/cancel transitions. |
 | Managed selection/reordering | `ManagedCardDropResolver`, selection and marquee tests; resource-specific move tests. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
 | Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing, Welcome focus and per-page queries; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
-| Welcome Recents, connection-history limits or pane close tracking | `ConnectionHistoryTests`, `VaultSyncTests`, and workspace close/reopen tests. |
+| Welcome Recents, device names, connection-history limits or pane close tracking | `ConnectionHistoryTests` checks local-only recents, stable device IDs and rename lookup; `VaultSyncTests` and workspace close/reopen tests cover synchronization and pane lifetime. |
 
 Some rendering tests explicitly require a visible window; routine checks should not enable those globally. The narrow-editor rendering cases cover English, Simplified Chinese and Traditional Chinese. This guide was derived from implementation and tests; it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) for the appropriate verification commands.

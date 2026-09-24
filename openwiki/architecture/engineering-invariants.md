@@ -1,7 +1,7 @@
 ---
 type: architecture-contract
 title: Cross-Cutting Engineering Invariants
-description: Cross-platform ownership and test-host contracts, localization gates, and safety boundaries for persistence, remote sessions, Assistant runs, and app-scoped lifecycles.
+description: Change-safety contracts for shared-layer ownership, startup and storage migration, cloud replication, device identity, and app-scoped lifecycle boundaries, with focused regression tests.
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
@@ -28,26 +28,26 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-8a925ad4232be8815ba03a04
+    resource: repo://Frameworks/TermindDomain/Connections/HistorySyncTypes.swift
   - id: openwiki-source-c3006decff414f8b4ca021c4
     resource: repo://Frameworks/TermindDomain/Hosts/HostDeletion.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
-  - id: openwiki-source-4957f13c836c497e7ebe4656
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
+  - id: openwiki-source-8a511ce5c3a76863609a6e6e
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-e9c12faee0c7be74b1cc02af
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/ConnectionHistorySyncCoordinator.swift
+  - id: openwiki-source-e0d1a5c458c249d9d88ff665
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/DeviceSyncCoordinator.swift
   - id: openwiki-source-894539337bc9140a109608f0
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
-  - id: openwiki-source-44a21e2f19acb7f78c9e1d23
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift
-  - id: openwiki-source-de21550ef087c0a50185267f
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/LegacyHistoryImporter.swift
-  - id: openwiki-source-3effdff7f6b04e2a66d8f651
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
-  - id: openwiki-source-04ef2b2f02773f8833db9a8b
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
-  - id: openwiki-source-eaa9d39ab551840299164d96
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
+  - id: openwiki-source-6bdc502f2e27478a98f042fa
+    resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -68,8 +68,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
   - id: openwiki-source-07dbc9527b95676a55499eb8
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
-  - id: openwiki-source-87b90af0bd504e35083a8414
-    resource: repo://Frameworks/TermindPresentation/VaultSyncStatusLabel.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -166,10 +164,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-24T06:30:19.118Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+    at: 2026-09-24T14:20:08.561Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -192,7 +190,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V35 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V38 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -208,13 +206,18 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   recreate a failed store silently. macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens.
-- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings. The CloudKit writer delegate check requires lifecycle batch/upload gates and quarantine/conflict handling; the legacy History importer is an explicitly read-only exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
+- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
-  do not change the independently versioned CloudKit envelopes. V35 then adds History journal/state, scoped legacy-import state and decode-capability checkpoints without rewriting those historical models.
+  do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V38 schema passes through
+  V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state) and V38 (delete-handoff and
+  asset-cleanup state). `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
+  and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
 ## State, navigation and editing
 
@@ -704,16 +707,42 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 ## Settings replication
 
 - Master iCloud defaults **on** (`SettingsKey`) and controls Vault and Device directly. Optional History, Metrics and Settings retain separate selections; History inherits the old Vault choice once. Pro gates separate
-  `TermindVaultV1`, `TermindConnectionHistoryV1`, `TermindMetricsV1`, compatibility-named `TermindAIConfigurationV1` coordinators. Each owns a `CloudSyncLifecycle`: serialized
-  generations, consent, fetch-before-send, retry/reset/status. Zones/subscriptions/accounts/journals/engines/merge remain independent. Persistence
-  alone owns journal models. Authorize secret upload only after successful current-engine fetch; pause/retirement revokes. Stale work cannot publish
-  or clear replacements; injected transport enables deterministic tests.
+  Vault, Connection History, Device, Metrics and Settings coordinators. Connection History and Device share the deployed
+  `TermindConnectionHistoryV1` CloudKit zone and `HistoryRecordSyncCoordinator` implementation, **not** engine, subscription,
+  journal kind, safety consumer, or enablement: History follows its optional switch and Device follows master iCloud.
+  Each category owns a `CloudSyncLifecycle` with serialized generations, account consent, fetch-before-send,
+  retry/reset/status; Persistence owns journal models. Only a successful current-engine fetch authorizes uploads;
+  pause/retirement revokes readiness. Stale work cannot publish or clear replacements; injected transport enables
+  deterministic tests.
 - Unreadable supported record types are durable per-record upload restrictions, scoped by container, environment, account,
   zone and owner. Preserve the raw payload and local pending intent. Filter the journal, prune restored engine queues and
   recheck synchronous batches and final record providers; tombstones and physical-delete recreation cannot bypass the restriction.
   Fetch and save-conflict replies share validation. Only successful supported-data reconciliation clears the restriction in
   the same persistence commit; retry, pause and relaunch do not. Other records keep syncing, with separate pending/blocked
-  counts and an update hint only for a recognized newer format.
+  counts and an update hint only for a recognized newer format. Upload batches deduplicate record IDs and cap combined
+  saves/deletes at 250; a physical delete must have a journal-backed, durably recorded handoff before leaving the process.
+  An in-flight delete cannot be replaced by another mutation for the same ID until its causal result is handled; a later
+  reobservation cannot acknowledge away the new pending delete.
+```mermaid
+sequenceDiagram
+    participant Coordinator as Category coordinator
+    participant Lifecycle as CloudSyncLifecycle
+    participant Safety as CloudSyncSafetyStore
+    participant Engine as CKSyncEngine
+    Coordinator->>Lifecycle: start with category scope
+    Lifecycle->>Safety: prepare and commit recovery fence
+    Lifecycle->>Engine: create engine and fetch changes
+    Engine->>Coordinator: remote records or conflict records
+    Coordinator->>Safety: quarantine unreadable records
+    Coordinator->>Coordinator: reconcile supported records and journal
+    Lifecycle->>Safety: complete successful fetch
+    Lifecycle->>Engine: reconcile pending changes
+    Engine->>Lifecycle: request upload batch
+    Lifecycle->>Safety: recheck blocked record and recovery state
+    Lifecycle-->>Engine: only eligible records and deletes
+```
+Shared lifecycle upload gates surround category-specific decoding and atomic persistence; a blocked record cannot be uploaded by a restored queue.
+
 - Persist recovery intent before engines or network operations can advance cursors. Interrupted work leaves the recovery marker;
   delegate persistence failure also retires the engine. Restart requires a fresh fetch without dropping pending local edits. Overlapping explicit
   operations and automatic callbacks keep recovery active until all complete. This is not generic unknown-field preservation,
@@ -781,8 +810,10 @@ The finite UIKit lease ends after synchronous cancellation requests, not after a
   Close All preserves connection history. Local Host deletion closes both live and unopened descriptors immediately, with outbox cleanup for surviving durable work; remote removal closes them through Vault-apply handling.
 - Connection history is a separate native-field History event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
   event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
-  installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. Closing a
-  pane/workspace ends its event; moving preserves it. Stores retain the newest 250 deterministically. Welcome/mobile Recents use local events and
+  installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. `DeviceDirectoryModel`
+  registers the current installation if needed, caches reads, invalidates them on reload/name update and reports storage errors;
+  failure to persist a rename does not change its displayed current name. Closing a pane/workspace ends its event;
+  moving preserves it. Stores retain the newest 250 deterministically. Welcome/mobile Recents use local events and
   aggregate by Host, while desktop History presents at most 100 all-device events and mobile History at most 50. Aggregated Delete clears that Host's events across
   devices; Clear History clears the complete timeline.
 - One serialized Live Activity for current Workspaces only. Secret/command-free validated links select ID/list without restoring unrelated sessions;

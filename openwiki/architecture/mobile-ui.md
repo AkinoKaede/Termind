@@ -1,8 +1,11 @@
 ---
 type: architecture guide
-title: TFI Mobile UI Architecture
-description: "How the iPhone/iPad app composes registered feature stacks, scene-local navigation, shared runtimes, adaptive content regions, native terminal/transcript surfaces and mobile interaction policies."
-tags: [ios, ipados, tfi, ui, navigation, adaptive-layout, swiftui, uikit]
+title: iOS and iPadOS UI and Scene Ownership
+description: "How mobile feature stacks route through scene-local selection to application-owned workspaces and services, with Vault, editor, and background lifecycle boundaries."
+tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -16,6 +19,8 @@ sources:
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
+    resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-851edcded7143bb79a41f6c6
@@ -62,13 +67,10 @@ sources:
     resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# TFI Mobile UI Architecture
+# iOS and iPadOS UI and Scene Ownership
 
 TFI is not a scaled-down copy of the desktop split-pane window. It uses system-adaptive top-level tabs/sidebar, a navigation stack for each registered feature, scene-local routing, and shared application-owned sessions. Adaptation changes presentation without automatically replacing the conversation, terminal or connection being presented.
 
@@ -114,7 +116,7 @@ Each registered destination gets its own `NavigationStack`; the enclosing `TabVi
 | `MobileWorkspace` / `MobileTerminalSurface` | Connection/session state and owned native terminal view. | Workspace lifetime, not just the currently pushed detail. |
 | Feature view state | Temporary picker, preview, drop loading and focus-request state. | Current presentation. |
 
-Two iPad scenes can navigate independently without creating two copies of an already-running conversation. Likewise, selecting a workspace looks up the shared instance; `MobileAppModel.openWorkspace` publishes a restored workspace before connection work so scenes do not race to create separate initial instances.
+Two iPad scenes can navigate independently without creating two copies of an already-running conversation. Likewise, selecting a workspace looks up the shared instance; `MobileAppModel.openWorkspace` publishes a restored workspace before connection work so scenes do not race to create separate initial instances. `TermindIOSApp` constructs one app model before `WindowGroup` creates scene roots; each `MobileRootView` holds a separate `@State` scene model and publishes it as a focused scene value for commands. Startup failure displays a data-store error instead of mounting the root.
 
 ## Navigation is an intent sequence
 
@@ -149,19 +151,18 @@ Unavailable saved workspace IDs produce an explicit unavailable state; a stale r
 
 The Workspaces destination deliberately presents saved descriptors and live runtimes as one collection. `MobileAppModel`
 seeds a display-order ID list from persisted descriptors, appends a Workspace only the first time it appears, and removes
-an ID only when that Workspace is closed. Restoring a saved descriptor attaches a shared `MobileWorkspace` runtime to the
+an ID only when that Workspace is closed. Cold launch restores descriptors, not connections or startup commands; a missing Host is pruned rather than recreated. Restoring a saved descriptor attaches a shared `MobileWorkspace` runtime to the
 existing row instead of moving it. Newly created and process-only external Workspaces append in appearance order. The same
 ordered descriptor projection drives the list and the detail switcher, so choosing a dormant saved item connects it without
 reordering either surface.
 
-Every row uses the same title, login address, protocol label and lifecycle actions. A live runtime adds the eight-point
-connection-state dot; a saved-but-dormant descriptor has no dot. Rename edits either the live descriptor or the saved
+Every row uses the same title, login address, protocol label and lifecycle actions. A live runtime shows an eight-point status dot when connected (green) or busy/reconnecting (orange); disconnected and saved-but-dormant items have no dot. Rename edits either the live descriptor or the saved
 descriptor directly, while Close removes the saved item and also disconnects it when a runtime exists. The detail switcher
 includes both kinds, marks the selected descriptor with a checkmark, and uses the protocol symbol for every other item.
 
 ### Deleting a Host is not popping a workspace
 
-Vault's confirmed **Delete Host** calls `MobileAppModel.deleteHost`, not the detail's back action. The app asks Assistant's connection pool to disconnect that Host, closes its saved live **and** unopened workspace descriptors (disconnecting any matching live workspace), invalidates SFTP edits, cancels transfers, stops/removes forwarding rules, removes Metrics selection, then requests repository deletion, projects the Host out of the library and starts the durable outbox. A repository error is reported through `app.error` and returns `false`; this is not an atomic rollback of the earlier cleanup. The registered outbox deletion handlers repeat workspace/history/projection, transfer and forwarding cleanup as the durable job proceeds. Deleting a Host group with `keepHosts: false` uses this Host path for each member; remote Vault removal closes associated saved descriptors and clears histories and Metrics too. Scenes reconcile routes against the changed live workspace IDs rather than owning the deletion itself.
+Vault's confirmed **Delete Host** calls `MobileAppModel.deleteHost`, not the detail's back action. The app asks Assistant's connection pool to disconnect that Host, closes its saved live **and** unopened workspace descriptors (disconnecting any matching live workspace), invalidates SFTP edits, cancels transfers, stops/removes forwarding rules, removes Metrics selection, then requests repository deletion, projects the Host out of the library and starts the durable outbox. A repository error is reported through `app.error` and returns `false`; this is not an atomic rollback of the earlier cleanup. A corrupt or unsupported saved workspace snapshot likewise reports a restoration error without overwriting that snapshot on later workspace mutations. The registered outbox deletion handlers repeat workspace/history/projection, transfer and forwarding cleanup as the durable job proceeds. Deleting a Host group with `keepHosts: false` uses this Host path for each member; remote Vault removal closes associated saved descriptors and clears histories and Metrics too. Scenes reconcile routes against the changed live workspace IDs rather than owning the deletion itself.
 
 ### Local Recents versus synchronized History
 
@@ -172,7 +173,7 @@ The Workspaces destination and Vault History expose different projections over t
 - Vault History follows Known Hosts in the unfiltered links and shows up to 50 individual events from all devices. Search filters by Host, login address, protocol and source-device name before applying the limit; Vault's own search can link into History with the query. The leading symbol stays protocol-specific and the device name comes from `DeviceDirectoryModel`. An event for a now-disabled protocol stays visible but cannot be tapped; row deletion removes one event, while **Clear History** clears the entire timeline, not just 50 displayed rows.
 
 The unified Workspaces rows and local Recents align their text from the same 36-point Host distribution icon slot and
-12-point gap. Workspace rows always show protocol at the common right edge and only live runtimes overlay the status dot;
+12-point gap. Workspace rows always show protocol at the common right edge and only connected or busy/reconnecting live runtimes overlay the status dot;
 aggregated Recents omits both protocol and live state. Local Recents replaces the empty Workspace section rather than
 appearing beside saved-but-dormant Workspaces. TFI exposes no Serial workspace or connection-history kind.
 
@@ -274,7 +275,7 @@ The application runtime owns execution, not `onDisappear` on the conversation vi
 
 At that boundary the app pauses edit monitoring, memory/sync/Metrics/outbox work and recording, then starts its background allowance. Expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant background execution. An active scene ends the allowance and asks retained workspaces to resume, rechecks edited files, and restarts the appropriate services. This is best-effort mobile continuity, not unlimited background network execution.
 
-Closing a workspace, navigating back from its detail, switching tabs, and exhausting background allowance are therefore four different actions with different owners. A UI refactor must preserve that distinction.
+Closing a workspace, navigating back from its detail, switching tabs, and exhausting background allowance are therefore four different actions with different owners. Removing the last active scene while another remains backgrounded starts the allowance, but removing the last tracked scene does not create a new background lease; returning before expiration leaves a healthy connection intact. A UI refactor must preserve that distinction.
 
 ## Mobile design principles and verification
 
@@ -289,7 +290,7 @@ Implemented principles:
 
 `MobileAdaptiveLayoutTests` mounts `MobileRootView` in a UIKit window and checks the same native `UITabBarController` with five selectable destinations over simulated 1024/600/375/320-point widths, regular/compact traits, large/accessibility Dynamic Type, and English, Simplified and Traditional Chinese locales. In compact mode it asserts all five tab labels are visible; on regular iPad widths the system bar can scroll. Other tests retain Assistant conversation/draft and Metrics navigation through resizing, check title-menu/icon switchers and Settings edit sheets, and isolate two scene models. Injected division and occlusion changes verify Metrics keeps the same native list and scroll offset and Assistant keeps its conversation, transcript `ListScrollView`, focused composer and Chinese marked text; a save-in-flight test preserves a sheet and failure feedback through width changes. These are simulated layout and injected-geometry tests, not proof of every physical device or SDK availability branch.
 
-`MobileAppTests` separately covers descriptor order after restoring, opening and renaming live/dormant workspaces, transient external entries, single-connect restoration across scenes, explicit retry after failed connection, and local/remote Host deletion removing both open and unopened descriptors while retaining unrelated Hosts. The adaptive suite also checks localized compact/regular Workspace rows and that choosing a dormant row restores only that runtime without moving the row.
+`MobileAppTests` separately covers descriptor order after restoring, opening and renaming live/dormant workspaces, transient external entries, single-connect restoration across scenes, explicit retry after failed connection, corrupt snapshot preservation, and local/remote Host deletion removing both open and unopened descriptors while retaining unrelated Hosts. The adaptive suite also checks localized compact/regular Workspace rows and that choosing a dormant row restores only that runtime without moving the row.
 
 `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` exercises capability-filtered Host context menus, independent duplication, keep/delete group-tree behavior and proxy validation; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
 

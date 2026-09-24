@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:31b25b8f676ef671d6853f726cbc282183f00b5870b6f2918c68a4f6a0bb8941",
+  "pageVersion": "sha256:27d4d542851268df93f76939bfe22b715bb01d39e7025d3c9d2af525bd1e2b77",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -172,8 +172,12 @@
     },
     {
       "id": "claim_0bb4eb4f4b7c4e4eb2ef50ee15a2ceac",
-      "statement": "Offer and presentation unit tests cover localized weekly duration, eligibility, missing metadata and entitlement display; Mac and opt-in mobile rendering suites capture free and subscribed shared paywalls in English and both Chinese variants at regular and accessibility sizes without contacting StoreKit.",
+      "statement": "Framework offer and paywall presentation tests exercise localized weekly trial duration, eligibility, missing prices and access labels; the only current Pro paywall rendering suite is the opt-in mobile key-window fixture, which renders injected free and subscribed shared content in English and both Chinese variants at regular and accessibility sizes without StoreKit, not a Mac rendering suite or a live storefront test.",
       "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L38-L46",
+          "version": "repo-lines-v1:sha256:070213e98b52cec4fdee409349c32e94d42a6a1c41a2f6b5e43523d08e46b11b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
         {
           "resource": "repo://FrameworkTests/ProOfferPresentationTests.swift#L6-L70",
           "version": "repo-lines-v1:sha256:60ef7fbc455c1e236654ba64c14069a8cff2a658c9ce4ea7047dcd5ba43bcc0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjNjNlZTI4M2Q5MTUxOTc0MGIxMTE5MTQxNDdkYTNjM2MyNzdmMTI4NGRmOTM5MGRkNzNmNmVmMmI5NDA4N2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkYmZlM2Q1MGM1NzliYTgyYTdlOGFiN2VlN2QyNTE4ODI4YjM1MDU3MmY1OGE3NzY5YjEyOWZhNTA2NzcwNDYifQ"
@@ -183,12 +187,8 @@
           "version": "repo-lines-v1:sha256:2cac517c6e29b315636b8e7f83213a3cc503bc9c5b4837db26141b20727ed263:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMjJmYWE0NjA3YWQxM2Q4ZDhhM2VlOTVjMjQ0ZjViOTlmODFkNDVhOWE4NTc2Nzg0YWUxNTM2NGU1YjZlZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4MDllYWE3MWRjNmZkZDE0MjUwOTY0ZjJlYTgwMjI2NzE0NWE1NDhhMDRjMmZlNjRmMTJlYzRlMjQxNzUyYWIifQ"
         },
         {
-          "resource": "repo://TFITests/ProPaywallRenderingTests.swift#L7-L77",
-          "version": "repo-lines-v1:sha256:e97a64821b0a86e3366b122874974d6490fd4dbc998965d0b6c2a3472f04eb05:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMjdjNGRjZDU0ZTBjMDI5YmM0ZDdjMWVhZTk2NTdiOTcwMWNkZTgxNjQ3Y2Q1ZDQyNTQwMmEwYjUyZjc1YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MGMxNjI2NDZiYTYzOGQ5YmE5ZjQyYTdlYjQ4MmI4NzZmZDMyODgxNWNiZThmOWRkMTk4NzA0ZWI5ZjA1ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjOTNjOWIzMzllMTcxNTg1ZGFmNzQ4MmNlOWM1YmUyNzljYzEzZTk1MGM1NjI2YjU3NTM3MTdhM2RiZjA4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ProPaywallRenderingTests.swift#L7-L59",
-          "version": "repo-lines-v1:sha256:bb36a7e6c836fff23ff6dbd3d588a55c397379cad0ed8abab7b9e8e14053e1fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2NmE3Mjg3NWNjZDc4MTM5NTk4Y2IwZDM1OGI5MzczZDM2ZTlkYTQyMDE3NzA4MTkwZGE3M2JmNGE3Zjk1NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MGMxNjI2NDZiYTYzOGQ5YmE5ZjQyYTdlYjQ4MmI4NzZmZDMyODgxNWNiZThmOWRkMTk4NzA0ZWI5ZjA1ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkifQ"
+          "resource": "repo://TFITests/ProPaywallRenderingTests.swift#L7-L85",
+          "version": "repo-lines-v1:sha256:96a8d0c49cad64d7ca38c325571daa50f93bcdf08d03694fcf80a722945ab19e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMjdjNGRjZDU0ZTBjMDI5YmM0ZDdjMWVhZTk2NTdiOTcwMWNkZTgxNjQ3Y2Q1ZDQyNTQwMmEwYjUyZjc1YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjOTNjOWIzMzllMTcxNTg1ZGFmNzQ4MmNlOWM1YmUyNzljYzEzZTk1MGM1NjI2YjU3NTM3MTdhM2RiZjA4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
     },
@@ -213,10 +213,28 @@
           "version": "repo-lines-v1:sha256:4f2a865e16e47099ad22ef4a06f99683c799ad690a13f1569c1497d83f3dff1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4NzQzYjljZGY1NjdmODk4M2JlODU4YjA4ZmRkZmZlYWUzOGNkZDQ0OTk0NjNlZjE1Yzk2OWYwMmNmNWViZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4OTZiMTE1N2FjN2Q2OThjYjcwMmQxYTA1YmM5Y2QzZDUxYjkzZTRmM2NiNzkzNjkwY2NjNjRkODA0MzBlODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMmJiY2I4NGRkZmQxZTkxM2ExZjAyMWY5YTM3YmMzMjJmMjMxMjg5YTRhNzc5M2FhYTZhZDRiMjVjMzkxZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MDgwZDlkNDRhZDkxYTJkNmY5NjJlNjZkODFlZmY2OWMyMmFjZjEzNTQyNGQ4NTcwZjgyYjExMDJkZWRmYjEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_108368a4ebde422eb42fe5d9e993ff98",
+      "statement": "StoreKitTrialTests is a separately authorized serialized SKTestSession suite that loads the local StoreKit fixture and exercises annual trial purchase and restore, lifetime precedence, metadata failure, pending and unverified purchases, invalid or missing annual offers, and empty restores; it does not replace Sandbox and App Store Connect production verification.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L42-L46",
+          "version": "repo-lines-v1:sha256:6245a22c3122ab4ea6e92fba5efecc31066e1cc232f01cd9beee123f12eb8f74:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTczYTI2N2E2ZGNmZTczN2MyODUyYjY2OTkyNTViNWZlMWViYjYzMzVlZmZiYzgwZjA3ZWE0ZWExZTBhNzdlOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L14-L175",
+          "version": "repo-lines-v1:sha256:2bd56e96e0ea4d9824ebefbe29fb4ab1ee4ce34289270e5ec725ebbc4afc043b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjMTgwMjUwNGYyNWJhM2NkMGI4ZmYxMDBiOTRiZWI1MjZkNWVlMjU0MWMyZDg5MGQ4MWYzYTQ5NjYzYjEyMWMwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3NTUyYzk3MTEwYTAzNWYzZGI0NjFiMzNlY2ZkNTMwMDc5OTgzMWViZWI3ZTJhMzk4ZDMyYmNmZjUyZWIxZTVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3YTM1NmNjMGQwZDg1YzZlMGE3N2M0MGU5NDIyNWQ2N2QwNmM2MDhlNmQwZmI5MjI2OGFkNWM2OTA4ZGRkMGY5In0"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L177-L199",
+          "version": "repo-lines-v1:sha256:a79405a02f51b9a5b924abce37adc17681dc772fd6119f85497d7c218e02d170:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyOGY3YjBiMjZlNGFjYmE0NTJiYTk4OTYwNWU4MGVjYjI2MTJhMjRiNjJhMzc0ZjE0NWQ0ZWMzODNkYTVlN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1OWU1MzhlMTZhYzBmYTBiMzZhMDY5ZjQwZmFlMDliODFhNGFjZGU3OGY4MWY1YWZhNTEyNmY5NDcwNzQ4MGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2YzM3NWQwYjc0YzJhYjQ2OTEyOTlhZDY4ZmNiMzIyZTYxNTE3MmVlNDU4ZjNjNjZhZGI3Y2JkZDNmMzRjZjEifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T14:20:08.561Z"
   }
 }

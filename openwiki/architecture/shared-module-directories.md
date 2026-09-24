@@ -1,8 +1,11 @@
 ---
 type: architecture directory guide
-title: Shared Framework Directory Responsibilities
-description: Responsibilities and boundaries of Termind's shared frameworks and bundle resources, including agent execution, durable replay, SSH charset handling, and synchronized Xcode target membership.
+title: Shared Framework Responsibilities
+description: Directory ownership and collaboration across Termind's six shared frameworks and product-bundled resources, including explicit CloudKit synchronization, durable replay, and remote protocol adapters.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-cd70c531c7abdbbdcb0ea290
     resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
@@ -38,18 +41,16 @@ sources:
     resource: repo://Frameworks/TermindDomain/Shell/CommandRiskEngine.swift
   - id: openwiki-source-342a31db9c80b2ac86cc1442
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPTransfer.swift
-  - id: openwiki-source-1429ec01ac68a7770ce41977
-    resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-96fe5b8bf5e51592ac0ec550
     resource: repo://Frameworks/TermindDomain/Workspaces/WorkspaceTemplate.swift
   - id: openwiki-source-4b9f58eec58128055ac58b6f
     resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
-  - id: openwiki-source-4957f13c836c497e7ebe4656
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
-  - id: openwiki-source-3effdff7f6b04e2a66d8f651
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
-  - id: openwiki-source-04ef2b2f02773f8833db9a8b
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-1d1f503a260f304a969fcee4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-8a511ce5c3a76863609a6e6e
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -132,13 +133,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:45:57.323Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# Shared Framework Directory Responsibilities
+# Shared Framework Responsibilities
 
 The six module roots live under `Frameworks`. Paths in each table are **relative to the named framework root**. All current functional child directories are covered; these modules mostly stop at that level. Persistence is flat, while Presentation and Application also contain substantial root-level functionality. The “root files” rows are real responsibilities, not proposed folders. Xcode uses file-system-synchronized groups for the framework roots; the shared `Resources` group is attached to product targets, not to every framework target. A file's directory and its compiled target membership must not be conflated.
 
@@ -188,7 +186,7 @@ Application depends on Domain and AgentKit abstractions. It exposes the capabili
 | `Terminal` | Shared terminal Find controller; the native terminal view is not here. |
 | `Transfers` | Remote-filesystem port and basic file operations, remote-edit model, and workspace upload-notice state. Bulk scheduling belongs to Remote Infrastructure. |
 
-`HostLibraryModel` is broader than its name: it projects hosts, groups, identities, keys, snippets, forwarding rules, transfers, Known Hosts, and templates. Specialized feature models provide narrower operations over that shared data. Live connection status is kept separate from the saved Host values.
+`HostLibraryModel` is broader than its name: it projects hosts, groups, identities, keys, snippets, forwarding rules, transfers, Known Hosts, and templates. Specialized feature models provide narrower operations over that shared data. Live connection status is kept separate from the saved Host values. The `DeviceDirectoryModel` registers the current installation via its repository port, caches name lookup until reload, and leaves a failed rename uncommitted while exposing `storageError`. The SwiftData adapter commits a device change with a History journal snapshot and refuses launch registration that would resurrect a remotely deleted device; clearing connection-event history through its separate repository does not clear the directory.
 
 `AssistantExecutionController` is the shared entrypoint for sending drafts/text, editing a prior user turn, starting a run, and manual compaction. It captures model credentials, permission mode, tool registry, skill inventory, and the turn's context snapshot **before** asynchronous memory or compaction preparation; an old turn is not silently reinterpreted using later UI settings. The conversation owns its runtime; the controller tracks one preparation by conversation ID, rejects overlapping submissions, and invalidates cancelled/superseded preparations before the runtime can start. Missing model or credential becomes a persisted failed run before the visible failure state is adopted; cancellation can persist an interrupted run. The injected `AgentRunPersisting` port is the durable boundary, not a SwiftData dependency of Application. The registry factory supplies Termind's host tools to an AgentKit runtime, which combines them with eligible skill/memory tools, uses a single ordered event channel for review and tool events, and keeps approval tied to weak conversation interaction (a closed conversation denies). Compaction persists its record before rewriting the observable transcript.
 
@@ -224,11 +222,11 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
 | Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and separate Vault/History journal integration. |
 | AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. `SwiftDataAgentRunRepository` implements the AgentKit persistence port; its SwiftData rows are not the AgentKit loop. |
-| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault/History local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
+| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault/History local stores, mutation journals, scoped upload restrictions, recovery checkpoints, record-presence/deletion-handoff state, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
-The container factory selects the complete versioned schema and migration plan; platform roots choose its location and lifetime. It disables automatic SwiftData CloudKit storage because the explicit CloudKit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
+The container factory selects the complete **V38** versioned schema and migration plan; platform roots choose its location and lifetime. The released V31→V34 migration replaces Host, connection-history, and Identity shapes and backfills device attribution; V35 adds History journal/state and capability checkpoints, V36 removes the retired legacy-import checkpoint, V37 adds scoped cloud record/replica state, and V38 adds deletion-handoff and asset-cleanup state. These local versions do not version the CloudKit record formats. The factory disables automatic SwiftData CloudKit storage because explicit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
 
 The agent repository saves runs by run ID but deduplicates replayed history by **message ID**; compaction messages are not stored as ordinary transcript rows. It keeps per-message frozen context/model text and attachments alongside run, tool, review, and result rows. On reload, it sorts messages within run order, restores the compaction projection and recovers a tool result already persisted before its transcript snapshot, rather than leaving an unanswered call in model history. Initialization marks unfinished runs interrupted. Editing a user turn truncates the suffix and stages a replacement run; the real run adopts the staged message instead of inserting it twice. Deletes remove the associated message/replay/attachment/tool graph, and guards prevent late saves for deleted conversations or retired runs. Title writes redact model-influenced text. These rules belong to Persistence, while the Application controller decides *when* to run, compact, approve, or display failure.
 
@@ -240,12 +238,12 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | --- | --- |
 | Root files | In-memory host repository; Linux filesystem/process/server and NVIDIA metrics parsing; provider service-account file handling; skill-package import. Parsers do not own an SSH session. |
 | `Agent` | Read/import context attachments and provide the live attachment-loading adapter. Host-executing tools belong to Remote Infrastructure instead. |
-| `Cloud` | Shared CloudKit lifecycle, record coding and upload-safety gates; separate Vault, History/Device, Settings, and Metrics coordinators plus a read-only legacy History importer using Persistence stores/journals. |
+| `Cloud` | Shared CloudKit lifecycle, record coding, receive validation and upload-safety gates; separate Vault, History, Device, Settings and Metrics coordinators using Persistence stores/journals. The Vault coordinator cleans up old History/Device copies rather than importing them into the active zone. |
 | `Commerce` | StoreKit products, entitlement refresh, purchase/restore flows, transaction observation, and Pro access state. |
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; the historical V34 schema replaces Host/connection-history and Identity shapes, adds the generic device directory and workspace preferences, and keeps the independently versioned CloudKit envelopes. Released V31 stores migrate directly to V34; V32 and V33 were never distributed schema endpoints. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. `CloudSyncLifecycleSafety` in Infrastructure adapts Persistence's `CloudSyncSafetyStore` to the shared `CloudSyncLifecycle`: it reads scoped quarantine, recovery and capability checkpoints before engine creation, filters blocked History and Device records by kind in their shared zone, and records a capability after fetch. The lifecycle commits a recovery fence before constructing an automatically syncing engine, fetches before sending, and fails closed on unsafe storage errors; each category retains its own engine, state, subscription and journal. Quarantine is an upload fence, not merely a log: decoding failures preserve payload/system fields (a secure whole-record archive for native-field records), and reconciliation must clear a blocked record in the same save as accepting a supported remote version. V31 added safety storage locally; released V31 stores migrate directly to V34, with V32 and V33 never distributed as schema endpoints. Incoming records and server-record-changed replies pass through the same validation/merge path.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 
@@ -296,7 +294,7 @@ Keep trust/authentication interaction with the initiating feature. Additional si
 | `SFTP` | Remote-file type/icon/size presentation, transfer status formatting, SFTP settings fields, and edit-upload overlays. |
 | `Terminal` | Terminal appearance/theme mapping and font-selection/settings content. Actual font discovery and native terminal mounting remain app-owned. |
 
-Reusable content is not a shared screen controller. In particular, transcript presentation state does not own the Agent runtime, terminal appearance does not own a PTY, and an identity form does not access Keychain directly. Define user-facing app copy in `Strings` for both apps rather than duplicating strings in their views; leave protocol values, identifiers and diagnostic codes with their existing owners. Architecture tests prohibit native AppKit/UIKit, persistence, and remote-infrastructure dependencies here and prevent app-local `AppStrings` declarations.
+Reusable content is not a shared screen controller. In particular, transcript presentation state does not own the Agent runtime, terminal appearance does not own a PTY, and an identity form does not access Keychain directly. Define user-facing app copy in `Strings` for both apps rather than duplicating strings in their views; leave protocol values, identifiers and diagnostic codes with their existing owners. The `swiftUIKey` bridge retains resource interpolation metadata for key-only SwiftUI APIs; pass the resource directly where an overload accepts it, especially `confirmationDialog`. Architecture tests prohibit native AppKit/UIKit, persistence, and remote-infrastructure dependencies here and prevent app-local `AppStrings` declarations.
 
 Details: [UI Design Principles](../concepts/ui-design-principles.md).
 
@@ -311,7 +309,7 @@ Details: [UI Design Principles](../concepts/ui-design-principles.md).
 
 `Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs); AgentKit's model capability resolver searches the main and package bundles for the Pi catalog and optional overrides. If the icon catalog cannot load, icon lookup returns no entry. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
 
-App-facing resource definitions belong in `TermindPresentation/Strings`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
+App-facing resource definitions belong in `TermindPresentation/Strings`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. The shared catalogs are manually managed: do not treat a single target's stale extraction flag as proof that cross-platform copy is unused; normalize edited catalogs with `Scripts/normalize-string-catalogs.py --write` and keep generated string symbols disabled. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
 
 ## Cross-layer flow: edit, persist, synchronize, render
 
@@ -337,10 +335,10 @@ The editor owns interaction, the model owns the operation, Persistence owns stor
 ## Verification seams
 
 - `ArchitectureBoundaryTests`: import direction, feature construction boundaries, and single SwiftData-model ownership.
-- `FrameworkTests`: portable model/policy, persistence compatibility, sync, presentation, and shared-service behavior. In particular `AssistantExecutionControllerTests` check frozen capture, cancellation and failure-save ordering; `AgentReplayPersistenceTests` cover staged edit adoption, replay snapshots and tool-result recovery; `RemoteCharsetTests` cover charset round trips, chunk boundaries, invalid bytes and OSC 7 rewriting.
+- `FrameworkTests`: portable model/policy, persistence compatibility, sync, presentation, and shared-service behavior. `CloudSyncLifecycleTests`, `CloudSyncSafetyPersistenceTests`, `CloudSyncPhysicalDeletionTests`, and `HistorySyncTests` exercise fences, scoped state, deletion handoffs and journal behavior; `AssistantExecutionControllerTests` check frozen capture, cancellation and failure-save ordering; `AgentReplayPersistenceTests` cover staged edit adoption, replay snapshots and tool-result recovery; `RemoteCharsetTests` cover charset round trips, chunk boundaries, invalid bytes and OSC 7 rewriting.
 - Remote/session/transfer suites: transport, authentication, admission, cancellation, and recovery semantics.
 - Native test targets: screen routing, runtime lifetimes, and platform integration; those contracts are not proven by shared value tests alone.
 
 Return to the [Module Map](module-map.md) for ownership choices or the [Engineering Quickstart](../quickstart.md) for task-specific validation.
 
-The latest local schema is V35: it additively introduces History journal/state, legacy-import state and decode-capability checkpoints after the historical V31→V34 migration. History and Device now use their own journal and native CloudKit fields, with a one-way reader of old Vault data. See [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md).
+History and Device retain distinct journal state and sync engines even though their native CloudKit records share a zone. The retired Vault copies are cleanup-only: neither those records nor their deletion events import or erase the active local History/Device data. See [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md).

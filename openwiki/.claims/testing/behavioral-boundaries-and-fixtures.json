@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:dd3ec17369a580e629ad7518d6b97ebd7d92e36ef750d772a16ca3d5701108ed",
+  "pageVersion": "sha256:9fb6d9fc8652ae2fd7fc97dde8ad4940733d30abc788eb30a1b5f983d1fe2522",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -22,11 +22,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:5a3aabca90c0d743f8e4d0031676a0617e8902586353f1294adaf164ff4eb59a"
+          "version": "repo-file-v1:sha256:258a1f20421e6f36435214bdf057fe93ef1aa4989d18475205456de94f24b5db"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:cf6e9f9b2966d822cf0e486e02ffd605f67f3a5dd264f6eee58bfb40d2e9bc43"
+          "version": "repo-file-v1:sha256:7765a94bf29df76d9c819b6364f96496c81a1a02f96275c9b6af73ad9488a221"
         }
       ]
     },
@@ -146,11 +146,23 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory and verify full-schema independent in-memory containers. The fixed V28 test migrates and reopens its copied store while retaining host/group values, GB18030 charset, credential/key references, ordered environment variables, snippets, Known Hosts and history with installation-ID backfill. V27, V30, V31 and current-V35 coverage remains; V31→V34 also preserves Identity configuration/journal dates and workspace defaults, while V29/V32/V33 remain absent endpoints.",
+      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credentials, environment order, snippets, Known Hosts, history and installation-ID backfill; V25/V26/V27/V30/V31 migrations and V35 retired-importer removal are covered, while the migration plan now ends at V38 and omits V29/V32/V33.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:0674febd3ada94692fa9335d6035c3e6a94ebdbd2551d8fb9492ce2a7baca297"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L11-L65",
+          "version": "repo-lines-v1:sha256:174d73cf2cd2bcc0be0cb7630ced314e82d36144ab4720e6bb0c0f47aa55f4c2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0MjU0MTY0ZmQ0Mjk4NzE1NWRjNjgwMWU1MDBlYmQ2NmQ3ZDRjMjA2MTFkMTJlN2QyYTdkNzYyN2JhNWM5ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxN2Q1MWRiNDdjZmU2NGJlZjk1ZmZiNzhiNzc0M2ZlN2EyMGQ5N2YxOTk3Njg1NjY1ZDBkZDk0NmZmZDZjODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhMTE5ZTFiMDdlOWU3ODVjYjAxYzI3ZGE2MGYzODM0MzQyMmFlYjk1ZDg1MmRhYzk5ZDllY2JjODZkZjg0YTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMjM0YWVjMmRhMTRlMDUwMjI1OTBhNDA1NDJlZjdkYjc2NzdmNjNkYTQ3OWIyYTRlZDJiYjM3MmM5MGU2OTgifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L153-L296",
+          "version": "repo-lines-v1:sha256:d61da1102882b34e6f706f11fdffd5c3b380514149d137220a015d062e2e038d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlYWZiM2MzMGNiZGQwOTM2MDNmNDJkYzI3N2U4NDczMjNlMDQ0MTg5MmRkMmU1MWRmYTVmM2E5YWJhMmE1Y2NhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3OWIzMTMxODViMjViZGUwZTc3MmViMmRiMDczZWZlN2UyOGNhYmI3YzVkNjhmZGNiZDBjOGIzYmNkNGZmNmNjIn0"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L299-L501",
+          "version": "repo-lines-v1:sha256:0021bd8f10ac16f6612ff9c10f1bc73d137d35162916ff19dce35d1032a8e955:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0YmI1NDM0ZjRiYTkzOWQ4NmE0YWNhNzI0NjE3YTI2NzU2MjBjYmEwYTc3NWE1NWFjMGFmODg5MmE3NzhjOTIzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3ZWRiYWFjZmFhNWI2ZGZmZTc4ZmI3OGRhMTA1OWRmMGNiMDE5M2MxZGMyNjdkNjViNzY1YzYwNTE1ZDZkZDI5In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L804-L852",
+          "version": "repo-lines-v1:sha256:6ea69d612ba54dd57bd3ddbac670d9ba463fc53f66ba7a626cbcf9a85c75352f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1ODRkODcxYTljYTBhOTIzMDA3MGZlMTZjZTZhYzUwNDI3MTAxY2E0OTRiYzcyY2Y3YjI4ZTQ2MDEwODFkZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4MjhlZmYxNzc1NTFlN2Q3MDFhMGQ2YjBmODJlMDdjNjMwOTRlYjkzZWIxZGEwOGVkNmI0MTNlM2I5ZTUzYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NmVkYjczY2VkNGZjOGNjMjdmNjc4NjAxNTMxY2I2MWY1MjI4MGQ4M2QxOThhZDQ1OTViMzU3YWE2M2YyOTcifQ"
         }
       ]
     },
@@ -180,15 +192,19 @@
     },
     {
       "id": "claim_0ae7c75245c74c74af2851679234c6da",
-      "statement": "CloudKit safety fixtures use fake transport with real category coordinators, journals, record coding, batches and providers to verify incompatible-record blocking, compatible progress, conflict parity, retry/restart, tombstones/recreation, rollback and status-reason distinctions.",
+      "statement": "CloudKit safety fixture substitutes transport while retaining production coordinators, journals, record coding, batches and providers for all five categories; safety tests fence unsupported and malformed records without blocking compatible peers, retain fences across conflict/retry, check transactional rollback, and ensure fetched winners but not older or same-version losing records clear pending journal, engine queue and stale batches. Physical deletion and recreation causality are exercised separately.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
-          "version": "repo-file-v1:sha256:0296ddada8dff13520001911c11aa353e18e0a630286ce67fd03b1c192f545e7"
+          "resource": "repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L220-L400",
+          "version": "repo-lines-v1:sha256:3241f7169cdeade8bf32ec3e3f9ffe4cd839cf45b8d4b79468b70a04c2ff869b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMTFjYmQxNTQwN2Y3MmU2YzU2NmM2Y2EwYjhjZGQ1YTM5YzJmZjE4MDhhNDRmZjgxZjE3NTRlMmZhZjgzZjM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxMTFjYmQxNTQwN2Y3MmU2YzU2NmM2Y2EwYjhjZGQ1YTM5YzJmZjE4MDhhNDRmZjgxZjE3NTRlMmZhZjgzZjM0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmOGRhYWQxZjIxOGU5NWE3MTg3N2IzODhjN2NiMThkMDI0MDhkYzVlYjNkYzNlNTdiZWQ1YTU4MzNjNGMyYjMzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlODVkZDE0Njg3MWJhMzI5YmU3MGM3MWQ4OThhODBiZGNmMTYxYzg4NDdhZjIxNmNkYzkwMzMwYTYxZDI2Mzk4In0"
         },
         {
-          "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:5a3aabca90c0d743f8e4d0031676a0617e8902586353f1294adaf164ff4eb59a"
+          "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift#L12-L107",
+          "version": "repo-lines-v1:sha256:d3e516cf48c833acbd67e58add5a5a14af2d85a25af4315cb7faca1634ca10b2:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjZWIyNTQwMjM4M2RiMTZmOGIxMDYwYTMwZWUzZTUyMTk3YjU1ZjQ4YTNlMzIwZjg2MDVhM2VkNTkwNzJiZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3ZmIwOGJmYjIyNTk4ZmJiOWM0NTgyNjRmM2MxYzZiMDA2MTY4YjY5MTY2MmJjNTBhZTVjYzVlMjg2ZDU2ZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q1MTE5ZWUxMDczYzg3ZWM3MjFkYjI0ZjAxYTAwMDQ4NTc3NzJhNDNmZTRjN2EwNzg0Nzc2ZTM2NzA4ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiOTc2NzMxNWIwODEyMTdmMWI1ZDRjZjNmNjlhMzY2ZWJkOTA0NjFmNDA4ZTNmNDhhNDc0YjhjYTc2YWM0ZWIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift#L12-L213",
+          "version": "repo-lines-v1:sha256:da01d975f986c7d6d712e9131936d06ac13d47a77d3874c03dd1a67b503c85c9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMTFjYmQxNTQwN2Y3MmU2YzU2NmM2Y2EwYjhjZGQ1YTM5YzJmZjE4MDhhNDRmZjgxZjE3NTRlMmZhZjgzZjM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYTZjZGFhYjliMTY0MWI0Nzg4YjQ1YzRiNjBjZDg3OTNhMTFjNjE1MGYxYTM0NTU2NzNhNWU4MjUxMjI3ZGE1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmNjQ0Y2I4NWFjMmNhY2Y1NTRlZmIwMWY4MDFmYzAyMWVjYTFiNjFiYjNhNzhmM2U0MzU4NjQ3NWY1NzgzYmZhIn0"
         }
       ]
     },
@@ -198,11 +214,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
-          "version": "repo-file-v1:sha256:f1cf26cdf75bc42748c7a938467689d7fb2e55161868d6d7c267d1e7b2537fbe"
+          "version": "repo-file-v1:sha256:57e90ed511bea052b404cf0322c5e5e6b8c0707887e3561f61e8e7a80ed24c7f"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:52b0ff45bd7b3f448a36857e057715389ab6bdc3dc96b4dc4159b75f0e93c256"
+          "version": "repo-file-v1:sha256:8f97d2f0fc41583c168732c5df9521dc4e1b62a8fa0d9b5d9a9013533688900b"
         }
       ]
     },
@@ -212,7 +228,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:0674febd3ada94692fa9335d6035c3e6a94ebdbd2551d8fb9492ce2a7baca297"
+          "version": "repo-file-v1:sha256:e07da903bc9741e2e929cfeba64a2412f60152dfbae88d79765afeca90f82731"
         },
         {
           "resource": "repo://TFITests/MobileCardRenderingTests.swift",
@@ -479,28 +495,6 @@
       ]
     },
     {
-      "id": "claim_d6d2ff72d3b54a13a944d55f71dd0ff5",
-      "statement": "Visible-window opt-in applies to macOS tests that present windows or take focus, not all renderers: the serialized macOS Pro paywall fixture captures offscreen NSHostingView content in a borderless NSWindow without activating it, while ChooserInteractionTests opts in before making its window key.",
-      "evidence": [
-        {
-          "resource": "repo://AGENTS.md#L38-L46",
-          "version": "repo-lines-v1:sha256:070213e98b52cec4fdee409349c32e94d42a6a1c41a2f6b5e43523d08e46b11b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
-        },
-        {
-          "resource": "repo://TFMTests/ChooserInteractionTests.swift#L12-L30",
-          "version": "repo-lines-v1:sha256:7b4127f9eac31e0a0aacb435b24be7dec37c0f52f9fdaa175298488753380881:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1Y2RiZGUzMzQyNDE0YzU2NjcyYTRmZjdlMDNmYjZkMmI4OTMzNjY1ODVhOGI2MGFjMTkyYjg5NDNhNjJlMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1MDRiYTgzYjUwZjhiMzg2NTE2MDk2ZTJjY2Y0MTc4NTljMWRlYWYzMmM5NmMzNzA3ZDYxM2QzNGE0Y2FlMjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzM2UzOTdjNzdmNjhiYjk0YWJhNGY1NzRlMDg2OTU3ODc5ZTNjNGNmZjE1OWRiNmNkMmVlMDcyZDBiOTE1NjAifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ProPaywallRenderingTests.swift#L7-L60",
-          "version": "repo-lines-v1:sha256:0bbd01cee237b8a650f38d05088fcda81a0e45ce8b2ce8d672ec11a0199b11cf:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2NmE3Mjg3NWNjZDc4MTM5NTk4Y2IwZDM1OGI5MzczZDM2ZTlkYTQyMDE3NzA4MTkwZGE3M2JmNGE3Zjk1NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
-        },
-        {
-          "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L12",
-          "version": "repo-lines-v1:sha256:647fdf978ecd85719df899c592ebd2386dcf8c24b7371545e9ab0dcf3e0402df:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
-        }
-      ]
-    },
-    {
       "id": "claim_94dd0d711f1d47e48c224de19ca20ab9",
       "statement": "The mobile Pro paywall rendering suite is serialized and opt-in under TERMIND_MOBILE_UI_TESTS=1 because it creates a key UIWindow for its UIHostingController and restores the previous key window after capture.",
       "evidence": [
@@ -520,19 +514,15 @@
     },
     {
       "id": "claim_9db7395c8eaf4a9ca8a0794ed2c9628f",
-      "statement": "The platform Pro paywall rendering fixtures inject presentation values instead of contacting StoreKit and check shared content across free/subscribed status, English and Chinese locales and dynamic type sizes for horizontal overflow and usable scroll area; they record screenshots, but do not test purchases.",
+      "statement": "The opt-in serialized mobile Pro paywall rendering fixture injects shared presentation values instead of contacting StoreKit, checks free/subscribed states, English and Chinese locales, regular and accessibility text at phone/tablet sizes for scrollable width/height, and captures screenshots; it does not test purchases or establish macOS layout coverage.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/ProPaywallContent.swift#L17-L54",
           "version": "repo-lines-v1:sha256:35cbab506abd20b81e644657d7ecd47b9863025540a340989939cb3f0c6e5955:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYjc4YTBhYmU3YWE5YTA1YmY5NDJhYWZhMmQ0Y2Y5NjQ0ZTVlZDc4MjAwYTcyZTYxY2EzMDM1YmU5ZTc2ODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0OWY1YWI2MDUyNjMwYzk2ZWRlNjBlODQ5NDQ0ZTkwYTk3ZTM4ZjI0YTBhMzczZmRjOWUxYmUxMDVkODQ5OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YzZjYTI4OGM3NzFmN2NlMDJmZWFjOTRjNTMwNDJkN2QyMDljZjA0MTk4MjcxMGExN2RhMmNjYjgyMGNlN2YifQ"
         },
         {
-          "resource": "repo://TFITests/ProPaywallRenderingTests.swift#L7-L77",
-          "version": "repo-lines-v1:sha256:e97a64821b0a86e3366b122874974d6490fd4dbc998965d0b6c2a3472f04eb05:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMjdjNGRjZDU0ZTBjMDI5YmM0ZDdjMWVhZTk2NTdiOTcwMWNkZTgxNjQ3Y2Q1ZDQyNTQwMmEwYjUyZjc1YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MGMxNjI2NDZiYTYzOGQ5YmE5ZjQyYTdlYjQ4MmI4NzZmZDMyODgxNWNiZThmOWRkMTk4NzA0ZWI5ZjA1ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjOTNjOWIzMzllMTcxNTg1ZGFmNzQ4MmNlOWM1YmUyNzljYzEzZTk1MGM1NjI2YjU3NTM3MTdhM2RiZjA4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ProPaywallRenderingTests.swift#L7-L60",
-          "version": "repo-lines-v1:sha256:0bbd01cee237b8a650f38d05088fcda81a0e45ce8b2ce8d672ec11a0199b11cf:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2NmE3Mjg3NWNjZDc4MTM5NTk4Y2IwZDM1OGI5MzczZDM2ZTlkYTQyMDE3NzA4MTkwZGE3M2JmNGE3Zjk1NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+          "resource": "repo://TFITests/ProPaywallRenderingTests.swift#L7-L84",
+          "version": "repo-lines-v1:sha256:4b3eb2e7241936fa7ab95cde0a23ef7418167191dade0242dac71ab517a24089:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMjdjNGRjZDU0ZTBjMDI5YmM0ZDdjMWVhZTk2NTdiOTcwMWNkZTgxNjQ3Y2Q1ZDQyNTQwMmEwYjUyZjc1YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjOTNjOWIzMzllMTcxNTg1ZGFmNzQ4MmNlOWM1YmUyNzljYzEzZTk1MGM1NjI2YjU3NTM3MTdhM2RiZjA4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     },
@@ -570,21 +560,87 @@
     },
     {
       "id": "claim_3ef853671a4e41f589068095b34d4d8a",
-      "statement": "History and evolution suites test native fields, independent Device selection, continuous legacy import, terminal deletion, source quarantine, overlapping fetch readiness, structured logging and per-kind test-only Host V2 evolution; local fixtures do not prove cloud deployment.",
+      "statement": "HistorySyncTests covers native CloudKit fields, independent History/Device selection in the shared zone, terminal event tombstones, ignoring retired Vault-importer state, failed-initial-fetch recovery, missing Device projection repair without journal-version changes, structured safe logging and expected cancellation; SyncRecordEvolutionTests freezes Host V1 bytes and tests per-kind test-only Host V2 evolution. These local fixtures do not prove deployed cloud delivery.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/HistorySyncTests.swift",
-          "version": "repo-file-v1:sha256:4a660d6c5b962ff9d6e71d2b0315f43b645e4371ca5a6c64cc60ebf1ed73f59f"
+          "resource": "repo://FrameworkTests/HistorySyncTests.swift#L13-L89",
+          "version": "repo-lines-v1:sha256:0147fa895f1280c60fa2f538c47459641ca2fdda6ed25c56e11d46adab12b39b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5NmJmMTQ2NDViY2ZmODE3ZmY3NGYxNzc2MzE2OWZkN2M3Njk2Y2MyNTgwZjAxODQ2YWJkNzQwMmY1ZTAzMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhZGRjOTJkODQ5MGRkOTY3NWQyNWM0MDUyZjM0N2ZjMDg4MzNhZmRmNjgwMTRlNGU2YjEwNzIzN2FiZThhMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlODRkZDA1M2M1MzlhNzYwNzM1ZWMwMWVmNWNhODk4NmM2OGQyYjE3MjA2MWVjODA3OTRhYzZkYzM5ODA3ZjEifQ"
         },
         {
-          "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift",
-          "version": "repo-file-v1:sha256:ff69b127ab37112b5a84ed954a5b271de828d28ea1370c1f53e423c6ff7b74cb"
+          "resource": "repo://FrameworkTests/HistorySyncTests.swift#L197-L325",
+          "version": "repo-lines-v1:sha256:ca2ff888d9a9ff6a1cd55f165cda58c3664f5ef4ec78de705082a75fa94d3b4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0NGUyYWJiMTMxM2U1M2IzMjJhOWI5NWM2MjZhNjQ0NWVmNjM0ZTQxMjdlOGRkMTg4OTc2Y2Y0YWRkYmFkNjFkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI2OTY1MmU3MGE0YzAxZGMyYTU3M2MwMDk1Y2Q2YTk3OTFhOWI4Zjk2ZTE2NTU3YjVkNjc2ZTZjZjg4ZjZlOTg0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhNTdkY2U3MGUyMGVhMGFlZWMwZTI5NTc5ODljNjYxMjczOWUzMjFmZDRmOWU5MjA0YzcwOGVjYWFiYmY2NDY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1MWNlYjc0YmMwNTc4NGZiN2QyOGY1NTc1NjVkMjRlNzdkOGQwZDAwYmVmYTQ2ZTVkNGE5OWMwNWUxMDM4YWE5In0"
+        },
+        {
+          "resource": "repo://FrameworkTests/HistorySyncTests.swift#L91-L180",
+          "version": "repo-lines-v1:sha256:81c29cefc12577c3b59116cc5c882d5240d28768d1c74d2eb40e2477be177892:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3NzViNjQ4ZTNmMDQxYjM4NzI0N2IxM2I0NzI5MDY4NWIwNTcwZDA2Njk3ZDY4NWYxZDY1NzNjOGRmZWRjYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwMzcxNmQ4NTdlNDhiMmNjNWM0ZDAyY2RkMDNlNzM2ZGMwNDhmMTUyMzA3MDZmMDdhZDUzZjZlYmQ1YzRhMDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3MjkzODdiYTkyMmI3YTFhMjBmZTU1NjI3MDlmZTRmNTQ1Yjc5MjNmOGQ2OTYwODVjMTQ4Zjk4ZjlhYjM5NzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjRmNzAxZGYwNmRjMDQ3YmY4YzcxMGI4ZTcxZWE5OTJjZDBiMTQyNzUyMDlhN2QyZjU1NmM1Yzg0Y2E5NDQifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift#L9-L98",
+          "version": "repo-lines-v1:sha256:13652e2793f61f529c8ae77d79802473aa770f337cafb69d1030f141d74bd186:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczZDk5ZjE3NjMwMDA2YWQzZDdmNTdiOWMwODUwM2M5N2Y5ZmJmY2I2YzU3YWQ4NGVlNzJiYzI1N2E5Nzc4ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzMjFhMGQ0YjZjMjJhZjE1YmUyNmMyMzc3MDZmOWYyOTJmZWNiY2VkODcxZGM5MzFhOGQ5Y2I4NzhkNDRiZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e61c5a9c0dc74c9da2f1ca4b3b09a4e7",
+      "statement": "No checked-in macOS Pro paywall rendering fixture exists; the mobile key-window paywall fixture cannot validate desktop layout. macOS offscreen rendering can run without the visible-window trait, while window/focus suites such as ChooserInteractionTests explicitly gate themselves.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L38-L46",
+          "version": "repo-lines-v1:sha256:070213e98b52cec4fdee409349c32e94d42a6a1c41a2f6b5e43523d08e46b11b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFITests/ProPaywallRenderingTests.swift#L7-L46",
+          "version": "repo-lines-v1:sha256:989ec47f5a338a9cd5915152230cb219a3e3697e48c81b2083c3bb003665136f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMjdjNGRjZDU0ZTBjMDI5YmM0ZDdjMWVhZTk2NTdiOTcwMWNkZTgxNjQ3Y2Q1ZDQyNTQwMmEwYjUyZjc1YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhMWI4MTU1NzI5NzNhM2UxZmJmYTk0OWNkNmVhNDI3NTA0Y2E2YWIwYmQwZTA3YmZjNWNhNzljNDc2MjVhN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjOTNjOWIzMzllMTcxNTg1ZGFmNzQ4MmNlOWM1YmUyNzljYzEzZTk1MGM1NjI2YjU3NTM3MTdhM2RiZjA4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1Nzk0NmYxNWUxZGQ1YzFiMWRlZGVjYTVkMDMyZjYwYjFiOWM3MmE3NDkyMTQ1Yjc1NDJmMzA5NGEwY2I0NmIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L15-L65",
+          "version": "repo-lines-v1:sha256:37082bec140bbc8fdecd8a3a0dd9d983c87d7d471fe4da8cb869ef65ec441b7c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MTc0MGI5Y2FmN2I5NGNiNjM3MTQyODBmMjA1NDUzNWYyODY1MjMzYWM2NzBjM2YwNjFiZjkxNjZjYTMxOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ChooserInteractionTests.swift#L12-L30",
+          "version": "repo-lines-v1:sha256:7b4127f9eac31e0a0aacb435b24be7dec37c0f52f9fdaa175298488753380881:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1Y2RiZGUzMzQyNDE0YzU2NjcyYTRmZjdlMDNmYjZkMmI4OTMzNjY1ODVhOGI2MGFjMTkyYjg5NDNhNjJlMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1MDRiYTgzYjUwZjhiMzg2NTE2MDk2ZTJjY2Y0MTc4NTljMWRlYWYzMmM5NmMzNzA3ZDYxM2QzNGE0Y2FlMjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzM2UzOTdjNzdmNjhiYjk0YWJhNGY1NzRlMDg2OTU3ODc5ZTNjNGNmZjE1OWRiNmNkMmVlMDcyZDBiOTE1NjAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/KnowledgeToolRenderingTests.swift#L1-L20",
+          "version": "repo-lines-v1:sha256:a0252089d85744c148e8c287eea17c7afa3a220db0a2659ca79f2a0738ef427f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlOTE5NjUyYjQ3ZmJjZTM2Y2UxYzA4NTE5MjFlZWY4YjBmZjE1NGNiODMyYjlkNTY2YTY0MDYyMGQ2MjFmNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3YzhkNzk4OWVhNDcyY2M0N2I4ZjdlMmM1MWM1OTc5ZmZiNDY2NjIzYmEyMjFiYTk1YzYyYTY4MzI1ODBhOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzZTMwMWRkMTZiOWIzZjNkMWMwNzdiY2RhNzY5ZWRiNzNiMTI5MTMzMjVlODBkZDAyMjBkYmQ0NDNmZmUwNGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7f4a8daebbc34a4d8bea5081ee0a19fd",
+      "statement": "CloudSyncPhysicalDeletionTests drives production safety fixtures across record categories to ensure destructive zone deletions clear only the active replica and never resend its old snapshot, and checks that disk-persisted delete handoff, acknowledgement races and new incarnations remain distinct.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L13-L55",
+          "version": "repo-lines-v1:sha256:53d6c3a13c510d1e59dbd0aca06ceb569d684ec7e4499e6972808609be4a00e1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExMWNiZDE1NDA3ZjcyZTZjNTY2YzZjYTBiOGNkZDVhMzljMmZmMTgwOGE0NGZmODFmMTc1NGUyZmFmODNmMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhNDE5MmMzNTQwYmQ2M2VhNWE3NTY5YTY0ZGJlMmY5Y2Q4MDBlODQ0NmFhMGU3NDE5Zjg2YjU1ZWQ0YTU1ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4MDZjYzdlOTI1MTBmNWYwOGUzNjQ3OWQ0ZGQxMWNlYTNlNGUzYzVmNGM0YTZmZTk1MDEyYzdiMTliYWMzNDEifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift#L220-L400",
+          "version": "repo-lines-v1:sha256:3241f7169cdeade8bf32ec3e3f9ffe4cd839cf45b8d4b79468b70a04c2ff869b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMTFjYmQxNTQwN2Y3MmU2YzU2NmM2Y2EwYjhjZGQ1YTM5YzJmZjE4MDhhNDRmZjgxZjE3NTRlMmZhZjgzZjM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxMTFjYmQxNTQwN2Y3MmU2YzU2NmM2Y2EwYjhjZGQ1YTM5YzJmZjE4MDhhNDRmZjgxZjE3NTRlMmZhZjgzZjM0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmOGRhYWQxZjIxOGU5NWE3MTg3N2IzODhjN2NiMThkMDI0MDhkYzVlYjNkYzNlNTdiZWQ1YTU4MzNjNGMyYjMzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlODVkZDE0Njg3MWJhMzI5YmU3MGM3MWQ4OThhODBiZGNmMTYxYzg4NDdhZjIxNmNkYzkwMzMwYTYxZDI2Mzk4In0"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L189-L227",
+          "version": "repo-lines-v1:sha256:70b67eb3c3094f1f9bc59d4d8d4391c81bd10c853e5b46079cc0ea762c2100ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3ZGE5OWRhMjQxNjY1OGQ0NDlmNmI4NDYyN2FkNzcyNzE4MzRmNzA0NmZmNjU1OTlhNmQ3YjQ1NjYyOTExZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhM2VlYTU1MDRlODQ5Yjc2ZGYyODFlYWZlZTcyNTU4ZWI5OTk5Y2VmYmM1ZTAwMzBkZjg2MmFhOGJmYTMyMzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c7f6f9a08f8e488cb09519f7d04d2e50",
+      "statement": "MobileSettingsPortTests use in-memory app composition and injectable secret/persistence/discovery seams to verify immediate SFTP preferences propagation without opening Settings, no cloud engines in test scene activation, provider draft/secret rollback on failures, non-resurrection after remote deletion and ignored late discovery after cancellation or deletion; these tests do not require a key window.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileSettingsPortTests.swift#L12-L157",
+          "version": "repo-lines-v1:sha256:b6be530697df06ad83b3a3ae47a050a674db4345950896c70c5fca3870c16520:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2YzgyODEzY2Y2ZWM0ODUxZmM1MWUxMzBjMzNmN2VmODBiNzM4YTA5ZmFhYmNlZGYxNTQzYTdjODVkOWUzMDcxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmZWQyOGU3YzlmNDZhYmFjZWU4YzdjMmIzZTc0OTQxMTkxMzcwNjE3ZDBlNDZkYjAzNjYyYjk4NTM0NmZjMTM2In0"
+        },
+        {
+          "resource": "repo://TFITests/MobileSettingsPortTests.swift#L214-L243",
+          "version": "repo-lines-v1:sha256:d0d0639ad52f4b2c0a38dd130febcc433aa4a515b3bf3aa7cfe182c1fc48c6fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3YjRkNDhkMGFlZDNjM2I1NTMxN2YxM2Q3ZTBkYWZkN2UyODIzYzgzNjVkZWZjNGY0ZDkxODNjYmZjNTE2MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T06:45:57.323Z"
+    "at": "2026-09-24T14:20:08.561Z"
   }
 }

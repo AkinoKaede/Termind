@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e2c12e2ff82d7f9e77f1ee6b754d6b2aa0a6ca10c1d156736dc87ff20492583e",
+  "pageVersion": "sha256:337420e75b8f9322535cf086ad3678b7494508207ca2941062d113b1b5b2bf1f",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:cf6e9f9b2966d822cf0e486e02ffd605f67f3a5dd264f6eee58bfb40d2e9bc43"
+          "version": "repo-file-v1:sha256:7765a94bf29df76d9c819b6364f96496c81a1a02f96275c9b6af73ad9488a221"
         }
       ]
     },
@@ -102,7 +102,7 @@
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:9b5dc3dd4ef4cd90592646f84ccd7a4cd771fd8a8aa38a915d6ed5941529413f"
+          "version": "repo-file-v1:sha256:c63339709cfddf1b532caa7f74e114d9226cc882735ff33731f280784f9b3f52"
         }
       ]
     },
@@ -300,7 +300,7 @@
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         }
       ]
     },
@@ -310,11 +310,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift",
-          "version": "repo-file-v1:sha256:3260c66c991c3e7c1544d9b98e8edb9ae61750d03b7c0b9e5a1593c70c1e481b"
+          "version": "repo-file-v1:sha256:99ca351b8e7ab2e330f8297c3c64e72a85f290feed86ae4caaef59575a53e88b"
         },
         {
           "resource": "repo://TFM/Features/Ports/PortForwardingView.swift",
-          "version": "repo-file-v1:sha256:2f371b9ecb8a90bdc1db251a058d437282094045c7487c86af28c542db35e963"
+          "version": "repo-file-v1:sha256:d3fb49c0d5c5a9e1a02b0d1fc91fe459cb6df8c894ddb8645f70e49fabff9867"
         }
       ]
     },
@@ -324,11 +324,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:57caab3fc7e74b38a5e9efa11df8de834c2a05a01f9e4900502e4feed5cb919b"
+          "version": "repo-file-v1:sha256:c1d03e7de099ad0c3fae97036935e64f135ec7fe5d950a75e1eb997d2b11f55f"
         },
         {
           "resource": "repo://TFM/Features/Snippets/SnippetsPageView.swift",
-          "version": "repo-file-v1:sha256:e8fa8476cde899cf7e177eebdf68c09a0d8dfd997338bebc3344b07cab05e02e"
+          "version": "repo-file-v1:sha256:d17686b64e39312e7a9c824b930ff6ca90ad410ebd88e089ad2b07583cff9db4"
         }
       ]
     },
@@ -338,7 +338,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
+          "version": "repo-file-v1:sha256:203b39ad114f45fc2e57df2e3df182eb528f83a29f508ae246184e157759787a"
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
@@ -352,11 +352,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
+          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
+          "version": "repo-file-v1:sha256:203b39ad114f45fc2e57df2e3df182eb528f83a29f508ae246184e157759787a"
         },
         {
           "resource": "repo://TFM/Features/Hosts/HostActions.swift",
@@ -424,7 +424,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
+          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -502,7 +502,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
+          "version": "repo-file-v1:sha256:203b39ad114f45fc2e57df2e3df182eb528f83a29f508ae246184e157759787a"
         }
       ]
     },
@@ -520,7 +520,7 @@
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:9b5dc3dd4ef4cd90592646f84ccd7a4cd771fd8a8aa38a915d6ed5941529413f"
+          "version": "repo-file-v1:sha256:c63339709cfddf1b532caa7f74e114d9226cc882735ff33731f280784f9b3f52"
         }
       ]
     },
@@ -544,7 +544,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/UI/Components/MobileEditorSheet.swift",
-          "version": "repo-file-v1:sha256:6783c68868b6ed4493bbe20b8ed539d85e369c7c0f5a005a6dd6b25a84a185ff"
+          "version": "repo-file-v1:sha256:677e5c40139487b3ac25dc02069693826460c8878710bb963e10539fa7dd8fc3"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -610,7 +610,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift#L1-L9",
-          "version": "repo-lines-v1:sha256:544eaa4a367c1eea144d39cc11339da9d578689777ef65032c516c6282fcaef5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRhOWI3NWY2NGIxMDZlYjU0NGRlMjAxZjU5OTEyMmQ3NWFiYzQ4M2M1YjE1NmJiYTZjMDVjMGY5NTZkYmMzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "version": "repo-lines-v1:sha256:364e89a8163dc782ab99d9d55ddc7f86404f364ff44dc6b80713c6ef8f1acc22:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L203",
@@ -709,10 +709,28 @@
           "version": "repo-lines-v1:sha256:f0bf636962deca627602edf644d1d8dd8ad83022fac111640908c45a7f6f8666:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5ZjliMzlkOGVhZjY1OGY2NGVhMDdlNjhkYjU4M2Y3ZmQ2Y2YzYzcxMTJkOTEzZmI4YTIxODcxZDIzMTg5ZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_852e4e5e350d42d39e8ee25a6a589360",
+      "statement": "Confirmation dialog titles should pass LocalizedStringResource directly instead of the swiftUIKey bridge, because UIKit-backed presentations can expose interpolated locale metadata; ArchitectureBoundaryTests scans both apps for bridged AppStrings confirmation titles.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift#L4-L11",
+          "version": "repo-lines-v1:sha256:4e8fc35d8571deb0ac69a7c4fe986708c6dd2dacbcdcda149a222219af9d2139:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDA3MmVlMTYzM2ViODhiNzE1ZTM5Yzk3OWU4YTM5ZTJhYWIxYjA2Y2ZjNDRhNGUzNGVkOTA4ZDdmMzliOTJmNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDA3YjA4ZDI2ZWUxNDFiMDBlYWU2NTE1ODA3MzAxNjBhYWY2MzNiMDg4ZmYwZWJiNmQ4YjM5MDUyMTRlZWNkNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjFiYzk1ODFhNDViZmIwYTE2OWIzNjI2YWNmN2Y5MDA1YzBiODA4NjhlMzViYjYzYzNhMmJhZjI1MTExMWQ0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileEditorSheet.swift#L92-L97",
+          "version": "repo-lines-v1:sha256:78e28a42707bb9e7325ecbd1ca944ce6b3b43d7a1b953a520577a5e8a14bb53b:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDkyNzc4ZDgyMTYxZmVlMTAyZjRhM2Y0NzdhMzQyZGRmNWU4ZjE4NGUxZjRmZDVhYTJiNmJjOTNkNDIyOGM3OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTUyMmM0MmNkMTljNmQwM2Q4MDhjNDUyNzIwNTUyODI1YjdlYTFjNWI0OTFiMjE4NTExY2FjNzQxNWNmOWQ5YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWEzMWFlZTg3ODE1OWRhNmYxYzc5ODNlNDk3YThjMDhmMTZlODMzNDA4N2NjZTE0MjQzNDBlMGNmOWNmMjE4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTYyZGE5ZmNmYjNmYTk5NWRhYTVlYTRhNDY0YThlYmY1OGNmNmFjNzkxM2JhM2I5NWQ0NGExMjIwOTdjOWI4ZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L205-L218",
+          "version": "repo-lines-v1:sha256:09c9a0fd8635411a8b9d491a83511d2512a0c7e1331b6af9f3993bbf01228eb4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzMGZlM2Y0MWJhOGZhNmZjNTY0MDI5YzFlNTVlY2Q2NmU3YmNjOTNkOGZkNGM0Yjc4YzIyZDM1NTY3NGE3ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3ZGE0ZTRmODRkMjdmYjAxMTA1N2E3YjdmMzE0ODI3NmQyOWUyOTUyNDU3ZWE4ZTYyMmUzMmU4MWU4NTVlYmMifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T06:30:19.118Z"
+    "at": "2026-09-24T14:20:08.561Z"
   }
 }

@@ -1,8 +1,11 @@
 ---
 type: architecture directory guide
-title: Supporting Products, Packages, and Tooling
-description: Directory responsibilities and integration relationships for AgentKit, the MCP bridge, Live Activities, tests, benchmarks, the Astro site, marketing assets, scripts, and repository automation.
+title: Supporting Products and Tooling
+description: Build ownership and integration boundaries for AgentKit, the MCP bridge, Live Activities, project tests, forwarding benchmarks, the Astro website, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -82,19 +85,16 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# Supporting Products, Packages, and Tooling
+# Supporting Products and Tooling
 
 Not every top-level directory is an app module. This guide distinguishes separately built products, a package reference checkout, source-sharing groups, test targets, and development assets. It complements [Shared Framework Directories](shared-module-directories.md) and [Native App Directories](native-app-directories.md).
 
 ## AgentKit — separately versioned package
 
-The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project still declares a remote, versioned Swift package**, with its actual revision recorded in the resolved dependency graph. Neither this checkout nor the sibling development repository automatically overrides that dependency.
+The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project builds the remote Swift package, not the submodule or sibling working tree**: `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.14.0`, and `Package.resolved` pins version `0.14.0` to revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`. The submodule is useful for inspecting package organization, but only the resolved remote revision determines app build inputs.
 
 The directory table describes the checked-out package's organization, not a guarantee that a future checkout and the app's resolved package revision are identical. For a cross-repository change, test and release AgentKit first, then update the Xcode package minimum version and re-resolve `Package.resolved` in the app-side commit. `ArchitectureBoundaryTests` also guards against redefining AgentKit-owned runtime types in app source.
 
@@ -186,11 +186,11 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | `Scripts/Tests` | Python regression tests for version bumping and forwarding-benchmark tooling. |
 | `StoreKit` | Local StoreKit product/test configuration; not the production entitlement implementation. |
 
-The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions and collects `FORWARDING_METRIC` output; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload.
+The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions and collects `FORWARDING_METRIC` output; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload. The `TFM` scheme tests `TFMTests` and `FrameworkTests`; use an iOS simulator for `TFITests`. Visible-window macOS, StoreKit, and mobile key-window integration suites have separate opt-in gates rather than running in routine test invocations.
 
 The script root has multiple independent workflows:
 
-- **Release and resource maintenance:** version bumping, Chinese-localization validation, Linux-distribution icon refresh, and model-catalog refresh.
+- **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
 - **Remote fixtures and benchmarks:** SSH authentication, OpenSSH forwarding, and Telnet fixtures; native/external forwarding runners and their shared benchmark helpers.
 - **Screenshots and assets:** Mac/mobile capture runners, screenshot-demo launcher, and reproducible device-frame generation.
 

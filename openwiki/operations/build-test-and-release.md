@@ -1,11 +1,11 @@
 ---
 type: release operations
-title: Build, Test, and Release
-description: Operational validation gates for resolved-package Xcode builds, opt-in window and commerce tests, localization, screenshots, website builds, and AgentKit releases.
+title: Build, Test, and Release Gates
+description: Validation gates for pinned Xcode builds, opt-in UI and commerce tests, shared localization, marketing captures, website builds, and cross-repository AgentKit releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -59,10 +59,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# Build, Test, and Release
+# Build, Test, and Release Gates
 
 This page is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The Astro landing page is a separate Node workspace under `LandingPage/`.
 
@@ -71,7 +71,7 @@ Choose the narrowest quiet check that proves the changed behavior, then expand t
 ## Baseline safety rules
 
 - **Use the resolved package graph.** Every ordinary Xcode build, test, and screenshot build must retain `-onlyUsePackageVersionsFromResolvedFile`. Without it, Xcode may resolve newer dependencies instead of testing the revisions recorded in `Package.resolved`.
-- **Keep artifacts and secrets local.** Never commit secrets, `.env` files, generated build products, `DerivedData/`, `.build/`, `build/`, `*.xcresult`, `LandingPage/dist/`, `node_modules/`, or user-specific Xcode state. These are ignored because they are machine- or run-specific, not release inputs.
+- **Keep artifacts and secrets local.** Never commit secrets, local `.env` files, generated build products, `DerivedData/`, `.build/`, `build/`, `*.xcresult`, `LandingPage/dist/`, `node_modules/`, or user-specific Xcode state. `.gitignore` excludes local environment files but explicitly permits `.env.example` and `.env.*.example` templates; inspect the staged diff rather than assuming ignored files cannot be staged.
 - **Keep commits focused.** State the outcome, affected layers, and verification in the PR; include bilingual UI screenshots where the change calls for them. Run the Chinese localization check as part of every commit pipeline, including code-only changes.
 - **Validate the owner boundary as well as behavior.** A dependency, persistence, or framework-ownership change should include the focused architecture boundary tests; platform/UI changes need the relevant platform target and feature tests.
 
@@ -203,7 +203,7 @@ Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project specifies an up-to-next-major minimum version, while `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins the actual build to a precise AgentKit tag and revision. Therefore Xcode builds the resolved remote release—not an uncommitted sibling `../AgentKit` working tree.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.14.0`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.14.0` at revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`. With the resolved-package flag, Xcode builds that remote release—not an uncommitted sibling `../AgentKit` working tree. Run the sibling package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 

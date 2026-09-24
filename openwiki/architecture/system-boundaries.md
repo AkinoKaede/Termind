@@ -1,11 +1,16 @@
 ---
 type: architecture boundaries
-title: System Boundaries and Dependency Ownership
-description: Static framework layers, platform composition roots, persistence ownership, and the external AgentKit boundary that keep Termind changes dependency-safe.
+title: Dependency and Ownership Boundaries
+description: Enforced import scopes and ownership of shared application ports, persistence adapters, remote services, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-9ee5ed32f6974f5906438e59
     resource: repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift
   - id: openwiki-source-6f388236eaa573c3c2ba7706
@@ -46,13 +51,10 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:45:57.323Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# System Boundaries and Dependency Ownership
+# Dependency and Ownership Boundaries
 
 Termind is built as two native applications around shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -112,9 +114,30 @@ The shared non-presentation rule (Domain, Application, Infrastructure, Remote In
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the complete current schema (`TermindSchemaV35`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
+`TermindPersistence` exports the complete current schema (`TermindSchemaV38`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
-Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models.
+Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models. `DeviceDirectoryModel` registers the current installation at initialization and resolves names by ID from its cached repository snapshot, falling back to the supplied local name for the current device. A failed load returns an empty list and records `storageError`; explicit renaming calls `upsert`, invalidates the cache, and increments `revision` only on success. The SwiftData adapter's launch-time `registerIfNeeded` deliberately leaves a remotely deleted directory entry deleted, whereas an explicit `upsert` commits a changed name or new record with the History journal snapshot and notifies the injected device-sync callback after a successful mutation.
+
+```mermaid
+sequenceDiagram
+    participant App as Native app
+    participant Model as DeviceDirectoryModel
+    participant Port as DeviceDirectoryRepository
+    participant Store as SwiftData directory adapter
+    participant Journal as HistorySyncJournal
+    App->>Model: Initialize with installation ID and native name
+    Model->>Port: registerIfNeeded device
+    Port->>Store: registerIfNeeded device
+    Store->>Journal: Check deleted envelope
+    alt Remotely deleted
+        Store-->>Model: Leave deleted entry untouched
+    else Not deleted
+        Store->>Journal: Commit changed snapshot
+        Store-->>Model: Notify device sync on mutation
+    end
+```
+
+The registration path crosses the app naming, Application port, and Persistence journal boundaries; the explicit rename path can recreate an entry that launch registration will not.
 
 This separation matters for migrations: all SwiftData models, frozen historical schemas, migration plans, and container construction stay together in Persistence. The boundary test rejects `@Model` declarations in scanned desktop, mobile, Domain, Application, and Infrastructure roots and requires Persistence to contain Swift files; the `@Model` scan does not currently include Remote Infrastructure or Presentation. A separate SwiftData-repository-declaration check covers those two roots as well as both apps, the other shared frameworks, bridge, benchmark, widget, and workspace-activity support targets; it uses a Swift declaration parser and requires at least one such declaration in Persistence. These checks still do not constitute an exhaustive ownership proof. A new persisted SwiftData entity therefore requires a Persistence schema/migration decision—not a model embedded in a feature, app, or general infrastructure module.
 

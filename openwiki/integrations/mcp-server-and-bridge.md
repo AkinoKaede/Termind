@@ -1,8 +1,11 @@
 ---
 type: integration guide
-title: MCP Server, Transfer APIs, and Stdio Bridge
-description: How the desktop MCP listener and stdio bridge expose local host tools and scoped HTTP SFTP transfers, including ticket states and failure recovery. Distinguishes macOS server ownership from the iOS remote MCP client.
+title: MCP Server, Transfers, and Stdio Bridge
+description: How the macOS loopback MCP server and stdio bridge expose host tools and scoped SFTP byte transfers, including session authorization, ticket lifecycle, and failure recovery. Contrasts the desktop inbound server with the iOS outbound MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -12,6 +15,10 @@ sources:
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-915c4220d5fdfb11bbf44a2e
+    resource: repo://TFI/Application/FeatureModels/MobileMCPEditorModel.swift
+  - id: openwiki-source-4bb1006b8fba7cd74268940b
+    resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
@@ -48,17 +55,14 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# MCP Server, Transfer APIs, and Stdio Bridge
+# MCP Server, Transfers, and Stdio Bridge
 
-Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener, tool registry, external authentication UI, audit trail, and transfer lifecycle; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, store a bearer credential, configure per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
+Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, store a bearer credential, configure per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
-The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. The MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not the mobile transfer coordinator.
+The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. The MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not the mobile transfer coordinator. The mobile MCP editor performs outbound discovery with `MCPClient` and preserves per-tool policies across rediscovery; mobile MCP settings gate adding/editing remote servers with `.remoteMCP`.
 
 The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurable. The server is off by default and requires the MCP Server Pro entitlement to enable, configure, rotate its token, or change exported tools.
 
@@ -69,7 +73,7 @@ The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurab
 | `MCPServerController` | Desktop lifecycle, settings, Pro gating, device token, port restarts, status/client count, and attaching HTTP/protocol/transfer handlers. |
 | `LoopbackHTTPServer` | TCP listener on `127.0.0.1` and `::1`, Bearer and Origin checks, bounded ordinary request handling, and byte-route dispatch. |
 | `MCPServerProtocol` | Streamable HTTP JSON-RPC sessions, legacy SSE compatibility, protocol negotiation, tool discovery and invocation. |
-| `MCPServerTools` | Deliberately limited external tool registry, executor, audit registration, per-session secret broker, external authentication routing, and transfer coordinators. |
+| `MCPServerTools` | Deliberately limited external tool registry, executor, audit registration, injected external authentication routing, and transfer coordinators; the protocol session owns its `SecretBroker`. |
 | `ExternalAuthCoordinator` | Queues UI-mediated SSH login, host-key confirmation, and secret requests separately from Termind-origin authentication. |
 | `MCPUploadCoordinator` / `MCPDownloadCoordinator` | Issue and track distinct, scoped byte-transfer capabilities rather than placing file contents in MCP JSON-RPC. |
 | `termind-mcp` | A separate macOS executable that translates newline-delimited JSON-RPC on stdin/stdout to the loopback HTTP session protocol. |
@@ -157,15 +161,19 @@ sequenceDiagram
     Tickets-->>Client: URL and scoped Bearer capability
     Client->>HTTP: PUT or GET with ticket capability
     HTTP->>Tickets: validate capability and claim capacity
-    Tickets->>SFTP: open dedicated authenticated transfer
-    SFTP-->>HTTP: stream or commit bytes
+    Tickets->>SFTP: request session labeled SSH interaction
+    SFTP-->>Tickets: authentication approved or denied
+    opt authentication approved
+        Tickets->>SFTP: open dedicated authenticated transfer
+        SFTP-->>HTTP: stream or commit bytes
+    end
     HTTP-->>Client: byte response or transfer error
     Client->>MCP: tools/call status with ticket ID
     MCP->>Tickets: lookup for owning run
     Tickets-->>Client: state and progress
 ```
 
-Ticket creation and byte delivery are separate authorization and I/O phases; status remains tied to the originating MCP run.
+Ticket creation and byte delivery are separate authorization and I/O phases; status remains tied to the originating MCP run. Transfer closures obtain the session-labeled `ExternalAuthCoordinator` SSH interaction only when the byte route runs, then open SFTP through the injected authentication registry and connection pool. A declined SSH or host-key prompt prevents the remote transfer, while ending a session revokes its ticket and cancels its pending prompts. Upload cleanup uses a fresh cancellation token and a separate task to attempt removal of an uncommitted remote temporary file even after the HTTP attempt was cancelled.
 
 Upload and download are separate state machines and separate capabilities, even though they share a global budget of four active slots. Each ticket is bound to the creating MCP session/run, host, remote path, direction and intent; its 256-bit token expires after ten minutes. Waiting and paused tickets expire, while active work is allowed to finish. Each direction permits up to 64 unfinished tickets, retains up to 256 terminal records for 30 minutes, and terminal status remains queryable during that retention interval **while the owning session still exists**. Host/session revocation, server stop, token rotation, or disabling the matching direction cancels/revokes work. Ticket creation only validates request/host and allocates a capability; the subsequent HTTP claim acquires a shared active slot (or returns `429` without consuming a waiting ticket). The session activity check covers live work, unexpired paused tickets, and recently audited completions so a long-running transfer and its status remain queryable past normal session idle expiry.
 
@@ -202,7 +210,7 @@ Interrupted uploads can resume only from the coordinator’s acknowledged remote
 
 ### Download: `sftp_download` then `GET /downloads/<id>`
 
-Creating a download ticket performs no remote I/O. On GET, the coordinator accepts regular files only, opens a dedicated SFTP stream, fixes the length, and returns binary bytes without local staging. It does not support `HEAD`, body/query credentials, or arbitrary ranges. A client may use one `Range: bytes=N-` continuation from its saved length; invalid range returns `416` without consuming a waiting ticket, and a resume verifies the existing prefix and source metadata before headers.
+Creating a download ticket performs no remote I/O. On GET, the coordinator accepts regular files only, opens a dedicated SFTP stream, fixes the length, and returns binary bytes without local staging. It does not support `HEAD`, body/query credentials, or arbitrary ranges. A client may use a single open-ended `Range: bytes=N-` continuation from its saved length; malformed range syntax returns `400` before claim, while an out-of-bounds offset returns `416` after opening the source (and restores the prior ticket state). A resume verifies the existing prefix and source metadata before binary headers.
 
 The server pulls no more than 64 KiB per send and revalidates bytes, size, and modification state at EOF. Success requires source validation, completion of the HTTP send, checked remote close, and lease release. A failure before headers is safe JSON; after headers the connection closes without appending JSON to binary content. Consequently, clients must poll transfer status and verify their local size/hash—an HTTP `200` and `Content-Length` alone do not prove persistent success.
 

@@ -1,8 +1,11 @@
 ---
 type: architecture map
-title: Module and Directory Architecture Map
-description: A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
-tags: [architecture, modules, directories, dependencies, ownership]
+title: Module and Product Map
+description: Maps Termind's native products, six shared frameworks, package dependencies, composition owners, and cross-layer capabilities without mistaking folders for build boundaries.
+tags: [architecture, modules, products, dependencies, ownership]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -20,8 +23,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
     resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
+  - id: openwiki-source-e0d1a5c458c249d9d88ff665
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/DeviceSyncCoordinator.swift
   - id: openwiki-source-894539337bc9140a109608f0
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
+  - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
@@ -32,6 +39,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-d785833dd230253fdc4946d7
+    resource: repo://FrameworkTests/CloudSyncPhysicalDeletionTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -48,6 +57,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -56,13 +67,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:45:57.323Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# Module and Directory Architecture Map
+# Module and Product Map
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
@@ -144,14 +152,16 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | Browse or transfer files | Domain remote-file values; Application remote-filesystem and edit model. | Remote Infrastructure SFTP channels, transfer scheduler, planners, and edit service. | Native browser, conflict UI, local file access, and Open With presentation. |
 | Run an Assistant turn | Application conversation/execution coordination; AgentKit generic runtime. | Termind host tools in Remote Infrastructure; persistence and memory stores. | Native composer, approval/input presentation, transcript mounting, and navigation. |
 | Edit and synchronize Vault data | Domain snapshots and mutations; Application library/use-case state. | Persistence local stores and journals; Infrastructure CloudKit coordinators; Keychain secret implementation. | Platform editors and app-level service assembly. |
-| Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and the independent History journal; native `DeviceItem` fields in CloudKit. | Platform composition supplies the stable installation ID and system display name. |
+| Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and a device-kind History journal; Infrastructure's `DeviceSyncCoordinator` writes native `DeviceItem` fields through its own sync engine, subject to the app's iCloud/Pro sync gate. | Platform composition supplies the stable installation ID and system display name. |
 | Display remote metrics | Domain metrics; Application sampling/snapshot interfaces and model. | Remote SSH sampler plus Infrastructure output parsers. | Native dashboards and desktop menu-bar integration. |
+
+The device directory illustrates why target edges alone are insufficient: `DeviceDirectoryModel` registers the current installation on initialization, caches lookup results, and reports storage errors. The SwiftData repository refuses to resurrect a remotely deleted device during launch registration, but an explicit rename can upsert it; successful writes notify `DeviceSyncCoordinator` through History mutations. Remote application of device records invalidates the model's cache on both platforms. The device and connection-history coordinators share a CloudKit zone but keep separate kind-filtered engines and sync state; the device coordinator is independent of the Vault **record format and journal**, not exempt from the app's Pro/iCloud start/pause policy. See [System Boundaries](system-boundaries.md) for the sync contract.
 
 This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities.
 
 ## Composition and state boundaries
 
-The composition boundary is directional: app entrypoints choose concrete adapters and inject them into shared feature models; the resulting workspaces have a different owner on each platform. A scene or window route is not a durable store or a transport.
+The composition boundary is directional: app entrypoints choose concrete adapters and inject them into shared feature models; the resulting workspaces have a different owner on each platform. A scene or window route is not a durable store or a transport. Initialization failures have different product behavior: desktop aborts launch if its database cannot open; mobile renders unavailable content instead. Test composition uses in-memory stores and omits live sync, so an in-memory passing test does not verify CloudKit transport.
 
 ```mermaid
 flowchart LR

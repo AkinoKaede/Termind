@@ -3,6 +3,9 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -28,12 +31,14 @@ sources:
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
-  - id: openwiki-source-4957f13c836c497e7ebe4656
-    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
+  - id: openwiki-source-8a511ce5c3a76863609a6e6e
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
   - id: openwiki-source-8a2e7d4db4b334995f8eaf61
     resource: repo://Frameworks/TermindPersistence/AgentPersistence.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
     resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
+  - id: openwiki-source-969607b796e062c1bad0a301
+    resource: repo://Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
@@ -44,10 +49,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
-  - id: openwiki-source-65a2da12a42f42fb0850078e
-    resource: repo://Frameworks/TermindPersistence/MetricsSyncStore.swift
-  - id: openwiki-source-6df73854db20ee83905a634c
-    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
@@ -64,8 +65,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
-  - id: openwiki-source-79e0f2a939e874c6a6803c19
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
   - id: openwiki-source-15e5026028d13d2202844f68
@@ -100,10 +99,7 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-24T06:30:19.118Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -130,7 +126,7 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV35` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and do not assemble a partial schema per feature or scene. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
+`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV38` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and do not assemble a partial schema per feature or scene. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
 
 The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. It supplies `KeychainSecretStore` for the normal composition and passes the same container to SwiftUI's main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before the live repository wiring; XCTest still uses the in-memory container but disables cloud coordinators. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors are not silently replaced with an empty database: the mobile initializer throws; desktop initialization catches and terminates with a fatal database-open error. Data availability is an explicit startup condition.
 
@@ -160,22 +156,25 @@ The repository's in-memory retired-ID set includes the edited target run even wh
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, V34, and V35. Its recent path is V27→V28→V30→V31→V34→V35: the first three stages are lightweight, and V31→V34 keeps its custom history backfill. V29, V32, and V33 remain absent as migration endpoints; V34→V35 is additive and lightweight; the current schema is V35. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V38. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; the current local schema is V38. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 V28 is required for existing installed stores. Removing its endpoint made staged migration reject those stores with CoreData error `134504` (unknown model version). `TermindSchemaV28HostModels` restores the historical fields, defaults and model identity from the parent of `b0d35d24`; V30 retains its existing model types and order. Recovery uses the normal container factory and preserves the original database on an opening failure, rather than clearing or rebuilding it.
 
 ```mermaid
 flowchart TD
-    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with V35 and migration plan"]
+    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with V38 and migration plan"]
     Factory --> V28["Recognize frozen V28 endpoint"]
     V28 --> V30["Lightweight V28 to V30"]
     V30 --> V31["Lightweight V30 to V31"]
     V31 --> V34["Custom V31 to V34 device backfill"]
     V34 --> V35["Lightweight V34 to V35 journals and checkpoints"]
-    V35 --> Reopen["Open same migrated path again"]
+    V35 --> V36["Lightweight V35 to V36 retire importer"]
+    V36 --> V37["Lightweight V36 to V37 record state"]
+    V37 --> V38["Lightweight V37 to V38 handoff and cleanup"]
+    V38 --> Reopen["Open same migrated path again"]
 ```
 
-The fixture-based path tests endpoint recognition, successive migration and reopening of the same on-disk data.
+The fixture-based path tests endpoint recognition, successive migration and reopening of the same on-disk data. The arrows show **local** stages only, not CloudKit wire-format upgrades.
 
 Examples show why this matters:
 
@@ -186,7 +185,7 @@ Examples show why this matters:
 - V34 directly migrates released V31 stores to the Host/connection-history/device model types named V32 and the Identity type named V33, and adds workspace preferences. These type names do not imply intermediate released schema endpoints. Host and Identity replacements remove obsolete `lastUsedAt` columns. The custom migration preserves events, assigns the stable installation ID to their `sourceDeviceID`, and inserts a separate `DeviceRecord` for that installation. The event itself receives no hostname field, and the CloudKit envelope format remains V1.
 - The V31→V34 compatibility test verifies retained Identity configuration and the independent Vault journal modification date, connection origin/backfill with no invented end time, and default workspace-preference journal bootstrap. Historical Host and Identity shapes retain the old columns solely for schema compatibility.
 
-`PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and expected checksum and explicitly stores synthetic references, not a password or private key. The fixture uses a V28 host with SSH port and charset, ordered environment-variable name/value arrays, snippet and group IDs, an identity pointing to an SSH key and a Keychain reference, a known-host mismatch flag, a connection event without a device ID, and a preexisting Vault installation ID. The V28→V30 model preserves the old `port`, `identityID` and `charset` property names as SSH fields and supplies Telnet defaults; V30 replaces the known-host type to discard only the obsolete mismatch flag. V31→V34 backfills event origin from the installation ID and inserts a separate device row without synthesizing an end time. The fixture test copies the original store to a temporary path and calls the normal factory twice on that same path: each open asserts projected host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts, history and the installation ID/device row, plus workspace defaults after `prepare()`. This tests migration **and subsequent reopening**, not a newly created V28 store using today's model declarations; it does not test recovery from a deliberately failed open. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch, checking host/identity projections and event origin. The suite retains V27, V30, V31 and current V35 compatibility coverage, full-schema independent in-memory containers, and new-field defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
+`PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and expected checksum and explicitly stores synthetic references, not a password or private key. The fixture uses a V28 host with SSH port and charset, ordered environment-variable name/value arrays, snippet and group IDs, an identity pointing to an SSH key and a Keychain reference, a known-host mismatch flag, a connection event without a device ID, and a preexisting Vault installation ID. The V28→V30 model preserves the old `port`, `identityID` and `charset` property names as SSH fields and supplies Telnet defaults; V30 replaces the known-host type to discard only the obsolete mismatch flag. V31→V34 backfills event origin from the installation ID and inserts a separate device row without synthesizing an end time. The fixture test copies the original store to a temporary path and calls the normal factory twice on that same path: each open asserts projected host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts, history and the installation ID/device row, plus workspace defaults after `prepare()`. This tests migration **and subsequent reopening**, not a newly created V28 store using today's model declarations; it does not test recovery from a deliberately failed open. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch, checking host/identity projections and event origin. The suite retains V27, V30, V31 and current full-schema compatibility coverage, full-schema independent in-memory containers, and new-field defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
 
 ### Synchronized connection events and device directory
 
@@ -196,7 +195,7 @@ Examples show why this matters:
 
 The old Host `lastUsedAt` column is not a replacement source for this timeline. The live Host and Identity model types selected by V34 both omit usage timestamps; neither Host nor Identity usage metadata drives connection History.
 
-V35 adds `PersistentHistorySyncEntry`, `PersistentHistorySyncState`, `PersistentHistoryImportState`, and `PersistentSyncCapability` without changing V34 domain models. Idempotent journal preparation preserves event UUIDs, installation identity, modification versions, pending edits and tombstones from the old Vault journal, but never copies old-zone CloudKit system fields. V28, V31 and V34 migration/reopen tests cover this path. Host deletion records History tombstones; ordinary configuration edits only record Vault mutations. A History tombstone is terminal for its event ID, so a late update or legacy replay cannot revive a cleared event.
+V35 added `PersistentHistorySyncEntry`, `PersistentHistorySyncState`, `PersistentHistoryImportState`, and `PersistentSyncCapability` without changing V34 domain models. V36 removes `PersistentHistoryImportState`: **current** `HistorySyncPersistence.prepare()` bootstraps native journals from current events and devices, not retired Vault History envelopes. In particular, opening a V31 or V34 store with an old Vault History tombstone does not transfer that tombstone, the old installation ID or the old bound account into the new journal. Do not restart the retired importer when extending sync. V35-on-disk and V31/V34 reopen tests exercise this boundary; Host/history rows and V31→V34 device backfill still migrate normally. Host deletion records History tombstones; ordinary configuration edits only record Vault mutations. A History tombstone is terminal for its event ID, so a late update cannot revive a cleared event.
 
 ## Cloud sync restrictions are durable local state
 
@@ -207,14 +206,16 @@ The safety and capability stores preserve these controls:
 | Scoped quarantine | Original payload bytes, encoded CloudKit system fields, structured failure reason and record identity; its presence prevents that record from being uploaded. |
 | Decoder capability checkpoint | Records supported formats only after a successful full replay; expanded support forces scoped rereading before restrictions are cleared. |
 | Recovery checkpoint | Whether the replica must fetch afresh rather than restore a possibly advanced CloudKit cursor after interrupted processing. |
+| Record and replica state (V37) | Tracks observed cloud presence, confirmed or legacy physical deletions, and whether the replica has reconciled a full inventory independently of the engine cursor. |
+| Delete handoff and asset cleanup (V38) | Remembers the exact handed-off delete incarnation across a crash and schedules category-owned cache directory removal after a committed purge. |
 
-A replica scope includes container, environment, account, zone, owner and an optional consumer identifier. The independent read-only legacy History importer uses its own consumer scope, cursor and subscription even when Vault sync is inactive. The record name is scoped within that boundary, so a restriction in one account or environment neither blocks nor clears the same name in another. Category journals import their legacy quarantine rows under the prior binding/environment before deleting those legacy rows in the same successful save. Unknown historical ownership remains in a legacy scope rather than being silently attributed to a new account.
+A replica scope includes container, environment, account, zone, owner and an optional consumer identifier. The record name is scoped within that boundary, so a restriction in one account or environment neither blocks nor clears the same name in another. Category journals import their legacy quarantine rows under the prior binding/environment before deleting those legacy rows in the same successful save. Unknown historical ownership remains in a legacy scope rather than being silently attributed to a new account.
 
-A new scope begins with recovery required. The coordinator clears its serialized engine state when recovery is required, but retains local journal envelopes and pending edits. It commits recovery intent before creating an automatically syncing engine and before network work; only safe completion clears it. A delegate persistence failure rolls back and retires that engine, so a later successful callback cannot reopen its upload gate.
+A new scope begins with recovery required. `CloudSyncLifecycleSafety.persistent` binds the lifecycle to `CloudSyncSafetyStore` for recovery, capability and upload fences, while `CloudSyncRecordCoding.quarantine` saves either original JSON payload or a secure archive of a native record together with system fields. `CloudSyncRecordStateStore` filters pending mutations by the same quarantine boundary and retains deletion presence and causal handoff across engine resets. Its full-inventory reconciliation distinguishes a confirmed old delete from a newer explicit recreation, which must remain pending; a successful cloud delete acknowledgement clears only its matching incarnation. Cache purge work stays pending until the owned directory removal succeeds.  The coordinator clears its serialized engine state when recovery is required, but retains local journal envelopes and pending edits. It commits recovery intent before creating an automatically syncing engine and before network work; only safe completion clears it. A delegate persistence failure rolls back and retires that engine, so a later successful callback cannot reopen its upload gate.
 
-Receiving a supported replacement reconciles the domain data, journal metadata and quarantine removal in one persistence commit. A failure rolls all of them back. Retry, pause, account/environment resets and relaunch are not generic quarantine-clearing operations. Physical deletion and tombstone handling preserve the same upload restriction. Native History/Device quarantine preserves a secure archive of the complete CKRecord alongside system fields; legacy records retain original JSON bytes. An unsupported source record also fences the corresponding new-zone target. These are local control records, not new cloud record types or a replacement secret store.
+Receiving a supported replacement reconciles the domain data, journal metadata and quarantine removal in one persistence commit. A failure rolls all of them back. Retry, pause, account/environment resets and relaunch are not generic quarantine-clearing operations. Physical deletion and tombstone handling preserve the same upload restriction. Native History/Device quarantine preserves a secure archive of the complete CKRecord alongside system fields; JSON-backed category records retain their payload bytes. Unsupported native records remain fenced in their own replica scope; the retired cross-zone History importer no longer supplies a new-zone target fence. These are local control records, not new cloud record types or a replacement secret store.
 
-The on-disk safety tests cover V30→V31 migration, legacy import, independent replica scopes, reopening an interrupted store with blocked and pending records intact, and rollback of a failed unblock. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) for network gates and the limits of this first compatibility layer.
+The on-disk safety tests cover V30→V31 migration, scoped quarantine import, independent replica scopes, reopening an interrupted store with blocked and pending records intact, and rollback of a failed unblock. The compatibility suite additionally checks that reopening V35 drops only the retired importer table while retaining native device rows, envelopes and account binding; V31/V34 old Vault History journals are not imported into the native History journal. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) for network gates and the limits of this first compatibility layer.
 
 ## Secret references, not secret persistence
 

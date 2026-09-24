@@ -5,8 +5,10 @@ description: Cross-platform checks for Termind Pro annual trials, lifetime purch
 tags: [app-store, storekit, commerce, subscriptions, localization, release]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
+    at: 2026-09-24T14:20:08.561Z
 sources:
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
     resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-b37c974aaea12bd08606d67d
@@ -41,11 +43,9 @@ sources:
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-0da64bbb5811b467bbf89b7f
     resource: repo://TFMTests/ProAccessTests.swift
-  - id: openwiki-source-8e854eded0d88c86c59da2e5
-    resource: repo://TFMTests/ProPaywallRenderingTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
 # Storefront Commerce Release Checks
@@ -82,11 +82,12 @@ flowchart TD
     Access --> Mobile
     Mac --> Shared["ProPaywallContent and ProOfferPresentation"]
     Mobile --> Shared
-    Shared --> Actions["Purchase restore reload or manage"]
+    Shared --> Actions["Purchase restore and reload"]
     Actions --> Controller
+    Shared --> Manage["Platform subscription management"]
 ```
 
-This is the release-facing boundary: platform adapters supply live commerce values and actions; shared presentation supplies the localized offer and status UI.
+The diagram shows the release-facing boundary: platform adapters supply live commerce values and actions; shared presentation supplies the localized offer and status UI. Subscription management goes through the Mac URL or mobile system sheet rather than a controller purchase action.
 
 `ProOfferPresentation` formats the annual trial badge and the selected-plan detail in the effective locale. StoreKit's `weekOfYear` introductory period is converted to days before formatting, so the local two-week offer displays its full **14 days**, not a guessed duration. Eligible annual offers use **Start Free Trial** and “free, then [StoreKit price] per [billing unit]. Auto-renews until canceled.” Ineligible/no-offer annual purchases use **Subscribe Annually** and the price/renewal disclosure without a free claim. Lifetime uses **Buy Lifetime Access** and “One payment. No subscription or automatic renewal.” Missing annual price or billing period suppresses the annual detail; missing trial duration suppresses its badge, not the eligibility-based button title. `Frameworks/Resources/Localizable.xcstrings` contains the Simplified and Traditional Chinese offer strings; inspect the native resolved text rather than deriving it from the StoreKit product description. Do not hard-code fixture prices or the two-week duration into UI or access rules.
 
@@ -101,6 +102,6 @@ The shared view presents access state and dates, plan cards, feature disclosure,
 ## Localized storefront and release gate
 
 1. Reconcile the product matrix, trial, Family Sharing, and intended grace settings in **App Store Connect** for English, Simplified Chinese, and Traditional Chinese; compare the actual Sandbox display prices and subscription group, not only `StoreKit/Termind.storekit`. Verify new-account trial eligibility and used-offer ineligibility; trial-to-paid renewal, cancellation-through-expiry, billing retry/grace, refund/revocation, restore, Ask to Buy, and lifetime precedence on Mac, iPhone, and iPad. Verify the same Apple account across devices and Family Sharing with a separate family account.
-2. Inspect both native paywalls with live StoreKit metadata: annual and lifetime selection, 14-day fixture trial disclosure when eligible, renewal/no-renewal language, status/date, restore/manage links, localized legal/disclosure text, disabled/missing-product and retry states, and readable layouts at accessibility sizes. Run `FrameworkTests/ProOfferPresentationTests.swift` and `FrameworkTests/ProPaywallPresentationTests.swift` for duration/locale/eligibility and status behavior; `TFMTests/ProPaywallRenderingTests.swift` and `TFITests/ProPaywallRenderingTests.swift` render en, zh-Hans, zh-Hant in regular and accessibility text, free and subscribed states. Mobile key-window rendering is opt-in via `TERMIND_MOBILE_UI_TESTS=1` with parallel testing disabled; the fixtures do not contact StoreKit or prove production pricing. Run the opt-in `TFMTests/StoreKitTrialTests.swift` with `TERMIND_STOREKIT_TESTS=1` for local purchase, trial, precedence, pending approval, invalid catalog, and metadata-failure behavior. See [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the general test invocation playbook.
+2. Inspect both native paywalls with live StoreKit metadata: annual and lifetime selection, 14-day fixture trial disclosure when eligible, renewal/no-renewal language, status/date, restore/manage links, localized legal/disclosure text, disabled/missing-product and retry states, and readable layouts at accessibility sizes. Run `FrameworkTests/ProOfferPresentationTests.swift` and `FrameworkTests/ProPaywallPresentationTests.swift` for localized weekly duration, eligibility, missing metadata, entitlement labels/dates, disabled purchase and recovery behavior. **There is no `TFMTests/ProPaywallRenderingTests.swift` in the current suite.** Check the Mac paywall visually in the app; do not cite a nonexistent Mac screenshot test as evidence. `TFITests/ProPaywallRenderingTests.swift` alone exercises shared content in a temporary UIKit key window with injected free and subscribed states, fixed sample prices, English, zh-Hans and zh-Hant, phone- and tablet-sized frames, and regular/accessibility dynamic type. It checks scroll width and records PNG attachments and temporary previews, but does **not** contact StoreKit, mount the full `MobileProView`, or establish live pricing or actual entitlement. Opt in to this serialized key-window suite with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and `-only-testing:TFITests/ProPaywallRenderingTests` (or set `TERMIND_MOBILE_UI_TESTS=1` in Xcode's test environment). Offscreen layout and logic tests can run by default; key-window tests need their own opt-in. Separately authorize `TFMTests/StoreKitTrialTests.swift` with `TERMIND_STOREKIT_TESTS=1` and `-only-testing:TFMTests/StoreKitTrialTests`: its serialized `SKTestSession` uses the local configuration for trial purchase/restore, lifetime precedence, cancellation/metadata failure, pending approval, unverified transactions, missing intro offer, invalid annual catalog, and empty restore. It is **not** an offscreen render suite and cannot verify production authorization or subscription/grace policy. See [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the general test invocation playbook.
 3. Confirm the final localized **storefront imagery**, separately from paywall screenshots: `Marketing/AppStore/en`, `Marketing/AppStore/zh-hans`, and `Marketing/AppStore/zh-hant` each have Mac, iPhone 6.5-inch, and iPad 13-inch sets of six JPG boards. Review language, device/platform sizing, readable native chrome, and offer/product messaging against the current storefront metadata before uploading to App Store Connect. These are final boards, not the capture or device-frame inputs used by the website. For the generation and review workflow see [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md).
 4. Record App Store Connect/Sandbox checks independently of local tests and artwork export checks. Local rendering and `SKTestSession` cannot establish production metadata, approval behavior, cross-device delivery, or Family Sharing. Coordinate any changes to marketing and free-Workspace copy without silently changing the product IDs, offer terms, group, or grace policy.

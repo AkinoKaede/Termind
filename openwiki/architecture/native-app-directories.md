@@ -1,8 +1,11 @@
 ---
 type: architecture directory guide
-title: Native App Directory Responsibilities
-description: Directory ownership in the macOS and iOS apps, including desktop window composition, MCP transfer policy, and mobile scene, sync, and background lifetimes.
-tags: [architecture, directories, macos, ios, ipados, navigation, lifecycle]
+title: Native App Responsibilities
+description: Ownership and entrypoints of the macOS TFM and iOS TFI apps, distinguishing native presentation and adapters from shared models, persistence, and remote services.
+tags: [architecture, macos, ios, directories, navigation, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -114,225 +117,92 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:45:57.323Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
-# Native App Directory Responsibilities
+# Native App Responsibilities
 
-`TFM` is the macOS app; `TFI` is the iPhone/iPad app. They reuse the [shared frameworks](shared-module-directories.md), but keep native interaction and lifetime decisions local. The tables below use paths **relative to the app root**. “Not present” means that directory does not exist on that platform, not necessarily that the user-facing capability is unavailable.
+`TFM` is the macOS app and `TFI` is the iPhone/iPad app. Both compose the [shared frameworks](shared-module-directories.md), but their directories own platform-specific interaction and lifetime decisions. A directory named `Features` is **not** necessarily views only: desktop sessions live under `Features/Terminal` and window workspaces under `Features/Workspaces`, while mobile live workspaces live under `Features/Workspaces`. By contrast, `Features/Shell` defines navigation values, not remote shell execution. Paths below are relative to the respective app root.
 
-## Common top-level organization
+## Entrypoints and state ownership
 
-| Directory | TFM responsibility | TFI responsibility |
+| Boundary | macOS (`TFM`) | iOS/iPadOS (`TFI`) |
 | --- | --- | --- |
-| `App` | Startup, dependency assembly, app-wide model, root window composition, commands, onboarding, reviews, MCP server control, and screenshot/demo setup. | Startup/dependencies, app-wide model, scene-local routes, registered destinations, root tabs/stacks, commands, reviews, and language migration. |
-| `Application` | Desktop use cases, commands, audit/transfer models, external MCP operations, and serial-service contract. Root-level quick-connect parsing is also here. | Mobile Assistant coordination, editor models, injectable connection/metrics services, SFTP browser state, and workspace descriptors. |
-| `Features` | Native product screens **and some runtime owners**, including windows, workspaces, and sessions. | Native screens plus the live workspace runtime. It is not merely a view folder. |
-| `Infrastructure` | Desktop concrete adapters: persistence wiring, loopback HTTP/MCP, secrets, serial ports, imports, and transfers. | Live remote-service wiring and device-local workspace-intent storage. |
-| `Platform` | AppKit/system integration: windows, appearance/relaunch, login items, shortcuts, menu-bar metrics, file opening/export, speech input, fonts, and input modality. | UIKit/system integration: app/scene delegate, background allowance, quick actions, Live Activities, camera, document handoff, terminal surface/drop handling, speech input, and fonts. |
-| `Design` | Desktop tokens, status/tag components, and terminal-theme presentation. | Mobile tokens and tag-field styling. |
-| `DesignSystem` | Connection presentation and menu-symbol helpers. | Available-content-region geometry, layout environment, and toolbar-placement environment. |
-| `UI` | Reusable native interaction/rendering components, separate from feature-specific operations. | Reusable mobile lists, sheets, toolbars, input, drop handling, and cards. |
-| `Resources` | App-specific icons and desktop assets. | App-specific icon assets. |
-| Root metadata | App bundle configuration and entitlements. | App bundle configuration and entitlements. |
+| `App` entry | `TermindApp` assembles one `AppModel` and SwiftData container, mounts a `WindowGroup` with a fresh `WindowModel` for each `RootView`, plus a separate external-authentication window and app commands. | `TermindIOSApp` creates one `MobileAppModel` for its `WindowGroup`; `MobileRootView` retains a `MobileSceneModel` per scene, with a `NavigationStack` per registered tab (Vault, Metrics, Workspaces, Assistant and Settings). |
+| Shared versus local state | `AppModel` holds shared libraries and services; `WindowModel` owns workspace/pane collection, selection, sidebar, Settings route, queries and window presentation. | `MobileAppModel` owns shared libraries, sync, transfers, Assistant execution and live `MobileWorkspace` objects. `MobileSceneModel` owns destination, selected workspace, Assistant scene model and editor/connection presentations. |
+| Startup failure | Opening the local container can terminate startup with a fatal error; tests and screenshot demos use in-memory composition. | Failure to construct `MobileAppModel` presents an unavailable-data-store screen instead of mounting a normal root; test composition uses testing dependencies. |
 
-`App`, `Platform`, `Design`, and `DesignSystem` are currently flat source directories. Their multiple concerns are listed above rather than presented as nonexistent child folders.
-
-The app composition roots also adapt platform device naming into the shared device directory. TFM's `MacDeviceName` reads `kern.hostname`, trims whitespace and falls back to DeviceKit's `Device.current.safeDescription` when the hostname is unavailable or empty. TFI uses DeviceKit's description directly. TFM refreshes the name when the application becomes active, and TFI refreshes it when a scene becomes active. The portable `DeviceRecord`, directory model and repositories remain in shared frameworks rather than either native app directory.
-
-## Application subdirectories
-
-### TFM/Application
-
-| Directory | Responsibility |
-| --- | --- |
-| Root files | Parse and represent quick-connect targets without executing an OpenSSH configuration or a shell. |
-| `Commands` | Register desktop command identities/actions independently of the native menu surface. |
-| `FeatureModels` | Assistant conversation commands, tool-audit and transfer libraries, desktop SSH-import behavior, and demo extensions. |
-| `MCPServer` | External tool operations and upload/download workflows, including transfer tickets, readers, coordinators, and budgets. This is application policy, not the HTTP socket listener. |
-| `Repositories` | Desktop tool-audit repository contract. |
-| `Serial` | Serial-port service abstraction and injectable I/O capabilities. |
-
-### TFI/Application
-
-| Directory | Responsibility |
-| --- | --- |
-| `Agent` | App-owned Assistant execution/conversation services plus scene-specific Assistant selection models. |
-| `Connections` | Injectable closures for opening SSH/SFTP and writing terminal data. Live implementations are supplied elsewhere. |
-| `FeatureModels` | Host picking; key, MCP, provider, and skill editing; secret drafts; model discovery/probes; snippet operations. “Model tests” here means provider/model probing, not the app's unit-test target. |
-| `Metrics` | Mobile monitoring state and injected sampling/connection services. |
-| `Transfers` | SFTP browser/channel state and remote-file operations, distinct from the process-wide transfer queue. |
-| `Workspaces` | Persistable connection-intent descriptors and connection-history coordination, not live terminal surfaces. |
-
-The mobile service contracts can mention remote types, but do not construct the live transport implementation. `ArchitectureBoundaryTests` checks different boundaries for the two app Application directories: both reject UI and concrete implementation access, but the mobile checks also reject SwiftData, GRDB and `TermindPersistence`, while the desktop checks prohibit AppKit, Security, Network and other concrete framework imports and scan for direct persistence/transport construction. Feature code is likewise checked for concrete construction; neither app-local Application directory is thereby a portable shared-framework layer. The same tests enforce that `@Model` schemas and `SwiftData*Repository` declarations stay in `TermindPersistence`, even though desktop `Infrastructure/Database` can provide convenience adapters over those repositories.
-
-The desktop MCP split illustrates **placement versus lifetime**. `MCPServerController` in `App` owns the server configuration and coordinates start/stop, Pro gating, port changes, token rotation and transfer shutdown. Its `MCPServerTools` in `Application/MCPServer` owns the exported tool registry and upload/download coordinators; it wires authenticated SFTP operations from shared remote infrastructure. `Infrastructure/Networking` serves loopback HTTP bytes, `Infrastructure/MCP` handles protocol sessions, and `Infrastructure/Security` stores the server token. A tool call creates a run-bound upload ticket; the controller routes a `PUT /uploads/{id}` stream to `MCPUploadCoordinator.prepare`, which checks origin, bearer upload token, method, headers, remaining length and acknowledged resume offset **before** claiming capacity or starting audit/transfer work. A disconnect or recoverable transfer failure can pause a ticket for retry at its acknowledged offset; integrity failure, cancellation or expiry cannot be retried. Commit succeeds only after the remote streaming operation returns; session/host revocation and server stop cancel tickets and drain tasks. The transfer budget and audit belong to application operations, not the view that exposes settings. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external protocol.
-
-## Feature subdirectories
-
-Every current immediate child of either `Features` directory is included here.
-
-| Directory | TFM | TFI |
-| --- | --- | --- |
-| `AI` | Conversation/composer pieces, command cards, Markdown rendering, native transcript rows/cache, attachments, and slash-command UI. | Composer, conversation/transcript cards, work rows, approval/input interaction, and slash-command panel. |
-| `Assistant` | Full Assistant destination, compact contextual surface, and conversation-library presentation. | Assistant destination and conversation/library navigation over shared execution services. |
-| `Commerce` | Pro paywall presentation. | Mobile Pro purchase presentation. |
-| `ExternalRequests` | Feature-owned external authentication coordination and its dedicated window. | Not present; mobile features retain their own authentication UI. |
-| `HostChooser` | Select hosts/connections for desktop actions. | Mobile connection picker. |
-| `HostEditor` | Host connection and metadata editor. | Host draft sheet for SSH/Telnet profiles, identity/proxy, group and session settings; uses the app's host library to save rather than owning a connection. |
-| `Hosts` | Host management page, host actions, and group creation. | Not present as a separate directory; host cards, groups and their actions live in mobile Vault. |
-| `Keychain` | Saved key/identity management and identity creation. | Credential list and key editor. These are metadata/editor surfaces, not the Keychain implementation. |
-| `KnownHosts` | Saved server-trust management. | Searchable trusted-host cards and a validated add/edit sheet backed by `app.knownHosts`, not a transport trust store owned by the view. |
-| `Metrics` | Overview/detail dashboards, responsive layouts, server details, and connection-journey presentation. | Mobile metrics dashboard and details. |
-| `Ports` | Port-forwarding library and rule interaction. | Forwarding library and editor. The connection controller remains in Remote Infrastructure. |
-| `QuickOpen` | Keyboard-oriented quick navigation/connection surface. | Not present. |
-| `SFTP` | Browser, channel model, file context menus, and Open With menu. | Browser, remote text editor, edit preview, and browsing/download history. |
-| `SSHImport` | Desktop SSH-config/key import preview and selection UI. | Not present. |
-| `Settings` | Window-local settings index and detail routes for app/startup, terminal, SSH/SFTP connections, AI providers/models/roles, skills, MCP client and local server, web search, sync, logging, and debug-only developer options. The pages edit app-owned models rather than own the sync or MCP server lifetime. | App/terminal/SFTP/sync settings, AI providers/models, remote MCP configuration, skills, and logging. No desktop loopback MCP-server setup surface. |
-| `Shell` | Window destination/route and title values. | Mobile destination and navigation values. **Neither folder is the remote shell protocol implementation.** |
-| `Sidebar` | One window-local column with Navigator, contextual Assistant, Snippets and focus-sensitive History modes; the window model owns mode and visibility. | Not present; mobile uses its registered tab/sidebar navigation shell. |
-| `Snippets` | Snippet library and actions. | Mobile snippet library and actions. |
-| `StatusBar` | Workspace status overlay and related interaction. | Not present as a separate directory. |
-| `Terminal` | SSH, Telnet, and serial session models; persistent terminal surface; serial controls and placeholders. | Terminal keyboard, selection, history, snippets, and list presentation. Live connection ownership is in `Features/Workspaces`, while the native surface adapter is in `Platform`. |
-| `Transfers` | Not present as a separate feature directory; transfer-library state is in `Application/FeatureModels`. | Transfer queue presentation and actions. |
-| `Vault` | Vault routing/page state and list/detail workspace composition across managed resources. | Searchable host/group cards and navigation links to credentials, forwarding, snippets, trusted hosts and connection History; contains the History view, not its persistent store. |
-| `Workspaces` | Window/workspace/pane models, split layout, persistent deck, Navigator integration, templates, and empty panes. | Workspace runtime, workspace list/detail, and rename interaction. |
-
-### Why similarly named areas stay separate
-
-- **AI versus Assistant:** `AI` contains reusable conversation pieces; `Assistant` composes the product destination and navigation.
-- **Shell versus Terminal:** `Shell` is navigation vocabulary; `Terminal` is terminal interaction/session presentation. Remote shell bootstrap and transport execution belong to the shared remote stack.
-- **SFTP versus Transfers:** browsing/control state is not the scheduler or lifetime of a queued file operation.
-- **Vault versus Hosts/Keychain/KnownHosts/Snippets/Ports:** Desktop Vault routes to dedicated manager pages. Mobile Vault itself renders host/group cards and owns only local search, sheet and confirmation state; its links push specialized screens. Mobile History's SwiftUI view happens to be in `Features/Vault/MobileVaultView.swift`, while row filtering/action policy lives in `Application/Workspaces` and the connection-history model is app-owned. A file location or a pushed destination does not transfer the data or session lifetime to Vault.
-- **Settings versus service models:** closing Settings must not end synchronization, metrics, forwarding, or transfer work.
-
-### Native navigation and editing boundaries
-
-On mobile, `App/MobileFeatureRegistry.swift` registers Vault, Metrics, Workspaces, Assistant and Settings. `MobileRootView` mounts a separate `NavigationStack` for each registered tab and retains one `MobileSceneModel` per scene. Vault receives scene callbacks and a binding to `scene.editingHost`: tapping a host card asks the scene to reuse or open its preferred terminal workspace; SSH/Telnet/SFTP menu actions explicitly open a connection, while Edit presents `MobileHostEditor` as a sheet. The editor keeps a host draft and custom-identity draft, validates protocol, port, authentication and environment fields before saving through `HostLibraryModel`; nested identity/group/environment editors stay in the sheet workflow. Host deletion instead calls `MobileAppModel.deleteHost`, which closes matching workspaces, invalidates edits, cancels transfers and cleans up forwarding/metrics before deleting the host projection. Do not move these app-level effects into the Vault card or sheet.
-
-Vault search links to resource pages can pass the search query into the pushed page; Metrics search switches the registered top-level destination. Its History link opens `MobileConnectionHistoryView` in the Vault file, showing up to 50 filtered events resolved against the host library and device directory. A history row opens only if that protocol is still enabled for its host; deletion and clear-all act on `app.connectionHistory`. The separate `MobileKnownHostsView` uses `app.knownHosts` for search, save and delete; its editor surfaces storage failure rather than silently treating a failed save as success. Neither screen owns the persisted records simply because Vault pushes it.
-
-```mermaid
-flowchart TD
-    Registry["App feature registry"] --> Root["MobileRootView tab and navigation stack"]
-    Root --> Vault["Vault host and resource navigation"]
-    Vault -->|"host tap or connect menu"| Scene["MobileSceneModel selects workspace"]
-    Scene -->|"open if needed"| AppModel["MobileAppModel retains live workspaces"]
-    Vault -->|"edit host"| Editor["MobileHostEditor draft sheet"]
-    Editor -->|"save"| Library["Host library"]
-    Vault -->|"history link"| History["MobileConnectionHistoryView"]
-    History -->|"read and delete"| HistoryStore["App connection history"]
-```
-
-Mobile navigation dispatches scene-local intent to app-owned data and runtime; the Vault file is not the lifetime boundary.
-
-On macOS, `TermindApp` creates one `AppModel` and SwiftData container, but its `WindowGroup` creates a `WindowModel` for each `RootView`, injecting the shared app and container. It also declares a separate external-authentication `Window` scene; the native `AppDelegate` manages activation, reopen, login-launch behavior and termination rather than making any Settings page an app lifecycle owner. In particular, quit first rechecks pending SFTP edits and may cancel termination; after consent it saves window size and starts app shutdown, replying once after cleanup or a three-second timeout. The app's database-open failure is fatal at composition time, not a Settings error.
-
-`RootView` mounts `WindowSidebarView` in a `NavigationSplitView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers the deck without unmounting its workspace views and sessions. Sidebar mode and visibility are per-window: the rail chooses Navigator, compact Assistant, Snippets or History. History shows command history for a focused SSH pane, browse history for SFTP, or connection history otherwise; it is disabled for focused serial/Telnet panes, and an invalid current History mode falls back to Snippets. Clicking Assistant outside a workspace navigates to the full Assistant destination, while Navigator returns from it; assigning a mode for presentation alone is not the same as activating its navigation behavior.
-
-Settings is a **window destination**, not a second app-wide scene. `RootView` displays `SettingsPageView` for `.settings`; `WindowModel.settingsRoute` records the index, category or detail route and remembers the destination Settings replaced. Back walks the route's parent before closing; closing resets to index and restores the previous destination, falling back to Vault if its workspace was removed. `SettingsPageView` assembles the category forms and detail editors, with remote MCP editor access guarded by Pro; its `MCPServerSettings` route edits the app's local server configuration, not the HTTP listener. Leaving provider, MCP server or skill editors discards qualifying empty drafts; nonempty skill drafts remain available and an MCP draft must lock a unique namespace. App preferences and service models remain app-owned, while only transient route and newly-created-provider UI state belong to the window/view. `TFMTests/SettingsNavigationTests.swift` covers back/return behavior, removed-workspace fallback and draft policy; `TFMTests/WindowSidebarTests.swift` covers window isolation and the focused-serial fallback. `TFITests/MobileVaultFeatureTests.swift` covers host menu filtering, duplication, group deletion and proxy defaults, and `TFITests/MobileConnectionPickerTests.swift` covers History's limit and search.
-
-## Infrastructure subdirectories
-
-| TFM directory | Responsibility |
-| --- | --- |
-| `Database` | App-facing SwiftData convenience wiring for history models using repositories declared in `TermindPersistence`; it does not define a second model schema or repository implementation. |
-| `Repositories` | Factories that connect feature/library models to persistent stores. |
-| `MCP` | MCP protocol/session handling on top of the local HTTP transport. |
-| `Networking` | Loopback HTTP listener and request/response transport. |
-| `Security` | Desktop Keychain extensions, MCP bearer-token storage, and upload-token mechanics. |
-| `SSH` | Production transfer-coordinator wiring using the desktop's remote services. |
-| `SSHImport` | Desktop-specific SSH-import adapter extensions. |
-| `Serial` | Concrete system serial-port implementation. |
-
-| TFI directory | Responsibility |
-| --- | --- |
-| Root files | Store and migrate device-local workspace descriptors. Unreadable snapshots are preserved rather than overwritten with an empty collection. Credentials, commands, and live sessions are excluded. |
-| `SSH` | Live implementations of the mobile workspace-connection and metrics-service contracts. |
-
-## UI and resource subdirectories
-
-| Directory | TFM | TFI |
-| --- | --- | --- |
-| `UI/Components` | Window chrome/toolbar, native context menus, hosted list rows, sidebar rows, chooser, onboarding coach marks, connection journey, single-line editing, and file-drop bridge. | Native lists, editor sheets, sheet policy, toolbar search/overflow, single-line input, connection journey, and drop payload/target helpers. |
-| `UI/Managed` | Generic card-grid/page rendering, selection, marquee and reordering; resource pages provide business operations. | Adaptive managed cards, layouts, and reusable management presentation. |
-| `Resources/AppIcon.icon` | Icon Composer document; its `Assets` child contains icon layers. | Icon Composer document; its `Assets` child contains icon layers. |
-| `Resources/Assets.xcassets` | Desktop accent/menu-bar assets, including the `MenuBarIcon.imageset` leaf. | Not present; shared catalog assets are supplied by `Frameworks/Resources`. |
-
-These components can reuse `TermindPresentation`, but native mounting, focus, drag/drop, AppKit/UIKit interaction, and platform layout policy remain app-owned.
-
-## Composition and injection
-
-**Solid arrows describe use or assembly; dashed arrows describe implementation/injection.** This is a representative collaboration pattern, not a claim that every feature follows an identical call stack.
+The `App` composition roots also supply the shared device directory with platform naming. `MacDeviceName` reads trimmed `kern.hostname` with `Device.current.safeDescription` fallback, refreshed on macOS application activation. Mobile uses `Device.current.safeDescription`, refreshed on active scene transition. `DeviceRecord`, directory policy and repositories remain shared, rather than becoming native-app schema types.
 
 ```mermaid
 flowchart TB
-    App["App / composition root"] -->|assembles| Concrete["Infrastructure + shared concrete services"]
-    App -->|creates and supplies services| Models["Application / feature models and ports"]
-    Features["Features / native screens and runtime owners"] -->|dispatches intent| Models
-    Features -->|renders with| UI["UI + Design + DesignSystem"]
-    Features -->|uses shared content| Presentation["TermindPresentation"]
-    Concrete -.->|implements injected capabilities| Models
-    Platform["Platform / native adapters"] -.->|supplies native capabilities| App
-    Models -->|uses policy and values| Shared["TermindApplication + TermindDomain"]
+    subgraph Mac["TFM desktop"]
+        DesktopApp["TermindApp shared AppModel"] --> Window["WindowModel per RootView"]
+        Window --> Deck["Workspace deck and native sessions"]
+        Window --> Sidebar["Sidebar and Settings routes"]
+    end
+    subgraph IOS["TFI mobile"]
+        IOSApp["TermindIOSApp shared MobileAppModel"] --> Runtimes["Live MobileWorkspace instances"]
+        IOSApp --> Scene["MobileSceneModel per MobileRootView"]
+        Scene -.->|selects| Runtimes
+    end
 ```
 
-App assembly connects feature interaction to injectable services without making every feature a passive view.
+App-level services outlive a window or scene's navigation selection; only desktop windows own their workspace collections.
 
-A dependency object supplies live/test alternatives; it does not itself become the lifetime owner of every object it creates. Some feature runtime owners legitimately retain remote services. The boundary tests prohibit direct concrete construction/storage access in feature code rather than pretending features contain only passive views.
+### Desktop navigation and termination
 
-## Runtime ownership: desktop is not mobile
+`RootView` mounts `WindowSidebarView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers rather than destroys the deck and its session views. The window-local sidebar offers Navigator, compact Assistant, Snippets and History. History uses command history when an SSH pane is focused, SFTP browse history for an SFTP pane, and connection history otherwise. Serial/Telnet focus disables History and reconciles an invalid History selection to Snippets. Activating the Assistant mode outside a workspace also opens the full Assistant destination; activating Navigator from Assistant restores its remembered destination. Programmatically setting the sidebar mode is presentation-only.
 
-**Solid arrows mean ownership; dashed arrows mean selection or access, not ownership.** This deliberately shows runtime state separately from directory containment.
+Settings is a **window destination**, not a separate shared-service owner. `WindowModel.settingsRoute` remembers the destination it replaced, moves Back to a parent route before closing, then resets to index and returns to the old destination (or Vault if a workspace was removed). `SettingsPageView` assembles forms over app-owned settings: remote MCP editing is Pro-gated and a separate local MCP server route configures the app's server controller, not the HTTP listener. Leaving an editor discards qualifying empty provider, MCP and skill drafts; substantive skill drafts survive, and a new MCP server must lock a unique namespace. This makes a route change different from shutting down sync, transfers or the local server.
 
-```mermaid
-flowchart TB
-    subgraph desktop["Desktop"]
-        MacApp["AppModel / shared services"]
-        Window["WindowModel / one per window"] --> Deck["Workspace collection and panes"]
-        Deck --> Sessions["SSH / Telnet / serial / SFTP runtime"]
-        Window --> LocalUI["Routes / queries / sidebar / transcript cache"]
-        Window -.->|uses| MacApp
-    end
-    subgraph mobile["Mobile"]
-        MobileApp["MobileAppModel"] --> Workspaces["Live MobileWorkspace instances"]
-        MobileApp --> Runs["Assistant execution and shared services"]
-        Scene["MobileSceneModel / one per scene"] --> Routes["Routes / selection / editor presentation"]
-        Scene -.->|selects| Workspaces
-        Scene -.->|accesses shared runs| Runs
-    end
-    desktop ~~~ mobile
-```
+`AppDelegate` handles application activation, reopening, quiet login launch and termination. On quit it rechecks pending SFTP edits, can cancel termination if the user refuses to discard them, then saves window size and begins shutdown. Its reply is sent once after cleanup or a three-second timeout. `TFMTests/SettingsNavigationTests.swift` tests route return, missing-workspace fallback and draft handling; `TFMTests/WindowSidebarTests.swift` tests window isolation and the serial-pane fallback.
 
-Per-window desktop state and per-scene mobile routes have different owners from the shared app services.
+### Mobile navigation, restoration and lifecycle
 
-Desktop destination switches park persistent workspace views; mobile route changes select retained runtime objects. Neither is equivalent to closing a connection. Persisted mobile workspace descriptors restore connection intent rather than authenticated transports: `openWorkspace` publishes the shared runtime before connecting so two scenes cannot independently start the same restored session. An explicit close removes its descriptor and disconnects it. The macOS `WindowGroup` constructs a new `WindowModel` for each window and injects the shared `AppModel` and SwiftData container; its delegate handles system-level activation, window reopening, and termination, including pending SFTP edit confirmation. By contrast, iOS `TermindIOSApp` builds one `MobileAppModel` for its `WindowGroup`, while each `MobileRootView` retains its own `MobileSceneModel` for selection, Assistant drafts and presentations.
+`MobileFeatureRegistry` passes scene callbacks into Vault: tapping a host selects a recent preferred SSH/Telnet workspace or opens one; explicit SSH, Telnet and SFTP menu actions create connections. `MobileSceneModel.selectWorkspace` asks the app to materialize a saved descriptor, then selects the resulting runtime. `MobileAppModel.openWorkspace` first checks for an existing runtime and removes stale descriptors whose host is missing. `addWorkspaces` publishes the runtime and its descriptor **before** `connect()`, so two scenes selecting a restored descriptor share the same first attempt. An explicit close disconnects the workspace and removes its saved descriptor. Device-local `Infrastructure/MobileWorkspaceStore` stores connection intent only, never credentials, commands or live sessions; unreadable snapshots are not overwritten with an empty list. A failed restore/save sets an app error for presentation rather than silently erasing the snapshot.
 
-### Mobile lifecycle and sync boundary
+`MobileRootView` reports phase, scene removal and Pro changes to the app. Only the first transition to **all registered scenes backgrounded** starts the background path: the app pauses monitoring, memory, metrics, outbox and sync, suspends Assistant recording, and acquires a UIKit background-task lease without immediately disconnecting healthy workspaces. Expiration suspends workspaces and stops forwarding, transfers and Assistant background work. Active reentry finishes the lease, resumes affected workspaces and services, rechecks SFTP edits, refreshes Pro, and reconciles sync. An empty scene registry does not enter background. `MobileBackgroundController` retires a lease at most once, ignores obsolete expiry callbacks and handles synchronous expiration or an invalid task ID without leaking a UIKit end call.
 
-`MobileRootView` reports each scene phase and removal to the app model, and observes Pro changes to call `reconcileSync`. The app records phases per scene. On the first transition where **all registered scenes** are backgrounded (including removal of the last active scene while another remains backgrounded), it pauses monitoring, memory, sync engines, metrics and outbox, suspends Assistant recording and asks `MobileBackgroundController` for a UIKit background-task lease. It does **not** immediately disconnect healthy workspaces. Lease expiry requests workspace suspension and stops forwarding, transfers and Assistant background execution. The controller retires a lease exactly once; stale expiry callbacks cannot affect a replacement lease, and synchronous expiry during `begin` or an invalid identifier is handled without leaking an end call.
-
-On an active scene transition, the app finishes the lease, resumes affected workspaces, monitoring and memory, rechecks edited files, refreshes Pro, restarts outbox/metrics and Live Activities, and reconciles sync. `reconcileSync` starts vault, history/device, metrics and settings sync **only when at least one tracked scene is active and Pro permits vault sync**; otherwise it pauses all four. `setSyncEnabled` guards enabling with `pro.require(.vaultSync)`, stores the preference, migrates custom passwords when enabling the iCloud master switch and calls `reconcileSync`—Vault and Device follow the master switch; History, Metrics and Settings additionally enforce their optional selections. A `.inactive` scene is not an active scene for this decision, and an empty scene registry does not trigger background entry, but reconciliation pauses sync. In-memory/test composition omits the cloud coordinators altogether.
+`MobileAppModel.reconcileSync` starts **five** coordinators (Vault, connection History, Device, Metrics and Settings) only with an active tracked scene and Pro vault-sync eligibility; otherwise it pauses them. In-memory composition omits live cloud coordinators. `setSyncEnabled` checks Pro before enabling, persists the selection, passes History selection to its coordinator, migrates custom passwords when the iCloud master is enabled and reconciles sync. Vault and Device follow the master switch; History, Metrics and Settings additionally honor their optional selections. An inactive scene is not active for this gate.
 
 ```mermaid
 flowchart TD
-    Phase["Scene phase or scene removal"] --> Track["MobileAppModel records phases"]
-    Track --> AllBG{"All tracked scenes backgrounded now"}
-    AllBG -->|first transition| Pause["Pause services and begin UIKit lease"]
-    Pause --> Expire["Lease expires"]
-    Expire --> Suspend["Suspend workspaces and background work"]
-    Track -->|active scene| Foreground["Finish lease and resume services and workspaces"]
-    Foreground --> Sync["Reconcile sync"]
-    Track -->|scene removed| Sync
-    Pro["Pro entitlement change or sync setting"] --> Sync
-    Sync --> Gate{"Active scene and Pro vault sync"}
-    Gate -->|yes| Start["Start four sync coordinators"]
-    Gate -->|no| Stop["Pause four sync coordinators"]
+    Phase["Scene phase or removal"] --> App["MobileAppModel tracks scene phases"]
+    App --> Gate{"All registered scenes backgrounded"}
+    Gate -->|"first transition"| Pause["Pause services and start UIKit lease"]
+    Pause --> Expiry["Lease expiration suspends runtime work"]
+    App -->|"active scene"| Resume["Finish lease and resume services"]
+    Resume --> Sync["Reconcile sync"]
+    App -->|"scene removed"| Sync
+    Pro["Pro or sync selection changed"] --> Sync
+    Sync --> Eligible{"Active scene and Pro eligible"}
+    Eligible -->|yes| Start["Start five coordinators"]
+    Eligible -->|no| Stop["Pause five coordinators"]
 ```
 
-Scene registration and entitlement gate app-owned synchronization independently of the visible route.
+Scene registration and entitlement gate app-owned services independently of whichever tab is visible. `TFITests/MobileAppTests.swift` covers restoration across scenes, expiration/reentry and last-active-scene removal; `TFITests/MobileBackgroundControllerTests.swift` covers lease replacement, synchronous expiry and invalid IDs; `TFITests/MobileSettingsPortTests.swift` checks the in-memory cloud boundary and settings-to-transfer preference updates.
 
-Mobile phase transitions, lease expiration and entitlement changes operate on app-owned services, not a scene's route. For focused coverage, `TFITests/MobileAppTests.swift` tests expiration/re-entry, the last-active-scene removal, and restoration across scenes; `TFITests/MobileBackgroundControllerTests.swift` tests synchronous expiration, replacement and invalid leases; `TFITests/MobileSettingsPortTests.swift` verifies in-memory composition has no cloud engines. `TFMTests/MCPUploadTests.swift` exercises resumable offset/digest, revocation, timeout, retention and rejection before consumption. For more mechanisms continue with [Desktop UI](desktop-ui.md), [Mobile UI](mobile-ui.md), and [Platform Runtime](platform-runtime.md). `ArchitectureBoundaryTests` checks placement; window/sidebar and adaptive-layout tests protect behavior. Return to the [Module Map](module-map.md) for the full dependency picture.
+## Placement: policy, adapters and presentation
+
+| Directory | Desktop example | Mobile example |
+| --- | --- | --- |
+| `Application` | Use cases and injectable ports, including quick-connect parsing, command identities, audit/transfer library models, `Serial` contracts and external `MCPServer` tools. | `Connections` injectable SSH/SFTP and terminal-write capabilities; `Agent` Assistant coordination; `FeatureModels` editor and picker state; `Metrics` sampling contracts; `Transfers` SFTP browser state; `Workspaces` descriptor/history policy. Not a shared-framework layer. |
+| `Infrastructure` | Concrete wiring: `Database` convenience adapters over `TermindPersistence` repositories, repository factories, serial and SSH adapters, import adapters, loopback `Networking`, MCP sessions and security token storage. No second SwiftData schema. | `MobileWorkspaceStore` migration and intent persistence plus `SSH` implementations of mobile connection/metrics services. |
+| `Platform` | AppKit window/menu-bar control, login/appearance, shortcuts, file handoff, audio and native device naming. | UIKit delegate/background allowance, quick actions, Live Activities, camera, document handoff, terminal surface/drop handling, speech and fonts. |
+| `Design`, `DesignSystem`, `UI` | Tokens and layout helpers; reusable native components and managed card grids. Resource pages supply operations. | Tokens, available-content geometry and toolbar placement; reusable mobile cards, native lists, sheets, toolbars and input. |
+| `Resources` | Desktop icon and asset catalog including menu-bar art. | Mobile app icon; shared catalog assets live in frameworks. |
+
+`Application` expresses app-local policy and contracts, not the view hierarchy or the SwiftData schema. `ArchitectureBoundaryTests` prohibit UIKit/SwiftUI and persistence imports in mobile Application, concrete construction in both apps' Features and desktop Application, and direct persistence/transport imports in desktop Features. They also ensure `@Model` types and `SwiftData*Repository` declarations stay in `TermindPersistence`. `TFM/Infrastructure/Database` can provide constructors using those shared repositories without owning another schema. Native UI and platform adapters may consume shared `TermindPresentation` content, but focus, AppKit/UIKit mounting and drag/drop policy remain native.
+
+The desktop MCP path is a useful placement example: `App/MCPServerController` owns Pro gating, configuration, start/stop, port and token rotation; `Application/MCPServer/MCPServerTools` defines tool operations and upload/download policy. `Infrastructure/Networking` handles loopback HTTP bytes, `Infrastructure/MCP` handles protocol sessions and `Infrastructure/Security` stores tokens. An upload ticket is run-bound: `MCPUploadCoordinator.prepare` verifies origin, bearer upload token, method, headers, remaining length and acknowledged resume offset before claiming capacity or doing audit/transfer work. Interrupted or recoverable transfers may retry from the acknowledged offset; integrity failure, cancellation or expiry cannot. Commit follows remote streaming completion, and session/host revocation or server shutdown drains tickets. The Settings screen configures this service but does not own its lifetime; `TFMTests/MCPUploadTests.swift` exercises resume, digest, revocation, timeouts and early rejection. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+
+## Where feature work belongs
+
+- **`Features/AI`, `Assistant`, `Shell`:** `AI` holds reusable composer/transcript pieces; `Assistant` composes the full and contextual conversation destinations; `Shell` names app destinations and routes, not SSH transport. Desktop `Terminal` includes SSH/Telnet/serial session models and persistent terminal presentation; mobile `Terminal` includes keyboard/history interaction while `Workspaces` owns mobile live connections and `Platform` mounts the native terminal surface.
+- **`Features/Vault` and specialist editors:** Desktop Vault routes to managers for hosts, keys, known hosts, snippets and forwarding. Mobile Vault renders grouped host cards and links to credentials, forwarding, snippets, known hosts and History. Local search, sheets and confirmations do not own the library or sessions. `MobileHostEditor` maintains host/custom-identity drafts and validates protocol, port, authentication and environment before saving via the host library. `MobileKnownHostsView` edits validated trust entries via `app.knownHosts` and surfaces save failures. Deleting a host through `MobileAppModel.deleteHost` closes matching workspaces, invalidates SFTP edits, cancels transfers, stops forwarding, removes metrics, requests deletion and starts the outbox; moving that into a card would omit lifecycle effects.
+- **Vault History:** The SwiftUI History view is in `Features/Vault/MobileVaultView.swift`, but `Application/Workspaces/MobileConnectionHistory.swift` resolves rows against hosts and device names, filters search, limits results to 50 and permits opening only enabled host protocols. Delete and clear-all call `app.connectionHistory`. Vault search forwards queries into dedicated pushed resource screens, while Metrics results switch the top-level destination. `TFITests/MobileConnectionPickerTests.swift` covers History search/limit; mobile Vault feature tests cover menu protocol filtering and group/host operations.
+- **`Features/Settings`, `SFTP`, `Transfers`:** Settings assembles app-owned capabilities rather than retaining synchronization or transfer lifetime. SFTP browser/channel models manage browsing and edit presentation; process-level `SFTPTransferCoordinator` lives in shared Remote Infrastructure and is retained by app composition. Mobile has a separate `Features/Transfers` queue surface; desktop transfer-library state is in `Application/FeatureModels`. Closing a screen must not cancel unrelated work.
+- **`Features/Sidebar` and `Workspaces`:** Desktop Sidebar is a per-window column, not an app-global navigator. Desktop Workspaces manages window layout and panes; mobile Workspaces combines retained live runtime with list/detail navigation. Moving session ownership across those folders changes lifetime semantics, not just file organization.
+
+The native `UI/Managed` grids and `UI/Components` interaction helpers do not acquire resource ownership merely by rendering a manager. For deeper behavior, see [Desktop UI](desktop-ui.md), [Mobile UI](mobile-ui.md), and [Platform Runtime](platform-runtime.md); return to the [Module Map](module-map.md) for dependencies.

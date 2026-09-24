@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4c4e8115e22aa6a7b411b7f2c0f50cfe90db0f646858c36d4d5722556481a964",
+  "pageVersion": "sha256:de3e4e4aef47e5ff0289abae616c0f621b005c853addf4e313c363f52a2826cf",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:6ca2085d45dc47f1958bf2500050e21b2f4ffc95af9dc67eb9b63cf97586bede"
+          "version": "repo-file-v1:sha256:8fd7538e7ee111187beda7a23939b9be0861ebc9a6bac233121957008b8d9cfb"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -68,7 +68,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift",
-          "version": "repo-file-v1:sha256:908c998371749c18270cff1fe433eb7de8974370baa59f4dee68c1f9e1e5f02b"
+          "version": "repo-file-v1:sha256:acaf7919f44207353c3597e3ad4527af6bf0f713631d49c89a98e772681c659a"
         }
       ]
     },
@@ -77,8 +77,8 @@
       "statement": "Vault list and detail children retain identity across the split breakpoint; a covered list keeps its cached size, and detail transitions animate position and reserved space rather than resizing the form.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift#L89-L190",
-          "version": "repo-lines-v1:sha256:5c591172846c33ade089b9a32c7d45141c491cea5fd9f9c9a889c1460d01168c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkYmJhOTI1YTIzZDJiZDAwZjU2ZjIyMjM1MWM3NGUwMGQxNWRkMDI1N2E1NjMyZmRlYWNmYjA5NjI1YzE0ZDNlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
+          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift",
+          "version": "repo-file-v1:sha256:db25acbd8c7540cdb989fc3993ac653215370c3433fed20c1da67a53281175cf"
         }
       ]
     },
@@ -144,15 +144,15 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:eb08508a1385bb806d57301701eb382c6527054fcda627d2b150198baa28adc0"
+          "version": "repo-file-v1:sha256:6eea9877e693853f5f2947f191122091a29dd023d326ee2cf15998c89d4ae9ee"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift",
-          "version": "repo-file-v1:sha256:908c998371749c18270cff1fe433eb7de8974370baa59f4dee68c1f9e1e5f02b"
+          "version": "repo-file-v1:sha256:acaf7919f44207353c3597e3ad4527af6bf0f713631d49c89a98e772681c659a"
         }
       ]
     },
@@ -179,12 +179,12 @@
       "statement": "TFM History rows resolve each event's sourceDeviceID through the reusable app-wide device directory, so the displayed device name follows directory updates rather than remaining a hostname captured inside the event.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift#L26-L64",
-          "version": "repo-lines-v1:sha256:b7b6eda5ba7fe38abe088a34de4c4bc3e5875ba98b9ab227daf6c9dcc451ccc4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZmQ0ZmYyODEyNjE3MTNkMjgzZWY3NTE2NGQ5NjU1NmRjMWVjNGMwMzU0NTk3MjM4NGU2N2I0YmJiMzg1YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1OTFmZGI3Mjk4MmFhMmRkMjUyMjY3ZWZlZDY2NGYxMTg1MWE5NDE3ODA0NjkwYzg0ZTE2ZTllOGQ1ZGQyNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2MjRkNDljNzU1ZWZmNTgzOTNmMmM4YmU3Nzg2MjI4ZGRiYTRkM2ViMmUzOTcxNDExYTlkMzE5NjExYmRiNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2NWQ1NDZhOWQ0NTk5MmIxYzRjNzVjNGFiOTA5MTQzYjYxZDE3ZTQ0NDUyMWM5N2VjYWQwZTBmYzJhNTZhOTIifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
+          "version": "repo-file-v1:sha256:4fd10dcd7e4f5c9bbcb037515097bcb1df9ea12e4dac5c2c197a2eaf3bd37fb5"
         },
         {
-          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L1324-L1344",
-          "version": "repo-lines-v1:sha256:79ce25ce82f72b1ae985609690b6b009f1cf6b22de7e0e4586239fcd44763b14:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiZjJmOTUzMTg2NDUzNDdiNjBmZWY5NDg5Y2E5MmEwNWJkNTcwYWNjYjc1ZWI4YTNkMTY2YzRhNDM3ODhmNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3Njk2MzE4ODhkZGU0OWZlYWY5MmZhNzQ2MTQwMzhkMmMzOGU4MmU2NTEzMWM1Y2Y5ZjNiMjdjNmI1YTU2ZWMifQ"
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         }
       ]
     },
@@ -202,7 +202,7 @@
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         }
       ]
     },
@@ -346,7 +346,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         }
       ]
     },
@@ -356,7 +356,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -619,10 +619,64 @@
           "version": "repo-lines-v1:sha256:db0cdc606501db2f512721e050b7e0b4991b51c176cbeb289e952653a3a8a600:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1NzM5OGMwZjAzNzM4YjI2YWE2YzA1NzMyYTE3YzJjMzBiMGI0NzhhMWZjZDc1MDkyODcwOWM4YzJiOTdmZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlMmU0OTU1MTE1NmQ2ZGVhMDY4YTgwZjUxODI4ZmM3ZjRlMGI1YTdiNjMxMDIyODhiYmM1ZGIzNGVhNDZlYjkifQ"
         }
       ]
+    },
+    {
+      "id": "claim_fcaa739247ce41de94521b6164db4194",
+      "statement": "WindowModel owns the Vault page and optional work route; opening a page clears the editor route, opening a work route selects its page, and closing work dismisses the route, while VaultWorkDetailView selects a route-keyed resource-specific detail.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Vault/VaultView.swift",
+          "version": "repo-file-v1:sha256:a99d7529670af1e186dbf3e38f4f086d81df0a44a87d3c36ff6bfe1476036c94"
+        },
+        {
+          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift",
+          "version": "repo-file-v1:sha256:db25acbd8c7540cdb989fc3993ac653215370c3433fed20c1da67a53281175cf"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5f12f243ffd49da949c64298bf435d2",
+      "statement": "VaultWorkEditingSession guards editor-initiated dirty-route transitions with tokened view registrations: a matching dirty route prompts for save, discard or cancel; save proceeds only after successful asynchronous commit, while a failed save cancels the transition and stale editors cannot unregister replacements.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Hosts/HostsPageView.swift",
+          "version": "repo-file-v1:sha256:abfcfd326a10004842841040a46df77771a00e8756a36b0461e599418fc80d18"
+        },
+        {
+          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift",
+          "version": "repo-file-v1:sha256:db25acbd8c7540cdb989fc3993ac653215370c3433fed20c1da67a53281175cf"
+        },
+        {
+          "resource": "repo://TFMTests/CardMarqueeSelectionTests.swift",
+          "version": "repo-file-v1:sha256:70059d5f0c990babb615c540149af02483571324cb62dea68f12907a904bbe19"
+        }
+      ]
+    },
+    {
+      "id": "claim_11bed98189c643deac5347daae1702a2",
+      "statement": "DeviceDirectoryModel invalidates cached names after successful local rename or sync-triggered reload, and reports repository failures through storageError: failed loads yield no directory records, failed renames do not change the current name, and connection-history rows display a dash if the directory cannot resolve an event's device ID.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
+          "version": "repo-file-v1:sha256:4fd10dcd7e4f5c9bbcb037515097bcb1df9ea12e4dac5c2c197a2eaf3bd37fb5"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:6eea9877e693853f5f2947f191122091a29dd023d326ee2cf15998c89d4ae9ee"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
+          "version": "repo-file-v1:sha256:8eee43d2ef226284d804c00873c027aed7c728cf02b72157c17e0c5273216a24"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T06:30:19.118Z"
+    "at": "2026-09-24T14:20:08.561Z"
   }
 }

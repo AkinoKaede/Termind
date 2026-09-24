@@ -3,6 +3,9 @@ type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
 description: Explains StoreKit-derived Pro access, native paywall and review ownership, localization completion rules, and the app, widget, screenshot, and marketing-site surfaces that present the product.
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T14:20:08.561Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -12,6 +15,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-b2f57db7a90dcc30dd3886da
     resource: repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift
+  - id: openwiki-source-ca49232858afa421bf33a03b
+    resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -58,10 +63,14 @@ sources:
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-13f2deff6904678799b19444
+    resource: repo://TFI/Application/Metrics/MobileMetricsModel.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-ad662f2a7016a994d8522bf2
     resource: repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift
+  - id: openwiki-source-a053f8c3524e81f98b0b0938
+    resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
     resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
@@ -102,10 +111,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T06:30:19.118Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
 ---
 
 ## Scope and ownership
@@ -140,7 +146,7 @@ The controller serializes duplicate operations: it prevents a second purchase wh
 
 ### What remains free
 
-The gate set is intentionally narrower than the product’s general remote-workspace experience. Free users can still use the ordinary workspace, SSH/SFTP work, Vault, settings, and the first three Metrics cards. The enforced boundaries are: assistant execution; dropping files onto an SSH terminal; creating/editing/connecting remote MCP servers; enabling or resuming the built-in macOS MCP server; iCloud Vault, Metrics, and Settings synchronization; and Metrics cards beyond three. When Pro sync is unavailable, sync services pause rather than attempting background synchronization; when built-in MCP access is lost, an enabled server is suspended. Local Vault and workspace data are not erased by that transition. On macOS, `TermindApp` installs the live controller outside tests and demo mode; `RootView` reconciles sync and MCP whenever status changes. On iOS, `MobileAppModel` uses the live controller outside in-memory/test setups; active scenes refresh access and `MobileRootView` reconciles sync when Pro access changes. Sync on mobile also requires an active foreground scene, even for Pro users.
+The gate set is intentionally narrower than the product’s general remote-workspace experience. Free users can still use the ordinary workspace, SSH/SFTP work, Vault, settings, and the first three Metrics cards. The enforced boundaries are: assistant execution; dropping files onto an SSH terminal; creating/editing/connecting remote MCP servers; enabling or resuming the built-in macOS MCP server; Pro-dependent Vault, connection-history, device, Metrics, and Settings synchronization; and Metrics cards beyond three. On mobile, the Metrics add flow passes current Pro access into `MobileMetricsModel`, which applies the three-card limit and opens the paywall on a limit failure rather than on a storage error. When Pro sync is unavailable, sync services pause rather than attempting background synchronization; when built-in MCP access is lost, an enabled server is suspended. Local Vault and workspace data are not erased by that transition. On macOS, `TermindApp` installs the live controller outside tests and demo mode; `RootView` reconciles sync and MCP whenever status changes. On iOS, `MobileAppModel` uses the live controller outside in-memory/test setups; active scenes refresh access and `MobileRootView` reconciles sync when Pro access changes. Sync on mobile also requires an active foreground scene, even for Pro users.
 
 ### Native paywalls
 
@@ -176,7 +182,7 @@ Define app-facing copy as semantic `LocalizedStringResource` entries in `Framewo
 
 User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. **Both app catalogs are manual:** every entry must have `extractionState: "manual"`. Extraction by one target cannot see all shared and platform-specific usages, so a `stale` marker is not evidence that an entry can be removed; search TFM, TFI and shared modules first. Add keys and finished translations explicitly. After any catalog edit run `Scripts/normalize-string-catalogs.py --write` for canonical Xcode ordering and formatting without changing translations; `Scripts/check-zh-localization.sh` runs the read-only `--check` first. Do not run `jq -S` or a generic JSON formatter on the catalogs. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO` so generated names do not compete with `AppStrings`. The normalizer defaults to these two app catalogs and does not touch the separate AgentKit runtime catalog, `../AgentKit/Localizations/Localizable.xcstrings`; rebuild AgentKit localization with `../AgentKit/Scripts/build-localizations.sh` after its changes because a plain Swift build copies those resources rather than compiling them.
 
-`AppLanguage` stores the explicit `en`, `zh-Hans`, or `zh-Hant` choice as `AppleLanguages`, removes that override for Follow System, and migrates legacy Simplified Chinese preference tags to `zh-Hans`; unsupported stored tags follow the system rather than being silently rewritten. `AppLocalization` selects the matching main-bundle localization for explicit and system locales (including regional Traditional Chinese) so imperative presentation can use the effective language. An `AppStrings` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
+`AppLanguage` stores the explicit `en`, `zh-Hans`, or `zh-Hant` choice as `AppleLanguages`, removes that override for Follow System, and migrates legacy Simplified Chinese preference tags to `zh-Hans`; unsupported stored tags follow the system rather than being silently rewritten. `AppLocalization` selects the matching main-bundle localization for explicit and system locales (including regional Traditional Chinese) so imperative presentation can use the effective language. An `AppStrings` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). Prefer passing the resource directly to APIs with a resource overload, especially `confirmationDialog`, whose UIKit-backed interpolation can otherwise expose locale metadata. For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
 
 Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers, preference migration, regional Traditional lookup, token terminology, placeholder ordering and selected plural structures. Catalog-wide completion and manual formatting are enforced by the shell check and normalizer, **not** by `AppLanguageTests`. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
 
