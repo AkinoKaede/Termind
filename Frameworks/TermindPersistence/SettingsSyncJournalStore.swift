@@ -57,10 +57,16 @@ public final class SettingsSyncJournal {
                 )
             }
         }
-        context.delete(legacyRow)
+        // Preserve tombstone acknowledgement state. The scoped physical-deletion sidecar
+        // schedules an unconfirmed historical tombstone even when needsUpload is false.
+        if !legacyEnvelope.isDeleted {
+            context.delete(legacyRow)
+        }
         try clearQuarantine(recordName: legacyKey.recordName)
-        let syncState = try state()
-        syncState.engineStateData = nil
+        if canonicalChanged || !legacyEnvelope.isDeleted {
+            let syncState = try state()
+            syncState.engineStateData = nil
+        }
         return SettingsMutationSet(keys: canonicalChanged ? [canonicalKey] : [])
     }
 
@@ -69,7 +75,7 @@ public final class SettingsSyncJournal {
     /// creating a CloudKit deletion.
     public func discardInactiveEntries() throws {
         let rows = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).filter {
-            $0.envelope?.key.kind.participatesInSync == false
+            $0.envelope.map { !$0.key.kind.participatesInSync && !$0.isDeleted } == true
         }
         let quarantines = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()).filter {
             SettingsRecordKey(recordName: $0.recordName)?.kind.participatesInSync == false
@@ -80,6 +86,34 @@ public final class SettingsSyncJournal {
             let syncState = try state()
             syncState.engineStateData = nil
         }
+    }
+
+    /// Clears the synchronized replica while retaining non-uploadable tombstone sentinels
+    /// for singleton defaults that `prepare()` otherwise adds automatically.
+    public func purgeCloudCache() throws -> [CloudSyncMutation] {
+        let state = try state()
+        var suppressed: [CloudSyncMutation] = []
+        for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()) {
+            context.delete(row)
+        }
+        for key in [
+            SettingsRecordKey(kind: .webSearch, id: "default"),
+            SettingsRecordKey(kind: .terminal, id: "default"),
+            SettingsRecordKey(kind: .ssh, id: "default"),
+            SettingsRecordKey(kind: .sftp, id: "default"),
+            SettingsRecordKey(kind: .workspace, id: "default"),
+        ] {
+            let envelope = SettingsEnvelope(
+                key: key, version: .baseline(writerID: state.installationID), isDeleted: true)
+            context.insert(try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: false))
+            suppressed.append(
+                CloudSyncMutation(recordName: key.recordName, operation: .delete, version: envelope.version))
+        }
+        state.bootstrapCompleted = true
+        state.engineStateData = nil
+        state.pendingUserRecordName = nil
+        state.lastSuccessfulSync = nil
+        return suppressed
     }
 
     public func state() throws -> PersistentAIConfigurationSyncState {
@@ -150,11 +184,6 @@ public final class SettingsSyncJournal {
                 predicate: #Predicate { $0.needsUpload }
             )
         ).compactMap(\.envelope).filter { $0.key.kind.participatesInSync }
-    }
-
-    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
-        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
-        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
     }
 
     public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
@@ -265,6 +294,19 @@ public final class SettingsSyncJournal {
         row.needsUpload = false
     }
 
+    public func queueHistoricalDeletion(_ envelope: SettingsEnvelope) throws {
+        guard envelope.isDeleted,
+            !envelope.key.kind.participatesInSync || envelope.key.isLegacyGuardianRole
+        else { return }
+        var entries = try entriesByName()
+        try store(envelope, needsUpload: true, in: &entries)
+        try updateSystemFields(nil, for: envelope.key)
+    }
+
+    public func clearSystemFields(recordName: String) throws {
+        try entry(recordName: recordName)?.systemFieldsData = nil
+    }
+
     public func updateSystemFields(_ data: Data?, for key: SettingsRecordKey) throws {
         guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
         row.systemFieldsData = data
@@ -346,7 +388,7 @@ public final class SettingsSyncJournal {
         for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()) {
             guard let envelope = row.envelope else { continue }
             guard envelope.key.kind.participatesInSync else {
-                row.needsUpload = false
+                context.delete(row)
                 continue
             }
             if envelope.isDeleted {
@@ -431,7 +473,7 @@ extension SettingsSyncJournal {
         try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).compactMap { row in
             guard let envelope = row.envelope else { return nil }
             let key = envelope.key
-            guard key.kind.participatesInSync else { return nil }
+            guard key.kind.participatesInSync || envelope.isDeleted else { return nil }
             return CloudSyncJournalRecord(
                 recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
                 needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
@@ -452,9 +494,10 @@ extension SettingsSyncJournal {
     }
 
     public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
-        guard let key = SettingsRecordKey(recordName: mutation.recordName), key.kind.participatesInSync,
+        guard let key = SettingsRecordKey(recordName: mutation.recordName),
             let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
         else { return }
+        guard key.kind.participatesInSync || envelope.isDeleted else { return }
         if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {
             // A later explicit recreation is still pending; acknowledge only the old server incarnation.
             try updateSystemFields(nil, for: key)

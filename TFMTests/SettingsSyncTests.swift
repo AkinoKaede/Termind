@@ -357,6 +357,61 @@ struct SettingsSyncTests {
     }
 
     @Test
+    func historicalSourceTombstonesSurvivePrepareAcknowledgeAndReopenWithoutLooping() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SettingsSources-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let defaults = UserDefaults(suiteName: "SettingsSources.\(UUID())")!
+        let writer = UUID()
+        let legacy = SettingsEnvelope(
+            key: .init(kind: .role, id: SettingsRecordKey.legacySecurityReviewID),
+            version: .baseline(writerID: writer), isDeleted: true)
+        let selection = SettingsEnvelope(
+            key: .init(kind: .selection, id: "default"),
+            version: .baseline(writerID: writer), isDeleted: true)
+        let names = Set([legacy.key.recordName, selection.key.recordName])
+        do {
+            let container = try TermindPersistence.makeContainer(url: url)
+            container.mainContext.insert(try PersistentAIConfigurationSyncEntry(envelope: legacy, needsUpload: false))
+            container.mainContext.insert(
+                try PersistentAIConfigurationSyncEntry(envelope: selection, needsUpload: false))
+            try container.mainContext.save()
+            try SettingsSyncPersistence(context: container.mainContext, defaults: defaults).prepare()
+            #expect(
+                Set(try SettingsSyncJournal(context: container.mainContext).cloudRecords().map(\.mutation.recordName))
+                    .isSuperset(of: names))
+        }
+
+        let scope = CloudSyncScope(
+            container: "iCloud.test", environment: "Production", account: "account",
+            zone: SettingsSyncCoordinator.zoneName, owner: CKCurrentUserDefaultName)
+        do {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let journal = SettingsSyncJournal(context: container.mainContext)
+            let cloud = CloudSyncRecordStateStore(context: container.mainContext, scope: scope)
+            let pending = try cloud.pendingChanges(journal.cloudRecords()).filter { names.contains($0.recordName) }
+            #expect(Set(pending.map(\.recordName)) == names)
+            for mutation in pending { try journal.acknowledgeDeletion(mutation, scope: scope) }
+            try container.mainContext.save()
+        }
+        do {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let store = SettingsSyncPersistence(context: container.mainContext, defaults: defaults)
+            try store.prepare()
+            let cloud = CloudSyncRecordStateStore(context: container.mainContext, scope: scope)
+            #expect(try names.isDisjoint(with: cloud.pendingChanges(store.journal.cloudRecords()).map(\.recordName)))
+            for envelope in [legacy, selection] {
+                try cloud.observed(envelope.key.recordName)
+                try store.journal.queueHistoricalDeletion(envelope)
+            }
+            try container.mainContext.save()
+            #expect(
+                try Set(cloud.pendingChanges(store.journal.cloudRecords()).map(\.recordName)).isSuperset(of: names))
+        }
+    }
+
+    @Test
     func localEditsAreJournaledWhileDisabledAndNoOpsDoNotAdvanceVersions() throws {
         let (container, store, defaults) = try fixture()
         defer { withExtendedLifetime(container) {} }

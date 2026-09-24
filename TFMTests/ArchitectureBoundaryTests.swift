@@ -229,7 +229,7 @@ struct ArchitectureBoundaryTests {
         let recordReceiving = try String(
             contentsOf: root.appending(path: "CloudSyncRecordReceiving.swift"), encoding: .utf8)
         #expect(lifecycle.contains("maximumRecordsPerRequest = 250"))
-        #expect(lifecycle.contains("records.count == Self.maximumRecordsPerRequest"))
+        #expect(lifecycle.contains("records.count + deletions.count == Self.maximumRecordsPerRequest"))
         #expect(!lifecycle.split(separator: "\n").contains("import SwiftData"))
         #expect(!lifecycle.split(separator: "\n").contains("import TermindPersistence"))
         #expect(!eventHandling.split(separator: "\n").contains("import SwiftData"))

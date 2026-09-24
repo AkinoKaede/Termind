@@ -19,6 +19,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     public nonisolated static let workspaceRecordType = "WorkspacePreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
+    nonisolated static let assetDirectoryName = "Termind/SettingsSyncAssets"
 
     private let context: ModelContext
     private let persistence: SettingsSyncPersistence
@@ -27,6 +28,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     private let makeTransport: (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     private let defaults: UserDefaults
     private let environmentIdentifier: String
+    private let assetCacheRoot: URL?
+    private let removeAssetDirectory: (URL) throws -> Void
     private let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
 
     @ObservationIgnored private(set) lazy var lifecycle = makeLifecycle()
@@ -58,6 +61,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         persistence: SettingsSyncPersistence,
         secrets: AISecretStore,
         defaults: UserDefaults, environmentIdentifier: String,
+        assetCacheRoot: URL? = nil,
+        removeAssetDirectory: @escaping (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) },
         makeTransport: @escaping (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     ) {
         context = persistence.context
@@ -67,6 +72,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         self.makeTransport = makeTransport
         self.defaults = defaults
         self.environmentIdentifier = environmentIdentifier
+        self.assetCacheRoot = assetCacheRoot
+        self.removeAssetDirectory = removeAssetDirectory
         super.init()
         persistence.didRecordChanges = { [weak self] mutations in self?.noteLocalChanges(mutations) }
     }
@@ -117,7 +124,21 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
-                replica: .persistent(context: context, records: journal.cloudRecords)),
+                purge: { [weak self] scope in
+                    guard let self else { throw CancellationError() }
+                    let result = try self.persistence.purgeCloudCache(
+                        scope: scope, assetCleanupKey: Self.assetDirectoryName)
+                    self.didApplyRemote?(result.0, result.1)
+                    try self.completePendingAssetPurge()
+                },
+                completePendingPurge: { [weak self] in
+                    guard let self else { throw CancellationError() }
+                    try self.completePendingAssetPurge()
+                },
+                replica: .persistent(
+                    context: context, records: journal.cloudRecords,
+                    clearSystemFields: journal.clearSystemFields,
+                    handlesRecordName: { SettingsRecordKey(recordName: $0) != nil })),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: SettingsKey.settingsSyncEnabled, defaultEnabled: SettingsKey.defaultSettingsSyncEnabled,
@@ -125,6 +146,16 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             authorizeUploads: { [secrets] in secrets.uploadsAuthorized = $0 },
             beforeSend: { [weak self] in try self?.migrateSecrets() },
             receiveSnapshot: { [weak self] in try self?.receiveRemoteRecords($0, deletions: $1) })
+    }
+
+    private func completePendingAssetPurge() throws {
+        let cleanup = CloudSyncAssetCleanupStore(context: context)
+        guard try cleanup.isPending(cacheKey: Self.assetDirectoryName) else { return }
+        try CloudSyncRecordCoding.purgeAssetDirectory(
+            directoryName: Self.assetDirectoryName, cacheRoot: assetCacheRoot,
+            removeItem: removeAssetDirectory)
+        try cleanup.complete(cacheKey: Self.assetDirectoryName)
+        try context.save()
     }
 
     private func migrateSecrets() throws {
@@ -212,15 +243,17 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
-        lifecycle.noteRecordsObserved(records)
-        let deletedKeys = Set(
+        let reconciled = try lifecycle.reconcileRemoteChanges(records: records, deletions: deletions)
+        let (records, deletions) = (reconciled.records, reconciled.deletions)
+        lifecycle.noteRecordsObserved(records, excluding: deletions)
+        let allDeletedKeys = Set(
             deletions.compactMap { id -> SettingsRecordKey? in
-                guard id.zoneID == zoneID, let key = SettingsRecordKey(recordName: id.recordName),
-                    key.kind.participatesInSync && !key.isLegacyGuardianRole
-                else { return nil }
+                guard id.zoneID == zoneID, let key = SettingsRecordKey(recordName: id.recordName) else { return nil }
                 return key
             })
-        let deletedNames = Set(deletedKeys.map(\.recordName))
+        let deletedKeys = Set(allDeletedKeys.filter { $0.kind.participatesInSync && !$0.isLegacyGuardianRole })
+        let cleanupDeletedKeys = allDeletedKeys.subtracting(deletedKeys)
+        let deletedNames = Set(allDeletedKeys.map(\.recordName))
         let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
         let decoded: [(record: CKRecord, envelope: SettingsEnvelope)] = try decodeCloudSyncRecords(
@@ -229,28 +262,47 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 guard record.recordID.zoneID == zoneID,
                     isConflict || Self.acceptsRecordType(record.recordType)
                 else { return false }
-                return SettingsRecordKey(recordName: record.recordID.recordName)?.kind.participatesInSync != false
+                return SettingsRecordKey(recordName: record.recordID.recordName) != nil
             },
-            decode: Self.envelope,
+            decode: Self.validatedEnvelope,
             quarantine: { try CloudSyncRecordCoding.quarantine($0, error: $1, in: safety) },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
         let result = try applyRemote(
-            decoded.map { $0.1 }, deletions: deletedKeys,
+            decoded.map { $0.1.canonicalized }, deletions: deletedKeys,
             beforeSave: {
-                for (record, envelope) in decoded {
-                    try cloud.observed(record.recordID.recordName)
-                    if record.recordID.recordName == envelope.key.recordName {
+                for (record, sourceEnvelope) in decoded {
+                    let envelope = sourceEnvelope.canonicalized
+                    if sourceEnvelope.isDeleted,
+                        !sourceEnvelope.key.kind.participatesInSync || sourceEnvelope.key.isLegacyGuardianRole
+                    {
+                        try journal.queueHistoricalDeletion(sourceEnvelope)
+                    }
+                    if sourceEnvelope.key.kind.participatesInSync || sourceEnvelope.isDeleted {
+                        let current = try journal.cloudRecords().first {
+                            $0.mutation.recordName == record.recordID.recordName
+                        }
+                        try cloud.observed(
+                            record.recordID.recordName, version: envelope.version, current: current)
+                    }
+                    if record.recordID.recordName == envelope.key.recordName,
+                        envelope.key.kind.participatesInSync
+                    {
                         try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
                         if try journal.envelope(for: envelope.key) == envelope {
                             try journal.markUploaded(envelope.key, version: envelope.version)
                         }
-                    } else {
+                    } else if sourceEnvelope.key.isLegacyGuardianRole {
                         // Legacy Guardian data has no canonical CloudKit record; never reuse its system fields.
                         try journal.markNeedsUpload([envelope.key])
                     }
                     try safety.clearQuarantine(recordName: record.recordID.recordName)
                 }
                 for key in deletedKeys {
+                    guard let envelope = try journal.envelope(for: key), envelope.isDeleted else { continue }
+                    try journal.acknowledgeDeletion(
+                        .init(recordName: key.recordName, operation: .delete, version: envelope.version), scope: scope)
+                }
+                for key in cleanupDeletedKeys {
                     guard let envelope = try journal.envelope(for: key), envelope.isDeleted else { continue }
                     try journal.acknowledgeDeletion(
                         .init(recordName: key.recordName, operation: .delete, version: envelope.version), scope: scope)
@@ -267,8 +319,14 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
-            try cloud.observed(record.recordID.recordName)
-            if try journal.envelope(for: envelope.key)?.isDeleted == true {
+            let current = try journal.envelope(for: envelope.key)
+            let currentRecord = try journal.cloudRecords().first {
+                $0.mutation.recordName == record.recordID.recordName
+            }
+            try cloud.acknowledgeSave(
+                .init(recordName: record.recordID.recordName, operation: .save, version: envelope.version),
+                current: currentRecord)
+            if current?.isDeleted == true {
                 // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
                 try journal.markNeedsUpload([envelope.key])
             } else {
@@ -288,7 +346,6 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         }
         try lifecycle.handleDeletedRecords(changes) { mutation in
             try journal.acknowledgeDeletion(mutation, scope: scope)
-            try cloud.acknowledgeLegacyDeletion(mutation)
         }
         try context.save()
         try lifecycle.reconcilePendingChanges()
@@ -335,6 +392,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     public nonisolated static func envelope(from record: CKRecord) throws -> SettingsEnvelope {
+        try validatedEnvelope(from: record).canonicalized
+    }
+
+    private nonisolated static func validatedEnvelope(from record: CKRecord) throws -> SettingsEnvelope {
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         try CloudSyncRecordCoding.validateFormat(in: data, supported: SettingsEnvelope.currentFormatVersion)
@@ -345,7 +406,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         else {
             throw SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
         }
-        return envelope.canonicalized
+        return envelope
     }
 
     public nonisolated static func payloadData(from record: CKRecord) throws -> Data {
@@ -358,7 +419,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     private nonisolated static func assetURL(for key: SettingsRecordKey) throws -> URL {
-        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: "Termind/SettingsSyncAssets")
+        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: assetDirectoryName)
     }
 
 }

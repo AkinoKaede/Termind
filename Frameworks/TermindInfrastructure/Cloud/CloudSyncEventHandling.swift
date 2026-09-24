@@ -32,11 +32,17 @@ struct CloudSyncSentChanges {
 
 /// A constructible projection of the CKSyncEngine events used by writable sync categories.
 /// Keeping this value separate from CloudKit's event constructors gives the shared dispatcher a deterministic test seam.
+enum CloudSyncZoneDeletionReason: Sendable {
+    case deleted
+    case purged
+    case encryptedDataReset
+}
+
 enum CloudSyncEventInput {
     case stateUpdate(CKSyncEngine.State.Serialization)
     case accountChange(CKSyncEngine.Event.AccountChange.ChangeType)
     case fetchedRecordZoneChanges(records: [CKRecord], deletions: [CKRecord.ID])
-    case fetchedDatabaseChanges(deletedZoneIDs: [CKRecordZone.ID])
+    case fetchedDatabaseChanges(deletions: [(zoneID: CKRecordZone.ID, reason: CloudSyncZoneDeletionReason)])
     case sentRecordZoneChanges(CloudSyncSentChanges)
     case willFetchChanges
     case willSendChanges
@@ -55,7 +61,17 @@ enum CloudSyncEventInput {
             self = .fetchedRecordZoneChanges(
                 records: changes.modifications.map(\.record), deletions: changes.deletions.map(\.recordID))
         case .fetchedDatabaseChanges(let changes):
-            self = .fetchedDatabaseChanges(deletedZoneIDs: changes.deletions.map(\.zoneID))
+            self = .fetchedDatabaseChanges(
+                deletions: changes.deletions.map {
+                    let reason: CloudSyncZoneDeletionReason
+                    switch $0.reason {
+                    case .deleted: reason = .deleted
+                    case .purged: reason = .purged
+                    case .encryptedDataReset: reason = .encryptedDataReset
+                    @unknown default: reason = .purged
+                    }
+                    return ($0.zoneID, reason)
+                })
         case .sentRecordZoneChanges(let changes):
             self = .sentRecordZoneChanges(CloudSyncSentChanges(changes))
         case .willFetchChanges:
@@ -89,8 +105,10 @@ extension CloudSyncLifecycle {
                 try handleAccountChange(change)
             case .fetchedRecordZoneChanges(let records, let deletions):
                 try receiveRemoteRecords(records, deletions)
-            case .fetchedDatabaseChanges(let deletedZoneIDs):
-                if deletedZoneIDs.contains(zoneID) { try handleZoneDeletion() }
+            case .fetchedDatabaseChanges(let deletions):
+                if let deletion = deletions.first(where: { $0.zoneID == zoneID }) {
+                    try handleZoneDeletion(reason: deletion.reason)
+                }
             case .sentRecordZoneChanges(let changes):
                 try handleSentChanges(changes)
             case .willFetchChanges:
@@ -139,23 +157,27 @@ extension CloudSyncLifecycle {
         _ changes: CloudSyncSentChanges, acknowledge: (CloudSyncMutation) throws -> Void
     ) throws {
         guard let scope else { throw CancellationError() }
+        // A save result proves that the ID exists after any previously handed-off delete.
+        noteRecordsObserved(changes.savedRecords)
         for id in changes.deletedRecordIDs where id.zoneID == zoneID {
-            guard try !store.safety.isUploadBlocked(scope, id.recordName),
-                let mutation = takeDeletionAcknowledgement(id)
-            else { continue }
+            guard let mutation = takeDeletionAcknowledgement(id) else { continue }
+            guard try !store.safety.isUploadBlocked(scope, id.recordName) else { continue }
             try acknowledge(mutation)
         }
         for (id, error) in changes.failedRecordDeletes where id.zoneID == zoneID {
             if error.code == .unknownItem {
-                guard try !store.safety.isUploadBlocked(scope, id.recordName),
-                    let mutation = takeDeletionAcknowledgement(id)
-                else { continue }
+                guard let mutation = takeDeletionAcknowledgement(id) else { continue }
+                guard try !store.safety.isUploadBlocked(scope, id.recordName) else { continue }
                 try acknowledge(mutation)
             } else {
-                _ = takeDeletionAcknowledgement(id)
+                let mutation = takeDeletionAcknowledgement(id)
                 if error.code == .zoneNotFound {
                     try handleZoneDeletion()
-                } else if !Self.isRetryable(error) && !Self.isCancellation(error) {
+                } else if Self.isRetryable(error) || Self.isCancellation(error) {
+                    // The server may have committed an ambiguous delete. Release only
+                    // the in-memory causal slot so it can retry; keep the durable fence.
+                } else {
+                    if let mutation { try cancelDeletionHandoff(mutation) }
                     logFailure(error, stage: "delete")
                     terminalError = error.localizedDescription
                     status = .failed(error.localizedDescription)

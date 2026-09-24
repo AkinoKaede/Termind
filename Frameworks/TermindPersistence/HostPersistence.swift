@@ -827,6 +827,14 @@ public enum TermindSchemaV37: VersionedSchema {
     }
 }
 
+/// V38 persists delete-handoff causality without changing the released V37 shapes.
+public enum TermindSchemaV38: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(38, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV37.models + [PersistentCloudSyncDeletionHandoff.self, PersistentCloudSyncAssetCleanup.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -840,6 +848,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self,
             TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
+            TermindSchemaV38.self,
         ]
     }
 
@@ -936,6 +945,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV34.self, toVersion: TermindSchemaV35.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV35.self, toVersion: TermindSchemaV36.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV36.self, toVersion: TermindSchemaV37.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV37.self, toVersion: TermindSchemaV38.self),
         ]
     }
 }

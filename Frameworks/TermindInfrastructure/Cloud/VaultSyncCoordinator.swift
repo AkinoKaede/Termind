@@ -13,6 +13,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     public nonisolated static let recordType = "VaultItem"
     public nonisolated static let subscriptionID = "termind-vault-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
+    nonisolated static let assetDirectoryName = "Termind/VaultSyncAssets"
 
     private let context: ModelContext
     private let persistence: HostPersistence
@@ -20,6 +21,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     private let makeTransport: (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     private let defaults: UserDefaults
     private let environmentIdentifier: String
+    private let assetCacheRoot: URL?
+    private let removeAssetDirectory: (URL) throws -> Void
     private let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
 
     @ObservationIgnored private(set) lazy var lifecycle = makeLifecycle()
@@ -49,6 +52,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     init(
         context: ModelContext,
         defaults: UserDefaults, environmentIdentifier: String,
+        assetCacheRoot: URL? = nil,
+        removeAssetDirectory: @escaping (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) },
         makeTransport: @escaping (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     ) {
         self.context = context
@@ -57,6 +62,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         self.makeTransport = makeTransport
         self.defaults = defaults
         self.environmentIdentifier = environmentIdentifier
+        self.assetCacheRoot = assetCacheRoot
+        self.removeAssetDirectory = removeAssetDirectory
         super.init()
     }
 
@@ -99,7 +106,9 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 },
                 save: { try context.save() }, rollback: { context.rollback() },
                 pendingChanges: {
-                    try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
+                    let cloud = CloudSyncRecordStateStore(context: context, scope: $0)
+                    try cloud.prepareLegacyDeletionsForUpload()
+                    return try cloud.pendingChanges(journal.cloudRecords())
                 },
                 safety: .persistent(
                     context: context, capabilityID: SyncRecordFormats.vault.capabilityID,
@@ -107,13 +116,40 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
-                replica: .persistent(context: context, records: journal.cloudRecords)),
+                purge: { [weak self] scope in
+                    guard let self else { throw CancellationError() }
+                    let result = try self.persistence.purgeCloudCache(
+                        scope: scope, assetCleanupKey: Self.assetDirectoryName)
+                    self.didApplyRemote?(result.0, result.1)
+                    try self.completePendingAssetPurge()
+                },
+                completePendingPurge: { [weak self] in
+                    guard let self else { throw CancellationError() }
+                    try self.completePendingAssetPurge()
+                },
+                replica: .persistent(
+                    context: context, records: journal.cloudRecords,
+                    clearSystemFields: journal.clearSystemFields,
+                    handlesRecordName: {
+                        VaultRecordKey(recordName: $0)?.kind.isConfiguration == true
+                            && HistoryRecordKey(recordName: $0) == nil
+                    })),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: nil, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
             environmentKey: SettingsKey.vaultSyncEnvironment, environmentIdentifier: environmentIdentifier,
             beforeSend: { [weak self] in try self?.beforeSend?() },
             receiveSnapshot: { [weak self] in try self?.receiveRemoteRecords($0, deletions: $1) })
+    }
+
+    private func completePendingAssetPurge() throws {
+        let cleanup = CloudSyncAssetCleanupStore(context: context)
+        guard try cleanup.isPending(cacheKey: Self.assetDirectoryName) else { return }
+        try CloudSyncRecordCoding.purgeAssetDirectory(
+            directoryName: Self.assetDirectoryName, cacheRoot: assetCacheRoot,
+            removeItem: removeAssetDirectory)
+        try cleanup.complete(cacheKey: Self.assetDirectoryName)
+        try context.save()
     }
 
     public nonisolated func nextFetchChangesOptions(
@@ -179,7 +215,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
-        lifecycle.noteRecordsObserved(records)
+        let reconciled = try lifecycle.reconcileRemoteChanges(records: records, deletions: deletions)
+        let (records, deletions) = (reconciled.records, reconciled.deletions)
         let deletedKeys = Set(
             deletions.compactMap { id -> VaultRecordKey? in
                 guard id.zoneID == zoneID, let key = VaultRecordKey(recordName: id.recordName), key.kind.isConfiguration
@@ -187,6 +224,10 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 return key
             })
         let deletedNames = Set(deletedKeys.map(\.recordName))
+        // Old History/Device deletion events in this retired zone are intentionally ignored,
+        // so they cannot cancel proof that an obsolete copy was observed again.
+        lifecycle.noteRecordsObserved(
+            records, excluding: deletions.filter { deletedNames.contains($0.recordName) })
         let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
         // Old-copy cleanup ONLY: these two kinds moved to TermindConnectionHistoryV1.
@@ -215,11 +256,18 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                     try cloud.queueLegacyDeletion(
                         record.recordID.recordName, version: .baseline(writerID: try journal.state().installationID))
                 }
+                // Also repairs cleanup tasks queued by an earlier app run while a scoped
+                // quarantine still blocked the same retired record ID.
+                try cloud.prepareLegacyDeletionsForUpload()
                 // Ignore deletion increments for obsolete Vault history/device copies.
                 // Only a sent-delete acknowledgement retires their cleanup task (unknownItem is also success).
                 // New-zone deletion increments are handled by HistoryRecordSyncCoordinator as normal user deletions.
                 for (record, envelope) in decoded {
-                    try cloud.observed(record.recordID.recordName)
+                    let current = try journal.cloudRecords().first {
+                        $0.mutation.recordName == record.recordID.recordName
+                    }
+                    try cloud.observed(
+                        record.recordID.recordName, version: envelope.version, current: current)
                     try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
                     if try journal.envelope(for: envelope.key) == envelope {
                         try journal.markUploaded(envelope.key, version: envelope.version)
@@ -246,8 +294,14 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         {
             guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
-            try cloud.observed(record.recordID.recordName)
-            if try journal.envelope(for: envelope.key)?.isDeleted == true {
+            let current = try journal.envelope(for: envelope.key)
+            let currentRecord = try journal.cloudRecords().first {
+                $0.mutation.recordName == record.recordID.recordName
+            }
+            try cloud.acknowledgeSave(
+                .init(recordName: record.recordID.recordName, operation: .save, version: envelope.version),
+                current: currentRecord)
+            if current?.isDeleted == true {
                 // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
                 try journal.markNeedsUpload([envelope.key])
             } else {
@@ -320,7 +374,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     }
 
     private nonisolated static func assetURL(for key: VaultRecordKey) throws -> URL {
-        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: "Termind/VaultSyncAssets")
+        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: assetDirectoryName)
     }
 
 }

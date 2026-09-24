@@ -32,6 +32,37 @@ public final class HistorySyncPersistence {
         }
     }
 
+    public func purgeCloudCache(
+        kind: HistoryRecordKind, scope: CloudSyncScope
+    ) throws -> Set<HistoryRecordKey> {
+        var removed = Set<HistoryRecordKey>()
+        try context.commit {
+            let journal = HistorySyncJournal(context: context, kind: kind)
+            removed = Set(
+                try journal.cloudRecords().compactMap { HistoryRecordKey(recordName: $0.mutation.recordName) })
+            switch kind {
+            case .connectionHistory:
+                for row in try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()) {
+                    context.delete(row)
+                }
+            case .device:
+                for row in try context.fetch(FetchDescriptor<PersistentDeviceRecord>()) { context.delete(row) }
+            }
+            for row in try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
+            where HistoryRecordKey(recordName: row.recordName)?.kind == kind {
+                context.delete(row)
+            }
+            let state = try journal.state()
+            state.bootstrapCompleted = true
+            state.engineStateData = nil
+            state.pendingUserRecordName = nil
+            state.lastSuccessfulSync = nil
+            try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
+            try CloudSyncRecordStateStore(context: context, scope: scope).purgeScope()
+        }
+        return removed
+    }
+
     /// A fetched record never echoes back just for being read.
     public func applyRemote(
         _ envelopes: [HistoryEnvelope], deletions: Set<HistoryRecordKey> = [],
@@ -45,7 +76,11 @@ public final class HistorySyncPersistence {
                 guard remote.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(remote.key.recordName) }
                 let local = try journal.envelope(for: remote.key)
                 let accept: Bool
-                if remote.key.kind == .connectionHistory, let local, local.isDeleted != remote.isDeleted {
+                if let local, local.isDeleted, !remote.isDeleted, try journal.needsUpload(remote.key) {
+                    // A delete already handed to CloudKit remains authoritative until its
+                    // acknowledgement. A fetched device can be a late copy of that incarnation.
+                    accept = false
+                } else if remote.key.kind == .connectionHistory, let local, local.isDeleted != remote.isDeleted {
                     // Event IDs are never reused. Deletion is terminal even if a delayed
                     // end-time update has a later clock; otherwise Clear History resurrects.
                     accept = remote.isDeleted
@@ -227,12 +262,6 @@ public final class HistorySyncJournal {
     public func pendingEnvelopes() throws -> [HistoryEnvelope] {
         try entries().filter(\.needsUpload).compactMap(\.envelope)
     }
-    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
-        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
-        return try entries().filter {
-            $0.needsUpload && !blocked.contains($0.recordName)
-        }.map(\.recordName)
-    }
     public func outgoingEntry(for key: HistoryRecordKey, scope: CloudSyncScope) throws -> HistoryOutgoingEntry? {
         guard try !CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName),
             let row = try entry(recordName: key.recordName), row.needsUpload, row.envelope?.isDeleted == false
@@ -242,6 +271,9 @@ public final class HistorySyncJournal {
     }
     public func envelope(for key: HistoryRecordKey) throws -> HistoryEnvelope? {
         try entry(recordName: key.recordName)?.envelope
+    }
+    fileprivate func needsUpload(_ key: HistoryRecordKey) throws -> Bool {
+        try entry(recordName: key.recordName)?.needsUpload == true
     }
     public func store(_ envelope: HistoryEnvelope, needsUpload: Bool) throws {
         if let row = try entry(recordName: envelope.key.recordName) {
@@ -263,6 +295,9 @@ public final class HistorySyncJournal {
     public func updateSystemFields(_ data: Data?, for key: HistoryRecordKey) throws {
         guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
         row.systemFieldsData = data
+    }
+    public func clearSystemFields(recordName: String) throws {
+        try entry(recordName: recordName)?.systemFieldsData = nil
     }
 
     public func resetForNewAccount() throws {

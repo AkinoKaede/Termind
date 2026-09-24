@@ -105,6 +105,39 @@ public final class HostPersistence {
         try VaultSyncJournal(context: context).modificationDates()
     }
 
+    /// Applies an account-owner CloudKit purge as one local persistence transaction.
+    /// Installation identity and account binding remain stable, while no old snapshot
+    /// or journal row remains available for bootstrap/re-upload.
+    public func purgeCloudCache(
+        scope: CloudSyncScope, assetCleanupKey: String? = nil
+    ) throws -> (VaultSnapshot, Set<VaultRecordKey>) {
+        var removed = Set<VaultRecordKey>()
+        do {
+            try context.commit {
+                let journal = VaultSyncJournal(context: context)
+                removed = Set(
+                    try journal.cloudRecords().compactMap { VaultRecordKey(recordName: $0.mutation.recordName) })
+                try persist(VaultSnapshot())
+                for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) { context.delete(row) }
+                let state = try journal.state()
+                state.bootstrapCompleted = true
+                state.engineStateData = nil
+                state.pendingUserRecordName = nil
+                state.lastSuccessfulSync = nil
+                try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
+                try CloudSyncRecordStateStore(context: context, scope: scope).purgeScope()
+                if let assetCleanupKey {
+                    try CloudSyncAssetCleanupStore(context: context).markPending(
+                        scope: scope, cacheKey: assetCleanupKey)
+                }
+            }
+            return (VaultSnapshot(), removed)
+        } catch {
+            context.rollback()
+            throw error
+        }
+    }
+
     private func persist(_ snapshot: VaultSnapshot) throws {
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHost>()), with: snapshot.hosts,

@@ -220,15 +220,9 @@ public final class VaultSyncJournal {
         ).compactMap(\.envelope).filter { $0.key.kind.isConfiguration }.map(\.withoutDeviceLocalMetadata)
     }
 
-    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
-        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
-        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
-    }
-
     public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>())
-        where HistoryRecordKey(recordName: row.recordName) == nil {
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>()) {
             if try !safety.isUploadBlocked(recordName: row.recordName) {
                 try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
             }
@@ -333,6 +327,10 @@ public final class VaultSyncJournal {
         row.systemFieldsData = data
     }
 
+    public func clearSystemFields(recordName: String) throws {
+        try entry(recordName: recordName)?.systemFieldsData = nil
+    }
+
     public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
         var descriptor = FetchDescriptor<PersistentVaultSyncQuarantine>(
             predicate: #Predicate { $0.recordName == recordName }
@@ -348,21 +346,6 @@ public final class VaultSyncJournal {
                     recordName: recordName, payloadData: payloadData, reason: reason
                 ))
         }
-    }
-
-    public func clearQuarantine(recordName: String) throws {
-        try context.delete(
-            model: PersistentVaultSyncQuarantine.self,
-            where: #Predicate { $0.recordName == recordName }
-        )
-    }
-
-    public func firstQuarantineReason() throws -> String? {
-        var descriptor = FetchDescriptor<PersistentVaultSyncQuarantine>(
-            sortBy: [SortDescriptor(\.receivedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 1
-        return try context.fetch(descriptor).first?.reason
     }
 
     public func recordCurrentSnapshot(_ snapshot: VaultSnapshot, now: Date = .now) throws

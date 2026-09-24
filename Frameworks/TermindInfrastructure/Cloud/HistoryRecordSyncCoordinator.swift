@@ -97,7 +97,20 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
                 resetForNewAccount: { try journal.resetForNewAccount() },
                 resetForZone: { try journal.resetForZone() },
                 resetForEnvironment: { try journal.resetForZone() },
-                replica: .persistent(context: context, records: journal.cloudRecords)),
+                purge: { [weak self] scope in
+                    guard let self else { throw CancellationError() }
+                    let changed = try self.persistence.purgeCloudCache(kind: kind, scope: scope)
+                    if !changed.isEmpty { self.didApplyRemote?(changed) }
+                },
+                replica: .persistent(
+                    context: context, records: journal.cloudRecords,
+                    clearSystemFields: journal.clearSystemFields,
+                    handlesRecordName: {
+                        HistoryRecordKey(recordName: $0).map { $0.kind == kind } == true
+                    },
+                    preservesNewerIncarnation: { recordName in
+                        kind == .device && HistoryRecordKey(recordName: recordName)?.kind == .device
+                    })),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: kind == .connectionHistory ? SettingsKey.historySyncEnabled : nil,
@@ -166,7 +179,9 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
-        lifecycle.noteRecordsObserved(records)
+        let reconciled = try lifecycle.reconcileRemoteChanges(records: records, deletions: deletions)
+        let (records, deletions) = (reconciled.records, reconciled.deletions)
+        lifecycle.noteRecordsObserved(records, excluding: deletions)
         let deletedKeys = Set(
             deletions.compactMap { id -> HistoryRecordKey? in
                 guard id.zoneID == zoneID, let key = HistoryRecordKey(recordName: id.recordName), includes(key)
@@ -193,7 +208,11 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
             decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
                 for (record, envelope) in decoded {
-                    try cloud.observed(record.recordID.recordName)
+                    let current = try journal.cloudRecords().first {
+                        $0.mutation.recordName == record.recordID.recordName
+                    }
+                    try cloud.observed(
+                        record.recordID.recordName, version: envelope.version, current: current)
                     try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
                     if try journal.envelope(for: envelope.key) == envelope {
                         try journal.markUploaded(envelope.key, version: envelope.version)
@@ -219,8 +238,14 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         {
             guard try !lifecycle.store.safety.isUploadBlocked(scope, record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
-            try cloud.observed(record.recordID.recordName)
-            if try journal.envelope(for: envelope.key)?.isDeleted == true {
+            let current = try journal.envelope(for: envelope.key)
+            let currentRecord = try journal.cloudRecords().first {
+                $0.mutation.recordName == record.recordID.recordName
+            }
+            try cloud.acknowledgeSave(
+                .init(recordName: record.recordID.recordName, operation: .save, version: envelope.version),
+                current: currentRecord)
+            if current?.isDeleted == true {
                 // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
                 try journal.markNeedsUpload([envelope.key])
             } else {
@@ -239,7 +264,6 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         }
         try lifecycle.handleDeletedRecords(changes) { mutation in
             try journal.acknowledgeDeletion(mutation, scope: scope)
-            try cloud.acknowledgeLegacyDeletion(mutation)
         }
         try context.save()
         try lifecycle.reconcilePendingChanges()

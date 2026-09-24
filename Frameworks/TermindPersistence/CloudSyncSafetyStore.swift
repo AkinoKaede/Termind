@@ -120,4 +120,24 @@ extension CloudSyncSafetyStore {
         return row
     }
 
+    /// Removes only safety/cache metadata belonging to this exact replica scope.
+    public func purgeScope() throws {
+        let key = scope.storageKey
+        for row in try context.fetch(
+            FetchDescriptor<PersistentCloudSyncQuarantine>(predicate: #Predicate { $0.scopeKey == key }))
+        {
+            context.delete(row)
+        }
+        for row in try context.fetch(
+            FetchDescriptor<PersistentCloudSyncRecovery>(predicate: #Predicate { $0.scopeKey == key }))
+        {
+            context.delete(row)
+        }
+        for row in try context.fetch(
+            FetchDescriptor<PersistentSyncCapability>(predicate: #Predicate { $0.scopeKey == key }))
+        {
+            context.delete(row)
+        }
+    }
+
 }

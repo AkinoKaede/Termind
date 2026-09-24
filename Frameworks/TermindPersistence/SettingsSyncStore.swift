@@ -97,6 +97,41 @@ public final class SettingsSyncPersistence {
         didRecordChanges?(mutations)
     }
 
+    public func purgeCloudCache(
+        scope: CloudSyncScope, assetCleanupKey: String? = nil
+    ) throws -> (SettingsSyncSnapshot, Set<SettingsRecordKey>) {
+        var removed = Set<SettingsRecordKey>()
+        var snapshot = try load()
+        try context.commit {
+            removed = Set(
+                try journal.cloudRecords().compactMap { SettingsRecordKey(recordName: $0.mutation.recordName) })
+            let suppressed = try journal.purgeCloudCache()
+            snapshot = try materialize()
+            try ai.replace(snapshot.configuration)
+            try skills.replace(snapshot.skills)
+            try preferences().apply(snapshot.webSearch)
+            try terminalPreferences().apply(snapshot.terminal)
+            try sshPreferences().apply(snapshot.ssh)
+            try sftpPreferences().apply(snapshot.sftp)
+            try workspacePreferences().apply(snapshot.workspace)
+            try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
+            let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
+            try cloud.purgeScope()
+            for mutation in suppressed {
+                try cloud.deleted(mutation.recordName, version: mutation.version)
+            }
+            if let assetCleanupKey {
+                try CloudSyncAssetCleanupStore(context: context).markPending(
+                    scope: scope, cacheKey: assetCleanupKey)
+            }
+        }
+        mirror(snapshot.webSearch)
+        snapshot.terminal.mirror(to: defaults)
+        snapshot.ssh.mirror(to: defaults)
+        snapshot.sftp.mirror(to: defaults)
+        return (snapshot, removed)
+    }
+
     public func load() throws -> SettingsSyncSnapshot {
         SettingsSyncSnapshot(
             configuration: try ai.load(preservingUnresolvedReferences: true),

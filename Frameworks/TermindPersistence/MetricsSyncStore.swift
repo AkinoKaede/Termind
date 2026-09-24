@@ -89,11 +89,6 @@ public final class MetricsSyncJournal {
         ).compactMap(\.envelope)
     }
 
-    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
-        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
-        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
-    }
-
     public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
         for row in try context.fetch(FetchDescriptor<PersistentMetricsSyncQuarantine>()) {
@@ -199,6 +194,10 @@ public final class MetricsSyncJournal {
         row.systemFieldsData = data
     }
 
+    public func clearSystemFields(recordName: String) throws {
+        try entry(recordName: recordName)?.systemFieldsData = nil
+    }
+
     public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
         var descriptor = FetchDescriptor<PersistentMetricsSyncQuarantine>(
             predicate: #Predicate { $0.recordName == recordName })
@@ -212,19 +211,6 @@ public final class MetricsSyncJournal {
                 PersistentMetricsSyncQuarantine(
                     recordName: recordName, payloadData: payloadData, reason: reason))
         }
-    }
-
-    public func clearQuarantine(recordName: String) throws {
-        try context.delete(
-            model: PersistentMetricsSyncQuarantine.self,
-            where: #Predicate { $0.recordName == recordName })
-    }
-
-    public func firstQuarantineReason() throws -> String? {
-        var descriptor = FetchDescriptor<PersistentMetricsSyncQuarantine>(
-            sortBy: [SortDescriptor(\.receivedAt, order: .reverse)])
-        descriptor.fetchLimit = 1
-        return try context.fetch(descriptor).first?.reason
     }
 
     public func markAllLiveRecordsNeedsUploadForNewAccount() throws {
@@ -315,6 +301,29 @@ public final class MetricsSyncPersistence: MetricsConfigurationStoring {
         didRecordChanges?(mutations)
     }
 
+    public func purgeCloudCache(
+        scope: CloudSyncScope, assetCleanupKey: String? = nil
+    ) throws -> (MetricsSyncSnapshot, Set<MetricsRecordKey>) {
+        var removed = Set<MetricsRecordKey>()
+        try context.commit {
+            removed = Set(
+                try journal.cloudRecords().compactMap { MetricsRecordKey(recordName: $0.mutation.recordName) })
+            for row in try context.fetch(FetchDescriptor<PersistentMetricsSyncEntry>()) { context.delete(row) }
+            let state = try journal.state()
+            state.bootstrapCompleted = true
+            state.engineStateData = nil
+            state.pendingUserRecordName = nil
+            state.lastSuccessfulSync = nil
+            try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
+            try CloudSyncRecordStateStore(context: context, scope: scope).purgeScope()
+            if let assetCleanupKey {
+                try CloudSyncAssetCleanupStore(context: context).markPending(
+                    scope: scope, cacheKey: assetCleanupKey)
+            }
+        }
+        return (MetricsSyncSnapshot(), removed)
+    }
+
     public func load() throws -> [MetricsSelection] { try materialize().selections }
 
     public func save(_ selections: [MetricsSelection]) throws {
@@ -382,7 +391,6 @@ extension MetricsSyncJournal {
         try context.fetch(FetchDescriptor<PersistentMetricsSyncEntry>()).compactMap { row in
             guard let envelope = row.envelope else { return nil }
             let key = envelope.key
-            guard true else { return nil }
             return CloudSyncJournalRecord(
                 recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
                 needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
@@ -391,7 +399,6 @@ extension MetricsSyncJournal {
 
     public func deletionEnvelopes(_ keys: Set<MetricsRecordKey>) throws -> [MetricsEnvelope] {
         try keys.compactMap { key in
-            guard true else { return nil }
             let row = try entry(recordName: key.recordName)
             // Preserve undecodable local data until a compatible client can reconcile it.
             if let row, row.envelope == nil { return nil }
@@ -403,7 +410,7 @@ extension MetricsSyncJournal {
     }
 
     public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
-        guard let key = MetricsRecordKey(recordName: mutation.recordName), true,
+        guard let key = MetricsRecordKey(recordName: mutation.recordName),
             let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
         else { return }
         if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {

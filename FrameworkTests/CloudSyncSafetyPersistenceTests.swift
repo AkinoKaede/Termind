@@ -155,31 +155,96 @@ struct CloudSyncSafetyPersistenceTests {
         case .history, .device:
             let journal = HistorySyncJournal(context: context)
             pending = try journal.pendingEnvelopes().map(\.key.recordName)
-            uploadable = try journal.uploadablePendingRecordNames(in: saved.scope)
+            uploadable = try CloudSyncRecordStateStore(context: context, scope: saved.scope)
+                .pendingChanges(journal.cloudRecords()).map(\.recordName)
             let key = try #require(HistoryRecordKey(recordName: saved.recordName))
             #expect(try journal.outgoingEntry(for: key, scope: saved.scope) == nil)
         case .vault:
             let journal = VaultSyncJournal(context: context)
             pending = try journal.pendingEnvelopes().map(\.key.recordName)
-            uploadable = try journal.uploadablePendingRecordNames(in: saved.scope)
+            uploadable = try CloudSyncRecordStateStore(context: context, scope: saved.scope)
+                .pendingChanges(journal.cloudRecords()).map(\.recordName)
             let key = try #require(VaultRecordKey(recordName: saved.recordName))
             #expect(try journal.outgoingEntry(for: key, scope: saved.scope) == nil)
         case .settings:
             let journal = SettingsSyncJournal(context: context)
             pending = try journal.pendingEnvelopes().map(\.key.recordName)
-            uploadable = try journal.uploadablePendingRecordNames(in: saved.scope)
+            uploadable = try CloudSyncRecordStateStore(context: context, scope: saved.scope)
+                .pendingChanges(journal.cloudRecords()).map(\.recordName)
             let key = try #require(SettingsRecordKey(recordName: saved.recordName))
             #expect(try journal.outgoingEntry(for: key, scope: saved.scope) == nil)
         case .metrics:
             let journal = MetricsSyncJournal(context: context)
             pending = try journal.pendingEnvelopes().map(\.key.recordName)
-            uploadable = try journal.uploadablePendingRecordNames(in: saved.scope)
+            uploadable = try CloudSyncRecordStateStore(context: context, scope: saved.scope)
+                .pendingChanges(journal.cloudRecords()).map(\.recordName)
             let key = try #require(MetricsRecordKey(recordName: saved.recordName))
             #expect(try journal.outgoingEntry(for: key, scope: saved.scope) == nil)
         }
         #expect(pending.contains(saved.recordName))
         #expect(!uploadable.contains(saved.recordName))
         #expect(uploadable.count == 1)
+    }
+
+    @Test
+    func deletionHandoffSidecarSurvivesDiskReopen() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("DeleteHandoff.store")
+        let recordName = "handoff/sidecar"
+        let old = VaultVersion(
+            modifiedAt: Date(timeIntervalSince1970: 100), counter: 1,
+            writerID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!)
+        let rebuilt = VaultVersion(
+            modifiedAt: Date(timeIntervalSince1970: 200), counter: 2,
+            writerID: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!)
+        let delete = CloudSyncMutation(recordName: recordName, operation: .delete, version: old)
+        do {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let state = CloudSyncRecordStateStore(context: container.mainContext, scope: scope)
+            try state.observed(recordName)
+            try state.recordDeletionHandoff(delete)
+            try container.mainContext.save()
+        }
+
+        let reopened = try TermindPersistence.makeContainer(url: url)
+        let context = reopened.mainContext
+        let live = CloudSyncJournalRecord(
+            recordName: recordName, version: rebuilt, isDeleted: false,
+            needsUpload: true, hasSystemFields: true)
+        var cleared: [String] = []
+        let replica = CloudSyncReplicaStore.persistent(
+            context: context, records: { [live] }, clearSystemFields: { cleared.append($0) })
+        let missing = try replica.missing(scope, [])
+        try context.save()
+
+        #expect(missing.deleted.isEmpty)
+        #expect(missing.recreated == [recordName])
+        #expect(cleared == [recordName])
+        #expect(
+            try CloudSyncRecordStateStore(context: context, scope: scope).pendingChanges([live])
+                == [CloudSyncMutation(recordName: recordName, operation: .save, version: rebuilt)])
+    }
+
+    @Test
+    func emptyInventoryStillDeletesPreviouslyPresentOrdinaryLocalEditAndTerminalHistoryDelete() throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let state = CloudSyncRecordStateStore(context: container.mainContext, scope: scope)
+        let writer = UUID()
+        let live = CloudSyncJournalRecord(
+            recordName: "ordinary-edit", version: .baseline(writerID: writer), isDeleted: false,
+            needsUpload: true, hasSystemFields: true)
+        try state.observed(live.mutation.recordName)
+        #expect(try state.missingRecordNames(seen: [], records: [live]).deleted == [live.mutation.recordName])
+
+        let historyDelete = CloudSyncJournalRecord(
+            recordName: "v1/connectionHistory/00000000-0000-0000-0000-000000000001",
+            version: .baseline(writerID: writer), isDeleted: true, needsUpload: true, hasSystemFields: false)
+        try state.observed(historyDelete.mutation.recordName)
+        try state.recordDeletionHandoff(historyDelete.mutation)
+        let result = try state.missingRecordNames(seen: [], records: [historyDelete])
+        #expect(result.deleted.contains(historyDelete.mutation.recordName))
+        #expect(result.recreated.isEmpty)
     }
 
     @Test
@@ -208,7 +273,7 @@ struct CloudSyncSafetyPersistenceTests {
         #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Existing data"])
         #expect(!TermindSchemaV30.models.contains { $0 == PersistentCloudSyncQuarantine.self })
         #expect(TermindSchemaV31.models.contains { $0 == PersistentCloudSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV37.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV38.versionIdentifier)
     }
 
     private func writeInterruptedFetch(
@@ -247,4 +312,5 @@ struct CloudSyncSafetyPersistenceTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
     }
+
 }

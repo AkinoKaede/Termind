@@ -57,11 +57,32 @@ nonisolated enum CloudSyncRecordCoding {
         return archiver.encodedData
     }
 
-    static func assetURL(recordName: String, directoryName: String) throws -> URL {
-        let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appending(path: directoryName, directoryHint: .isDirectory)
+    static func assetURL(
+        recordName: String, directoryName: String, cacheRoot: URL? = nil
+    ) throws -> URL {
+        let directory = try assetDirectory(directoryName: directoryName, cacheRoot: cacheRoot)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory.appending(path: recordName.replacingOccurrences(of: "/", with: "-"))
+    }
+
+    static func purgeAssetDirectory(
+        directoryName: String, cacheRoot: URL? = nil,
+        removeItem: (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) }
+    ) throws {
+        let directory = try assetDirectory(directoryName: directoryName, cacheRoot: cacheRoot)
+        guard FileManager.default.fileExists(atPath: directory.path) else { return }
+        try removeItem(directory)
+    }
+
+    private static func assetDirectory(directoryName: String, cacheRoot: URL?) throws -> URL {
+        let root = (cacheRoot ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0])
+            .standardizedFileURL
+        let directory = root.appending(path: directoryName, directoryHint: .isDirectory).standardizedFileURL
+        let prefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
+        guard directory.path.hasPrefix(prefix), directory != root else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+        return directory
     }
 
     private static func hash(_ data: Data) -> String {

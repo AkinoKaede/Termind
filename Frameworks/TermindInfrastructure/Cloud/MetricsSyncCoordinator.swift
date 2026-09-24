@@ -15,6 +15,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public nonisolated static let recordType = "MetricsItem"
     public nonisolated static let subscriptionID = "termind-metrics-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
+    nonisolated static let assetDirectoryName = "Termind/MetricsSyncAssets"
 
     private let context: ModelContext
     private let persistence: MetricsSyncPersistence
@@ -22,6 +23,8 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     private let makeTransport: (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     private let defaults: UserDefaults
     private let environmentIdentifier: String
+    private let assetCacheRoot: URL?
+    private let removeAssetDirectory: (URL) throws -> Void
     private let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
 
     @ObservationIgnored private(set) lazy var lifecycle = makeLifecycle()
@@ -50,6 +53,8 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     init(
         persistence: MetricsSyncPersistence,
         defaults: UserDefaults, environmentIdentifier: String,
+        assetCacheRoot: URL? = nil,
+        removeAssetDirectory: @escaping (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) },
         makeTransport: @escaping (CKRecordZone.ID, any CKSyncEngineDelegate) -> CloudSyncTransport
     ) {
         context = persistence.context
@@ -58,6 +63,8 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         self.makeTransport = makeTransport
         self.defaults = defaults
         self.environmentIdentifier = environmentIdentifier
+        self.assetCacheRoot = assetCacheRoot
+        self.removeAssetDirectory = removeAssetDirectory
         super.init()
         persistence.didRecordChanges = { [weak self] mutations in self?.noteLocalChanges(mutations) }
     }
@@ -107,12 +114,36 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
-                replica: .persistent(context: context, records: journal.cloudRecords)),
+                purge: { [weak self] scope in
+                    guard let self else { throw CancellationError() }
+                    let result = try self.persistence.purgeCloudCache(
+                        scope: scope, assetCleanupKey: Self.assetDirectoryName)
+                    self.didApplyRemote?(result.0, result.1)
+                    try self.completePendingAssetPurge()
+                },
+                completePendingPurge: { [weak self] in
+                    guard let self else { throw CancellationError() }
+                    try self.completePendingAssetPurge()
+                },
+                replica: .persistent(
+                    context: context, records: journal.cloudRecords,
+                    clearSystemFields: journal.clearSystemFields,
+                    handlesRecordName: { MetricsRecordKey(recordName: $0) != nil })),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: SettingsKey.metricsSyncEnabled, defaultEnabled: SettingsKey.defaultMetricsSyncEnabled,
             environmentKey: SettingsKey.metricsSyncEnvironment, environmentIdentifier: environmentIdentifier,
             receiveSnapshot: { [weak self] in try self?.receiveRemoteRecords($0, deletions: $1) })
+    }
+
+    private func completePendingAssetPurge() throws {
+        let cleanup = CloudSyncAssetCleanupStore(context: context)
+        guard try cleanup.isPending(cacheKey: Self.assetDirectoryName) else { return }
+        try CloudSyncRecordCoding.purgeAssetDirectory(
+            directoryName: Self.assetDirectoryName, cacheRoot: assetCacheRoot,
+            removeItem: removeAssetDirectory)
+        try cleanup.complete(cacheKey: Self.assetDirectoryName)
+        try context.save()
     }
 
     public nonisolated func nextFetchChangesOptions(
@@ -164,10 +195,12 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
-        lifecycle.noteRecordsObserved(records)
+        let reconciled = try lifecycle.reconcileRemoteChanges(records: records, deletions: deletions)
+        let (records, deletions) = (reconciled.records, reconciled.deletions)
+        lifecycle.noteRecordsObserved(records, excluding: deletions)
         let deletedKeys = Set(
             deletions.compactMap { id -> MetricsRecordKey? in
-                guard id.zoneID == zoneID, let key = MetricsRecordKey(recordName: id.recordName), true
+                guard id.zoneID == zoneID, let key = MetricsRecordKey(recordName: id.recordName)
                 else { return nil }
                 return key
             })
@@ -184,7 +217,11 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
             decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
                 for (record, envelope) in decoded {
-                    try cloud.observed(record.recordID.recordName)
+                    let current = try journal.cloudRecords().first {
+                        $0.mutation.recordName == record.recordID.recordName
+                    }
+                    try cloud.observed(
+                        record.recordID.recordName, version: envelope.version, current: current)
                     try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
                     if try journal.envelope(for: envelope.key) == envelope {
                         try journal.markUploaded(envelope.key, version: envelope.version)
@@ -208,8 +245,14 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
-            try cloud.observed(record.recordID.recordName)
-            if try journal.envelope(for: envelope.key)?.isDeleted == true {
+            let current = try journal.envelope(for: envelope.key)
+            let currentRecord = try journal.cloudRecords().first {
+                $0.mutation.recordName == record.recordID.recordName
+            }
+            try cloud.acknowledgeSave(
+                .init(recordName: record.recordID.recordName, operation: .save, version: envelope.version),
+                current: currentRecord)
+            if current?.isDeleted == true {
                 // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
                 try journal.markNeedsUpload([envelope.key])
             } else {
@@ -229,7 +272,6 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         }
         try lifecycle.handleDeletedRecords(changes) { mutation in
             try journal.acknowledgeDeletion(mutation, scope: scope)
-            try cloud.acknowledgeLegacyDeletion(mutation)
         }
         try context.save()
         try lifecycle.reconcilePendingChanges()
@@ -281,7 +323,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     }
 
     private nonisolated static func assetURL(for key: MetricsRecordKey) throws -> URL {
-        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: "Termind/MetricsSyncAssets")
+        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: assetDirectoryName)
     }
 
 }

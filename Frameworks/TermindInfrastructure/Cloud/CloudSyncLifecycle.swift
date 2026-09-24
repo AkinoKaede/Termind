@@ -23,6 +23,8 @@ struct CloudSyncLifecycleStore {
     var resetForNewAccount: () throws -> Void
     var resetForZone: () throws -> Void
     var resetForEnvironment: () throws -> Void
+    var purge: (CloudSyncScope) throws -> Void = { _ in }
+    var completePendingPurge: () throws -> Void = {}
     var replica: CloudSyncReplicaStore? = nil
 
     func pendingRecordNames(_ scope: CloudSyncScope) throws -> [String] {
@@ -146,6 +148,11 @@ struct CloudSyncTransport {
 /// One instance per category: only implementation is shared, never account or engine state.
 @MainActor @Observable
 final class CloudSyncLifecycle {
+    private struct InFlightDeletion {
+        var version: VaultVersion
+        var wasReobserved = false
+    }
+
     /// CloudKit accepts at most 250 record changes in one network request.
     /// Every CKSyncEngine delegate in the app builds its batches through this lifecycle.
     nonisolated static let maximumRecordsPerRequest = 250
@@ -163,7 +170,7 @@ final class CloudSyncLifecycle {
     private let authorizeUploads: (Bool) -> Void
     private let beforeSend: () throws -> Void
     private let receiveSnapshot: ([CKRecord], [CKRecord.ID]) throws -> Void
-    private var inFlightDeletions: [String: VaultVersion] = [:]
+    private var inFlightDeletions: [String: InFlightDeletion] = [:]
     private var inventoryPending = false
     private var inventorySeen = Set<String>()
     private(set) var engine: (any CloudSyncEngineSession)?
@@ -248,7 +255,11 @@ final class CloudSyncLifecycle {
         guard !recordNames.isEmpty else { return }
         do {
             try enqueue(recordNames)
-            guard isEnabled, engine != nil else { return }
+            guard isEnabled else { return }
+            if engine == nil {
+                start()
+                return
+            }
             run { [weak self] in
                 try await self?.sendPendingChanges()
                 try self?.updateUpToDateStatus()
@@ -311,6 +322,8 @@ final class CloudSyncLifecycle {
     private func prepareAndSynchronize() async throws {
         let id = operationID
         status = .checkingAccount
+        try store.completePendingPurge()
+        try store.save()
         let accountStatus = try await transport.accountStatus()
         guard operationID == id, isStarted, isEnabled, !Task.isCancelled else { return }
         guard accountStatus == .available else {
@@ -330,8 +343,8 @@ final class CloudSyncLifecycle {
             return
         }
         let scope = makeScope(account: currentUser, environment: environmentIdentifier)
-        let requiresRefetch = try store.safety.prepare(scope, legacyScope(for: state))
         self.scope = scope
+        let requiresRefetch = try store.safety.prepare(scope, legacyScope(for: state))
         state.boundUserRecordName = currentUser
         state.pendingUserRecordName = nil
         if requiresRefetch { state.engineStateData = nil }
@@ -422,9 +435,40 @@ final class CloudSyncLifecycle {
 }
 
 extension CloudSyncLifecycle {
-    func noteRecordsObserved(_ records: [CKRecord]) {
-        guard inventoryPending else { return }
-        inventorySeen.formUnion(records.filter { $0.recordID.zoneID == zoneID }.map { $0.recordID.recordName })
+    func reconcileRemoteChanges(
+        records: [CKRecord], deletions: [CKRecord.ID]
+    ) throws -> (records: [CKRecord], deletions: [CKRecord.ID]) {
+        guard let scope, let replica = store.replica else { return (records, deletions) }
+        let relevant = deletions.filter {
+            $0.zoneID == zoneID && replica.handlesRecordName($0.recordName)
+        }
+        guard !relevant.isEmpty else { return (records, deletions) }
+        let deletedNames = Set(relevant.map(\.recordName))
+        let result = try replica.reconcileDeletions(scope, Array(deletedNames))
+        if !result.recreated.isEmpty {
+            try store.save()
+            try enqueue(result.recreated)
+        }
+        let accepted = Set(result.deleted)
+        return (
+            records.filter {
+                $0.recordID.zoneID != zoneID || !deletedNames.contains($0.recordID.recordName)
+            },
+            deletions.filter { $0.zoneID != zoneID || accepted.contains($0.recordName) }
+        )
+    }
+
+    func noteRecordsObserved(_ records: [CKRecord], excluding deletions: [CKRecord.ID] = []) {
+        let deletedNames = Set(
+            deletions.filter { $0.zoneID == zoneID }.map { $0.recordName }
+        )
+        let names = records.filter {
+            $0.recordID.zoneID == zoneID && !deletedNames.contains($0.recordID.recordName)
+        }.map { $0.recordID.recordName }
+        if inventoryPending { inventorySeen.formUnion(names) }
+        for name in names where inFlightDeletions[name] != nil {
+            inFlightDeletions[name]?.wasReobserved = true
+        }
     }
 
     func beginFetch() throws {
@@ -448,8 +492,10 @@ extension CloudSyncLifecycle {
         fetchFailed = fetchFailed || !succeeded
         if fetching == 0 && !fetchFailed, let scope {
             if inventoryPending {
-                let missing = try store.replica?.missing(scope, inventorySeen) ?? []
-                try receiveSnapshot([], missing.map { CKRecord.ID(recordName: $0, zoneID: zoneID) })
+                let missing =
+                    try store.replica?.missing(scope, inventorySeen)
+                    ?? .init(deleted: [], recreated: [])
+                try receiveSnapshot([], missing.deleted.map { CKRecord.ID(recordName: $0, zoneID: zoneID) })
                 try store.replica?.complete(scope)
                 try store.save()
                 inventoryPending = false
@@ -469,6 +515,12 @@ extension CloudSyncLifecycle {
 
     func finishSend(succeeded: Bool = true) throws {
         sending = max(0, sending - 1)
+        if sending == 0 {
+            // CKSyncEngine may finish or throw without an item result for every handed-off
+            // delete. The durable journal remains authoritative; release unresolved slots
+            // so a later send can retry them.
+            inFlightDeletions.removeAll()
+        }
         try setRecoveryRequired(!succeeded || fetching > 0 || sending > 0 || fetchFailed)
     }
 
@@ -529,19 +581,27 @@ extension CloudSyncLifecycle {
                     mutation.operation == operation, try canUpload(id, engine: engine),
                     included.insert(id.recordName).inserted
                 else { continue }
-                // Complete an in-flight delete before sending a later incarnation of the same ID.
-                if let sent = inFlightDeletions[id.recordName], operation == .save || sent != mutation.version {
-                    continue
-                }
+                // One result event can identify a delete only by record ID. Never hand off another
+                // operation for that ID until the first result has released its causal slot.
+                if inFlightDeletions[id.recordName] != nil { continue }
                 if operation == .delete {
                     deletions.append(id)
-                    inFlightDeletions[id.recordName] = mutation.version
+                    inFlightDeletions[id.recordName] = InFlightDeletion(version: mutation.version)
                 } else if let record = recordProvider(id) {
                     records.append(record)
                 }
                 if records.count + deletions.count == Self.maximumRecordsPerRequest { break }
             }
             guard accepts(engine), isReadyToSend, !records.isEmpty || !deletions.isEmpty else { return nil }
+            for id in deletions {
+                guard let deletion = inFlightDeletions[id.recordName] else { continue }
+                try store.replica?.recordDeletionHandoff(
+                    scope,
+                    CloudSyncMutation(
+                        recordName: id.recordName, operation: .delete, version: deletion.version))
+            }
+            // A delete must not leave this process before its causal incarnation is durable.
+            try store.save()
             return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: records, recordIDsToDelete: deletions)
         } catch {
             failClosed(error)
@@ -649,16 +709,43 @@ extension CloudSyncLifecycle {
         try store.save()
     }
 
+    func handleZoneDeletion(reason: CloudSyncZoneDeletionReason) throws {
+        switch reason {
+        case .deleted:
+            try handleZoneDeletion()
+        case .purged, .encryptedDataReset:
+            guard let scope else { throw CancellationError() }
+            // Retire before touching persistence so automatic callbacks cannot repopulate
+            // a cache that the account owner explicitly removed.
+            retireEngine()
+            do {
+                try store.purge(scope)
+                status = .upToDate(lastSuccessfulSync: nil)
+            } catch {
+                store.rollback()
+                throw error
+            }
+        }
+    }
+
+    func cancelDeletionHandoff(_ mutation: CloudSyncMutation) throws {
+        guard let scope else { return }
+        try store.replica?.cancelDeletionHandoff(scope, mutation)
+    }
+
     func restartAfterExpiredToken() {
         failClosed(CKError(.changeTokenExpired))
         start()
     }
 
     func takeDeletionAcknowledgement(_ id: CKRecord.ID) -> CloudSyncMutation? {
-        guard id.zoneID == zoneID, let version = inFlightDeletions.removeValue(forKey: id.recordName) else {
+        guard id.zoneID == zoneID, let deletion = inFlightDeletions.removeValue(forKey: id.recordName) else {
             return nil
         }
-        return CloudSyncMutation(recordName: id.recordName, operation: .delete, version: version)
+        // The result completes only the handed-off delete. If the record was observed again
+        // afterward, the durable journal must remain pending for a new physical delete.
+        guard !deletion.wasReobserved else { return nil }
+        return CloudSyncMutation(recordName: id.recordName, operation: .delete, version: deletion.version)
     }
 
     func saveEngineState(_ serialization: CKSyncEngine.State.Serialization) throws {

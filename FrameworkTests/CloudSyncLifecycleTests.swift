@@ -68,7 +68,7 @@ struct CloudSyncLifecycleTests {
             .sentRecordZoneChanges(.init(savedRecords: [], failedRecordSaves: [])), engine: activeEngine,
             receiveRemoteRecords: receive, handleSentChanges: sent)
         fixture.driver.handle(
-            .fetchedDatabaseChanges(deletedZoneIDs: [fixture.driver.zoneID]), engine: activeEngine,
+            .fetchedDatabaseChanges(deletions: [(fixture.driver.zoneID, .deleted)]), engine: activeEngine,
             receiveRemoteRecords: receive, handleSentChanges: sent)
 
         #expect(receivedRecordNames == ["remote"])
@@ -83,6 +83,38 @@ struct CloudSyncLifecycleTests {
             .fetchedRecordZoneChanges(records: [record], deletions: []), engine: activeEngine,
             receiveRemoteRecords: receive, handleSentChanges: sent)
         #expect(receivedRecordNames == ["remote"])
+    }
+
+    @Test(arguments: [CloudSyncZoneDeletionReason.purged, .encryptedDataReset])
+    func destructiveZoneDeletionPurgesAndRetiresWithoutRecreating(
+        reason: CloudSyncZoneDeletionReason
+    ) async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let engine = fixture.network.nextEngine
+        let receive: @MainActor @Sendable ([CKRecord], [CKRecord.ID]) throws -> Void = { _, _ in }
+        let sent: @MainActor @Sendable (CloudSyncSentChanges) throws -> Void = { _ in }
+
+        fixture.driver.handle(
+            .fetchedDatabaseChanges(deletions: [(fixture.driver.zoneID, reason)]), engine: engine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+
+        #expect(fixture.journal.purgeCount == 1)
+        #expect(fixture.driver.engine == nil)
+        #expect(!fixture.journal.uploadsAuthorized)
+        #expect(fixture.network.nextEngine.recreatedZones.isEmpty)
+        #expect(fixture.journal.resets == ["environment"])
+
+        fixture.driver.handle(
+            .fetchedDatabaseChanges(deletions: [(fixture.driver.zoneID, reason)]), engine: engine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+        #expect(fixture.journal.purgeCount == 1)
+
+        fixture.journal.pending = ["new-explicit-write"]
+        fixture.driver.noteLocalChanges(fixture.journal.pending)
+        await fixture.driver.operation?.value
+        #expect(fixture.network.engineCount == 2)
     }
 
     @Test
@@ -570,7 +602,11 @@ private struct LifecycleFixture {
                     requiresNewerClient: { _ in false }),
                 resetForNewAccount: { journal.reset("account") },
                 resetForZone: { journal.reset("zone") },
-                resetForEnvironment: { journal.reset("environment") }),
+                resetForEnvironment: { journal.reset("environment") },
+                purge: { _ in
+                    journal.purgeCount += 1
+                    journal.pending.removeAll()
+                }),
             transport: network.transport, zoneID: .init(zoneName: "LifecycleTests"),
             containerIdentifier: "LifecycleTests",
             defaults: UserDefaults(suiteName: "CloudSyncLifecycleTests.\(UUID())")!,
@@ -594,6 +630,7 @@ private final class LifecycleJournal {
     var resets: [String] = []
     var uploadsAuthorized = false
     var migrationCount = 0
+    var purgeCount = 0
     func reset(_ reason: String) {
         resets.append(reason)
         value.engineStateData = nil
