@@ -22,6 +22,7 @@ public nonisolated enum SettingsKey {
     public static let defaultVaultSyncEnabled = true
     public static let defaultHistorySyncEnabled = true
     public static let historySyncEnabled = "history.sync.enabled"
+    public static let deviceSyncEnvironment = "device.sync.environment"
     public static let historySyncEnvironment = "history.sync.environment"
     public static let defaultWebSearchBuiltIn = true
     public static let defaultWebSearchEnabled = true
@@ -60,18 +61,6 @@ public nonisolated enum SettingsKey {
     public static let webSearchBuiltIn = "search.builtIn"
     public static let webSearchEnabled = "search.enabled"
     public static func migrateSyncPreferences(in defaults: UserDefaults = .standard) {
-        // Run before the existing master-switch migration can normalize Vault choices.
-        // An explicitly disabled Vault must not become enabled History during upgrade.
-        if defaults.object(forKey: historySyncEnabled) == nil {
-            defaults.set(
-                defaults.object(forKey: vaultSyncEnabled) as? Bool ?? defaultHistorySyncEnabled,
-                forKey: historySyncEnabled)
-        }
-        if defaults.object(forKey: historySyncEnvironment) == nil,
-            let environment = defaults.string(forKey: vaultSyncEnvironment)
-        {
-            defaults.set(environment, forKey: historySyncEnvironment)
-        }
         if defaults.object(forKey: settingsSyncEnabled) == nil,
             let legacy = defaults.object(forKey: "ai.sync.enabled") as? Bool
         {

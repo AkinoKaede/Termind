@@ -24225,76 +24225,25 @@
         }
       }
     },
-    "Sign in to iCloud to sync Metrics." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录iCloud以同步监控。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登入iCloud以同步監控。"
-          }
-        }
-      }
-    },
-    "Sign in to iCloud to sync history." : {
+    "Sign in to iCloud to sync." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in to iCloud to sync history."
+            "value" : "Sign in to iCloud to sync."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登录iCloud以同步历史。"
+            "value" : "登录iCloud以同步。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登入iCloud以同步歷史。"
-          }
-        }
-      }
-    },
-    "Sign in to iCloud to sync settings." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录iCloud以同步设置。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登入iCloud以同步設定。"
-          }
-        }
-      }
-    },
-    "Sign in to iCloud to sync the Vault." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录iCloud以同步保管库。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登入iCloud以同步保管庫。"
+            "value" : "登入iCloud以同步。"
           }
         }
       }

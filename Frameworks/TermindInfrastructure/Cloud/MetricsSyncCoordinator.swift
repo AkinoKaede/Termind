@@ -108,8 +108,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: SettingsKey.metricsSyncEnabled, defaultEnabled: SettingsKey.defaultMetricsSyncEnabled,
-            environmentKey: SettingsKey.metricsSyncEnvironment, environmentIdentifier: environmentIdentifier,
-            signInMessage: { String(localized: "Sign in to iCloud to sync Metrics.") })
+            environmentKey: SettingsKey.metricsSyncEnvironment, environmentIdentifier: environmentIdentifier)
     }
 
     public nonisolated func nextFetchChangesOptions(

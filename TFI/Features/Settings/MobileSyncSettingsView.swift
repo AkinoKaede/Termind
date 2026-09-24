@@ -31,12 +31,12 @@ struct MobileSyncSettingsView: View {
                 retry: { app.vaultSync?.retry() }, merge: { app.vaultSync?.confirmAccountSwitchMerge() }),
             .init(
                 id: "history", title: AppStrings.Common.history, isSelected: history,
-                status: app.historySync?.historyStatus, retry: { app.historySync?.retry() },
-                merge: { app.historySync?.confirmAccountSwitchMerge() }),
+                status: app.connectionHistorySync?.status, retry: { app.connectionHistorySync?.retry() },
+                merge: { app.connectionHistorySync?.confirmAccountSwitchMerge() }),
             .init(
-                id: "devices", actionID: "history", title: AppStrings.Settings.devices,
-                status: app.historySync?.deviceStatus,
-                retry: { app.historySync?.retry() }, merge: { app.historySync?.confirmAccountSwitchMerge() }),
+                id: "devices", title: AppStrings.Settings.devices,
+                status: app.deviceSync?.status,
+                retry: { app.deviceSync?.retry() }, merge: { app.deviceSync?.confirmAccountSwitchMerge() }),
             .init(
                 id: "metrics", title: AppStrings.Navigation.metrics, isSelected: metrics,
                 status: app.metricsSync?.status, retry: { app.metricsSync?.retry() },

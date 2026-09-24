@@ -10,11 +10,6 @@ public final class PersistentHistorySyncEntry {
     public var systemFieldsData: Data?
     public var needsUpload = false
 
-    public init(recordName: String, data: Data) {
-        self.recordName = recordName
-        envelopeData = data
-        needsUpload = true
-    }
     public init(envelope: HistoryEnvelope, needsUpload: Bool) throws {
         try apply(envelope, needsUpload: needsUpload)
     }
@@ -39,17 +34,6 @@ public final class PersistentHistorySyncState {
     public init() {}
 }
 
-/// Importer state is replica-scoped and separate from both configuration and History
-/// engines. It never stores upload intent, including restored queues from older code.
-@Model
-public final class PersistentHistoryImportState {
-    @Attribute(.unique) public var scopeKey = ""
-    public var engineStateData: Data?
-    public var requiresRefetch = true
-    public var capabilityID = ""
-    public init(scopeKey: String) { self.scopeKey = scopeKey }
-}
-
 @Model
 public final class PersistentSyncCapability {
     @Attribute(.unique) public var scopeKey = ""
@@ -63,7 +47,7 @@ public nonisolated enum HistorySyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return try encoder.encode(VaultWireV1.Envelope(envelope.legacyEnvelope))
+        return try encoder.encode(HistoryJournalV1(envelope))
     }
     private static let decoder = VersionedRecordDecoder<HistoryEnvelope>(
         Dictionary(
@@ -72,9 +56,9 @@ public nonisolated enum HistorySyncCodec {
                     kind.rawValue,
                     [
                         1: { data in
-                            let legacy = try JSONDecoder().decode(VaultWireV1.Envelope.self, from: data).domainValue
-                            guard let value = HistoryEnvelope(legacy: legacy), value.isValid else {
-                                throw VaultSyncPersistenceError.invalidEnvelope(legacy.key.recordName)
+                            let value = try JSONDecoder().decode(HistoryJournalV1.self, from: data).domainValue
+                            guard value.isValid else {
+                                throw VaultSyncPersistenceError.invalidEnvelope(value.key.recordName)
                             }
                             return value
                         }
@@ -82,4 +66,46 @@ public nonisolated enum HistorySyncCodec {
                 )
             }))
     public static func decode(_ data: Data) throws -> HistoryEnvelope { try decoder.decode(data) }
+}
+
+/// Frozen local journal shape. Reuse the shipped value DTOs without adapting through a Vault envelope.
+private nonisolated struct HistoryJournalV1: Codable {
+    enum Payload: Codable {
+        case connectionHistory(VaultWireV1.ConnectionHistoryEntry)
+        case device(VaultWireV1.DeviceRecord)
+
+        init(_ value: HistoryRecordPayload) {
+            switch value {
+            case .connectionHistory(let value): self = .connectionHistory(.init(value))
+            case .device(let value): self = .device(.init(value))
+            }
+        }
+
+        var domainValue: HistoryRecordPayload {
+            switch self {
+            case .connectionHistory(let value): .connectionHistory(value.domainValue)
+            case .device(let value): .device(value.domainValue)
+            }
+        }
+    }
+
+    var formatVersion: Int
+    var key: HistoryRecordKey
+    var version: VaultVersion
+    var isDeleted: Bool
+    var payload: Payload?
+
+    init(_ value: HistoryEnvelope) {
+        formatVersion = value.formatVersion
+        key = value.key
+        version = value.version
+        isDeleted = value.isDeleted
+        payload = value.payload.map(Payload.init)
+    }
+
+    var domainValue: HistoryEnvelope {
+        HistoryEnvelope(
+            key: key, version: version, isDeleted: isDeleted,
+            payload: payload?.domainValue, formatVersion: formatVersion)
+    }
 }

@@ -9,6 +9,7 @@ public nonisolated enum CloudSyncStatusSummary {
         guard !statuses.isEmpty else { return .checkingAccount }
         if statuses.contains(.accountChangeConfirmationRequired) { return .accountChangeConfirmationRequired }
         for status in statuses { if case .failed = status { return status } }
+        if statuses.contains(.signInRequired) { return .signInRequired }
         for status in statuses { if case .unavailable = status { return status } }
         var pending = 0
         var blocked = 0

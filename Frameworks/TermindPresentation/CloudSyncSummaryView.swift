@@ -4,18 +4,16 @@ import TermindDomain
 /// Apps inject state/actions; Presentation never owns or starts a sync engine.
 public struct CloudSyncCategoryPresentation: Identifiable {
     public let id: String
-    public let actionID: String
     public let title: LocalizedStringResource
     public let isSelected: Bool
     public let status: VaultSyncStatus
     public let retry: () -> Void
     public let merge: () -> Void
     public init(
-        id: String, actionID: String? = nil, title: LocalizedStringResource, isSelected: Bool = true,
+        id: String, title: LocalizedStringResource, isSelected: Bool = true,
         status: VaultSyncStatus?, retry: @escaping () -> Void, merge: @escaping () -> Void
     ) {
         self.id = id
-        self.actionID = actionID ?? id
         self.title = title
         self.isSelected = isSelected
         self.status = status ?? .checkingAccount
@@ -47,16 +45,14 @@ public struct CloudSyncSummaryView: View {
             if isActive {
                 if selected.contains(where: { $0.status == .accountChangeConfirmationRequired }) {
                     Button(AppStrings.Settings.mergeWithThisICloudAccount.swiftUIKey) {
-                        var handled = Set<String>()
                         for category in selected where category.status == .accountChangeConfirmationRequired {
-                            if handled.insert(category.actionID).inserted { category.merge() }
+                            category.merge()
                         }
                     }
                 }
                 if !retryable.isEmpty {
                     Button(AppStrings.Common.retry.swiftUIKey) {
-                        var handled = Set<String>()
-                        for category in retryable where handled.insert(category.actionID).inserted { category.retry() }
+                        for category in retryable { category.retry() }
                     }
                 }
             }

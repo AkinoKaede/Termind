@@ -14,6 +14,8 @@ public struct VaultSyncStatusLabel: View {
             Label("Checking iCloud…", systemImage: "icloud")
         case .paused:
             Label("Paused", systemImage: "pause.circle")
+        case .signInRequired:
+            Label(AppStrings.Settings.signInToSync, systemImage: "icloud.slash").foregroundStyle(.secondary)
         case .unavailable(let message):
             Label(message, systemImage: "icloud.slash").foregroundStyle(.secondary)
         case .accountChangeConfirmationRequired:

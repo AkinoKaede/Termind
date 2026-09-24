@@ -109,7 +109,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: nil, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
             environmentKey: SettingsKey.vaultSyncEnvironment, environmentIdentifier: environmentIdentifier,
-            signInMessage: { String(localized: "Sign in to iCloud to sync the Vault.") },
             beforeSend: { [weak self] in try self?.beforeSend?() })
     }
 

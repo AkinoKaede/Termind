@@ -39,7 +39,6 @@ final class CloudSyncSafetyFixture {
     let defaults: UserDefaults
     let defaultsName = "CloudSyncSafetyTests.\(UUID())"
     let network = LifecycleNetwork()
-    let legacyNetwork = LifecycleNetwork()
     private let adapter: SyncSafetyAdapter
     var lifecycle: CloudSyncLifecycle { adapter.lifecycle }
     var recordIDs: [CKRecord.ID] {
@@ -65,7 +64,7 @@ final class CloudSyncSafetyFixture {
         switch category {
         case .history, .device:
             adapter = try Self.history(
-                context, defaults: defaults, network: network, legacy: legacyNetwork,
+                context, defaults: defaults, network: network,
                 environment: environment, devices: category == .device)
         case .vault:
             adapter = try Self.vault(context, defaults: defaults, network: network, environment: environment)
@@ -124,7 +123,7 @@ final class CloudSyncSafetyFixture {
     }
 
     private static func history(
-        _ context: ModelContext, defaults: UserDefaults, network: LifecycleNetwork, legacy: LifecycleNetwork,
+        _ context: ModelContext, defaults: UserDefaults, network: LifecycleNetwork,
         environment: String, devices: Bool
     ) throws -> SyncSafetyAdapter {
         let persistence = HistorySyncPersistence(context: context)
@@ -136,11 +135,13 @@ final class CloudSyncSafetyFixture {
                 : .connectionHistory(ConnectionHistoryEntry(hostID: UUID(), kind: .ssh))
             return HistoryEnvelope(key: payload.key, version: version, payload: payload)
         }
-        _ = try persistence.applyRemote(envelopes, importingLegacy: true)
+        _ = try persistence.applyRemote(envelopes)
+        try persistence.journal.markNeedsUpload(Set(envelopes.map(\.key)))
         let journal = persistence.journal
-        let coordinator = HistorySyncCoordinator(
-            persistence: persistence, defaults: defaults, environmentIdentifier: environment,
-            makeTransport: { _, _ in network.transport }, makeLegacyTransport: { _, _ in legacy.transport })
+        let coordinator = HistoryRecordSyncCoordinator(
+            persistence: persistence, kind: devices ? .device : .connectionHistory,
+            defaults: defaults, environmentIdentifier: environment,
+            makeTransport: { _, _ in network.transport })
         let counter = RemoteApplyCounter()
         coordinator.didApplyRemote = { _ in counter.value += 1 }
         return SyncSafetyAdapter(
@@ -155,7 +156,9 @@ final class CloudSyncSafetyFixture {
                 envelope.isDeleted = true
                 envelope.payload = nil
                 envelope.version.counter += 1
-                _ = try persistence.applyRemote([envelope], importingLegacy: true)
+                _ = try persistence.applyRemote([envelope])
+                try journal.markNeedsUpload([envelope.key])
+                try context.save()
             },
             failingMerge: { safety in
                 var envelope = envelopes[0]
@@ -274,7 +277,7 @@ final class CloudSyncSafetyFixture {
 
     func futureRecord() throws -> CKRecord {
         let record = try #require(record(recordIDs[0]))
-        if HistorySyncCoordinator.recordTypes.contains(record.recordType) {
+        if HistoryRecordSyncCoordinator.recordTypes.contains(record.recordType) {
             record["formatVersion"] = NSNumber(value: 99)
             return record
         }
@@ -288,7 +291,7 @@ final class CloudSyncSafetyFixture {
     }
 
     static func expectPreserved(_ record: CKRecord, in data: Data) throws {
-        if HistorySyncCoordinator.recordTypes.contains(record.recordType) {
+        if HistoryRecordSyncCoordinator.recordTypes.contains(record.recordType) {
             let restored = try #require(try NSKeyedUnarchiver.unarchivedObject(ofClass: CKRecord.self, from: data))
             #expect(restored.recordID == record.recordID)
             #expect(restored["formatVersion"] as? NSNumber == record["formatVersion"] as? NSNumber)

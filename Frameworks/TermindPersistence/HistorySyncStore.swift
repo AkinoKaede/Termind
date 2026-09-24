@@ -25,16 +25,16 @@ public final class HistorySyncPersistence {
 
     public func prepare() throws {
         try context.commit {
+            try restoreMissingDeviceRecords()
             try journal.bootstrapIfNeeded()
             try prune()
             _ = try journal.recordCurrentSnapshot()
         }
     }
 
-    /// Legacy imports retain the original version but acquire upload intent in the
-    /// destination zone. A fetched destination record never echoes back just for being read.
+    /// A fetched record never echoes back just for being read.
     public func applyRemote(
-        _ envelopes: [HistoryEnvelope], importingLegacy: Bool = false,
+        _ envelopes: [HistoryEnvelope],
         beforeSave: () throws -> Void = {}
     ) throws -> Set<HistoryRecordKey> {
         var changed = Set<HistoryRecordKey>()
@@ -46,7 +46,7 @@ public final class HistorySyncPersistence {
                 let accept: Bool
                 if remote.key.kind == .connectionHistory, let local, local.isDeleted != remote.isDeleted {
                     // Event IDs are never reused. Deletion is terminal even if a delayed
-                    // legacy end-time update has a later clock; otherwise Clear History resurrects.
+                    // end-time update has a later clock; otherwise Clear History resurrects.
                     accept = remote.isDeleted
                 } else if let local {
                     if local.version == remote.version {
@@ -60,10 +60,14 @@ public final class HistorySyncPersistence {
                 }
                 if accept {
                     try apply(remote)
-                    try journal.store(remote, needsUpload: importingLegacy)
+                    try journal.store(remote, needsUpload: false)
                     changed.insert(remote.key)
-                } else if !importingLegacy, let local, local != remote {
-                    try journal.markNeedsUpload([local.key])
+                } else if let local {
+                    if local != remote { try journal.markNeedsUpload([local.key]) }
+                    // A replay can have the same version even when the local directory projection is missing.
+                    if case .device(let device) = local.payload, try restoreMissingDevice(device) {
+                        changed.insert(local.key)
+                    }
                 }
             }
             try prune()
@@ -109,6 +113,23 @@ public final class HistorySyncPersistence {
         }
     }
 
+    private func restoreMissingDeviceRecords() throws {
+        for row in try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>()) {
+            guard let envelope = row.envelope, !envelope.isDeleted,
+                case .device(let device) = envelope.payload
+            else { continue }
+            _ = try restoreMissingDevice(device)
+        }
+    }
+
+    private func restoreMissingDevice(_ device: DeviceRecord) throws -> Bool {
+        let id = device.id
+        let descriptor = FetchDescriptor<PersistentDeviceRecord>(predicate: #Predicate { $0.id == id })
+        guard try context.fetch(descriptor).isEmpty else { return false }
+        context.insert(PersistentDeviceRecord(device))
+        return true
+    }
+
     private func prune() throws {
         let rows = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
             .sorted { ConnectionHistoryEntry.isNewer($0.value, $1.value) }
@@ -119,33 +140,40 @@ public final class HistorySyncPersistence {
 @MainActor
 public final class HistorySyncJournal {
     private let context: ModelContext
-    public init(context: ModelContext) { self.context = context }
+    private let kind: HistoryRecordKind?
+    public init(context: ModelContext, kind: HistoryRecordKind? = nil) {
+        self.context = context
+        self.kind = kind
+    }
 
     public func state() throws -> PersistentHistorySyncState {
-        if let row = try context.fetch(FetchDescriptor<PersistentHistorySyncState>()).first { return row }
-        let legacy = try VaultSyncJournal(context: context).state()
+        let key = kind == .device ? "device-sync" : "history-sync"
+        if let row = try context.fetch(
+            FetchDescriptor<PersistentHistorySyncState>(predicate: #Predicate { $0.key == key })
+        ).first {
+            return row
+        }
         let row = PersistentHistorySyncState()
-        row.installationID = legacy.installationID
-        // Inherit consent provenance. Moving local data to another category must
-        // not silently authorize sending a previous account's data to a new account.
-        row.boundUserRecordName = legacy.boundUserRecordName
-        row.pendingUserRecordName = legacy.pendingUserRecordName
+        row.key = key
+        if kind == .device {
+            // Splitting the current native journal retains account consent, not the old engine cursor.
+            let history = try HistorySyncJournal(context: context, kind: .connectionHistory).state()
+            row.boundUserRecordName = history.boundUserRecordName
+            row.pendingUserRecordName = history.pendingUserRecordName
+        }
         context.insert(row)
         return row
     }
 
     public func bootstrapIfNeeded() throws {
+        guard kind != nil else {
+            for kind in HistoryRecordKind.allCases {
+                try HistorySyncJournal(context: context, kind: kind).bootstrapIfNeeded()
+            }
+            return
+        }
         let state = try state()
         guard !state.bootstrapCompleted else { return }
-        for legacy in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
-            guard HistoryRecordKey(recordName: legacy.recordName) != nil,
-                try entry(recordName: legacy.recordName) == nil
-            else { continue }
-            // The wire shape is unchanged in History V1. Preserve unreadable bytes as
-            // well as tombstones; safety preparation fences them before any upload.
-            let row = PersistentHistorySyncEntry(recordName: legacy.recordName, data: legacy.envelopeData)
-            context.insert(row)
-        }
         for payload in try currentPayloads() where try entry(recordName: payload.key.recordName) == nil {
             try store(
                 HistoryEnvelope(
@@ -158,11 +186,11 @@ public final class HistorySyncJournal {
     @discardableResult
     public func recordCurrentSnapshot(now: Date = .now) throws -> HistoryMutationSet {
         try bootstrapIfNeeded()
-        let state = try state()
         let payloads = try currentPayloads()
         let liveKeys = Set(payloads.map(\.key))
         var changed = Set<HistoryRecordKey>()
         for payload in payloads {
+            let state = try HistorySyncJournal(context: context, kind: payload.key.kind).state()
             let row = try entry(recordName: payload.key.recordName)
             // An unsupported old journal must remain intact for upgrade/recovery.
             // Local rows retain edits, but cannot replace the only copy of unknown data.
@@ -184,11 +212,11 @@ public final class HistorySyncJournal {
                 !old.isDeleted, !liveKeys.contains(old.key)
             else { continue }
             // Retain even never-uploaded tombstones: the same event can arrive again
-            // from a legacy device. Directory rows are not subject to event retention.
+            // from another device. Directory rows are not subject to event retention.
             try store(
                 HistoryEnvelope(
                     key: old.key,
-                    version: .next(after: old.version, writerID: state.installationID, now: now),
+                    version: .next(after: old.version, writerID: try state().installationID, now: now),
                     isDeleted: true), needsUpload: true)
             changed.insert(old.key)
         }
@@ -200,17 +228,12 @@ public final class HistorySyncJournal {
     }
     public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
         let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
-        let legacyBlocked = try CloudSyncSafetyStore(context: context, scope: scope.historyImportScope)
-            .blockedRecordNames()
         return try entries().filter {
             $0.needsUpload && !blocked.contains($0.recordName)
-                && !legacyBlocked.contains($0.recordName)
         }.map(\.recordName)
     }
     public func outgoingEntry(for key: HistoryRecordKey, scope: CloudSyncScope) throws -> HistoryOutgoingEntry? {
         guard try !CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName),
-            try !CloudSyncSafetyStore(context: context, scope: scope.historyImportScope).isUploadBlocked(
-                recordName: key.recordName),
             let row = try entry(recordName: key.recordName)
         else { return nil }
         return HistoryOutgoingEntry(
@@ -235,36 +258,6 @@ public final class HistorySyncJournal {
     }
     public func updateSystemFields(_ data: Data?, for key: HistoryRecordKey) throws {
         try entry(recordName: key.recordName)?.systemFieldsData = data
-    }
-
-    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
-        let safety = CloudSyncSafetyStore(context: context, scope: scope.historyImportScope)
-        for row in try entries() where row.envelope == nil {
-            try safety.quarantine(
-                recordName: row.recordName, payloadData: row.envelopeData,
-                reason: "Unreadable migrated history journal", reasonCode: .unreadablePayload)
-        }
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>())
-        where HistoryRecordKey(recordName: row.recordName) != nil {
-            if try !safety.isUploadBlocked(recordName: row.recordName) {
-                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
-            }
-            context.delete(row)
-        }
-        // Preserve restrictions under their original account/environment, not the
-        // account currently signed in when the app is upgraded.
-        var vaultScope = scope
-        vaultScope.zone = "TermindVaultV1"
-        let old = CloudSyncSafetyStore(context: context, scope: vaultScope)
-        let imported = CloudSyncSafetyStore(context: context, scope: scope.historyImportScope)
-        for name in try old.blockedRecordNames() where HistoryRecordKey(recordName: name) != nil {
-            guard let row = try old.entry(recordName: name) else { continue }
-            try imported.quarantine(
-                recordName: name, payloadData: row.payloadData, systemFieldsData: row.systemFieldsData,
-                reason: row.reason,
-                reasonCode: CloudSyncQuarantineReason(rawValue: row.reasonCode) ?? .unreadablePayload)
-            try old.clearQuarantine(recordName: name)
-        }
     }
 
     public func resetForNewAccount() throws {
@@ -296,10 +289,14 @@ public final class HistorySyncJournal {
         ).first
     }
     private func entries() throws -> [PersistentHistorySyncEntry] {
-        try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
+        try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>()).filter {
+            kind == nil || HistoryRecordKey(recordName: $0.recordName)?.kind == kind
+        }
     }
     private func currentPayloads() throws -> [HistoryRecordPayload] {
-        try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map { .connectionHistory($0.value) }
+        let payloads: [HistoryRecordPayload] =
+            try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map { .connectionHistory($0.value) }
             + context.fetch(FetchDescriptor<PersistentDeviceRecord>()).map { .device($0.value) }
+        return payloads.filter { kind == nil || $0.key.kind == kind }
     }
 }

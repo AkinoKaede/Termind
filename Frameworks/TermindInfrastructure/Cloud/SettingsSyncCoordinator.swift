@@ -119,7 +119,6 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: SettingsKey.settingsSyncEnabled, defaultEnabled: SettingsKey.defaultSettingsSyncEnabled,
             environmentKey: SettingsKey.settingsSyncEnvironment, environmentIdentifier: environmentIdentifier,
-            signInMessage: { String(localized: "Sign in to iCloud to sync settings.") },
             authorizeUploads: { [secrets] in secrets.uploadsAuthorized = $0 },
             beforeSend: { [weak self] in try self?.migrateSecrets() })
     }

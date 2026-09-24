@@ -120,16 +120,4 @@ extension CloudSyncSafetyStore {
         return row
     }
 
-    public func historyImportState() throws -> PersistentHistoryImportState {
-        let scopeKey = scope.storageKey
-        if let row = try context.fetch(
-            FetchDescriptor<PersistentHistoryImportState>(
-                predicate: #Predicate { $0.scopeKey == scopeKey })
-        ).first {
-            return row
-        }
-        let row = PersistentHistoryImportState(scopeKey: scopeKey)
-        context.insert(row)
-        return row
-    }
 }

@@ -13,8 +13,8 @@ public nonisolated enum VaultRecordKind: String, Codable, CaseIterable, Sendable
     case connectionHistory
     case device
 
-    /// History cases remain readable only for the one-way TestFlight importer.
-    /// New writes for these identities belong to the History zone, never Vault.
+    /// Historical Vault DTOs retain these cases to preserve their frozen local encoding.
+    /// Active Vault replication handles configuration only.
     public var isConfiguration: Bool { self != .connectionHistory && self != .device }
 }
 
@@ -148,6 +148,7 @@ public nonisolated struct VaultMutationSet: Equatable, Sendable {
 public nonisolated enum VaultSyncStatus: Equatable, Sendable {
     case checkingAccount
     case paused
+    case signInRequired
     case unavailable(String)
     case accountChangeConfirmationRequired
     case syncing(pendingCount: Int)

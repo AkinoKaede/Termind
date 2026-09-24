@@ -84,45 +84,26 @@ extension CloudSyncRecordCoding {
 }
 
 extension CloudSyncLifecycleSafety {
-    /// Source quarantine must fence destination writes without appearing in the
-    /// configuration category's status. Account/environment identity stays intact.
-    static func persistentHistory(
-        context: ModelContext, includesHistory: @escaping () -> Bool,
-        importLegacyQuarantine: @escaping (CloudSyncScope) throws -> Void
-    ) -> Self {
+    static func persistentHistory(context: ModelContext, kind: HistoryRecordKind) -> Self {
         var safety = persistent(
             context: context,
-            capabilityProvider: {
-                SyncRecordFormats.history.capabilityID + (includesHistory() ? ";events:on" : ";events:off")
-            }, importLegacyQuarantine: importLegacyQuarantine)
-        let destinationBlocked = safety.blockedRecordNames
+            capabilityID: SyncRecordFormats.history.capabilityID + ";kind:" + kind.rawValue,
+            importLegacyQuarantine: { _ in })
+        let allBlocked = safety.blockedRecordNames
         safety.blockedRecordNames = { scope in
-            let names = try destinationBlocked(scope).union(
-                CloudSyncSafetyStore(context: context, scope: scope.historyImportScope).blockedRecordNames())
-            return Set(
-                names.filter { includesHistory() || HistoryRecordKey(recordName: $0)?.kind != .connectionHistory })
+            Set(
+                try allBlocked(scope).filter {
+                    HistoryRecordKey(recordName: $0).map { $0.kind == kind } ?? true
+                })
         }
-        let destinationIsBlocked = safety.isUploadBlocked
-        safety.isUploadBlocked = { scope, name in
-            try destinationIsBlocked(scope, name)
-                || CloudSyncSafetyStore(context: context, scope: scope.historyImportScope).isUploadBlocked(
-                    recordName: name)
-        }
-        let destinationRequiresUpdate = safety.requiresNewerClient
         safety.requiresNewerClient = { scope in
-            if includesHistory() {
-                return try destinationRequiresUpdate(scope)
-                    || CloudSyncSafetyStore(context: context, scope: scope.historyImportScope).requiresNewerClient()
-            }
-            for replica in [scope, scope.historyImportScope] {
-                let store = CloudSyncSafetyStore(context: context, scope: replica)
-                for name in try store.blockedRecordNames()
-                where HistoryRecordKey(recordName: name)?.kind != .connectionHistory {
-                    if try store.entry(recordName: name)?.reasonCode
-                        == CloudSyncQuarantineReason.unsupportedFormat.rawValue
-                    {
-                        return true
-                    }
+            let store = CloudSyncSafetyStore(context: context, scope: scope)
+            for name in try store.blockedRecordNames()
+            where HistoryRecordKey(recordName: name).map({ $0.kind == kind }) ?? true {
+                if try store.entry(recordName: name)?.reasonCode
+                    == CloudSyncQuarantineReason.unsupportedFormat.rawValue
+                {
+                    return true
                 }
             }
             return false

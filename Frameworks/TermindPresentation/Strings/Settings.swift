@@ -4,7 +4,7 @@ extension AppStrings {
     public nonisolated enum Settings {
         public static var devices: LocalizedStringResource { "Devices" }
         public static var optionalSync: LocalizedStringResource { "Optional Sync" }
-        public static var signInToSyncHistory: LocalizedStringResource { "Sign in to iCloud to sync history." }
+        public static var signInToSync: LocalizedStringResource { "Sign in to iCloud to sync." }
 
         public static var developer: LocalizedStringResource { "Developer" }
 

@@ -41,6 +41,7 @@ public final class DeviceDirectoryModel {
         guard let deviceID else { return nil }
         if cachedDevices == nil { _ = devices() }
         return cachedDevices?[deviceID]?.displayName
+            ?? (deviceID == currentDeviceID ? currentDeviceName : nil)
     }
 
     public func reload() {

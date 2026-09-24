@@ -8,6 +8,21 @@ import Testing
 
 @Suite @MainActor
 struct CloudSyncLifecycleTests {
+    @Test func signedOutStatesUseTheSharedSignInRequirement() async throws {
+        let fixture = LifecycleFixture()
+        defer { fixture.driver.pause() }
+        fixture.network.accountBody = { .noAccount }
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        #expect(fixture.driver.status == .signInRequired)
+        #expect(fixture.driver.status(for: CKError(.notAuthenticated)) == .signInRequired)
+        try fixture.driver.handleAccountChange(.signOut(previousUser: CKRecord.ID(recordName: "previous-user")))
+        #expect(fixture.driver.status == .signInRequired)
+        #expect(
+            CloudSyncStatusSummary.make([.signInRequired, .upToDate(lastSuccessfulSync: nil)], isActive: true)
+                == .signInRequired)
+    }
+
     @Test
     func sharedEventDispatcherRoutesCallbacksAndRejectsRetiredEngines() async throws {
         let fixture = LifecycleFixture()
@@ -505,7 +520,7 @@ private struct LifecycleFixture {
             containerIdentifier: "LifecycleTests",
             defaults: UserDefaults(suiteName: "CloudSyncLifecycleTests.\(UUID())")!,
             enabledKey: "enabled", defaultEnabled: true, environmentKey: "environment",
-            environmentIdentifier: "Development", signInMessage: { "Sign in" },
+            environmentIdentifier: "Development",
             authorizeUploads: { journal.uploadsAuthorized = $0 },
             beforeSend: { journal.migrationCount += 1 })
     }

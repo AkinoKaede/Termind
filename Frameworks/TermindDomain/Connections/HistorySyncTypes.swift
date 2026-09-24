@@ -63,21 +63,6 @@ public nonisolated struct HistoryEnvelope: Codable, Hashable, Sendable {
         return isDeleted ? payload == nil : payload?.key == key
     }
 
-    /// Adapts only the legacy history kinds. It must not invent a newer modification
-    /// timestamp: every device importing the same legacy write must converge.
-    public init?(legacy: VaultEnvelope) {
-        guard let kind = HistoryRecordKind(rawValue: legacy.key.kind.rawValue) else { return nil }
-        let payload: HistoryRecordPayload?
-        switch legacy.payload {
-        case .connectionHistory(let value): payload = .connectionHistory(value)
-        case .device(let value): payload = .device(value)
-        case nil: payload = nil
-        default: return nil
-        }
-        self.init(
-            key: .init(kind: kind, id: legacy.key.id), version: legacy.version,
-            isDeleted: legacy.isDeleted, payload: payload, formatVersion: legacy.formatVersion)
-    }
 }
 
 public nonisolated struct HistoryMutationSet: Equatable, Sendable {
@@ -85,20 +70,4 @@ public nonisolated struct HistoryMutationSet: Equatable, Sendable {
     public static let empty = Self()
     public var isEmpty: Bool { keys.isEmpty }
     public init(keys: Set<HistoryRecordKey> = []) { self.keys = keys }
-}
-
-nonisolated extension HistoryEnvelope {
-    /// V1 history uses the shipped payload shape. This is a wire adapter only;
-    /// it never grants permission to save the resulting envelope in the Vault zone.
-    public var legacyEnvelope: VaultEnvelope {
-        let value: VaultRecordPayload?
-        switch payload {
-        case .connectionHistory(let entry): value = .connectionHistory(entry)
-        case .device(let device): value = .device(device)
-        case nil: value = nil
-        }
-        return VaultEnvelope(
-            key: .init(kind: key.kind == .device ? .device : .connectionHistory, id: key.id),
-            version: version, isDeleted: isDeleted, payload: value, formatVersion: formatVersion)
-    }
 }

@@ -102,18 +102,20 @@ struct TermindApp: App {
             vaultSync?.beforeSend = { [weak hosts] in try hosts?.migrateCustomPasswordsToICloud() }
             let historyPersistence = HistorySyncPersistence(context: container.mainContext)
             try historyPersistence.prepare()
-            let historySync: HistorySyncCoordinator? =
-                isRunningTests ? nil : HistorySyncCoordinator(persistence: historyPersistence)
+            let connectionHistorySync: ConnectionHistorySyncCoordinator? =
+                isRunningTests ? nil : ConnectionHistorySyncCoordinator(persistence: historyPersistence)
+            let deviceSync: DeviceSyncCoordinator? =
+                isRunningTests ? nil : DeviceSyncCoordinator(persistence: historyPersistence)
             let connectionHistoryRepository = SwiftDataConnectionHistoryRepository(
                 context: container.mainContext)
             let deviceDirectoryRepository = SwiftDataDeviceDirectoryRepository(
                 context: container.mainContext)
             let connectionHistoryDeviceID = try VaultSyncJournal(context: container.mainContext).state().installationID
-            connectionHistoryRepository.didRecordHistoryChanges = { [weak historySync] in
-                historySync?.noteLocalChanges($0)
+            connectionHistoryRepository.didRecordHistoryChanges = { [weak connectionHistorySync] in
+                connectionHistorySync?.noteLocalChanges($0)
             }
-            deviceDirectoryRepository.didRecordHistoryChanges = { [weak historySync] in
-                historySync?.noteLocalChanges($0)
+            deviceDirectoryRepository.didRecordHistoryChanges = { [weak deviceSync] in
+                deviceSync?.noteLocalChanges($0)
             }
             let devices = DeviceDirectoryModel(
                 repository: deviceDirectoryRepository,
@@ -130,7 +132,8 @@ struct TermindApp: App {
             let logging: any ApplicationLogManaging =
                 isRunningTests ? DisabledApplicationLogManager.shared : LaunchFileLogService()
             vaultSync?.configureLogging(logging)
-            historySync?.configureLogging(logging)
+            connectionHistorySync?.configureLogging(logging)
+            deviceSync?.configureLogging(logging)
             settingsSync?.configureLogging(logging)
             metricsSync?.configureLogging(logging)
             let connectionCoordinator = RemoteConnectionCoordinator(
@@ -168,7 +171,8 @@ struct TermindApp: App {
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
                         ),
-                        vaultSync: vaultSync, historySync: historySync, settingsSync: settingsSync,
+                        vaultSync: vaultSync, connectionHistorySync: connectionHistorySync, deviceSync: deviceSync,
+                        settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
                         mcpServerSecrets: secrets,
                         logging: logging,

@@ -8,8 +8,52 @@ private final class FixtureBundle: NSObject {}
 
 @Suite @MainActor
 struct PersistenceCompatibilityTests {
+    @Test func version35DropsRetiredImporterTableAndPreservesNativeHistoryOnReopen() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("History.store")
+        let device = DeviceRecord(id: UUID(), displayName: "Saved Mac")
+        try writeVersion35Store(to: url, device: device)
+        for _ in 0..<2 {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let persistence = HistorySyncPersistence(context: container.mainContext)
+            try persistence.prepare()
+            #expect(!container.schema.entities.contains { $0.name == "PersistentHistoryImportState" })
+            #expect(try container.mainContext.fetch(FetchDescriptor<PersistentDeviceRecord>()).map(\.value) == [device])
+            let entry = try #require(try persistence.journal.envelope(for: .init(kind: .device, id: device.id)))
+            #expect(entry.payload == .device(device))
+            #expect(
+                try HistorySyncJournal(context: container.mainContext, kind: .connectionHistory).state()
+                    .boundUserRecordName == "existing-account")
+            #expect(
+                try HistorySyncJournal(context: container.mainContext, kind: .device).state()
+                    .boundUserRecordName == "existing-account")
+        }
+    }
+
+    private func writeVersion35Store(to url: URL, device: DeviceRecord) throws {
+        let schema = Schema(versionedSchema: TermindSchemaV35.self)
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
+        container.mainContext.insert(PersistentHistoryImportState(scopeKey: "retired-import"))
+        let state = PersistentHistorySyncState()
+        state.boundUserRecordName = "existing-account"
+        state.bootstrapCompleted = true
+        container.mainContext.insert(state)
+        let payload = HistoryRecordPayload.device(device)
+        container.mainContext.insert(
+            try PersistentHistorySyncEntry(
+                envelope: HistoryEnvelope(
+                    key: payload.key, version: .baseline(writerID: state.installationID), payload: payload),
+                needsUpload: false))
+        container.mainContext.insert(PersistentDeviceRecord(device))
+        try container.mainContext.save()
+    }
+
     @Test(arguments: [31, 34])
-    func historyJournalMigrationReopensWithStableIdentityAndDeletion(version: Int) throws {
+    func oldStoresReopenWithoutImportingRetiredHistoryJournal(version: Int) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -47,16 +91,9 @@ struct PersistenceCompatibilityTests {
         let persistence = HistorySyncPersistence(context: container.mainContext)
         try persistence.prepare()
         let state = try persistence.journal.state()
-        #expect(state.installationID == installationID)
-        #expect(state.boundUserRecordName == "old-account")
-        let row = try #require(
-            container.mainContext.fetch(FetchDescriptor<PersistentHistorySyncEntry>()).first {
-                $0.recordName == HistoryRecordKey(kind: .connectionHistory, id: eventID).recordName
-            })
-        #expect(row.envelope?.isDeleted == true)
-        #expect(row.envelope?.version == .baseline(writerID: installationID))
-        #expect(row.systemFieldsData == nil)
-        #expect(row.needsUpload)
+        #expect(state.installationID != installationID)
+        #expect(state.boundUserRecordName == nil)
+        #expect(try persistence.journal.envelope(for: .init(kind: .connectionHistory, id: eventID)) == nil)
         #expect(
             try VaultSyncJournal(context: container.mainContext).pendingEnvelopes().allSatisfy {
                 $0.key.kind.isConfiguration
