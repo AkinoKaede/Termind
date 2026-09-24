@@ -173,7 +173,10 @@ final class LegacyHistoryImporter: NSObject, CKSyncEngineDelegate, @unchecked Se
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
         var decoded: [HistoryEnvelope] = []
         var rejected = Set<String>()
-        for record in records where record.recordID.zoneID == zoneID {
+        // A separate record type in the legacy zone is not part of the Vault V1
+        // history stream. Do not quarantine unrelated future features.
+        for record in records
+        where record.recordID.zoneID == zoneID && record.recordType == VaultSyncCoordinator.recordType {
             if let key = VaultRecordKey(recordName: record.recordID.recordName), key.kind.isConfiguration { continue }
             if let key = HistoryRecordKey(recordName: record.recordID.recordName),
                 key.kind == .connectionHistory && !includesHistory()

@@ -44,45 +44,6 @@ public final class HistorySyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public var historyStatus: VaultSyncStatus { includesHistory ? status(for: .connectionHistory) : .paused }
     public var deviceStatus: VaultSyncStatus { status(for: .device) }
 
-    private func status(for kind: HistoryRecordKind) -> VaultSyncStatus {
-        guard let scope = lifecycle.scope else { return lifecycle.status }
-        if case .upToDate = lifecycle.status, !legacyImporter.ready(for: scope) { return .syncing(pendingCount: 0) }
-        switch lifecycle.status {
-        case .syncing, .partiallyBlocked:
-            do {
-                let pending = try journal.uploadablePendingRecordNames(in: scope).filter {
-                    HistoryRecordKey(recordName: $0)?.kind == kind
-                }.count
-                var blocked = Set<String>()
-                var requiresUpdate = false
-                for replica in [scope, scope.historyImportScope] {
-                    let safety = CloudSyncSafetyStore(context: context, scope: replica)
-                    for name in try safety.blockedRecordNames() {
-                        let recordKind = HistoryRecordKey(recordName: name)?.kind
-                        // Unknown kinds belong to the always-selected portion so an
-                        // optional History toggle cannot hide an upgrade requirement.
-                        guard recordKind == kind || (recordKind == nil && kind == .device) else { continue }
-                        blocked.insert(name)
-                        if try safety.entry(recordName: name)?.reasonCode
-                            == CloudSyncQuarantineReason.unsupportedFormat.rawValue
-                        {
-                            requiresUpdate = true
-                        }
-                    }
-                }
-                if !blocked.isEmpty {
-                    return .partiallyBlocked(
-                        pendingCount: pending, blockedCount: blocked.count, requiresUpdate: requiresUpdate)
-                }
-                if case .partiallyBlocked = lifecycle.status, pending == 0 {
-                    return .upToDate(lastSuccessfulSync: try journal.state().lastSuccessfulSync)
-                }
-                return .syncing(pendingCount: pending)
-            } catch { return .failed(error.localizedDescription) }
-        default: return lifecycle.status
-        }
-    }
-
     public convenience init(
         persistence: HistorySyncPersistence,
         container: CKContainer = CKContainer(identifier: HistorySyncCoordinator.containerIdentifier),
@@ -168,7 +129,13 @@ public final class HistorySyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         importer.didApply = { [weak self] keys in self?.didApplyRemote?(keys) }
         importer.didFinish = { [weak self, weak importer] in
             guard let self, let importer, let scope = lifecycle.scope, importer.ready(for: scope) else { return }
-            do { lifecycle.noteLocalChanges(try journal.uploadablePendingRecordNames(in: scope)) } catch {
+            do {
+                lifecycle.noteLocalChanges(try journal.uploadablePendingRecordNames(in: scope))
+                // The source may have gained or cleared a quarantine without
+                // producing any destination mutations. Recompute the visible
+                // status after its checkpoint commits, even with no uploads.
+                try lifecycle.updateUpToDateStatus()
+            } catch {
                 lifecycle.failClosed(error)
             }
         }
@@ -416,5 +383,45 @@ public final class HistorySyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public nonisolated static func systemFields(of record: CKRecord) throws -> Data {
         try CloudSyncRecordCoding.systemFields(of: record)
     }
+}
 
+extension HistorySyncCoordinator {
+    private func status(for kind: HistoryRecordKind) -> VaultSyncStatus {
+        guard let scope = lifecycle.scope else { return lifecycle.status }
+        if case .upToDate = lifecycle.status, !legacyImporter.ready(for: scope) { return .syncing(pendingCount: 0) }
+        switch lifecycle.status {
+        case .syncing, .partiallyBlocked:
+            do {
+                let pending = try journal.uploadablePendingRecordNames(in: scope).filter {
+                    HistoryRecordKey(recordName: $0)?.kind == kind
+                }.count
+                var blocked = Set<String>()
+                var requiresUpdate = false
+                for replica in [scope, scope.historyImportScope] {
+                    let safety = CloudSyncSafetyStore(context: context, scope: replica)
+                    for name in try safety.blockedRecordNames() {
+                        let recordKind = HistoryRecordKey(recordName: name)?.kind
+                        // Unknown kinds belong to the always-selected portion so an
+                        // optional History toggle cannot hide an upgrade requirement.
+                        guard recordKind == kind || (recordKind == nil && kind == .device) else { continue }
+                        blocked.insert(name)
+                        if try safety.entry(recordName: name)?.reasonCode
+                            == CloudSyncQuarantineReason.unsupportedFormat.rawValue
+                        {
+                            requiresUpdate = true
+                        }
+                    }
+                }
+                if !blocked.isEmpty {
+                    return .partiallyBlocked(
+                        pendingCount: pending, blockedCount: blocked.count, requiresUpdate: requiresUpdate)
+                }
+                if case .partiallyBlocked = lifecycle.status, pending == 0 {
+                    return .upToDate(lastSuccessfulSync: try journal.state().lastSuccessfulSync)
+                }
+                return .syncing(pendingCount: pending)
+            } catch { return .failed(error.localizedDescription) }
+        default: return lifecycle.status
+        }
+    }
 }

@@ -173,6 +173,53 @@ struct HistorySyncTests {
         #expect(fixture.record(fixture.event.key) != nil)
     }
 
+    @Test func sourceQuarantineUpdatesAnAlreadySuccessfulStatusWithoutNewUploads() async throws {
+        let fixture = try HistoryFixture()
+        defer { fixture.stop() }
+        try await fixture.start()
+        try fixture.persistence.journal.markUploaded(fixture.event.key, version: fixture.event.version)
+        try fixture.persistence.journal.markUploaded(fixture.device.key, version: fixture.device.version)
+        try fixture.context.save()
+        try fixture.coordinator.lifecycle.updateUpToDateStatus()
+        let initialSync = try fixture.persistence.journal.state().lastSuccessfulSync
+        #expect(fixture.coordinator.historyStatus == .upToDate(lastSuccessfulSync: initialSync))
+
+        let future = try fixture.legacyRecord(fixture.event)
+        var json = try #require(
+            JSONSerialization.jsonObject(with: VaultSyncCoordinator.payloadData(from: future)) as? [String: Any])
+        json["formatVersion"] = 2
+        CloudSyncSafetyFixture.setPayload(try JSONSerialization.data(withJSONObject: json), in: future)
+        future["formatVersion"] = NSNumber(value: 2)
+        try fixture.coordinator.legacyImporter.beginFetch()
+        try fixture.coordinator.legacyImporter.receive([future])
+        try fixture.coordinator.legacyImporter.finishFetch(succeeded: true)
+        #expect(
+            fixture.coordinator.historyStatus
+                == .partiallyBlocked(pendingCount: 0, blockedCount: 1, requiresUpdate: true))
+        #expect(fixture.coordinator.deviceStatus == .upToDate(lastSuccessfulSync: initialSync))
+
+        try fixture.coordinator.legacyImporter.beginFetch()
+        try fixture.coordinator.legacyImporter.receive([fixture.legacyRecord(fixture.event)])
+        try fixture.coordinator.legacyImporter.finishFetch(succeeded: true)
+        let resumedSync = try fixture.persistence.journal.state().lastSuccessfulSync
+        #expect(fixture.coordinator.historyStatus == .upToDate(lastSuccessfulSync: resumedSync))
+    }
+
+    @Test func unrelatedRecordTypeInLegacyZoneDoesNotQuarantineOrBlockHistory() async throws {
+        let fixture = try HistoryFixture()
+        defer { fixture.stop() }
+        try await fixture.start()
+        let record = CKRecord(
+            recordType: "FutureVaultFeature",
+            recordID: CKRecord.ID(
+                recordName: "v1/futureFeature/\(UUID().uuidString.lowercased())",
+                zoneID: CKRecordZone.ID(zoneName: VaultSyncCoordinator.zoneName, ownerName: CKCurrentUserDefaultName)))
+        try fixture.coordinator.legacyImporter.receive([record])
+        let sourceSafety = CloudSyncSafetyStore(context: fixture.context, scope: fixture.scope.historyImportScope)
+        #expect(try sourceSafety.blockedRecordNames().isEmpty)
+        #expect(try fixture.persistence.journal.envelope(for: fixture.event.key) == fixture.event)
+    }
+
     @Test func initialImporterFailurePreventsAllDestinationUploadsAndRetryRecovers() async throws {
         let fixture = try HistoryFixture()
         defer { fixture.stop() }
