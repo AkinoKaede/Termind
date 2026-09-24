@@ -70,7 +70,23 @@ Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bun
 
 ## Commit & Pull Request Guidelines
 
-Use short, imperative subjects such as `Fix Assistant sidebar navigation round-trip`; reserve `Bump to X.Y.Z` for releases. Keep commits focused. Always include `Scripts/check-zh-localization.sh` in the commit pipeline, even without intentional localization changes. PRs should describe the outcome, affected layers, verification, and issues. Include bilingual screenshots for UI changes when applicable. Never commit secrets, `.env` files, build products, or user-specific Xcode data.
+Use Conventional Commits: `<type>[optional scope]: <description>`, with a lowercase type and a short, imperative English description (for example, `feat: add host groups` or `fix(assistant): restore sidebar navigation round-trip`). Choose the type that matches the change:
+
+- `feat`: new features.
+- `fix`: bug fixes.
+- `docs`: documentation-only changes.
+- `refactor`: code restructuring without changing behavior.
+- `perf`: performance improvements.
+- `test`: test additions or updates.
+- `style`: formatting-only changes without changing behavior.
+- `build`: build system or dependency changes.
+- `ci`: CI configuration or workflow changes.
+- `chore`: maintenance that does not fit another type; use `chore(release): bump to X.Y.Z` for releases.
+- `revert`: revert a previous commit.
+
+Mark breaking changes with `!` before the colon (for example, `feat(api)!: remove deprecated endpoint`) and explain the impact in a `BREAKING CHANGE:` footer.
+
+Keep commits focused. Always include `Scripts/check-zh-localization.sh` in the commit pipeline, even without intentional localization changes. PRs should describe the outcome, affected layers, verification, and issues. Include bilingual screenshots for UI changes when applicable. Never commit secrets, `.env` files, build products, or user-specific Xcode data.
 
 <!-- OPENWIKI:START -->
 
