@@ -145,7 +145,10 @@ struct ServerMetricsCard: View {
                 singleServerMenu
             }
         }
-        .sheet(isPresented: $configuring) { MetricsDevicePicker(server: server, model: model) }
+        .sheet(isPresented: $configuring) {
+            MetricsDevicePicker(server: server, model: model)
+                .allowsApplicationTerminationWhenModal()
+        }
     }
 
     private var cardContent: some View {

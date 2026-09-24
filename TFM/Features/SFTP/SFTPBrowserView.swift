@@ -370,6 +370,7 @@ struct SFTPBrowserView: View {
             ) { permissions in
                 await sftpChannel.updatePermissions(for: file, to: permissions)
             }
+            .allowsApplicationTerminationWhenModal()
         }
         .confirmationDialog(
             deleteTargets.count == 1

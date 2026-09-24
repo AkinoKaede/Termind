@@ -33,7 +33,9 @@ struct LoggingFilesSettings: View {
                 share: {
                     selectedFile = nil
                     prepare(file, action: .share)
-                })
+                }
+            )
+            .allowsApplicationTerminationWhenModal()
         }
         .fileExporter(
             isPresented: $showsExporter,

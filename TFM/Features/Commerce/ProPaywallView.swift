@@ -89,6 +89,7 @@ struct ProPaywallPresenter: ViewModifier {
                 )
             ) {
                 ProPaywallView().environment(app)
+                    .allowsApplicationTerminationWhenModal()
             }
     }
 }

@@ -125,10 +125,12 @@ struct RootView: View {
             HostChooserView(purpose: purpose)
                 .environment(app)
                 .environment(window)
+                .allowsApplicationTerminationWhenModal()
         }
         .sheet(item: $presentations.workspaceTemplateName) { presentation in
             WorkspaceTemplateNameSheet(presentation: presentation)
                 .environment(window)
+                .allowsApplicationTerminationWhenModal()
         }
         .overlay {
             if presentations.isQuickOpenPresented {

@@ -62,7 +62,10 @@ struct MetricsDetailToolbar: View {
         } label: {
             Image(systemName: "ellipsis")
         }
-        .sheet(isPresented: $configuring) { MetricsDevicePicker(server: server, model: model) }
+        .sheet(isPresented: $configuring) {
+            MetricsDevicePicker(server: server, model: model)
+                .allowsApplicationTerminationWhenModal()
+        }
     }
 
     private var pauseButton: some View {
