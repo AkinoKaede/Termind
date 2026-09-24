@@ -24,6 +24,12 @@ private struct SyncSafetyAdapter {
     var pendingNames: () throws -> Set<String>
     var markTombstone: () throws -> Void
     var failingMerge: (CloudSyncSafetyStore) throws -> Void
+    var remoteApplyCount: () -> Int
+}
+
+@MainActor
+private final class RemoteApplyCounter {
+    var value = 0
 }
 
 /// Real journals, coordinators, record coding and batch providers; only CloudKit transport is fake.
@@ -46,6 +52,7 @@ final class CloudSyncSafetyFixture {
     var pendingNames: () throws -> Set<String> { adapter.pendingNames }
     var markTombstone: () throws -> Void { adapter.markTombstone }
     var failingMerge: (CloudSyncSafetyStore) throws -> Void { adapter.failingMerge }
+    var remoteApplyCount: Int { adapter.remoteApplyCount() }
 
     init(category: SyncSafetyCategory, url: URL? = nil, environment: String = "Test") throws {
         container = try TermindPersistence.makeContainer(inMemory: url == nil, url: url)
@@ -86,6 +93,8 @@ final class CloudSyncSafetyFixture {
         let coordinator = VaultSyncCoordinator(
             context: context, defaults: defaults, environmentIdentifier: environment,
             makeTransport: { _, _ in network.transport })
+        let counter = RemoteApplyCounter()
+        coordinator.didApplyRemote = { _, _ in counter.value += 1 }
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
@@ -110,7 +119,8 @@ final class CloudSyncSafetyFixture {
                         try safety.clearQuarantine(recordName: envelope.key.recordName)
                         throw CocoaError(.fileWriteUnknown)
                     })
-            })
+            },
+            remoteApplyCount: { counter.value })
     }
 
     private static func history(
@@ -131,6 +141,8 @@ final class CloudSyncSafetyFixture {
         let coordinator = HistorySyncCoordinator(
             persistence: persistence, defaults: defaults, environmentIdentifier: environment,
             makeTransport: { _, _ in network.transport }, makeLegacyTransport: { _, _ in legacy.transport })
+        let counter = RemoteApplyCounter()
+        coordinator.didApplyRemote = { _ in counter.value += 1 }
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
@@ -154,7 +166,8 @@ final class CloudSyncSafetyFixture {
                         try safety.clearQuarantine(recordName: envelope.key.recordName)
                         throw CocoaError(.fileWriteUnknown)
                     })
-            })
+            },
+            remoteApplyCount: { counter.value })
     }
 
     private static func settings(
@@ -169,6 +182,8 @@ final class CloudSyncSafetyFixture {
         let coordinator = SettingsSyncCoordinator(
             persistence: persistence, secrets: secrets, defaults: defaults, environmentIdentifier: environment,
             makeTransport: { _, _ in network.transport })
+        let counter = RemoteApplyCounter()
+        coordinator.didApplyRemote = { _, _ in counter.value += 1 }
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
@@ -193,7 +208,8 @@ final class CloudSyncSafetyFixture {
                         try safety.clearQuarantine(recordName: envelope.key.recordName)
                         throw CocoaError(.fileWriteUnknown)
                     })
-            })
+            },
+            remoteApplyCount: { counter.value })
     }
 
     private static func metrics(
@@ -210,6 +226,8 @@ final class CloudSyncSafetyFixture {
         let coordinator = MetricsSyncCoordinator(
             persistence: persistence, defaults: defaults, environmentIdentifier: environment,
             makeTransport: { _, _ in network.transport })
+        let counter = RemoteApplyCounter()
+        coordinator.didApplyRemote = { _, _ in counter.value += 1 }
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
@@ -234,7 +252,8 @@ final class CloudSyncSafetyFixture {
                         try safety.clearQuarantine(recordName: envelope.key.recordName)
                         throw CocoaError(.fileWriteUnknown)
                     })
-            })
+            },
+            remoteApplyCount: { counter.value })
     }
 
     func start() async throws {

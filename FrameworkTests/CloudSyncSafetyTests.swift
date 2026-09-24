@@ -138,6 +138,40 @@ struct CloudSyncSafetyTests {
     }
 
     @Test(arguments: SyncSafetyCategory.allCases)
+    func unreadableRepresentationWinsForTheSameIDInEitherBatchOrder(category: SyncSafetyCategory) async throws {
+        for unreadableFirst in [false, true] {
+            let fixture = try CloudSyncSafetyFixture(category: category)
+            try await fixture.start()
+            let id = fixture.recordIDs[0]
+            let supported = try #require(fixture.record(id))
+            let future = try fixture.futureRecord()
+            let records = unreadableFirst ? [future, supported] : [supported, future]
+
+            try fixture.receive(records, [])
+
+            #expect(try fixture.safety().isUploadBlocked(recordName: id.recordName))
+            #expect(fixture.record(id) == nil)
+            #expect(fixture.remoteApplyCount == 0)
+            fixture.stop()
+        }
+    }
+
+    @Test
+    func quarantinePersistenceFailureEscapesTheSharedDecoder() throws {
+        let record = CKRecord(recordType: "Test")
+        var logged = false
+
+        #expect(throws: CocoaError.self) {
+            _ = try decodeCloudSyncRecords(
+                [record], included: { _ in true },
+                decode: { _ -> String in throw CKError(.badDatabase) },
+                quarantine: { _, _ in throw CocoaError(.fileWriteUnknown) },
+                logFailure: { _ in logged = true })
+        }
+        #expect(logged)
+    }
+
+    @Test(arguments: SyncSafetyCategory.allCases)
     func newRecordTypesAreIgnoredButCannotBypassAConflictForAKnownID(category: SyncSafetyCategory) async throws {
         let fixture = try CloudSyncSafetyFixture(category: category)
         defer { fixture.stop() }
@@ -147,8 +181,10 @@ struct CloudSyncSafetyTests {
         for key in source.allKeys() { unknown[key] = source[key] }
         try fixture.receive([unknown], [])
         #expect(try fixture.safety().blockedRecordNames().isEmpty)
+        #expect(fixture.remoteApplyCount == 0)
         try fixture.conflict(CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: unknown]))
         #expect(try fixture.safety().isUploadBlocked(recordName: unknown.recordID.recordName))
         #expect(fixture.record(unknown.recordID) == nil)
+        #expect(fixture.remoteApplyCount == 0)
     }
 }

@@ -124,7 +124,10 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     public nonisolated func handleEvent(
         _ event: CKSyncEngine.Event, syncEngine: CKSyncEngine
     ) async {
-        await handle(event, engine: syncEngine)
+        await lifecycle.handle(
+            CloudSyncEventInput(event), engine: syncEngine,
+            receiveRemoteRecords: { try receiveRemoteRecords($0, deletions: $1) },
+            handleSentChanges: handleSentChanges)
     }
 
     public nonisolated func nextRecordZoneChangeBatch(
@@ -168,72 +171,21 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         }
     }
 
-    @MainActor
-    private func handle(_ event: CKSyncEngine.Event, engine: CKSyncEngine) async {
-        guard lifecycle.accepts(engine) else { return }
-        do {
-            switch event {
-            case .stateUpdate(let update):
-                try lifecycle.saveEngineState(update.stateSerialization)
-
-            case .accountChange(let change):
-                try lifecycle.handleAccountChange(change.changeType)
-
-            case .fetchedRecordZoneChanges(let changes):
-                try receiveRemoteRecords(
-                    changes.modifications.map(\.record), deletions: changes.deletions.map(\.recordID))
-
-            case .fetchedDatabaseChanges(let changes):
-                if changes.deletions.contains(where: { $0.zoneID == zoneID }) {
-                    try lifecycle.handleZoneDeletion()
-                }
-
-            case .sentRecordZoneChanges(let changes):
-                try handleSentChanges(changes)
-
-            case .willFetchChanges:
-                try lifecycle.beginFetch()
-            case .willSendChanges:
-                try lifecycle.beginSend()
-            case .didFetchRecordZoneChanges(let changes):
-                if let error = changes.error {
-                    guard CloudSyncLifecycle.isRetryable(error) else { throw error }
-                    lifecycle.noteFetchFailure(error)
-                }
-            case .didFetchChanges:
-                try lifecycle.finishFetch()
-                try lifecycle.updateUpToDateStatus()
-            case .didSendChanges:
-                try lifecycle.finishSend()
-                try lifecycle.updateUpToDateStatus()
-
-            default:
-                break
-            }
-        } catch { lifecycle.failClosed(error) }
-    }
-
     /// Shared by fetched records and serverRecordChanged replies; never clears a block before the merge commits.
     func receiveRemoteRecords(
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        var decoded: [(CKRecord, VaultEnvelope)] = []
-        var rejected = Set<String>()
-        for record in records
-        where record.recordID.zoneID == zoneID && (isConflict || record.recordType == Self.recordType)
-            && HistoryRecordKey(recordName: record.recordID.recordName) == nil
-        {
-            do {
-                decoded.append((record, try Self.envelope(from: record)))
-            } catch {
-                lifecycle.logFailure(error, stage: "decode-quarantine")
-                try CloudSyncRecordCoding.quarantine(record, error: error, in: safety)
-                rejected.insert(record.recordID.recordName)
-            }
-        }
-        decoded.removeAll { rejected.contains($0.0.recordID.recordName) }
+        let decoded: [(record: CKRecord, envelope: VaultEnvelope)] = try decodeCloudSyncRecords(
+            records,
+            included: {
+                $0.recordID.zoneID == zoneID && (isConflict || $0.recordType == Self.recordType)
+                    && HistoryRecordKey(recordName: $0.recordID.recordName) == nil
+            },
+            decode: Self.envelope,
+            quarantine: { try CloudSyncRecordCoding.quarantine($0, error: $1, in: safety) },
+            logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
         let identical = try Set(
             decoded.compactMap { _, envelope -> VaultRecordKey? in
                 guard isConflict else { return nil }
@@ -264,7 +216,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         if !result.acceptedKeys.isEmpty { didApplyRemote?(result.snapshot, result.acceptedKeys) }
     }
 
-    private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
+    private func handleSentChanges(_ changes: CloudSyncSentChanges) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
         for record in changes.savedRecords
@@ -284,15 +236,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     }
 
     func handleFailedSave(_ error: CKError) throws {
-        if error.code == .serverRecordChanged {
-            guard let serverRecord = error.serverRecord else { throw error }
-            try receiveRemoteRecords([serverRecord], isConflict: true)
-        } else if error.code == .zoneNotFound {
-            try lifecycle.handleZoneDeletion()
-        } else if !CloudSyncLifecycle.isRetryable(error) {
-            lifecycle.logFailure(error, stage: "save")
-            lifecycle.terminalError = error.localizedDescription
-            status = .failed(error.localizedDescription)
+        try lifecycle.handleFailedSave(error) {
+            try receiveRemoteRecords($0, isConflict: $1)
         }
     }
 

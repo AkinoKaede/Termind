@@ -9,6 +9,113 @@ import Testing
 @Suite @MainActor
 struct CloudSyncLifecycleTests {
     @Test
+    func sharedEventDispatcherRoutesCallbacksAndRejectsRetiredEngines() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let activeEngine = fixture.network.nextEngine
+        let record = CKRecord(
+            recordType: "Test",
+            recordID: CKRecord.ID(recordName: "remote", zoneID: fixture.driver.zoneID))
+        var receivedRecordNames: [String] = []
+        var sentCallbackCount = 0
+        let receive: @MainActor @Sendable ([CKRecord], [CKRecord.ID]) throws -> Void = {
+            receivedRecordNames.append(contentsOf: $0.map(\.recordID.recordName))
+            #expect($1.isEmpty)
+        }
+        let sent: @MainActor @Sendable (CloudSyncSentChanges) throws -> Void = { _ in sentCallbackCount += 1 }
+
+        fixture.driver.handle(
+            .fetchedRecordZoneChanges(records: [record], deletions: []), engine: activeEngine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+        fixture.driver.handle(
+            .sentRecordZoneChanges(.init(savedRecords: [], failedRecordSaves: [])), engine: activeEngine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+        fixture.driver.handle(
+            .fetchedDatabaseChanges(deletedZoneIDs: [fixture.driver.zoneID]), engine: activeEngine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+
+        #expect(receivedRecordNames == ["remote"])
+        #expect(sentCallbackCount == 1)
+        #expect(fixture.journal.resets == ["environment", "zone"])
+
+        fixture.driver.pause()
+        fixture.network.nextEngine = LifecycleEngine()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        fixture.driver.handle(
+            .fetchedRecordZoneChanges(records: [record], deletions: []), engine: activeEngine,
+            receiveRemoteRecords: receive, handleSentChanges: sent)
+        #expect(receivedRecordNames == ["remote"])
+    }
+
+    @Test
+    func sharedEventDispatcherFailsClosedAndFetchFailureKeepsUploadsFenced() async {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let engine = fixture.network.nextEngine
+        let unusedReceive: @MainActor @Sendable ([CKRecord], [CKRecord.ID]) throws -> Void = { _, _ in }
+        let unusedSent: @MainActor @Sendable (CloudSyncSentChanges) throws -> Void = { _ in }
+
+        fixture.driver.handle(
+            .willFetchChanges, engine: engine, receiveRemoteRecords: unusedReceive,
+            handleSentChanges: unusedSent)
+        fixture.driver.handle(
+            .didFetchRecordZoneChanges(CKError(.networkFailure)), engine: engine,
+            receiveRemoteRecords: unusedReceive, handleSentChanges: unusedSent)
+        fixture.driver.handle(
+            .didFetchChanges, engine: engine, receiveRemoteRecords: unusedReceive,
+            handleSentChanges: unusedSent)
+        #expect(fixture.driver.accepts(engine))
+        #expect(!fixture.driver.isReadyToSend)
+        #expect(!fixture.journal.uploadsAuthorized)
+        #expect(fixture.journal.recoveryRequired)
+
+        let record = CKRecord(recordType: "Test")
+        fixture.driver.handle(
+            .fetchedRecordZoneChanges(records: [record], deletions: []), engine: engine,
+            receiveRemoteRecords: { _, _ in throw CocoaError(.fileWriteUnknown) },
+            handleSentChanges: unusedSent)
+        #expect(fixture.driver.engine == nil)
+        #expect(!fixture.journal.uploadsAuthorized)
+        guard case .failed = fixture.driver.status else {
+            Issue.record("A category callback failure must fail the shared dispatcher closed")
+            return
+        }
+    }
+
+    @Test
+    func sharedFailedSaveHandlerPreservesConflictZoneRetryAndTerminalSemantics() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let serverRecord = CKRecord(recordType: "Test")
+        var conflictRecord: CKRecord?
+        try fixture.driver.handleFailedSave(
+            CKError(.serverRecordChanged, userInfo: [CKRecordChangedErrorServerRecordKey: serverRecord])
+        ) { records, isConflict in
+            conflictRecord = records.first
+            #expect(isConflict)
+        }
+        #expect(conflictRecord === serverRecord)
+        #expect(throws: CKError.self) {
+            try fixture.driver.handleFailedSave(CKError(.serverRecordChanged)) { _, _ in }
+        }
+
+        try fixture.driver.handleFailedSave(CKError(.zoneNotFound)) { _, _ in }
+        #expect(fixture.journal.resets == ["environment", "zone"])
+        try fixture.driver.handleFailedSave(CKError(.networkFailure)) { _, _ in }
+        #expect(fixture.driver.terminalError == nil)
+        try fixture.driver.handleFailedSave(CKError(.permissionFailure)) { _, _ in }
+        #expect(fixture.driver.terminalError != nil)
+        guard case .failed = fixture.driver.status else {
+            Issue.record("A terminal save error must remain visible")
+            return
+        }
+    }
+
+    @Test
     func uploadBatchesNeverExceedCloudKitRequestLimit() async throws {
         let fixture = LifecycleFixture()
         fixture.driver.start()

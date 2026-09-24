@@ -224,16 +224,30 @@ struct ArchitectureBoundaryTests {
             }
             #expect(source.contains("lifecycle.makeChangeBatch("))
             #expect(source.contains("lifecycle.canUpload("))
+            #expect(source.contains("lifecycle.handle("))
+            #expect(source.contains("lifecycle.handleFailedSave("))
+            #expect(source.contains("decodeCloudSyncRecords("))
             #expect(source.contains("CloudSyncRecordCoding.quarantine("))
-            #expect(source.contains("isConflict: true"))
             #expect(!source.contains("try? journal.outgoingEntry"))
             #expect(!source.contains("CKSyncEngine.RecordZoneChangeBatch("))
         }
         let lifecycle = try String(contentsOf: root.appending(path: "CloudSyncLifecycle.swift"), encoding: .utf8)
+        let eventHandling = try String(
+            contentsOf: root.appending(path: "CloudSyncEventHandling.swift"), encoding: .utf8)
+        let recordReceiving = try String(
+            contentsOf: root.appending(path: "CloudSyncRecordReceiving.swift"), encoding: .utf8)
         #expect(lifecycle.contains("maximumRecordsPerRequest = 250"))
         #expect(lifecycle.contains("records.count == Self.maximumRecordsPerRequest"))
         #expect(!lifecycle.split(separator: "\n").contains("import SwiftData"))
         #expect(!lifecycle.split(separator: "\n").contains("import TermindPersistence"))
+        #expect(!eventHandling.split(separator: "\n").contains("import SwiftData"))
+        #expect(!eventHandling.split(separator: "\n").contains("import TermindPersistence"))
+        #expect(eventHandling.contains("guard accepts(engine) else { return }"))
+        #expect(eventHandling.contains("failClosed(error)"))
+        #expect(eventHandling.contains("guard let serverRecord = error.serverRecord else { throw error }"))
+        #expect(eventHandling.contains("try receiveRemoteRecords([serverRecord], true)"))
+        #expect(recordReceiving.contains("try quarantine(record, error)"))
+        #expect(recordReceiving.contains("rejectedRecordNames.contains"))
         for file in files where file.lastPathComponent != "CloudSyncLifecycle.swift" {
             let source = try String(contentsOf: file, encoding: .utf8)
             #expect(!source.contains("CKSyncEngine.RecordZoneChangeBatch("))
