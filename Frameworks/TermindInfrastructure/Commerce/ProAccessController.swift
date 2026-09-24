@@ -431,7 +431,7 @@ public final class ProAccessController {
         }
         if let expiresAt {
             entitlementExpirationTask = Task { [weak self] in
-                let remaining = min(60, max(0, expiresAt.timeIntervalSince(self?.now() ?? .now)))
+                let remaining = max(0, expiresAt.timeIntervalSince(self?.now() ?? .now))
                 try? await Task.sleep(for: .seconds(remaining))
                 guard !Task.isCancelled else { return }
                 await self?.refresh()
