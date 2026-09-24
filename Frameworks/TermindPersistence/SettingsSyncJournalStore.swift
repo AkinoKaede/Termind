@@ -175,7 +175,9 @@ public final class SettingsSyncJournal {
             return nil
         }
         guard key.kind.participatesInSync else { return nil }
-        guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
+        guard let row = try entry(recordName: key.recordName), row.needsUpload, let envelope = row.envelope,
+            !envelope.isDeleted
+        else {
             return nil
         }
         return SettingsOutgoingEntry(envelope: envelope, systemFieldsData: row.systemFieldsData)
@@ -217,6 +219,10 @@ public final class SettingsSyncJournal {
                 result.accepted.append(envelope)
                 continue
             }
+            if local.isDeleted && !envelope.isDeleted && entries[envelope.key.recordName]?.needsUpload == true {
+                result.needsUpload.insert(local.key)
+                continue
+            }
             if local.version.modifiedAt == VaultVersion.baselineDate
                 && !local.isDeleted && local != envelope
             {
@@ -253,14 +259,15 @@ public final class SettingsSyncJournal {
     }
 
     public func markUploaded(_ key: SettingsRecordKey, version: VaultVersion) throws {
-        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version else {
+        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version, row.needsUpload else {
             return
         }
         row.needsUpload = false
     }
 
     public func updateSystemFields(_ data: Data?, for key: SettingsRecordKey) throws {
-        try entry(recordName: key.recordName)?.systemFieldsData = data
+        guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
+        row.systemFieldsData = data
     }
 
     public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
@@ -305,6 +312,8 @@ public final class SettingsSyncJournal {
 
         for (key, payload) in current {
             let row = entries[key.recordName]
+            // Snapshot/bootstrap reconciliation is not an explicit edit of a deleted singleton.
+            if row?.envelope?.isDeleted == true { continue }
             guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else {
                 continue
             }
@@ -379,6 +388,7 @@ public final class SettingsSyncJournal {
         in entries: inout [String: PersistentAIConfigurationSyncEntry]
     ) throws {
         if let row = entries[envelope.key.recordName] {
+            if row.envelope?.isDeleted == true && !envelope.isDeleted { row.systemFieldsData = nil }
             try row.apply(envelope, needsUpload: needsUpload)
         } else {
             let row = try PersistentAIConfigurationSyncEntry(
@@ -413,5 +423,48 @@ public final class SettingsSyncJournal {
                 return first
             }
         )
+    }
+}
+
+extension SettingsSyncJournal {
+    public func cloudRecords() throws -> [CloudSyncJournalRecord] {
+        try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).compactMap { row in
+            guard let envelope = row.envelope else { return nil }
+            let key = envelope.key
+            guard key.kind.participatesInSync else { return nil }
+            return CloudSyncJournalRecord(
+                recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
+                needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
+        }
+    }
+
+    public func deletionEnvelopes(_ keys: Set<SettingsRecordKey>) throws -> [SettingsEnvelope] {
+        try keys.compactMap { key in
+            guard key.kind.participatesInSync else { return nil }
+            let row = try entry(recordName: key.recordName)
+            // Preserve undecodable local data until a compatible client can reconcile it.
+            if let row, row.envelope == nil { return nil }
+            let old = row?.envelope
+            if let old, old.isDeleted { return old }
+            return SettingsEnvelope(
+                key: key, version: .next(after: old?.version, writerID: try state().installationID), isDeleted: true)
+        }
+    }
+
+    public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
+        guard let key = SettingsRecordKey(recordName: mutation.recordName), key.kind.participatesInSync,
+            let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
+        else { return }
+        if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {
+            // A later explicit recreation is still pending; acknowledge only the old server incarnation.
+            try updateSystemFields(nil, for: key)
+            try CloudSyncRecordStateStore(context: context, scope: scope).deleted(
+                key.recordName, version: mutation.version)
+            return
+        }
+        guard envelope.isDeleted, envelope.version == mutation.version else { return }
+        try markUploaded(key, version: mutation.version)
+        try updateSystemFields(nil, for: key)
+        try CloudSyncRecordStateStore(context: context, scope: scope).deleted(key.recordName, version: mutation.version)
     }
 }

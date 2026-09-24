@@ -110,7 +110,11 @@ public final class MetricsSyncJournal {
         {
             return nil
         }
-        guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else { return nil }
+        guard let row = try entry(recordName: key.recordName), row.needsUpload, let envelope = row.envelope,
+            !envelope.isDeleted
+        else {
+            return nil
+        }
         return MetricsOutgoingEntry(envelope: envelope, systemFieldsData: row.systemFieldsData)
     }
 
@@ -150,6 +154,10 @@ public final class MetricsSyncJournal {
                 result.accepted.append(envelope)
                 continue
             }
+            if local.isDeleted && !envelope.isDeleted && entries[envelope.key.recordName]?.needsUpload == true {
+                result.needsUpload.insert(local.key)
+                continue
+            }
             if local.version.modifiedAt == VaultVersion.baselineDate, !local.isDeleted, local != envelope {
                 result.accepted.append(envelope)
             } else if local.version < envelope.version {
@@ -180,12 +188,15 @@ public final class MetricsSyncJournal {
     }
 
     public func markUploaded(_ key: MetricsRecordKey, version: VaultVersion) throws {
-        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version else { return }
+        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version, row.needsUpload else {
+            return
+        }
         row.needsUpload = false
     }
 
     public func updateSystemFields(_ data: Data?, for key: MetricsRecordKey) throws {
-        try entry(recordName: key.recordName)?.systemFieldsData = data
+        guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
+        row.systemFieldsData = data
     }
 
     public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
@@ -257,6 +268,7 @@ public final class MetricsSyncJournal {
         in entries: inout [String: PersistentMetricsSyncEntry]
     ) throws {
         if let row = entries[envelope.key.recordName] {
+            if row.envelope?.isDeleted == true && !envelope.isDeleted { row.systemFieldsData = nil }
             try row.apply(envelope, needsUpload: needsUpload)
         } else {
             let row = try PersistentMetricsSyncEntry(envelope: envelope, needsUpload: needsUpload)
@@ -316,13 +328,17 @@ public final class MetricsSyncPersistence: MetricsConfigurationStoring {
         didRecordChanges?(mutations)
     }
 
-    public func applyRemote(_ envelopes: [MetricsEnvelope], beforeSave: () throws -> Void = {}) throws
+    public func applyRemote(
+        _ envelopes: [MetricsEnvelope], deletions: Set<MetricsRecordKey> = [],
+        beforeSave: () throws -> Void = {}
+    ) throws
         -> (snapshot: MetricsSyncSnapshot, acceptedKeys: Set<MetricsRecordKey>, needsUpload: Set<MetricsRecordKey>)
     {
         var merge = MetricsRemoteMerge()
         var snapshot = try materialize()
         try context.commit(beforeSave: beforeSave) {
-            merge = try journal.mergeDecision(for: envelopes)
+            let deleted = try journal.deletionEnvelopes(deletions)
+            merge = try journal.mergeDecision(for: envelopes.filter { !deletions.contains($0.key) } + deleted)
             guard !merge.accepted.isEmpty else {
                 try journal.markNeedsUpload(merge.needsUpload)
                 return
@@ -358,5 +374,48 @@ public final class MetricsSyncPersistence: MetricsConfigurationStoring {
     private static func deduplicated(_ values: [MetricsSelection]) -> [MetricsSelection] {
         var seen = Set<UUID>()
         return values.filter { seen.insert($0.id).inserted }
+    }
+}
+
+extension MetricsSyncJournal {
+    public func cloudRecords() throws -> [CloudSyncJournalRecord] {
+        try context.fetch(FetchDescriptor<PersistentMetricsSyncEntry>()).compactMap { row in
+            guard let envelope = row.envelope else { return nil }
+            let key = envelope.key
+            guard true else { return nil }
+            return CloudSyncJournalRecord(
+                recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
+                needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
+        }
+    }
+
+    public func deletionEnvelopes(_ keys: Set<MetricsRecordKey>) throws -> [MetricsEnvelope] {
+        try keys.compactMap { key in
+            guard true else { return nil }
+            let row = try entry(recordName: key.recordName)
+            // Preserve undecodable local data until a compatible client can reconcile it.
+            if let row, row.envelope == nil { return nil }
+            let old = row?.envelope
+            if let old, old.isDeleted { return old }
+            return MetricsEnvelope(
+                key: key, version: .next(after: old?.version, writerID: try state().installationID), isDeleted: true)
+        }
+    }
+
+    public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
+        guard let key = MetricsRecordKey(recordName: mutation.recordName), true,
+            let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
+        else { return }
+        if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {
+            // A later explicit recreation is still pending; acknowledge only the old server incarnation.
+            try updateSystemFields(nil, for: key)
+            try CloudSyncRecordStateStore(context: context, scope: scope).deleted(
+                key.recordName, version: mutation.version)
+            return
+        }
+        guard envelope.isDeleted, envelope.version == mutation.version else { return }
+        try markUploaded(key, version: mutation.version)
+        try updateSystemFields(nil, for: key)
+        try CloudSyncRecordStateStore(context: context, scope: scope).deleted(key.recordName, version: mutation.version)
     }
 }

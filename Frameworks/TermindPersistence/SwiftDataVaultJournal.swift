@@ -244,7 +244,9 @@ public final class VaultSyncJournal {
         {
             return nil
         }
-        guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
+        guard let row = try entry(recordName: key.recordName), row.needsUpload, let envelope = row.envelope,
+            !envelope.isDeleted
+        else {
             return nil
         }
         return VaultOutgoingEntry(
@@ -282,6 +284,10 @@ public final class VaultSyncJournal {
                 result.accepted.append(envelope)
                 continue
             }
+            if local.isDeleted && !envelope.isDeleted && entries[envelope.key.recordName]?.needsUpload == true {
+                result.needsUpload.insert(local.key)
+                continue
+            }
             if local.version < envelope.version {
                 result.accepted.append(envelope)
             } else if envelope.version < local.version {
@@ -317,11 +323,14 @@ public final class VaultSyncJournal {
         else {
             return
         }
-        try row.apply(envelope.withoutDeviceLocalMetadata, needsUpload: false)
+        let normalized = envelope.withoutDeviceLocalMetadata
+        guard row.needsUpload || envelope != normalized else { return }
+        try row.apply(normalized, needsUpload: false)
     }
 
     public func updateSystemFields(_ data: Data?, for key: VaultRecordKey) throws {
-        try entry(recordName: key.recordName)?.systemFieldsData = data
+        guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
+        row.systemFieldsData = data
     }
 
     public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
@@ -443,6 +452,7 @@ public final class VaultSyncJournal {
         in entries: inout [String: PersistentVaultSyncEntry]
     ) throws {
         if let row = entries[envelope.key.recordName] {
+            if row.envelope?.isDeleted == true && !envelope.isDeleted { row.systemFieldsData = nil }
             try row.apply(envelope, needsUpload: needsUpload)
         } else {
             let row = try PersistentVaultSyncEntry(
@@ -470,5 +480,48 @@ public final class VaultSyncJournal {
                 return first
             }
         )
+    }
+}
+
+extension VaultSyncJournal {
+    public func cloudRecords() throws -> [CloudSyncJournalRecord] {
+        try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()).compactMap { row in
+            guard let envelope = row.envelope else { return nil }
+            let key = envelope.key
+            guard key.kind.isConfiguration else { return nil }
+            return CloudSyncJournalRecord(
+                recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
+                needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
+        }
+    }
+
+    public func deletionEnvelopes(_ keys: Set<VaultRecordKey>) throws -> [VaultEnvelope] {
+        try keys.compactMap { key in
+            guard key.kind.isConfiguration else { return nil }
+            let row = try entry(recordName: key.recordName)
+            // Preserve undecodable local data until a compatible client can reconcile it.
+            if let row, row.envelope == nil { return nil }
+            let old = row?.envelope
+            if let old, old.isDeleted { return old }
+            return VaultEnvelope(
+                key: key, version: .next(after: old?.version, writerID: try state().installationID), isDeleted: true)
+        }
+    }
+
+    public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
+        guard let key = VaultRecordKey(recordName: mutation.recordName), key.kind.isConfiguration,
+            let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
+        else { return }
+        if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {
+            // A later explicit recreation is still pending; acknowledge only the old server incarnation.
+            try updateSystemFields(nil, for: key)
+            try CloudSyncRecordStateStore(context: context, scope: scope).deleted(
+                key.recordName, version: mutation.version)
+            return
+        }
+        guard envelope.isDeleted, envelope.version == mutation.version else { return }
+        try markUploaded(key, version: mutation.version)
+        try updateSystemFields(nil, for: key)
+        try CloudSyncRecordStateStore(context: context, scope: scope).deleted(key.recordName, version: mutation.version)
     }
 }

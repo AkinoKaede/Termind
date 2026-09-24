@@ -106,6 +106,41 @@ struct HistorySyncTests {
         #expect(try fixture.persistence.journal.pendingEnvelopes().contains { $0.key == deleted.key })
     }
 
+    @Test func retentionTombstoneCreatedDuringFetchRemainsPending() async throws {
+        let fixture = try HistoryFixture()
+        defer { fixture.stop() }
+        try await fixture.start()
+        for index in 0..<ConnectionHistoryModel.limit {
+            fixture.context.insert(
+                PersistentConnectionHistoryEntry(
+                    ConnectionHistoryEntry(
+                        hostID: UUID(), kind: .ssh,
+                        connectedAt: Date(timeIntervalSince1970: TimeInterval(index + 1)))))
+        }
+        try fixture.context.save()
+        let entry = ConnectionHistoryEntry(
+            hostID: UUID(), kind: .ssh, connectedAt: Date(timeIntervalSince1970: 0))
+        let envelope = HistoryEnvelope(
+            key: HistoryRecordKey(kind: .connectionHistory, id: entry.id),
+            version: VaultVersion(modifiedAt: Date(timeIntervalSince1970: 200), counter: 1, writerID: UUID()),
+            payload: .connectionHistory(entry))
+        let record = try HistoryRecordSyncCoordinator.makeRecord(
+            .init(envelope: envelope),
+            recordID: .init(recordName: envelope.key.recordName, zoneID: fixture.coordinator.lifecycle.zoneID))
+
+        try fixture.coordinator.receiveRemoteRecords([record])
+
+        let retainedEnvelope = try fixture.persistence.journal.envelope(for: envelope.key)
+        let retained = try #require(retainedEnvelope)
+        #expect(retained.isDeleted)
+        #expect(retained.version > envelope.version)
+        #expect(try fixture.persistence.journal.pendingEnvelopes().contains { $0.key == envelope.key })
+        #expect(fixture.record(envelope.key) == nil)
+        #expect(
+            fixture.destination.nextEngine.deleteRecordNames(in: fixture.coordinator.lifecycle.zoneID)
+                .contains(envelope.key.recordName))
+    }
+
     @Test func historyIgnoresRecordsAndRestrictionsFromRetiredVaultImporter() async throws {
         let fixture = try HistoryFixture()
         defer { fixture.stop() }

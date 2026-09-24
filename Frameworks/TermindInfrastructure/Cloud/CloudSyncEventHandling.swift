@@ -1,4 +1,5 @@
 import CloudKit
+import TermindDomain
 
 struct CloudSyncSentChanges {
     struct FailedSave {
@@ -8,16 +9,24 @@ struct CloudSyncSentChanges {
 
     var savedRecords: [CKRecord]
     var failedRecordSaves: [FailedSave]
+    var deletedRecordIDs: [CKRecord.ID]
+    var failedRecordDeletes: [CKRecord.ID: CKError]
 
-    init(savedRecords: [CKRecord], failedRecordSaves: [FailedSave]) {
+    init(
+        savedRecords: [CKRecord], failedRecordSaves: [FailedSave], deletedRecordIDs: [CKRecord.ID] = [],
+        failedRecordDeletes: [CKRecord.ID: CKError] = [:]
+    ) {
         self.savedRecords = savedRecords
         self.failedRecordSaves = failedRecordSaves
+        self.deletedRecordIDs = deletedRecordIDs
+        self.failedRecordDeletes = failedRecordDeletes
     }
 
     init(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) {
         self.init(
             savedRecords: changes.savedRecords,
-            failedRecordSaves: changes.failedRecordSaves.map { FailedSave(record: $0.record, error: $0.error) })
+            failedRecordSaves: changes.failedRecordSaves.map { FailedSave(record: $0.record, error: $0.error) },
+            deletedRecordIDs: changes.deletedRecordIDs, failedRecordDeletes: changes.failedRecordDeletes)
     }
 }
 
@@ -90,6 +99,10 @@ extension CloudSyncLifecycle {
                 try beginSend()
             case .didFetchRecordZoneChanges(let error):
                 if let error {
+                    if error.code == .changeTokenExpired {
+                        restartAfterExpiredToken()
+                        return
+                    }
                     guard Self.isRetryable(error) else { throw error }
                     noteFetchFailure(error)
                 }
@@ -119,6 +132,35 @@ extension CloudSyncLifecycle {
             logFailure(error, stage: "save")
             terminalError = error.localizedDescription
             status = .failed(error.localizedDescription)
+        }
+    }
+
+    func handleDeletedRecords(
+        _ changes: CloudSyncSentChanges, acknowledge: (CloudSyncMutation) throws -> Void
+    ) throws {
+        guard let scope else { throw CancellationError() }
+        for id in changes.deletedRecordIDs where id.zoneID == zoneID {
+            guard try !store.safety.isUploadBlocked(scope, id.recordName),
+                let mutation = takeDeletionAcknowledgement(id)
+            else { continue }
+            try acknowledge(mutation)
+        }
+        for (id, error) in changes.failedRecordDeletes where id.zoneID == zoneID {
+            if error.code == .unknownItem {
+                guard try !store.safety.isUploadBlocked(scope, id.recordName),
+                    let mutation = takeDeletionAcknowledgement(id)
+                else { continue }
+                try acknowledge(mutation)
+            } else {
+                _ = takeDeletionAcknowledgement(id)
+                if error.code == .zoneNotFound {
+                    try handleZoneDeletion()
+                } else if !Self.isRetryable(error) && !Self.isCancellation(error) {
+                    logFailure(error, stage: "delete")
+                    terminalError = error.localizedDescription
+                    status = .failed(error.localizedDescription)
+                }
+            }
         }
     }
 }

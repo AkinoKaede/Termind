@@ -98,18 +98,22 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                     state.lastSuccessfulSync = value.lastSuccessfulSync
                 },
                 save: { try context.save() }, rollback: { context.rollback() },
-                pendingRecordNames: { try journal.uploadablePendingRecordNames(in: $0) },
+                pendingChanges: {
+                    try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
+                },
                 safety: .persistent(
                     context: context, capabilityID: SyncRecordFormats.vault.capabilityID,
                     importLegacyQuarantine: journal.importLegacyQuarantine),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
-                resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() }),
+                resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
+                replica: .persistent(context: context, records: journal.cloudRecords)),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: nil, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
             environmentKey: SettingsKey.vaultSyncEnvironment, environmentIdentifier: environmentIdentifier,
-            beforeSend: { [weak self] in try self?.beforeSend?() })
+            beforeSend: { [weak self] in try self?.beforeSend?() },
+            receiveSnapshot: { [weak self] in try self?.receiveRemoteRecords($0, deletions: $1) })
     }
 
     public nonisolated func nextFetchChangesOptions(
@@ -175,9 +179,28 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
+        lifecycle.noteRecordsObserved(records)
+        let deletedKeys = Set(
+            deletions.compactMap { id -> VaultRecordKey? in
+                guard id.zoneID == zoneID, let key = VaultRecordKey(recordName: id.recordName), key.kind.isConfiguration
+                else { return nil }
+                return key
+            })
+        let deletedNames = Set(deletedKeys.map(\.recordName))
+        let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        // Old-copy cleanup ONLY: these two kinds moved to TermindConnectionHistoryV1.
+        // A VaultItem in TermindVaultV1 with one of their canonical IDs is obsolete,
+        // regardless of its old payload. Never import it or apply its deletion to local data.
+        // The active History/Device coordinators must NOT use this cleanup-only behavior.
+        let legacyCopies = records.filter { record in
+            guard record.recordID.zoneID == zoneID, record.recordType == Self.recordType,
+                let key = HistoryRecordKey(recordName: record.recordID.recordName)
+            else { return false }
+            return key.recordName == record.recordID.recordName
+        }
         let decoded: [(record: CKRecord, envelope: VaultEnvelope)] = try decodeCloudSyncRecords(
-            records,
+            records.filter { !deletedNames.contains($0.recordID.recordName) },
             included: {
                 $0.recordID.zoneID == zoneID && (isConflict || $0.recordType == Self.recordType)
                     && HistoryRecordKey(recordName: $0.recordID.recordName) == nil
@@ -185,53 +208,69 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             decode: Self.envelope,
             quarantine: { try CloudSyncRecordCoding.quarantine($0, error: $1, in: safety) },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
-        let identical = try Set(
-            decoded.compactMap { _, envelope -> VaultRecordKey? in
-                guard isConflict else { return nil }
-                return try journal.envelope(for: envelope.key) == envelope ? envelope.key : nil
-            })
         let result = try persistence.applyRemote(
-            decoded.map { $0.1 },
+            decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
+                for record in legacyCopies {
+                    try cloud.queueLegacyDeletion(
+                        record.recordID.recordName, version: .baseline(writerID: try journal.state().installationID))
+                }
+                // Ignore deletion increments for obsolete Vault history/device copies.
+                // Only a sent-delete acknowledgement retires their cleanup task (unknownItem is also success).
+                // New-zone deletion increments are handled by HistoryRecordSyncCoordinator as normal user deletions.
                 for (record, envelope) in decoded {
+                    try cloud.observed(record.recordID.recordName)
                     try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
-                    if identical.contains(envelope.key) {
+                    if try journal.envelope(for: envelope.key) == envelope {
                         try journal.markUploaded(envelope.key, version: envelope.version)
                     }
                     try safety.clearQuarantine(recordName: record.recordID.recordName)
                 }
-                for id in deletions where id.zoneID == zoneID {
-                    guard let key = VaultRecordKey(recordName: id.recordName), try journal.envelope(for: key) != nil
-                    else {
-                        continue
-                    }
-                    try journal.markNeedsUpload([key])
-                    if try !safety.isUploadBlocked(recordName: id.recordName) {
-                        try journal.updateSystemFields(nil, for: key)
-                    }
+                for key in deletedKeys {
+                    guard let envelope = try journal.envelope(for: key), envelope.isDeleted else { continue }
+                    try journal.acknowledgeDeletion(
+                        .init(recordName: key.recordName, operation: .delete, version: envelope.version), scope: scope)
                 }
             })
         try lifecycle.reconcilePendingChanges()
         if !result.acceptedKeys.isEmpty { didApplyRemote?(result.snapshot, result.acceptedKeys) }
     }
 
-    private func handleSentChanges(_ changes: CloudSyncSentChanges) throws {
+    func handleSentChanges(_ changes: CloudSyncSentChanges) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         for record in changes.savedRecords
         where record.recordID.zoneID == zoneID
             && HistoryRecordKey(recordName: record.recordID.recordName) == nil
         {
             guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
-            try journal.markUploaded(envelope.key, version: envelope.version)
-            try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
+            try cloud.observed(record.recordID.recordName)
+            if try journal.envelope(for: envelope.key)?.isDeleted == true {
+                // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
+                try journal.markNeedsUpload([envelope.key])
+            } else {
+                try journal.markUploaded(envelope.key, version: envelope.version)
+                try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
+            }
             try? FileManager.default.removeItem(at: Self.assetURL(for: envelope.key))
         }
         for failure in changes.failedRecordSaves where failure.record.recordID.zoneID == zoneID {
-            try handleFailedSave(failure.error)
+            if failure.error.code == .unknownItem,
+                try cloud.wasPresent(failure.record.recordID.recordName)
+            {
+                try receiveRemoteRecords([], deletions: [failure.record.recordID])
+            } else {
+                try handleFailedSave(failure.error)
+            }
+        }
+        try lifecycle.handleDeletedRecords(changes) { mutation in
+            try journal.acknowledgeDeletion(mutation, scope: scope)
+            try cloud.acknowledgeLegacyDeletion(mutation)
         }
         try context.save()
+        try lifecycle.reconcilePendingChanges()
     }
 
     func handleFailedSave(_ error: CKError) throws {

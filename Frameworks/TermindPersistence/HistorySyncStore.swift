@@ -34,13 +34,14 @@ public final class HistorySyncPersistence {
 
     /// A fetched record never echoes back just for being read.
     public func applyRemote(
-        _ envelopes: [HistoryEnvelope],
+        _ envelopes: [HistoryEnvelope], deletions: Set<HistoryRecordKey> = [],
         beforeSave: () throws -> Void = {}
     ) throws -> Set<HistoryRecordKey> {
         var changed = Set<HistoryRecordKey>()
         try context.commit {
             try journal.bootstrapIfNeeded()
-            for remote in envelopes {
+            let deleted = try journal.deletionEnvelopes(deletions)
+            for remote in envelopes.filter({ !deletions.contains($0.key) }) + deleted {
                 guard remote.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(remote.key.recordName) }
                 let local = try journal.envelope(for: remote.key)
                 let accept: Bool
@@ -234,7 +235,7 @@ public final class HistorySyncJournal {
     }
     public func outgoingEntry(for key: HistoryRecordKey, scope: CloudSyncScope) throws -> HistoryOutgoingEntry? {
         guard try !CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName),
-            let row = try entry(recordName: key.recordName)
+            let row = try entry(recordName: key.recordName), row.needsUpload, row.envelope?.isDeleted == false
         else { return nil }
         return HistoryOutgoingEntry(
             envelope: try HistorySyncCodec.decode(row.envelopeData), systemFieldsData: row.systemFieldsData)
@@ -244,6 +245,7 @@ public final class HistorySyncJournal {
     }
     public func store(_ envelope: HistoryEnvelope, needsUpload: Bool) throws {
         if let row = try entry(recordName: envelope.key.recordName) {
+            if row.envelope?.isDeleted == true && !envelope.isDeleted { row.systemFieldsData = nil }
             try row.apply(envelope, needsUpload: needsUpload)
         } else {
             context.insert(try PersistentHistorySyncEntry(envelope: envelope, needsUpload: needsUpload))
@@ -253,11 +255,14 @@ public final class HistorySyncJournal {
         for key in keys { try entry(recordName: key.recordName)?.needsUpload = true }
     }
     public func markUploaded(_ key: HistoryRecordKey, version: VaultVersion) throws {
-        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version else { return }
+        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version, row.needsUpload else {
+            return
+        }
         row.needsUpload = false
     }
     public func updateSystemFields(_ data: Data?, for key: HistoryRecordKey) throws {
-        try entry(recordName: key.recordName)?.systemFieldsData = data
+        guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
+        row.systemFieldsData = data
     }
 
     public func resetForNewAccount() throws {
@@ -298,5 +303,48 @@ public final class HistorySyncJournal {
             try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map { .connectionHistory($0.value) }
             + context.fetch(FetchDescriptor<PersistentDeviceRecord>()).map { .device($0.value) }
         return payloads.filter { kind == nil || $0.key.kind == kind }
+    }
+}
+
+extension HistorySyncJournal {
+    public func cloudRecords() throws -> [CloudSyncJournalRecord] {
+        try entries().compactMap { row in
+            guard let envelope = row.envelope else { return nil }
+            let key = envelope.key
+            guard kind == nil || key.kind == kind else { return nil }
+            return CloudSyncJournalRecord(
+                recordName: key.recordName, version: envelope.version, isDeleted: envelope.isDeleted,
+                needsUpload: row.needsUpload, hasSystemFields: row.systemFieldsData != nil)
+        }
+    }
+
+    public func deletionEnvelopes(_ keys: Set<HistoryRecordKey>) throws -> [HistoryEnvelope] {
+        try keys.compactMap { key in
+            guard kind == nil || key.kind == kind else { return nil }
+            let row = try entry(recordName: key.recordName)
+            // Preserve undecodable local data until a compatible client can reconcile it.
+            if let row, row.envelope == nil { return nil }
+            let old = row?.envelope
+            if let old, old.isDeleted { return old }
+            return HistoryEnvelope(
+                key: key, version: .next(after: old?.version, writerID: try state().installationID), isDeleted: true)
+        }
+    }
+
+    public func acknowledgeDeletion(_ mutation: CloudSyncMutation, scope: CloudSyncScope) throws {
+        guard let key = HistoryRecordKey(recordName: mutation.recordName), kind == nil || key.kind == kind,
+            let row = try entry(recordName: mutation.recordName), let envelope = row.envelope
+        else { return }
+        if !envelope.isDeleted && row.needsUpload && mutation.version < envelope.version {
+            // A later explicit recreation is still pending; acknowledge only the old server incarnation.
+            try updateSystemFields(nil, for: key)
+            try CloudSyncRecordStateStore(context: context, scope: scope).deleted(
+                key.recordName, version: mutation.version)
+            return
+        }
+        guard envelope.isDeleted, envelope.version == mutation.version else { return }
+        try markUploaded(key, version: mutation.version)
+        try updateSystemFields(nil, for: key)
+        try CloudSyncRecordStateStore(context: context, scope: scope).deleted(key.recordName, version: mutation.version)
     }
 }

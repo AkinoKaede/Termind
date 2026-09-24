@@ -14,6 +14,92 @@ struct CloudSyncSafetyPersistenceTests {
             zone: "TestZone", owner: "owner")
     }
 
+    @Test(arguments: SyncSafetyCategory.allCases)
+    func journalUploadAcknowledgementAndSystemFieldsSkipNoOpWrites(category: SyncSafetyCategory) throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let version = VaultVersion(
+            modifiedAt: Date(timeIntervalSince1970: 100), counter: 1,
+            writerID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!)
+        let testScope = scope
+        let updateSystemFields: (Data?) throws -> Void
+        let markUploaded: () throws -> Void
+        let markNeedsUpload: () throws -> Void
+        let hasOutgoingEntry: () throws -> Bool
+
+        switch category {
+        case .history, .device:
+            let payload: HistoryRecordPayload =
+                category == .device
+                ? .device(DeviceRecord(id: UUID(), displayName: "Device"))
+                : .connectionHistory(ConnectionHistoryEntry(hostID: UUID(), kind: .ssh))
+            let envelope = HistoryEnvelope(key: payload.key, version: version, payload: payload)
+            let journal = HistorySyncJournal(context: context, kind: envelope.key.kind)
+            try journal.store(envelope, needsUpload: true)
+            updateSystemFields = { try journal.updateSystemFields($0, for: envelope.key) }
+            markUploaded = { try journal.markUploaded(envelope.key, version: version) }
+            markNeedsUpload = { try journal.markNeedsUpload([envelope.key]) }
+            hasOutgoingEntry = { try journal.outgoingEntry(for: envelope.key, scope: testScope) != nil }
+        case .vault:
+            let payload = VaultRecordPayload.hostGroup(HostGroup(name: "Group"))
+            let envelope = VaultEnvelope(key: payload.key, version: version, payload: payload)
+            let journal = VaultSyncJournal(context: context)
+            try journal.acceptRemote([envelope])
+            try journal.markNeedsUpload([envelope.key])
+            updateSystemFields = { try journal.updateSystemFields($0, for: envelope.key) }
+            markUploaded = { try journal.markUploaded(envelope.key, version: version) }
+            markNeedsUpload = { try journal.markNeedsUpload([envelope.key]) }
+            hasOutgoingEntry = { try journal.outgoingEntry(for: envelope.key, scope: testScope) != nil }
+        case .settings:
+            let payload = SettingsRecordPayload.sftp(SFTPPreferences())
+            let envelope = SettingsEnvelope(key: payload.key, version: version, payload: payload)
+            let journal = SettingsSyncJournal(context: context)
+            try journal.acceptRemote([envelope])
+            try journal.markNeedsUpload([envelope.key])
+            updateSystemFields = { try journal.updateSystemFields($0, for: envelope.key) }
+            markUploaded = { try journal.markUploaded(envelope.key, version: version) }
+            markNeedsUpload = { try journal.markNeedsUpload([envelope.key]) }
+            hasOutgoingEntry = { try journal.outgoingEntry(for: envelope.key, scope: testScope) != nil }
+        case .metrics:
+            let payload = MetricsRecordPayload.selection(
+                SyncedMetricsSelection(selection: MetricsSelection(id: UUID()), sortIndex: 0))
+            let envelope = MetricsEnvelope(key: payload.key, version: version, payload: payload)
+            let journal = MetricsSyncJournal(context: context)
+            try journal.acceptRemote([envelope])
+            try journal.markNeedsUpload([envelope.key])
+            updateSystemFields = { try journal.updateSystemFields($0, for: envelope.key) }
+            markUploaded = { try journal.markUploaded(envelope.key, version: version) }
+            markNeedsUpload = { try journal.markNeedsUpload([envelope.key]) }
+            hasOutgoingEntry = { try journal.outgoingEntry(for: envelope.key, scope: testScope) != nil }
+        }
+        try context.save()
+        #expect(try hasOutgoingEntry())
+
+        try updateSystemFields(nil)
+        #expect(!context.hasChanges)
+        try updateSystemFields(Data([1, 2, 3]))
+        #expect(context.hasChanges)
+        try context.save()
+        try updateSystemFields(Data([1, 2, 3]))
+        #expect(!context.hasChanges)
+        try updateSystemFields(nil)
+        #expect(context.hasChanges)
+        try context.save()
+        try updateSystemFields(nil)
+        #expect(!context.hasChanges)
+
+        try markUploaded()
+        #expect(context.hasChanges)
+        try context.save()
+        #expect(try !hasOutgoingEntry())
+        try markUploaded()
+        #expect(!context.hasChanges)
+        try markNeedsUpload()
+        #expect(context.hasChanges)
+        try context.save()
+        #expect(try hasOutgoingEntry())
+    }
+
     @Test
     func blocksAndRecoveryAreScopedByContainerEnvironmentAccountZoneAndOwner() throws {
         let container = try TermindPersistence.makeContainer(inMemory: true)
@@ -122,7 +208,7 @@ struct CloudSyncSafetyPersistenceTests {
         #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Existing data"])
         #expect(!TermindSchemaV30.models.contains { $0 == PersistentCloudSyncQuarantine.self })
         #expect(TermindSchemaV31.models.contains { $0 == PersistentCloudSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV36.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV37.versionIdentifier)
     }
 
     private func writeInterruptedFetch(

@@ -5,6 +5,11 @@ import TermindDomain
 public protocol DeviceDirectoryRepository: AnyObject {
     func devices() throws -> [DeviceRecord]
     func upsert(_ device: DeviceRecord) throws
+    func registerIfNeeded(_ device: DeviceRecord) throws
+}
+
+extension DeviceDirectoryRepository {
+    public func registerIfNeeded(_ device: DeviceRecord) throws { try upsert(device) }
 }
 
 @MainActor

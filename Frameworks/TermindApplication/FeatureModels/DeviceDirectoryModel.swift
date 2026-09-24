@@ -64,7 +64,7 @@ public final class DeviceDirectoryModel {
 
     private func registerCurrentDevice() {
         do {
-            try repository.upsert(
+            try repository.registerIfNeeded(
                 DeviceRecord(id: currentDeviceID, displayName: currentDeviceName))
             cachedDevices = nil
             storageError = nil

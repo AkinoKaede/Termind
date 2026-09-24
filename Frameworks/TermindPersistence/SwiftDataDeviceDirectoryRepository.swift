@@ -33,6 +33,13 @@ public final class SwiftDataDeviceDirectoryRepository: DeviceDirectoryRepository
         try context.fetch(FetchDescriptor<PersistentDeviceRecord>()).map(\.value)
     }
 
+    public func registerIfNeeded(_ device: DeviceRecord) throws {
+        let journal = HistorySyncJournal(context: context, kind: .device)
+        // Launch registration is not an explicit rename/recreation of a remotely deleted directory entry.
+        guard try journal.envelope(for: .init(kind: .device, id: device.id))?.isDeleted != true else { return }
+        try upsert(device)
+    }
+
     public func upsert(_ device: DeviceRecord) throws {
         var mutations = HistoryMutationSet.empty
         try context.commit {

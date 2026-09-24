@@ -68,11 +68,12 @@ public final class HostPersistence {
     }
 
     public func applyRemote(
-        _ envelopes: [VaultEnvelope], beforeSave: () throws -> Void
+        _ envelopes: [VaultEnvelope], deletions: Set<VaultRecordKey> = [], beforeSave: () throws -> Void
     ) throws -> VaultRemoteApplyResult {
         do {
             let journal = VaultSyncJournal(context: context)
-            let decision = try journal.mergeDecision(for: envelopes)
+            let deleted = try journal.deletionEnvelopes(deletions)
+            let decision = try journal.mergeDecision(for: envelopes.filter { !deletions.contains($0.key) } + deleted)
             var snapshot = try fetchSnapshot()
             for envelope in decision.accepted { try snapshot.apply(envelope) }
             try persist(snapshot)

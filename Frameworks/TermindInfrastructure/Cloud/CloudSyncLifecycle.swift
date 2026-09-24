@@ -18,11 +18,16 @@ struct CloudSyncLifecycleStore {
     var updateState: (CloudSyncState) throws -> Void
     var save: () throws -> Void
     var rollback: () -> Void
-    var pendingRecordNames: (CloudSyncScope) throws -> [String]
+    var pendingChanges: (CloudSyncScope) throws -> [CloudSyncMutation]
     var safety: CloudSyncLifecycleSafety
     var resetForNewAccount: () throws -> Void
     var resetForZone: () throws -> Void
     var resetForEnvironment: () throws -> Void
+    var replica: CloudSyncReplicaStore? = nil
+
+    func pendingRecordNames(_ scope: CloudSyncScope) throws -> [String] {
+        try pendingChanges(scope).map(\.recordName)
+    }
 }
 
 @MainActor
@@ -30,9 +35,39 @@ protocol CloudSyncEngineSession: AnyObject {
     func fetch(in zoneID: CKRecordZone.ID) async throws
     func send() async throws
     func cancel() async
-    func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID)
     func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID)
+    func reconcilePending(_ mutations: [CloudSyncMutation], in zoneID: CKRecordZone.ID)
     func recreateZone(_ zoneID: CKRecordZone.ID)
+}
+
+struct CloudSyncPendingReconciliation {
+    var obsolete: [CKSyncEngine.PendingRecordZoneChange]
+    var missing: [CKSyncEngine.PendingRecordZoneChange]
+
+    init(current: [CKSyncEngine.PendingRecordZoneChange], mutations: [CloudSyncMutation], zoneID: CKRecordZone.ID) {
+        let desired = Dictionary(uniqueKeysWithValues: mutations.map { ($0.recordName, $0.operation) })
+        var retained = Set<String>()
+        obsolete = current.filter { change in
+            let id: CKRecord.ID
+            let operation: CloudSyncMutation.Operation
+            switch change {
+            case .saveRecord(let value):
+                id = value
+                operation = .save
+            case .deleteRecord(let value):
+                id = value
+                operation = .delete
+            @unknown default: return false
+            }
+            guard id.zoneID == zoneID else { return false }
+            guard desired[id.recordName] == operation else { return true }
+            return !retained.insert(id.recordName).inserted
+        }
+        missing = mutations.filter { !retained.contains($0.recordName) }.map {
+            let id = CKRecord.ID(recordName: $0.recordName, zoneID: zoneID)
+            return $0.operation == .delete ? .deleteRecord(id) : .saveRecord(id)
+        }
+    }
 }
 
 extension CKSyncEngine: CloudSyncEngineSession {
@@ -41,9 +76,6 @@ extension CKSyncEngine: CloudSyncEngineSession {
     }
     func send() async throws { try await sendChanges() }
     func cancel() async { await cancelOperations() }
-    func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID) {
-        state.add(pendingRecordZoneChanges: recordNames.map { .saveRecord(.init(recordName: $0, zoneID: zoneID)) })
-    }
     func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID) {
         state.remove(
             pendingRecordZoneChanges: state.pendingRecordZoneChanges.filter { change in
@@ -51,11 +83,20 @@ extension CKSyncEngine: CloudSyncEngineSession {
                 case .saveRecord(let id):
                     id.zoneID == zoneID && recordNames.contains(id.recordName)
                 case .deleteRecord(let id):
-                    // No physical deletes belong to this protocol, including restored legacy queue entries.
-                    id.zoneID == zoneID
+                    id.zoneID == zoneID && recordNames.contains(id.recordName)
                 @unknown default: false
                 }
             })
+    }
+    func reconcilePending(_ mutations: [CloudSyncMutation], in zoneID: CKRecordZone.ID) {
+        let reconciliation = CloudSyncPendingReconciliation(
+            current: state.pendingRecordZoneChanges, mutations: mutations, zoneID: zoneID)
+        if !reconciliation.obsolete.isEmpty {
+            state.remove(pendingRecordZoneChanges: reconciliation.obsolete)
+        }
+        if !reconciliation.missing.isEmpty {
+            state.add(pendingRecordZoneChanges: reconciliation.missing)
+        }
     }
     func recreateZone(_ zoneID: CKRecordZone.ID) {
         state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
@@ -68,6 +109,7 @@ struct CloudSyncTransport {
     var userRecordName: () async throws -> String
     var createZone: () async throws -> Void
     var makeEngine: (Data?) throws -> any CloudSyncEngineSession
+    var zoneExists: () async throws -> Bool = { true }
 
     static func live(
         container: CKContainer, zoneID: CKRecordZone.ID, subscriptionID: String, delegate: any CKSyncEngineDelegate
@@ -89,6 +131,14 @@ struct CloudSyncTransport {
                 configuration.automaticallySync = true
                 configuration.subscriptionID = subscriptionID
                 return CKSyncEngine(configuration)
+            },
+            zoneExists: {
+                do {
+                    _ = try await container.privateCloudDatabase.recordZone(for: zoneID)
+                    return true
+                } catch let error as CKError where error.code == .zoneNotFound {
+                    return false
+                }
             })
     }
 }
@@ -112,6 +162,10 @@ final class CloudSyncLifecycle {
     private let environmentIdentifier: String
     private let authorizeUploads: (Bool) -> Void
     private let beforeSend: () throws -> Void
+    private let receiveSnapshot: ([CKRecord], [CKRecord.ID]) throws -> Void
+    private var inFlightDeletions: [String: VaultVersion] = [:]
+    private var inventoryPending = false
+    private var inventorySeen = Set<String>()
     private(set) var engine: (any CloudSyncEngineSession)?
     private(set) var scope: CloudSyncScope?
     private(set) var operation: Task<Void, Never>?
@@ -131,7 +185,8 @@ final class CloudSyncLifecycle {
         store: CloudSyncLifecycleStore, transport: CloudSyncTransport, zoneID: CKRecordZone.ID,
         containerIdentifier: String, defaults: UserDefaults, enabledKey: String?, defaultEnabled: Bool,
         environmentKey: String, environmentIdentifier: String, consumerIdentifier: String = "",
-        authorizeUploads: @escaping (Bool) -> Void = { _ in }, beforeSend: @escaping () throws -> Void = {}
+        authorizeUploads: @escaping (Bool) -> Void = { _ in }, beforeSend: @escaping () throws -> Void = {},
+        receiveSnapshot: @escaping ([CKRecord], [CKRecord.ID]) throws -> Void = { _, _ in }
     ) {
         self.store = store
         self.transport = transport
@@ -145,6 +200,7 @@ final class CloudSyncLifecycle {
         self.environmentIdentifier = environmentIdentifier
         self.authorizeUploads = authorizeUploads
         self.beforeSend = beforeSend
+        self.receiveSnapshot = receiveSnapshot
     }
 
     var isEnabled: Bool {
@@ -240,7 +296,9 @@ final class CloudSyncLifecycle {
             defer { if self?.operationID == id { self?.operation = nil } }
             do { try await body() } catch is CancellationError {} catch {
                 guard let self, self.operationID == id else { return }
-                if let cloudError = error as? CKError, Self.isRetryable(cloudError) {
+                if (error as? CKError)?.code == .changeTokenExpired {
+                    self.restartAfterExpiredToken()
+                } else if let cloudError = error as? CKError, Self.isRetryable(cloudError) {
                     self.logFailure(error, stage: "operation")
                     self.status = self.status(for: error)
                 } else {
@@ -284,14 +342,34 @@ final class CloudSyncLifecycle {
             defaults.set(environmentIdentifier, forKey: environmentKey)
             terminalError = nil
         }
+        let needsUpgrade = try store.replica?.prepare(scope) ?? false
+        let serialized = try store.state().engineStateData
+        let validSerialization = serialized.flatMap {
+            try? JSONDecoder().decode(CKSyncEngine.State.Serialization.self, from: $0)
+        }
+        let needsSnapshot = requiresRefetch || needsUpgrade || validSerialization == nil
+        inventoryPending = needsSnapshot && store.replica != nil
+        inventorySeen.removeAll()
+        if needsSnapshot {
+            var fresh = try store.state()
+            fresh.engineStateData = nil
+            try store.updateState(fresh)
+        }
         // Commit the recovery fence before constructing an automatically syncing engine.
         try setRecoveryRequired(true)
+        let exists = try await transport.zoneExists()
+        guard operationID == id, isStarted, isEnabled, !Task.isCancelled else { return }
+        if !exists {
+            try store.replica?.reset(scope)
+            try store.resetForZone()
+            try store.save()
+        }
+        try await transport.createZone()
+        guard operationID == id, isStarted, isEnabled, !Task.isCancelled else { return }
         let engine = try transport.makeEngine(store.state().engineStateData)
         self.engine = engine
         try reconcilePendingChanges()
         try store.save()
-        try await transport.createZone()
-        guard accepts(engine), !Task.isCancelled else { return }
         zonePrepared = true
         try await fetchAndSend(engine)
     }
@@ -344,6 +422,11 @@ final class CloudSyncLifecycle {
 }
 
 extension CloudSyncLifecycle {
+    func noteRecordsObserved(_ records: [CKRecord]) {
+        guard inventoryPending else { return }
+        inventorySeen.formUnion(records.filter { $0.recordID.zoneID == zoneID }.map { $0.recordID.recordName })
+    }
+
     func beginFetch() throws {
         isReadyToSend = false
         authorizeUploads(false)
@@ -364,6 +447,14 @@ extension CloudSyncLifecycle {
         fetching = max(0, fetching - 1)
         fetchFailed = fetchFailed || !succeeded
         if fetching == 0 && !fetchFailed, let scope {
+            if inventoryPending {
+                let missing = try store.replica?.missing(scope, inventorySeen) ?? []
+                try receiveSnapshot([], missing.map { CKRecord.ID(recordName: $0, zoneID: zoneID) })
+                try store.replica?.complete(scope)
+                try store.save()
+                inventoryPending = false
+                inventorySeen.removeAll()
+            }
             try store.safety.didCompleteFetch(scope)
         }
         try setRecoveryRequired(fetching > 0 || sending > 0 || fetchFailed)
@@ -382,15 +473,21 @@ extension CloudSyncLifecycle {
     }
 
     func enqueue(_ recordNames: [String]) throws {
-        guard let engine, let scope else { return }
-        let blocked = try store.safety.blockedRecordNames(scope)
-        engine.removePending(blocked, in: zoneID)
-        engine.enqueue(recordNames.filter { !blocked.contains($0) }, in: zoneID)
+        guard !recordNames.isEmpty else { return }
+        try reconcilePendingChanges()
     }
 
     func reconcilePendingChanges() throws {
-        guard let scope else { return }
-        try enqueue(store.pendingRecordNames(scope))
+        guard let engine, let scope else { return }
+        _ = try reconcilePendingChanges(engine: engine, scope: scope)
+    }
+
+    private func reconcilePendingChanges(
+        engine: any CloudSyncEngineSession, scope: CloudSyncScope
+    ) throws -> [String: CloudSyncMutation] {
+        let mutations = try store.pendingChanges(scope)
+        engine.reconcilePending(mutations, in: zoneID)
+        return Dictionary(uniqueKeysWithValues: mutations.map { ($0.recordName, $0) })
     }
 
     func accepts(_ engine: any CloudSyncEngineSession) -> Bool { self.engine === engine && isEnabled }
@@ -409,21 +506,43 @@ extension CloudSyncLifecycle {
         _ pending: [CKSyncEngine.PendingRecordZoneChange], engine: any CloudSyncEngineSession,
         recordProvider: (CKRecord.ID) -> CKRecord?
     ) -> CKSyncEngine.RecordZoneChangeBatch? {
-        guard accepts(engine), isReadyToSend else { return nil }
+        guard accepts(engine), isReadyToSend, let scope else { return nil }
         do {
             try setRecoveryRequired(true)
-            try reconcilePendingChanges()
+            let uploadable = try reconcilePendingChanges(engine: engine, scope: scope)
             var records: [CKRecord] = []
+            var deletions: [CKRecord.ID] = []
+            var included = Set<String>()
             for change in pending {
-                // The protocol uses tombstones. Never emit a physical deletion from a restored queue.
-                guard case .saveRecord(let id) = change, try canUpload(id, engine: engine) else { continue }
-                if let record = recordProvider(id) {
-                    records.append(record)
-                    if records.count == Self.maximumRecordsPerRequest { break }
+                let id: CKRecord.ID
+                let operation: CloudSyncMutation.Operation
+                switch change {
+                case .saveRecord(let value):
+                    id = value
+                    operation = .save
+                case .deleteRecord(let value):
+                    id = value
+                    operation = .delete
+                @unknown default: continue
                 }
+                guard id.zoneID == zoneID, let mutation = uploadable[id.recordName],
+                    mutation.operation == operation, try canUpload(id, engine: engine),
+                    included.insert(id.recordName).inserted
+                else { continue }
+                // Complete an in-flight delete before sending a later incarnation of the same ID.
+                if let sent = inFlightDeletions[id.recordName], operation == .save || sent != mutation.version {
+                    continue
+                }
+                if operation == .delete {
+                    deletions.append(id)
+                    inFlightDeletions[id.recordName] = mutation.version
+                } else if let record = recordProvider(id) {
+                    records.append(record)
+                }
+                if records.count + deletions.count == Self.maximumRecordsPerRequest { break }
             }
-            guard accepts(engine), isReadyToSend, !records.isEmpty else { return nil }
-            return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: records)
+            guard accepts(engine), isReadyToSend, !records.isEmpty || !deletions.isEmpty else { return nil }
+            return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: records, recordIDsToDelete: deletions)
         } catch {
             failClosed(error)
             return nil
@@ -514,16 +633,32 @@ extension CloudSyncLifecycle {
         sending = 0
         fetchFailed = false
         scope = nil
+        inFlightDeletions.removeAll()
+        inventoryPending = false
+        inventorySeen.removeAll()
         let activeEngine = engine
         engine = nil
         if let activeEngine { Task { await activeEngine.cancel() } }
     }
 
     func handleZoneDeletion() throws {
+        if let scope { try store.replica?.reset(scope) }
         try store.resetForZone()
         engine?.recreateZone(zoneID)
         try reconcilePendingChanges()
         try store.save()
+    }
+
+    func restartAfterExpiredToken() {
+        failClosed(CKError(.changeTokenExpired))
+        start()
+    }
+
+    func takeDeletionAcknowledgement(_ id: CKRecord.ID) -> CloudSyncMutation? {
+        guard id.zoneID == zoneID, let version = inFlightDeletions.removeValue(forKey: id.recordName) else {
+            return nil
+        }
+        return CloudSyncMutation(recordName: id.recordName, operation: .delete, version: version)
     }
 
     func saveEngineState(_ serialization: CKSyncEngine.State.Serialization) throws {

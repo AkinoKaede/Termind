@@ -129,7 +129,10 @@ public final class SettingsSyncPersistence {
         didRecordChanges?(mutations)
     }
 
-    public func applyRemote(_ envelopes: [SettingsEnvelope], beforeSave: () throws -> Void = {}) throws
+    public func applyRemote(
+        _ envelopes: [SettingsEnvelope], deletions: Set<SettingsRecordKey> = [],
+        beforeSave: () throws -> Void = {}
+    ) throws
         -> (
             snapshot: SettingsSyncSnapshot, acceptedKeys: Set<SettingsRecordKey>,
             needsUpload: Set<SettingsRecordKey>
@@ -139,7 +142,8 @@ public final class SettingsSyncPersistence {
         var snapshot = try load()
         let activeEnvelopes = envelopes.filter { $0.key.kind.participatesInSync }
         try context.commit(beforeSave: beforeSave) {
-            merge = try journal.mergeDecision(for: activeEnvelopes)
+            let deleted = try journal.deletionEnvelopes(deletions)
+            merge = try journal.mergeDecision(for: activeEnvelopes.filter { !deletions.contains($0.key) } + deleted)
             guard !merge.accepted.isEmpty else {
                 try journal.markNeedsUpload(merge.needsUpload)
                 return
@@ -204,6 +208,16 @@ public final class SettingsSyncPersistence {
         var ssh = try sshPreferences().load()
         var sftp = try sftpPreferences().load()
         var workspace = try workspacePreferences().load()
+        for envelope in envelopes where envelope.isDeleted {
+            switch envelope.key.kind {
+            case .webSearch: webSearch = AIWebSearchPreferences()
+            case .terminal: terminal = TerminalPreferences()
+            case .ssh: ssh = SSHPreferences()
+            case .sftp: sftp = SFTPPreferences()
+            case .workspace: workspace = WorkspacePreferences()
+            default: break
+            }
+        }
         for envelope in envelopes where !envelope.isDeleted && envelope.key.kind.participatesInSync {
             switch envelope.payload {
             case .provider(let value): providers.append(value)

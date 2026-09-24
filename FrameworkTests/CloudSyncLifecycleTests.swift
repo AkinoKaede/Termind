@@ -8,6 +8,27 @@ import Testing
 
 @Suite @MainActor
 struct CloudSyncLifecycleTests {
+    @Test
+    func mixedSaveAndDeleteBatchesShareTheRequestLimitAndRejectUnjournaledDeletes() async throws {
+        let fixture = LifecycleFixture()
+        defer { fixture.driver.pause() }
+        fixture.journal.pending = (0..<300).map { "record-\($0)" }
+        fixture.journal.deleted = Set(fixture.journal.pending.prefix(180))
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let zone = fixture.driver.zoneID
+        let pending =
+            fixture.network.nextEngine.pendingChanges + [.deleteRecord(.init(recordName: "rogue", zoneID: zone))]
+        let batch = try #require(
+            fixture.driver.makeChangeBatch(pending, engine: fixture.network.nextEngine) {
+                CKRecord(recordType: "Test", recordID: $0)
+            })
+        #expect(batch.recordsToSave.count == 70)
+        #expect(batch.recordIDsToDelete.count == 180)
+        #expect(!batch.recordIDsToDelete.contains { $0.recordName == "rogue" })
+        #expect(Set(batch.recordsToSave.map(\.recordID)).isDisjoint(with: batch.recordIDsToDelete))
+    }
+
     @Test func signedOutStatesUseTheSharedSignInRequirement() async throws {
         let fixture = LifecycleFixture()
         defer { fixture.driver.pause() }
@@ -139,6 +160,7 @@ struct CloudSyncLifecycleTests {
             CKRecord.ID(recordName: "record-\($0)", zoneID: fixture.driver.zoneID)
         }
         let pending = ids.map(CKSyncEngine.PendingRecordZoneChange.saveRecord)
+        fixture.journal.pending = ids.map(\.recordName)
 
         let first = try #require(
             fixture.driver.makeChangeBatch(pending, engine: fixture.network.nextEngine) {
@@ -169,6 +191,7 @@ struct CloudSyncLifecycleTests {
             CKRecord.ID(recordName: "record-\($0)", zoneID: fixture.driver.zoneID)
         }
         fixture.journal.blocked = Set(ids.prefix(10).map(\.recordName))
+        fixture.journal.pending = ids.map(\.recordName)
         let missing = Set(ids.dropFirst(10).prefix(10).map(\.recordName))
         let pending = ids.flatMap {
             [
@@ -186,6 +209,31 @@ struct CloudSyncLifecycleTests {
         #expect(batch.recordsToSave.first?.recordID == ids[20])
         #expect(batch.recordsToSave.last?.recordID == ids[269])
         #expect(batch.recordIDsToDelete.isEmpty)
+    }
+
+    @Test
+    func reconciliationPreservesEligibleAndOtherZoneChangesWhileRemovingStaleAndPhysicalChanges() async {
+        let fixture = LifecycleFixture()
+        let engine = fixture.network.nextEngine
+        let zone = fixture.driver.zoneID
+        let otherZone = CKRecordZone.ID(zoneName: "OtherZone")
+        fixture.journal.pending = ["first", "missing"]
+        engine.pendingChanges = [
+            .saveRecord(.init(recordName: "other", zoneID: otherZone)),
+            .saveRecord(.init(recordName: "first", zoneID: zone)),
+            .saveRecord(.init(recordName: "stale", zoneID: zone)),
+            .deleteRecord(.init(recordName: "legacy-delete", zoneID: zone)),
+        ]
+
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+
+        #expect(engine.saveRecordNames(in: zone) == ["first", "missing"])
+        #expect(engine.deleteRecordNames(in: zone).isEmpty)
+        #expect(engine.saveRecordNames(in: otherZone) == ["other"])
+        #expect(engine.reconciliationMutationCount == 1)
+        try? fixture.driver.reconcilePendingChanges()
+        #expect(engine.reconciliationMutationCount == 1)
     }
 
     @Test
@@ -210,7 +258,7 @@ struct CloudSyncLifecycleTests {
         #expect(fixture.journal.migrationCount == 1)
         #expect(fixture.network.nextEngine.sendCount == 1)
         #expect(Set(fixture.network.nextEngine.queued) == ["first", "second"])
-        #expect(fixture.network.steps == ["account", "user", "engine", "zone"])
+        #expect(fixture.network.steps == ["account", "user", "zone", "engine"])
     }
 
     @Test
@@ -500,7 +548,14 @@ private struct LifecycleFixture {
             store: CloudSyncLifecycleStore(
                 state: { journal.value }, updateState: { journal.value = $0 },
                 save: { if let error = journal.saveError { throw error } }, rollback: {},
-                pendingRecordNames: { _ in journal.pending.filter { !journal.blocked.contains($0) } },
+                pendingChanges: { _ in
+                    if let error = journal.lookupError { throw error }
+                    return journal.pending.filter { !journal.blocked.contains($0) }.map {
+                        CloudSyncMutation(
+                            recordName: $0, operation: journal.deleted.contains($0) ? .delete : .save,
+                            version: .baseline(writerID: journal.writerID))
+                    }
+                },
                 safety: CloudSyncLifecycleSafety(
                     prepare: { _, _ in journal.recoveryRequired },
                     setRecoveryRequired: { _, value in journal.recoveryRequired = value },
@@ -529,7 +584,9 @@ private struct LifecycleFixture {
 @MainActor
 private final class LifecycleJournal {
     var value = CloudSyncState()
+    let writerID = UUID()
     var pending = ["first"]
+    var deleted = Set<String>()
     var blocked = Set<String>()
     var recoveryRequired = false
     var saveError: (any Error)?
@@ -572,8 +629,15 @@ final class LifecycleNetwork {
 
 @MainActor
 final class LifecycleEngine: CloudSyncEngineSession {
-    var queued: [String] = []
+    var pendingChanges: [CKSyncEngine.PendingRecordZoneChange] = []
+    var queued: [String] {
+        pendingChanges.compactMap { change in
+            guard case .saveRecord(let id) = change else { return nil }
+            return id.recordName
+        }
+    }
     var recreatedZones: [CKRecordZone.ID] = []
+    var reconciliationMutationCount = 0
     var fetchCount = 0
     var sendCount = 0
     var cancelCount = 0
@@ -588,11 +652,49 @@ final class LifecycleEngine: CloudSyncEngineSession {
         try await sendBody()
     }
     func cancel() async { cancelCount += 1 }
-    func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID) { queued.append(contentsOf: recordNames) }
     func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID) {
-        queued.removeAll { recordNames.contains($0) }
+        pendingChanges.removeAll { change in
+            switch change {
+            case .saveRecord(let id): id.zoneID == zoneID && recordNames.contains(id.recordName)
+            case .deleteRecord(let id): id.zoneID == zoneID && recordNames.contains(id.recordName)
+            @unknown default: false
+            }
+        }
+    }
+    func reconcilePending(_ mutations: [CloudSyncMutation], in zoneID: CKRecordZone.ID) {
+        let reconciliation = CloudSyncPendingReconciliation(
+            current: pendingChanges, mutations: mutations, zoneID: zoneID)
+        pendingChanges.removeAll { change in
+            reconciliation.obsolete.contains { obsolete in
+                switch (change, obsolete) {
+                case (.saveRecord(let lhs), .saveRecord(let rhs)),
+                    (.deleteRecord(let lhs), .deleteRecord(let rhs)):
+                    lhs == rhs
+                default: false
+                }
+            }
+        }
+        pendingChanges.append(
+            contentsOf: reconciliation.missing)
+        if !reconciliation.obsolete.isEmpty || !reconciliation.missing.isEmpty {
+            reconciliationMutationCount += 1
+        }
     }
     func recreateZone(_ zoneID: CKRecordZone.ID) { recreatedZones.append(zoneID) }
+
+    func saveRecordNames(in zoneID: CKRecordZone.ID) -> [String] {
+        pendingChanges.compactMap { change in
+            guard case .saveRecord(let id) = change, id.zoneID == zoneID else { return nil }
+            return id.recordName
+        }
+    }
+
+    func deleteRecordNames(in zoneID: CKRecordZone.ID) -> [String] {
+        pendingChanges.compactMap { change in
+            guard case .deleteRecord(let id) = change, id.zoneID == zoneID else { return nil }
+            return id.recordName
+        }
+    }
 }
 
 @MainActor

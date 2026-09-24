@@ -10,7 +10,61 @@ import Testing
 @Suite @MainActor
 struct CloudSyncSafetyTests {
     @Test(arguments: SyncSafetyCategory.allCases)
-    func everyCoordinatorUsesTheSharedCloudKitRequestLimit(category: SyncSafetyCategory) async throws {
+    func fetchedWinnerClearsJournalQueueAndStaleBatchSnapshotAtEveryUploadBoundary(
+        category: SyncSafetyCategory
+    ) async throws {
+        for useNewerRemote in [false, true] {
+            let fixture = try CloudSyncSafetyFixture(category: category)
+            try await fixture.start()
+            let id = fixture.recordIDs[0]
+            let staleSnapshot = [CKSyncEngine.PendingRecordZoneChange.saveRecord(id)]
+            let fetched = useNewerRemote ? try fixture.newerRecord(id) : try #require(fixture.record(id))
+
+            try fixture.receive([fetched], [])
+
+            #expect(try !fixture.pendingNames().contains(id.recordName))
+            #expect(!fixture.network.nextEngine.queued.contains(id.recordName))
+            #expect(fixture.record(id) == nil)
+            #expect(fixture.batch(staleSnapshot) == nil)
+            try fixture.receive([fetched], [])
+            #expect(try !fixture.pendingNames().contains(id.recordName))
+            #expect(!fixture.network.nextEngine.queued.contains(id.recordName))
+            fixture.stop()
+        }
+    }
+
+    @Test(arguments: SyncSafetyCategory.allCases)
+    func olderFetchedRecordCannotAcknowledgeTheCurrentLocalWinner(category: SyncSafetyCategory) async throws {
+        let fixture = try CloudSyncSafetyFixture(category: category)
+        defer { fixture.stop() }
+        try await fixture.start()
+        let id = fixture.recordIDs[0]
+
+        try fixture.receive([try fixture.olderRecord(id)], [])
+
+        #expect(try fixture.pendingNames().contains(id.recordName))
+        #expect(fixture.network.nextEngine.queued.contains(id.recordName))
+        #expect(fixture.record(id) != nil)
+    }
+
+    @Test(arguments: SyncSafetyCategory.allCases)
+    func sameVersionDifferentPayloadCannotAcknowledgeTheCurrentLocalWinner(
+        category: SyncSafetyCategory
+    ) async throws {
+        let fixture = try CloudSyncSafetyFixture(category: category)
+        defer { fixture.stop() }
+        try await fixture.start()
+        let id = fixture.recordIDs[0]
+
+        try fixture.receive([try fixture.sameVersionLosingRecord(id)], [])
+
+        #expect(try fixture.pendingNames().contains(id.recordName))
+        #expect(fixture.network.nextEngine.queued.contains(id.recordName))
+        #expect(fixture.record(id) != nil)
+    }
+
+    @Test(arguments: SyncSafetyCategory.allCases)
+    func everyCoordinatorDeduplicatesRestoredQueueEntries(category: SyncSafetyCategory) async throws {
         let fixture = try CloudSyncSafetyFixture(category: category)
         defer { fixture.stop() }
         try await fixture.start()
@@ -22,7 +76,7 @@ struct CloudSyncSafetyTests {
 
         let batch = try #require(fixture.batch(pending))
 
-        #expect(batch.recordsToSave.count == CloudSyncLifecycle.maximumRecordsPerRequest)
+        #expect(Set(batch.recordsToSave.map(\.recordID)) == Set(fixture.recordIDs))
         #expect(batch.recordIDsToDelete.isEmpty)
     }
 
@@ -79,7 +133,7 @@ struct CloudSyncSafetyTests {
     }
 
     @Test(arguments: SyncSafetyCategory.allCases)
-    func tombstoneAndPhysicalRecreationStayBlockedUntilSupportedRemoteDataCommits(
+    func physicalDeletionCancelsIntentAndReplayedDataCannotBypassQuarantine(
         category: SyncSafetyCategory
     ) async throws {
         let fixture = try CloudSyncSafetyFixture(category: category)
@@ -92,12 +146,14 @@ struct CloudSyncSafetyTests {
         try fixture.receive([], [id])
         #expect(fixture.record(id) == nil)
         #expect(fixture.batch([.saveRecord(id), .deleteRecord(id)]) == nil)
-        #expect(try fixture.pendingNames().contains(id.recordName))
+        #expect(try !fixture.pendingNames().contains(id.recordName))
         try fixture.receive([supported], [])
         #expect(try !fixture.safety().isUploadBlocked(recordName: id.recordName))
-        #expect(fixture.network.nextEngine.queued.contains(id.recordName))
-        let outgoing = try #require(fixture.record(id))
-        #expect(outgoing["isDeleted"] as? Bool == true)
+        #expect(!fixture.network.nextEngine.queued.contains(id.recordName))
+        #expect(fixture.record(id) == nil)
+        let outgoing = try #require(fixture.batch([.deleteRecord(id)]))
+        #expect(outgoing.recordIDsToDelete == [id])
+        #expect(outgoing.recordsToSave.isEmpty)
     }
 
     @Test(arguments: SyncSafetyCategory.allCases)

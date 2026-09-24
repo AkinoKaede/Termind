@@ -18,9 +18,14 @@ private struct SyncSafetyAdapter {
     var lifecycle: CloudSyncLifecycle
     var recordNames: [String]
     var receive: ([CKRecord], [CKRecord.ID]) throws -> Void
+    var sent: (CloudSyncSentChanges) throws -> Void
+    var cloudRecords: () throws -> [CloudSyncJournalRecord]
     var conflict: (CKError) throws -> Void
     var batch: ([CKSyncEngine.PendingRecordZoneChange]) -> CKSyncEngine.RecordZoneChangeBatch?
     var record: (CKRecord.ID) -> CKRecord?
+    var newerRecord: (CKRecord.ID) throws -> CKRecord
+    var olderRecord: (CKRecord.ID) throws -> CKRecord
+    var sameVersionLosingRecord: (CKRecord.ID) throws -> CKRecord
     var pendingNames: () throws -> Set<String>
     var markTombstone: () throws -> Void
     var failingMerge: (CloudSyncSafetyStore) throws -> Void
@@ -45,9 +50,14 @@ final class CloudSyncSafetyFixture {
         adapter.recordNames.map { CKRecord.ID(recordName: $0, zoneID: lifecycle.zoneID) }
     }
     var receive: ([CKRecord], [CKRecord.ID]) throws -> Void { adapter.receive }
+    var sent: (CloudSyncSentChanges) throws -> Void { adapter.sent }
+    var cloudRecords: () throws -> [CloudSyncJournalRecord] { adapter.cloudRecords }
     var conflict: (CKError) throws -> Void { adapter.conflict }
     var batch: ([CKSyncEngine.PendingRecordZoneChange]) -> CKSyncEngine.RecordZoneChangeBatch? { adapter.batch }
     var record: (CKRecord.ID) -> CKRecord? { adapter.record }
+    var newerRecord: (CKRecord.ID) throws -> CKRecord { adapter.newerRecord }
+    var olderRecord: (CKRecord.ID) throws -> CKRecord { adapter.olderRecord }
+    var sameVersionLosingRecord: (CKRecord.ID) throws -> CKRecord { adapter.sameVersionLosingRecord }
     var pendingNames: () throws -> Set<String> { adapter.pendingNames }
     var markTombstone: () throws -> Void { adapter.markTombstone }
     var failingMerge: (CloudSyncSafetyStore) throws -> Void { adapter.failingMerge }
@@ -97,9 +107,36 @@ final class CloudSyncSafetyFixture {
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
+            sent: coordinator.handleSentChanges, cloudRecords: journal.cloudRecords,
             conflict: coordinator.handleFailedSave,
             batch: { coordinator.makeChangeBatch($0, engine: network.nextEngine) },
             record: { coordinator.recordToSave($0, engine: network.nextEngine) },
+            newerRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter += 1
+                return try VaultSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            olderRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter = 0
+                return try VaultSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            sameVersionLosingRecord: { id in
+                guard let local = envelopes.first(where: { $0.key.recordName == id.recordName }),
+                    case .some(.hostGroup(var group)) = local.payload
+                else { throw CocoaError(.fileReadNoSuchFile) }
+                group.name = ""
+                var remote = local
+                remote.payload = .hostGroup(group)
+                guard try VaultSyncCodec.encode(remote).lexicographicallyPrecedes(VaultSyncCodec.encode(local)) else {
+                    throw CocoaError(.coderInvalidValue)
+                }
+                return try VaultSyncCoordinator.makeRecord(.init(envelope: remote), recordID: id)
+            },
             pendingNames: { Set(try journal.pendingEnvelopes().map(\.key.recordName)) },
             markTombstone: {
                 var envelope = envelopes[0]
@@ -147,9 +184,45 @@ final class CloudSyncSafetyFixture {
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
+            sent: coordinator.handleSentChanges, cloudRecords: journal.cloudRecords,
             conflict: coordinator.handleFailedSave,
             batch: { coordinator.makeChangeBatch($0, engine: network.nextEngine) },
             record: { coordinator.recordToSave($0, engine: network.nextEngine) },
+            newerRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter += 1
+                return try HistoryRecordSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            olderRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter = 0
+                return try HistoryRecordSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            sameVersionLosingRecord: { id in
+                guard let local = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                var remote = local
+                switch local.payload {
+                case .some(.device(var device)):
+                    device.displayName = ""
+                    remote.payload = .device(device)
+                case .some(.connectionHistory(var entry)):
+                    entry.hostID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+                    remote.payload = .connectionHistory(entry)
+                case nil:
+                    throw CocoaError(.coderInvalidValue)
+                }
+                guard try HistorySyncCodec.encode(remote).lexicographicallyPrecedes(HistorySyncCodec.encode(local))
+                else {
+                    throw CocoaError(.coderInvalidValue)
+                }
+                return try HistoryRecordSyncCoordinator.makeRecord(.init(envelope: remote), recordID: id)
+            },
             pendingNames: { Set(try journal.pendingEnvelopes().map(\.key.recordName)) },
             markTombstone: {
                 var envelope = envelopes[0]
@@ -190,9 +263,34 @@ final class CloudSyncSafetyFixture {
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
+            sent: coordinator.handleSentChanges, cloudRecords: journal.cloudRecords,
             conflict: coordinator.handleFailedSave,
             batch: { coordinator.makeChangeBatch($0, engine: network.nextEngine) },
             record: { coordinator.recordToSave($0, engine: network.nextEngine) },
+            newerRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter += 1
+                return try SettingsSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            olderRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter = 0
+                return try SettingsSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            sameVersionLosingRecord: { id in
+                guard let local = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                var remote = local
+                remote.payload = .sftp(SFTPPreferences(globalLimit: 1, perHostLimit: 1))
+                guard try SettingsSyncCodec.encode(remote).lexicographicallyPrecedes(SettingsSyncCodec.encode(local))
+                else { throw CocoaError(.coderInvalidValue) }
+                return try SettingsSyncCoordinator.makeRecord(.init(envelope: remote), recordID: id)
+            },
             pendingNames: { Set(try journal.pendingEnvelopes().map(\.key.recordName)) },
             markTombstone: {
                 var envelope = envelopes[0]
@@ -234,9 +332,35 @@ final class CloudSyncSafetyFixture {
         return SyncSafetyAdapter(
             lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
             receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
+            sent: coordinator.handleSentChanges, cloudRecords: journal.cloudRecords,
             conflict: coordinator.handleFailedSave,
             batch: { coordinator.makeChangeBatch($0, engine: network.nextEngine) },
             record: { coordinator.recordToSave($0, engine: network.nextEngine) },
+            newerRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter += 1
+                return try MetricsSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            olderRecord: { id in
+                guard var envelope = envelopes.first(where: { $0.key.recordName == id.recordName }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                envelope.version.counter = 0
+                return try MetricsSyncCoordinator.makeRecord(.init(envelope: envelope), recordID: id)
+            },
+            sameVersionLosingRecord: { id in
+                guard let local = envelopes.first(where: { $0.key.recordName == id.recordName }),
+                    case .some(.selection(var value)) = local.payload
+                else { throw CocoaError(.fileReadNoSuchFile) }
+                value.sortIndex = -1
+                var remote = local
+                remote.payload = .selection(value)
+                guard try MetricsSyncCodec.encode(remote).lexicographicallyPrecedes(MetricsSyncCodec.encode(local))
+                else { throw CocoaError(.coderInvalidValue) }
+                return try MetricsSyncCoordinator.makeRecord(.init(envelope: remote), recordID: id)
+            },
             pendingNames: { Set(try journal.pendingEnvelopes().map(\.key.recordName)) },
             markTombstone: {
                 var envelope = envelopes[0]

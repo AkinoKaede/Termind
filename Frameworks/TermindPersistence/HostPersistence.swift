@@ -819,6 +819,14 @@ public enum TermindSchemaV36: VersionedSchema {
     }
 }
 
+/// V37 adds scoped physical-deletion acknowledgements and cloud-presence checkpoints.
+public enum TermindSchemaV37: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(37, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV36.models + [PersistentCloudSyncRecordState.self, PersistentCloudSyncReplicaState.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -831,7 +839,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self,
             TermindSchemaV30.self, TermindSchemaV31.self,
-            TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self,
+            TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
         ]
     }
 
@@ -927,6 +935,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             ),
             MigrationStage.lightweight(fromVersion: TermindSchemaV34.self, toVersion: TermindSchemaV35.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV35.self, toVersion: TermindSchemaV36.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV36.self, toVersion: TermindSchemaV37.self),
         ]
     }
 }
