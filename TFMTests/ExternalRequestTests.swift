@@ -17,7 +17,7 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct ExternalAuthCoordinatorTests {
-    @Test func interactiveResponsesAreScopedAndInformationalRoundsComplete() async throws {
+    @Test(.requiresVisibleWindow) func interactiveResponsesAreScopedAndInformationalRoundsComplete() async throws {
         let coordinator = ExternalAuthCoordinator()
         let challenge = SSHKeyboardInteractiveChallenge(
             connectionID: UUID(), hostID: UUID(), hostname: "server.example", port: 22,
@@ -38,7 +38,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.current == nil)
     }
 
-    @Test func stoppingMCPPreservesAppAuthentication() async throws {
+    @Test(.requiresVisibleWindow) func stoppingMCPPreservesAppAuthentication() async throws {
         let coordinator = ExternalAuthCoordinator()
         let challenge = SSHKeyboardInteractiveChallenge(
             connectionID: UUID(), hostID: UUID(), hostname: "server.example", port: 22,
@@ -89,7 +89,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(window.standardWindowButton(.zoomButton)?.isHidden == false)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func popupQueueResumesInFIFOOrder() async throws {
         let coordinator = ExternalAuthCoordinator()
         let runID = UUID()
@@ -117,7 +117,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func protectedKeyCanRaisePassphraseImmediatelyAfterIdentity() async throws {
         let coordinator = ExternalAuthCoordinator()
         let handler = coordinator.handler(clientName: "Codex", runID: UUID())
@@ -170,7 +170,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func closingThePopupCancelsEveryWaiter() async throws {
         let coordinator = ExternalAuthCoordinator()
         let task = Task {
@@ -186,7 +186,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func staleWindowDisappearanceCannotCancelANewerPassphraseRequest() async throws {
         let coordinator = ExternalAuthCoordinator()
         let firstRequest = authenticationRequest(name: "First")
@@ -226,7 +226,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func secretRequestsUseTheSamePopupQueueAndRejectOrdinaryQuestions() async throws {
         let coordinator = ExternalAuthCoordinator()
         let runID = UUID()
@@ -257,7 +257,7 @@ struct ExternalAuthCoordinatorTests {
         )
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func cancellingAQueuedSessionDoesNotRepresentTheCurrentPopup() async throws {
         let coordinator = ExternalAuthCoordinator()
         let currentRunID = UUID()
@@ -286,7 +286,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(await current.value == .cancelled)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func visibleSecretTimesOutAndLeavesNoPendingPopup() async throws {
         let coordinator = ExternalAuthCoordinator()
         let request = secretRequest(timeout: .milliseconds(40))
@@ -299,7 +299,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func queuedSecretDoesNotSpendItsTimeoutBehindSSHPrompt() async throws {
         let coordinator = ExternalAuthCoordinator()
         let sshRequest = authenticationRequest(name: "Current")
@@ -324,7 +324,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func answeredSecretCannotLaterRetireANewerPopup() async throws {
         let coordinator = ExternalAuthCoordinator()
         let request = secretRequest(timeout: .milliseconds(40))
@@ -355,7 +355,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(await ssh.value == .cancelled)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func hostKeyUsesPopupQueueAndReturnsSelectedTrustScope() async throws {
         let coordinator = ExternalAuthCoordinator()
         let request = hostKeyRequest()
@@ -376,7 +376,7 @@ struct ExternalAuthCoordinatorTests {
         #expect(coordinator.pending.isEmpty)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func closingHostKeyPopupDeniesTheWaitingCall() async throws {
         let coordinator = ExternalAuthCoordinator()
         let task = Task {

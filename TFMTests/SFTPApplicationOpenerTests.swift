@@ -41,7 +41,8 @@ struct SFTPApplicationOpenerTests {
         #expect(SFTPApplicationOpener.appStoreSearchURL(for: "README") == nil)
     }
 
-    @Test func missingApplicationPropagatesLaunchFailure() async throws {
+    // Launch Services may show a system alert even though this open request is expected to fail.
+    @Test(.requiresVisibleWindow) func missingApplicationPropagatesLaunchFailure() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }

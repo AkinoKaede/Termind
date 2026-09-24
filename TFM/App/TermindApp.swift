@@ -13,6 +13,25 @@ import TermindRemoteInfrastructure
 
 @main
 struct TermindApp: App {
+    static let isRunningTests: Bool = {
+        #if DEBUG
+            ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        #else
+            false
+        #endif
+    }()
+
+    static var suppressesAutomaticTestWindows: Bool {
+        #if DEBUG
+            guard isRunningTests, ProcessInfo.processInfo.environment["TERMIND_WINDOW_TESTS"] != "1" else {
+                return false
+            }
+            return ScreenshotDemoConfiguration.active == nil
+        #else
+            return false
+        #endif
+    }
+
     /// Hosts metadata is stored in SwiftData; secrets stay behind Keychain
     /// references held by the value-type projections used throughout the UI.
     private let modelContainer: ModelContainer
@@ -29,8 +48,7 @@ struct TermindApp: App {
             launchLanguage = AppLanguage.stored()
         #endif
         do {
-            let isRunningTests =
-                ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            let isRunningTests = Self.isRunningTests
             #if DEBUG
                 let usesInMemoryStore = isRunningTests || screenshotDemo != nil
             #else
@@ -188,7 +206,11 @@ struct TermindApp: App {
                 #endif
         }
         #if DEBUG
-            .restorationBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .disabled)
+            // XCTest launches the real app. Gating individual tests does not stop
+            // SwiftUI from opening or restoring the host's own main window.
+            .defaultLaunchBehavior(Self.suppressesAutomaticTestWindows ? .suppressed : .automatic)
+            .restorationBehavior(
+                Self.isRunningTests || ScreenshotDemoConfiguration.active != nil ? .disabled : .automatic)
         #endif
         .defaultSize(app.windowSizeStore.defaultSize)
         // All main pages share one content floor. Opening the sidebar lets
@@ -202,6 +224,10 @@ struct TermindApp: App {
                 .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
         }
+        #if DEBUG
+            .defaultLaunchBehavior(Self.suppressesAutomaticTestWindows ? .suppressed : .automatic)
+            .restorationBehavior(Self.isRunningTests ? .disabled : .automatic)
+        #endif
         .defaultSize(width: 560, height: 240)
         .windowResizability(.contentSize)
         // SwiftUI lists every `Window` scene in the Window menu so people can
@@ -247,7 +273,9 @@ struct TermindApp: App {
         weak var app: AppModel? {
             didSet {
                 guard let app else { return }
-                guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+                #if DEBUG
+                    guard !TermindApp.isRunningTests else { return }
+                #endif
                 app.serverMetrics.start()
                 metricsActivity.start(app.serverMetrics)
                 metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
@@ -321,12 +349,19 @@ struct TermindApp: App {
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+            #if DEBUG
+                // Closing an offscreen fixture must not terminate the test runner.
+                guard !TermindApp.isRunningTests else { return false }
+            #endif
             let menuEnabled =
                 UserDefaults.standard.object(forKey: DesktopSettingsKey.showMetricsInMenuBar) as? Bool ?? true
             return !menuEnabled && app?.serverMetrics.keepsRunning != true
         }
 
         func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+            #if DEBUG
+                guard !TermindApp.suppressesAutomaticTestWindows else { return false }
+            #endif
             guard !flag else { return true }
             return app?.mainWindows.handleReopen() ?? true
         }

@@ -208,7 +208,7 @@ struct MCPServerSessionTests {
         #expect(message.contains("\"id\":1"))
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func deletingASessionCancelsItsSecretPopupWithoutResurrectingTheSession() async throws {
         let authentication = ExternalAuthCoordinator()
         let protocolServer = MCPServerProtocol(

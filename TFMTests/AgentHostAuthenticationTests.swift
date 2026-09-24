@@ -326,7 +326,7 @@ struct AgentHostAuthenticationTests {
         #expect(store.key(key.id)?.requiresPassphraseEntry == true)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func savedIdentityWithProtectedKeyRequestsOnlyPassphraseExternally() async throws {
         let keychain = MemoryHostSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"

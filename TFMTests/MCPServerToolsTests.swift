@@ -190,7 +190,7 @@ struct MCPServerToolsTests {
         #expect(!result.isError)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func secretPromptReturnsOnlyASessionBoundOneShotHandle() async throws {
         let authentication = ExternalAuthCoordinator()
         let server = makeMCPServerTools(externalAuthentication: authentication)
@@ -251,7 +251,7 @@ struct MCPServerToolsTests {
         }
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func timedOutSecretPromptReturnsAnErrorAndIssuesNoHandle() async throws {
         let authentication = ExternalAuthCoordinator()
         let server = makeMCPServerTools(externalAuthentication: authentication)
@@ -286,7 +286,7 @@ struct MCPServerToolsTests {
         #expect(await broker.count == 0)
     }
 
-    @Test
+    @Test(.requiresVisibleWindow)
     func endingASessionCancelsItsPromptAndDiscardsSecrets() async throws {
         let authentication = ExternalAuthCoordinator()
         let server = makeMCPServerTools(externalAuthentication: authentication)

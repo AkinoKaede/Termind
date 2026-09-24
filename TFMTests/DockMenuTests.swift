@@ -37,7 +37,7 @@ struct DockMenuTests {
         #expect(try #require(delegate.applicationDockMenu(NSApp)).items[0].isEnabled == false)
     }
 
-    @Test(arguments: [false, true])
+    @Test(.requiresVisibleWindow, arguments: [false, true])
     func repeatedDockActionsCreateDistinctWelcomeWindowsWithoutAnExistingWindow(closePreviousWindow: Bool) throws {
         let app = AppModel(hosts: HostLibraryModel())
         let delegate = AppDelegate()
@@ -79,7 +79,7 @@ struct DockMenuTests {
         #expect(secondModel.assistantQuery.isEmpty)
     }
 
-    @Test(arguments: [false, true])
+    @Test(.requiresVisibleWindow, arguments: [false, true])
     func dockNewWindowPreservesTheExistingPageAndWorkspaceEvenInFullScreen(fullScreen: Bool) throws {
         let host = Host(name: "Server", host: "server.example")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
