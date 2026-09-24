@@ -80,8 +80,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/SFTP/RemoteFile%2BPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
-  - id: openwiki-source-0e428811be210c83d8e4370a
-    resource: repo://Frameworks/TermindPresentation/Strings/CopyPresentation.swift
+  - id: openwiki-source-667f8dcadd921c1910c5026c
+    resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -133,7 +133,7 @@ sources:
 generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-24T01:58:11.184Z
 ---
 
 # Shared Framework Directory Responsibilities

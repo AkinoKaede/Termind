@@ -58,6 +58,92 @@ struct PersistenceCompatibilityTests {
     }
 
     @Test
+    func version28FixtureMigratesAndReopensWithoutLosingData() throws {
+        let source = try #require(Bundle(for: FixtureBundle.self).url(forResource: "V28", withExtension: "store"))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        try FileManager.default.copyItem(at: source, to: url)
+
+        try verifyVersion28Store(at: url)
+        try verifyVersion28Store(at: url)
+    }
+
+    private func verifyVersion28Store(at url: URL) throws {
+        let container = try TermindPersistence.makeContainer(url: url)
+        let context = container.mainContext
+        let snapshot = try HostPersistence(context: context).load()
+        let host = try #require(snapshot.hosts.first)
+        let identity = try #require(snapshot.identities.first)
+        let key = try #require(snapshot.keys.first)
+        let snippet = try #require(snapshot.snippets.first)
+        let installationID = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
+
+        #expect(snapshot.hosts.count == 1)
+        #expect(host.id == UUID(uuidString: "22222222-2222-2222-2222-222222222222"))
+        #expect(host.name == "V28 fixture host")
+        #expect(host.host == "legacy.example.invalid")
+        #expect(host.sshEnabled)
+        #expect(host.sshPort == 2222)
+        #expect(host.sshCharset == .gb18030)
+        #expect(!host.telnetEnabled)
+        #expect(host.telnetPort == 23)
+        #expect(host.telnetCharset == .utf8)
+        #expect(host.telnetIdentityID == nil)
+        #expect(host.sshIdentityID == identity.id)
+        #expect(host.groupID == snapshot.groups.first?.id)
+        #expect(snapshot.groups.map(\.name) == ["V28 fixture group"])
+        #expect(host.tags == ["legacy", "ssh"])
+        #expect(host.colorTag == .teal)
+        #expect(host.sortIndex == 2.5)
+        #expect(host.shellIntegrationMode == .disabled)
+        #expect(host.portForwardingMaxConnections == 3)
+        #expect(host.sftpChannelInitialPath == "/srv/legacy")
+        #expect(
+            host.environmentVariables == [
+                HostEnvironmentVariable(variable: "LANG", value: "zh_CN.GB18030"),
+                HostEnvironmentVariable(variable: "TERM", value: "xterm-256color"),
+            ])
+        #expect(host.startupSnippetID == snippet.id)
+        #expect(snippet.body == "pwd")
+        #expect(snippet.targetHostIDs == [host.id])
+        #expect(identity.id == UUID(uuidString: "33333333-3333-3333-3333-333333333333"))
+        #expect(identity.username == "deploy")
+        #expect(identity.credentialRef == "termind.fixture.password")
+        #expect(identity.passwordStorage == .thisDevice)
+        #expect(identity.keyID == key.id)
+        #expect(identity.notes == "Synthetic fixture")
+        #expect(identity.colorTag == .purple)
+        #expect(key.id == UUID(uuidString: "44444444-4444-4444-4444-444444444444"))
+        #expect(key.label == "V28 fixture key")
+        #expect(
+            snapshot.knownHosts == [
+                KnownHostEntry(
+                    id: UUID(uuidString: "77777777-7777-7777-7777-777777777777")!,
+                    hostname: "legacy.example.invalid", port: 2222,
+                    fingerprint: "SHA256:fixture", addedAt: Date(timeIntervalSince1970: 50))
+            ])
+        let history = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map(\.value)
+        #expect(
+            history == [
+                ConnectionHistoryEntry(
+                    id: UUID(uuidString: "55555555-5555-5555-5555-555555555555")!,
+                    hostID: host.id, kind: .ssh, connectedAt: Date(timeIntervalSince1970: 90),
+                    sourceDeviceID: installationID)
+            ])
+        #expect(try context.fetch(FetchDescriptor<PersistentVaultSyncState>()).first?.installationID == installationID)
+        #expect(try context.fetch(FetchDescriptor<PersistentDeviceRecord>()).map(\.id) == [installationID])
+
+        let suite = "PersistenceV28.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = SettingsSyncPersistence(context: context, defaults: defaults)
+        try settings.prepare()
+        #expect(try settings.loadWorkspacePreferences() == WorkspacePreferences())
+    }
+
+    @Test
     func memoryContainersUseTheFullSchemaAndRemainIndependent() throws {
         let first = try TermindPersistence.makeContainer(inMemory: true)
         let second = try TermindPersistence.makeContainer(inMemory: true)
@@ -71,7 +157,7 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV25.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV26.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV27.versionIdentifier })
-        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(28, 0, 0) })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV28.versionIdentifier })
         #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(29, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
@@ -282,7 +368,7 @@ struct PersistenceCompatibilityTests {
     }
 
     @Test
-    func version27StoreMigratesDirectlyToVersion30Shape() throws {
+    func version27StoreMigratesThroughRestoredVersionsWithoutLosingData() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }

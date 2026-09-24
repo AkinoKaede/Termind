@@ -20,12 +20,12 @@ sources:
     resource: repo://Frameworks/TermindPresentation/ProOfferPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
-  - id: openwiki-source-0e428811be210c83d8e4370a
-    resource: repo://Frameworks/TermindPresentation/Strings/CopyPresentation.swift
   - id: openwiki-source-667f8dcadd921c1910c5026c
     resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
-  - id: openwiki-source-ced669ef1fa7f341b9c37747
-    resource: repo://Frameworks/TermindPresentation/Strings/NavigationCopy.swift
+  - id: openwiki-source-a3debd0d113ee290e9ff3df7
+    resource: repo://Frameworks/TermindPresentation/Strings/Navigation.swift
+  - id: openwiki-source-f0eb100f79cea6b455207748
+    resource: repo://Frameworks/TermindPresentation/Strings/Presentation.swift
   - id: openwiki-source-eae5d91412d0e2847dacd5b6
     resource: repo://FrameworkTests/AppReviewControllerTests.swift
   - id: openwiki-source-103853faf6b28763354a1c79
@@ -95,7 +95,7 @@ sources:
 generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T15:54:40.903Z
+    at: 2026-09-24T01:58:11.184Z
 ---
 
 ## Scope and ownership

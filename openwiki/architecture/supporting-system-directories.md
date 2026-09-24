@@ -50,6 +50,8 @@ sources:
     resource: repo://Scripts/benchmark-port-forwarding.py
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-294dd6a8637abdafe40e9570
+    resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-a90133154199a9c011127920
     resource: repo://Scripts/Tests/test_bump_version.py
   - id: openwiki-source-a1213a08e73ca7ac095748f3
@@ -80,10 +82,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T15:54:40.903Z
+    at: 2026-09-24T01:58:11.184Z
 ---
 
 # Supporting Products, Packages, and Tooling
@@ -176,7 +178,7 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | Directory | Responsibility |
 | --- | --- |
 | `FrameworkTests` | Flat shared-layer test suites for values/use cases, persistence/migration, sync, shared presentation, and other framework contracts. |
-| `FrameworkTests/Fixtures` | Synthetic original-module V1/V14 SwiftData stores. They preserve cross-module migration evidence and must not be regenerated from the extracted models. |
+| `FrameworkTests/Fixtures` | Synthetic original-module V1/V14 SwiftData stores and a V28 store generated against the historical Persistence framework. Preserve these historical model identities instead of regenerating with current models; `Scripts/generate-v28-fixture.swift` records V28 provenance. |
 | `TFMTests` | Flat desktop and integration suites: architecture boundaries, windows/navigation, terminal/remote flows, transfers, MCP, and rendering. Visible-window and screenshot cases have explicit opt-in gates. |
 | `TFITests` | Flat mobile suites: app/scene ownership, workspace/session behavior, backgrounding, editor/Assistant behavior, adaptive layout, and screenshots. |
 | `Benchmarks/PortForwarding` | Standalone forwarding benchmark executable over shared-framework SPI; not hosted by an app or test bundle. |

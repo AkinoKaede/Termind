@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1039d2b80e770c9b3d35ec6982b0ccb6a530b9d817aaca877da689beaab85765",
+  "pageVersion": "sha256:618178c6b617cf32ec87544339d8bd04d364b3f4976b3ec972d4b0ef9815823e",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -227,8 +227,8 @@
           "version": "repo-lines-v1:sha256:fc75544a0cec27d904ec80a42dc9c6dde7922c9e73b2e1d3d66401e16002c5e1:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRhOWI3NWY2NGIxMDZlYjU0NGRlMjAxZjU5OTEyMmQ3NWFiYzQ4M2M1YjE1NmJiYTZjMDVjMGY5NTZkYmMzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQzOTNjNmIxNDE5MzcxNzhiY2QzOGZmOGMzYzllMDIwYzJhN2MwN2ExOTk1M2QyZmQ5NTQyZDBkNjFhNDczZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Strings/CopyPresentation.swift",
-          "version": "repo-file-v1:sha256:a17e0972c0dff0536ac193fca3cb8962861a81b05b79d651e2d961eb26b95fd1"
+          "resource": "repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift",
+          "version": "repo-file-v1:sha256:544eaa4a367c1eea144d39cc11339da9d578689777ef65032c516c6282fcaef5"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
@@ -266,7 +266,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         }
       ]
     },
@@ -488,7 +488,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:11318ed5bd25bebdb0f7672c997edea782178fb69b6e678430de5e77ea9f2d39"
+          "version": "repo-file-v1:sha256:632f6d657005b76fedd90a1e9c7d1f76a878dd5b8025fd4cc066d89f7234ce42"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift",
@@ -496,7 +496,7 @@
         },
         {
           "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
+          "version": "repo-file-v1:sha256:ce4b44623e39523c8443810115adad51f464ff6acb605a00699d1730ac21d925"
         },
         {
           "resource": "repo://Scripts/update-linux-distribution-icons.sh",
@@ -510,7 +510,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L48-L57",
-          "version": "repo-lines-v1:sha256:02d4321956af31e2ec1c159b0c97229191cb572883df45122a7aaeeaa0867475:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxMWYyNjEwODAzMGFiZmNmMWYyY2RkOTg2NTVmZjAxMTZlMWQ0NDE4MGM0ZDVlZWMzNmU5YjZiYjE1ODk1ZTkifQ"
+          "version": "repo-lines-v1:sha256:09deeb3e75653c0a856f355acfda5c928fde6977b9938f37b8bca9659a985b43:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxMWYyNjEwODAzMGFiZmNmMWYyY2RkOTg2NTVmZjAxMTZlMWQ0NDE4MGM0ZDVlZWMzNmU5YjZiYjE1ODk1ZTkifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
@@ -522,13 +522,13 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }

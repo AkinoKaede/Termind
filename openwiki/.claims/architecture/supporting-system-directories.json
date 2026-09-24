@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:82b22ed27a54e008721221cfed93d1c9f59664f852c4bcabf74d0fc116ca1e39",
+  "pageVersion": "sha256:242f33860f22c9b7cd75981eeeb3fd39a85276dbc91f322a8ae0bb66528d3b5e",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -100,7 +100,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -152,7 +152,7 @@
         },
         {
           "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
+          "version": "repo-file-v1:sha256:ce4b44623e39523c8443810115adad51f464ff6acb605a00699d1730ac21d925"
         },
         {
           "resource": "repo://Scripts/update-linux-distribution-icons.sh",
@@ -226,7 +226,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -309,10 +309,20 @@
           "version": "repo-lines-v1:sha256:90c928ad9e8328b3f2fd4f0325c470b6bfee84f729fdaab7df4dc416481f2c8c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNGJkM2U1MzkyMzUwMzkzYmQxYmQyYjI0MjdmNjMwZGU2OTUzNjFkNjY2ODMzYzE5ZTE2NzEzYTRiMWZkNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiOWFlYjQyMDRmZmM1Nzc0MjY2NGY2NDQ3NjcyZWRjZmIyM2IzNDAwYzhhODkwNmFiNmMyODhkZTg5OGVjMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0NDNjODdmOTI5NmQwY2E5YTZhZTg3MzFlYWVkMjVjYWJhMmZiOTcyOTAzMjQxNWQwMzc4M2M4NjQzZjQ2NmMifQ"
         }
       ]
+    },
+    {
+      "id": "claim_8d5680dd5ff54791b17b33545c85c151",
+      "statement": "The V28 fixture is generated against the historical Persistence framework at 0dc173d4b1d190071d35bc66f80ebb767d8b950c; its generator records provenance and forbids regeneration against current models.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/generate-v28-fixture.swift#L6-L12",
+          "version": "repo-lines-v1:sha256:06af51ad707a7c1a44874c0644874524a34e11f892486f401bb42e5f9597915b:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjZmYzBmMzczMWU2OTAwYWFmZDlkNDk1NzM4MjNmNzU3NDMzZjdlNzQ5ZjY5NDFiM2ZlZThkMjdjMWNkNGE0YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzg2MzUwMDdkMTMyOWY2ZmQ4MDE1M2Y1ODczY2U4OTJkMzYzYTQxNTE5YmU2NjQ1MWNiNDA0NzkwZjNmNmYyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2E0MTM5M2M4NTQxZWNjNDBlN2MzNmIzZjYyZDRhMWYwNjkxZGY5Mjc3NmQzYTVjNGFhZTY5ZDg5YWFhNmE5YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjE2NzUwNmI1N2VmNjA2OGFkMjM1ZDg4MWVlNmU4MjY4YmMzNjhlYjRjODYyNjkwYjZjYmZmODg2NDg1NmZhMCJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T15:54:40.903Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }

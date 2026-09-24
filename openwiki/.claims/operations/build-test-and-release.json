@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4079c3c6082f00142383944b8f4990925fe5e1071d269a5c4f87bdee27e82b6d",
+  "pageVersion": "sha256:7391dbb4e86cdf0b4e24c3d6d8731bdb1e5ee8e00f512f8352c88041084935f1",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -70,11 +70,11 @@
     },
     {
       "id": "claim_ec9d22a2932b42bd80eae69e73f89de5",
-      "statement": "`Scripts/check-zh-localization.sh` validates the target catalog JSON and, for both `zh-Hans` and `zh-Hant`, rejects missing locale entries, unfinished or empty translated string units, and specified Chinese/Latin or punctuation spacing violations.",
+      "statement": "Scripts/check-zh-localization.sh first runs the catalog normalizer in check mode, validates catalog JSON and, for both zh-Hans and zh-Hant, rejects missing locale entries, unfinished or empty translated string units, and specified Chinese/Latin or punctuation spacing violations.",
       "evidence": [
         {
           "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
+          "version": "repo-file-v1:sha256:ce4b44623e39523c8443810115adad51f464ff6acb605a00699d1730ac21d925"
         }
       ]
     },
@@ -84,7 +84,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:11318ed5bd25bebdb0f7672c997edea782178fb69b6e678430de5e77ea9f2d39"
+          "version": "repo-file-v1:sha256:632f6d657005b76fedd90a1e9c7d1f76a878dd5b8025fd4cc066d89f7234ce42"
         }
       ]
     },
@@ -293,6 +293,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }

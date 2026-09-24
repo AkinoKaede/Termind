@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e5f70fe7778e39d64639982324afdb4a987bd64815485504fd2f4d308d44ba96",
+  "pageVersion": "sha256:c49415f8bc3f829076c2361a4f7e5a7f8ebcfe6ea0548bee4d615d0ad7df8ee6",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         }
       ]
     },
@@ -62,7 +62,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         },
         {
           "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
+          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
         }
       ]
     },
@@ -283,6 +283,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T17:44:09.687Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }

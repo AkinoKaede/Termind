@@ -28,6 +28,10 @@ sources:
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-294dd6a8637abdafe40e9570
+    resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
@@ -68,10 +72,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-24T01:58:11.184Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -103,6 +107,10 @@ This flow selects the narrowest test target that owns the behavior, then expands
 Use `FrameworkTests` for behavior intended to remain identical across macOS and mobile: value/rule behavior, repository and persistence adapters, migration compatibility, settings synchronization, host-key policy, and presentation-independent controllers. These tests should normally run with deterministic in-memory state or a temporary directory and should not import an app target.
 
 Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
+
+The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
+
+`version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. Existing V27, V30, V31 and current-schema tests remain alongside it. V29, V32 and V33 stay absent from the migration plan.
 
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider.
 
@@ -163,6 +171,8 @@ For MCP upload changes use `MCPUploadTests` with the real coordinator and stream
 ### Mobile: app state, scenes, and device-local restoration
 
 `TFITests` owns `MobileAppModel` composition and mobile scene behavior. Mobile app tests build `MobileAppModel(inMemory: true)` or supply dependency seams, which permits assertions over the actual shared schema and repositories without using the user's database or Keychain. Representative tests verify that scenes share durable conversations while navigation, selected conversation, and composer drafts stay scene-local; shared SwiftData history is observable from fresh repositories over the same container.
+
+`MobileAppTests.startupLoadsVersion28DataAfterMigrationAndRelaunch` uses the same historical V28 fixture, explicitly included in the TFITests resource phase. It constructs the app twice with a disk container supplied through `MobileAppDependencies.testing` and verifies host, charset, identity reference and history projections. This covers migration plus app initialization and reopening; it is an in-process integration test, not an automated device installation or OS process relaunch.
 
 External connection URLs are another ownership boundary: opening one creates an ephemeral workspace and does not create a Vault host or saved workspace descriptor. Conversely, closing all workspaces disconnects each live workspace and is repeatable. Background-expiration tests provide a controlled connection service and cover resume intent, foreground recovery, and rejection of retired callbacks. A lifecycle change must preserve the appropriate one of these contracts rather than merely asserting that a view updates.
 

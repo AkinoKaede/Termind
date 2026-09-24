@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:257ef9c060799c4dacb4d9afd0c848925b58aa903c72844eb8f93974f801c81b",
+  "pageVersion": "sha256:aaaf94253005ced015fa2396347f5d7c3da5f1bd246a50bc6a8b86a86ec9f1ca",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:11318ed5bd25bebdb0f7672c997edea782178fb69b6e678430de5e77ea9f2d39"
+          "version": "repo-file-v1:sha256:632f6d657005b76fedd90a1e9c7d1f76a878dd5b8025fd4cc066d89f7234ce42"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
@@ -879,6 +879,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T17:55:27.475Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }

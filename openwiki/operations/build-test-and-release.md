@@ -44,10 +44,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-24T01:58:11.184Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-24T01:58:11.184Z
 ---
 
 # Build, Test, and Release
@@ -170,7 +170,7 @@ Run the catalog gate before committing; it requires `jq` and accepts an optional
 Scripts/check-zh-localization.sh
 ```
 
-The script first validates the catalog as JSON. For each Chinese locale, it rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. It exits nonzero at the first category of failure, so fix the catalog rather than bypassing the check. Run `AppLanguageTests` when language behavior changes; those tests cover canonical language preferences and ensure Simplified and Traditional Chinese resolve independently.
+The script first runs `normalize-string-catalogs.py --check`, then validates the catalog as JSON. For each Chinese locale, it rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. It exits nonzero at the first category of failure, so fix the catalog rather than bypassing the check. Run `AppLanguageTests` when language behavior changes; those tests cover canonical language preferences and ensure Simplified and Traditional Chinese resolve independently.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 

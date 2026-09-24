@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:91ecfd787fcb1263ef5522faa373581ec4539ca331ea55e0baf70368990d6126",
+  "pageVersion": "sha256:c98dff9d40631bc19e57fdb22630d6e71b61e9ae4bb1c36d272e7afcd5b7adeb",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:11318ed5bd25bebdb0f7672c997edea782178fb69b6e678430de5e77ea9f2d39"
+          "version": "repo-file-v1:sha256:632f6d657005b76fedd90a1e9c7d1f76a878dd5b8025fd4cc066d89f7234ce42"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -166,7 +166,7 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:4e595e215d00b798a3c7d026a88d5236ac57d2cfdec406883eb289dabd289f03"
+          "version": "repo-file-v1:sha256:70c19f3e43a90319319e4c871c95ffc0f7244c8dd265efaa796f3c8bc2cd8f96"
         }
       ]
     },
@@ -175,16 +175,16 @@
       "statement": "V31 adds scoped quarantine and recovery models; released V31 stores migrate directly to V34, which replaces Host, connection-history and Identity models, adds device-directory and Workspace-preference models, and backfills history with the stable installation ID and an initial DeviceRecord without changing independently versioned CloudKit envelopes.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L160-L192",
-          "version": "repo-lines-v1:sha256:f51bbf899ad15618d3a8b0aca55e214798373991a6428b2772d528306e84daca:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmODcyNTcyZjMyOGRmM2I3OGFjMDM3NTM1ODg4NGJhM2M5NDlmMWVmMTFjYWEwZGJmMzk2YmU4ZjcwMTkxYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmYmQyYzBjMDY1MTgyYjMwMmY5NjUxMjAyYTNhNzcyMTRmZmZmMjE4MWY4ZjQzYzk0M2ZkYmNlMmNkNTlkNjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRkODM3YjNkNGQ3MDYyMGNlMzZiMDQ4ODk3NjA5MDQ4NzBjZTQzZDFhNDUyMTNjYmE0NTY4ZWZkODllODNiZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L207-L277",
+          "version": "repo-lines-v1:sha256:81196537fa5abe36419a77e18e3fa5ff3e1d11c5269000ff1f052366b20ff05d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwN2ZhYTc5MDM1NzBiNGNiY2JmNDZlMmYyNjlhNzY1ZjE3NjFjODE2NWUyNTI3MzY2ZDk0OTgxNDgxYzVmYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyY2YyZTQ3MmZiYWFkOTc3MTc0NDAyMmVjMGZmZDg2ZWEzMzc5MGI4YTFmNjNiMDRiMDczODQyZTUyMmRmZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5YjMxMzE4NWIyNWJkZTBlNzcyZWIyZGIwNzNlZmU3ZTI4Y2FiYjdjNWQ2OGZkY2JkMGM4YjNiY2Q0ZmY2Y2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViNTZiYmJmZjJhMTdhNWJkY2I5MzIwN2QzODY4ZTQzZjc3MWEyNGViZTA3ZTI0Y2Y2OWNlNjdjYTY2Y2Y5NjkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L769-L806",
-          "version": "repo-lines-v1:sha256:3642e24e473cceed587af72269b3e7916ab02eeda15108249a54a0b6b3320aa3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhY2JkOGQ4OWI1YmUyZGFmMmQ0NGVmMDQ4ZGNlMWJmZjY5ZmMxZWRhMmYxNzZiM2NkY2M0MzIyMDAyZjNkODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNzEzMGYzYzFhZWM1ZDRiODIxZjcwODBmYzFkZDUyNzRmNWQ4M2VjYzdmMWRlZjJlNzU2Y2Y5MTIwZDIxN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDcifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L777-L800",
+          "version": "repo-lines-v1:sha256:5ec109553aaeb01264d7a5725571e907e452fd95557b99e1670da9d1ee9cfd47:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhY2JkOGQ4OWI1YmUyZGFmMmQ0NGVmMDQ4ZGNlMWJmZjY5ZmMxZWRhMmYxNzZiM2NkY2M0MzIyMDAyZjNkODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L876-L898",
-          "version": "repo-lines-v1:sha256:28eb9309ffd1456c48b43bedfb27a33bd603389a2757cb3ffc05b9a3bace63dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmNjhiZTU3Njg0MmM1NWI2ZmNlZGZlMDg0ZTZjY2VlMGE2YTRmYzIwZWMyZDllZDdjOGJjYjRlOTQ2NjYwYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkMzRhOWRmNzc5Yjk1NjZiMDRhZDJiOWU2Y2RkZTNiMWQ1ZTZjMWE4YzhiOTdhYjdjMjhhN2IxM2EzM2JkNmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxOTQzZTUyMTk4NjA3YTJlNWIzYjQ2ZTg1ZmYxNWZkMmY1ZDJkNGVmODY5MzFjMTk1MzJkZWQzYWI0OWQwNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmNTJkYTk1NjY5ODdhZThlZmYyMGY2NzgzOTZlMzA4Yjk3NmM1M2M4YmQ5OGZiMTFiNWQxYmMxZjlhYmNjMTkifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L885-L907",
+          "version": "repo-lines-v1:sha256:d1db4e2fc5786113d681c8472b2ffaa7de7b8e34a56c7904f44c491914f63e1a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwNzRjOTI1YjM3Zjg2NzNhNjMyNTY4Zjk3OTg4ZTQ3OWVkMWMyMjkwZDQxMTk4OTI5NWMwMTY1NTliOWI5MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYmIzNzEwNzRjZDFlMmFhNWNiZThmM2UyZGJkM2Q5ZTBhZGRhYTRiYjNmMDZhNTRmMjY3NjExZTg4NGRiMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhZWQ3YzJkNTQ2YTEwZmI3ZDRkZjM1NWE3ODZlOGViZTRjZTJiMzgxMzZmNTI5ODVlNWVmOTAwYjgxMTBiMDEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L7-L10",
@@ -450,7 +450,7 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:4e595e215d00b798a3c7d026a88d5236ac57d2cfdec406883eb289dabd289f03"
+          "version": "repo-file-v1:sha256:70c19f3e43a90319319e4c871c95ffc0f7244c8dd265efaa796f3c8bc2cd8f96"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
@@ -640,11 +640,11 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L48-L56",
-          "version": "repo-lines-v1:sha256:53623f864a09621659d377e297b7491281b3b6bda136ad0d8c5e7118329eb534:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "version": "repo-lines-v1:sha256:26697577d9457afd4d5953ff5464ff3ce8419e303deb7f51ea1d9644abdfc2ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:90f5f9cd26e6974a00c7ce9c688e2bc3de33de2a02cf0012e0d9472be0b3fd48"
+          "version": "repo-file-v1:sha256:b3bb65bafaf0fec7f526e66d0d6a2f0573996ebd7f23192be9adffb448dff93a"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
@@ -658,7 +658,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L50-L56",
-          "version": "repo-lines-v1:sha256:c6d89e4caf30e567e1ecbbfb4a52f9a985e68317f9b24774eda93ee871e1db0c:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjllNGU3MjdjYjY0N2FlMTc1YjMzMTA5YzI2YTQ3MWQwYTZjN2E3NmE4ZDEwY2M0OGE1MWJmZTc0MWFiODQ1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "version": "repo-lines-v1:sha256:b5df0daff218d23f396510a7891b777fc68204b7a47fefcf1d09764515cf952e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZTRlNzI3Y2I2NDdhZTE3NWIzMzEwOWMyNmE0NzFkMGE2YzdhNzZhOGQxMGNjNDhhNTFiZmU3NDFhYjg0NTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Scripts/check-presentation-copy.swift#L7-L78",
@@ -691,6 +691,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T17:55:27.475Z"
+    "at": "2026-09-24T01:58:11.184Z"
   }
 }
