@@ -12,6 +12,20 @@ import UIKit
 /// Uses the shipping views and a disposable in-memory app, without accounts or network requests.
 @Suite(.serialized) @MainActor
 struct MobileAISettingsRenderingTests {
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil),
+        arguments: ["en", "zh-Hans", "zh-Hant"]
+    )
+    func existingProviderKeyIsEditedDirectly(_ language: String) async throws {
+        let provider = ModelProvider(
+            name: "Model Provider", inferenceURL: "https://example.invalid/v1", credentialRef: "fixture-key")
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        ai.setSecret("fixture-api-key", for: "fixture-key")
+        try await capture(
+            "provider-direct-key", language: language,
+            view: MobileProviderEditor(ai: ai, provider: provider).environment(\.locale, Locale(identifier: language)))
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func anonymousProviderEditorShowsOptionalKey(_ language: String) async throws {
         let ai = AIConfigurationModel()
@@ -202,6 +216,12 @@ struct MobileAISettingsRenderingTests {
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(700))
+        if name == "provider-direct-key" {
+            let field = try #require(
+                firstSubview(of: UITextField.self, in: controller.view, matching: { $0.isSecureTextEntry }))
+            #expect(field.text == "fixture-api-key")
+            #expect(field.isEnabled)
+        }
         if scrollToBottom, let scrollView = firstSubview(of: UIScrollView.self, in: controller.view) {
             let offset = max(
                 -scrollView.adjustedContentInset.top,
@@ -232,10 +252,11 @@ struct MobileAISettingsRenderingTests {
         print("AI settings snapshot: \(directory.path)/\(device)-\(language)-\(name).png")
     }
 
-    private func firstSubview<T: UIView>(of type: T.Type, in view: UIView) -> T? {
-        if let match = view as? T { return match }
+    private func firstSubview<T: UIView>(of type: T.Type, in view: UIView, matching: (T) -> Bool = { _ in true }) -> T?
+    {
+        if let match = view as? T, matching(match) { return match }
         for subview in view.subviews {
-            if let match = firstSubview(of: type, in: subview) { return match }
+            if let match = firstSubview(of: type, in: subview, matching: matching) { return match }
         }
         return nil
     }

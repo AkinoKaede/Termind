@@ -12,12 +12,9 @@ final class MobileProviderEditorModel {
     let originalEndpoint: ProviderEndpoint
     var draft: ModelProvider
     var endpoint: ProviderEndpoint
-    let key = MobileSecretDraft()
+    let key = MobileSecretDraft(editingMode: .direct)
     let serviceAccount = MobileSecretDraft()
-    var keyAction: KeyAction {
-        get { key.action }
-        set { key.action = newValue }
-    }
+    var keyAction: KeyAction { key.action }
     var secret: String {
         get { key.text }
         set { key.text = newValue }

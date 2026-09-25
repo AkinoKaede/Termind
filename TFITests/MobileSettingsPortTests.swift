@@ -62,7 +62,6 @@ struct MobileSettingsPortTests {
         let editor = MobileProviderEditorModel(ai: ai, provider: ModelProvider(name: "Gateway"))
         editor.endpoint.url = "https://example.invalid/v1"
         editor.endpoint.apiType = .responses
-        editor.keyAction = .replace
         editor.secret = "test-key"
         try editor.save()
         let saved = try #require(ai.modelProvider(editor.original.id))
@@ -78,7 +77,6 @@ struct MobileSettingsPortTests {
         let ai = AIConfigurationModel(aiSecrets: secrets)
         let editor = MobileProviderEditorModel(ai: ai, provider: ModelProvider(name: "Gateway"))
         editor.endpoint.url = "https://example.invalid/v1"
-        editor.keyAction = .replace
         editor.secret = "test-key"
         #expect(throws: (any Error).self) { try editor.save() }
         #expect(ai.modelProviders.isEmpty)
@@ -95,7 +93,6 @@ struct MobileSettingsPortTests {
         let ai = AIConfigurationModel(persistence: persistence, aiSecrets: secrets)
         let editor = MobileProviderEditorModel(ai: ai, provider: provider)
         editor.draft.name = "After"
-        editor.keyAction = .replace
         editor.secret = "after"
         persistence.failWrites = true
         #expect(throws: (any Error).self) { try editor.save() }
@@ -112,7 +109,7 @@ struct MobileSettingsPortTests {
         let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
         let editor = MobileProviderEditorModel(ai: ai, provider: provider)
         ai.addModel(AIModel(id: "new-model"), to: provider.id)
-        editor.keyAction = .clear
+        editor.secret = ""
         try editor.save()
         #expect(ai.modelProvider(provider.id)?.models.map(\.id) == ["new-model"])
         #expect(ai.modelProvider(provider.id)?.credentialRef == "")

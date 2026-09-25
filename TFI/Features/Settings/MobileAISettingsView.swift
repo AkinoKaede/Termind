@@ -138,7 +138,16 @@ struct MobileSecretFields: View {
 
     var body: some View {
         Section(isToken ? AppStrings.Settings.bearerToken.swiftUIKey : AppStrings.Settings.apiKey.swiftUIKey) {
-            if hasExistingCredential {
+            if key.editingMode == .direct {
+                RevealableSecretField(
+                    isToken ? AppStrings.Settings.bearerToken : AppStrings.Settings.apiKey,
+                    text: $key.text,
+                    prompt: Text(requiresCredential ? AppStrings.Vault.required : AppStrings.Common.optional)
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .multilineTextAlignment(.leading)
+                .disabled(!key.canEdit)
+            } else if hasExistingCredential {
                 Picker(AppStrings.Settings.credential.swiftUIKey, selection: $key.action) {
                     Text(isToken ? AppStrings.Settings.keepExistingToken : AppStrings.Settings.keepExistingKey).tag(
                         MobileSecretDraft.Action.preserve)

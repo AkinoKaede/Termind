@@ -7,21 +7,38 @@ import TermindPresentation
 @MainActor @Observable
 final class MobileSecretDraft {
     enum Action: String, CaseIterable { case preserve, replace, clear }
+    enum EditingMode { case explicitAction, direct }
+    let editingMode: EditingMode
     private var originalReference = ""
     private var originalSecret: String?
     private var readError: String?
 
+    init(editingMode: EditingMode = .explicitAction) {
+        self.editingMode = editingMode
+    }
+
     func begin(in ai: AIConfigurationModel, reference: String) {
         originalReference = reference
+        originalSecret = nil
+        readError = nil
         if !reference.isEmpty {
             originalSecret = ai.secret(for: reference)
             readError = ai.secretStorageError
         }
+        if editingMode == .direct { text = originalSecret ?? "" }
     }
 
     var action = Action.preserve
-    var text = ""
-    var isDirty: Bool { action != .preserve || !text.isEmpty }
+    var text = "" {
+        didSet {
+            guard editingMode == .direct else { return }
+            action = !canEdit || text == (originalSecret ?? "") ? .preserve : text.isEmpty ? .clear : .replace
+        }
+    }
+    var canEdit: Bool {
+        editingMode != .direct || originalReference.isEmpty || (readError == nil && originalSecret != nil)
+    }
+    var isDirty: Bool { action != .preserve || (editingMode == .explicitAction && !text.isEmpty) }
     var isValid: Bool { action != .replace || !text.isEmpty }
 
     func effective(in ai: AIConfigurationModel, reference: String) throws -> String {
@@ -45,8 +62,8 @@ final class MobileSecretDraft {
     }
 
     func discardPlaintext() {
-        text = ""
         originalSecret = nil
+        text = ""
     }
 
     func commit(in ai: AIConfigurationModel, reference: String, kind: String = "key", save: (String) -> Bool) throws {

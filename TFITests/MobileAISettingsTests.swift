@@ -48,15 +48,103 @@ struct MobileAISettingsTests {
         #expect(!editor.canSave)
     }
 
-    @Test func missingStoredKeyRequiresExplicitClearBeforeAnonymousPreview() throws {
+    @Test(arguments: [false, true])
+    func unavailableStoredKeyDisablesEditingAndPreservesCredential(_ failsToRead: Bool) throws {
         let provider = ModelProvider(name: "Missing", inferenceURL: "http://localhost/v1", credentialRef: "missing")
-        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let secrets = AIEditorTestSecrets()
+        secrets.failReads = failsToRead
+        let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
         let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        #expect(!editor.key.canEdit)
+        #expect(editor.secret.isEmpty)
+        #expect(!editor.isDirty)
         #expect(throws: (any Error).self) { try editor.requestSecret() }
-        editor.keyAction = .clear
-        #expect(try editor.requestSecret() == "")
+        editor.draft.name = "Renamed"
         try editor.save()
-        #expect(ai.modelProvider(provider.id)?.credentialRef == "")
+        #expect(ai.modelProvider(provider.id)?.name == "Renamed")
+        #expect(ai.modelProvider(provider.id)?.credentialRef == "missing")
+        #expect(secrets.writeCount == 0)
+    }
+
+    @Test func loadedKeyIsUnchangedAndMetadataSavePreservesANewerKey() throws {
+        var provider = provider()
+        provider.credentialRef = "key"
+        let secrets = AIEditorTestSecrets()
+        secrets.values["key"] = "original"
+        let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+
+        #expect(editor.key.canEdit)
+        #expect(editor.secret == "original")
+        #expect(!editor.isDirty)
+        #expect(editor.keyAction == .preserve)
+        secrets.values["key"] = "remote"
+        editor.draft.name = "Renamed"
+        try editor.save()
+
+        #expect(ai.modelProvider(provider.id)?.name == "Renamed")
+        #expect(secrets.values["key"] == "remote")
+        #expect(secrets.writeCount == 0)
+        #expect(editor.secret.isEmpty)
+    }
+
+    @Test(arguments: ["", "original"])
+    func restoringOriginalKeyRemovesUnsavedChanges(_ original: String) {
+        var provider = provider()
+        provider.credentialRef = original.isEmpty ? "" : "key"
+        let secrets = AIEditorTestSecrets()
+        if !original.isEmpty { secrets.values["key"] = original }
+        let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+
+        editor.secret = "replacement"
+        #expect(editor.isDirty)
+        #expect(editor.keyAction == .replace)
+        editor.secret = original
+        #expect(!editor.isDirty)
+        #expect(editor.keyAction == .preserve)
+        #expect(secrets.writeCount == 0)
+    }
+
+    @Test(arguments: ["replacement", ""])
+    func editedKeyIsUsedForRequestsAndOnlyWrittenOnSave(_ replacement: String) throws {
+        var provider = provider()
+        provider.credentialRef = "key"
+        let secrets = AIEditorTestSecrets()
+        secrets.values["key"] = "original"
+        let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+
+        editor.secret = replacement
+        #expect(editor.isDirty)
+        #expect(editor.canSave)
+        #expect(editor.keyAction == (replacement.isEmpty ? .clear : .replace))
+        #expect(try editor.requestSecret() == replacement)
+        #expect(secrets.values["key"] == "original")
+        #expect(secrets.writeCount == 0)
+        try editor.save()
+
+        #expect(secrets.values["key"] == (replacement.isEmpty ? nil : replacement))
+        #expect(ai.modelProvider(provider.id)?.credentialRef == (replacement.isEmpty ? "" : "key"))
+        #expect(editor.secret.isEmpty)
+    }
+
+    @Test func discardingKeyEditsClearsPlaintextWithoutWritingCredentials() {
+        var provider = provider()
+        provider.credentialRef = "key"
+        let secrets = AIEditorTestSecrets()
+        secrets.values["key"] = "original"
+        let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        editor.secret = "replacement"
+
+        editor.discardPlaintext()
+
+        #expect(editor.secret.isEmpty)
+        #expect(editor.keyAction == .preserve)
+        #expect(secrets.values["key"] == "original")
+        #expect(secrets.writeCount == 0)
+        #expect(ai.modelProvider(provider.id) == provider)
     }
 
     private func provider() -> ModelProvider {
@@ -146,12 +234,11 @@ struct MobileAISettingsTests {
         #expect(try editor.requestSecret() == "")
         editor.endpoint.url = "https://draft.invalid/v1"
         editor.endpoint.apiType = .responses
-        editor.keyAction = .replace
         editor.secret = "draft-key"
         #expect(editor.requestProvider.inferenceURL == "https://draft.invalid/v1/responses")
         #expect(try editor.requestSecret() == "draft-key")
         #expect(ai.modelProviders.isEmpty)
-        editor.keyAction = .clear
+        editor.secret = ""
         #expect(try editor.requestSecret() == "")
     }
 
@@ -321,7 +408,6 @@ struct MobileAISettingsTests {
         secrets.values["shared-key"] = "original"
         let ai = AIConfigurationModel(modelProviders: [provider], aiSecrets: secrets)
         let editor = MobileProviderEditorModel(ai: ai, provider: provider)
-        editor.keyAction = .replace
         editor.secret = "local"
         secrets.values["shared-key"] = "remote"
         #expect(throws: SettingsDraftMerge.Conflict.self) { try editor.save() }
@@ -431,8 +517,16 @@ private actor AIRequestLatch<Value: Sendable> {
 
 @MainActor private final class AIEditorTestSecrets: AISecretStoring {
     var values: [String: String] = [:]
-    func string(for reference: String) throws -> String? { values[reference] }
-    func setString(_ value: String?, for reference: String) throws { values[reference] = value }
+    var failReads = false
+    var writeCount = 0
+    func string(for reference: String) throws -> String? {
+        if failReads { throw CocoaError(.fileReadNoPermission) }
+        return values[reference]
+    }
+    func setString(_ value: String?, for reference: String) throws {
+        writeCount += 1
+        values[reference] = value
+    }
 }
 
 @MainActor private final class AIEditorTestPersistence: AIConfigurationPersisting {
