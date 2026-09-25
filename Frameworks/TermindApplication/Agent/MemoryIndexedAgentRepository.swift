@@ -21,6 +21,7 @@ import Foundation
     public func loadConversations() async throws -> [StoredAgentConversation] { try await base.loadConversations() }
     public func deleteConversation(_ id: UUID) async throws {
         try await base.deleteConversation(id)
+        memory.invalidateLearning(for: id)
         memory.historyChanged()
     }
     public func setTitle(_ title: String, conversationID: UUID) async throws {
@@ -38,6 +39,7 @@ import Foundation
         async throws
     {
         try await base.truncateConversation(id, fromUserMessageID: fromUserMessageID, replacingWith: replacingWith)
+        memory.invalidateLearning(for: id)
         memory.historyChanged()
     }
     public func createConversation(_ conversation: StoredAgentConversation) async throws {

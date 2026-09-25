@@ -17,10 +17,11 @@ struct MemorySettingsRenderingTests {
         let memory = MemoryModel(storage: GRDBMemoryStore(directory: url))
         await memory.setEnabled(true)
         if dark {
-            await memory.edit(.memory, text: String(repeating: "记", count: AgentMemoryTarget.memory.characterLimit / 2))
+            await memory.edit(
+                .memory, text: String(repeating: "记", count: AgentMemoryTarget.memory.entryCharacterLimit / 2))
         }
         await memory.edit(
-            .user, text: String(repeating: "忆", count: AgentMemoryTarget.user.characterLimit / (dark ? 2 : 1)))
+            .user, text: String(repeating: "忆", count: AgentMemoryTarget.user.entryCharacterLimit / (dark ? 2 : 1)))
         #expect(memory.error == nil)
         let view = Form {
             MemorySettingsSection(memory: memory, ai: AIConfigurationModel())

@@ -511,7 +511,10 @@ public final class AssistantExecutionController {
                 "conversation_id": "\(conversationID)", "operation_id": "\(operationID)",
                 "planning": "\(isPlanning)", "stage": "running", "tool_count": "\(registry.registeredTools.count)",
             ])
-        scheduleTitle(for: conversation, isPlanning: isPlanning, operationID: operationID)
+        scheduleTitle(
+            for: conversation, isPlanning: isPlanning, operationID: operationID,
+            memoryToken: memorySession.flatMap { memory?.learningToken(for: $0.context) },
+            reviewModel: capture.memoryReviewModel)
         return .runtimeStarted
     }
 
@@ -952,7 +955,10 @@ public final class AssistantExecutionController {
     /// whose rows rewrite themselves as the conversation grows is harder to scan
     /// than one whose rows stay put. `titledConversationIDs` is what makes the
     /// second run a no-op even though every run re-arms the hook.
-    private func scheduleTitle(for conversation: ConversationModel, isPlanning: Bool, operationID: String) {
+    private func scheduleTitle(
+        for conversation: ConversationModel, isPlanning: Bool, operationID: String,
+        memoryToken: UUID?, reviewModel: (any AgentModelCompleting)?
+    ) {
         let conversationID = conversation.id.uuidString.lowercased()
         conversation.runDidFinish = { [weak self, weak conversation] in
             guard let self, let conversation else { return }
@@ -964,12 +970,6 @@ public final class AssistantExecutionController {
                     "conversation_id": "\(conversationID)", "operation_id": "\(operationID)",
                     "outcome": "\(state.rawValue)", "stage": "finished",
                 ])
-            if conversation.runState == .completed, !isPlanning, let memory,
-                let model = memoryReviewModel(conversation)
-            {
-                let messages = conversation.transcript
-                Task { await memory.review(conversationID: conversation.id, messages: messages, model: model) }
-            }
             guard let context = Self.titleContext(for: conversation),
                 !titledConversationIDs.contains(conversation.id)
             else { return }
@@ -986,6 +986,45 @@ public final class AssistantExecutionController {
                     titledConversationIDs.remove(conversation.id)
                 }
             }
+        }
+        if !isPlanning, let memoryToken, let memory {
+            let historyEpoch = memory.learningEpoch(for: conversation.id)
+            if let reviewModel {
+                for (index, message) in conversation.transcript.enumerated() where message.role == .user {
+                    memory.considerCorrection(
+                        conversationID: conversation.id, message: message,
+                        context: Array(conversation.transcript.prefix(index + 1).suffix(6)),
+                        model: reviewModel, sessionToken: memoryToken, historyEpoch: historyEpoch)
+                }
+            }
+            conversation.memoryUserAccepted = { [weak conversation] message, context in
+                guard let conversation, let reviewModel else { return }
+                memory.considerCorrection(
+                    conversationID: conversation.id, message: message, context: context,
+                    model: reviewModel, sessionToken: memoryToken, historyEpoch: historyEpoch)
+            }
+            conversation.memoryToolBatchFinished = { [weak conversation] toolEvents, messages in
+                guard let conversation else { return }
+                Task {
+                    await memory.recordActivity(
+                        conversationID: conversation.id, userMessageIDs: [],
+                        toolInvocations: toolEvents, messages: messages, model: reviewModel,
+                        sessionToken: memoryToken, historyEpoch: historyEpoch)
+                }
+            }
+            conversation.memoryRunFinished = { [weak conversation] _, userIDs, toolEvents, messages in
+                guard let conversation else { return }
+                Task {
+                    await memory.recordActivity(
+                        conversationID: conversation.id, userMessageIDs: userIDs,
+                        toolInvocations: toolEvents, messages: messages, model: reviewModel,
+                        sessionToken: memoryToken, historyEpoch: historyEpoch)
+                }
+            }
+        } else {
+            conversation.memoryUserAccepted = nil
+            conversation.memoryRunFinished = nil
+            conversation.memoryToolBatchFinished = nil
         }
     }
 

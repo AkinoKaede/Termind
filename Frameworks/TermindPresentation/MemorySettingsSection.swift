@@ -46,17 +46,19 @@ public struct MemorySettingsSection: View {
         .confirmationDialog("Destroy Memory?", isPresented: $confirmDestroy, titleVisibility: .visible) {
             Button("Destroy", role: .destructive) { Task { await memory.destroy() } }
         } message: {
-            Text(
-                "Delete saved memory, snapshots, learning progress, and search indexes, then turn off Memory. Skills and chat history are kept. Re-enabling Memory can rebuild memories from old chats."
-            )
+            Text(AppStrings.Settings.hermesDestroyDescription)
         }
         .sheet(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
             NavigationStack {
                 Form {
                     TextEditor(text: $draft).frame(minHeight: 220)
                     if let error = memory.error { Text(error).foregroundStyle(.red) }
-                    if let editing {
-                        Text("\(draft.unicodeScalars.count)/\(editing.characterLimit)").monospacedDigit()
+                    if editing != nil {
+                        Text(
+                            AppStrings.Settings.hermesMemoryUsage(
+                                entries: draft.components(separatedBy: "\n§\n").filter { !$0.isEmpty }.count,
+                                characters: draft.unicodeScalars.count)
+                        ).monospacedDigit()
                     }
                 }
                 .navigationTitle(editing == .memory ? "Memory Notes" : "User Profile")
@@ -75,7 +77,7 @@ public struct MemorySettingsSection: View {
                                 if memory.error == nil { editing = nil }
                             }
                         }
-                        .disabled(draft.unicodeScalars.count > (editing?.characterLimit ?? 0) || memory.isBusy)
+                        .disabled(memory.isBusy)
                         #if os(iOS)
                             .tint(.blue)
                         #endif
@@ -106,10 +108,8 @@ public struct MemorySettingsSection: View {
                         Task { await memory.setEnabled(enabled) }
                     })
             ).disabled(memory.isBusy)
-            Text(
-                "Memory is saved on this device. New conversations receive a fixed snapshot of your notes and profile."
-            )
-            .font(.caption).foregroundStyle(.secondary)
+            Text(AppStrings.Settings.hermesPolicyDescription)
+                .font(.caption).foregroundStyle(.secondary)
             if memory.isEnabled {
                 Toggle("Automatic Learning", isOn: $memory.reviewEnabled)
                 Picker("Learning Model", selection: $memory.reviewModel) {
@@ -123,7 +123,7 @@ public struct MemorySettingsSection: View {
                         }
                     }
                 }
-                Text("Automatic learning uses your configured model and may incur API charges.")
+                Text(AppStrings.Settings.hermesLearningDescription)
                     .font(.caption).foregroundStyle(.secondary)
                 #if os(macOS)
                     VStack(spacing: 8) { memoryRows }
@@ -162,7 +162,7 @@ public struct MemorySettingsSection: View {
     private var memoryRows: some View {
         ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
             let usage = memory.state.usage(target)
-            let fraction = min(1, max(0, Double(usage) / Double(target.characterLimit)))
+            let count = memory.state.entries.filter { $0.target == target }.count
             Button {
                 draft = memory.state.text(target)
                 editing = target
@@ -170,7 +170,7 @@ public struct MemorySettingsSection: View {
                 HStack {
                     Text(target == .memory ? "Memory Notes" : "User Profile")
                     Spacer()
-                    Text("\(usage)/\(target.characterLimit)")
+                    Text(AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage))
                         .monospacedDigit().foregroundStyle(.secondary)
                     #if os(macOS)
                         Image(systemName: "chevron.right")
@@ -179,13 +179,6 @@ public struct MemorySettingsSection: View {
                 }
                 #if os(macOS)
                     .padding(8)
-                    .background {
-                        GeometryReader { geometry in
-                            Rectangle()
-                            .fill(Color.accentColor.opacity(0.16))
-                            .frame(width: geometry.size.width * fraction)
-                        }
-                    }
                     .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 6))
                     .clipShape(.rect(cornerRadius: 6))
                 #endif
@@ -195,7 +188,7 @@ public struct MemorySettingsSection: View {
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(target == .memory ? "Memory Notes" : "User Profile"))
-                .accessibilityValue(Text("\(usage)/\(target.characterLimit)"))
+                .accessibilityValue(Text(AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage)))
             #endif
         }
     }

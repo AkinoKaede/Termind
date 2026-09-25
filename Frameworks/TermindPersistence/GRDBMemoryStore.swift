@@ -40,6 +40,25 @@ public actor GRDBMemoryStore: MemoryPersisting {
                     CREATE INDEX messages_session_position ON messages(session_id, position);
                     """)
         }
+        migrator.registerMigration("hermes-policy-learning-v2") { db in
+            try db.execute(sql: "DROP TABLE snapshots")
+            try db.execute(
+                sql: """
+                    CREATE TABLE learning_activity (
+                        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                        conversation_id TEXT NOT NULL,
+                        event_id TEXT NOT NULL,
+                        source_message_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        reviewed INTEGER NOT NULL DEFAULT 0,
+                        UNIQUE(conversation_id,event_id,kind));
+                    CREATE INDEX learning_activity_conversation ON learning_activity(conversation_id,sequence);
+                    CREATE TABLE reviewed_corrections (
+                        conversation_id TEXT NOT NULL,
+                        message_id TEXT NOT NULL,
+                        PRIMARY KEY(conversation_id,message_id));
+                    """)
+        }
         try migrator.migrate(opened)
         queue = opened
         return opened
@@ -49,6 +68,7 @@ public actor GRDBMemoryStore: MemoryPersisting {
         guard let bytes = try Data.fetchOne(db, sql: "SELECT data FROM memory_state WHERE id=1") else { return .init() }
         return try JSONDecoder().decode(AgentMemoryState.self, from: bytes)
     }
+    public func prepareSession(_ conversationID: UUID) throws { _ = try database() }
     public func memoryState() throws -> AgentMemoryState { try database().read(Self.state) }
     public func replaceTarget(_ target: AgentMemoryTarget, text: String) throws -> AgentMemoryState {
         try database().write { db in
@@ -67,7 +87,8 @@ public actor GRDBMemoryStore: MemoryPersisting {
         }
     }
     public func applyReview(
-        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID,
+        reviewedActivityIDs: [UUID]
     ) throws -> AgentMemoryState? {
         try database().write { db in
             let current = try Self.state(db)
@@ -79,6 +100,11 @@ public actor GRDBMemoryStore: MemoryPersisting {
             try db.execute(
                 sql: "INSERT OR REPLACE INTO reviews VALUES(?,?)",
                 arguments: [conversationID.uuidString, messageID.uuidString])
+            for id in reviewedActivityIDs {
+                try db.execute(
+                    sql: "UPDATE learning_activity SET reviewed=1 WHERE conversation_id=? AND event_id=?",
+                    arguments: [conversationID.uuidString, id.uuidString])
+            }
             return updated
         }
     }
@@ -91,19 +117,6 @@ public actor GRDBMemoryStore: MemoryPersisting {
             return state
         }
     }
-    public func snapshot(for conversationID: UUID) throws -> String {
-        try database().write { db in
-            let id = conversationID.uuidString
-            if let text = try String.fetchOne(
-                db, sql: "SELECT content FROM snapshots WHERE conversation_id=?", arguments: [id])
-            {
-                return text
-            }
-            let text = try Self.state(db).prompt
-            try db.execute(sql: "INSERT INTO snapshots VALUES(?,?)", arguments: [id, text])
-            return text
-        }
-    }
     public func lastReviewedMessage(_ conversationID: UUID) throws -> UUID? {
         try database().read { db in
             try String.fetchOne(
@@ -113,11 +126,71 @@ public actor GRDBMemoryStore: MemoryPersisting {
             .flatMap(UUID.init(uuidString:))
         }
     }
-    public func markReviewed(_ messageID: UUID, conversationID: UUID) throws {
+    public func recordActivity(
+        _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
+        conversationID: UUID
+    ) throws
+        -> MemoryLearningProgress
+    {
         try database().write { db in
             try db.execute(
-                sql: "INSERT OR REPLACE INTO reviews VALUES(?,?)",
+                sql:
+                    "INSERT OR IGNORE INTO learning_activity(conversation_id,event_id,source_message_id,kind) VALUES(?,?,?,?)",
+                arguments: [
+                    conversationID.uuidString, id.uuidString, sourceMessageID.uuidString,
+                    kind.rawValue,
+                ])
+            return try Self.learningProgress(db, conversationID: conversationID)
+        }
+    }
+    public func learningProgress(_ conversationID: UUID) throws -> MemoryLearningProgress {
+        try database().read { try Self.learningProgress($0, conversationID: conversationID) }
+    }
+    private nonisolated static func learningProgress(_ db: Database, conversationID: UUID) throws
+        -> MemoryLearningProgress
+    {
+        let rows = try Row.fetchAll(
+            db,
+            sql:
+                "SELECT event_id,source_message_id,kind FROM learning_activity WHERE conversation_id=? AND reviewed=0 ORDER BY sequence",
+            arguments: [conversationID.uuidString])
+        let cursor = try String.fetchOne(
+            db, sql: "SELECT message_id FROM reviews WHERE conversation_id=?",
+            arguments: [conversationID.uuidString]
+        ).flatMap(UUID.init(uuidString:))
+        return MemoryLearningProgress(
+            lastReviewedMessage: cursor,
+            turns: rows.filter { ($0["kind"] as String) == MemoryActivityKind.turn.rawValue }.count,
+            tools: rows.filter { ($0["kind"] as String) == MemoryActivityKind.tool.rawValue }.count,
+            events: rows.compactMap { row in
+                guard let id = UUID(uuidString: row["event_id"]),
+                    let source = UUID(uuidString: row["source_message_id"]),
+                    let kind = MemoryActivityKind(rawValue: row["kind"])
+                else { return nil }
+                return MemoryLearningEvent(id: id, sourceMessageID: source, kind: kind)
+            })
+    }
+    public func correctionWasReviewed(_ messageID: UUID, conversationID: UUID) throws -> Bool {
+        try database().read { db in
+            try Int.fetchOne(
+                db, sql: "SELECT 1 FROM reviewed_corrections WHERE conversation_id=? AND message_id=?",
+                arguments: [conversationID.uuidString, messageID.uuidString]) != nil
+        }
+    }
+    public func applyCorrection(
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID
+    ) throws -> AgentMemoryState? {
+        try database().write { db in
+            let current = try Self.state(db)
+            guard current == expected else { return nil }
+            let updated = operations.isEmpty ? current : try current.applying(operations)
+            try db.execute(
+                sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
+                arguments: [try JSONEncoder().encode(updated)])
+            try db.execute(
+                sql: "INSERT OR IGNORE INTO reviewed_corrections VALUES(?,?)",
                 arguments: [conversationID.uuidString, messageID.uuidString])
+            return updated
         }
     }
     public func replaceHistory(_ conversations: [StoredAgentConversation]) async throws {
@@ -128,6 +201,8 @@ public actor GRDBMemoryStore: MemoryPersisting {
                 try db.execute(sql: "DELETE FROM messages WHERE session_id=?", arguments: [id])
                 try db.execute(sql: "DELETE FROM sessions WHERE id=?", arguments: [id])
                 try db.execute(sql: "DELETE FROM reviews WHERE conversation_id=?", arguments: [id])
+                try db.execute(sql: "DELETE FROM learning_activity WHERE conversation_id=?", arguments: [id])
+                try db.execute(sql: "DELETE FROM reviewed_corrections WHERE conversation_id=?", arguments: [id])
             }
         }
         for (batchIndex, conversation) in conversations.enumerated() {
@@ -165,6 +240,23 @@ public actor GRDBMemoryStore: MemoryPersisting {
                             message.id.uuidString, id, index, message.role.rawValue, clean[index],
                             message.createdAt.timeIntervalSince1970,
                         ])
+                }
+                if conversation.lastRunState.isTerminal {
+                    try db.execute(
+                        sql: """
+                            DELETE FROM learning_activity WHERE conversation_id=?
+                            AND source_message_id NOT IN (SELECT id FROM messages WHERE session_id=?)
+                            """, arguments: [id, id])
+                    try db.execute(
+                        sql: """
+                            DELETE FROM reviewed_corrections WHERE conversation_id=?
+                            AND message_id NOT IN (SELECT id FROM messages WHERE session_id=?)
+                            """, arguments: [id, id])
+                    try db.execute(
+                        sql: """
+                            DELETE FROM reviews WHERE conversation_id=?
+                            AND message_id NOT IN (SELECT id FROM messages WHERE session_id=?)
+                            """, arguments: [id, id])
                 }
             }
         }

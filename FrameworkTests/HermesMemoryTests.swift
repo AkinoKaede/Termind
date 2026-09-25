@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import SQLite3
 import SwiftData
 import TermindApplication
 import TermindDomain
@@ -19,21 +20,61 @@ struct HermesMemoryTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
-    @Test func memoryAndSnapshotSurviveReopening() async throws {
+    @Test func memorySurvivesReopeningWithoutFrozenSnapshot() async throws {
         let url = directory()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = GRDBMemoryStore(directory: url)
         _ = try await store.applyMemory([.init(action: .add, target: .user, content: "Likes concise replies")])
-        let id = UUID()
-        let original = try await store.snapshot(for: id)
         _ = try await store.applyMemory([
             .init(action: .replace, target: .user, content: "Likes detailed replies", oldText: "concise")
         ])
         try await store.close()
         let reopened = GRDBMemoryStore(directory: url)
-        #expect(try await reopened.snapshot(for: id) == original)
-        #expect(try await reopened.snapshot(for: UUID()).contains("detailed"))
+        #expect(try await reopened.memoryState().text(.user) == "Likes detailed replies")
+        #expect(try await reopened.searchMemories(.init(query: "detailed")).encodedString.contains("detailed"))
+        #expect(try await !reopened.searchMemories(.init(query: "concise")).encodedString.contains("concise"))
         try await reopened.close()
+    }
+
+    @Test func v1SnapshotMigrationKeepsEntriesAndDropsFrozenCopies() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        let path = url.appending(path: "memory.sqlite").path
+        var raw: OpaquePointer?
+        #expect(sqlite3_open(path, &raw) == SQLITE_OK)
+        let legacy = AgentMemoryState(entries: [.init(target: .user, content: "Keep this preference")])
+        let hex = try JSONEncoder().encode(legacy).map { String(format: "%02x", $0) }.joined()
+        let sql = """
+            CREATE TABLE grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY);
+            INSERT INTO grdb_migrations VALUES ('hermes-v1');
+            CREATE TABLE memory_state (id INTEGER PRIMARY KEY CHECK(id=1), data BLOB NOT NULL);
+            INSERT INTO memory_state VALUES (1,X'\(hex)');
+            CREATE TABLE snapshots (conversation_id TEXT PRIMARY KEY, content TEXT NOT NULL);
+            INSERT INTO snapshots VALUES ('legacy','Frozen private copy');
+            CREATE TABLE reviews (conversation_id TEXT PRIMARY KEY, message_id TEXT NOT NULL);
+            CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, modified REAL NOT NULL);
+            CREATE TABLE messages (id TEXT NOT NULL, session_id TEXT NOT NULL, position INTEGER NOT NULL,
+                role TEXT NOT NULL, content TEXT NOT NULL, created REAL NOT NULL,
+                PRIMARY KEY(session_id, id));
+            CREATE VIRTUAL TABLE message_fts USING fts5(content, content='messages', content_rowid='rowid', tokenize='trigram');
+            CREATE INDEX messages_session_position ON messages(session_id, position);
+            """
+        #expect(sqlite3_exec(raw, sql, nil, nil, nil) == SQLITE_OK)
+        #expect(sqlite3_close(raw) == SQLITE_OK)
+        let store = GRDBMemoryStore(directory: url)
+        #expect(try await store.memoryState().text(.user) == "Keep this preference")
+        try await store.close()
+        #expect(sqlite3_open(path, &raw) == SQLITE_OK)
+        var statement: OpaquePointer?
+        #expect(
+            sqlite3_prepare_v2(
+                raw, "SELECT count(*) FROM sqlite_master WHERE name='snapshots'", -1,
+                &statement, nil) == SQLITE_OK)
+        #expect(sqlite3_step(statement) == SQLITE_ROW)
+        #expect(sqlite3_column_int(statement, 0) == 0)
+        sqlite3_finalize(statement)
+        #expect(sqlite3_close(raw) == SQLITE_OK)
     }
 
     @Test func editingPreservesSeparateMemoryEntries() async throws {
@@ -57,10 +98,272 @@ struct HermesMemoryTests {
         let messageID = UUID()
         let result = try await store.applyReview(
             [.init(action: .add, target: .user, content: "Old assumption")], expected: state,
-            messageID: messageID, conversationID: id)
+            messageID: messageID, conversationID: id, reviewedActivityIDs: [])
         #expect(result == nil)
         #expect(try await store.lastReviewedMessage(id) == nil)
         try await store.close()
+    }
+
+    @Test func activityThresholdsReviewOneShortWindowAndReplayIsDeduplicated() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        var messages: [AgentTranscriptMessage] = []
+        for index in 0..<10 {
+            messages.append(.init(role: .user, text: "Request \(index)"))
+            messages.append(.init(role: .assistant, text: "Done \(index)"))
+        }
+        let tools = (0..<14).map { _ in
+            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[1].id, kind: .tool)
+        }
+        let reviewer = CountingMemoryReviewModel()
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: messages.prefix(18).filter { $0.role == .user }.map(\.id),
+            toolInvocations: tools, messages: Array(messages.prefix(18)), model: reviewer)
+        #expect(await reviewer.count == 0)
+        #expect(try await store.learningProgress(conversationID).turns == 9)
+        #expect(try await store.learningProgress(conversationID).tools == 14)
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [messages[18].id], toolInvocations: [],
+            messages: messages, model: reviewer)
+        try await waitUntil {
+            let count = await reviewer.count
+            let turns = try? await store.learningProgress(conversationID).turns
+            return count == 1 && turns == 0
+        }
+        #expect(await reviewer.count == 1)
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [messages[18].id], toolInvocations: tools,
+            messages: messages, model: reviewer)
+        #expect(try await store.learningProgress(conversationID).turns == 0)
+        #expect(try await store.learningProgress(conversationID).tools == 0)
+        #expect(await reviewer.count == 1)
+
+        let moreTools = (0..<15).map { _ in
+            MemoryLearningEvent(id: UUID(), sourceMessageID: messages[19].id, kind: .tool)
+        }
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [], toolInvocations: Array(moreTools.prefix(14)),
+            messages: messages, model: reviewer)
+        #expect(await reviewer.count == 1)
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [], toolInvocations: [moreTools[14]],
+            messages: messages, model: reviewer)
+        try await waitUntil {
+            let count = await reviewer.count
+            let tools = try? await store.learningProgress(conversationID).tools
+            return count == 2 && tools == 0
+        }
+        #expect(await reviewer.count == 2)
+    }
+
+    @Test func reviewPreservesActivityAddedWhileModelIsWorking() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        let first = (0..<10).map { AgentTranscriptMessage(role: .user, text: "Question \($0)") }
+        let reviewer = BlockingMemoryReviewModel()
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: first.map(\.id),
+            toolInvocations: [], messages: first, model: reviewer)
+        await reviewer.waitUntilEntered()
+        let later = AgentTranscriptMessage(role: .user, text: "Later request")
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [later.id],
+            toolInvocations: [], messages: first + [later], model: reviewer)
+        await reviewer.release()
+        try await waitUntil { (try? await store.learningProgress(conversationID).turns) == 1 }
+        #expect(try await store.learningProgress(conversationID).turns == 1)
+    }
+
+    @Test func correctionCandidatesIncludeChineseAndEnglishCommandsButExcludeAcknowledgments() {
+        #expect(MemoryModel.looksLikeCorrection("No, use yarn instead"))
+        #expect(MemoryModel.looksLikeCorrection("不要 npm，用 yarn"))
+        #expect(!MemoryModel.looksLikeCorrection("Actually looks great"))
+        #expect(!MemoryModel.looksLikeCorrection("没关系，不是问题"))
+    }
+
+    @Test func consecutiveCorrectionsReplaceScopedMemoryAndDeduplicateMessages() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        _ = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "For project A, use npm")
+        ])
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        let context = AgentTranscriptMessage(role: .user, text: "For project A, use npm")
+        let first = AgentTranscriptMessage(
+            role: .user, text: "No, use yarn instead for project A",
+            authoredText: "No, use yarn instead for project A")
+        let second = AgentTranscriptMessage(
+            role: .user, text: "不要 yarn，用 pnpm，在项目 A",
+            authoredText: "不要 yarn，用 pnpm，在项目 A")
+        let reviewer = SequencedMemoryReviewModel(replies: [
+            #"{"operations":[{"action":"replace","target":"memory","old_text":"npm","content":"For project A, use yarn"}]}"#,
+            #"{"operations":[{"action":"replace","target":"memory","old_text":"yarn","content":"For project A, use pnpm"}]}"#,
+        ])
+        memory.considerCorrection(
+            conversationID: conversationID, message: first,
+            context: [context, first], model: reviewer)
+        memory.considerCorrection(
+            conversationID: conversationID, message: second,
+            context: [context, first, second], model: reviewer)
+        try await waitUntil { (try? await store.memoryState().text(.memory)) == "For project A, use pnpm" }
+        #expect(try await store.correctionWasReviewed(first.id, conversationID: conversationID))
+        #expect(try await store.correctionWasReviewed(second.id, conversationID: conversationID))
+        memory.considerCorrection(
+            conversationID: conversationID, message: first,
+            context: [context, first], model: reviewer)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(await reviewer.count == 2)
+    }
+
+    @Test func failedOlderCorrectionCannotRetryAfterNewerCorrectionSucceeds() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        _ = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "For project A, use npm")
+        ])
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        let first = AgentTranscriptMessage(
+            role: .user, text: "No, use yarn instead", authoredText: "No, use yarn instead")
+        let second = AgentTranscriptMessage(
+            role: .user, text: "No, use pnpm instead", authoredText: "No, use pnpm instead")
+        let reviewer = FailingFirstMemoryReviewModel()
+        memory.considerCorrection(conversationID: conversationID, message: first, context: [first], model: reviewer)
+        memory.considerCorrection(conversationID: conversationID, message: second, context: [second], model: reviewer)
+        try await waitUntil { (try? await store.memoryState().text(.memory)) == "For project A, use pnpm" }
+        #expect(await reviewer.count == 2)
+        memory.considerCorrection(conversationID: conversationID, message: first, context: [first], model: reviewer)
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(await reviewer.count == 2)
+        #expect(try await store.memoryState().text(.memory) == "For project A, use pnpm")
+    }
+
+    @Test func oldLearningTokenCannotWriteAfterDisableAndReenable() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let old = try #require(await memory.session(UUID()))
+        let token = try #require(memory.learningToken(for: old.context))
+        await memory.setEnabled(false)
+        await memory.setEnabled(true)
+        let message = AgentTranscriptMessage(role: .user, text: "Old run")
+        let reviewer = CountingMemoryReviewModel()
+        let conversationID = UUID()
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [message.id],
+            toolInvocations: [], messages: [message], model: reviewer,
+            sessionToken: token)
+        #expect(try await store.learningProgress(conversationID).turns == 0)
+        #expect(await reviewer.count == 0)
+        #expect(memory.learningToken(for: old.context) == nil)
+    }
+
+    @Test func editingHistoryRevokesAnInFlightCorrection() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let history = InMemoryAgentRunRepository()
+        let repository = MemoryIndexedAgentRepository(base: history, memory: memory)
+        let conversationID = UUID()
+        let message = AgentTranscriptMessage(
+            role: .user, text: "No, use yarn instead",
+            authoredText: "No, use yarn instead")
+        try await repository.createConversation(
+            .init(
+                id: conversationID, messages: [message], lastRunState: .completed))
+        let reviewer = BlockingMemoryReviewModel()
+        memory.considerCorrection(
+            conversationID: conversationID, message: message,
+            context: [message], model: reviewer)
+        await reviewer.waitUntilEntered()
+        let replacement = AgentTranscriptMessage(role: .user, text: "Use npm for this one task")
+        try await repository.truncateConversation(
+            conversationID, fromUserMessageID: message.id,
+            replacingWith: replacement)
+        await reviewer.release()
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(try await store.memoryState().entries.isEmpty)
+        #expect(try await !store.correctionWasReviewed(message.id, conversationID: conversationID))
+        let epoch = memory.learningEpoch(for: conversationID)
+        memory.invalidateLearning(for: conversationID)
+        #expect(memory.learningEpoch(for: conversationID) != epoch)
+        let session = try #require(await memory.session(conversationID))
+        let token = try #require(memory.learningToken(for: session.context))
+        await memory.recordActivity(
+            conversationID: conversationID, userMessageIDs: [message.id],
+            toolInvocations: [], messages: [message], model: reviewer,
+            sessionToken: token, historyEpoch: epoch)
+        #expect(try await store.learningProgress(conversationID).turns == 0)
+    }
+
+    @Test func historyEditWhileLoadingProgressDoesNotRecordOrReviewOldMessages() async throws {
+        let store = MemoryLifecycleStore(blocksLearningProgress: true)
+        let memory = MemoryModel(storage: store)
+        await memory.setEnabled(true)
+        let conversationID = UUID()
+        let messages = (0..<10).map { AgentTranscriptMessage(role: .user, text: "Question \($0)") }
+        let reviewer = CountingMemoryReviewModel()
+        let task = Task {
+            await memory.recordActivity(
+                conversationID: conversationID, userMessageIDs: messages.map(\.id),
+                toolInvocations: [], messages: messages, model: reviewer)
+        }
+        await store.waitUntilLearningProgressEntered()
+        memory.invalidateLearning(for: conversationID)
+        await store.releaseLearningProgress()
+        await task.value
+        #expect(await store.learningProgress(conversationID).turns == 0)
+        #expect(await reviewer.count == 0)
+    }
+
+    @Test func completedToolBatchIsCountedBeforeRunFinishes() {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        var counts: [Int] = []
+        conversation.memoryToolBatchFinished = { tools, _ in counts.append(tools.count) }
+        conversation.handle(.runStarted(.init(id: runID, state: .running, startedAt: .now)))
+        for index in 0..<15 {
+            let call = AgentToolCall(id: "call-\(index)", name: "example", arguments: .object([:]))
+            let invocation = AgentToolInvocation(runID: runID, call: call)
+            conversation.handle(.toolStarted(invocation))
+            conversation.handle(.toolFinished(invocation, AgentToolResult(callID: call.id, content: "done")))
+        }
+        conversation.handle(.turnStarted(index: 1))
+        #expect(counts == [15])
+    }
+
+    @Test func memoryToolsDoNotCountTowardLearningThreshold() {
+        let conversation = ConversationModel()
+        let runID = UUID()
+        var batches: [[MemoryLearningEvent]] = []
+        conversation.memoryToolBatchFinished = { tools, _ in batches.append(tools) }
+        conversation.handle(.runStarted(.init(id: runID, state: .running, startedAt: .now)))
+        for name in ["memory", "memory_search", "session_search", "example"] {
+            let call = AgentToolCall(id: "call-\(name)", name: name, arguments: .object([:]))
+            let invocation = AgentToolInvocation(runID: runID, call: call)
+            conversation.handle(.toolStarted(invocation))
+            conversation.handle(.toolFinished(invocation, AgentToolResult(callID: call.id, content: "done")))
+        }
+        conversation.handle(.turnStarted(index: 1))
+        #expect(batches.count == 1)
+        #expect(batches.first?.count == 1)
     }
 
     @Test func searchSupportsChineseAndRemovesDeletedHistory() async throws {
@@ -271,21 +574,43 @@ struct HermesMemoryTests {
 }
 
 private actor MemoryLifecycleStore: MemoryPersisting {
+    func prepareSession(_ conversationID: UUID) {}
     private var memory = AgentMemoryState()
     private var historyReplacements: [[StoredAgentConversation]] = []
     private let blocksApply: Bool
+    private let blocksLearningProgress: Bool
     private var applyEntered = false
     private var applyReleased = false
     private var historyReplacementWaiters: [Int: [CheckedContinuation<Void, Never>]] = [:]
     private var applyEntryWaiters: [CheckedContinuation<Void, Never>] = []
     private var applyReleaseWaiters: [CheckedContinuation<Void, Never>] = []
+    private var learningProgressEntered = false
+    private var learningProgressReleased = false
+    private var learningProgressEntryWaiters: [CheckedContinuation<Void, Never>] = []
+    private var learningProgressReleaseWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var reviewApplyCount = 0
     private(set) var memoryStateCallCount = 0
+    private var progress = MemoryLearningProgress()
 
     var historyReplacementCount: Int { historyReplacements.count }
     var lastHistory: [StoredAgentConversation]? { historyReplacements.last }
 
-    init(blocksApply: Bool = false) { self.blocksApply = blocksApply }
+    init(blocksApply: Bool = false, blocksLearningProgress: Bool = false) {
+        self.blocksApply = blocksApply
+        self.blocksLearningProgress = blocksLearningProgress
+    }
+
+    func waitUntilLearningProgressEntered() async {
+        if learningProgressEntered { return }
+        await withCheckedContinuation { learningProgressEntryWaiters.append($0) }
+    }
+
+    func releaseLearningProgress() {
+        learningProgressReleased = true
+        let waiters = learningProgressReleaseWaiters
+        learningProgressReleaseWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
 
     func waitForHistoryReplacementCount(_ count: Int) async {
         guard historyReplacements.count < count else { return }
@@ -322,7 +647,6 @@ private actor MemoryLifecycleStore: MemoryPersisting {
         memory = try memory.applying(operations)
         return memory
     }
-    func snapshot(for id: UUID) -> String { memory.prompt }
     func replaceHistory(_ conversations: [StoredAgentConversation]) {
         historyReplacements.append(conversations)
         let readyCounts = historyReplacementWaiters.keys.filter { $0 <= historyReplacements.count }
@@ -331,13 +655,42 @@ private actor MemoryLifecycleStore: MemoryPersisting {
     }
     func searchSessions(_ request: AgentSessionSearchRequest) -> AgentJSONValue { .array([]) }
     func lastReviewedMessage(_ id: UUID) -> UUID? { nil }
-    func markReviewed(_ messageID: UUID, conversationID: UUID) {}
+    func recordActivity(
+        _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
+        conversationID: UUID
+    ) -> MemoryLearningProgress {
+        progress.events.append(.init(id: id, sourceMessageID: sourceMessageID, kind: kind))
+        if kind == .turn { progress.turns += 1 } else { progress.tools += 1 }
+        return progress
+    }
+    func learningProgress(_ id: UUID) async -> MemoryLearningProgress {
+        if blocksLearningProgress {
+            learningProgressEntered = true
+            let waiters = learningProgressEntryWaiters
+            learningProgressEntryWaiters.removeAll()
+            for waiter in waiters { waiter.resume() }
+            if !learningProgressReleased {
+                await withCheckedContinuation { learningProgressReleaseWaiters.append($0) }
+            }
+        }
+        return progress
+    }
+    func correctionWasReviewed(_ messageID: UUID, conversationID: UUID) -> Bool { false }
+    func applyCorrection(
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState,
+        messageID: UUID, conversationID: UUID
+    ) throws -> AgentMemoryState? {
+        guard memory == expected else { return nil }
+        if !operations.isEmpty { memory = try memory.applying(operations) }
+        return memory
+    }
     func applyReview(
-        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID,
+        conversationID: UUID, reviewedActivityIDs: [UUID]
     ) throws -> AgentMemoryState? {
         reviewApplyCount += 1
         guard memory == expected else { return nil }
-        memory = try memory.applying(operations)
+        if !operations.isEmpty { memory = try memory.applying(operations) }
         return memory
     }
     func replaceTarget(_ target: AgentMemoryTarget, text: String) -> AgentMemoryState { memory }
@@ -378,6 +731,40 @@ private actor BlockingMemoryReviewModel: AgentModelCompleting {
     }
 }
 
+private actor CountingMemoryReviewModel: AgentModelCompleting {
+    private(set) var count = 0
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        count += 1
+        return [.textDelta(#"{"operations":[]}"#), .finished(.completed)]
+    }
+}
+
+private actor SequencedMemoryReviewModel: AgentModelCompleting {
+    private var replies: [String]
+    private(set) var count = 0
+    init(replies: [String]) { self.replies = replies }
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        count += 1
+        guard !replies.isEmpty else { throw CancellationError() }
+        return [.textDelta(replies.removeFirst()), .finished(.completed)]
+    }
+}
+
+private actor FailingFirstMemoryReviewModel: AgentModelCompleting {
+    private(set) var count = 0
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        count += 1
+        if count == 1 { throw MemoryReviewTestFailure() }
+        let result =
+            count == 2
+            ? #"{"operations":[{"action":"replace","target":"memory","old_text":"npm","content":"For project A, use pnpm"}]}"#
+            : #"{"operations":[{"action":"replace","target":"memory","old_text":"pnpm","content":"For project A, use yarn"}]}"#
+        return [.textDelta(result), .finished(.completed)]
+    }
+}
+
+private struct MemoryReviewTestFailure: Error {}
+
 @MainActor
 private func waitUntil(
     timeout: Duration = .seconds(10), _ condition: @escaping @MainActor () async -> Bool
@@ -399,12 +786,12 @@ private struct MemoryLifecycleTestTimeout: Error {}
 
 private struct FailingDestroyStore: MemoryPersisting {
     let base: GRDBMemoryStore
+    func prepareSession(_ conversationID: UUID) async throws { try await base.prepareSession(conversationID) }
     func rebuildHistoryIndex() async throws { try await base.rebuildHistoryIndex() }
     func memoryState() async throws -> AgentMemoryState { try await base.memoryState() }
     func applyMemory(_ operations: [AgentMemoryOperation]) async throws -> AgentMemoryState {
         try await base.applyMemory(operations)
     }
-    func snapshot(for id: UUID) async throws -> String { try await base.snapshot(for: id) }
     func replaceHistory(_ conversations: [StoredAgentConversation]) async throws {
         try await base.replaceHistory(conversations)
     }
@@ -412,13 +799,33 @@ private struct FailingDestroyStore: MemoryPersisting {
         try await base.searchSessions(request)
     }
     func lastReviewedMessage(_ id: UUID) async throws -> UUID? { try await base.lastReviewedMessage(id) }
-    func markReviewed(_ messageID: UUID, conversationID: UUID) async throws {
-        try await base.markReviewed(messageID, conversationID: conversationID)
+    func recordActivity(
+        _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
+        conversationID: UUID
+    ) async throws -> MemoryLearningProgress {
+        try await base.recordActivity(
+            id, sourceMessageID: sourceMessageID, kind: kind,
+            conversationID: conversationID)
+    }
+    func learningProgress(_ id: UUID) async throws -> MemoryLearningProgress { try await base.learningProgress(id) }
+    func correctionWasReviewed(_ messageID: UUID, conversationID: UUID) async throws -> Bool {
+        try await base.correctionWasReviewed(messageID, conversationID: conversationID)
+    }
+    func applyCorrection(
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState,
+        messageID: UUID, conversationID: UUID
+    ) async throws -> AgentMemoryState? {
+        try await base.applyCorrection(
+            operations, expected: expected, messageID: messageID,
+            conversationID: conversationID)
     }
     func applyReview(
-        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID,
+        conversationID: UUID, reviewedActivityIDs: [UUID]
     ) async throws -> AgentMemoryState? {
-        try await base.applyReview(operations, expected: expected, messageID: messageID, conversationID: conversationID)
+        try await base.applyReview(
+            operations, expected: expected, messageID: messageID,
+            conversationID: conversationID, reviewedActivityIDs: reviewedActivityIDs)
     }
     func replaceTarget(_ target: AgentMemoryTarget, text: String) async throws -> AgentMemoryState {
         try await base.replaceTarget(target, text: text)

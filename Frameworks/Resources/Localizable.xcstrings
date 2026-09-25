@@ -868,6 +868,23 @@
         }
       }
     },
+    "%lld entries · %lld characters" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld条·%lld个字符"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld條·%lld個字元"
+          }
+        }
+      }
+    },
     "%lld exported, %lld failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3955,19 +3972,19 @@
         }
       }
     },
-    "Automatic learning uses your configured model and may incur API charges." : {
+    "Automatic learning reviews completed requests after 10 turns or 15 tool calls. Corrections are reviewed sooner. Your configured model may incur API charges." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动学习会使用已配置的模型，可能产生API费用。"
+            "value" : "自动学习会在完成10轮请求或15次工具调用后审查对话；纠正会更早审查。使用所配置的模型可能产生API费用。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動學習會使用已設定的模型，可能產生API費用。"
+            "value" : "自動學習會在完成10輪請求或15次工具呼叫後審查對話；更正會更早審查。使用所設定的模型可能產生API費用。"
           }
         }
       }
@@ -8507,19 +8524,19 @@
         }
       }
     },
-    "Delete saved memory, snapshots, learning progress, and search indexes, then turn off Memory. Skills and chat history are kept. Re-enabling Memory can rebuild memories from old chats." : {
+    "Delete saved memory, learning progress, and search indexes, then turn off Memory. Skills and chat history are kept. Re-enabling Memory can rebuild memories from old chats." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "删除已保存的记忆、快照、学习进度和搜索索引，并关闭记忆功能。技能和聊天记录将保留。重新启用后，可能从旧聊天中重新建立记忆。"
+            "value" : "删除已保存的记忆、学习进度和搜索索引，然后关闭记忆功能。技能和聊天记录会保留。重新启用后，可能从旧聊天中重新建立记忆。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "刪除已儲存的記憶、快照、學習進度和搜尋索引，並關閉記憶功能。技能和聊天紀錄將保留。重新啟用後，可能從舊聊天中重新建立記憶。"
+            "value" : "刪除已儲存的記憶、學習進度和搜尋索引，然後關閉記憶功能。技能和聊天紀錄會保留。重新啟用後，可能從舊聊天中重新建立記憶。"
           }
         }
       }
@@ -15219,23 +15236,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "記憶體利用率"
-          }
-        }
-      }
-    },
-    "Memory is saved on this device. New conversations receive a fixed snapshot of your notes and profile." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "记忆保存在此设备上。新对话会使用笔记和用户资料的固定快照。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "記憶儲存在此裝置上。新對話會使用筆記和使用者資料的固定快照。"
           }
         }
       }
@@ -22920,6 +22920,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已儲存"
+          }
+        }
+      }
+    },
+    "Saved memory stays on this device. The assistant searches it when earlier preferences or decisions are relevant." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记忆保存在此设备上。涉及以往偏好或决定时，助理会按需搜索。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記憶保存在此裝置上。涉及以往偏好或決定時，助理會視需要搜尋。"
           }
         }
       }

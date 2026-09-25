@@ -364,6 +364,22 @@ extension AppStrings {
             "Hermes Memory"
         }
 
+        public static var hermesPolicyDescription: LocalizedStringResource {
+            "Saved memory stays on this device. The assistant searches it when earlier preferences or decisions are relevant."
+        }
+
+        public static var hermesLearningDescription: LocalizedStringResource {
+            "Automatic learning reviews completed requests after 10 turns or 15 tool calls. Corrections are reviewed sooner. Your configured model may incur API charges."
+        }
+
+        public static var hermesDestroyDescription: LocalizedStringResource {
+            "Delete saved memory, learning progress, and search indexes, then turn off Memory. Skills and chat history are kept. Re-enabling Memory can rebuild memories from old chats."
+        }
+
+        public static func hermesMemoryUsage(entries: Int, characters: Int) -> LocalizedStringResource {
+            "\(entries) entries · \(characters) characters"
+        }
+
         public static var hideSecret: LocalizedStringResource {
             "Hide Secret"
         }

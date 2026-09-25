@@ -1006,6 +1006,11 @@ public final class ConversationModel: Identifiable {
     /// Fired when a run reaches a terminal state, so `AppModel` can title the
     /// conversation without the conversation knowing what a title costs.
     public var runDidFinish: (() -> Void)?
+    public var memoryUserAccepted: ((AgentTranscriptMessage, [AgentTranscriptMessage]) -> Void)?
+    public var memoryRunFinished: ((AgentRunSummary, [UUID], [MemoryLearningEvent], [AgentTranscriptMessage]) -> Void)?
+    public var memoryToolBatchFinished: (([MemoryLearningEvent], [AgentTranscriptMessage]) -> Void)?
+    private var startedMemoryTools: [UUID: [UUID: UUID]] = [:]
+    private var finishedMemoryTools: [UUID: [UUID: UUID]] = [:]
 
     public init(
         id: UUID = UUID(), messages: [ChatMessage] = [],
@@ -2832,6 +2837,11 @@ public final class ConversationModel: Identifiable {
                 messageRunIDs[prompt.id] = adoptedRun.id
             }
             runSummaries[adoptedRun.id] = adoptedRun
+            if let prompt = transcript.last, prompt.role == .user,
+                messageRunIDs[prompt.id] == adoptedRun.id
+            {
+                memoryUserAccepted?(prompt, transcript)
+            }
         case .runFinished(let run):
             var run = run
             if let current = runSummaries[run.id], run.startedAt < current.startedAt {
@@ -2843,8 +2853,24 @@ public final class ConversationModel: Identifiable {
             publishAllStagedTools()
             settleStreamingPresentation(for: run.id)
             runSummaries[run.id] = run
+            let userIDs =
+                run.state == .completed
+                ? transcript.filter { $0.role == .user && messageRunIDs[$0.id] == run.id }.map(\.id) : []
+            let tools = (startedMemoryTools.removeValue(forKey: run.id) ?? [:]).map {
+                MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value, kind: .tool)
+            }
+            finishedMemoryTools.removeValue(forKey: run.id)
+            memoryRunFinished?(run, userIDs, tools, transcript)
             if activeRunID == run.id { activeRunID = nil }
         case .turnStarted:
+            if let activeRunID, let finished = finishedMemoryTools.removeValue(forKey: activeRunID),
+                !finished.isEmpty
+            {
+                memoryToolBatchFinished?(
+                    finished.map {
+                        MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value, kind: .tool)
+                    }, transcript)
+            }
             activeReasoningMessageID = nil
         case .turnFinished:
             activeReasoningMessageID = nil
@@ -2925,6 +2951,7 @@ public final class ConversationModel: Identifiable {
                     createdAt: message.createdAt
                 ))
             transcript.append(message)
+            memoryUserAccepted?(message, transcript)
             contextEstimateTracker.upsert(message)
             publishContextEstimateImmediately()
         case .messageFinished(let message):
@@ -2958,7 +2985,12 @@ public final class ConversationModel: Identifiable {
             updatedAt = .now
         case .toolProposed(let invocation, let descriptor):
             stageTool(invocation, descriptor: descriptor)
-        case .toolStarted(let invocation): setToolState(invocation.id, .running)
+        case .toolStarted(let invocation):
+            if !["memory", "memory_search", "session_search"].contains(invocation.call.name) {
+                startedMemoryTools[invocation.runID, default: [:]][invocation.id] =
+                    invocation.sourceMessageID ?? activeTurnMessageID ?? transcript.last?.id ?? invocation.runID
+            }
+            setToolState(invocation.id, .running)
         // The card only, and the card's state is left alone: this is a call
         // still running, showing its work. Nothing here reaches `transcript` —
         // the model is owed one result per call, and it gets that from
@@ -2966,6 +2998,14 @@ public final class ConversationModel: Identifiable {
         case .toolProgress(let invocation, let partial):
             updateToolCard(invocation.id) { $0.result = partial }
         case .toolFinished(let invocation, let result):
+            if let source = startedMemoryTools[invocation.runID]?[invocation.id] {
+                let reviewedSource =
+                    result.isProviderNative
+                    ? source
+                    : AgentTranscriptMessage.toolResultID(runID: invocation.runID, callID: result.callID)
+                startedMemoryTools[invocation.runID]?[invocation.id] = reviewedSource
+                finishedMemoryTools[invocation.runID, default: [:]][invocation.id] = reviewedSource
+            }
             updateToolCard(invocation.id) { card in
                 card.result = result
                 // A denied call did not fail — someone said no. The denial is

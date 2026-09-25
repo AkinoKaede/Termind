@@ -9,7 +9,7 @@ import Testing
 struct AssistantExecutionControllerTests {
     @Test
     func captureFreezesTurnContextAndConfigurationAcrossMemoryPreparation() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -34,7 +34,7 @@ struct AssistantExecutionControllerTests {
                 conversation,
                 context: SessionContext(hostName: "captured-host", workingDirectory: "/captured"),
                 terminalSuggestionsAvailable: true))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
 
         conversation.permissionMode = .fullAccess
         conversation.reasoningEffort = .high
@@ -55,7 +55,7 @@ struct AssistantExecutionControllerTests {
         #expect(registryCapture.catalog?.catalogBlock.contains("old-skill") == true)
 
         conversation.stop()
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
         try await waitUntil { !conversation.isPreparingAgentRun }
         #expect(conversation.runState == .interrupted)
         let interrupted = try #require(await repository.snapshots.last)
@@ -65,7 +65,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func credentialAddedAfterCaptureDoesNotReviveTheTurn() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -75,9 +75,9 @@ struct AssistantExecutionControllerTests {
         conversation.composer.draft = "inspect"
 
         #expect(controller.sendAgentDraft(conversation))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
         ai.setSecret("late-secret", for: provider.credentialRef)
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
 
         try await waitUntil { !conversation.isPreparingAgentRun }
         #expect(conversation.runState == .failed)
@@ -158,7 +158,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func missingCredentialAfterMemoryPreparationProjectsOnlyAfterSaveCompletes() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository(blocksFirstSave: true)
@@ -168,8 +168,8 @@ struct AssistantExecutionControllerTests {
         conversation.composer.draft = "inspect"
 
         #expect(controller.sendAgentDraft(conversation))
-        await memoryStore.waitUntilSnapshotEntered()
-        await memoryStore.releaseSnapshot()
+        await memoryStore.waitUntilPreparationEntered()
+        await memoryStore.releasePreparation()
         await repository.waitUntilSaveEntered()
 
         #expect(conversation.isPreparingAgentRun)
@@ -232,7 +232,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func immediateStopInvalidatesPreparationBeforeTheMemoryBarrierIsReleased() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -243,12 +243,12 @@ struct AssistantExecutionControllerTests {
         conversation.composer.draft = "inspect"
 
         #expect(controller.sendAgentDraft(conversation))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
         conversation.permissionMode = .fullAccess
         conversation.stop()
         conversation.stop()
 
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
         try await waitUntil { !conversation.isPreparingAgentRun }
         #expect(conversation.runState == .interrupted)
         #expect(!conversation.isStreaming)
@@ -375,7 +375,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func selectingAnotherConversationDoesNotCancelPreparation() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -387,12 +387,12 @@ struct AssistantExecutionControllerTests {
             store: AssistantConversationStore(conversations: [preparing, visible]))
 
         #expect(controller.sendAgentDraft(preparing))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
         library.select(visible.id)
         #expect(library.selectedConversation === visible)
         #expect(preparing.isPreparingAgentRun)
 
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
         try await waitUntil { !preparing.isPreparingAgentRun }
         #expect(preparing.runState == .failed)
         await repository.waitUntilSnapshot(state: .failed)
@@ -518,7 +518,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func manualCompactionIsRefusedWhileRunPreparationIsActive() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let controller = makeController(memory: memory)
@@ -526,7 +526,7 @@ struct AssistantExecutionControllerTests {
         conversation.composer.draft = "inspect"
 
         #expect(controller.sendAgentDraft(conversation))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
         #expect(conversation.isPreparingAgentRun)
 
         let didCompact = await controller.compact(conversation)
@@ -535,13 +535,13 @@ struct AssistantExecutionControllerTests {
         #expect(conversation.isPreparingAgentRun)
 
         conversation.stop()
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
         try await waitUntil { !conversation.isPreparingAgentRun }
     }
 
     @Test
     func memoryDisabledDuringPreparationRevokesTheCapturedSession() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -550,19 +550,19 @@ struct AssistantExecutionControllerTests {
         conversation.composer.draft = "inspect"
 
         #expect(controller.sendAgentDraft(conversation))
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
         await memory.setEnabled(false)
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
 
         try await waitUntil { !conversation.isPreparingAgentRun }
         #expect(!memory.isEnabled)
         #expect(conversation.runState == .failed)
-        #expect(await memoryStore.snapshotCallCount == 1)
+        #expect(await memoryStore.preparationCallCount == 1)
     }
 
     @Test
     func memoryEnabledAfterCaptureIsNotAddedToTheTurn() async {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         let controller = makeController(memory: memory)
         let conversation = ConversationModel()
@@ -571,7 +571,7 @@ struct AssistantExecutionControllerTests {
         #expect(controller.sendAgentDraft(conversation))
         #expect(conversation.transcript.last?.contextSnapshot?.memorySessionID == nil)
         await memory.setEnabled(true)
-        #expect(await memoryStore.snapshotCallCount == 0)
+        #expect(await memoryStore.preparationCallCount == 0)
     }
 
     @Test
@@ -717,7 +717,7 @@ struct AssistantExecutionControllerTests {
 
     @Test
     func cancellationAfterSuccessfulEditAdoptsTheInterruptedRunProvenance() async throws {
-        let memoryStore = SnapshotBarrierMemoryStore()
+        let memoryStore = PreparationBarrierMemoryStore()
         let memory = MemoryModel(storage: memoryStore)
         await memory.setEnabled(true)
         let repository = RecordingAgentRunRepository()
@@ -732,10 +732,10 @@ struct AssistantExecutionControllerTests {
         #expect(try await controller.performAgentEdit(prepared, in: conversation, operations: operations))
         let edited = try #require(conversation.transcript.first)
         #expect(conversation.messageRunIDs[edited.id] == edited.id)
-        await memoryStore.waitUntilSnapshotEntered()
+        await memoryStore.waitUntilPreparationEntered()
 
         let cancellation = controller.cancelPendingRuns()
-        await memoryStore.releaseSnapshot()
+        await memoryStore.releasePreparation()
         await cancellation.value
 
         let interrupted = try #require(await repository.snapshots.last)
@@ -826,27 +826,27 @@ private final class RegistryCapture {
     }
 }
 
-private actor SnapshotBarrierMemoryStore: MemoryPersisting {
+private actor PreparationBarrierMemoryStore: MemoryPersisting {
     private var entered = false
     private var released = false
     private var entryWaiters: [CheckedContinuation<Void, Never>] = []
     private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
-    private(set) var snapshotCallCount = 0
+    private(set) var preparationCallCount = 0
 
-    func waitUntilSnapshotEntered() async {
+    func waitUntilPreparationEntered() async {
         if entered { return }
         await withCheckedContinuation { entryWaiters.append($0) }
     }
 
-    func releaseSnapshot() {
+    func releasePreparation() {
         released = true
         let waiters = releaseWaiters
         releaseWaiters.removeAll()
         for waiter in waiters { waiter.resume() }
     }
 
-    func snapshot(for conversationID: UUID) async throws -> String {
-        snapshotCallCount += 1
+    func prepareSession(_ conversationID: UUID) async throws {
+        preparationCallCount += 1
         entered = true
         let waiters = entryWaiters
         entryWaiters.removeAll()
@@ -854,8 +854,17 @@ private actor SnapshotBarrierMemoryStore: MemoryPersisting {
         if !released {
             await withCheckedContinuation { releaseWaiters.append($0) }
         }
-        return "captured memory"
     }
+    func learningProgress(_ conversationID: UUID) -> MemoryLearningProgress { .init() }
+    func recordActivity(
+        _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
+        conversationID: UUID
+    ) -> MemoryLearningProgress { .init() }
+    func correctionWasReviewed(_ messageID: UUID, conversationID: UUID) -> Bool { false }
+    func applyCorrection(
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState,
+        messageID: UUID, conversationID: UUID
+    ) -> AgentMemoryState? { expected }
 
     func memoryState() -> AgentMemoryState { AgentMemoryState() }
     func applyMemory(_ operations: [AgentMemoryOperation]) -> AgentMemoryState { AgentMemoryState() }
@@ -866,7 +875,7 @@ private actor SnapshotBarrierMemoryStore: MemoryPersisting {
     func markReviewed(_ messageID: UUID, conversationID: UUID) {}
     func applyReview(
         _ operations: [AgentMemoryOperation], expected: AgentMemoryState,
-        messageID: UUID, conversationID: UUID
+        messageID: UUID, conversationID: UUID, reviewedActivityIDs: [UUID]
     ) -> AgentMemoryState? { expected }
     func replaceTarget(_ target: AgentMemoryTarget, text: String) -> AgentMemoryState { AgentMemoryState() }
     func close() {}
