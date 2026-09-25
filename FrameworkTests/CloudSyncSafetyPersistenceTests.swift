@@ -248,32 +248,64 @@ struct CloudSyncSafetyPersistenceTests {
     }
 
     @Test
-    func version30StoreMigratesAdditivelyAndLegacyQuarantineIsArchivedUnderItsOriginalScope() throws {
+    func version30StoreMigratesAndDiscardsRetiredQuarantineTables() throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("Legacy.store")
         try writeVersion30(to: url)
         let container = try TermindPersistence.makeContainer(url: url)
         let context = container.mainContext
-        let vault = VaultSyncJournal(context: context)
-        let settings = SettingsSyncJournal(context: context)
-        let metrics = MetricsSyncJournal(context: context)
-        try context.commit {
-            try vault.importLegacyQuarantine(into: scope)
-            try settings.importLegacyQuarantine(into: scope)
-            try metrics.importLegacyQuarantine(into: scope)
-        }
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        #expect(try safety.blockedRecordNames() == ["vault-legacy", "settings-legacy", "metrics-legacy"])
-        #expect(try safety.entry(recordName: "vault-legacy")?.payloadData == Data([3, 0]))
-        #expect(try safety.recovery().requiresRefetch)
-        #expect(try context.fetchCount(FetchDescriptor<PersistentVaultSyncQuarantine>()) == 0)
-        #expect(try context.fetchCount(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()) == 0)
-        #expect(try context.fetchCount(FetchDescriptor<PersistentMetricsSyncQuarantine>()) == 0)
+        #expect(try safety.blockedRecordNames().isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Existing data"])
         #expect(!TermindSchemaV30.models.contains { $0 == PersistentCloudSyncQuarantine.self })
         #expect(TermindSchemaV31.models.contains { $0 == PersistentCloudSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV39.versionIdentifier)
+        #expect(!TermindSchemaV40.models.contains { $0 == PersistentVaultSyncQuarantine.self })
+        #expect(!TermindSchemaV40.models.contains { $0 == PersistentAIConfigurationSyncQuarantine.self })
+        #expect(!TermindSchemaV40.models.contains { $0 == PersistentMetricsSyncQuarantine.self })
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV40.versionIdentifier)
+    }
+
+    @Test
+    func version39StoreDropsRetiredTablesAndPreservesScopedSyncState() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Version39.store")
+        let testScope = scope
+        let recordName = "v1/device/00000000-0000-0000-0000-000000000001"
+        do {
+            let schema = Schema(versionedSchema: TermindSchemaV39.self)
+            let configuration = ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let context = container.mainContext
+            context.insert(PersistentHostGroup(HostGroup(name: "Preserved group")))
+            context.insert(
+                PersistentVaultSyncQuarantine(recordName: "old-vault", payloadData: Data([1]), reason: "old"))
+            context.insert(
+                PersistentAIConfigurationSyncQuarantine(
+                    recordName: "old-settings", payloadData: Data([2]), reason: "old"))
+            context.insert(
+                PersistentMetricsSyncQuarantine(recordName: "old-metrics", payloadData: Data([3]), reason: "old"))
+            try CloudSyncSafetyStore(context: context, scope: testScope).quarantine(
+                recordName: "current", payloadData: Data([4]), reason: "current")
+            let state = PersistentCloudSyncRecordState(scope: testScope, recordName: recordName)
+            state.wasPresent = true
+            state.legacyDeletion = try JSONEncoder().encode(VaultVersion.baseline(writerID: UUID()))
+            context.insert(state)
+            try context.save()
+        }
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        let context = migrated.mainContext
+        #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Preserved group"])
+        #expect(try CloudSyncSafetyStore(context: context, scope: testScope).blockedRecordNames() == ["current"])
+        let state = try #require(
+            context.fetch(FetchDescriptor<PersistentCloudSyncRecordState>()).first {
+                $0.recordName == recordName
+            })
+        #expect(state.wasPresent)
+        #expect(state.legacyDeletion != nil)
+        #expect(try CloudSyncRecordStateStore(context: context, scope: testScope).pendingChanges([]).isEmpty)
     }
 
     private func writeInterruptedFetch(
@@ -298,12 +330,15 @@ struct CloudSyncSafetyPersistenceTests {
         let container = try ModelContainer(for: schema, configurations: [configuration])
         let context = container.mainContext
         context.insert(PersistentHostGroup(HostGroup(name: "Existing data")))
-        try VaultSyncJournal(context: context).quarantine(
-            recordName: "vault-legacy", payloadData: Data([3, 0]), reason: "legacy error")
-        try SettingsSyncJournal(context: context).quarantine(
-            recordName: "settings-legacy", payloadData: Data([3, 0]), reason: "legacy error")
-        try MetricsSyncJournal(context: context).quarantine(
-            recordName: "metrics-legacy", payloadData: Data([3, 0]), reason: "legacy error")
+        context.insert(
+            PersistentVaultSyncQuarantine(
+                recordName: "vault-legacy", payloadData: Data([3, 0]), reason: "legacy error"))
+        context.insert(
+            PersistentAIConfigurationSyncQuarantine(
+                recordName: "settings-legacy", payloadData: Data([3, 0]), reason: "legacy error"))
+        context.insert(
+            PersistentMetricsSyncQuarantine(
+                recordName: "metrics-legacy", payloadData: Data([3, 0]), reason: "legacy error"))
         try context.save()
     }
 

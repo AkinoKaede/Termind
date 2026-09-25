@@ -178,27 +178,21 @@ struct CloudSyncPhysicalDeletionTests {
     }
 
     @Test
-    func vaultPurgeRemovesAttributedLegacyHistoryAndDeviceQuarantineOnlyInActiveScope() async throws {
+    func vaultPurgeRemovesScopedQuarantineOnlyInActiveScope() async throws {
         let fixture = try CloudSyncSafetyFixture(category: .vault)
         defer { fixture.stop() }
-        let state = try VaultSyncJournal(context: fixture.container.mainContext).state()
-        state.boundUserRecordName = "current-user"
-        fixture.defaults.set("Test", forKey: SettingsKey.vaultSyncEnvironment)
+        try await fixture.start()
+        let scope = try #require(fixture.lifecycle.scope)
+        let safety = CloudSyncSafetyStore(context: fixture.container.mainContext, scope: scope)
         let legacyNames = [
             HistoryRecordKey(kind: .connectionHistory, id: UUID()).recordName,
             HistoryRecordKey(kind: .device, id: UUID()).recordName,
         ]
         for name in legacyNames {
-            fixture.container.mainContext.insert(
-                PersistentVaultSyncQuarantine(
-                    recordName: name, payloadData: Data(repeating: 7, count: 32), reason: "legacy"))
+            try safety.quarantine(
+                recordName: name, payloadData: Data(repeating: 7, count: 32), reason: "legacy")
         }
         try fixture.container.mainContext.save()
-        try await fixture.start()
-        let scope = try #require(fixture.lifecycle.scope)
-        let safety = CloudSyncSafetyStore(context: fixture.container.mainContext, scope: scope)
-        #expect(
-            try fixture.container.mainContext.fetchCount(FetchDescriptor<PersistentVaultSyncQuarantine>()) == 0)
         for name in legacyNames { #expect(try safety.entry(recordName: name) != nil) }
 
         var otherScope = scope
@@ -931,7 +925,7 @@ struct CloudSyncPhysicalDeletionTests {
     }
 
     @Test
-    func obsoleteVaultCopiesAreDeletedWithoutImportingOrApplyingTheirDeletionEvents() async throws {
+    func obsoleteVaultCopiesAreIgnoredWithoutImportingOrApplyingTheirDeletionEvents() async throws {
         let fixture = try CloudSyncSafetyFixture(category: .vault)
         defer { fixture.stop() }
         try await fixture.start()
@@ -961,18 +955,10 @@ struct CloudSyncPhysicalDeletionTests {
         #expect(try context.fetchCount(FetchDescriptor<PersistentConnectionHistoryEntry>()) == 1)
         #expect(try context.fetchCount(FetchDescriptor<PersistentDeviceRecord>()) == 1)
         #expect(fixture.remoteApplyCount == 0)
-        #expect(try safety.blockedRecordNames().isEmpty)
-        let batch = try #require(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }))
-        #expect(Set(batch.recordIDsToDelete) == Set(oldRecords.map(\.recordID)))
-        #expect(batch.recordsToSave.isEmpty)
-        // If the obsolete copies reappear after handoff, the first result cannot retire
-        // the newly observed cleanup requirement even when ignored old-zone deletion events
-        // share that fetched batch and the journal version is unchanged.
+        #expect(try safety.blockedRecordNames() == Set(oldRecords.map { $0.recordID.recordName }))
+        #expect(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }) == nil)
+        #expect(fixture.batch(oldRecords.map { .saveRecord($0.recordID) }) == nil)
         try fixture.receive(oldRecords, oldRecords.map(\.recordID))
-        try fixture.sent(.init(savedRecords: [], failedRecordSaves: [], deletedRecordIDs: batch.recordIDsToDelete))
-        let retry = try #require(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }))
-        #expect(Set(retry.recordIDsToDelete) == Set(oldRecords.map(\.recordID)))
-        try fixture.sent(.init(savedRecords: [], failedRecordSaves: [], deletedRecordIDs: retry.recordIDsToDelete))
         #expect(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }) == nil)
 
         let activeZone = CKRecordZone.ID(zoneName: ConnectionHistorySyncCoordinator.zoneName)
@@ -988,12 +974,12 @@ struct CloudSyncPhysicalDeletionTests {
     }
 
     @Test
-    func readableLegacyVaultHistoryAndDeviceCopiesAreDurablyDeletedForLiveAndTombstoneStates() async throws {
+    func oldVaultHistoryAndDeviceCopiesAndQueuedDeletesStaySkippedAfterRestart() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("LegacyCopies.store")
-        var acknowledgedScope: CloudSyncScope?
+        var savedScope: CloudSyncScope?
         var recordNames = Set<String>()
 
         do {
@@ -1023,30 +1009,38 @@ struct CloudSyncPhysicalDeletionTests {
                     recordID: .init(recordName: envelope.key.recordName, zoneID: fixture.lifecycle.zoneID))
             }
             recordNames = Set(oldRecords.map(\.recordID.recordName))
+            let scope = try #require(fixture.lifecycle.scope)
+            savedScope = scope
+            for name in recordNames {
+                let row = PersistentCloudSyncRecordState(scope: scope, recordName: name)
+                row.wasPresent = true
+                row.legacyDeletion = try JSONEncoder().encode(version)
+                context.insert(row)
+            }
+            try context.save()
+            let replica = try #require(fixture.lifecycle.store.replica)
+            let missing = try replica.missing(scope, [])
+            #expect(recordNames.isDisjoint(with: missing.deleted))
 
             try fixture.receive(oldRecords, [])
             try fixture.receive([], oldRecords.map(\.recordID))
             #expect(try context.fetchCount(FetchDescriptor<PersistentConnectionHistoryEntry>()) == 2)
             #expect(try context.fetchCount(FetchDescriptor<PersistentDeviceRecord>()) == 2)
             #expect(fixture.remoteApplyCount == 0)
-            let first = try #require(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }))
-            #expect(Set(first.recordIDsToDelete.map(\.recordName)) == recordNames)
-
-            acknowledgedScope = fixture.lifecycle.scope
+            #expect(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }) == nil)
+            #expect(fixture.batch(oldRecords.map { .saveRecord($0.recordID) }) == nil)
             fixture.lifecycle.pause()
             fixture.network.nextEngine = LifecycleEngine()
             try await fixture.start()
-            let retry = try #require(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }))
-            #expect(Set(retry.recordIDsToDelete.map(\.recordName)) == recordNames)
-            let unknownItems = Dictionary(
-                uniqueKeysWithValues: retry.recordIDsToDelete.map { ($0, CKError(.unknownItem)) })
-            try fixture.sent(
-                .init(savedRecords: [], failedRecordSaves: [], failedRecordDeletes: unknownItems))
             #expect(fixture.batch(oldRecords.map { .deleteRecord($0.recordID) }) == nil)
+            #expect(
+                try fixture.lifecycle.store.pendingChanges(scope).allSatisfy {
+                    !recordNames.contains($0.recordName)
+                })
             fixture.stop()
         }
 
-        let scope = try #require(acknowledgedScope)
+        let scope = try #require(savedScope)
         let reopened = try TermindPersistence.makeContainer(url: url)
         let records = try VaultSyncJournal(context: reopened.mainContext).cloudRecords()
         let pending = try CloudSyncRecordStateStore(context: reopened.mainContext, scope: scope).pendingChanges(records)
@@ -1054,7 +1048,7 @@ struct CloudSyncPhysicalDeletionTests {
     }
 
     @Test
-    func obsoleteVaultCleanupDoesNotBypassSafetyWithoutExactZoneTypeAndCanonicalID() async throws {
+    func ignoredVaultCopiesDoNotClearQuarantineOrSendOldDeletes() async throws {
         let fixture = try CloudSyncSafetyFixture(category: .vault)
         defer { fixture.stop() }
         try await fixture.start()
@@ -1079,19 +1073,21 @@ struct CloudSyncPhysicalDeletionTests {
         }
         try safety.quarantine(recordName: queuedCanonicalID.recordName, payloadData: Data([2]), reason: "Obsolete")
         let scope = try #require(fixture.lifecycle.scope)
-        try CloudSyncRecordStateStore(context: fixture.container.mainContext, scope: scope).queueLegacyDeletion(
-            queuedCanonicalID.recordName, version: .baseline(writerID: UUID()))
+        let row = PersistentCloudSyncRecordState(scope: scope, recordName: queuedCanonicalID.recordName)
+        row.legacyDeletion = try JSONEncoder().encode(VaultVersion.baseline(writerID: UUID()))
+        fixture.container.mainContext.insert(row)
         try fixture.container.mainContext.save()
 
         try fixture.receive(records, [])
         try fixture.lifecycle.reconcilePendingChanges()
 
-        #expect(try safety.blockedRecordNames() == Set(records.map(\.recordID.recordName)))
+        #expect(
+            try safety.blockedRecordNames()
+                == Set(records.map(\.recordID.recordName) + [queuedCanonicalID.recordName]))
         let pending =
             records.map { CKSyncEngine.PendingRecordZoneChange.deleteRecord($0.recordID) }
             + [.deleteRecord(queuedCanonicalID)]
-        let cleanup = try #require(fixture.batch(pending))
-        #expect(cleanup.recordIDsToDelete == [queuedCanonicalID])
+        #expect(fixture.batch(pending) == nil)
     }
 
     @Test

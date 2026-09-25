@@ -6,21 +6,17 @@ import TermindPersistence
 
 @MainActor
 struct CloudSyncLifecycleSafety {
-    var prepare: (CloudSyncScope, CloudSyncScope) throws -> Bool
+    var prepare: (CloudSyncScope) throws -> Bool
     var setRecoveryRequired: (CloudSyncScope, Bool) throws -> Void
     var blockedRecordNames: (CloudSyncScope) throws -> Set<String>
     var isUploadBlocked: (CloudSyncScope, String) throws -> Bool
     var requiresNewerClient: (CloudSyncScope) throws -> Bool
     var didCompleteFetch: (CloudSyncScope) throws -> Void = { _ in }
 
-    /// The lifecycle commits both legacy imports and recovery state before creating an engine.
-    static func persistent(
-        context: ModelContext, capabilityID: String? = nil,
-        importLegacyQuarantine: @escaping (CloudSyncScope) throws -> Void = { _ in }
-    ) -> Self {
+    /// The lifecycle commits recovery state before creating an engine.
+    static func persistent(context: ModelContext, capabilityID: String? = nil) -> Self {
         Self(
-            prepare: { scope, legacyScope in
-                try importLegacyQuarantine(legacyScope)
+            prepare: { scope in
                 let safety = CloudSyncSafetyStore(context: context, scope: scope)
                 if let capabilityID, try safety.capability().capabilityID != capabilityID {
                     return true

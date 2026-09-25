@@ -365,13 +365,6 @@ struct SettingsSyncTests {
         legacy.envelopeData = legacyData
         legacy.systemFieldsData = Data([1, 2, 3])
         container.mainContext.insert(legacy)
-        container.mainContext.insert(
-            PersistentAIConfigurationSyncQuarantine(
-                recordName: legacyKey.recordName,
-                payloadData: legacyData,
-                reason: "legacy"
-            )
-        )
         let state = try store.journal.state()
         state.engineStateData = Data([4, 5, 6])
         try container.mainContext.save()
@@ -383,7 +376,6 @@ struct SettingsSyncTests {
         #expect(migrated.envelope.payload == .role(.guardian, ref))
         #expect(migrated.systemFieldsData == nil)
         #expect(try store.journal.state().engineStateData == nil)
-        #expect(try store.journal.firstQuarantineReason() == nil)
     }
 
     @Test

@@ -36,12 +36,14 @@ struct CloudSyncReplicaStore {
             missing: { scope, seen in
                 try clearingRecreated(
                     store(scope).missingRecordNames(
-                        seen: seen, records: records(), preservesNewerIncarnation: preservesNewerIncarnation))
+                        seen: seen, records: records(), includes: handlesRecordName,
+                        preservesNewerIncarnation: preservesNewerIncarnation))
             },
             reconcileDeletions: { scope, names in
                 try clearingRecreated(
                     store(scope).reconcileDeletions(
-                        names, records: records(), preservesNewerIncarnation: preservesNewerIncarnation))
+                        names.filter(handlesRecordName), records: records(),
+                        preservesNewerIncarnation: preservesNewerIncarnation))
             },
             recordDeletionHandoff: { try store($0).recordDeletionHandoff($1) },
             cancelDeletionHandoff: { try store($0).cancelDeletionHandoff($1) },

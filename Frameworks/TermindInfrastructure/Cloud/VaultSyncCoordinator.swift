@@ -84,12 +84,10 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 save: { try context.save() }, rollback: { context.rollback() },
                 pendingChanges: {
                     let cloud = CloudSyncRecordStateStore(context: context, scope: $0)
-                    try cloud.prepareLegacyDeletionsForUpload()
                     return try cloud.pendingChanges(journal.cloudRecords())
                 },
                 safety: .persistent(
-                    context: context, capabilityID: SyncRecordFormats.vault.capabilityID,
-                    importLegacyQuarantine: journal.importLegacyQuarantine),
+                    context: context, capabilityID: SyncRecordFormats.vault.capabilityID),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
@@ -154,14 +152,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     func makeChangeBatch(
         _ pending: [CKSyncEngine.PendingRecordZoneChange], engine: any CloudSyncEngineSession
     ) -> CKSyncEngine.RecordZoneChangeBatch? {
-        let legacyNames = Set(
-            pending.compactMap { change -> String? in
-                guard case .saveRecord(let id) = change, HistoryRecordKey(recordName: id.recordName) != nil else {
-                    return nil
-                }
-                return id.recordName
-            })
-        engine.removePending(legacyNames, in: zoneID)
         return lifecycle.makeChangeBatch(pending, engine: engine) { recordToSave($0, engine: engine) }
     }
 
@@ -192,22 +182,11 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 return key
             })
         let deletedNames = Set(deletedKeys.map(\.recordName))
-        // Old History/Device deletion events in this retired zone are intentionally ignored,
-        // so they cannot cancel proof that an obsolete copy was observed again.
         lifecycle.noteRecordsObserved(
-            records, excluding: deletions.filter { deletedNames.contains($0.recordName) })
+            records.filter { HistoryRecordKey(recordName: $0.recordID.recordName) == nil },
+            excluding: deletions.filter { deletedNames.contains($0.recordName) })
         let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        // Old-copy cleanup ONLY: these two kinds moved to TermindConnectionHistoryV1.
-        // A VaultItem in TermindVaultV1 with one of their canonical IDs is obsolete,
-        // regardless of its old payload. Never import it or apply its deletion to local data.
-        // The active History/Device coordinators must NOT use this cleanup-only behavior.
-        let legacyCopies = records.filter { record in
-            guard record.recordID.zoneID == zoneID, record.recordType == Self.recordType,
-                let key = HistoryRecordKey(recordName: record.recordID.recordName)
-            else { return false }
-            return key.recordName == record.recordID.recordName
-        }
         let decoded: [(record: CKRecord, envelope: VaultEnvelope)] = try decodeCloudSyncRecords(
             records.filter { !deletedNames.contains($0.recordID.recordName) },
             included: {
@@ -220,16 +199,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         let result = try persistence.applyRemote(
             decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
-                for record in legacyCopies {
-                    try cloud.queueLegacyDeletion(
-                        record.recordID.recordName, version: .baseline(writerID: try journal.state().installationID))
-                }
-                // Also repairs cleanup tasks queued by an earlier app run while a scoped
-                // quarantine still blocked the same retired record ID.
-                try cloud.prepareLegacyDeletionsForUpload()
-                // Ignore deletion increments for obsolete Vault history/device copies.
-                // Only a sent-delete acknowledgement retires their cleanup task (unknownItem is also success).
-                // New-zone deletion increments are handled by HistoryRecordSyncCoordinator as normal user deletions.
                 for (record, envelope) in decoded {
                     try journal.noteRemoteRecord(record, envelope: envelope, cloud: cloud, safety: safety)
                 }
@@ -263,7 +232,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         }
         try lifecycle.handleDeletedRecords(changes) { mutation in
             try journal.acknowledgeDeletion(mutation, scope: scope)
-            try cloud.acknowledgeLegacyDeletion(mutation)
         }
         try context.save()
         try lifecycle.reconcilePendingChanges()

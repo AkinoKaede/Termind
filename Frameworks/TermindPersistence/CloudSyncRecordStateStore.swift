@@ -10,6 +10,7 @@ public final class PersistentCloudSyncRecordState {
     public var recordName = ""
     public var wasPresent = false
     public var confirmedDeletion: Data?
+    // Retained in the shipped V37 model shape; old cleanup intent is no longer read.
     public var legacyDeletion: Data?
 
     public init(scope: CloudSyncScope, recordName: String) {
@@ -122,7 +123,7 @@ public final class CloudSyncRecordStateStore {
     public func pendingChanges(_ records: [CloudSyncJournalRecord]) throws -> [CloudSyncMutation] {
         let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
         let states = Dictionary(uniqueKeysWithValues: try entries().map { ($0.recordName, $0) })
-        var result = records.compactMap { record -> CloudSyncMutation? in
+        let result = records.compactMap { record -> CloudSyncMutation? in
             let mutation = record.mutation
             guard !blocked.contains(mutation.recordName) else { return nil }
             if mutation.operation == .delete {
@@ -134,15 +135,6 @@ public final class CloudSyncRecordStateStore {
                     ? mutation : nil
             }
             return record.needsUpload ? mutation : nil
-        }
-        let names = Set(result.map(\.recordName))
-        for row in states.values where !blocked.contains(row.recordName) && !names.contains(row.recordName) {
-            if let data = row.legacyDeletion {
-                result.append(
-                    .init(
-                        recordName: row.recordName, operation: .delete,
-                        version: try JSONDecoder().decode(VaultVersion.self, from: data)))
-            }
         }
         return result.sorted { $0.recordName < $1.recordName }
     }
@@ -186,33 +178,7 @@ public final class CloudSyncRecordStateStore {
         let row = try state(recordName)
         row.wasPresent = false
         row.confirmedDeletion = try JSONEncoder().encode(version)
-        row.legacyDeletion = nil
         if let handoff = try handoff(recordName) { context.delete(handoff) }
-    }
-
-    public func queueLegacyDeletion(_ recordName: String, version: VaultVersion) throws {
-        try observed(recordName)
-        try state(recordName).legacyDeletion = JSONEncoder().encode(version)
-    }
-
-    /// A queued legacy deletion is durable proof that the Vault coordinator already
-    /// validated the retired zone, record type, and canonical History/Device ID.
-    public func prepareLegacyDeletionsForUpload() throws {
-        let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try entries() where row.legacyDeletion != nil {
-            guard let key = HistoryRecordKey(recordName: row.recordName), key.recordName == row.recordName else {
-                continue
-            }
-            try safety.clearQuarantine(recordName: row.recordName)
-        }
-    }
-
-    public func acknowledgeLegacyDeletion(_ mutation: CloudSyncMutation) throws {
-        guard let row = try entry(mutation.recordName),
-            let data = row.legacyDeletion,
-            try JSONDecoder().decode(VaultVersion.self, from: data) == mutation.version
-        else { return }
-        try deleted(mutation.recordName, version: mutation.version)
     }
 
     public func recordDeletionHandoff(_ mutation: CloudSyncMutation) throws {
@@ -238,9 +204,12 @@ public final class CloudSyncRecordStateStore {
     /// newer explicit incarnation than a delete handed off before a crash.
     public func missingRecordNames(
         seen: Set<String>, records: [CloudSyncJournalRecord],
+        includes: (String) -> Bool = { _ in true },
         preservesNewerIncarnation: (String) -> Bool = { _ in true }
     ) throws -> (deleted: [String], recreated: [String]) {
-        let missing = try entries().filter { $0.wasPresent && !seen.contains($0.recordName) }.map(\.recordName)
+        let missing = try entries().filter {
+            $0.wasPresent && includes($0.recordName) && !seen.contains($0.recordName)
+        }.map(\.recordName)
         return try reconcileDeletions(
             missing, records: records, preservesNewerIncarnation: preservesNewerIncarnation)
     }

@@ -220,16 +220,6 @@ public final class VaultSyncJournal {
         ).compactMap(\.envelope).filter { $0.key.kind.isConfiguration }.map(\.withoutDeviceLocalMetadata)
     }
 
-    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
-        let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>()) {
-            if try !safety.isUploadBlocked(recordName: row.recordName) {
-                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
-            }
-            context.delete(row)
-        }
-    }
-
     public func outgoingEntry(for key: VaultRecordKey, scope: CloudSyncScope? = nil) throws -> VaultOutgoingEntry? {
         // Restored pre-V35 CKSyncEngine queues can still contain legacy history IDs.
         guard key.kind.isConfiguration else { return nil }
@@ -329,23 +319,6 @@ public final class VaultSyncJournal {
 
     public func clearSystemFields(recordName: String) throws {
         try entry(recordName: recordName)?.systemFieldsData = nil
-    }
-
-    public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
-        var descriptor = FetchDescriptor<PersistentVaultSyncQuarantine>(
-            predicate: #Predicate { $0.recordName == recordName }
-        )
-        descriptor.fetchLimit = 1
-        if let row = try context.fetch(descriptor).first {
-            row.payloadData = payloadData
-            row.reason = reason
-            row.receivedAt = .now
-        } else {
-            context.insert(
-                PersistentVaultSyncQuarantine(
-                    recordName: recordName, payloadData: payloadData, reason: reason
-                ))
-        }
     }
 
     public func recordCurrentSnapshot(_ snapshot: VaultSnapshot, now: Date = .now) throws

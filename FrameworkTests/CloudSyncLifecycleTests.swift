@@ -589,7 +589,7 @@ private struct LifecycleFixture {
                     }
                 },
                 safety: CloudSyncLifecycleSafety(
-                    prepare: { _, _ in journal.recoveryRequired },
+                    prepare: { _ in journal.recoveryRequired },
                     setRecoveryRequired: { _, value in journal.recoveryRequired = value },
                     blockedRecordNames: { _ in
                         if let error = journal.lookupError { throw error }

@@ -89,16 +89,6 @@ public final class MetricsSyncJournal {
         ).compactMap(\.envelope)
     }
 
-    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
-        let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try context.fetch(FetchDescriptor<PersistentMetricsSyncQuarantine>()) {
-            if try !safety.isUploadBlocked(recordName: row.recordName) {
-                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
-            }
-            context.delete(row)
-        }
-    }
-
     public func outgoingEntry(for key: MetricsRecordKey, scope: CloudSyncScope? = nil) throws -> MetricsOutgoingEntry? {
         if let scope,
             try CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName)
@@ -196,21 +186,6 @@ public final class MetricsSyncJournal {
 
     public func clearSystemFields(recordName: String) throws {
         try entry(recordName: recordName)?.systemFieldsData = nil
-    }
-
-    public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
-        var descriptor = FetchDescriptor<PersistentMetricsSyncQuarantine>(
-            predicate: #Predicate { $0.recordName == recordName })
-        descriptor.fetchLimit = 1
-        if let row = try context.fetch(descriptor).first {
-            row.payloadData = payloadData
-            row.reason = reason
-            row.receivedAt = .now
-        } else {
-            context.insert(
-                PersistentMetricsSyncQuarantine(
-                    recordName: recordName, payloadData: payloadData, reason: reason))
-        }
     }
 
     public func markAllLiveRecordsNeedsUploadForNewAccount() throws {

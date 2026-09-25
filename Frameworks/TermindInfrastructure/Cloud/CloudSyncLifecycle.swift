@@ -275,19 +275,11 @@ final class CloudSyncLifecycle {
         return scope
     }
 
-    private func legacyScope(for state: CloudSyncState) -> CloudSyncScope {
-        makeScope(
-            account: state.boundUserRecordName ?? "legacy-unbound",
-            environment: defaults.string(forKey: environmentKey) ?? "Unknown")
-    }
-
     func confirmAccountSwitchMerge() {
         guard isEnabled else { return }
         do {
             var state = try store.state()
             guard let pendingUser = state.pendingUserRecordName else { return }
-            let oldScope = legacyScope(for: state)
-            _ = try store.safety.prepare(oldScope, oldScope)
             try store.resetForNewAccount()
             state = try store.state()
             state.boundUserRecordName = pendingUser
@@ -344,7 +336,7 @@ final class CloudSyncLifecycle {
         }
         let scope = makeScope(account: currentUser, environment: environmentIdentifier)
         self.scope = scope
-        let requiresRefetch = try store.safety.prepare(scope, legacyScope(for: state))
+        let requiresRefetch = try store.safety.prepare(scope)
         state.boundUserRecordName = currentUser
         state.pendingUserRecordName = nil
         try store.updateState(state)

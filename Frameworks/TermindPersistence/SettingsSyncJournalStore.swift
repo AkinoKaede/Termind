@@ -62,7 +62,6 @@ public final class SettingsSyncJournal {
         if !legacyEnvelope.isDeleted {
             context.delete(legacyRow)
         }
-        try clearQuarantine(recordName: legacyKey.recordName)
         if canonicalChanged || !legacyEnvelope.isDeleted {
             let syncState = try state()
             syncState.engineStateData = nil
@@ -77,10 +76,6 @@ public final class SettingsSyncJournal {
         let rows = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).filter {
             $0.envelope.map { !$0.key.kind.participatesInSync && !$0.isDeleted } == true
         }
-        let quarantines = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()).filter {
-            SettingsRecordKey(recordName: $0.recordName)?.kind.participatesInSync == false
-        }
-        for row in quarantines { context.delete(row) }
         if !rows.isEmpty {
             for row in rows { context.delete(row) }
             let syncState = try state()
@@ -184,16 +179,6 @@ public final class SettingsSyncJournal {
                 predicate: #Predicate { $0.needsUpload }
             )
         ).compactMap(\.envelope).filter { $0.key.kind.participatesInSync }
-    }
-
-    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
-        let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()) {
-            if try !safety.isUploadBlocked(recordName: row.recordName) {
-                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
-            }
-            context.delete(row)
-        }
     }
 
     public func outgoingEntry(for key: SettingsRecordKey, scope: CloudSyncScope? = nil) throws -> SettingsOutgoingEntry?
@@ -310,38 +295,6 @@ public final class SettingsSyncJournal {
     public func updateSystemFields(_ data: Data?, for key: SettingsRecordKey) throws {
         guard let row = try entry(recordName: key.recordName), row.systemFieldsData != data else { return }
         row.systemFieldsData = data
-    }
-
-    public func quarantine(recordName: String, payloadData: Data, reason: String) throws {
-        var descriptor = FetchDescriptor<PersistentAIConfigurationSyncQuarantine>(
-            predicate: #Predicate { $0.recordName == recordName }
-        )
-        descriptor.fetchLimit = 1
-        if let row = try context.fetch(descriptor).first {
-            row.payloadData = payloadData
-            row.reason = reason
-            row.receivedAt = .now
-        } else {
-            context.insert(
-                PersistentAIConfigurationSyncQuarantine(
-                    recordName: recordName, payloadData: payloadData, reason: reason
-                ))
-        }
-    }
-
-    public func clearQuarantine(recordName: String) throws {
-        try context.delete(
-            model: PersistentAIConfigurationSyncQuarantine.self,
-            where: #Predicate { $0.recordName == recordName }
-        )
-    }
-
-    public func firstQuarantineReason() throws -> String? {
-        var descriptor = FetchDescriptor<PersistentAIConfigurationSyncQuarantine>(
-            sortBy: [SortDescriptor(\.receivedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 1
-        return try context.fetch(descriptor).first?.reason
     }
 
     public func recordCurrentSnapshot(_ snapshot: SettingsSyncSnapshot, now: Date = .now) throws
