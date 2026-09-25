@@ -7,7 +7,9 @@ struct MobileMetricsView: View {
     let app: MobileAppModel
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var selecting = false
-    @State private var pendingHostIDs: [UUID] = []
+    @State private var pendingHostIDs: [UUID]?
+    @State private var pendingEditableHostIDs: Set<UUID> = []
+    @State private var initialHostIDs: Set<UUID> = []
     @State private var selectedID: UUID?
 
     var body: some View {
@@ -49,7 +51,11 @@ struct MobileMetricsView: View {
         }
         .navigationTitle(AppStrings.Navigation.metrics.swiftUIKey)
         .toolbar {
-            Button(AppStrings.Common.addHosts.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
+            Button(AppStrings.Common.addHosts.swiftUIKey, systemImage: "plus") {
+                let available = Set(app.library.hosts(matching: "", for: .metrics).map(\.id))
+                initialHostIDs = Set(app.metrics.selections.map(\.id)).intersection(available)
+                selecting = true
+            }.labelStyle(
                 .iconOnly)
         }
         .navigationDestination(item: $selectedID) { id in
@@ -57,23 +63,28 @@ struct MobileMetricsView: View {
                 MobileMetricsDetailView(app: app, server: server)
             }
         }
-        .sheet(isPresented: $selecting, onDismiss: addSelectedHosts) {
+        .sheet(isPresented: $selecting, onDismiss: saveSelectedHosts) {
             MobileMultiHostPicker(
-                library: app.library, useCase: .metrics, selected: [],
-                title: AppStrings.Common.addHosts, actionTitle: AppStrings.Common.addHosts,
+                library: app.library, useCase: .metrics, selected: initialHostIDs,
+                title: AppStrings.Common.selectHosts, actionTitle: AppStrings.Common.done,
                 emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
-                requiresSelection: true,
-                isEligible: { host in !app.metrics.selections.contains(where: { $0.id == host.id }) }
-            ) { pendingHostIDs = $0 }
+                requiresSelection: false
+            ) { ids in
+                pendingHostIDs = ids
+                pendingEditableHostIDs = initialHostIDs.union(ids)
+            }
         }
         .task { app.metrics.start() }
     }
 
-    private func addSelectedHosts() {
+    private func saveSelectedHosts() {
         let ids = pendingHostIDs
-        pendingHostIDs = []
-        guard !ids.isEmpty else { return }
-        if !app.metrics.add(ids, pro: app.pro.hasProAccess) {
+        let editable = pendingEditableHostIDs
+        pendingHostIDs = nil
+        pendingEditableHostIDs = []
+        initialHostIDs = []
+        guard let ids else { return }
+        if !app.metrics.replaceHosts(selectedIDs: ids, editableHostIDs: editable, pro: app.pro.hasProAccess) {
             if let error = app.metrics.core.storageError {
                 app.error = error
             } else {

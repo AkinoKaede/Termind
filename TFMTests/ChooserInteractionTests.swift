@@ -200,13 +200,18 @@ struct ChooserInteractionTests {
         _ = try await fixture.quickOpenField()
         try fixture.key("\r", code: 36)
         try await fixture.settle()
-        #expect(fixture.model.pendingMetricsHostIDs.isEmpty)
+        #expect(fixture.model.pendingMetricsHostIDs == [])
+        fixture.model.pendingMetricsHostIDs = nil
+        fixture.model.pendingMetricsEditableHostIDs = []
+        fixture.mount(HostChooserView(purpose: .metrics).environment(\.locale, Locale(identifier: language)))
+        try await fixture.settle()
+        _ = try await fixture.quickOpenField()
         try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
         try fixture.key(" ", code: 49)
         try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
         try fixture.key(" ", code: 49)
         try await fixture.settle()
-        #expect(fixture.model.pendingMetricsHostIDs.isEmpty)
+        #expect(fixture.model.pendingMetricsHostIDs == nil)
         #expect(fixture.app.serverMetrics.servers.isEmpty)
         let image = try fixture.capture()
         Attachment.record(image, named: "metrics-host-picker-\(language).png")
@@ -216,6 +221,31 @@ struct ChooserInteractionTests {
         #expect(fixture.model.pendingMetricsHostIDs == fixture.hosts.prefix(2).map(\.id))
         #expect(fixture.model.workspaces.isEmpty)
         #expect(fixture.app.serverMetrics.servers.isEmpty)
+    }
+
+    @Test
+    func metricsPickerCanClearAnExistingSelectionButCancelDoesNothing() async throws {
+        let fixture = ChooserFixture()
+        defer { fixture.close() }
+        #expect(fixture.app.serverMetrics.add(fixture.hosts[0]))
+
+        fixture.mount(HostChooserView(purpose: .metrics))
+        try await fixture.settle()
+        try fixture.key("\u{1B}", code: 53)
+        try await fixture.settle()
+        #expect(fixture.model.pendingMetricsHostIDs == nil)
+        #expect(fixture.app.serverMetrics.selections.map(\.id) == [fixture.hosts[0].id])
+
+        fixture.mount(HostChooserView(purpose: .metrics))
+        try await fixture.settle()
+        _ = try await fixture.quickOpenField()
+        try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+        try fixture.key(" ", code: 49)
+        try fixture.key("\r", code: 36)
+        try await fixture.settle()
+        #expect(fixture.model.pendingMetricsHostIDs == [])
+        #expect(fixture.model.pendingMetricsEditableHostIDs == [fixture.hosts[0].id])
+        #expect(fixture.app.serverMetrics.selections.map(\.id) == [fixture.hosts[0].id])
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])

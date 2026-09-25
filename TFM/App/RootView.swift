@@ -116,10 +116,12 @@ struct RootView: View {
             item: $presentations.hostChooser,
             onDismiss: {
                 let ids = window.pendingMetricsHostIDs
-                window.pendingMetricsHostIDs = []
-                guard !ids.isEmpty else { return }
+                let editable = window.pendingMetricsEditableHostIDs
+                window.pendingMetricsHostIDs = nil
+                window.pendingMetricsEditableHostIDs = []
+                guard let ids else { return }
                 window.metricsHostID = nil
-                app.serverMetrics.add(ids.compactMap(app.hostLibrary.host))
+                app.serverMetrics.replaceHosts(selectedIDs: ids, editableHostIDs: editable)
             }
         ) { purpose in
             HostChooserView(purpose: purpose)

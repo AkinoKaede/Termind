@@ -84,7 +84,7 @@ struct MetricsLimitTests {
     }
 
     @Test
-    func toolbarAdmissionUsesTheSameLimitBeforeOpeningTheChooser() {
+    func fullMetricsToolbarStillOpensTheSelectionChooser() {
         let hosts = fixtures(4)
         var denied = false
         let model = model(hosts, denied: { denied = true })
@@ -94,8 +94,69 @@ struct MetricsLimitTests {
         window.metricsModel = model
         window.selectedDestination = .metrics
         window.creationActions.first?.perform()
-        #expect(denied)
-        #expect(window.presentations.hostChooser == nil)
+        #expect(!denied)
+        #expect(window.presentations.hostChooser == .metrics)
+    }
+
+    @Test
+    func selectionReplacementPreservesSettingsAndAllowsSwapAtTheFreeLimit() {
+        let hosts = fixtures(5)
+        let preferences = LimitMetricsPreferences()
+        let model = model(hosts, preferences: preferences)
+        defer { model.shutdown() }
+        #expect(model.add(Array(hosts.prefix(3))))
+        model.setEnabled(false, for: model.servers[0])
+        model.selectDevices(model.servers[0], disks: ["disk0"], interfaces: ["eth0"])
+        let preserved = model.selections[0]
+        let editable = Set(hosts.map(\.id))
+
+        #expect(
+            model.replaceHosts(
+                selectedIDs: [hosts[0].id, hosts[2].id, hosts[3].id], editableHostIDs: editable))
+        #expect(model.selections.map(\.id) == [hosts[0].id, hosts[2].id, hosts[3].id])
+        #expect(model.selections[0] == preserved)
+        #expect(model.selections[2] == MetricsSelection(id: hosts[3].id))
+        #expect(preferences.values == model.selections)
+
+        let saved = model.selections
+        #expect(
+            !model.replaceHosts(
+                selectedIDs: hosts.prefix(4).map(\.id), editableHostIDs: editable))
+        #expect(model.selections == saved)
+        #expect(preferences.values == saved)
+    }
+
+    @Test
+    func selectionReplacementAllowsEmptyAndKeepsUnavailableConfigurations() {
+        let hosts = fixtures(3)
+        let preferences = LimitMetricsPreferences()
+        let model = model(hosts, preferences: preferences)
+        defer { model.shutdown() }
+        #expect(model.add(hosts))
+
+        #expect(model.replaceHosts(selectedIDs: [], editableHostIDs: [hosts[0].id, hosts[1].id]))
+        #expect(model.selections.map(\.id) == [hosts[2].id])
+        #expect(model.replaceHosts(selectedIDs: [], editableHostIDs: [hosts[2].id]))
+        #expect(model.selections.isEmpty)
+        #expect(preferences.values.isEmpty)
+    }
+
+    @Test
+    func failedSelectionReplacementDoesNotPartiallyRemoveOrAddHosts() {
+        let hosts = fixtures(3)
+        let preferences = LimitMetricsPreferences()
+        let model = model(hosts, preferences: preferences)
+        defer { model.shutdown() }
+        #expect(model.add(Array(hosts.prefix(2))))
+        let saved = preferences.values
+        preferences.failsSaving = true
+
+        #expect(
+            !model.replaceHosts(
+                selectedIDs: [hosts[1].id, hosts[2].id], editableHostIDs: Set(hosts.map(\.id))))
+        #expect(model.selections == saved)
+        #expect(preferences.values == saved)
+        #expect(model.storageError != nil)
     }
 
     @Test
@@ -137,6 +198,10 @@ struct MetricsLimitTests {
 
 private final class LimitMetricsPreferences: MetricsConfigurationStoring {
     var values: [MetricsSelection] = []
+    var failsSaving = false
     func load() -> [MetricsSelection] { values }
-    func save(_ selections: [MetricsSelection]) { values = selections }
+    func save(_ selections: [MetricsSelection]) throws {
+        if failsSaving { throw CocoaError(.fileWriteUnknown) }
+        values = selections
+    }
 }

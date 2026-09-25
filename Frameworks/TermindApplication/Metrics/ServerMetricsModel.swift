@@ -193,6 +193,29 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         return true
     }
 
+    /// Reconcile the hosts shown by a selector in one persistence operation.
+    /// Selections outside that selector remain intact, including temporarily unavailable hosts.
+    @discardableResult
+    public func replaceHosts(selectedIDs: [Host.ID], editableHostIDs: Set<Host.ID>) -> Bool {
+        let requested = Set(selectedIDs).intersection(editableHostIDs)
+        let existing = Set(configuredSelections.map(\.id))
+        var seen = existing
+        let additions = selectedIDs.filter { requested.contains($0) && seen.insert($0).inserted }
+        guard additions.allSatisfy({ hosts.host($0)?.sshEnabled == true }) else {
+            storageError = HostProtocolUnavailableError(useCase: .metrics).localizedDescription
+            return false
+        }
+        let retained = configuredSelections.filter {
+            !editableHostIDs.contains($0.id) || requested.contains($0.id)
+        }
+        let next = retained + additions.map { MetricsSelection(id: $0) }
+        guard next != configuredSelections else { return true }
+        guard requestAddition(count: max(0, next.count - configuredSelections.count)) else { return false }
+        guard persist(next) else { return false }
+        applyConfiguration(next)
+        return true
+    }
+
     public func move(_ ids: [UUID], before next: UUID?) {
         let wanted = Set(ids)
         let moving = configuredSelections.filter { wanted.contains($0.id) }

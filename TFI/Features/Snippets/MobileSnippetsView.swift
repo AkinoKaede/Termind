@@ -684,7 +684,7 @@ struct MobileSnippetEditor: View {
         .sheet(isPresented: $choosingTargets) {
             MobileMultiHostPicker(
                 library: app.library, useCase: .snippetExecution, selected: Set(draft.targetHostIDs),
-                title: AppStrings.Common.addHosts,
+                title: AppStrings.Common.selectHosts,
                 actionTitle: AppStrings.Common.done,
                 emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets, requiresSelection: false
             ) { ids in

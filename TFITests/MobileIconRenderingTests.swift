@@ -29,12 +29,12 @@ struct MobileIconRenderingTests {
                 try await capture("\(name)-\(suffix)", language: language, scheme: scheme) {
                     MobileMultiHostPicker(
                         library: library, useCase: useCase, selected: [hosts[0].id, hosts[2].id],
-                        title: AppStrings.Common.addHosts,
-                        actionTitle: metrics ? AppStrings.Common.addHosts : AppStrings.Common.done,
+                        title: AppStrings.Common.selectHosts,
+                        actionTitle: AppStrings.Common.done,
                         emptyDescription: metrics
                             ? AppStrings.Metrics.addASavedLinuxServerToStartMonitoring
                             : AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
-                        requiresSelection: metrics, save: { _ in }
+                        requiresSelection: false, save: { _ in }
                     )
                     .environment(\.locale, Locale(identifier: language))
                 }
@@ -109,7 +109,7 @@ struct MobileIconRenderingTests {
             try await capture("snippet-targets-\(suffix)", language: language, scheme: scheme) {
                 MobileMultiHostPicker(
                     library: snippetApp.library, useCase: .snippetExecution, selected: [snippetHost.id],
-                    title: "Add Hosts",
+                    title: AppStrings.Common.selectHosts,
                     actionTitle: "Done", emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
                     requiresSelection: false, save: { _ in }
                 )
@@ -157,9 +157,9 @@ struct MobileIconRenderingTests {
             try await capture("metrics-host-picker-\(suffix)", language: language, scheme: scheme) {
                 MobileMultiHostPicker(
                     library: connectionApp.library, useCase: .metrics, selected: [],
-                    title: AppStrings.Common.addHosts, actionTitle: AppStrings.Common.addHosts,
+                    title: AppStrings.Common.selectHosts, actionTitle: AppStrings.Common.done,
                     emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
-                    requiresSelection: true, save: { _ in }
+                    requiresSelection: false, save: { _ in }
                 )
                 .environment(\.locale, locale)
             }

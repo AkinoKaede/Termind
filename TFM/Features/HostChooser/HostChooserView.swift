@@ -52,7 +52,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect: AppStrings.Common.connect
         case .batchStartup: AppStrings.Vault.batchStartup
-        case .metrics: AppStrings.Common.addHosts
+        case .metrics: AppStrings.Common.selectHosts
         case .snippet: AppStrings.Common.run
         }
     }
@@ -71,7 +71,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var confirmLabel: LocalizedStringResource {
         switch self {
         case .connect, .batchStartup: AppStrings.Common.connect
-        case .metrics: AppStrings.Common.addHosts
+        case .metrics: AppStrings.Common.done
         case .snippet: AppStrings.Common.run
         }
     }
@@ -163,6 +163,7 @@ struct HostChooserView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var chooser: ManagedChooserState<Host.ID>
+    @State private var initialMetricsHostIDs: Set<Host.ID> = []
     @State private var connectionProtocol = HostConnectionProtocol.terminal
     @State private var serialConfiguration = SerialConnectionConfiguration()
     @State private var serialBaudRate = "9600"
@@ -201,10 +202,7 @@ struct HostChooserView: View {
             case .connect, .batchStartup:
                 connectionProtocol == .sftp ? .sftp : .preferredTerminal
             }
-        let matches = app.hostLibrary.hosts(matching: query, for: useCase)
-        guard purpose == .metrics else { return matches }
-        let monitored = Set(app.serverMetrics.selections.map(\.id))
-        return matches.filter { !monitored.contains($0.id) }
+        return app.hostLibrary.hosts(matching: query, for: useCase)
     }
 
     var body: some View {
@@ -229,6 +227,13 @@ struct HostChooserView: View {
         .onChange(of: chooser.query) {
             let ids = results.map(\.id)
             chooser.queryDidChange(visible: ids, enabled: Set(ids))
+        }
+        .onAppear {
+            if purpose == .metrics {
+                let available = Set(app.hostLibrary.hosts(matching: "", for: .metrics).map(\.id))
+                chooser.selected = Set(app.serverMetrics.selections.map(\.id)).intersection(available)
+                initialMetricsHostIDs = chooser.selected
+            }
         }
         .task(id: connectionProtocol) {
             guard connectionProtocol == .serial else { return }
@@ -583,6 +588,7 @@ struct HostChooserView: View {
             }
             return !serialConfiguration.isValid
         }
+        if purpose == .metrics { return false }
         return purpose.allowsMultiple ? chooser.selected.isEmpty : selectedHost == nil
     }
 
@@ -634,15 +640,17 @@ struct HostChooserView: View {
     }
 
     private func openChecked() {
+        if purpose == .metrics {
+            let editable = app.hostLibrary.hosts(matching: "", for: .metrics)
+            window.pendingMetricsHostIDs = editable.filter { chooser.selected.contains($0.id) }.map(\.id)
+            window.pendingMetricsEditableHostIDs = initialMetricsHostIDs.union(chooser.selected)
+            dismiss()
+            return
+        }
         let batch = app.hostLibrary.searchHosts("").filter { chooser.selected.contains($0.id) }
         guard !batch.isEmpty else { return }
         if case .snippet = purpose {
             requestSnippetExecution()
-        } else if purpose == .metrics {
-            // The parent admits the complete batch after this sheet has closed,
-            // so a limit paywall never competes with the chooser presentation.
-            window.pendingMetricsHostIDs = batch.map(\.id)
-            dismiss()
         } else {
             guard let target = connectionProtocol.target else { return }
             app.open(batch, as: target, layout: .oneWorkspace, in: window)

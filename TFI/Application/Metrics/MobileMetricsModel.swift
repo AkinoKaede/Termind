@@ -38,6 +38,11 @@ final class MobileMetricsModel {
     }
 
     func remove(_ id: UUID) { core.remove(id) }
+
+    func replaceHosts(selectedIDs: [UUID], editableHostIDs: Set<UUID>, pro: Bool) -> Bool {
+        limit.maximum = pro ? nil : ServerMetricsModel.freeCardLimit
+        return core.replaceHosts(selectedIDs: selectedIDs, editableHostIDs: editableHostIDs)
+    }
     func pause() { core.suspend() }
     func start() {
         core.start()

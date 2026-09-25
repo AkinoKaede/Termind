@@ -9,6 +9,19 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileMultiHostPickerTests {
+    @Test
+    func metricsPickerStartsWithMonitoredHostsAndCanClearTheSelection() {
+        let hosts = [Host(name: "Alpha", host: "alpha.invalid"), Host(name: "Bravo", host: "bravo.invalid")]
+        let picker = MobileMultiHostPickerModel(
+            library: HostLibraryModel(hosts: hosts), useCase: .metrics, selected: [hosts[0].id])
+
+        picker.reconcileSelection()
+        #expect(picker.hosts.map(\.id) == hosts.map(\.id))
+        #expect(picker.orderedSelection == [hosts[0].id])
+        picker.toggle(hosts[0].id)
+        #expect(picker.orderedSelection.isEmpty)
+    }
+
     @Test(arguments: [HostUseCase.metrics, .snippetExecution, .preferredTerminal, .sftp])
     func filteredSelectAllPreservesOtherSelectionsAndLibraryOrder(useCase: HostUseCase) {
         let hosts = ["Alpha", "Bravo", "Charlie"].enumerated().map { index, name in
@@ -92,6 +105,26 @@ struct MobileMultiHostPickerTests {
         #expect(metrics.selections.isEmpty)
         #expect(preferences.values.isEmpty)
         #expect(metrics.core.storageError != nil)
+    }
+
+    @Test
+    func mobileMetricsCanSwapAtTheFreeLimitAndRemoveAllHosts() {
+        let hosts = (0..<4).map { Host(name: "Host \($0)", host: "host\($0).invalid") }
+        let preferences = PickerMetricsPreferences()
+        let metrics = MobileMetricsModel(
+            preferences: preferences, hosts: HostLibraryModel(hosts: hosts), services: .testing)
+        defer { metrics.core.shutdown() }
+        metrics.pause()
+        #expect(metrics.add(Array(hosts.prefix(3)).map(\.id), pro: false))
+        let editable = Set(hosts.map(\.id))
+
+        #expect(
+            metrics.replaceHosts(
+                selectedIDs: [hosts[0].id, hosts[2].id, hosts[3].id], editableHostIDs: editable, pro: false))
+        #expect(metrics.selections.map(\.id) == [hosts[0].id, hosts[2].id, hosts[3].id])
+        #expect(metrics.replaceHosts(selectedIDs: [], editableHostIDs: editable, pro: false))
+        #expect(metrics.selections.isEmpty)
+        #expect(preferences.values.isEmpty)
     }
 }
 

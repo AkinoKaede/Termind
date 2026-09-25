@@ -230,6 +230,10 @@ extension AppStrings {
             "Select All"
         }
 
+        public static var selectHosts: LocalizedStringResource {
+            "Select Hosts"
+        }
+
         public static var selectNone: LocalizedStringResource {
             "Select None"
         }

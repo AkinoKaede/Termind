@@ -50,7 +50,8 @@ final class WindowModel {
     /// window-scoped so two windows can configure shared preferences independently.
     private var settingsReturnDestination: WindowDestination = .vault
     weak var metricsModel: ServerMetricsModel?
-    var pendingMetricsHostIDs: [UUID] = []
+    var pendingMetricsHostIDs: [UUID]?
+    var pendingMetricsEditableHostIDs: Set<UUID> = []
     var metricsHostID: UUID? {
         didSet {
             if metricsHostID != oldValue { metricsDetailPage = .status }

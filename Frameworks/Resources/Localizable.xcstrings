@@ -23389,6 +23389,23 @@
         }
       }
     },
+    "Select Hosts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择主机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇主機"
+          }
+        }
+      }
+    },
     "Select None" : {
       "extractionState" : "manual",
       "localizations" : {

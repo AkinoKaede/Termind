@@ -773,7 +773,7 @@ struct SnippetTargetPickerView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: AppStrings.Common.addHosts, symbol: "server.rack", close: close,
+            title: AppStrings.Common.selectHosts, symbol: "server.rack", close: close,
             closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 0) {
@@ -797,7 +797,7 @@ struct SnippetTargetPickerView: View {
 
     private var header: some View {
         ManagedChooserHeader(
-            title: AppStrings.Common.addHosts,
+            title: AppStrings.Common.selectHosts,
             symbol: "server.rack",
             prompt: AppStrings.Vault.searchHosts,
             query: queryBinding,
