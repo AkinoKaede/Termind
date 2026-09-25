@@ -1353,10 +1353,9 @@ private struct SFTPEditPermissionsSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: Metrics.Space.xxl) {
-                Label(AppStrings.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield")
-                    .font(.title2.weight(.semibold))
+            topBar
 
+            VStack(alignment: .leading, spacing: Metrics.Space.xxl) {
                 HStack(spacing: Metrics.Space.l) {
                     Text(displayedPath)
                         .font(.body.monospaced())
@@ -1385,28 +1384,69 @@ private struct SFTPEditPermissionsSheet: View {
                 }
             }
             .padding(Metrics.Space.xxl)
-
-            Divider()
-
-            HStack(spacing: Metrics.Space.m) {
-                Spacer()
-                if isSaving { ProgressView().controlSize(.small) }
-                Button(AppStrings.Common.cancel.swiftUIKey) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                    .disabled(isSaving)
-                Button(AppStrings.Common.save.swiftUIKey) { Task { await commit() } }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!draft.canSave || isSaving)
-            }
-            .padding(.horizontal, Metrics.Space.xxl)
-            .padding(.vertical, Metrics.Space.l)
-            .termindGlassBar()
         }
         .frame(width: 520)
+        .background(TermindColor.windowSurface)
         .disabled(isSaving)
         .onChange(of: modeFieldFocused) { _, focused in
             if !focused { draft.normalizeText() }
         }
+    }
+
+    private var topBar: some View {
+        HStack {
+            glassActionButton(AppStrings.Common.cancel, symbol: "xmark", identifier: "sftp-permissions.cancel") {
+                dismiss()
+            }
+            .keyboardShortcut(.cancelAction)
+
+            Spacer()
+
+            glassActionButton(
+                AppStrings.Common.save, symbol: "checkmark", identifier: "sftp-permissions.save",
+                showsProgress: isSaving
+            ) {
+                Task { await commit() }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(!draft.canSave || isSaving)
+        }
+        .frame(maxWidth: .infinity)
+        .overlay {
+            Text(AppStrings.SFTP.editPermissions).font(.headline)
+        }
+        .padding(.horizontal, Metrics.Space.xl)
+        .padding(.top, Metrics.Space.l)
+        .padding(.bottom, Metrics.Space.s)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func glassActionButton(
+        _ label: LocalizedStringResource,
+        symbol: String,
+        identifier: String,
+        showsProgress: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            ZStack {
+                Label(label, systemImage: symbol)
+                    .labelStyle(.iconOnly)
+                    .opacity(showsProgress ? 0 : 1)
+                if showsProgress {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            .frame(width: 30, height: 30)
+            .contentShape(.circle)
+            .accessibilityIdentifier(identifier)
+        }
+        .accessibilityIdentifier(identifier)
+        .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
+        .termindGlassCircle(isInteractive: true)
+        .help(label)
+        .accessibilityLabel(Text(label))
     }
 
     private var modeText: Binding<String> {
@@ -1438,7 +1478,7 @@ private struct SFTPEditPermissionsSheet: View {
 
     @MainActor
     private func commit() async {
-        guard let permissions = draft.parsedMode, draft.canSave else { return }
+        guard !isSaving, let permissions = draft.parsedMode, draft.canSave else { return }
         modeFieldFocused = false
         isSaving = true
         if await save(permissions) {
