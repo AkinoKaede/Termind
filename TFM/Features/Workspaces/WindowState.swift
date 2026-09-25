@@ -47,6 +47,14 @@ final class WindowSidebarState {
     }
 
     var isPresented = true
+    /// The last usable width survives hiding the column and is the initial
+    /// width for a window created from this one.
+    var preferredWidth: CGFloat = Metrics.Sidebar.ideal
+    var observedWidth: CGFloat?
+    var measuredWidth: CGFloat?
+    /// A late scene request rebuilds only the new window's split view so its
+    /// first column can take the requested width.
+    var initialLayoutGeneration = 0
 
     /// The contextual Sidebar keeps its own draft, but its open Chat/Archive
     /// route is shared with the full Assistant through `WindowModel`.

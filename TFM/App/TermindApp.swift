@@ -205,7 +205,9 @@ struct TermindApp: App {
                 return demo.makeWindow(hosts: app.hostLibrary)
             }
         #endif
-        return WindowModel()
+        let window = WindowModel()
+        app.mainWindows.configure(window, for: requestID)
+        return window
     }
 
     /// Workspace windows share app data, while each keeps its own Navigator

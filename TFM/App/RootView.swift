@@ -32,6 +32,11 @@ struct RootView: View {
 
         NavigationSplitView(columnVisibility: sidebarVisibility) {
             WindowSidebarView()
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.width
+                } action: { width in
+                    app.mainWindows.recordSidebarWidth(width, for: window)
+                }
                 .background {
                     // Modern split views supply the system sidebar material.
                     // An additional glass surface changes its tint and contrast.
@@ -42,7 +47,7 @@ struct RootView: View {
                 }
                 .navigationSplitViewColumnWidth(
                     min: Metrics.Sidebar.min,
-                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                    ideal: min(window.sidebar.preferredWidth, sidebarMaxWidth),
                     max: sidebarMaxWidth
                 )
         } detail: {
@@ -68,6 +73,7 @@ struct RootView: View {
                 )
         }
         .navigationSplitViewStyle(.balanced)
+        .id(window.sidebar.initialLayoutGeneration)
         .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
         .background {
             MainWindowRegistration(coordinator: app.mainWindows, model: window, requestID: requestID)
@@ -91,6 +97,9 @@ struct RootView: View {
             $0.size.width
         } action: {
             layoutWidth = $0
+        }
+        .onChange(of: window.showsSidebar) { _, _ in
+            app.mainWindows.recordSidebarPresentation(for: window)
         }
         .toolbarBackground(.hidden, for: .windowToolbar)
         .navigationTitle(

@@ -6,6 +6,15 @@ import SwiftUI
 @MainActor
 @Observable
 final class MainWindowCoordinator {
+    struct Layout {
+        /// Ordinary AppKit content coordinates, including the full-size titlebar.
+        let size: CGSize
+        let sidebarWidth: CGFloat
+        let showsSidebar: Bool
+        let isFullScreen: Bool
+        let sourceScreenPoint: CGPoint?
+    }
+
     private enum Move: Equatable {
         case workspace(UUID)
         case pane(UUID)
@@ -16,6 +25,9 @@ final class MainWindowCoordinator {
         weak var model: WindowModel?
         var normalSize: CGSize?
         var isTransitioningFullScreen = false
+        var pendingFullScreen = false
+        var fullScreenToggleScheduled = false
+        var initialSidebarWidth: CGFloat?
         var isReady = false
         init(window: NSWindow, model: WindowModel) {
             self.window = window
@@ -27,19 +39,17 @@ final class MainWindowCoordinator {
         weak var source: WindowModel?
         let move: Move?
         let showsMetrics: Bool
-        /// AppKit content coordinates, including the titlebar for the main
-        /// window's full-size content view. Never a fullscreen frame.
-        let sourceSize: CGSize
+        let layout: Layout
         let screenPoint: CGPoint?
 
         init(
             source: WindowModel? = nil, move: Move? = nil,
-            showsMetrics: Bool = false, sourceSize: CGSize, screenPoint: CGPoint? = nil
+            showsMetrics: Bool = false, layout: Layout, screenPoint: CGPoint? = nil
         ) {
             self.source = source
             self.move = move
             self.showsMetrics = showsMetrics
-            self.sourceSize = sourceSize
+            self.layout = layout
             self.screenPoint = screenPoint
         }
 
@@ -96,13 +106,16 @@ final class MainWindowCoordinator {
             fullScreenWindows.insert(ObjectIdentifier(model))
         case NSWindow.didEnterFullScreenNotification:
             entry.isTransitioningFullScreen = false
+            entry.pendingFullScreen = false
             fullScreenWindows.insert(ObjectIdentifier(model))
+            if let width = model.sidebar.measuredWidth { recordSidebarWidth(width, for: model) }
         case NSWindow.willExitFullScreenNotification:
             entry.isTransitioningFullScreen = true
         case NSWindow.didExitFullScreenNotification:
             entry.isTransitioningFullScreen = false
             fullScreenWindows.remove(ObjectIdentifier(model))
             recordSize(entry)
+            if let width = model.sidebar.measuredWidth { recordSidebarWidth(width, for: model) }
         default:
             recordSize(entry)
         }
@@ -118,7 +131,14 @@ final class MainWindowCoordinator {
         let size = native.contentRect(forFrameRect: native.frame).size
         guard MainWindowSizeStore.isValid(size) else { return }
         entry.normalSize = size
-        if entries.last === entry { sizes.save(size) }
+        if entries.last === entry { saveFallback(from: entry) }
+    }
+
+    private func saveFallback(from entry: Entry) {
+        if let size = entry.normalSize { sizes.save(size) }
+        if let model = entry.model {
+            sizes.saveSidebar(width: model.sidebar.preferredWidth, isPresented: model.showsSidebar)
+        }
     }
 
     func isFullScreen(_ model: WindowModel?) -> Bool {
@@ -127,18 +147,14 @@ final class MainWindowCoordinator {
     }
 
     func performNewWindowCommand(from source: WindowModel?) {
-        if let source, isFullScreen(source) {
-            app?.connect(in: source)
-        } else {
-            newWindow(from: source)
-        }
+        newWindow(from: source)
     }
 
     func saveSizeForTermination() {
         guard !isTerminating else { return }
         if let entry = entries.last {
             recordSize(entry)
-            if let size = entry.normalSize { sizes.save(size) }
+            saveFallback(from: entry)
         }
         // Shutdown may close windows in a different order from their focus order.
         isTerminating = true
@@ -158,7 +174,7 @@ final class MainWindowCoordinator {
 
     @discardableResult
     func newWindow(from source: WindowModel? = nil, showsMetrics: Bool = false) -> UUID? {
-        request(Request(showsMetrics: showsMetrics, sourceSize: sourceSize(from: source)))
+        request(Request(showsMetrics: showsMetrics, layout: sourceLayout(from: source)))
     }
 
     @discardableResult
@@ -178,16 +194,59 @@ final class MainWindowCoordinator {
             return existing.key
         }
         return request(
-            Request(source: source, move: move, sourceSize: sourceSize(from: source), screenPoint: screenPoint))
+            Request(source: source, move: move, layout: sourceLayout(from: source), screenPoint: screenPoint))
     }
 
-    private func sourceSize(from source: WindowModel?) -> CGSize {
-        let entry = source.flatMap { source in entries.first(where: { $0.model === source }) } ?? entries.last
-        if let entry {
-            recordSize(entry)
-            if let size = entry.normalSize { return size }
+    private func sourceLayout(from source: WindowModel?) -> Layout {
+        let entry =
+            source.flatMap { source in entries.first(where: { $0.model === source }) }
+            ?? (source == nil ? entries.last : nil)
+        if let entry { recordSize(entry) }
+        let model = source ?? entry?.model
+        let sourceFrame = entry?.window?.frame
+        return Layout(
+            size: entry?.normalSize ?? sizes.defaultSize,
+            sidebarWidth: model.map {
+                $0.showsSidebar ? ($0.sidebar.observedWidth ?? $0.sidebar.preferredWidth) : $0.sidebar.preferredWidth
+            }
+                ?? sizes.defaultSidebarWidth,
+            showsSidebar: model?.showsSidebar ?? sizes.defaultShowsSidebar,
+            isFullScreen: model.map { isFullScreen($0) } ?? false,
+            sourceScreenPoint: sourceFrame.map { CGPoint(x: $0.midX, y: $0.midY) })
+    }
+
+    /// Called while constructing the scene, before RootView's first layout.
+    func configure(_ model: WindowModel, for requestID: UUID?) {
+        guard let requestID, let layout = requests[requestID]?.layout else { return }
+        configure(model, with: layout)
+    }
+
+    func requestedLayout(for requestID: UUID) -> Layout? {
+        requests[requestID]?.layout
+    }
+
+    func recordSidebarWidth(_ width: CGFloat, for model: WindowModel) {
+        model.sidebar.measuredWidth = width
+        guard MainWindowSizeStore.isValidSidebarWidth(width), model.showsSidebar,
+            let entry = entries.first(where: { $0.model === model }), entry.isReady
+        else { return }
+        guard !entry.pendingFullScreen, !entry.isTransitioningFullScreen else { return }
+        if let requestedWidth = entry.initialSidebarWidth, let native = entry.window {
+            let availableWidth = native.contentRect(forFrameRect: native.frame).width
+            let expectedWidth = min(requestedWidth, Metrics.Window.sidebarMaxWidth(for: availableWidth))
+            guard abs(width - expectedWidth) < 3 else { return }
+            entry.initialSidebarWidth = nil
         }
-        return sizes.defaultSize
+        model.sidebar.observedWidth = width
+        model.sidebar.preferredWidth = width
+        if entries.last === entry { saveFallback(from: entry) }
+    }
+
+    func recordSidebarPresentation(for model: WindowModel) {
+        guard let entry = entries.first(where: { $0.model === model }), entry.isReady,
+            entries.last === entry
+        else { return }
+        saveFallback(from: entry)
     }
 
     private func request(_ request: Request) -> UUID? {
@@ -208,6 +267,7 @@ final class MainWindowCoordinator {
         if native.styleMask.contains(.fullScreen) { fullScreenWindows.insert(ObjectIdentifier(model)) }
         app?.registerWindow(model)
         if let requestID, let request = requests.removeValue(forKey: requestID) {
+            configure(model, with: request.layout)
             // A tear-off should appear at the release point immediately, without
             // another document-opening animation after the drag completes.
             if request.screenPoint != nil { native.animationBehavior = .none }
@@ -218,23 +278,48 @@ final class MainWindowCoordinator {
             } else if request.showsMetrics {
                 model.selectedDestination = .metrics
             }
-            applySize(request.sourceSize, to: native, model: model, at: request.screenPoint)
+            applySize(
+                request.layout.size, to: native, model: model, at: request.screenPoint,
+                preferredScreenPoint: request.layout.isFullScreen ? request.layout.sourceScreenPoint : nil)
+            entry.initialSidebarWidth = request.layout.sidebarWidth
+            entry.pendingFullScreen = request.layout.isFullScreen
+            if request.move != nil {
+                // A transferred workspace can make the first split-view layout
+                // use the system width. Rebuild after the transfer and sizing,
+                // keeping the normal resizable column limits.
+                model.sidebar.initialLayoutGeneration += 1
+            }
         }
         // A restored scene has no pending request. Its system-restored frame
         // must not be replaced with another window's shared fallback.
         entry.isReady = true
         recordSize(entry)
+        if let width = model.sidebar.measuredWidth { recordSidebarWidth(width, for: model) }
         synchronizePaywall()
+        activatePendingFullScreen(entry)
     }
 
-    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel, at screenPoint: CGPoint?) {
+    private func configure(_ model: WindowModel, with layout: Layout) {
+        let changed =
+            model.showsSidebar != layout.showsSidebar
+            || model.sidebar.preferredWidth != layout.sidebarWidth
+        model.showsSidebar = layout.showsSidebar
+        model.sidebar.preferredWidth = layout.sidebarWidth
+        if changed { model.sidebar.initialLayoutGeneration += 1 }
+    }
+
+    private func applySize(
+        _ size: CGSize, to native: NSWindow, model: WindowModel, at screenPoint: CGPoint?,
+        preferredScreenPoint: CGPoint?
+    ) {
         let contentSize = CGSize(
             width: max(
                 size.width, native.contentMinSize.width, Metrics.Window.minWidth(showsSidebar: model.showsSidebar)),
             height: max(size.height, native.contentMinSize.height, Metrics.Window.minHeight))
         let frameSize = native.frameRect(forContentRect: CGRect(origin: .zero, size: contentSize)).size
         let screen =
-            screenPoint.flatMap { point in NSScreen.screens.first { $0.frame.contains(point) } }
+            (screenPoint ?? preferredScreenPoint).flatMap { point in NSScreen.screens.first { $0.frame.contains(point) }
+            }
             ?? native.screen ?? NSScreen.main
         var frame = CGRect(
             x: screenPoint.map { $0.x - frameSize.width / 2 } ?? native.frame.minX,
@@ -244,6 +329,25 @@ final class MainWindowCoordinator {
             frame = Self.fittingFrame(frame, within: screen.visibleFrame)
         }
         native.setFrame(frame, display: true)
+    }
+
+    private func activatePendingFullScreen(_ entry: Entry) {
+        guard entry.pendingFullScreen, !entry.fullScreenToggleScheduled,
+            let native = entry.window, native.isKeyWindow
+        else { return }
+        entry.fullScreenToggleScheduled = true
+        Task { @MainActor [weak self, weak native] in
+            guard let self, let native,
+                self.entries.contains(where: { $0 === entry })
+            else { return }
+            entry.fullScreenToggleScheduled = false
+            guard entry.pendingFullScreen, native.isKeyWindow else { return }
+            if native.styleMask.contains(.fullScreen) {
+                entry.pendingFullScreen = false
+            } else {
+                native.toggleFullScreen(nil)
+            }
+        }
     }
 
     /// A selected pane consumes the command, even when it was the last one.
@@ -265,7 +369,7 @@ final class MainWindowCoordinator {
     func close(_ native: NSWindow) {
         guard let entry = entries.first(where: { $0.window === native }), let model = entry.model else { return }
         recordSize(entry)
-        if entries.last === entry, !isTerminating, let size = entry.normalSize { sizes.save(size) }
+        if entries.last === entry, !isTerminating { saveFallback(from: entry) }
         fullScreenWindows.remove(ObjectIdentifier(model))
         entries.removeAll { $0.window === native || $0.window == nil || $0.model == nil }
         requests = requests.filter { $0.value.source !== model }
@@ -282,7 +386,8 @@ final class MainWindowCoordinator {
         entries.append(entries.remove(at: index))
         if let entry = entries.last {
             recordSize(entry)
-            if !isTerminating, let size = entry.normalSize { sizes.save(size) }
+            if !isTerminating { saveFallback(from: entry) }
+            activatePendingFullScreen(entry)
         }
         synchronizePaywall()
     }

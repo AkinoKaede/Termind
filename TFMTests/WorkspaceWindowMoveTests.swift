@@ -202,6 +202,8 @@ struct WorkspaceWindowMoveTests {
         app.mainWindows.createScene = { _ in }
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
         let source = WindowModel(workspaces: [workspace])
+        source.sidebar.preferredWidth = 472
+        source.showsSidebar = false
         let target = WindowModel()
         let sourceNative = nativeWindow(size: normalSize)
         let targetNative = nativeWindow()
@@ -218,10 +220,17 @@ struct WorkspaceWindowMoveTests {
             movesPane
                 ? app.mainWindows.movePane(workspace.focusedPaneID, from: source, at: point)
                 : app.mainWindows.moveWorkspace(workspace.id, from: source, at: point))
+        let layout = try #require(app.mainWindows.requestedLayout(for: request))
+        #expect(layout.isFullScreen)
+        #expect(layout.size == normalSize)
+        #expect(layout.sidebarWidth == 472)
+        #expect(!layout.showsSidebar)
 
         app.mainWindows.register(targetNative, model: target, requestID: request)
 
         #expect(target.selectedWorkspace === workspace)
+        #expect(target.sidebar.preferredWidth == 472)
+        #expect(!target.showsSidebar)
         #expect(targetNative.frame.size.width == min(normalSize.width, screen.visibleFrame.width))
         #expect(targetNative.frame.size.height == min(normalSize.height, screen.visibleFrame.height))
         #expect(targetNative.frame.maxX == screen.visibleFrame.maxX)
