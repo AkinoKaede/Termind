@@ -7,6 +7,7 @@ struct MobileMetricsView: View {
     let app: MobileAppModel
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var selecting = false
+    @State private var pendingHostIDs: [UUID] = []
     @State private var selectedID: UUID?
 
     var body: some View {
@@ -48,7 +49,7 @@ struct MobileMetricsView: View {
         }
         .navigationTitle(AppStrings.Navigation.metrics.swiftUIKey)
         .toolbar {
-            Button(AppStrings.Metrics.addServer.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
+            Button(AppStrings.Common.addHosts.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
                 .iconOnly)
         }
         .navigationDestination(item: $selectedID) { id in
@@ -56,27 +57,29 @@ struct MobileMetricsView: View {
                 MobileMetricsDetailView(app: app, server: server)
             }
         }
-        .sheet(isPresented: $selecting) {
-            NavigationStack {
-                MobileHostPicker(
-                    library: app.library,
-                    useCase: .metrics,
-                    title: AppStrings.Metrics.addServer,
-                    emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
-                    cancel: { selecting = false },
-                    select: { host in
-                        selecting = false
-                        if !app.metrics.add(host.id, pro: app.pro.hasProAccess) {
-                            if let error = app.metrics.core.storageError {
-                                app.error = error
-                            } else {
-                                app.pro.presentPaywall(for: .unlimitedMetrics)
-                            }
-                        }
-                    })
-            }.mobileSheetPresentation(compact: true)
+        .sheet(isPresented: $selecting, onDismiss: addSelectedHosts) {
+            MobileMultiHostPicker(
+                library: app.library, useCase: .metrics, selected: [],
+                title: AppStrings.Common.addHosts, actionTitle: AppStrings.Common.addHosts,
+                emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
+                requiresSelection: true,
+                isEligible: { host in !app.metrics.selections.contains(where: { $0.id == host.id }) }
+            ) { pendingHostIDs = $0 }
         }
         .task { app.metrics.start() }
+    }
+
+    private func addSelectedHosts() {
+        let ids = pendingHostIDs
+        pendingHostIDs = []
+        guard !ids.isEmpty else { return }
+        if !app.metrics.add(ids, pro: app.pro.hasProAccess) {
+            if let error = app.metrics.core.storageError {
+                app.error = error
+            } else {
+                app.pro.presentPaywall(for: .unlimitedMetrics)
+            }
+        }
     }
 }
 

@@ -27,9 +27,14 @@ final class MobileMetricsModel {
     }
 
     func add(_ id: UUID, pro: Bool) -> Bool {
+        add([id], pro: pro)
+    }
+
+    func add(_ ids: [UUID], pro: Bool) -> Bool {
         limit.maximum = pro ? nil : ServerMetricsModel.freeCardLimit
-        guard let host = hosts.host(id) else { return false }
-        return core.add(host)
+        let batch = ids.compactMap(hosts.host)
+        guard !batch.isEmpty else { return false }
+        return core.add(batch)
     }
 
     func remove(_ id: UUID) { core.remove(id) }

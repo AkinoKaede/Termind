@@ -10,18 +10,13 @@ final class MobileHostPickerModel {
     var query = ""
 
     private let library: HostLibraryModel
-    private let useCase: HostUseCase?
 
-    init(library: HostLibraryModel, useCase: HostUseCase? = nil) {
+    init(library: HostLibraryModel) {
         self.library = library
-        self.useCase = useCase
     }
 
     var isLibraryEmpty: Bool { library.hosts.isEmpty }
-    var hosts: [Host] {
-        if let useCase { return library.hosts(matching: query, for: useCase) }
-        return library.searchHosts(query)
-    }
+    var hosts: [Host] { library.searchHosts(query) }
 
     func loginAddress(for host: Host) -> String { library.preferredTerminalLoginAddress(for: host) }
 }

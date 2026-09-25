@@ -52,7 +52,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect: AppStrings.Common.connect
         case .batchStartup: AppStrings.Vault.batchStartup
-        case .metrics: AppStrings.Metrics.addServer
+        case .metrics: AppStrings.Common.addHosts
         case .snippet: AppStrings.Common.run
         }
     }
@@ -71,7 +71,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var confirmLabel: LocalizedStringResource {
         switch self {
         case .connect, .batchStartup: AppStrings.Common.connect
-        case .metrics: AppStrings.Metrics.addServer
+        case .metrics: AppStrings.Common.addHosts
         case .snippet: AppStrings.Common.run
         }
     }
@@ -109,11 +109,11 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         }
     }
 
-    func connectionChooserShowsConfirmation(for connectionProtocol: HostConnectionProtocol) -> Bool {
+    func formShowsConfirmation(for connectionProtocol: HostConnectionProtocol) -> Bool {
         switch self {
         case .connect: connectionProtocol == .serial
-        case .batchStartup: true
-        case .metrics, .snippet: false
+        case .batchStartup, .metrics: true
+        case .snippet: false
         }
     }
 }
@@ -180,11 +180,12 @@ struct HostChooserView: View {
         )
     }
 
-    /// The protocol-choosing variant carries an extra row of controls above the
-    /// list and needs the room; everything else uses the standard picker width.
     private var sheetWidth: CGFloat? {
         guard presentation == .sheet else { return nil }
-        return purpose.choosesConnectionProtocol ? 520 : Metrics.HostPicker.width
+        switch purpose {
+        case .connect, .batchStartup, .metrics: return 520
+        case .snippet: return Metrics.HostPicker.width
+        }
     }
 
     private var query: String { chooser.query }
@@ -209,9 +210,9 @@ struct HostChooserView: View {
     var body: some View {
         Group {
             switch purpose {
-            case .connect, .batchStartup:
-                connectionChooser
-            case .metrics, .snippet:
+            case .connect, .batchStartup, .metrics:
+                formChooser
+            case .snippet:
                 managedChooser
             }
         }
@@ -261,15 +262,15 @@ struct HostChooserView: View {
         SheetScaffold {
             managedHeader
         } content: {
-            managedContent
+            hostList
         } footer: {
             managedFooter
         }
     }
 
-    private var connectionChooser: some View {
+    private var formChooser: some View {
         VStack(spacing: 0) {
-            connectionTopBar
+            formTopBar
 
             if connectionProtocol == .serial {
                 serialForm
@@ -284,7 +285,14 @@ struct HostChooserView: View {
                     )
                     .padding(.horizontal, Metrics.Space.xl)
 
-                    connectionHostList
+                    if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
+                        Text(AppStrings.Pro.freeMetricsLimit)
+                            .font(.caption).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, Metrics.Space.xl)
+                    }
+
+                    multiSelectionHostList
                 }
                 .padding(.top, Metrics.Space.xs)
             }
@@ -293,7 +301,7 @@ struct HostChooserView: View {
         .background(TermindColor.windowSurface)
     }
 
-    private var connectionTopBar: some View {
+    private var formTopBar: some View {
         HStack {
             glassActionButton(
                 AppStrings.Common.cancel,
@@ -320,9 +328,13 @@ struct HostChooserView: View {
         }
         .frame(maxWidth: .infinity)
         .overlay {
-            connectionProtocolPicker
-                .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
-                .frame(width: protocolPickerWidth, height: 30)
+            if purpose.choosesConnectionProtocol {
+                connectionProtocolPicker
+                    .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
+                    .frame(width: protocolPickerWidth, height: 30)
+            } else {
+                Text(purpose.title).font(.headline)
+            }
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.top, Metrics.Space.l)
@@ -355,7 +367,7 @@ struct HostChooserView: View {
     }
 
     private var showsTopConfirmation: Bool {
-        purpose.connectionChooserShowsConfirmation(for: connectionProtocol)
+        purpose.formShowsConfirmation(for: connectionProtocol)
     }
 
     private var managedHeader: some View {
@@ -364,21 +376,10 @@ struct HostChooserView: View {
             symbol: purpose.symbol,
             prompt: AppStrings.Vault.searchHosts,
             query: queryBinding,
-            aboveSearch: chooserOptions,
-            showsSearch: connectionProtocol != .serial,
             onSubmit: openSelected,
             moveCursor: move,
             toggleCursor: toggleCursor
         )
-    }
-
-    private var chooserOptions: AnyView? {
-        if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
-            return AnyView(
-                Text(AppStrings.Pro.freeMetricsLimit)
-                    .font(.caption).foregroundStyle(.secondary))
-        }
-        return nil
     }
 
     private var connectionProtocolPicker: some View {
@@ -392,54 +393,7 @@ struct HostChooserView: View {
         .accessibilityLabel(AppStrings.Vault.connectionProtocolLabel.swiftUIKey)
     }
 
-    @ViewBuilder
-    private var managedContent: some View {
-        if app.hostLibrary.hosts.isEmpty {
-            ContentUnavailableView {
-                Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
-            } description: {
-                Text(AppStrings.Vault.addAHostToConnectToIt)
-            } actions: {
-                Button(AppStrings.Vault.newHost.swiftUIKey) {
-                    close()
-                    window.openHostEditor(host: nil)
-                }
-            }
-        } else if results.isEmpty {
-            ContentUnavailableView.search(text: query)
-        } else {
-            ScrollViewReader { proxy in
-                List {
-                    ForEach(results) { host in
-                        Button {
-                            activate(host)
-                        } label: {
-                            HostChooserRow(
-                                host: host,
-                                isCursor: chooser.cursor == host.id,
-                                isChecked: purpose.allowsMultiple
-                                    ? chooser.selected.contains(host.id) : nil,
-                                connectionProtocol: connectionProtocol
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("host-chooser.host.\(host.id)")
-                        .id(host.id)
-                        .listRowBackground(
-                            chooser.cursor == host.id
-                                ? Color.accentColor.opacity(0.11) : Color.clear
-                        )
-                    }
-                }
-                .listStyle(.inset)
-                .onAppear { scrollCursorIntoView(using: proxy) }
-                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
-                .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
-            }
-        }
-    }
-
-    private var connectionHostList: some View {
+    private var multiSelectionHostList: some View {
         VStack(spacing: 0) {
             if purpose.allowsMultiple {
                 Button(selectAllLabel) {
@@ -456,12 +410,12 @@ struct HostChooserView: View {
                 Divider()
             }
 
-            connectionHosts
+            hostList
         }
     }
 
     @ViewBuilder
-    private var connectionHosts: some View {
+    private var hostList: some View {
         if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
                 Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")

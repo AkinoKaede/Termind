@@ -190,6 +190,35 @@ struct ChooserInteractionTests {
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func metricsUsesTheBatchFormAndConfirmsOnlyAfterSelection(_ language: String) async throws {
+        let fixture = ChooserFixture()
+        defer { fixture.close() }
+        fixture.mount(HostChooserView(purpose: .metrics).environment(\.locale, Locale(identifier: language)))
+        try await fixture.settle()
+        #expect(!fixture.views.contains { $0 is NSSegmentedControl })
+
+        _ = try await fixture.quickOpenField()
+        try fixture.key("\r", code: 36)
+        try await fixture.settle()
+        #expect(fixture.model.pendingMetricsHostIDs.isEmpty)
+        try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+        try fixture.key(" ", code: 49)
+        try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+        try fixture.key(" ", code: 49)
+        try await fixture.settle()
+        #expect(fixture.model.pendingMetricsHostIDs.isEmpty)
+        #expect(fixture.app.serverMetrics.servers.isEmpty)
+        let image = try fixture.capture()
+        Attachment.record(image, named: "metrics-host-picker-\(language).png")
+
+        try fixture.key("\r", code: 36)
+        try await fixture.settle()
+        #expect(fixture.model.pendingMetricsHostIDs == fixture.hosts.prefix(2).map(\.id))
+        #expect(fixture.model.workspaces.isEmpty)
+        #expect(fixture.app.serverMetrics.servers.isEmpty)
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func batchHasOneConnectActionAndCancelCreatesNoSessions(_ language: String) async throws {
         let fixture = ChooserFixture()
         defer { fixture.close() }

@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -190,14 +191,20 @@ struct MobileConnectionPickerTests {
         #expect(app.connectionHistory.entries(for: host.id).map(\.kind) == [.telnet])
     }
 
-    @Test func snippetHostPickerGatesConfirmationOnRequiredSelection() async throws {
+    @Test(
+        .enabled(
+            if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1",
+            "Set TERMIND_MOBILE_UI_TESTS=1 and disable parallel testing for key-window integration tests"),
+        arguments: [HostUseCase.snippetExecution, .metrics])
+    func multiHostPickerGatesConfirmationOnRequiredSelection(useCase: HostUseCase) async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Production", host: "production.example.invalid")
         app.library.upsert(host)
 
         try await withStandaloneNavigation(
-            MobileSnippetHostPicker(
-                app: app, selected: [], title: "Run", actionTitle: "Run",
+            MobileMultiHostPicker(
+                library: app.library, useCase: useCase, selected: [], title: "Run", actionTitle: "Run",
+                emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
                 requiresSelection: true, save: { _ in }),
             language: "en"
         ) { navigation in
@@ -206,8 +213,10 @@ struct MobileConnectionPickerTests {
         }
 
         try await withStandaloneNavigation(
-            MobileSnippetHostPicker(
-                app: app, selected: [host.id], title: "Add Hosts", actionTitle: "Done",
+            MobileMultiHostPicker(
+                library: app.library, useCase: useCase, selected: [host.id], title: "Add Hosts",
+                actionTitle: "Done",
+                emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
                 requiresSelection: false, save: { _ in }),
             language: "en"
         ) { navigation in

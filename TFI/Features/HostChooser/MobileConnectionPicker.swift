@@ -123,7 +123,6 @@ struct MobileHostPicker<Header: View>: View {
 
     init(
         library: HostLibraryModel,
-        useCase: HostUseCase? = nil,
         title: LocalizedStringResource,
         emptyDescription: LocalizedStringResource,
         cancel: @escaping () -> Void,
@@ -131,7 +130,7 @@ struct MobileHostPicker<Header: View>: View {
         isEligible: @escaping (Host) -> Bool = { _ in true },
         @ViewBuilder header: () -> Header
     ) {
-        _model = State(initialValue: MobileHostPickerModel(library: library, useCase: useCase))
+        _model = State(initialValue: MobileHostPickerModel(library: library))
         self.title = title
         self.emptyDescription = emptyDescription
         self.cancel = cancel
@@ -182,26 +181,4 @@ struct MobileHostPicker<Header: View>: View {
     }
 
     private var eligibleHosts: [Host] { model.hosts.filter(isEligible) }
-}
-
-extension MobileHostPicker where Header == EmptyView {
-    init(
-        library: HostLibraryModel,
-        useCase: HostUseCase? = nil,
-        title: LocalizedStringResource,
-        emptyDescription: LocalizedStringResource,
-        cancel: @escaping () -> Void,
-        select: @escaping (Host) -> Void,
-        isEligible: @escaping (Host) -> Bool = { _ in true }
-    ) {
-        self.init(
-            library: library,
-            useCase: useCase,
-            title: title,
-            emptyDescription: emptyDescription,
-            cancel: cancel,
-            select: select,
-            isEligible: isEligible,
-            header: { EmptyView() })
-    }
 }

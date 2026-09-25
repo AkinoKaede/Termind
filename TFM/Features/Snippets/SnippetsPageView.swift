@@ -665,11 +665,11 @@ struct SnippetEditorSheet: View {
                         Button {
                             route = .targets
                         } label: {
-                            Label(AppStrings.Snippets.addHosts.swiftUIKey, systemImage: "plus")
+                            Label(AppStrings.Common.addHosts.swiftUIKey, systemImage: "plus")
                         }
                         .disabled(app.snippets.hosts.isEmpty)
                         .accessibilityIdentifier("snippet-editor.add-hosts")
-                        .help(AppStrings.Snippets.addHosts.swiftUIKey)
+                        .help(AppStrings.Common.addHosts.swiftUIKey)
                     }
                 }
                 if let error { Text(error).foregroundStyle(.red) }
@@ -792,7 +792,7 @@ struct SnippetTargetPickerView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: AppStrings.Snippets.addHosts, symbol: "server.rack", close: close,
+            title: AppStrings.Common.addHosts, symbol: "server.rack", close: close,
             closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 0) {
@@ -816,7 +816,7 @@ struct SnippetTargetPickerView: View {
 
     private var header: some View {
         ManagedChooserHeader(
-            title: AppStrings.Snippets.addHosts,
+            title: AppStrings.Common.addHosts,
             symbol: "server.rack",
             prompt: AppStrings.Vault.searchHosts,
             query: queryBinding,

@@ -90,6 +90,5 @@ extension AppStrings {
             "Select Devices"
         }
 
-        public static var addServer: LocalizedStringResource { "Add Server" }
     }
 }

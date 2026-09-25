@@ -423,7 +423,7 @@ private struct MarketingMetricsScene: View {
         .navigationTitle("Metrics")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Server", systemImage: "plus") {}.labelStyle(.iconOnly)
+                Button(AppStrings.Common.addHosts, systemImage: "plus") {}.labelStyle(.iconOnly)
             }
         }
     }

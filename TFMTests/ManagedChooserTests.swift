@@ -77,19 +77,22 @@ struct ManagedChooserTests {
     func connectAndBatchStartupChooseProtocolsWithExpectedSelectionModes() {
         #expect(HostChooserPurpose.connect.choosesConnectionProtocol)
         #expect(HostChooserPurpose.connect.availableConnectionProtocols == [.terminal, .sftp, .serial])
-        #expect(!HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .terminal))
-        #expect(!HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .sftp))
-        #expect(HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .serial))
+        #expect(!HostChooserPurpose.connect.formShowsConfirmation(for: .terminal))
+        #expect(!HostChooserPurpose.connect.formShowsConfirmation(for: .sftp))
+        #expect(HostChooserPurpose.connect.formShowsConfirmation(for: .serial))
         #expect(!HostChooserPurpose.connect.allowsMultiple)
         #expect(HostChooserPurpose.connect.activatesHostImmediately)
 
         #expect(HostChooserPurpose.batchStartup.choosesConnectionProtocol)
         #expect(HostChooserPurpose.batchStartup.availableConnectionProtocols == [.terminal, .sftp])
-        #expect(HostChooserPurpose.batchStartup.connectionChooserShowsConfirmation(for: .terminal))
-        #expect(HostChooserPurpose.batchStartup.connectionChooserShowsConfirmation(for: .sftp))
+        #expect(HostChooserPurpose.batchStartup.formShowsConfirmation(for: .terminal))
+        #expect(HostChooserPurpose.batchStartup.formShowsConfirmation(for: .sftp))
         #expect(HostChooserPurpose.batchStartup.allowsMultiple)
         #expect(!HostChooserPurpose.batchStartup.activatesHostImmediately)
 
+        #expect(!HostChooserPurpose.metrics.choosesConnectionProtocol)
+        #expect(HostChooserPurpose.metrics.availableConnectionProtocols.isEmpty)
+        #expect(HostChooserPurpose.metrics.formShowsConfirmation(for: .terminal))
         #expect(HostChooserPurpose.metrics.allowsMultiple)
         #expect(!HostChooserPurpose.metrics.activatesHostImmediately)
 

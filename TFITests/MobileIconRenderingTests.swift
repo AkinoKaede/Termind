@@ -1,7 +1,9 @@
 import Foundation
 import GhosttyTerminal
 import SwiftUI
+import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -13,6 +15,33 @@ import struct TermindDomain.Host
 /// Set TERMIND_ICON_SCREENSHOTS to en, zh-Hans, or zh-Hant in the test runner environment.
 @Suite(.serialized) @MainActor
 struct MobileIconRenderingTests {
+    @Test func renderMultiHostPickers() async throws {
+        guard let language = ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] else { return }
+        let hosts = ["Production", "Staging", "Development"].enumerated().map { index, name in
+            Host(name: name, host: "\(name.lowercased()).invalid", sortIndex: Double(index))
+        }
+        let library = HostLibraryModel(hosts: hosts)
+        for useCase in [HostUseCase.metrics, .snippetExecution] {
+            let metrics = useCase == .metrics
+            let name = metrics ? "metrics-multi-picker" : "snippet-multi-picker"
+            for scheme in [ColorScheme.light, .dark] {
+                let suffix = scheme == .dark ? "dark" : "light"
+                try await capture("\(name)-\(suffix)", language: language, scheme: scheme) {
+                    MobileMultiHostPicker(
+                        library: library, useCase: useCase, selected: [hosts[0].id, hosts[2].id],
+                        title: AppStrings.Common.addHosts,
+                        actionTitle: metrics ? AppStrings.Common.addHosts : AppStrings.Common.done,
+                        emptyDescription: metrics
+                            ? AppStrings.Metrics.addASavedLinuxServerToStartMonitoring
+                            : AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
+                        requiresSelection: metrics, save: { _ in }
+                    )
+                    .environment(\.locale, Locale(identifier: language))
+                }
+            }
+        }
+    }
+
     @Test func terminalKeyboardKeepsItsCompactHeight() {
         #expect(UIImage(systemName: "play.rectangle") != nil)
         #expect(UIImage(systemName: "doc.on.clipboard") != nil)
@@ -78,16 +107,19 @@ struct MobileIconRenderingTests {
                     .environment(\.locale, locale)
             }
             try await capture("snippet-targets-\(suffix)", language: language, scheme: scheme) {
-                MobileSnippetHostPicker(
-                    app: snippetApp, selected: [snippetHost.id], title: "Add Hosts",
-                    actionTitle: "Done", requiresSelection: false, save: { _ in }
+                MobileMultiHostPicker(
+                    library: snippetApp.library, useCase: .snippetExecution, selected: [snippetHost.id],
+                    title: "Add Hosts",
+                    actionTitle: "Done", emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
+                    requiresSelection: false, save: { _ in }
                 )
                 .environment(\.locale, locale)
             }
             try await capture("snippet-execution-targets-\(suffix)", language: language, scheme: scheme) {
-                MobileSnippetHostPicker(
-                    app: snippetApp, selected: [], title: "Run",
-                    actionTitle: "Run", requiresSelection: true, save: { _ in }
+                MobileMultiHostPicker(
+                    library: snippetApp.library, useCase: .snippetExecution, selected: [], title: "Run",
+                    actionTitle: "Run", emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
+                    requiresSelection: true, save: { _ in }
                 )
                 .environment(\.locale, locale)
             }
@@ -123,14 +155,12 @@ struct MobileIconRenderingTests {
                 .environment(\.locale, locale)
             }
             try await capture("metrics-host-picker-\(suffix)", language: language, scheme: scheme) {
-                NavigationStack {
-                    MobileHostPicker(
-                        library: connectionApp.library,
-                        title: "Add Server",
-                        emptyDescription: "Add a saved Linux server to start monitoring.",
-                        cancel: {},
-                        select: { _ in })
-                }
+                MobileMultiHostPicker(
+                    library: connectionApp.library, useCase: .metrics, selected: [],
+                    title: AppStrings.Common.addHosts, actionTitle: AppStrings.Common.addHosts,
+                    emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
+                    requiresSelection: true, save: { _ in }
+                )
                 .environment(\.locale, locale)
             }
             try await capture("connection-settings-\(suffix)", language: language, scheme: scheme) {

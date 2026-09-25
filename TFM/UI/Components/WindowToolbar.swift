@@ -716,7 +716,7 @@ extension WindowModel {
         case .metrics:
             guard metricsHostID == nil else { return [] }
             return [
-                WindowToolbarCreationAction(id: "metrics-server", title: AppStrings.Metrics.addServer, symbol: "plus") {
+                WindowToolbarCreationAction(id: "metrics-server", title: AppStrings.Common.addHosts, symbol: "plus") {
                     guard self.metricsModel?.requestAddition() ?? true else { return }
                     self.pendingMetricsHostIDs = []
                     self.presentations.hostChooser = .metrics

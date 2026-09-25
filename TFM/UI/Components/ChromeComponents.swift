@@ -141,8 +141,6 @@ struct ManagedChooserHeader: View {
     let symbol: String
     let prompt: LocalizedStringResource
     @Binding var query: String
-    var aboveSearch: AnyView? = nil
-    var showsSearch = true
     var onSubmit: () -> Void = {}
     var moveCursor: (Int) -> KeyPress.Result = { _ in .ignored }
     var toggleCursor: () -> KeyPress.Result = { .ignored }
@@ -155,29 +153,10 @@ struct ManagedChooserHeader: View {
                 .font(.headline)
                 .labelStyle(.titleOnly)
 
-            if let aboveSearch {
-                aboveSearch
-            }
-
-            if showsSearch {
-                searchRow
-                    .transition(
-                        .opacity.combined(with: .move(edge: .top))
-                    )
-            }
+            searchRow
         }
         .padding(Metrics.Space.xl)
-        .animation(Motion.panel, value: showsSearch)
-        .onAppear {
-            if showsSearch { searchFocused = true }
-        }
-        .onChange(of: showsSearch) { _, visible in
-            if visible {
-                Task { @MainActor in searchFocused = true }
-            } else {
-                searchFocused = false
-            }
-        }
+        .onAppear { searchFocused = true }
     }
 
     private var searchRow: some View {

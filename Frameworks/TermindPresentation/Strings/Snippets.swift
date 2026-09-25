@@ -6,10 +6,6 @@ extension AppStrings {
             "Add a host before choosing default targets."
         }
 
-        public static var addHosts: LocalizedStringResource {
-            "Add Hosts"
-        }
-
         public static var deletePackage: LocalizedStringResource {
             "Delete Package"
         }

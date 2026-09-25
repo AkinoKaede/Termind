@@ -119,8 +119,10 @@ struct MobileSnippetsView: View {
                 parentID: request.parentID)
         }
         .sheet(item: $targetRequest, onDismiss: completeTargetSelection) { request in
-            MobileSnippetHostPicker(
-                app: app, selected: [], title: AppStrings.Common.run, actionTitle: AppStrings.Common.run,
+            MobileMultiHostPicker(
+                library: app.library, useCase: .snippetExecution, selected: [], title: AppStrings.Common.run,
+                actionTitle: AppStrings.Common.run,
+                emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets,
                 requiresSelection: true
             ) { ids in
                 pendingTargetExecution = ExecutionRequest(snippetID: request.snippetID, hostIDs: ids)
@@ -648,7 +650,7 @@ struct MobileSnippetEditor: View {
                 Button {
                     choosingTargets = true
                 } label: {
-                    Label(AppStrings.Snippets.addHosts.swiftUIKey, systemImage: "server.rack")
+                    Label(AppStrings.Common.addHosts.swiftUIKey, systemImage: "server.rack")
                 }
                 .disabled(app.snippets.hosts.isEmpty)
                 if selectedHosts.isEmpty {
@@ -680,9 +682,11 @@ struct MobileSnippetEditor: View {
             }
         }
         .sheet(isPresented: $choosingTargets) {
-            MobileSnippetHostPicker(
-                app: app, selected: Set(draft.targetHostIDs), title: AppStrings.Snippets.addHosts,
-                actionTitle: AppStrings.Common.done, requiresSelection: false
+            MobileMultiHostPicker(
+                library: app.library, useCase: .snippetExecution, selected: Set(draft.targetHostIDs),
+                title: AppStrings.Common.addHosts,
+                actionTitle: AppStrings.Common.done,
+                emptyDescription: AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets, requiresSelection: false
             ) { ids in
                 draft.targetHostIDs = ids
                 choosingTargets = false
@@ -796,125 +800,5 @@ struct MobileSnippetPackageEditor: View {
         app.snippets.upsert(draft)
         if let error = app.library.storageError { throw MobileEditorError.message(error) }
         didSave(draft)
-    }
-}
-
-struct MobileSnippetHostPicker: View {
-    let app: MobileAppModel
-    let title: LocalizedStringResource
-    let actionTitle: LocalizedStringResource
-    let requiresSelection: Bool
-    let save: ([Host.ID]) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-    @State private var selected: Set<Host.ID>
-
-    init(
-        app: MobileAppModel, selected: Set<Host.ID>, title: LocalizedStringResource,
-        actionTitle: LocalizedStringResource, requiresSelection: Bool,
-        save: @escaping ([Host.ID]) -> Void
-    ) {
-        self.app = app
-        self.title = title
-        self.actionTitle = actionTitle
-        self.requiresSelection = requiresSelection
-        self.save = save
-        _selected = State(initialValue: selected)
-    }
-
-    private var results: [Host] { app.snippets.searchHosts(query) }
-    private var allResultsSelected: Bool {
-        !results.isEmpty && results.allSatisfy { selected.contains($0.id) }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                if app.snippets.hosts.isEmpty {
-                    ContentUnavailableView(
-                        AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
-                        description: Text(
-                            AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets
-                        )
-                    )
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                } else if results.isEmpty {
-                    ContentUnavailableView.search(text: query)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                } else {
-                    Section {
-                        Button(
-                            allResultsSelected
-                                ? String(localized: AppStrings.Common.deselectAll)
-                                : String(localized: AppStrings.Common.selectAll)
-                        ) {
-                            toggleAllResults()
-                        }
-                    }
-                    Section {
-                        ForEach(results) { host in
-                            Button {
-                                toggle(host.id)
-                            } label: {
-                                MobileHostPickerRow(
-                                    host: host,
-                                    loginAddress: app.snippets.loginAddress(for: host)
-                                ) {
-                                    if selected.contains(host.id) {
-                                        Image(systemName: "checkmark")
-                                            .font(.body.weight(.semibold))
-                                            .foregroundStyle(.tint)
-                                            .accessibilityHidden(true)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityAddTraits(selected.contains(host.id) ? [.isSelected] : [])
-                        }
-                    }
-                }
-            }
-            .searchable(text: $query.singleLineText, prompt: AppStrings.Vault.searchHosts.swiftUIKey)
-            .navigationTitle(Text(title))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
-                        .iconOnly)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(actionTitle, systemImage: "checkmark") {
-                        let ordered = app.snippets.searchHosts("").filter { selected.contains($0.id) }.map(\.id)
-                        save(ordered)
-                        dismiss()
-                    }
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(.tint)
-                    .disabled(requiresSelection && selected.isEmpty)
-                }
-            }
-            .onAppear {
-                selected.formIntersection(Set(app.snippets.hosts.map(\.id)))
-            }
-        }
-        .mobileSheetPresentation(compact: true)
-    }
-
-    private func toggle(_ id: Host.ID) {
-        if selected.contains(id) {
-            selected.remove(id)
-        } else {
-            selected.insert(id)
-        }
-    }
-
-    private func toggleAllResults() {
-        if allResultsSelected {
-            selected.subtract(results.map(\.id))
-        } else {
-            selected.formUnion(results.map(\.id))
-        }
     }
 }
