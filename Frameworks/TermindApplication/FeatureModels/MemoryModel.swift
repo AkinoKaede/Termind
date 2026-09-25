@@ -7,6 +7,7 @@ public final class MemoryModel {
     public private(set) var isBusy = false
     public private(set) var isIndexing = false
     public private(set) var state = AgentMemoryState()
+    public private(set) var referenceDates: [UUID: Date] = [:]
     public private(set) var error: String?
     public var reviewEnabled: Bool {
         didSet {
@@ -123,7 +124,10 @@ public final class MemoryModel {
         error = nil
         do {
             if enabled {
-                state = try await storage.memoryState()
+                let value = try await storage.memoryState()
+                let dates = try await storage.memoryReferenceDates()
+                state = value
+                referenceDates = dates
                 historyChanged()
             } else {
                 try await storage.close()
@@ -135,8 +139,10 @@ public final class MemoryModel {
         let token = generation
         do {
             let value = try await storage.memoryState()
+            let dates = try await storage.memoryReferenceDates()
             if token == generation {
                 state = value
+                referenceDates = dates
                 error = nil
             }
         } catch { if token == generation { self.error = error.localizedDescription } }
@@ -147,6 +153,7 @@ public final class MemoryModel {
         do {
             let updated = try await storage.replaceTarget(target, text: text)
             try publishCommittedState(updated, token: token)
+            referenceDates = try await require(token).memoryReferenceDates()
             error = nil
         } catch { if token == generation { self.error = error.localizedDescription } }
     }
@@ -186,8 +193,10 @@ public final class MemoryModel {
             guard let self else { return }
             do {
                 let value = try await storage.memoryState()
+                let dates = try await storage.memoryReferenceDates()
                 guard token == generation, isEnabled, !isSuspended, !isBusy else { return }
                 state = value
+                referenceDates = dates
                 error = nil
             } catch {
                 guard token == generation, isEnabled, !isSuspended, !isBusy else { return }
@@ -216,7 +225,18 @@ public final class MemoryModel {
     }
     fileprivate func searchMemory(_ request: AgentMemorySearchRequest, token: UUID) async throws -> AgentJSONValue {
         let result = try await require(token).searchMemories(request)
-        _ = try require(token)
+        let ids =
+            result.objectValue?["entries"]?.arrayValue?.compactMap { entry in
+                entry.objectValue?["id"]?.stringValue.flatMap(UUID.init(uuidString:))
+            } ?? []
+        if !ids.isEmpty {
+            try await require(token).recordMemoryReferences(ids, at: .now)
+            let dates = try await require(token).memoryReferenceDates()
+            _ = try require(token)
+            referenceDates = dates
+        } else {
+            _ = try require(token)
+        }
         return result
     }
     public func rebuildHistoryIndex() async {
@@ -568,6 +588,7 @@ public final class MemoryModel {
         do {
             try await storage.destroy()
             state = .init()
+            referenceDates = [:]
             error = nil
             defaults?.removeObject(forKey: Self.destroyingKey)
         } catch { self.error = error.localizedDescription }

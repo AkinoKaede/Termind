@@ -101,6 +101,117 @@ struct HermesMemoryTests {
         try await store.close()
     }
 
+    @Test func dateCommentsUseUTCAndNeverBecomeMemoryContent() throws {
+        let created = Date(timeIntervalSince1970: 1_779_923_400)
+        let referenced = Date(timeIntervalSince1970: 1_779_930_600)
+        let entry = AgentMemoryEntry(target: .memory, content: "Keep this fact", createdAt: created)
+        let state = AgentMemoryState(entries: [entry])
+        let text = MemoryDateAnnotations.text(
+            for: .memory, in: state, references: [entry.id: referenced])
+        #expect(text == "Keep this fact <!-- created=2026-05-27, last=2026-05-28 -->")
+        #expect(try MemoryDateAnnotations.content(from: text) == "Keep this fact")
+        #expect(try MemoryDateAnnotations.content(from: "Keep this fact") == "Keep this fact")
+        #expect(
+            try MemoryDateAnnotations.content(from: "Remember <!-- ordinary comment -->")
+                == "Remember <!-- ordinary comment -->")
+        #expect(MemoryDateAnnotations.draftUsage(text).characters == "Keep this fact".count)
+        #expect(MemoryDateAnnotations.document(state, references: [entry.id: referenced]).contains(text))
+        #expect(throws: (any Error).self) {
+            try MemoryDateAnnotations.content(from: "Keep this fact <!-- creatd=2026-05-27, last=2026-05-28 -->")
+        }
+        #expect(throws: (any Error).self) {
+            try MemoryDateAnnotations.content(from: "Keep this fact <!-- created=2026-05-27, last=2026-05-28")
+        }
+    }
+
+    @Test func searchTouchesOnlyReturnedEntriesWithoutInvalidatingReview() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let original = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "Project Atlas uses pnpm"),
+            .init(action: .add, target: .memory, content: "Project Borealis uses npm"),
+        ])
+        let atlas = try #require(original.entries.first { $0.content.contains("Atlas") })
+        let borealis = try #require(original.entries.first { $0.content.contains("Borealis") })
+        let model = MemoryModel(storage: store)
+        await model.setEnabled(true)
+        let session = try #require(await model.session(UUID()))
+        let misses = try await session.access.searchMemories(.init(query: "nothing matches"))
+        #expect(try memoryContents(in: misses).isEmpty)
+        #expect(try await store.memoryReferenceDates().isEmpty)
+        let result = try await session.access.searchMemories(.init(query: "Atlas"))
+        #expect(try memoryContents(in: result) == ["Project Atlas uses pnpm"])
+        #expect(model.referenceDates[atlas.id] != nil)
+        #expect(model.referenceDates[borealis.id] == nil)
+        let storedDates = try await store.memoryReferenceDates()
+        #expect(storedDates.count == 1)
+        #expect(storedDates[atlas.id] != nil)
+        let reviewed = try await store.applyReview(
+            [.init(action: .add, target: .user, content: "Prefers short answers")],
+            expected: original, messageID: UUID(), conversationID: UUID(), reviewedActivityIDs: [])
+        #expect(reviewed != nil)
+        let reviewedDates = try await store.memoryReferenceDates()
+        #expect(reviewedDates[atlas.id] != nil)
+        try await store.close()
+        let reopened = GRDBMemoryStore(directory: url)
+        let reopenedDates = try await reopened.memoryReferenceDates()
+        #expect(reopenedDates[atlas.id] != nil)
+        #expect(reopenedDates[borealis.id] == nil)
+        try await reopened.close()
+    }
+
+    @Test func editorIgnoresDateChangesAndPreservesMatchingEntryIdentities() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let original = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "First fact"),
+            .init(action: .add, target: .memory, content: "Second fact"),
+        ])
+        let first = original.entries[0]
+        let second = original.entries[1]
+        let reference = Date(timeIntervalSince1970: ceil(first.createdAt.timeIntervalSince1970) + 10)
+        try await store.recordMemoryReferences([first.id], at: reference)
+        let initialDates = try await store.memoryReferenceDates()
+        #expect(initialDates.count == 1)
+        #expect(initialDates[first.id] != nil)
+        let edited = try await store.replaceTarget(
+            .memory,
+            text: "First fact revised\n§\nSecond fact <!-- created=1900-01-01, last=1900-01-01 -->")
+        #expect(edited.entries.map(\.content) == ["First fact revised", "Second fact"])
+        #expect(edited.entries.map(\.id) == [first.id, second.id])
+        #expect(edited.entries[0].createdAt == first.createdAt)
+        #expect(edited.entries[1].createdAt == second.createdAt)
+        let editedDates = try await store.memoryReferenceDates()
+        #expect(editedDates[first.id] == reference)
+        await #expect(throws: (any Error).self) {
+            try await store.replaceTarget(.memory, text: "First fact revised <!-- created=oops")
+        }
+        #expect(try await store.memoryState() == edited)
+        let withoutComment = try await store.replaceTarget(.memory, text: "First fact revised")
+        #expect(withoutComment.entries.map(\.id) == [first.id])
+        let remainingDates = try await store.memoryReferenceDates()
+        #expect(remainingDates[second.id] == nil)
+        try await store.close()
+    }
+
+    @Test func ambiguousEditDoesNotAssignAnOldDateToANewEntry() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let original = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "First fact"),
+            .init(action: .add, target: .memory, content: "Second fact"),
+        ])
+        try await store.recordMemoryReferences([original.entries[0].id], at: .now)
+        let updated = try await store.replaceTarget(.memory, text: "New fact")
+        #expect(updated.entries.count == 1)
+        #expect(!original.entries.map(\.id).contains(updated.entries[0].id))
+        #expect(try await store.memoryReferenceDates().isEmpty)
+        try await store.close()
+    }
+
     @Test func staleBackgroundReviewCannotOverwriteForegroundChanges() async throws {
         let url = directory()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -809,6 +920,8 @@ private actor MemoryLifecycleStore: MemoryPersisting {
     }
 
     func rebuildHistoryIndex() {}
+    func memoryReferenceDates() -> [UUID: Date] { [:] }
+    func recordMemoryReferences(_ ids: [UUID], at date: Date) {}
     func memoryState() -> AgentMemoryState {
         memoryStateCallCount += 1
         return memory
@@ -968,6 +1081,10 @@ private struct FailingDestroyStore: MemoryPersisting {
     func prepareSession(_ conversationID: UUID) async throws { try await base.prepareSession(conversationID) }
     func rebuildHistoryIndex() async throws { try await base.rebuildHistoryIndex() }
     func memoryState() async throws -> AgentMemoryState { try await base.memoryState() }
+    func memoryReferenceDates() async throws -> [UUID: Date] { try await base.memoryReferenceDates() }
+    func recordMemoryReferences(_ ids: [UUID], at date: Date) async throws {
+        try await base.recordMemoryReferences(ids, at: date)
+    }
     func applyMemory(_ operations: [AgentMemoryOperation]) async throws -> AgentMemoryState {
         try await base.applyMemory(operations)
     }

@@ -18,6 +18,8 @@ public nonisolated protocol MemoryPersisting: AgentMemoryAccessing {
         reviewedActivityIDs: [UUID]
     ) async throws -> AgentMemoryState?
     func replaceTarget(_ target: AgentMemoryTarget, text: String) async throws -> AgentMemoryState
+    func memoryReferenceDates() async throws -> [UUID: Date]
+    func recordMemoryReferences(_ ids: [UUID], at date: Date) async throws
     func close() async throws
     func destroy() async throws
 }

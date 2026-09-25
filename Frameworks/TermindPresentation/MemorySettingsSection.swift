@@ -54,10 +54,10 @@ public struct MemorySettingsSection: View {
                     TextEditor(text: $draft).frame(minHeight: 220)
                     if let error = memory.error { Text(error).foregroundStyle(.red) }
                     if editing != nil {
+                        let usage = MemoryDateAnnotations.draftUsage(draft)
                         Text(
                             AppStrings.Settings.hermesMemoryUsage(
-                                entries: draft.components(separatedBy: "\n§\n").filter { !$0.isEmpty }.count,
-                                characters: draft.unicodeScalars.count)
+                                entries: usage.entries, characters: usage.characters)
                         ).monospacedDigit()
                     }
                 }
@@ -91,7 +91,9 @@ public struct MemorySettingsSection: View {
             }.frame(minWidth: 320, minHeight: 360)
         }
         .fileExporter(
-            isPresented: $exporting, document: KnowledgeFileDocument(data: Data(memory.state.prompt.utf8)),
+            isPresented: $exporting,
+            document: KnowledgeFileDocument(
+                data: Data(MemoryDateAnnotations.document(memory.state, references: memory.referenceDates).utf8)),
             contentType: .plainText, defaultFilename: "Memory.md"
         ) { result in
             if case .failure(let error) = result { exportError = error.localizedDescription }
@@ -184,7 +186,7 @@ public struct MemorySettingsSection: View {
     }
 
     private func beginEditing(_ target: AgentMemoryTarget) {
-        draft = memory.state.text(target)
+        draft = MemoryDateAnnotations.text(for: target, in: memory.state, references: memory.referenceDates)
         editing = target
     }
 

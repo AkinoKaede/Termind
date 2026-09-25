@@ -51,20 +51,24 @@ public actor GRDBMemoryStore: MemoryPersisting {
             try db.execute(sql: "DROP TABLE snapshots")
             try db.execute(
                 sql: """
-                    CREATE TABLE learning_activity (
-                        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-                        conversation_id TEXT NOT NULL,
-                        event_id TEXT NOT NULL,
-                        source_message_id TEXT NOT NULL,
-                        kind TEXT NOT NULL,
-                        reviewed INTEGER NOT NULL DEFAULT 0,
-                        UNIQUE(conversation_id,event_id,kind));
-                    CREATE INDEX learning_activity_conversation ON learning_activity(conversation_id,sequence);
-                    CREATE TABLE reviewed_corrections (
-                        conversation_id TEXT NOT NULL,
-                        message_id TEXT NOT NULL,
-                        PRIMARY KEY(conversation_id,message_id));
+                        CREATE TABLE learning_activity (
+                            sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                            conversation_id TEXT NOT NULL,
+                            event_id TEXT NOT NULL,
+                            source_message_id TEXT NOT NULL,
+                            kind TEXT NOT NULL,
+                            reviewed INTEGER NOT NULL DEFAULT 0,
+                            UNIQUE(conversation_id,event_id,kind));
+                        CREATE INDEX learning_activity_conversation ON learning_activity(conversation_id,sequence);
+                        CREATE TABLE reviewed_corrections (
+                            conversation_id TEXT NOT NULL,
+                            message_id TEXT NOT NULL,
+                            PRIMARY KEY(conversation_id,message_id));
                     """)
+        }
+        migrator.registerMigration("hermes-reference-dates-v3") { db in
+            try db.execute(
+                sql: "CREATE TABLE memory_references (entry_id TEXT PRIMARY KEY, last_referenced REAL NOT NULL)")
         }
         try migrator.migrate(opened)
         queue = opened
@@ -77,19 +81,67 @@ public actor GRDBMemoryStore: MemoryPersisting {
     }
     public func prepareSession(_ conversationID: UUID) throws { _ = try database() }
     public func memoryState() throws -> AgentMemoryState { try database().read(Self.state) }
+    public func memoryReferenceDates() throws -> [UUID: Date] {
+        try database().read { db in
+            let rows = try Row.fetchAll(db, sql: "SELECT entry_id,last_referenced FROM memory_references")
+            return Dictionary(
+                uniqueKeysWithValues: rows.compactMap { row -> (UUID, Date)? in
+                    guard let id = UUID(uuidString: row["entry_id"]) else { return nil }
+                    return (id, Date(timeIntervalSince1970: row["last_referenced"]))
+                })
+        }
+    }
+    public func recordMemoryReferences(_ ids: [UUID], at date: Date) throws {
+        guard !ids.isEmpty else { return }
+        try database().write { db in
+            let valid = Set(try Self.state(db).entries.map(\.id))
+            for id in Set(ids) where valid.contains(id) {
+                try db.execute(
+                    sql: """
+                        INSERT INTO memory_references(entry_id,last_referenced) VALUES(?,?)
+                        ON CONFLICT(entry_id) DO UPDATE SET last_referenced=MAX(last_referenced,excluded.last_referenced)
+                        """,
+                    arguments: [id.uuidString, date.timeIntervalSince1970])
+            }
+        }
+    }
+    private nonisolated static func save(_ state: AgentMemoryState, in db: Database) throws {
+        try db.execute(
+            sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
+            arguments: [try JSONEncoder().encode(state)])
+        let valid = Set(state.entries.map { $0.id.uuidString })
+        for id in try String.fetchAll(db, sql: "SELECT entry_id FROM memory_references") where !valid.contains(id) {
+            try db.execute(sql: "DELETE FROM memory_references WHERE entry_id=?", arguments: [id])
+        }
+    }
     public func replaceTarget(_ target: AgentMemoryTarget, text: String) throws -> AgentMemoryState {
         try database().write { db in
             var current = try Self.state(db)
-            current.entries.removeAll { $0.target == target }
-            for entry in text.components(separatedBy: "\n§\n") {
-                let content = entry.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !content.isEmpty {
-                    current = try current.applying([.init(action: .add, target: target, content: content)])
+            var previous = current.entries.filter { $0.target == target }
+            let contents = try text.components(separatedBy: "\n§\n").map(MemoryDateAnnotations.content(from:))
+                .filter { !$0.isEmpty }
+            var matched: [Int: AgentMemoryEntry] = [:]
+            for (index, content) in contents.enumerated() {
+                if let oldIndex = previous.firstIndex(where: { $0.content == content }) {
+                    matched[index] = previous.remove(at: oldIndex)
                 }
             }
-            try db.execute(
-                sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
-                arguments: [try JSONEncoder().encode(current)])
+            let unmatched = contents.indices.filter { matched[$0] == nil }
+            if previous.count == unmatched.count {
+                for (index, old) in zip(unmatched, previous) { matched[index] = old }
+            }
+            current.entries.removeAll { $0.target == target }
+            for (index, content) in contents.enumerated() {
+                let count = current.entries.count
+                current = try current.applying([.init(action: .add, target: target, content: content)])
+                if current.entries.count > count, let old = matched[index] {
+                    current.entries[current.entries.count - 1].id = old.id
+                    current.entries[current.entries.count - 1].createdAt = old.createdAt
+                    current.entries[current.entries.count - 1].updatedAt =
+                        old.content == content ? old.updatedAt : .now
+                }
+            }
+            try Self.save(current, in: db)
             return current
         }
     }
@@ -101,9 +153,7 @@ public actor GRDBMemoryStore: MemoryPersisting {
             let current = try Self.state(db)
             guard current == expected else { return nil }
             let updated = operations.isEmpty ? current : try current.applying(operations)
-            try db.execute(
-                sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
-                arguments: [try JSONEncoder().encode(updated)])
+            try Self.save(updated, in: db)
             try db.execute(
                 sql: "INSERT OR REPLACE INTO reviews VALUES(?,?)",
                 arguments: [conversationID.uuidString, messageID.uuidString])
@@ -118,9 +168,7 @@ public actor GRDBMemoryStore: MemoryPersisting {
     public func applyMemory(_ operations: [AgentMemoryOperation]) throws -> AgentMemoryState {
         try database().write { db in
             let state = try Self.state(db).applying(operations)
-            try db.execute(
-                sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
-                arguments: [try JSONEncoder().encode(state)])
+            try Self.save(state, in: db)
             return state
         }
     }
@@ -191,9 +239,7 @@ public actor GRDBMemoryStore: MemoryPersisting {
             let current = try Self.state(db)
             guard current == expected else { return nil }
             let updated = operations.isEmpty ? current : try current.applying(operations)
-            try db.execute(
-                sql: "INSERT OR REPLACE INTO memory_state(id,data) VALUES(1,?)",
-                arguments: [try JSONEncoder().encode(updated)])
+            try Self.save(updated, in: db)
             try db.execute(
                 sql: "INSERT OR IGNORE INTO reviewed_corrections VALUES(?,?)",
                 arguments: [conversationID.uuidString, messageID.uuidString])

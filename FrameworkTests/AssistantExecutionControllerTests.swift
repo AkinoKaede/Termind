@@ -867,6 +867,8 @@ private actor PreparationBarrierMemoryStore: MemoryPersisting {
     ) -> AgentMemoryState? { expected }
 
     func memoryState() -> AgentMemoryState { AgentMemoryState() }
+    func memoryReferenceDates() -> [UUID: Date] { [:] }
+    func recordMemoryReferences(_ ids: [UUID], at date: Date) {}
     func applyMemory(_ operations: [AgentMemoryOperation]) -> AgentMemoryState { AgentMemoryState() }
     func replaceHistory(_ conversations: [StoredAgentConversation]) {}
     func rebuildHistoryIndex() {}
