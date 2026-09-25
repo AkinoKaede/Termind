@@ -23151,6 +23151,40 @@
         }
       }
     },
+    "Searched %@ in %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在%2$@中搜索“%1$@”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在%2$@中搜尋“%1$@”"
+          }
+        }
+      }
+    },
+    "Searching %@ in %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在%2$@中搜索“%1$@”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在%2$@中搜尋“%1$@”"
+          }
+        }
+      }
+    },
     "Secret" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32477,6 +32511,23 @@
         }
       }
     },
+    "chats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "聊天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "聊天"
+          }
+        }
+      }
+    },
     "compare" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32932,6 +32983,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS會在你登入時開啟Termind，如果你啟用了本機MCP伺服器，它也會隨之啟動。"
+          }
+        }
+      }
+    },
+    "memory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记忆"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記憶"
           }
         }
       }
@@ -33475,6 +33543,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用"
+          }
+        }
+      }
+    },
+    "user profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户资料"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用者資料"
           }
         }
       }

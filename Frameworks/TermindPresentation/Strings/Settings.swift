@@ -364,6 +364,14 @@ extension AppStrings {
             "Hermes Memory"
         }
 
+        public static var memoryNotes: LocalizedStringResource {
+            "Memory Notes"
+        }
+
+        public static var userProfile: LocalizedStringResource {
+            "User Profile"
+        }
+
         public static var hermesPolicyDescription: LocalizedStringResource {
             "Saved memory stays on this device. The assistant searches it when earlier preferences or decisions are relevant."
         }

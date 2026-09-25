@@ -125,11 +125,7 @@ public struct MemorySettingsSection: View {
                 }
                 Text(AppStrings.Settings.hermesLearningDescription)
                     .font(.caption).foregroundStyle(.secondary)
-                #if os(macOS)
-                    VStack(spacing: 8) { memoryRows }
-                #else
-                    memoryRows
-                #endif
+                memoryRows
             }
             if let error = exportError ?? memory.error {
                 Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
@@ -163,34 +159,33 @@ public struct MemorySettingsSection: View {
         ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
             let usage = memory.state.usage(target)
             let count = memory.state.entries.filter { $0.target == target }.count
-            Button {
-                draft = memory.state.text(target)
-                editing = target
-            } label: {
-                HStack {
-                    Text(target == .memory ? "Memory Notes" : "User Profile")
-                    Spacer()
-                    Text(AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage))
-                        .monospacedDigit().foregroundStyle(.secondary)
-                    #if os(macOS)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    #endif
-                }
-                #if os(macOS)
-                    .padding(8)
-                    .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 6))
-                    .clipShape(.rect(cornerRadius: 6))
-                #endif
-                .contentShape(.rect)
-            }
+            let title = target == .memory ? AppStrings.Settings.memoryNotes : AppStrings.Settings.userProfile
             #if os(macOS)
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(target == .memory ? "Memory Notes" : "User Profile"))
-                .accessibilityValue(Text(AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage)))
+                FormNavigationAction(
+                    title: title,
+                    value: AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage)
+                ) {
+                    beginEditing(target)
+                }
+            #else
+                Button {
+                    beginEditing(target)
+                } label: {
+                    HStack {
+                        Text(title)
+                        Spacer()
+                        Text(AppStrings.Settings.hermesMemoryUsage(entries: count, characters: usage))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    .contentShape(.rect)
+                }
             #endif
         }
+    }
+
+    private func beginEditing(_ target: AgentMemoryTarget) {
+        draft = memory.state.text(target)
+        editing = target
     }
 
     private var exportButton: some View {

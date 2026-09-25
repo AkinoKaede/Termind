@@ -3,6 +3,18 @@ import Foundation
 extension AppStrings {
     public nonisolated enum Assistant {
         public static var permissions: LocalizedStringResource { "Permissions" }
+        public static var chatsSearchScope: LocalizedStringResource { "chats" }
+        public static var memorySearchScope: LocalizedStringResource { "memory" }
+        public static var userProfileSearchScope: LocalizedStringResource { "user profile" }
+
+        public static func searching(_ query: String, in scope: String) -> LocalizedStringResource {
+            "Searching \(query) in \(scope)"
+        }
+
+        public static func searched(_ query: String, in scope: String) -> LocalizedStringResource {
+            "Searched \(query) in \(scope)"
+        }
+
         public static var addAttachment: LocalizedStringResource {
             "Add Attachment"
         }

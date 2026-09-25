@@ -1097,3 +1097,87 @@ struct AgentToolPresentationTests {
         ])
     }
 }
+@Suite
+@MainActor
+struct AgentKnowledgeSearchPresentationTests {
+    private let store = PresentationMemoryAccess()
+
+    @Test func searchedQueryAndScopeAppearInSingleToolBatchHeaders() {
+        let memory = MemorySearchTool(store: store).descriptor
+        let chats = SessionSearchTool(store: store).descriptor
+        let cases: [(AgentToolDescriptor, [String: AgentJSONValue], String, String, String)] = [
+            (memory, ["query": .string("deploy backup")], "memory", "记忆", "記憶"),
+            (chats, ["query": .string("deploy backup")], "chats", "聊天", "聊天"),
+            (
+                memory, ["query": .string("deploy backup"), "target": .string("user")],
+                "user profile", "用户资料", "使用者資料"
+            ),
+        ]
+        for (descriptor, arguments, englishScope, simplifiedScope, traditionalScope) in cases {
+            var card = card(descriptor, arguments: arguments)
+            card.state = .running
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en"))
+                    == "Searching deploy backup in \(englishScope)")
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hans"))
+                    == "正在\(simplifiedScope)中搜索“deploy backup”")
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hant"))
+                    == "正在\(traditionalScope)中搜尋“deploy backup”")
+
+            card.state = .completed
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en"))
+                    == "Searched deploy backup in \(englishScope)")
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hans"))
+                    == "已在\(simplifiedScope)中搜索“deploy backup”")
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "zh-Hant"))
+                    == "已在\(traditionalScope)中搜尋“deploy backup”")
+        }
+
+        var failed = card(memory, arguments: ["query": .string("deploy backup")])
+        failed.state = .failed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [failed], locale: Locale(identifier: "en"))
+                == "Failed to search deploy backup")
+    }
+
+    @Test func longQueriesKeepTheScopeSuffixAndQuerylessChatsStillBrowse() {
+        let longQuery = String(repeating: "deployment ", count: 20)
+        for (descriptor, suffix) in [
+            (MemorySearchTool(store: store).descriptor, " in memory"),
+            (SessionSearchTool(store: store).descriptor, " in chats"),
+        ] {
+            var search = card(descriptor, arguments: ["query": .string(longQuery)])
+            search.state = .completed
+            let summary = AgentToolPresentation.batchSummary(for: [search], locale: Locale(identifier: "en"))
+            #expect(summary.count <= 80)
+            #expect(summary.contains("…"))
+            #expect(summary.hasSuffix(suffix))
+        }
+
+        var browse = card(SessionSearchTool(store: store).descriptor)
+        browse.state = .completed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [browse], locale: Locale(identifier: "en"))
+                == "Listed saved conversations")
+    }
+
+    private func card(
+        _ descriptor: AgentToolDescriptor, arguments: [String: AgentJSONValue] = [:]
+    ) -> AgentToolCard {
+        AgentToolCard(
+            invocation: .init(
+                runID: UUID(), call: .init(id: "search", name: descriptor.name, arguments: .object(arguments))),
+            descriptor: descriptor)
+    }
+}
+
+private struct PresentationMemoryAccess: AgentMemoryAccessing {
+    func memoryState() async throws -> AgentMemoryState { .init() }
+    func applyMemory(_ operations: [AgentMemoryOperation]) async throws -> AgentMemoryState { .init() }
+    func searchSessions(_ request: AgentSessionSearchRequest) async throws -> AgentJSONValue { .array([]) }
+}

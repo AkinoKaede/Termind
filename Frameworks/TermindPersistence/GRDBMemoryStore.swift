@@ -18,7 +18,14 @@ public actor GRDBMemoryStore: MemoryPersisting {
         if let queue { return queue }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var configuration = Configuration()
-        configuration.prepareDatabase { db in try db.execute(sql: "PRAGMA journal_mode = WAL") }
+        configuration.prepareDatabase { db in
+            try db.execute(sql: "PRAGMA journal_mode = WAL")
+            db.add(
+                function: DatabaseFunction("termindCaseFold", argumentCount: 1, pure: true) { values in
+                    guard let text = String.fromDatabaseValue(values[0]) else { return nil }
+                    return text.folding(options: [.caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+                })
+        }
         let opened = try DatabaseQueue(
             path: directory.appending(path: "memory.sqlite").path, configuration: configuration)
         var migrator = DatabaseMigrator()
@@ -264,10 +271,9 @@ public actor GRDBMemoryStore: MemoryPersisting {
     public func searchSessions(_ request: AgentSessionSearchRequest) throws -> AgentJSONValue {
         let limit = min(20, max(1, request.limit))
         let offset = max(0, request.offset)
+        let rawQuery = request.query?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return try database().read { db in
-            if request.conversationID == nil,
-                request.query?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
-            {
+            if request.conversationID == nil, rawQuery.isEmpty {
                 let rows = try Row.fetchAll(
                     db, sql: "SELECT * FROM sessions ORDER BY modified DESC LIMIT ? OFFSET ?",
                     arguments: [limit + 1, offset])
@@ -278,25 +284,77 @@ public actor GRDBMemoryStore: MemoryPersisting {
                         }), "next_offset": rows.count > limit ? .number(Double(offset + limit)) : .null,
                 ])
             }
-            var sql = "SELECT m.*,s.title FROM messages m JOIN sessions s ON s.id=m.session_id WHERE 1=1"
-            var arguments = StatementArguments()
-            if let id = request.conversationID {
-                sql += " AND m.session_id=?"
-                arguments += [id.uuidString]
-            }
-            if let query = request.query?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
-                if query.unicodeScalars.count >= 3 {
-                    sql += " AND m.rowid IN (SELECT rowid FROM message_fts WHERE message_fts MATCH ?)"
-                    arguments += ["\"" + query.replacingOccurrences(of: "\"", with: "\"\"") + "\""]
-                } else {
-                    sql += " AND instr(lower(m.content),lower(?))>0"
-                    arguments += [query]
+            let rows: [Row]
+            if rawQuery.isEmpty, let id = request.conversationID {
+                let sql = """
+                    SELECT m.*,s.title FROM messages m JOIN sessions s ON s.id=m.session_id
+                    WHERE m.session_id=? ORDER BY m.position LIMIT ? OFFSET ?
+                    """
+                rows = try Row.fetchAll(db, sql: sql, arguments: [id.uuidString, limit + 1, offset])
+            } else {
+                let query = AgentSearchQuery(rawQuery)
+                guard !query.terms.isEmpty else {
+                    return .object(["messages": .array([]), "next_offset": .null])
                 }
+
+                func plan(matchingAll: Bool) -> (
+                    fromWhere: String, order: String, arguments: StatementArguments, rankTerms: [String]
+                ) {
+                    var arguments = StatementArguments()
+                    let fromWhere: String
+                    let order: String
+                    let rankTerms: [String]
+                    if let fts = query.fts5Query(matchingAll: matchingAll) {
+                        fromWhere = """
+                            FROM message_fts JOIN messages m ON m.rowid=message_fts.rowid
+                            JOIN sessions s ON s.id=m.session_id WHERE message_fts MATCH ?
+                            """
+                        arguments += [fts]
+                        order = "bm25(message_fts),s.modified DESC,m.session_id,m.position,m.id"
+                        rankTerms = []
+                    } else {
+                        let predicate = Array(
+                            repeating: "instr(termindCaseFold(m.content),termindCaseFold(?))>0",
+                            count: query.terms.count
+                        )
+                        .joined(separator: matchingAll ? " AND " : " OR ")
+                        fromWhere = """
+                            FROM messages m JOIN sessions s ON s.id=m.session_id WHERE (\(predicate))
+                            """
+                        for term in query.terms { arguments += [term] }
+                        let termScores = Array(
+                            repeating:
+                                "(CASE WHEN instr(termindCaseFold(m.content),termindCaseFold(?))>0 THEN 1 ELSE 0 END)",
+                            count: query.terms.count)
+                        order = """
+                            (CASE WHEN instr(termindCaseFold(m.content),termindCaseFold(?))>0
+                                OR instr(termindCaseFold(m.content),termindCaseFold(?))>0 THEN 1 ELSE 0 END) DESC,
+                            (\(termScores.joined(separator: " + "))) DESC,
+                            s.modified DESC,m.session_id,m.position,m.id
+                            """
+                        rankTerms = [query.terms.joined(separator: " "), query.terms.joined()] + query.terms
+                    }
+                    if let id = request.conversationID {
+                        arguments += [id.uuidString]
+                        return (fromWhere + " AND m.session_id=?", order, arguments, rankTerms)
+                    }
+                    return (fromWhere, order, arguments, rankTerms)
+                }
+
+                // Decide the fallback for the whole result set, not this page's offset.
+                let strict = plan(matchingAll: true)
+                let hasStrict =
+                    try Int.fetchOne(
+                        db, sql: "SELECT 1 \(strict.fromWhere) LIMIT 1", arguments: strict.arguments) != nil
+                let selected = hasStrict ? strict : plan(matchingAll: false)
+                var arguments = selected.arguments
+                for term in selected.rankTerms { arguments += [term] }
+                arguments += [limit + 1, offset]
+                rows = try Row.fetchAll(
+                    db,
+                    sql: "SELECT m.*,s.title \(selected.fromWhere) ORDER BY \(selected.order) LIMIT ? OFFSET ?",
+                    arguments: arguments)
             }
-            sql += request.conversationID == nil ? " ORDER BY s.modified DESC,m.position" : " ORDER BY m.position"
-            sql += " LIMIT ? OFFSET ?"
-            arguments += [limit + 1, offset]
-            let rows = try Row.fetchAll(db, sql: sql, arguments: arguments)
             return .object([
                 "messages": .array(
                     rows.prefix(limit).map { row in

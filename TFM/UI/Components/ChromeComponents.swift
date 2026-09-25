@@ -13,31 +13,6 @@ extension View {
     }
 }
 
-/// A form row that opens a creation or configuration flow.
-///
-/// The full row is the hit target; the chevron communicates that the action
-/// continues elsewhere rather than taking effect immediately.
-struct FormNavigationAction: View {
-    let title: LocalizedStringResource
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: Metrics.Space.m) {
-                Text(title)
-                Spacer(minLength: Metrics.Space.m)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 enum TermindSearchFieldDensity {
     case compact, regular, prominent
 }

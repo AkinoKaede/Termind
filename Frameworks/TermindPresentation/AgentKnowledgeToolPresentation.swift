@@ -11,6 +11,7 @@ nonisolated enum AgentKnowledgeToolPresentation {
         case skillManage = "skill_manage"
         case skillInstall = "skill_install"
         case memory
+        case memorySearch = "memory_search"
         case sessionSearch = "session_search"
         case legacySkill = "load_skill"
     }
@@ -26,6 +27,42 @@ nonisolated enum AgentKnowledgeToolPresentation {
         guard descriptor.target == .local, let kind = Kind(rawValue: descriptor.name) else { return nil }
         if let id = descriptor.presentation?.presenterID, id != "builtin.\(kind.rawValue)" { return nil }
         return kind
+    }
+
+    static func scopedSearchSummary(for card: AgentToolCard, locale: Locale) -> String? {
+        guard card.state == .running || card.state == .completed else { return nil }
+        guard let search = scopedSearch(for: card, locale: locale) else { return nil }
+        func rendered(_ query: String) -> String {
+            switch card.state {
+            case .running:
+                AppLocalization.resolve(AppStrings.Assistant.searching(query, in: search.scope), locale: locale)
+            default:
+                AppLocalization.resolve(AppStrings.Assistant.searched(query, in: search.scope), locale: locale)
+            }
+        }
+        let query = search.query.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let available = max(0, 80 - rendered("").count)
+        let displayed = query.count > available ? String(query.prefix(max(0, available - 1))) + "…" : query
+        return title(rendered(displayed))
+    }
+
+    private static func scopedSearch(for card: AgentToolCard, locale: Locale) -> (query: String, scope: String)? {
+        guard let kind = kind(for: card.descriptor), kind == .memorySearch || kind == .sessionSearch,
+            let query = AgentToolDetailFormatting.nonempty(
+                card.invocation.call.arguments.objectValue?["query"]?.stringValue)
+        else { return nil }
+        let scope: String
+        switch kind {
+        case .memorySearch:
+            let resource =
+                card.invocation.call.arguments.objectValue?["target"]?.stringValue == "user"
+                ? AppStrings.Assistant.userProfileSearchScope : AppStrings.Assistant.memorySearchScope
+            scope = AppLocalization.resolve(resource, locale: locale)
+        case .sessionSearch:
+            scope = AppLocalization.resolve(AppStrings.Assistant.chatsSearchScope, locale: locale)
+        default: return nil
+        }
+        return (query, scope)
     }
 
     static func operation(for card: AgentToolCard, locale: Locale, approval: Bool = false) -> Operation? {
@@ -71,6 +108,13 @@ nonisolated enum AgentKnowledgeToolPresentation {
             let count = operations?.count ?? 0
             let activity = count > 1 ? localized("\(memory) (\(count) operations)") : memory
             return .init(action: reading ? .read : .update, activity: activity, batchActivity: memory)
+        case .memorySearch:
+            if let query = string("query") {
+                return .init(
+                    action: .search, activity: approval ? memory : query, batchActivity: memory,
+                    isArgument: !approval)
+            }
+            return .init(action: .search, activity: memory, batchActivity: memory)
         case .sessionSearch:
             if let query = string("query") {
                 return .init(

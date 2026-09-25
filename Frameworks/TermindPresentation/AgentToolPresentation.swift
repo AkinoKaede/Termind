@@ -162,6 +162,9 @@ nonisolated public enum AgentToolPresentation {
         hostName: String? = nil,
         locale: Locale = .current
     ) -> String {
+        if let summary = AgentKnowledgeToolPresentation.scopedSearchSummary(for: card, locale: locale) {
+            return summary
+        }
         if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale) {
             return AgentKnowledgeToolPresentation.title(
                 actionSummary(

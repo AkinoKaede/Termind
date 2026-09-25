@@ -11,7 +11,7 @@ import Testing
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct MemorySettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [false, true])
-    func memorySettingsRenderWithCapacity(_ language: String, dark: Bool) async throws {
+    func memorySettingsRowsMatchAddServerAction(_ language: String, dark: Bool) async throws {
         let url = FileManager.default.temporaryDirectory.appending(path: "memory-render-\(UUID())")
         defer { try? FileManager.default.removeItem(at: url) }
         let memory = MemoryModel(storage: GRDBMemoryStore(directory: url))
@@ -24,10 +24,13 @@ struct MemorySettingsRenderingTests {
             .user, text: String(repeating: "忆", count: AgentMemoryTarget.user.entryCharacterLimit / (dark ? 2 : 1)))
         #expect(memory.error == nil)
         let view = Form {
+            Section {
+                FormNavigationAction(title: AppStrings.MCP.addServer, action: {})
+            }
             MemorySettingsSection(memory: memory, ai: AIConfigurationModel())
         }.formStyle(.grouped)
         try await capture(
-            view, language: language, dark: dark, size: CGSize(width: dark ? 420 : 620, height: 560),
+            view, language: language, dark: dark, size: CGSize(width: dark ? 420 : 620, height: 640),
             name: "termind-memory")
         await memory.destroy()
     }

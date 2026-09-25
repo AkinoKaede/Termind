@@ -12,6 +12,19 @@ import Testing
 struct HermesMemoryTests {
     private func directory() -> URL { FileManager.default.temporaryDirectory.appending(path: "memory-test-\(UUID())") }
 
+    private func messageIDs(in result: AgentJSONValue) throws -> [UUID] {
+        let rows = try #require(result.objectValue?["messages"]?.arrayValue)
+        return try rows.map { row in
+            let text = try #require(row.objectValue?["message_id"]?.stringValue)
+            return try #require(UUID(uuidString: text))
+        }
+    }
+
+    private func memoryContents(in result: AgentJSONValue) throws -> [String] {
+        let entries = try #require(result.objectValue?["entries"]?.arrayValue)
+        return try entries.map { try #require($0.objectValue?["content"]?.stringValue) }
+    }
+
     @Test func disabledMemoryDoesNotCreateFiles() async throws {
         let url = directory()
         let model = MemoryModel(storage: GRDBMemoryStore(directory: url))
@@ -383,6 +396,172 @@ struct HermesMemoryTests {
                 "Done"))
         try await store.replaceHistory([])
         #expect(try await !store.searchSessions(.init(query: "服务器")).encodedString.contains("部署"))
+        try await store.close()
+    }
+
+    @Test func sessionSearchFallsBackToPartialEnglishTermsAndIgnoresPunctuation() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let deploy = AgentTranscriptMessage(role: .user, text: "Deploy the staging server")
+        let backup = AgentTranscriptMessage(role: .user, text: "Backup the database")
+        try await store.replaceHistory([
+            .init(id: UUID(), messages: [deploy], lastRunState: .completed),
+            .init(id: UUID(), messages: [backup], lastRunState: .completed),
+        ])
+
+        let plain = try await store.searchSessions(.init(query: "deploy backup"))
+        let punctuated = try await store.searchSessions(.init(query: "deploy, backup?"))
+        #expect(try Set(messageIDs(in: plain)) == [deploy.id, backup.id])
+        #expect(try Set(messageIDs(in: punctuated)) == [deploy.id, backup.id])
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "quantum octopus"))).isEmpty)
+        try await store.close()
+    }
+
+    @Test func sessionSearchFindsChineseQuestionsAndShortTermsWithinScope() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let matchingID = UUID()
+        let unrelatedID = UUID()
+        let matching = AgentTranscriptMessage(role: .user, text: "服务器部署失败，请检查端口")
+        let unrelated = AgentTranscriptMessage(role: .user, text: "服务器监控正常")
+        try await store.replaceHistory([
+            .init(id: matchingID, messages: [matching], lastRunState: .completed),
+            .init(id: unrelatedID, messages: [unrelated], lastRunState: .completed),
+        ])
+
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "服务器部署失败怎么办"))) == [matching.id])
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "部署"))) == [matching.id])
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "服务器怎么部署？"))) == [matching.id])
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "部署", conversationID: unrelatedID))).isEmpty)
+        #expect(
+            try await messageIDs(in: store.searchSessions(.init(query: "部署", conversationID: matchingID))) == [
+                matching.id
+            ])
+        #expect(try await messageIDs(in: store.searchSessions(.init(conversationID: matchingID))) == [matching.id])
+        try await store.close()
+    }
+
+    @Test func sessionSearchKeepsStrictPagesAndRanksMoreRelevantShortTermMatches() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let old = Date(timeIntervalSince1970: 100)
+        let recent = Date(timeIntervalSince1970: 200)
+        let strict = AgentTranscriptMessage(role: .user, text: "deploy backup")
+        let partial = AgentTranscriptMessage(role: .user, text: "deploy only")
+        let relevantChinese = AgentTranscriptMessage(role: .user, text: "服务器部署记录")
+        let recentChinese = AgentTranscriptMessage(role: .user, text: "服务器状态正常")
+        try await store.replaceHistory([
+            .init(id: UUID(), messages: [strict], lastRunState: .completed, metadata: .init(updatedAt: old)),
+            .init(id: UUID(), messages: [partial], lastRunState: .completed, metadata: .init(updatedAt: recent)),
+            .init(id: UUID(), messages: [relevantChinese], lastRunState: .completed, metadata: .init(updatedAt: old)),
+            .init(id: UUID(), messages: [recentChinese], lastRunState: .completed, metadata: .init(updatedAt: recent)),
+        ])
+
+        let first = try await store.searchSessions(.init(query: "deploy backup", limit: 1))
+        #expect(try messageIDs(in: first) == [strict.id])
+        #expect(first.objectValue?["next_offset"] == .null)
+        #expect(
+            try await messageIDs(in: store.searchSessions(.init(query: "deploy backup", offset: 1, limit: 1))).isEmpty)
+
+        let chineseQuery = "服务器 故障 部署"
+        let chineseFirst = try await store.searchSessions(.init(query: chineseQuery, limit: 1))
+        let chineseSecond = try await store.searchSessions(.init(query: chineseQuery, offset: 1, limit: 1))
+        #expect(try messageIDs(in: chineseFirst) == [relevantChinese.id])
+        #expect(try messageIDs(in: chineseSecond) == [recentChinese.id])
+        #expect(chineseFirst.objectValue?["next_offset"]?.integerValue == 1)
+        #expect(
+            try await messageIDs(in: store.searchSessions(.init(query: chineseQuery, limit: 1))) == [relevantChinese.id]
+        )
+        try await store.close()
+    }
+
+    @Test func sessionSearchUsesBM25BeforeConversationRecencyAndPreservesAccents() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let relevant = AgentTranscriptMessage(role: .user, text: "deploy backup deploy backup deploy backup")
+        let recent = AgentTranscriptMessage(
+            role: .user, text: "deploy backup with many unrelated words about weather music images and travel")
+        let accented = AgentTranscriptMessage(role: .user, text: "Café deployment notes")
+        try await store.replaceHistory([
+            .init(
+                id: UUID(), messages: [relevant], lastRunState: .completed,
+                metadata: .init(updatedAt: Date(timeIntervalSince1970: 100))),
+            .init(
+                id: UUID(), messages: [recent], lastRunState: .completed,
+                metadata: .init(updatedAt: Date(timeIntervalSince1970: 200))),
+            .init(id: UUID(), messages: [accented], lastRunState: .completed),
+        ])
+
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "deploy backup"))).first == relevant.id)
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "Café"))) == [accented.id])
+        #expect(try await messageIDs(in: store.searchSessions(.init(query: "cafe"))).isEmpty)
+        try await store.close()
+    }
+
+    @Test func sessionSearchMatchesUppercaseAccentsWithShortTermsThroughTool() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        let matching = AgentTranscriptMessage(role: .user, text: "CAFÉ go live checklist")
+        let plain = AgentTranscriptMessage(role: .user, text: "CAFE go live checklist")
+        try await store.replaceHistory([
+            .init(id: UUID(), messages: [matching], lastRunState: .completed),
+            .init(id: UUID(), messages: [plain], lastRunState: .completed),
+        ])
+
+        let tool = SessionSearchTool(store: store)
+        let invocation = AgentToolInvocation(
+            runID: UUID(),
+            call: .init(
+                id: "accent-search", name: "session_search",
+                arguments: .object(["query": .string("café go")])))
+        let context = AgentToolExecutionContext(
+            runID: invocation.runID, userIntent: "Find the café checklist", secretBroker: SecretBroker(),
+            userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:], authorize: { _ in .allow })
+        let result = try await tool.execute(invocation, context: context)
+        #expect(result.callID == invocation.call.id)
+        #expect(result.content.contains(matching.id.uuidString))
+        #expect(!result.content.contains(plain.id.uuidString))
+        try await store.close()
+    }
+
+    @Test func defaultMemorySearchFindsStoredQuestionAndPartialMatches() async throws {
+        let url = directory()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = GRDBMemoryStore(directory: url)
+        _ = try await store.applyMemory([
+            .init(action: .add, target: .memory, content: "服务器部署失败时检查防火墙"),
+            .init(action: .add, target: .memory, content: "Project Atlas uses the staging server"),
+            .init(action: .add, target: .user, content: "Backup jobs run every night"),
+        ])
+
+        let chinese = try await store.searchMemories(.init(query: "服务器部署失败怎么办"))
+        let punctuated = try await store.searchMemories(.init(query: "Atlas, staging?"))
+        let broad = try await store.searchMemories(.init(query: "Atlas backup"))
+        #expect(try memoryContents(in: chinese).contains("服务器部署失败时检查防火墙"))
+        #expect(try memoryContents(in: punctuated).contains("Project Atlas uses the staging server"))
+        #expect(
+            try Set(memoryContents(in: broad)) == [
+                "Project Atlas uses the staging server", "Backup jobs run every night",
+            ])
+
+        let tool = MemorySearchTool(store: store)
+        let invocation = AgentToolInvocation(
+            runID: UUID(),
+            call: .init(
+                id: "memory-search", name: "memory_search",
+                arguments: .object(["query": .string("Atlas backup"), "target": .string("memory")])))
+        let context = AgentToolExecutionContext(
+            runID: invocation.runID, userIntent: "Find saved project memory", secretBroker: SecretBroker(),
+            userInteraction: UnavailableAgentUserInteraction(), preflightMetadata: [:], authorize: { _ in .allow })
+        let result = try await tool.execute(invocation, context: context)
+        #expect(result.callID == invocation.call.id)
+        #expect(result.content.contains("Project Atlas uses the staging server"))
+        #expect(!result.content.contains("Backup jobs run every night"))
         try await store.close()
     }
 
