@@ -33,7 +33,7 @@ import Testing
         var value = card("memory", arguments: ["operations": .array([])])
         value.state = .completed
         if language == "en" {
-            #expect(AgentToolPresentation.summary(for: value, locale: locale) == "Read persistent memory")
+            #expect(AgentToolPresentation.summary(for: value, locale: locale) == "Read memory")
         }
     }
 
@@ -48,9 +48,9 @@ import Testing
                 ["operations": .array([.object(["action": .string("delete"), "name": .string("guide")])])],
                 "Updated guide"
             ),
-            ("memory", ["operations": .array([.object(["action": .string("add")])])], "Updated persistent memory"),
+            ("memory", ["operations": .array([.object(["action": .string("add")])])], "Updated memory"),
             ("session_search", [:], "Listed saved conversations"),
-            ("session_search", ["query": .string("deploy")], "Searched deploy"),
+            ("session_search", ["query": .string("deploy")], "Searched deploy in chats"),
             ("session_search", ["conversation_id": .string("hidden-id")], "Read saved conversations"),
         ]
         for (name, args, expected) in cases {
@@ -64,10 +64,10 @@ import Testing
         var write = card("memory", arguments: ["operations": .array([.object(["action": .string("add")])])])
         write.state = .failed
         let title = AgentToolPresentation.batchSummary(for: [read, read, write], locale: english)
-        #expect(title.contains("Read persistent memory"))
-        #expect(title.contains("persistent memory (2 times)"))
+        #expect(title.contains("Read memory"))
+        #expect(title.contains("memory (2 times)"))
         #expect(!title.contains("tool calls"))
-        #expect(title.contains("failed to update persistent memory"))
+        #expect(title.contains("failed to update memory"))
         #expect(!title.contains("skill"))
     }
 
@@ -118,7 +118,8 @@ import Testing
         let title = AgentToolPresentation.summary(for: value, locale: english)
         #expect(title.count <= 80)
         #expect(!title.contains("\n"))
-        #expect(title.hasSuffix("…"))
+        #expect(title.contains("…"))
+        #expect(title.hasSuffix(" in chats"))
         #expect(value.invocation.call.arguments.objectValue?["query"]?.stringValue == query)
     }
 
