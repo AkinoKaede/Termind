@@ -5,7 +5,7 @@ description: Source-backed guide to shared localized copy and form fields, nativ
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -87,6 +87,8 @@ sources:
     resource: repo://TFM/Design/DesignTokens.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
     resource: repo://TFM/Features/AI/TranscriptListView.swift
+  - id: openwiki-source-0c46eadbd7a2db45099d59aa
+    resource: repo://TFM/Features/AI/TranscriptNativeRows.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-1e0cf223ab8448c8eee3f345
@@ -135,11 +137,13 @@ sources:
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
+  - id: openwiki-source-91826a88f242f001f33fff89
+    resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-1c583949c6f00d5acc015c90
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -206,11 +210,11 @@ flowchart LR
 
 Cards offer intents; the owning feature or application performs the operation.
 
-A TFI Vault Host card taps into the scene's host activation. Its context menu filters SSH/SFTP by `sshEnabled` and Telnet by `telnetEnabled`, then separates connection actions from Edit/Duplicate and destructive Delete; Hosts without any enabled protocol still have editing and deletion. `MobileVaultView` passes connection requests to its `open` callback, edits via the item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication in `MobileAppModel` allocates a new ID and clears Host-custom SSH, Telnet and proxy identity references rather than sharing private credentials. TFM's `HostContextMenu` instead offers Quick Connect, a Connect submenu and Copy SSH Command, and retains desktop-owned editing/deletion. Do not move those operations into a shared card.
+A TFI Vault Host card taps into the scene's host activation. Its context menu filters SSH/SFTP by `sshEnabled` and Telnet by `telnetEnabled`, then separates connection actions from Edit/Duplicate and destructive Delete; Hosts without any enabled protocol still have editing and deletion. `MobileVaultView` passes connection requests to its `open` callback, edits via the item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication in `MobileAppModel` allocates a new ID and clears Host-custom SSH, Telnet and proxy identity references rather than sharing private credentials; for a Host-custom proxy identity it also clears the proxy username. TFM's `HostContextMenu` instead offers Quick Connect, a Connect submenu and Copy SSH Command, and retains desktop-owned editing/deletion. Do not move those operations into a shared card.
 
-For one forwarding rule, desktop groups Address and SSH Command under a Copy submenu; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use their app's native pasteboard path, disable SSH-command copying when command generation is unavailable, and start/stop forwarding via separate actions. Snippet cards expose a single **Run** action, not a second Execute on Hosts menu affordance. Desktop routes missing saved targets to a chooser and checks destructive scripts; mobile filters to valid targets, chooses Hosts if none remain and confirms destructive execution. A label change does not bypass those owner-controlled gates.
+For one forwarding rule, desktop groups Address and SSH Command under a Copy submenu; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use their app's native pasteboard path, disable SSH-command copying when command generation is unavailable, and start/stop forwarding via separate actions. Snippet cards expose a single **Run** action, not a second Execute on Hosts menu affordance. Desktop can run a multi-selection: if a saved target list is empty it routes to a chooser to fill missing targets, then checks destructive scripts before execution. Mobile filters saved IDs against currently valid Hosts, chooses Hosts if none remain, and confirms destructive execution before calling its scene-provided execute callback. A label change does not bypass those owner-controlled gates.
 
-Desktop titlebar Find is bound by `WindowModel.findContext()` to the foreground Vault, Assistant, Metrics or focused terminal/SFTP query; terminal Find includes next/previous navigation and cancellation. `NativeSearchField` maintains its native owner and focus claim across toolbar rebuilds, and a direct focus handler preserves command intent; the leading New menu likewise derives actions from the foreground destination, with Navigator menus able to request those page-specific verbs without first navigating. Keep toolbar commands attached to the actual active content.
+Desktop `WindowModel.findKind` maps the foreground Vault, Assistant, Metrics or focused workspace pane to its query; Welcome keeps its own search and Settings or an unsearchable workspace has no titlebar Find. The root mounts one OS-selected toolbar slot: on macOS 26 a background `WindowToolbarSearchHost` supplies a system `.searchable` item with a direct focus handler, while older systems use `WindowToolbarFindField` and its `NSSearchField` owner (or a compact Metrics popover). The legacy native owner preserves focus across SwiftUI toolbar replacement; both paths use the window's query and terminal find-navigation/cancel closures. `WindowModel.focusToolbarFind()` stands panes down before requesting focus so a rebuilding pane cannot steal the caret; terminal search also starts when focused. The leading New control derives actions from the foreground destination, not sidebar mode; Navigator rows can offer the same page-specific verbs without first navigating there. Keep toolbar commands attached to actual active content rather than imposing the same search widget on every OS.
 
 ## Shared Host fields, distinct editor lifecycles
 
@@ -241,7 +245,7 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 `TerminalThemePicker` filters and sorts the shared catalog by appearance. Missing, empty or wrong-appearance selected values retain a localized fallback hint: rendering chooses the matching default without a write merely because Settings appeared. Rendering applies base theme, custom configuration overlay, then local font overrides; the base picker stays editable under an overlay. Desktop custom configuration autosaves and supports file import, while mobile explicitly saves a draft sheet. Focused desktop tests cover font-family membership, precedence, controller identity, theme fallback/overlay and no write when Settings opens; mobile font controls are exercised in English and both Chinese scripts.
 
-`AgentToolPresentation` projects localized Assistant tool summaries, detail and preview from execution data without owning approval or replay. Live approval uses in-memory unredacted request arguments for review but does not attach them to durable tool cards or the model transcript. MCP output retains its remote-defined JSON presentation, failures cannot select a success-shaped knowledge presenter, and long display previews retain the full transformed text for Copy. Extend metadata/projectors and test visible failure/copy behavior, not protocol payloads.
+`AgentToolPresentation` projects localized Assistant tool summaries and details from execution data without owning approval or replay. Live approval derives reviewable unredacted arguments from the in-memory request, not the durable tool card or model transcript. MCP output keeps its remote-defined JSON presentation; failed or denied knowledge-tool results cannot choose success-shaped presenters. Its bounded display preview retains the full transformed text alongside a shortened rendering for Copy (used by the desktop native transcript). Extend metadata/projectors and test visible failure/copy behavior, not protocol payloads.
 
 ## Native rendering, accessibility and continuity
 
@@ -270,6 +274,6 @@ Desktop workspace drag similarly preserves native identity: a dragged pane remai
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects import and copy ownership, including direct-resource confirmation titles. `PresentationCopyTests` exercises native menus and locale-specific presentation; `MobileVaultFeatureTests` covers Host policy and credential cases; `MobileCardTests` measures card height/columns including accessibility sizes. Serialized opt-in `MobileEditorToolbarTests` covers Cancel, in-flight and failed Save and overflow actions with key-window integration; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. Adaptive layout tests check object identity, marked text and focus; snapshots alone cannot prove lifecycle continuity.
+`ArchitectureBoundaryTests` protects import and copy ownership, including direct-resource confirmation titles. `PresentationCopyTests` exercises native menus and locale-specific presentation; `WindowToolbarFindTests` pins foreground Find and creation-action mapping, including Welcome's content-owned search and a focused workspace pane. `AgentToolPresentationTests` checks review arguments and tool detail projections. `MobileVaultFeatureTests` covers Host policy and credential cases; `MobileCardTests` measures card height/columns including accessibility sizes. Serialized opt-in `MobileEditorToolbarTests` covers Cancel, in-flight and failed Save and overflow actions with key-window integration; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. Adaptive layout tests check object identity, marked text and focus; snapshots alone cannot prove lifecycle continuity.
 
 For a change, identify the app/window/scene owner, use its existing route and native adapter, share only values or fields whose contracts really match, and verify the operation owner after a UI capability check. Test relevant widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. These are engineering heuristics derived from implemented seams, not extra runtime policies; consult [Platform Runtime](/openwiki/architecture/platform-runtime.md) and [Build and Test](/openwiki/operations/build-test-and-release.md) when changing ownership or verification boundaries.

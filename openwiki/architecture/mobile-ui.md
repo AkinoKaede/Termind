@@ -5,7 +5,7 @@ description: "How mobile feature stacks route through scene-local selection to a
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -59,15 +59,19 @@ sources:
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-151d28832bae0f609eb2d76c
+    resource: repo://TFITests/MobileBatchStartupTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-68ab6aaabd7a3499cfe23434
+    resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
     resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -144,7 +148,7 @@ When already on Workspaces, the scene can present the route directly. When chang
 Host activation and explicit connection actions are different:
 
 - `activateHost` prefers this scene's most recently selected matching terminal workspace, then another existing matching workspace, before creating one.
-- Explicit SSH/SFTP connection actions call the open path and can create independent workspaces.
+- Explicit SSH, Telnet and SFTP connection actions call the open path and can create independent workspaces. Connect presents a scene-local picker; Batch Startup presents a separate picker and commits its filtered selection once on dismissal, creating new workspaces without changing another scene's route.
 - The workspace title switcher replaces the pushed detail by workspace identity. This resets detail-specific state such as SFTP search without treating the owned terminal/session as a newly created runtime.
 
 Unavailable saved workspace IDs produce an explicit unavailable state; a stale route does not silently open some other Host. Root-level deep links, quick actions and focused scene commands dispatch through that scene's model.
@@ -162,14 +166,14 @@ includes both kinds, marks the selected descriptor with a checkmark, and uses th
 
 ### Deleting a Host is not popping a workspace
 
-Vault's confirmed **Delete Host** calls `MobileAppModel.deleteHost`, not the detail's back action. The app asks Assistant's connection pool to disconnect that Host, closes its saved live **and** unopened workspace descriptors (disconnecting any matching live workspace), invalidates SFTP edits, cancels transfers, stops/removes forwarding rules, removes Metrics selection, then requests repository deletion, projects the Host out of the library and starts the durable outbox. A repository error is reported through `app.error` and returns `false`; this is not an atomic rollback of the earlier cleanup. A corrupt or unsupported saved workspace snapshot likewise reports a restoration error without overwriting that snapshot on later workspace mutations. The registered outbox deletion handlers repeat workspace/history/projection, transfer and forwarding cleanup as the durable job proceeds. Deleting a Host group with `keepHosts: false` uses this Host path for each member; remote Vault removal closes associated saved descriptors and clears histories and Metrics too. Scenes reconcile routes against the changed live workspace IDs rather than owning the deletion itself.
+Vault's confirmed **Delete Host** calls `MobileAppModel.deleteHost`, not the detail's back action. The app asks Assistant's connection pool to disconnect that Host, closes its saved descriptors (both live and unopened, disconnecting matching saved live workspaces), invalidates SFTP edits, cancels transfers, stops/removes forwarding rules, removes Metrics selection, then requests repository deletion, projects the Host out of the library and starts the durable outbox. This closure enumerates saved descriptors, not every process-only external-link workspace; do not infer that an unsaved transient runtime is removed by `closeWorkspaces(for:)`. A repository error is reported through `app.error` and returns `false`; this is not an atomic rollback of the earlier cleanup. A corrupt or unsupported saved workspace snapshot likewise reports a restoration error without overwriting that snapshot on later workspace mutations. The registered outbox deletion handlers repeat workspace/history/projection, transfer and forwarding cleanup as the durable job proceeds. Deleting a Host group with `keepHosts: false` uses this Host path for each member; remote Vault removal closes associated saved descriptors and clears histories and Metrics too. Scenes reconcile routes against the changed live workspace IDs rather than owning the deletion itself.
 
 ### Local Recents versus synchronized History
 
-The Workspaces destination and Vault History expose different projections over the shared synchronized event stream. `MobileVaultView` provides the navigation link (and searchable link); `MobileConnectionHistoryView` owns the History list, search, row actions and clear confirmation. `MobileConnectionHistory` builds the rows rather than either view storing a separate timeline:
+The Workspaces destination and Vault History expose different projections over the shared synchronized event stream. `MobileAppModel.addWorkspaces` records a connection-history event for saved Host workspaces when they enter the live collection (before `connect()`), and `close` ends that event; an unsaved external-link workspace with no library Host does not record one. `MobileVaultView` provides the navigation link (and searchable link); `MobileConnectionHistoryView` owns the History list, search, row actions and clear confirmation. `MobileConnectionHistory` builds the rows rather than either view storing a separate timeline:
 
 - Workspaces Recents appears only if the ordered saved/live Workspace collection is empty. It uses this installation's events, aggregates protocols and attempts into one row per Host, and keeps the newest five Hosts. A primary tap resolves the Host's *current* preferred terminal protocol (SSH before Telnet); context and swipe actions offer only currently enabled SSH, Telnet or SFTP capabilities. Clearing a recent Host clears that Host's history across devices.
-- Home Screen quick actions use the same local per-Host projection, publish at most three openable host-only `server.rack` items, and resolve the current preferred terminal protocol at activation. Older payloads carrying a protocol still decode, but that stale protocol is ignored. Root refreshes shortcuts on scene phase, history, Host and identity changes.
+- Home Screen quick actions use the same local per-Host projection **regardless of whether the Workspaces list is empty**, publish at most three openable host-only `server.rack` items, and resolve the current preferred terminal protocol at activation. The scene delegate consumes each pending shortcut once; Connect opens the picker, while a shortcut to a removed or no-longer-terminal-capable Host shows workspace unavailable rather than opening the historical protocol. Older payloads carrying a protocol still decode, but that stale protocol is ignored. Root refreshes shortcuts on scene phase, history, Host and identity changes.
 - Vault History follows Known Hosts in the unfiltered links and shows up to 50 individual events from all devices. Search filters by Host, login address, protocol and source-device name before applying the limit; Vault's own search can link into History with the query. The leading symbol stays protocol-specific and the device name comes from `DeviceDirectoryModel`. An event for a now-disabled protocol stays visible but cannot be tapped; row deletion removes one event, while **Clear History** clears the entire timeline, not just 50 displayed rows.
 
 The unified Workspaces rows and local Recents align their text from the same 36-point Host distribution icon slot and
@@ -267,7 +271,7 @@ Command-generation and upload notices are overlays in the usable region; they do
 
 The interaction region can contain more than the composer, so its height is measured rather than assumed from a fixed input-bar constant. It bottom-aligns and scrolls based on content size. Tapping the transcript can dismiss composer focus without changing the conversation or ending the run.
 
-The application runtime owns execution, not `onDisappear` on the conversation view. The view's disappearance only removes its temporary preview directory. App background expiration is a separate boundary.
+The application runtime owns execution, not `onDisappear` on the conversation view. It coalesces concurrent repository loads, restores conversations into one store, and gives each scene its own library selection and draft over that store; send is gated during suspension and on authorization, archive/history/compaction and pending-attachment state. Background expiry requests cancellation across conversations before awaiting their drain, then closes Assistant background commands and Host connections. The view's disappearance only removes its temporary preview directory. App background expiration is a separate boundary.
 
 ## Scene activity and background limits
 
@@ -292,6 +296,6 @@ Implemented principles:
 
 `MobileAppTests` separately covers descriptor order after restoring, opening and renaming live/dormant workspaces, transient external entries, single-connect restoration across scenes, explicit retry after failed connection, corrupt snapshot preservation, and local/remote Host deletion removing both open and unopened descriptors while retaining unrelated Hosts. The adaptive suite also checks localized compact/regular Workspace rows and that choosing a dormant row restores only that runtime without moving the row.
 
-`MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` exercises capability-filtered Host context menus, independent duplication, keep/delete group-tree behavior and proxy validation; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
+`MobileHomeScreenQuickActionTests` checks the three unique local Host shortcuts, host-ID-only payload decoding (including legacy kind payloads), malformed-item rejection and single consumption by the scene delegate. `MobileBatchStartupTests` checks protocol fallback/filtering, separate workspace/history creation, confirmation revalidation, deferred once-only dismissal and scene isolation. `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` exercises capability-filtered Host context menus, independent duplication, keep/delete group-tree behavior and proxy validation; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
 
 For a change, inspect scene routing tests for navigation, region/layout tests for geometry, workspace/terminal tests for session continuity, and Assistant tests for run-versus-selection ownership. See [Platform Runtime Composition](/openwiki/architecture/platform-runtime.md) and [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) before changing the lifetime boundary.

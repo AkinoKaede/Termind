@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c2a42d9295bc97f233eebfdeda622b0aa34e8644adeb4fae708570729f89ff18",
+  "pageVersion": "sha256:74cf0cd1cab7fb0cf136b6c8ab6ab146b7746f7e3fbfec236f8e2a0434d0bc37",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:4ad98e85d97086e3a62c7a2ee9ba14b8787e76211b7789d62625ef6cfdc9b4c9"
+          "version": "repo-file-v1:sha256:e0c7cdd6cb9286874c9fb9007755a334a9bc09b0d7e78b59cdf0a1dac6c7c13e"
         }
       ]
     },
@@ -34,11 +34,11 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:8fd7538e7ee111187beda7a23939b9be0861ebc9a6bac233121957008b8d9cfb"
+          "version": "repo-file-v1:sha256:9311a5705c2a2e3a0d3f4200ec1cd76d629adce5fe3a4dc0809894ef60b4d118"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
+          "version": "repo-file-v1:sha256:59b8c020b7d8d605ae9fb0cc31e59509826266d1bc9e75bbb9aef92f71e58841"
         }
       ]
     },
@@ -48,7 +48,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:8fd7538e7ee111187beda7a23939b9be0861ebc9a6bac233121957008b8d9cfb"
+          "version": "repo-file-v1:sha256:9311a5705c2a2e3a0d3f4200ec1cd76d629adce5fe3a4dc0809894ef60b4d118"
         }
       ]
     },
@@ -98,7 +98,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:4a5a5f330b29137020004d3059eaf48e080a45eea8460e1a74fa434565200e13"
+          "version": "repo-file-v1:sha256:710e66c233f5cb696769131d7daf8c4600d093c3564edf497b3e256709a94e75"
         }
       ]
     },
@@ -128,7 +128,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
+          "version": "repo-file-v1:sha256:b6fcc0a46e86be81eb34a1611fab971ad36564333af7839ef8656cf942667d9e"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -156,11 +156,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:6eea9877e693853f5f2947f191122091a29dd023d326ee2cf15998c89d4ae9ee"
+          "version": "repo-file-v1:sha256:b231074ee95ffbab8fe63c63bcfb64111751a4c7b275371202f993ea3ee43423"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:8fd7538e7ee111187beda7a23939b9be0861ebc9a6bac233121957008b8d9cfb"
+          "version": "repo-file-v1:sha256:9311a5705c2a2e3a0d3f4200ec1cd76d629adce5fe3a4dc0809894ef60b4d118"
         },
         {
           "resource": "repo://TFMTests/AppTerminationTests.swift",
@@ -174,7 +174,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
+          "version": "repo-file-v1:sha256:b6fcc0a46e86be81eb34a1611fab971ad36564333af7839ef8656cf942667d9e"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -281,10 +281,60 @@
           "version": "repo-file-v1:sha256:b7bdc9c7e0f80d81f6610283c947786cfc0f0d13dc06ddd683a4240e1236b38a"
         }
       ]
+    },
+    {
+      "id": "claim_4cc35cbeba4e4edca326fc7099f51168",
+      "statement": "The desktop external-authentication Window receives the shared app environment and SwiftData container but removes its normal Window-menu command; it is not another main workspace window.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L211-L254",
+          "version": "repo-lines-v1:sha256:333120a2044361002eece5704e67f3457d94c141f098be4a406cbf62b276d333:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNTgzMDJjZDFmMDQ4ZTE3MzU1MTUxODA0NzRjYmI4M2YwZjhkZDNmN2I3ZjUyODI4ZDU1ZmUxYjg1MmIxOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0MTA0N2ZkYjNiOWIzMTYwZTU0NWEwOThlOGJhY2E1ODA1YTJlZmFjNGI3YWRkNmYxM2IyNDg4NWJjNmY4ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdjZGEyMmE4ZWYyODNjOGFmOTJjZDlmMmY2ZTA4MzdkODg4MjdjYjBkZGM2OWNlNDFkMTAwZDFiOTdjYWM5MmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5f5fe0dfb38e42d98d3f5c92eb3837af",
+      "statement": "When mobile scenes reopen a saved workspace descriptor, MobileAppModel publishes the workspace to its shared registry before connecting, allowing multiple scenes to reuse one workspace and one initial connection attempt.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L708-L723",
+          "version": "repo-lines-v1:sha256:02916598d6ce980461cd4d2f19b3eb1cfeb5f71d7478cdac129e5cc0c88a9a59:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4YjM0MjE2MjYzZjM3NTkzNDUyZGMyNDNlYTQyNTQ3MDJkZTEzYjI0OTliYTQ4ODYxODk2NTI4NGNmNDQzNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1NWE2YmQ5MDhjMTBjOGM0MzYyZDBkNDAyZDI0Y2JkMDY2MDgyYjNjMjQ0N2YwZTA0MjZhYjEzY2M4NDc2M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4ZDgxNTIzY2NhNWZlYmRiNWVhZDU5MDU2NmU5NjhlMTVkOTViZjRlODNlZjNkYjExNmJhOGM1NThhNDY0ZDQifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L786-L805",
+          "version": "repo-lines-v1:sha256:009a2acb4cd53659b0f5811f41e299f4d746f4be8f1f4352ff30ad7118fd662b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxODI4YWZmNmM2MDJhZDBjNDkzM2FhYjA1ZmQzZTgzOTVmYmI4ZjY3NTI1OGU4NzBiMmE4MGY5MjhjYzhmZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNzhhMmQzMGFkYTcwNjU3OTM0MDdhOGM1ODY5NmMxMmM3NjAyZTc0OTVlM2IwZmE5MDRmMDE3NmI0YzY5NmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxNmNkYmM5MDJkOTFjMzE5NWYwNWM4NzZmZjcyYmM3NTdiNDdlZGE3ZjYwNmU4NTRjNDMyNTgyOTRhMDk3MGIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileAppTests.swift#L1594-L1624",
+          "version": "repo-lines-v1:sha256:da0450e18748d4e9ec4ac784144804c174d495f485f47167f501f7493cc28fbe:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNjg1Mjg5MWQ1ZjVjNTVlNjY5YzQyNjRiNzc3NzAyOTVkMDcwYTY0YTVlZDAyZTc4ZmJiYTJhMTk5NGFkNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOWQzMmRjYWFlMWI1NmZiYzYzMTNjZTM2YzAyMGE5MDhkOGFiMTUxNDk5NTgyM2MyODFhOGI3YWE0ZjQwODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNzhlZjkzMGE2OGVlNWNmZTg4Y2NlMTZlOWYzYjkwMzBhNjExMzYwNzg2OTI0ZDM4ZGU5MzJlZGM3NjI0NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNTgzMzcyZWM2ZDg1Zjg4NDI1Mzk5ZWE4OWJlYmJlNGY5ODY4ZmExMmU1NWI3YTkzYTdiOTAzMDExNDZmYWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6061c7945229481e8ad1c8c5427b6fdb",
+      "statement": "The Xcode project's remote AgentKit requirement starts at 0.15.2 under upToNextMajorVersion, while the resolved graph pins version 0.15.2 at revision 4540847d4762f9040be7a8bab4cadd82e494c36d; ordinary pinned builds consume that resolved version, not the sibling source checkout.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L24-L29",
+          "version": "repo-lines-v1:sha256:388a61ace4d6d2e8a6a9fe6a9a2b0ee6a67122ab831f7d0a49eba6d9e9cd10e5:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczYmEyNjc2YzMzZGE1MjMyNTFkNWNjZjUzNjViODFhMGEwMjMyZWU3MGI3OTFlNmJjMTNmYTIyNTFhMGQ4MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGI1ODA1YWE0ZDNjNDk5NWQ4OWQxZTA4ZjY5NjkyNDg2MjMyNzJkYTZiNjk2ZGEwZWNlMjUxMGY2NjE3Y2RjMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2864-L2870",
+          "version": "repo-lines-v1:sha256:f10348747f7bcf49f62dbef0abd52ce2b9a5d47c1efa9e494c4e5c6f2f707b10:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGM4ZmE1MWJmOTRmODU4YzU3MjBlMmYzYmUxNjQ2MGYzYTQ4Zjg3ZDVlMDFlNjczNjBkN2E1MWY5NjVhNWY3NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L3-L12",
+          "version": "repo-lines-v1:sha256:e2b647bdbc388206d05078fd0f9fd080e628f0ba950c0391bba24ab4a4abcab4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZmQ1MzQ0YWM2NzYwMjNjOGZkM2FhMmZjNWQxMThiZWYyNzNlZWNkMTYzMWY1MWEyZThlNThlNGUwYWJmMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0YzU1YWU1NzlmNDk4NzBkZGE3Mjg5YmM2ZTQzMTQxNTMwYjk5MDBiMzI3ZGJlOWEwMzhkNjM2ZjM0MGJmYWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T14:20:08.561Z"
+    "at": "2026-09-25T12:50:34.482Z"
   }
 }

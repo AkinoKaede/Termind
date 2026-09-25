@@ -5,7 +5,7 @@ description: Build ownership and integration boundaries for AgentKit, the MCP br
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -85,7 +85,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Supporting Products and Tooling
@@ -94,9 +94,9 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project builds the remote Swift package, not the submodule or sibling working tree**: `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.14.0`, and `Package.resolved` pins version `0.14.0` to revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`. The submodule is useful for inspecting package organization, but only the resolved remote revision determines app build inputs.
+The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project builds the remote Swift package, not the submodule or sibling working tree**: `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.15.2`, and `Package.resolved` pins version `0.15.2` to revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The submodule is useful for inspecting package organization, but its checkout is not evidence of the source at Xcode's resolved revision. Use `-onlyUsePackageVersionsFromResolvedFile` for reproducible app builds rather than allowing an ordinary resolution to move the pin.
 
-The directory table describes the checked-out package's organization, not a guarantee that a future checkout and the app's resolved package revision are identical. For a cross-repository change, test and release AgentKit first, then update the Xcode package minimum version and re-resolve `Package.resolved` in the app-side commit. `ArchitectureBoundaryTests` also guards against redefining AgentKit-owned runtime types in app source.
+The directory table describes the checked-out package's organization, not a guarantee that its source matches the app's resolved package revision. The checkout manifest defines a dependency-free `AgentKit` core and an opt-in `AgentKitScrubber` product that depends on the core and ScrubberKit; the Xcode project links the core into both apps and shared frameworks, and the Scrubber adapter into the desktop app and `TermindRemoteInfrastructure`. Treat these as separately versioned package products, not source groups copied into the app. For a cross-repository change, test and release AgentKit first, then update the Xcode package minimum version and re-resolve `Package.resolved` in the app-side commit. `ArchitectureBoundaryTests` also guards against redefining AgentKit-owned runtime types in app source.
 
 | Directory, relative to AgentKit | Responsibility |
 | --- | --- |

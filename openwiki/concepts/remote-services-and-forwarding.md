@@ -1,14 +1,20 @@
 ---
-type: "Reference"
-title: "Remote services and forwarding"
-description: "Cross-service ownership of SSH terminal, metrics, SFTP, Agent, and forwarding runtimes, with routing to detailed channel scheduling, shell integration, and multi-connection dispatch mechanisms."
+type: "Remote service ownership"
+title: "Remote Services and Forwarding"
+description: "Ownership boundaries among terminal, metrics, SFTP, Agent, and forwarding SSH runtimes, including which configuration is saved and which connections and authentication journeys remain live-only."
 tags: [ssh, terminal, metrics, sftp, port-forwarding, scheduling]
-openwiki_generated: true
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T12:50:34.482Z
 sources:
+  - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
+    resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-21096ca5afd2c8baca7c623c
     resource: repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift
+  - id: openwiki-source-5e7fb300dcdfa0227467d965
+    resource: repo://Frameworks/TermindDomain/Metrics/ServerMetrics.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-89716908f306ca7371832cce
@@ -27,20 +33,29 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-3e30aa6e30a48c32a2351518
+    resource: repo://FrameworkTests/MetricsSyncTests.swift
   - id: openwiki-source-52a93fdcfe9295de26f2b72d
     resource: repo://FrameworkTests/SSHMetricsSamplerTests.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-13f2deff6904678799b19444
+    resource: repo://TFI/Application/Metrics/MobileMetricsModel.swift
+  - id: openwiki-source-a053f8c3524e81f98b0b0938
+    resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-9e75ae93f5450c1993472c5d
+    resource: repo://TFM/Features/Metrics/MetricsView.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 
-SSH is a shared transport substrate, not a single shared runtime. Terminal sessions, Metrics, port forwarding, SFTP, and Agent work can all use SSH, but each feature owns its own intent, connection lifetime, interaction surface, and recovery policy. In particular, a live authentication result or a forwarding listener is memory-only: it is not restored from saved Host or forwarding-rule data. See [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for the general connection journey and [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for Agent-specific transport ownership.
+SSH is a shared transport substrate, not a single shared runtime. Terminal sessions, Metrics, port forwarding, SFTP, and Agent work can all use SSH, but each feature owns its own intent, connection lifetime, interaction surface, and recovery policy. Saved Hosts, forwarding rules, and Metrics selections describe intent; live sampler connections, authentication prompts, and forwarding listeners are not restored as connected runtimes. Explicitly saved identities or remembered host keys can be used on a later connection, unlike a one-time approval or an unpersisted submission. See [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for the general connection journey and [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for Agent-specific transport ownership.
 
 ## Implementation deep dives
 
@@ -66,7 +81,7 @@ These controls compose rather than replace each other. For example, an SFTP file
 | Service | Primary owner and connection shape | Interactive behavior | What it does not inherit |
 | --- | --- | --- | --- |
 | Interactive terminal | `SSHPTYChannel` opens a PTY and shell on its own authenticated connection. | Its connection journey may obtain trust, credentials, and keyboard-interactive answers. | It does not make those answers durable for later physical connections. |
-| Metrics | `ServerMetricsModel` runs one serial worker per selected Host; `SSHMetricsSampler` performs bounded SSH exec requests. | Metrics owns its own `ConnectionJourney`, host-key authorization, and authentication queue. | It does not start a terminal shell or use terminal environment variables/startup snippets. |
+| Metrics | Application-owned `ServerMetricsModel` runs one serial worker per enabled, available SSH Host selection on a dedicated sampler connection; `SSHMetricsSampler` performs bounded SSH exec requests. | Each `ServerMetric` owns its own `ConnectionJourney`, host-key authorization, and authentication queue; the mobile wrapper delegates to this same core model. | It does not start a terminal shell or use terminal environment variables/startup snippets. |
 | Port forwarding | `PortForwardingController` shares a host-scoped forwarding transport among explicitly started rules; it optionally creates an `SSHForwardingConnectionPool`. | The first open can present the forwarding Journey. Recovery and auxiliary opens forbid interaction. | It does not persist a connected transport, listener, temporary password, passphrase, or once-only trust decision. |
 | Agent SSH/SFTP | Agent SSH and primary Agent SFTP share an Agent-owned pooled Host transport and fair libssh2 owner. | Agent interactions use Agent queues, not a terminal or forwarding prompt. | It is not a forwarding pool or an interactive PTY session. |
 
@@ -99,13 +114,15 @@ Shell integration is likewise a terminal concern. When enabled, the PTY channel 
 
 ## Metrics: bounded exec sampling, not a login shell
 
-`ServerMetricsModel` stores the selected metric cards and runs a detached serial worker for each enabled SSH Host. The worker resolves an SSH connection preparation with challenge-capable trust and keyboard-interactive handlers, connects a newly made sampler, then samples on a roughly two-second cadence. It publishes the base point first; GPU, filesystem, and process details are optional follow-up work. Filesystems are refreshed only while a detail view is observed and no more often than 30 seconds. On failure it disconnects and retries with exponential delays from 2 seconds to a 60-second cap; cancellation, disabled selection, sleep, stopped model, or a changed generation retires the work.
+`ServerMetricsModel` is the application-level owner, independent of windows. It persists ordered `MetricsSelection` configuration (Host ID, enabled state, disk and interface choices), not monitor connections or samples; missing Hosts stay selected but have no card/worker until available. On macOS `AppModel` constructs it with the connection coordinator's sampler factory and a Pro-dependent card limit; on iOS `MobileMetricsModel` wraps the **same `ServerMetricsModel` implementation**, delegating sampling, authentication, and retries to `core`, while setting its own Pro-dependent card limit. Admission and preference writes run through the core model, which rejects non-SSH Hosts and does not change runtime configuration if saving fails. UI windows share its card state; the desktop details page observes a Host only while visible outside its connection journey, and the mobile detail view uses the same observation interface.
+
+`ServerMetricsModel` runs a detached serial worker for each enabled SSH Host with a generation guard. The worker resolves an SSH connection preparation with challenge-capable trust and keyboard-interactive handlers, connects a newly made sampler, then samples on a roughly two-second cadence. It publishes the base point first; GPU, filesystem, and process details are optional follow-up work. Filesystems are refreshed only while a detail view is observed and no more often than 30 seconds. On failure it disconnects and retries with exponential delays from 2 seconds to a 60-second cap; a failure needing authentication or an unsupported primary probe waits for attention instead of looping. Cancellation, disabled selection, sleep, stopped model, or a changed generation retires the work; periodic reconciliation notices Host/route/identity changes and invalidates its monitor. `snapshot(for:)` reads the existing monitor without starting collection, returning an explicit paused, sleeping, stopped, or awaiting-authentication state where applicable.
 
 `SSHMetricsSampler` wraps its connection in `SSHExclusiveConnectionAdapter`, so its commands have exclusive use of that sampler connection. It uses bounded exec calls rather than a PTY: the primary Linux probe has an 8-second timeout and 256 KiB payload limit; filesystem and process probes use 5 seconds with 512 KiB and 1 MiB limits respectively. It recognizes exit status `42` as unsupported primary metrics and recognizes `42` or NVIDIA's `6` as no GPU; other nonzero, truncated, malformed, or oversized output is a read failure.
 
 Remote shells can emit banners, OSC sequences, or exit-hook text around an exec command. The sampler wraps every command in `__TERMIND_METRICS_BEGIN__` and `__TERMIND_METRICS_END__` markers, parses only the enclosed payload, and permits a small framing allowance beyond the payload limit. Invalid primary-sample diagnostics redact the address section before logging and record sizes rather than treating raw remote output as safe telemetry.
 
-Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that framing ignores shell preamble/trailer, that absent/truncated/oversized frames fail, and that unsupported/GPU exit codes retain their special meanings.
+Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that framing ignores shell preamble/trailer, that absent/truncated/oversized frames fail, and that unsupported/GPU exit codes retain their special meanings. `FrameworkTests/MetricsJourneyTests.swift` exercises background sampler callbacks, restored monitor reconciliation, independent prompts and retry behavior; `FrameworkTests/MetricsSyncTests.swift` checks that selections survive missing Hosts, sync across devices, and failed saves leave the runtime unchanged.
 
 ## Forwarding: explicit intent and host-scoped runtime
 

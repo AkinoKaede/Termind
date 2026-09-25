@@ -5,7 +5,7 @@ description: Per-category CloudKit replication, durable journals, compatibility 
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
@@ -31,6 +31,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
   - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
+  - id: openwiki-source-3effdff7f6b04e2a66d8f651
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
@@ -47,8 +49,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
   - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
-  - id: openwiki-source-7a9c6d90cba4ebd1d1398673
-    resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-79e0f2a939e874c6a6803c19
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
@@ -61,6 +61,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-40cfadc2320da9a292c64d26
+    resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
@@ -77,12 +79,12 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
 
-Termind replicates a SwiftData-backed journal into the private `iCloud.com.akinokaede.termind` CloudKit container; this is **not** SwiftData CloudKit mirroring (`TermindPersistence.makeContainer` uses `cloudKitDatabase: .none`). Five writable owners—Vault, Settings, Metrics, Connection History, and Device—each own an engine, subscription, binding, queue, and lifecycle. History and Device retain the **same deployed zone**, `TermindConnectionHistoryV1`, but use separate subscriptions, kind-filtered journals and state rows, and separate safety scopes (Device's scope has consumer `device`; History keeps the original empty consumer). Neither should consume, reset or acknowledge the other's records. `HistoryRecordSyncCoordinator` shares the record-handling implementation, **not** their engine or account state. The former legacy importer is retired: Vault handles obsolete copies only as cleanup, not as a source for new History or Device data. [CloudSyncJournal](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift).
+Termind replicates a SwiftData-backed journal into the private `iCloud.com.akinokaede.termind` CloudKit container; this is **not** SwiftData CloudKit mirroring (`TermindPersistence.makeContainer` uses `cloudKitDatabase: .none`). Five writable owners—Vault, Settings, Metrics, Connection History, and Device—each own an engine, subscription, binding, queue, and lifecycle. History and Device retain the **same deployed zone**, `TermindConnectionHistoryV1`, but use separate subscriptions, kind-filtered journals and state rows, and separate safety scopes (Device's scope has consumer `device`; History keeps the original empty consumer). Neither should consume, reset or acknowledge the other's records. `HistoryRecordSyncCoordinator` shares the record-handling implementation, **not** their engine or account state. The former legacy importer is retired: Vault ignores obsolete History/Device copies in its own zone; it neither imports nor currently schedules physical cleanup of those copies. [CloudSyncJournal](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift).
 
 ## Selection and app ownership
 
@@ -96,11 +98,11 @@ Termind replicates a SwiftData-backed journal into the private `iCloud.com.akino
 
 The migration-only `vault.sync.enabled` participates in deriving the master selection if that switch has not been set. **History does not inherit it**: an unset History preference defaults to enabled, and `migrateSyncPreferences` does not copy the old Vault selection or environment into History. `CloudSyncSettingsContent` supplies the same UI to both platforms: a headerless iCloud toggle and aggregate status/actions, then “Optional Sync” toggles in History → Metrics → Settings order. There is no separate Vault or Device toggle. Enabling master sync is Pro-gated and attempts custom Host password migration to iCloud Keychain. [SettingsKey](repo://Frameworks/TermindApplication/SettingsKey.swift), [CloudSyncSettingsContent](repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift).
 
-Desktop `AppModel` starts or pauses **five** owners according to the Vault-sync Pro capability. `MobileAppModel.reconcileSync()` also requires an active scene; its background path pauses all five. Both composition roots relay accepted remote changes into app-wide models, rather than making engines window-owned. Local persistence continues to record changes when an engine is paused. [AppModel](repo://TFM/App/AppModel.swift#L328-L373), [MobileAppModel](repo://TFI/App/MobileAppModel.swift#L601-L625).
+Desktop `AppModel` starts **five** owners on setup when Pro permits, and starts or pauses all five when Pro access is reconciled. `MobileAppModel.reconcileSync()` also requires an active scene; its background path pauses all five. Both composition roots relay accepted remote changes into app-wide models, rather than making engines window-owned. Settings snapshots update AI, skills, terminal, SSH, SFTP and workspace preferences; Metrics updates its live selections, and History/Device reload their models. For a remote Vault Host route change or removal, the app plans runtime teardown before replacing the persisted snapshot: it closes affected workspaces and cancels transfers or forwarding rules, then reconciles forwarding configuration; desktop also revokes host tools, while mobile updates live activities. Local persistence continues to record changes when an engine is paused. [AppModel](repo://TFM/App/AppModel.swift#L332-L420), [MobileAppModel](repo://TFI/App/MobileAppModel.swift#L616-L669), [AppModel](repo://TFM/App/AppModel.swift#L332-L420).
 
 ## Lifecycle and recovery
 
-Each coordinator adapts its category journal to `CloudSyncLifecycleStore` and delegates CloudKit events to `CloudSyncLifecycle`. On start, the lifecycle checks account availability and user identity, prepares scoped safety and replica state, handles environment or missing-zone resets, **commits a recovery fence before constructing an automatically syncing engine**, creates the zone and engine, reconciles eligible journal mutations into the engine queue, and fetches before sending. Explicit and automatic fetches can overlap: *all* current fetches must complete successfully before `isReadyToSend` and Settings secret-upload authorization become true. A new scope, missing/invalid serialized cursor, changed supported decoder capability (where configured), or interrupted recovery initiates a fresh inventory rather than trusting an unsafe cursor; envelopes and unsent edits survive. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L322-L425), [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L65).
+Each coordinator adapts its category journal to `CloudSyncLifecycleStore` and delegates CloudKit events to `CloudSyncLifecycle`. On start, it finishes pending asset cleanup, checks account availability and identity, prepares scoped safety and replica state, resets the journal on environment change, and discards a cursor if safety requires refetch, replica reconciliation is incomplete, or serialization is absent/invalid. It **commits the recovery fence before checking/creating the zone or constructing the automatically syncing engine**; a missing zone resets that owner's replica and journal. It reconciles eligible mutations with the engine queue, then fetches before sending. Explicit and automatic fetches may overlap: *all* current fetches must succeed before `isReadyToSend` and Settings secret-upload authorization become true. A fresh inventory compares observed IDs to previously present scoped records, reconciles missing IDs, and checkpoints the replica and decoder capability only after successful fetch/merge; journaled edits survive the fresh cursor. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L314-L425), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L464-L513), [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L61), [CloudSyncSafetyPersistenceTests](repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L141-L186).
 
 ```mermaid
 flowchart TD
@@ -108,24 +110,29 @@ flowchart TD
     Selection -->|Yes| Binding{"Account available and binding accepted?"}
     Binding -->|No| Waiting["Wait for sign in or account confirmation"]
     Binding -->|Yes| Prepare["Prepare consumer scope and replica inventory"]
-    Prepare --> Fence["Commit recovery fence"]
-    Fence --> Engine["Ensure zone and create own engine"]
-    Engine --> Fetch["Fetch current zone and reconcile records"]
-    Fetch -->|Failure| Closed["Keep fence and close upload gate"]
-    Fetch -->|All fetches succeeded| Ready["Authorize eligible pending work"]
+    Prepare --> Cursor{"Recovery or invalid cursor or incomplete replica?"}
+    Cursor -->|Yes| Fresh["Clear serialized cursor and request full inventory"]
+    Cursor -->|No| Fence["Commit recovery fence"]
+    Fresh --> Fence
+    Fence --> Zone["Check zone and reset own journal if missing"]
+    Zone --> Engine["Create zone and engine then reconcile eligible queue"]
+    Engine --> Fetch["Fetch zone and merge or quarantine records"]
+    Fetch -->|Failure or unfinished fetch| Closed["Keep fence and upload gate closed"]
+    Closed -->|Retry fetch| Fetch
+    Fetch -->|All fetches succeeded| Inventory["Reconcile missing records and checkpoint scope"]
+    Inventory --> Ready["Authorize eligible pending work"]
     Ready --> Batch["Recheck journal and restriction in synchronous batch"]
     Batch -->|Blocked| Held["Keep pending intent for this record"]
-    Batch -->|Eligible| Send["Send saves or deletes and verify acknowledgements"]
-    Send --> Fetch
+    Batch -->|Eligible| Send["Persist delete handoffs then send and acknowledge"]
+    Send -->|Later sync| Fetch
 ```
-
-The diagram shows one owner's gating; History and Device each run this flow over their shared zone with distinct consumer scopes. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift).
+The diagram shows one owner's fetch-before-send and scoped recovery gate; History and Device each run it over their shared zone with distinct consumer scopes. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift).
 
 `pause`, account retirement and fatal delegate persistence errors invalidate the operation ID, cancel operations, drop the engine and scope, and revoke send/secret authorization. Callbacks from an old engine are ignored. A retryable zone-fetch failure keeps the engine but does **not** reopen uploading; network/rate/zone-busy errors report syncing for retry, `notAuthenticated` requests sign-in, and terminal errors report failure. Recovery stays required until outstanding fetch/send work completes safely. The status can separately report uploadable and blocked counts, with an update hint only for unsupported format—not corruption. Logging emits `cloud.sync.failed` with zone, stage and NSError domain/code, not raw records, account IDs or localized descriptions; expected cancellation is not an error. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L472-L520), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L603-L693), [CloudSyncEventHandling](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift).
 
 ### Changing replicas and CloudKit deletions
 
-An account mismatch records a pending user and requires explicit merge confirmation **before** any new-account engine exists. Confirmation prepares old-scoped legacy quarantine (where applicable), resets the *owner's* journal before binding the new user, drops old account tombstones and metadata, and requeues surviving local records. A changed `TermindCloudKitEnvironment` resets that owner's engine state and system fields and requeues envelopes without moving old-scoped restrictions. A missing zone or ordinary zone deletion recreates and requeues the corresponding replica; Device and History must not reset one another despite sharing a zone. By contrast CloudKit `.purged` or `.encryptedDataReset` retires the owner and purges that scope's local cloud cache and safety/replica state **without recreating the zone or uploading old local data**. Category asset-cache cleanup is tracked durably and finished on restart. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L284-L386), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L695-L720), [HistorySyncStore](repo://Frameworks/TermindPersistence/HistorySyncStore.swift#L35-L64).
+An account mismatch records a pending user and requires explicit merge confirmation **before** any new-account engine exists. Confirmation resets the *owner's* journal before binding the new user, drops old-account tombstones and system fields, and requeues surviving local records. Old-scoped safety rows remain scoped to the old account; no legacy-quarantine preparation runs on confirmation. A changed `TermindCloudKitEnvironment` resets that owner's engine state and system fields and requeues envelopes without moving old-scoped restrictions. A missing zone or ordinary zone deletion recreates and requeues the corresponding replica; Device and History must not reset one another despite sharing a zone. By contrast CloudKit `.purged` or `.encryptedDataReset` retires the owner and purges that scope's local cloud cache and safety/replica state **without recreating the zone or uploading old local data**. Category asset-cache cleanup is tracked durably and finished on restart. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L284-L386), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L695-L720), [HistorySyncStore](repo://Frameworks/TermindPersistence/HistorySyncStore.swift#L35-L64).
 
 ## Durable journals and wire contracts
 
@@ -135,9 +142,9 @@ Vault, Metrics and Settings carry version/kind/entity/clock/deletion envelope me
 
 Native History/Device writes use **typed CloudKit fields**, not JSON/asset payloads. `HistoryCloudRecordV1` validates `formatVersion`, `kind`, canonical `entityID` and record name, `modifiedAt`, nonnegative `counter`, `writerID`, and `isDeleted`; live events also require `hostID`, `connectionKind` (`ssh`, `telnet`, `sftp`) and `connectedAt`, with optional `endedAt` and `sourceDeviceID`; devices require `displayName`. Writes explicitly clear optional fields; tombstones need only metadata. IDs remain `v1/connectionHistory/<uuid>` and `v1/device/<uuid>`, independent of later format versions. An event can arrive before its Host and is persisted without a CloudKit reference. [HistoryCloudRecordV1](repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift), [HistorySyncStore](repo://Frameworks/TermindPersistence/HistorySyncStore.swift#L116-L149).
 
-History retains the 250 newest events and journals tombstones for overflow and clear operations while leaving device records intact. Event UUID deletion is terminal even against a delayed update with a later clock; Device, unlike events, can have a later explicit incarnation. Per-scope sidecars remember cloud presence, confirmed deletions and **durable delete handoffs before network submission** so interrupted sends, full-inventory refetches and reobserved records cannot accidentally acknowledge the wrong incarnation or resurrect deleted events. Ordinary physical CloudKit deletion is reconciled against the journal rather than treated as a new user edit: surviving local records can be recreated with cleared system fields, subject to upload restrictions. [HistorySyncStore](repo://Frameworks/TermindPersistence/HistorySyncStore.swift#L66-L113), [CloudSyncRecordStateStore](repo://Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L218-L287), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L547-L600).
+History retains the 250 newest events and journals tombstones for overflow and clear operations while leaving device records intact. Event UUID deletion is terminal even against a delayed update with a later clock; Device, unlike events, can have a later explicit incarnation. Per-scope sidecars remember cloud presence, confirmed deletions and the exact **durable delete handoff before network submission**. Full-inventory reconciliation treats previously present but unseen records as physical deletions; only a newer pending explicit incarnation after a causal deletion handoff is preserved for recreation (not terminal History events). An ambiguous delete retains the handoff for retry; an acknowledgement applies only to the handed-off version, not a newer local edit. This avoids falsely acknowledging a newer device recreation after a crash, while reobserved records and blocked IDs still obey the outgoing fence. Ordinary physical CloudKit deletion is reconciled against the journal rather than treated as a new user edit: surviving local records can be recreated with cleared system fields, subject to upload restrictions. [HistorySyncStore](repo://Frameworks/TermindPersistence/HistorySyncStore.swift#L66-L113), [CloudSyncRecordStateStore](repo://Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L123-L170), [CloudSyncRecordStateStore](repo://Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L177-L256), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L480-L512), [CloudSyncSafetyPersistenceTests](repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L189-L248).
 
-**Retired Vault History is not imported.** New native History/Device records are written only to `TermindConnectionHistoryV1`. The Vault coordinator recognizes canonical obsolete History/Device `VaultItem` IDs in the old Vault zone solely to queue a durable physical-delete cleanup; it never imports those payloads or applies their deletion to local activity. Old importer state is removed in migrated stores; native History bootstrap starts from current local events/devices, not the old Vault journal's clocks or system fields. Fresh installs read previously uploaded native records in the shared zone. [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L154-L165), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L181-L239), [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift#L144-L167), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L11-L101).
+**Retired Vault History is not imported or physically cleaned by the current owner.** New native History/Device records are written only to `TermindConnectionHistoryV1`. The Vault coordinator filters obsolete History/Device IDs out of decoded records and journal eligibility. It neither imports those payloads nor applies their deletion to local activity, but **does not queue physical deletes of old-zone copies**; do not assume that disabling the importer removes already uploaded legacy records. Old importer state is removed in migrated stores; native History bootstrap starts from current local events/devices, not the old Vault journal's clocks or system fields. Fresh installs read previously uploaded native records in the shared zone. [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L105-L111), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L171-L237), [SwiftDataVaultJournal](repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift#L215-L239), [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift#L144-L167), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L11-L101).
 
 ## Compatibility and upload fence
 

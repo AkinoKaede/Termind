@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:27d4d542851268df93f76939bfe22b715bb01d39e7025d3c9d2af525bd1e2b77",
+  "pageVersion": "sha256:cc4120c44ce6fdfe7874a701ce87d9678d108e9536c3059c240c39981e771c67",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -24,7 +24,7 @@
     },
     {
       "id": "claim_753dad266c1f47ef96d99dc23bcb0dbb",
-      "statement": "Only verified StoreKit transactions grant Pro: a qualifying lifetime entitlement takes precedence, while annual trial, subscribed, and grace states grant access and billing retry, expiration, revocation, or failed verification do not.",
+      "statement": "Only verified StoreKit transactions grant production Pro: a qualifying lifetime entitlement takes precedence; unexpired annual trials/subscriptions and valid grace grant access, while billing retry, revocation, upgrade-away and failed verification do not. An expired annual transaction ordinarily maps to expired, but a post-expiry StoreKit subscribed state currently maps back to subscribed without checking its expiration date.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L22-L79",
@@ -50,7 +50,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L408-L439",
-          "version": "repo-lines-v1:sha256:7f78457b5cdc3f6d39462cdb1fa4c4872f187d67290d94e76b88f361134ab3d4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlMTA1YjI3MWEzZTU0Zjc4Y2MxZWY1MmMzNTY4ZjYwNzViMTY3ZTZjYmI3ZmI5MDhkZDI4ZDUzNTcxNmY2NWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjOTI3YmRlM2Q4OGIxYWQ1MzcxY2FkMjFiZDc1MjViYWY1MWNhYzNkNjgyYWJhODg0ZTNiMGRiNGI5YzBlYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3MWYzYTI5NWQ1NjE5YjQwMGY5MDkwNWJiYTVhMzg3NmIzYTVlZmJjYWNiMzkxNmNjZmYxYmQ0NWIzZmMxZjAifQ"
+          "version": "repo-lines-v1:sha256:98e303f52bd438c3e59d561971adc0fe3a4ba62b8f88e07490a8271a55e07af4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlMTA1YjI3MWEzZTU0Zjc4Y2MxZWY1MmMzNTY4ZjYwNzViMTY3ZTZjYmI3ZmI5MDhkZDI4ZDUzNTcxNmY2NWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjOTI3YmRlM2Q4OGIxYWQ1MzcxY2FkMjFiZDc1MjViYWY1MWNhYzNkNjgyYWJhODg0ZTNiMGRiNGI5YzBlYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3MWYzYTI5NWQ1NjE5YjQwMGY5MDkwNWJiYTVhMzg3NmIzYTVlZmJjYWNiMzkxNmNjZmYxYmQ0NWIzZmMxZjAifQ"
         },
         {
           "resource": "repo://TFMTests/StoreKitTrialTests.swift#L64-L122",
@@ -231,10 +231,54 @@
           "version": "repo-lines-v1:sha256:a79405a02f51b9a5b924abce37adc17681dc772fd6119f85497d7c218e02d170:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyOGY3YjBiMjZlNGFjYmE0NTJiYTk4OTYwNWU4MGVjYjI2MTJhMjRiNjJhMzc0ZjE0NWQ0ZWMzODNkYTVlN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1OWU1MzhlMTZhYzBmYTBiMzZhMDY5ZjQwZmFlMDliODFhNGFjZGU3OGY4MWY1YWZhNTEyNmY5NDcwNzQ4MGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2YzM3NWQwYjc0YzJhYjQ2OTEyOTlhZDY4ZmNiMzIyZTYxNTE3MmVlNDU4ZjNjNjZhZGI3Y2JkZDNmMzRjZjEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_0f118db7ce1742e38a3259bb977f4736",
+      "statement": "Applying a granting subscription status with an expiration schedules a cancellable refresh at that deadline; a subsequent status application cancels and replaces the timer, teardown cancels it, and the wakeup refreshes StoreKit-derived status rather than directly changing access.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L123-L150",
+          "version": "repo-lines-v1:sha256:141d40df0c5fe257a6e2fbf94c5587d576b30d0d6aab03fa1a5795c5e4c34d5b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzOGQ1ZGFiYzk3YjAzNzNmMmQ2ZmViNjY2ZmY5NTM1ZWZmODVhMThlMzhlNGYwNmYyNzhmNjEzOTAxMDFjMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNThmNzI2NzEwMjQ1YmZhZDY5MTMzNzgxMjYwYTI0NWJhMmNmNTJlNDI5YmVjNTJlMDMwZGVkMmE1MGJkY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI1MmQ2NWZkNzUzMzA0OTc0OTA1ZjlkNmM3ZWE0N2ZkMWMwNDdjYzg1Y2ViMTg2MmI1NjYzYTA4NDJlOGRjOTYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L422-L440",
+          "version": "repo-lines-v1:sha256:781e226118ec6de8186fbda3f747b4e50368abaa38114cfa04d5dfe407fe8f01:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNjZlMzE4NTZlZTEyNThkNmVlOGY3YmZhMTFlYTI2MGY0YTI0NTY5ODcwNWY2NGUxODNjNGJlMDVhNTQxZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNjZmMGQyMjdjYWEwZjg5NTRhYjZmYjFmOTNkZmIwNWM3ZTNlOWFkODkyYTA2MDNiOTEzOGQ0ZWNkZGMxODAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L84-L91",
+          "version": "repo-lines-v1:sha256:cf9d150f255c8b08211b3f7bb159f7dfa25f817b8b3c9089c042d424246d4f4b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQ4MmZiNGU5Y2MzNzlkYTQ4NjY0N2ExYzAyODEwOTMyMzYwMjdkMmJlMjI0MTljOTBiOTNhYjU4NTkzMzMzMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTc4NGNiM2IyODBhYTU1Y2E2ZDYxYWRhMDY4NzY1ZGFlZDJhMzkzYjFlMjg4YjViZWU2MDNkNDQ1MDMzYmRkMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDE3ZmY3MTE4MmEzM2JjMjIwMWIxNjZlNWIxNGUwNzVlMDkxNmJjNWQ2YjY3OTUxMGU2ZGQ4ZWMyODFkZDM0OCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_27805d567e924089aae2bf85f731ff8c",
+      "statement": "The post-expiry StoreKit subscribed-state branch returns a Pro-granting subscribed phase even when the transaction expiration is no longer in the future, so the scheduled refresh alone does not guarantee access drops at expiry; the StoreKitTrialTests suite tests purchase/restore and other failures but not the timer or a post-expiration clock transition.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L22-L35",
+          "version": "repo-lines-v1:sha256:4074dee22de5b24e62f02ab0f55dd03dfb5643cfbf4d5e71eac340c5d06c671b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczMWIzNTVmNTRjYTY5NDMyYTJiZTU2NDZhMjBjOTk5NDJmMjk1M2M2ZTYwNTI0ZGM3MDcwYzI0YWMxN2VmOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0NGEwMjE2ZTU3NDAxODJmYjc0ZTdmYTlmMmZhMjZhOGZkMzcyMjc4MDhiNmVkNjVkODdlYWFkN2M3ODY0YmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2OGJmMWY1Y2JlZWE0NDM2YzM4MGE1N2EyZmNiNDIxNzYxNTI0ZTI3MDYxNzJiZDdmOWViNDNkMWM4M2EwNzMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L344-L398",
+          "version": "repo-lines-v1:sha256:63dbf17a3a0c584a481a415cc53a997f856e35870e8ef6ec8ec694abdf47b028:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyNGU4ZjQzZmJjYTk5NzA0MmM5MWE4OGEzZTAyZDNhNTYzZTQ4MzA3MGQ1OTVkOGU3MWY1YzYyMzU3MzdlMTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZGRmMmYwYzc1OTc4ZTJhMWFlMjIzMWM0MWE3NDk3MGNiMDY0MGFkYmY5OGIxOTM4NGYwOTBlOTAxNWM2ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyZWJkMTc5ZGE0YWY3ZDJmZjg2YmY2NjQ4MmIwODdmZWJjYWY4MjIwMzY5NzcyZmNmYTNkOTRlOTBkNmY1MjgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L422-L440",
+          "version": "repo-lines-v1:sha256:781e226118ec6de8186fbda3f747b4e50368abaa38114cfa04d5dfe407fe8f01:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNjZlMzE4NTZlZTEyNThkNmVlOGY3YmZhMTFlYTI2MGY0YTI0NTY5ODcwNWY2NGUxODNjNGJlMDVhNTQxZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNjZmMGQyMjdjYWEwZjg5NTRhYjZmYjFmOTNkZmIwNWM3ZTNlOWFkODkyYTA2MDNiOTEzOGQ0ZWNkZGMxODAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L14-L175",
+          "version": "repo-lines-v1:sha256:2bd56e96e0ea4d9824ebefbe29fb4ab1ee4ce34289270e5ec725ebbc4afc043b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjMTgwMjUwNGYyNWJhM2NkMGI4ZmYxMDBiOTRiZWI1MjZkNWVlMjU0MWMyZDg5MGQ4MWYzYTQ5NjYzYjEyMWMwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3NTUyYzk3MTEwYTAzNWYzZGI0NjFiMzNlY2ZkNTMwMDc5OTgzMWViZWI3ZTJhMzk4ZDMyYmNmZjUyZWIxZTVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3YTM1NmNjMGQwZDg1YzZlMGE3N2M0MGU5NDIyNWQ2N2QwNmM2MDhlNmQwZmI5MjI2OGFkNWM2OTA4ZGRkMGY5In0"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L197-L199",
+          "version": "repo-lines-v1:sha256:30e9bde8c60b101f592b15af4d5758a154ad1340ec33f2d2bdb93ae9aaa79915:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzA5MWFjZDg2NmEzNzU5ZWI3MDhjMDYxYjVhNzhmOTcxYzNhY2IwMTY0OTVhYTM4ZGMxMTQxZWFiMjM5ZWMzYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2VjN2I5ODQ1ZTk0MzRmNmY2MTI4MWIwOGNiNjIxYWZjZWRiZmNlYmYzY2M4YjFiOGQwZjUwNmY3YWJhZTQ5YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTZjMzc1ZDBiNzRjMmFiNDY5MTI5OWFkNjhmY2IzMjJlNjE1MTcyZWU0NThmM2M2NmFkYjdjYmRkM2YzNGNmMSJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T14:20:08.561Z"
+    "at": "2026-09-25T12:50:34.482Z"
   }
 }

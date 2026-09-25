@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -43,6 +43,10 @@ sources:
     resource: repo://FrameworkTests/ProPaywallPresentationTests.swift
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
+  - id: openwiki-source-f0779f80638e6627908c8c6b
+    resource: repo://LandingPage/src/components/FAQPage.astro
+  - id: openwiki-source-dde6f9f425dc38df06be00d6
+    resource: repo://LandingPage/src/lib/i18n.ts
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-446ef49ac8edac86b5511fe5
@@ -111,7 +115,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 ## Scope and ownership
@@ -140,13 +144,13 @@ flowchart TD
 
 This shows the entitlement resolution path used by `ProAccessController`; product metadata loading is separate from access resolution.
 
-Access is based only on verified StoreKit transactions. A valid, non-revoked lifetime entitlement takes precedence over annual status. An annual transaction grants Pro during an introductory trial, active subscription, or verified grace period; billing retry, expiry, revocation, and verification failure do not. Cancellation does not itself remove access before expiry. The controller consumes `Transaction.updates`, including deferred Ask to Buy approval, finishes verified transactions after refresh, and schedules another entitlement check for an access-granting subscription at the earlier of expiration or 60 seconds later. Both app targets also refresh on activation, rather than waiting for a paywall visit. It refreshes independently from product metadata, so a metadata/network failure clears offers and reports a recoverable catalog error without taking away already verified access.
+Access is based only on verified StoreKit transactions. A valid, non-revoked lifetime entitlement takes precedence over annual status. An annual transaction grants Pro during an introductory trial, active subscription, or verified grace period; billing retry, expiry, revocation, and verification failure do not. Cancellation does not itself remove access before expiry. The controller consumes `Transaction.updates`, including deferred Ask to Buy approval, and finishes verified transactions after refresh. For an access-granting subscription with a known `expiresAt`, `apply` cancels the previous timer and schedules a refresh for the remaining time until that date (immediately if it is already past); there is **no 60-second periodic cap**. If no expiration is known, no expiration timer is installed, so transaction updates and activation refreshes matter especially for that case. Both app targets refresh on activation rather than waiting for a paywall visit. It refreshes independently from product metadata, so a metadata/network failure clears offers and reports a recoverable catalog error without taking away already verified access.
 
 The controller serializes duplicate operations: it prevents a second purchase while processing or pending, tracks the specific pending product, treats user cancellation as non-error, and uses `AppStore.sync()` followed by a refresh for Restore Purchase. A successful verified purchase or restore closes the paywall; a restore without qualifying entitlement reports that no active purchase was found.
 
 ### What remains free
 
-The gate set is intentionally narrower than the product’s general remote-workspace experience. Free users can still use the ordinary workspace, SSH/SFTP work, Vault, settings, and the first three Metrics cards. The enforced boundaries are: assistant execution; dropping files onto an SSH terminal; creating/editing/connecting remote MCP servers; enabling or resuming the built-in macOS MCP server; Pro-dependent Vault, connection-history, device, Metrics, and Settings synchronization; and Metrics cards beyond three. On mobile, the Metrics add flow passes current Pro access into `MobileMetricsModel`, which applies the three-card limit and opens the paywall on a limit failure rather than on a storage error. When Pro sync is unavailable, sync services pause rather than attempting background synchronization; when built-in MCP access is lost, an enabled server is suspended. Local Vault and workspace data are not erased by that transition. On macOS, `TermindApp` installs the live controller outside tests and demo mode; `RootView` reconciles sync and MCP whenever status changes. On iOS, `MobileAppModel` uses the live controller outside in-memory/test setups; active scenes refresh access and `MobileRootView` reconciles sync when Pro access changes. Sync on mobile also requires an active foreground scene, even for Pro users.
+The gate set is intentionally narrower than the product’s general remote-workspace experience. Free users can still use the ordinary workspace, SSH/SFTP work, Vault, settings, and the first three Metrics cards. The enforced boundaries are: assistant execution; dropping files onto an SSH terminal; creating/editing/connecting remote MCP servers; enabling or resuming the built-in macOS MCP server; Pro-dependent Vault, connection-history, device, Metrics, and Settings synchronization; and Metrics cards beyond three. On mobile, the Metrics host picker saves a selected set via `MobileMetricsModel.replaceHosts`, passing the current Pro access into the shared metrics model as a three-card free limit (unlimited for Pro). The core preserves selections outside the picker, checks net additions against remaining slots, and persists the replacement as one operation. A failed save displays `storageError` if present, otherwise opens the unlimited-Metrics paywall. The desktop core receives a live entitlement-dependent card limit and calls `require(.unlimitedMetrics)` on limit rejection. Neither platform needs to delete existing cards when access changes. When Pro sync is unavailable, sync services pause rather than attempting background synchronization; when built-in MCP access is lost, an enabled server is suspended. Local Vault and workspace data are not erased by that transition. On macOS, `TermindApp` installs the live controller outside tests and demo mode; `RootView` reconciles sync and MCP whenever status changes. On iOS, `MobileAppModel` uses the live controller outside in-memory/test setups; active scenes refresh access and `MobileRootView` reconciles sync when Pro access changes. Sync on mobile also requires an active foreground scene, even for Pro users.
 
 ### Native paywalls
 
@@ -208,7 +212,7 @@ Screenshot/demo data must not modify production behavior. In DEBUG macOS builds,
 
 Marketing capture uses real feature views with fixture-only data: mobile tests mount real views in system windows, while macOS captures the production `WindowGroup` through `ScreenshotDemoConfiguration`. Asset source captures are organized by feature/device/locale; the sanctioned locales are `en`, `zh-hans`, and `zh-hant`. UI chrome and marketing copy are localized, while terminal command and transcript content remains English. A UI change affecting a captured scene must be recaptured in every locale rather than fabricating missing platform UI or changing product behavior for an image.
 
-The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts`; do not copy marketing sources into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website work must validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
+The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts`; do not copy marketing sources into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. When changing entitlement gates or the native paywall, check that this FAQ and the storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
 
 ## Change and verification guide
 

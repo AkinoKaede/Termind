@@ -3,6 +3,9 @@ type: asset-production-operations
 title: Marketing Assets, Screenshot Production, Figma Exports, and App Icons
 description: End-to-end rules for localized captures, device frames, website imagery, App Store boards, Figma exports, and layered app-icon sources.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
@@ -38,6 +41,8 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-407fd8a7c64006c458cce603
     resource: repo://TFI/Resources/AppIcon.icon/icon.json
+  - id: openwiki-source-030dddd97c4034e7a030866e
+    resource: repo://TFITests/MobileIconRenderingTests.swift
   - id: openwiki-source-8c7b256852880c8ff72e5882
     resource: repo://TFITests/MobileMarketingScreenshotTests.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
@@ -50,10 +55,7 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "codex", at: "2026-09-23T15:54:40.903Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T17:44:09.687Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Marketing Assets, Screenshot Production, Figma Exports, and App Icons
@@ -71,7 +73,27 @@ Marketing fixtures may mount real views with in-memory data, but must never chan
 
 ## Mobile capture workflow
 
-`TFITests/MobileMarketingScreenshotTests.swift` mounts production feature views in system windows with in-memory services. Ready/ack markers coordinate complete simulator capture, and a unique `TERMIND_MARKETING_CAPTURE_ID` rejects stale markers. Output stages in DerivedData and reaches the source tree only after the locale's tests and expected image-count checks succeed.
+`TFITests/MobileMarketingScreenshotTests.swift` is opt-in: without `TERMIND_MARKETING_SCREENSHOTS=1`, its serialized capture test returns without producing images. It selects all five scenes by default or the comma-separated `TERMIND_MARKETING_SCENES` subset, then mounts production feature views in system windows with in-memory services. With `TERMIND_MARKETING_SYSTEM_CAPTURE=1`, ready/ack markers coordinate simulator capture; a unique `TERMIND_MARKETING_CAPTURE_ID` prevents stale markers from satisfying the runner. The test times out if no acknowledgment arrives. The runner stages output in DerivedData and copies it into the source tree only after that device/locale test and its expected image-count check succeed. A direct test invocation without system capture instead writes rendered PNGs to its app Documents directory, not to `Marketing/Screenshots/Captures`.
+
+```mermaid
+sequenceDiagram
+    participant Runner as Mobile runner
+    participant Test as Capture test
+    participant Sim as Simulator
+    participant Sources as Capture sources
+    Runner->>Sim: Boot selected iOS 27 device and set locale and status bar
+    Runner->>Test: Run selected scenes for one locale with capture ID
+    loop Each requested scene
+        Test->>Sim: Present scene in key window
+        Test->>Runner: Write ready marker with token and capture ID
+        Runner->>Sim: Take system screenshot
+        Runner->>Test: Write matching ack marker
+    end
+    Test-->>Runner: Finish test
+    Runner->>Runner: Verify expected capture count
+    Runner->>Sources: Copy staged PNGs
+```
+The mobile system-capture handshake stages images before promotion into source captures.
 
 ```sh
 Scripts/run-mobile-marketing-screenshots.sh
@@ -159,6 +181,8 @@ Expect 18 opaque sRGB RGB images at each platform size, and inspect embedded ICC
 `TFM/Resources/AppIcon.icon` and `TFI/Resources/AppIcon.icon` are the platform icon sources selected by `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`. Each `icon.json` composes the SVG layers in order: Terminal, FrontWindow, MiddleWindow, BackWindow. Preserve that order, the shared-square platform declaration, individual lighting, disabled glass/specular/translucency, zero Terminal shadow, and the subtle 0.08 neutral shadow on the three window layers.
 
 Icon Composer and Xcode own padding, masks, and compatibility output. Do not reintroduce a competing PNG appiconset or hand-maintained generated sizes; the former flattened `Artwork.png` flow is obsolete. Build both platform icons with resolved dependencies. When visually validating macOS, a temporary bundle identifier can bypass the icon cache. Local compilation cannot prove App Store processing, so inspect the uploaded TestFlight icon as separate release evidence.
+
+`TFITests/MobileIconRenderingTests.swift` is a separate opt-in **in-app icon and UI-label rendering** check, not the layered app-icon asset compiler or the App Store marketing capture pipeline. Set `TERMIND_ICON_SCREENSHOTS` to `en`, `zh-Hans`, or `zh-Hant` in the test environment to emit temporary `icon-screenshots` PNGs for light/dark navigation, pickers, forms, and large-type cases; without it, the screenshot-producing tests return early. Its terminal keyboard height and SF Symbol availability assertions still run independently of that environment variable. Do not count these temporary images toward the 30 mobile marketing captures or 54 App Store boards.
 
 ## Verification and historical caveats
 

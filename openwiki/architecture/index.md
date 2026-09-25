@@ -1,7 +1,7 @@
 # Files
 
 - [macOS UI and Workspace Ownership](desktop-ui.md) - How macOS window navigation, sidebar modes, workspace sessions and Vault editing routes divide responsibility between AppModel and WindowModel.
-- [Cross-Cutting Engineering Invariants](engineering-invariants.md) - Change-safety contracts for shared-layer ownership, startup and storage migration, cloud replication, device identity, and app-scoped lifecycle boundaries, with focused regression tests.
+- [Cross-Cutting Engineering Invariants](engineering-invariants.md) - Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
 - [iOS and iPadOS UI and Scene Ownership](mobile-ui.md) - How mobile feature stacks route through scene-local selection to application-owned workspaces and services, with Vault, editor, and background lifecycle boundaries.
 - [Module and Product Map](module-map.md) - Maps Termind's native products, six shared frameworks, package dependencies, composition owners, and cross-layer capabilities without mistaking folders for build boundaries.
 - [Native App Responsibilities](native-app-directories.md) - Ownership and entrypoints of the macOS TFM and iOS TFI apps, distinguishing native presentation and adapters from shared models, persistence, and remote services.

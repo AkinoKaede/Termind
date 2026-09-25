@@ -5,7 +5,7 @@ description: Directory ownership and collaboration across Termind's six shared f
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-cd70c531c7abdbbdcb0ea290
     resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
@@ -19,6 +19,8 @@ sources:
     resource: repo://Frameworks/Resources/PrivacyInfo.xcprivacy
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-ce9687e1e441c1da9a8f908a
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -71,8 +73,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-99652f47d49074a45ef09dd7
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAssistantModelSelectionStore.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
+  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-2c20dfd15c3c8143bab58304
@@ -133,7 +139,7 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Shared Framework Responsibilities
@@ -188,16 +194,18 @@ Application depends on Domain and AgentKit abstractions. It exposes the capabili
 
 `HostLibraryModel` is broader than its name: it projects hosts, groups, identities, keys, snippets, forwarding rules, transfers, Known Hosts, and templates. Specialized feature models provide narrower operations over that shared data. Live connection status is kept separate from the saved Host values. The `DeviceDirectoryModel` registers the current installation via its repository port, caches name lookup until reload, and leaves a failed rename uncommitted while exposing `storageError`. The SwiftData adapter commits a device change with a History journal snapshot and refuses launch registration that would resurrect a remotely deleted device; clearing connection-event history through its separate repository does not clear the directory.
 
-`AssistantExecutionController` is the shared entrypoint for sending drafts/text, editing a prior user turn, starting a run, and manual compaction. It captures model credentials, permission mode, tool registry, skill inventory, and the turn's context snapshot **before** asynchronous memory or compaction preparation; an old turn is not silently reinterpreted using later UI settings. The conversation owns its runtime; the controller tracks one preparation by conversation ID, rejects overlapping submissions, and invalidates cancelled/superseded preparations before the runtime can start. Missing model or credential becomes a persisted failed run before the visible failure state is adopted; cancellation can persist an interrupted run. The injected `AgentRunPersisting` port is the durable boundary, not a SwiftData dependency of Application. The registry factory supplies Termind's host tools to an AgentKit runtime, which combines them with eligible skill/memory tools, uses a single ordered event channel for review and tool events, and keeps approval tied to weak conversation interaction (a closed conversation denies). Compaction persists its record before rewriting the observable transcript.
+`AssistantExecutionController` is the shared entrypoint for sending drafts/text, editing a prior user turn, starting a run, and manual compaction. Before capturing a turn, an optional `AssistantModelSelectionController` saves or repairs its per-conversation model choice through an injected store; a failed write aborts submission rather than starting a run with an unsaved choice. It then captures model credentials, permission mode, tool registry, skill inventory, and the turn's context snapshot **before** asynchronous memory or compaction preparation; an old turn is not silently reinterpreted using later UI settings. The conversation owns its runtime; the controller tracks one preparation by conversation ID, rejects overlapping submissions, and invalidates cancelled/superseded preparations before the runtime can start. Missing model or credential becomes a persisted failed run before the visible failure state is adopted; cancellation can persist an interrupted run. The injected `AgentRunPersisting` port is the durable boundary, not a SwiftData dependency of Application. The injected registry factory supplies Termind's host tools to an AgentKit runtime, which combines them with eligible skill/memory tools when the model supports tool calls, uses a single ordered event channel for review and tool events, and keeps approval tied to weak conversation interaction (a closed conversation denies). Remote Infrastructure registers host-specific definitions and durable-card presenters alongside AgentKit built-ins; its acting-only SSH/SFTP writes and scratch push differ from planning/read capabilities, and scratch pull/push require an injected workspace shared with the runtime's scratch tools. Compaction persists its record before rewriting the observable transcript.
 
 ```mermaid
 sequenceDiagram
     participant Surface as App surface
     participant Controller as Application execution controller
     participant Conversation as Conversation model
+    participant Selection as Model selection store
     participant Repository as Agent run repository
     participant Runtime as AgentKit runtime
     Surface->>Controller: Send or edit turn
+    Controller->>Selection: Save valid conversation choice if configured
     Controller->>Conversation: Capture prompt and frozen context
     Controller->>Controller: Prepare memory and optional compaction
     alt missing model or credential
@@ -211,7 +219,7 @@ sequenceDiagram
     end
 ```
 
-A captured turn becomes either a saved failure or a run; the observable failure is not committed ahead of its durable snapshot.
+A rejected selection-store write stops before capture; a captured turn becomes either a saved failure or a run, and the observable failure is not committed ahead of its durable snapshot.
 
 ## TermindPersistence — one stored-model owner
 
@@ -221,12 +229,12 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | --- | --- |
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
 | Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and separate Vault/History journal integration. |
-| AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. `SwiftDataAgentRunRepository` implements the AgentKit persistence port; its SwiftData rows are not the AgentKit loop. |
+| AI, Agent, skills, and audit | Provider/configuration records, device-local per-conversation Assistant model selections, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. `SwiftDataAgentRunRepository` implements the AgentKit persistence port; its SwiftData rows are not the AgentKit loop. |
 | Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault/History local stores, mutation journals, scoped upload restrictions, recovery checkpoints, record-presence/deletion-handoff state, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
-The container factory selects the complete **V38** versioned schema and migration plan; platform roots choose its location and lifetime. The released V31→V34 migration replaces Host, connection-history, and Identity shapes and backfills device attribution; V35 adds History journal/state and capability checkpoints, V36 removes the retired legacy-import checkpoint, V37 adds scoped cloud record/replica state, and V38 adds deletion-handoff and asset-cleanup state. These local versions do not version the CloudKit record formats. The factory disables automatic SwiftData CloudKit storage because explicit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
+The container factory selects the complete **V40** versioned schema and migration plan; platform roots choose its location and lifetime. The released V31→V34 migration replaces Host, connection-history, and Identity shapes and backfills device attribution; V35 adds History journal/state and capability checkpoints, V36 removes the retired legacy-import checkpoint, V37 adds scoped cloud record/replica state, and V38 adds deletion-handoff and asset-cleanup state. V39 persists per-conversation Assistant model selection; V40 removes retired per-category quarantine models while retaining scoped quarantine. These local versions do not version the CloudKit record formats. The factory disables automatic SwiftData CloudKit storage because explicit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
 
 The agent repository saves runs by run ID but deduplicates replayed history by **message ID**; compaction messages are not stored as ordinary transcript rows. It keeps per-message frozen context/model text and attachments alongside run, tool, review, and result rows. On reload, it sorts messages within run order, restores the compaction projection and recovers a tool result already persisted before its transcript snapshot, rather than leaving an unanswered call in model history. Initialization marks unfinished runs interrupted. Editing a user turn truncates the suffix and stages a replacement run; the real run adopts the staged message instead of inserting it twice. Deletes remove the associated message/replay/attachment/tool graph, and guards prevent late saves for deleted conversations or retired runs. Title writes redact model-influenced text. These rules belong to Persistence, while the Application controller decides *when* to run, compact, approve, or display failure.
 
@@ -238,12 +246,12 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | --- | --- |
 | Root files | In-memory host repository; Linux filesystem/process/server and NVIDIA metrics parsing; provider service-account file handling; skill-package import. Parsers do not own an SSH session. |
 | `Agent` | Read/import context attachments and provide the live attachment-loading adapter. Host-executing tools belong to Remote Infrastructure instead. |
-| `Cloud` | Shared CloudKit lifecycle, record coding, receive validation and upload-safety gates; separate Vault, History, Device, Settings and Metrics coordinators using Persistence stores/journals. The Vault coordinator cleans up old History/Device copies rather than importing them into the active zone. |
+| `Cloud` | Shared CloudKit lifecycle, record coding, receive validation and upload-safety gates; separate Vault, History, Device, Settings and Metrics coordinators using Persistence stores/journals. The Vault coordinator excludes History/Device record identities from its Vault receive, upload and deletion paths; their active native records have separate kind-scoped coordinators. |
 | `Commerce` | StoreKit products, entitlement refresh, purchase/restore flows, transaction observation, and Pro access state. |
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. `CloudSyncLifecycleSafety` in Infrastructure adapts Persistence's `CloudSyncSafetyStore` to the shared `CloudSyncLifecycle`: it reads scoped quarantine, recovery and capability checkpoints before engine creation, filters blocked History and Device records by kind in their shared zone, and records a capability after fetch. The lifecycle commits a recovery fence before constructing an automatically syncing engine, fetches before sending, and fails closed on unsafe storage errors; each category retains its own engine, state, subscription and journal. Quarantine is an upload fence, not merely a log: decoding failures preserve payload/system fields (a secure whole-record archive for native-field records), and reconciliation must clear a blocked record in the same save as accepting a supported remote version. V31 added safety storage locally; released V31 stores migrate directly to V34, with V32 and V33 never distributed as schema endpoints. Incoming records and server-record-changed replies pass through the same validation/merge path.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. `CloudSyncLifecycleSafety` in Infrastructure adapts Persistence's `CloudSyncSafetyStore` to the shared `CloudSyncLifecycle`: it checks scoped recovery and capability state before engine creation, consults scoped quarantine to gate uploads, filters blocked History and Device records by kind in their shared zone, and records a capability after a successful fetch. The lifecycle commits a recovery fence before constructing an automatically syncing engine, fetches before sending, and fails closed on unsafe storage errors; each category retains its own engine, state, subscription and journal. Quarantine is an upload fence, not merely a log: decoding failures preserve payload/system fields (a secure whole-record archive for native-field records), and reconciliation must clear a blocked record in the same save as accepting a supported remote version. V31 added safety storage locally; released V31 stores migrate directly to V34, with V32 and V33 never distributed as schema endpoints. Incoming records and server-record-changed replies pass through the same validation/merge path.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 
@@ -341,4 +349,4 @@ The editor owns interaction, the model owns the operation, Persistence owns stor
 
 Return to the [Module Map](module-map.md) for ownership choices or the [Engineering Quickstart](../quickstart.md) for task-specific validation.
 
-History and Device retain distinct journal state and sync engines even though their native CloudKit records share a zone. The retired Vault copies are cleanup-only: neither those records nor their deletion events import or erase the active local History/Device data. See [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md).
+For the detailed History/Device zone and Vault filtering behavior, see [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md).

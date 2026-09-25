@@ -1,8 +1,8 @@
 ---
 type: architecture-contract
 title: Cross-Cutting Engineering Invariants
-description: Change-safety contracts for shared-layer ownership, startup and storage migration, cloud replication, device identity, and app-scoped lifecycle boundaries, with focused regression tests.
-tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
+description: Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
+tags: [architecture, invariants, lifecycle, security, persistence, sync, agent, localization]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -12,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-ce9687e1e441c1da9a8f908a
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-875da2c4f1040409e53757af
@@ -166,13 +168,13 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+    at: 2026-09-25T12:50:34.482Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
 
-This is the exhaustive cross-cutting contract for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
+This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
 Use [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
 
@@ -190,7 +192,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V38 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V40 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -202,8 +204,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete schema/plan; one container per process serves all scenes. Never
-  recreate a failed store silently. macOS retains its `Termind` location; mobile uses Application Support/in-memory
+  migration. `makeContainer` fixes the complete V40 schema/plan; one container per process serves all scenes. Never
+  recreate a failed store silently: macOS fails startup on store error, while iOS displays a store-open failure view.
+  macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens.
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
@@ -213,9 +216,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V38 schema passes through
-  V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state) and V38 (delete-handoff and
-  asset-cleanup state). `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V40 schema passes through
+  V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
+  asset-cleanup state), V39 (device-local Assistant model selections) and V40 (removes retired per-category quarantine tables,
+  retaining scoped quarantine). `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
@@ -598,7 +602,7 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 - Immutable hidden `AgentTurnContextSnapshot` captures facts/skills/plan/surface availability at submission/steer/edit. Replay uses original
   baseline/deltas; absent legacy context is unknown, not current UI. Leave session/mode clears; retry retains, fork copies, compact rebases.
   V16 adds independent replay backing, removed on deletion/truncation while older messages remain frozen.
-- `AssistantExecutionController` captures composed prompt/images/attachments, context, model/provider/credential, reasoning/permissions,
+- `AssistantExecutionController` calls the optional `AssistantModelSelectionController.prepareForSend` before capturing a turn: it saves a resolvable conversation choice (or current default) in a device-local store and aborts capture on storage error. It then captures composed prompt/images/attachments, context, model/provider/credential, reasoning/permissions,
   search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
   follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
   attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.

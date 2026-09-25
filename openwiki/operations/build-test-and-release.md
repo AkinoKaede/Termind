@@ -5,12 +5,16 @@ description: Validation gates for pinned Xcode builds, opt-in UI and commerce te
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
   - id: openwiki-source-a2cca747926cafc62fde5fb2
     resource: repo://.swift-format
+  - id: openwiki-source-82dc2a330fa464405febe5a2
+    resource: repo://AgentKit/Package.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
@@ -59,7 +63,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Build, Test, and Release Gates
@@ -203,7 +207,7 @@ Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.14.0`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.14.0` at revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`. With the resolved-package flag, Xcode builds that remote release—not an uncommitted sibling `../AgentKit` working tree. Run the sibling package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.15.2`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The project links the core `AgentKit` product and the opt-in `AgentKitScrubber` product; the package declares the latter as an adapter depending on `ScrubberKit`, leaving the core free of that dependency. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule. Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 

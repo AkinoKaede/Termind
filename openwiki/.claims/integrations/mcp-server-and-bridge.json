@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c5c21994604d47c0f638eb0f46635481d1e85fe1d7cd1293fc2d766f1dfd4009",
+  "pageVersion": "sha256:0ed7320772f08d89d346bd7fdd0597f58f5ef575d330c803c041aee8aaf2a870",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
+          "version": "repo-file-v1:sha256:b6fcc0a46e86be81eb34a1611fab971ad36564333af7839ef8656cf942667d9e"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -306,11 +306,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:6f54a110dba3d408c0e24be1f08a4c8d31431a2533a5674b49d68918bbb9ec05"
+          "version": "repo-file-v1:sha256:b6fcc0a46e86be81eb34a1611fab971ad36564333af7839ef8656cf942667d9e"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:6eea9877e693853f5f2947f191122091a29dd023d326ee2cf15998c89d4ae9ee"
+          "version": "repo-file-v1:sha256:b231074ee95ffbab8fe63c63bcfb64111751a4c7b275371202f993ea3ee43423"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -427,10 +427,58 @@
           "version": "repo-lines-v1:sha256:c80b4e643687586bef814638d10a47f6d594eb37cd8f78e637821840bbe35793:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwZWFhZDM3YzViMmM2NjNlM2ViNmM1ODRmNTUzMmUwOGE4NGE5OWE0ZjNiNGY2YzkyZDQ2YjE2ZTkwZTcxYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5NGZjNWM0MDQ4N2E1ZTRjMzdiZGY1MzQ0ZDkxNmZlNGE1YzZhNTgzNTA0ZmYzYTU4ZDY3Y2ZmNjQzMGIwMmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5NGEwNTEwMjg2ODRmZmMzOWE5ZjhhYWQxZmQ0MjQxOGVmNzM1MzMxMzM4ZTdlZjczYTY3ZWNmMDEyMzRmMzgifQ"
         }
       ]
+    },
+    {
+      "id": "claim_8aaf53d004754102aaa9fca31fa81936",
+      "statement": "The macOS AppModel keeps ordinary SFTP transfers separate from MCP ticket coordinators, revokes MCP host tickets on local or remote host removal, and stops MCP plus ordinary SFTP before closing shared agent background commands and connections on termination.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L209-L258",
+          "version": "repo-lines-v1:sha256:333745fccd3e9674f6d42af521fe55b7a5c82a306ded23e26bdd092f5e6d6c4f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNDk5MzcyNDBjOWNmYzYwZGQ5MWM1YjhkNzdiMWVlODJlNGFiMTkwM2IzYzA5MDgyYjJhZmQ1ODMyZTQwMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0NTdlZjQwZmMzZTcxNTBiNDZmNmZmNGI0ZWY5ZWRlYjk3YmIzOGMyNzRiNjUzMzFlZGYxMTE3ODhhMjg3Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L265-L275",
+          "version": "repo-lines-v1:sha256:f339be04a9dbc3868f38a3d2cf3d0ea33ad96ce1abe04ddcc11b419e449a43b5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4M2E2MjQ1ZDczOTAzYzVmOWVlNzdjNjFlMjllMGIzYmZiMzNmM2Y3MmVlZTIwNDVlMWI4MWE5MjZhMGYxYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNzYzYmQ2YTJkM2UwMjQ0YzBmMDMwZTI0YzFlMjQzOTA1MTM5MTkzMWE1ODBlNWNiY2YwN2Q2YjBiOWYxZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5YTVjNDU4ZWJhZGU4ODY2N2VlMTE3OTczZTEyMWViMmM1YmExOGMxNTFlYWIyZGUzOTRmMzhhOGMzOWZkMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwY2MwZGE1YmRiNmYxYmUyYTFiYmIwMzNlOWE4YWY1ZTJjMWE2NGM3Y2UwZTQ0MzU4MjM0Mjc4YTlmOTdlN2MifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L311-L329",
+          "version": "repo-lines-v1:sha256:ce57975488cb428786cff4312863befc770f2dd63fce345b4104251ed793677b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxOWE1ZTNjMDdkMWZiODZlNzgzODQzYjBjOTc0M2UxYzkwYzg1NGQ0Yzk0NjFjOGYyMmExNmUyNTBhMDkyNTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwZGFiZWIzYjE0Y2NiNGI4NzQyMTc1M2EzOTFmMTA3OGE0N2RkODYxNGVjNGY4ZDU5YzY5ODJkNDM4NmExODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0NzA3NjYwYWI5MDJiZGVkYmFmYmZmOWFmMDRjYmEzM2U1ZGU2YzcwZjk0Zjg3ZDUzODE2ZjI2MjExMWRhYjQifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L394-L419",
+          "version": "repo-lines-v1:sha256:5f7f1b363b40b4ae372aee3c1d761f90f127db78f098eac8d73278b5c1c2ce7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1MGQxYmQzNDkyNzgxNDM5ZWJjMjVmNGNkYzI2NTE2Y2QyZTc4YWRkOWYyZWIxNWJhOWFjMjcwNjI2MDIxOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkY2M5YzkyOTlhNTYxYmZmMDNjMDZjMjE4YzQ0MTExNjVmN2I3ZWU1OTU1NDg0MmUxZDkzODQ2MTBhZDU4ZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyNTgxY2Y3ZThkMzNjZTVjY2VlZDQ3MDE0YTZhMDJkOTlmYjFlYmY3ZGM3ZWYxMjllMzAwNGY1MzRjOTUzMjcifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L756-L795",
+          "version": "repo-lines-v1:sha256:4b94bde8d0ab17eb0012d5ea91a3052ac3c4a0f5b824f7abb8731065df49e4b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNmE1OWU3Nzg2NmU1MGRiZDYxZjA5ZmQ1YWM2MjQwN2Q0ZGVlNjdkNGIyNTJhNDExYzRhZTEwZWNmMWQwNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzODNlN2M2MmI5ZmI0ZGU3YjNjNTc3ZmFkNjNiOTYxMGRlZTcyNmI4NzljYzZjN2M5ZjYzNTljOTU5YWEwODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjMjJiOTdkNTIwNzU3MzIzMDg4Y2JhNGFiMmUzY2QyMGNhNTlhNWNhNGQ2MWRkMGE1MGNhZDU1NGRlZjcxYzUifQ"
+        },
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L22-L40",
+          "version": "repo-lines-v1:sha256:e5c7ca75d56c1b1a009cfe1ee4e217b7a9901b30d8a05a9b3856ab44fbb6b284:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxNmQ4ZTE3MmMwZWVlOWI5YzhkY2M3MGVjMzBmNTQxZGJlOTI3MzQxNmJkMjVjNGEwNzc5ZjY3ZTAzNmJmMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMGI5MzY2MmJjMjUzZDQ1Nzc1OWQ5MDYxYTJlZDJlNjM5NWNjODg4ZTVmYTdmMmQyNmI5ZTAzMjliMzA1ZGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiZDM1YTdiZmI1OWY4NmJiYzY2ZjZlY2NiMmQ1NTlmZTE5M2Y0NmRiMGZhZmQzNDYwZGQ3Y2E1ZTM5NzdhNTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMDMzNTIyMTNlZDE2YTAwN2ZmOWQ0YmZiMDliYjMyZTBjNTQ3MzhkNzU4ZmM4ZWFjYTZjZjQ4N2Y1NTJjZWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e55847d41d4340c781d210215c846d1d",
+      "statement": "MobileAppModel handles host deletion by cancelling ordinary SFTP transfers and does not compose the desktop MCP server or its ticket routes; its assistant receives AgentHostServices independently of the mobile SFTPTransferCoordinator.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L262-L290",
+          "version": "repo-lines-v1:sha256:2e032810e62980d94d72c05f5d13c6db0687eca5abb9980541d2e530dfd5bd40:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNDk5MzcyNDBjOWNmYzYwZGQ5MWM1YjhkNzdiMWVlODJlNGFiMTkwM2IzYzA5MDgyYjJhZmQ1ODMyZTQwMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYWQ3ODk2ZGU0ODk4MzU0ODAyMGEwYzY5YmQxNDVjN2VjMTlhOTBkZTRhMGYxMjQyZWIwMWE3ZjMzZDVjOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNmQyZWJjNGFjZWE5ZDk0YWMyOGU0ZWJhMmQwNzA2MDQzODU2Y2Q4YmFmZTk4YzdmYzQ3NGJmYTdhYTk5N2QifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L305-L324",
+          "version": "repo-lines-v1:sha256:63e3cb34ad0a6d1c4cee4ed6e3ccf865545b2728b1f2395572d0b9dca0375631:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwM2M0NWRiMmQ0ZTMyMDIzOGNmOTkzMWJjMDJlMTg3NzZlMjVmNmNmNGZhY2MwZjcwYmE4M2Q3MzYxYmJmYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MDAzMDk2ZDkzZTMyMmY3NDZlMWZhZjQxZjY1NTcyMWY3ZDc5MmRkYWM3NDIyNzA5ZTMwOTg2MTgzZDA4MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwYjU0YTBjNDQ2NzcyZDJlYzkwNzZhZmEwMGY2NTAyNmJhZDZhZDFjODk0MzMxMTEwMzYxMDU5NjEwN2ZiYTAifQ"
+        },
+        {
+          "resource": "repo://TFM/App/MCPServerController.swift#L173-L201",
+          "version": "repo-lines-v1:sha256:8d50f6892bee3ab850c9f1ec6d76c62d981a96772a0785561c58917ea0df154a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4OTI3ZjY5ZjRiN2JiZGM0NjNiYjZiOWJiNjkxZDQ5NzBkNjg3YjI5YzAzZDc2NTIxMDI0NWI3Mzk4OTg4MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3ZWNmYTNkYjMwOTFjM2RhODgxZjZjODVlYmU3MjBlYmIxOTg1MDY3Zjg3M2Q5NWJmOWY2MDM3MWFiNTFiZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmN2E0YTAxMTI5YjdiNDlmYjA0NzYzMWRhNzM3MjBjYTMwM2EzMWIzNjcyYWNkN2RlZjg4NWM4MzdhZGM4ZjcifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T14:20:08.561Z"
+    "at": "2026-09-25T12:50:34.482Z"
   }
 }

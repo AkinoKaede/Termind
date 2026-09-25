@@ -5,7 +5,7 @@ description: Traces how Termind prepares SSH and Telnet connections, routes them
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -13,6 +13,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionHostStore.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
+  - id: openwiki-source-dc7b363138921b0923d2dc2f
+    resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
@@ -63,7 +65,7 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -233,11 +235,11 @@ sequenceDiagram
 
 ## Retry, retirement, and workspace behavior
 
-Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it installs the window's history callbacks, optimistically sets terminal host status to connecting, and asks that window to create a new SSH, Telnet or SFTP pane/workspace (or a chosen batch layout). The pane's status then drives `HostLibraryModel`'s per-connection status projection: a connected sibling wins over connecting, reconnecting or failed siblings. A connection-history event is recorded **at pane opening**, not after authentication; only saved hosts are recorded, with kind and source device ID. Closing the pane ends that event without deleting it. Recents derive from latest events, deduplicated by saved Host ID, and the local-only projection filters by stable device ID. Clearing history leaves Host records and credentials untouched.
+Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it installs the window's history callbacks, optimistically sets terminal host status to connecting, and asks that window to create a new SSH, Telnet or SFTP pane/workspace (or a chosen batch layout). The pane's status then drives `HostLibraryModel`'s per-connection status projection: a connected sibling wins over connecting, reconnecting or failed siblings. A connection-history event is recorded **at pane opening**, not after authentication; only saved hosts are recorded, with kind and source device ID. Closing the pane ends that event without deleting it; moving or reparenting a pane does not end its session or history. Recents derive from latest events, deduplicated by saved Host ID, and the local-only projection filters by stable device ID (events with a missing or different device ID are not local). Clearing history leaves Host records and credentials untouched. The history model trims to a global 250 entries, including on load; a failed write reports `storageError` instead of inventing a successful history event. Desktop single-host, batch and snippet openings install the same window history callbacks, so these pane kinds follow the same opening/closing rule.
 
 A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey.
 
-Mobile `MobileAppModel.addWorkspaces` publishes new live workspaces, saves only eligible descriptors, records a saved Host's history event, and then calls `connect()`. An unsaved external-link workspace is not persisted or added to connection history. One active history ID belongs to each live workspace: failure and background suspension do not end the event, while explicit close ends it and removes the descriptor. Reopening a saved descriptor creates a new live workspace and a new event; selecting an already-live workspace returns it without another attempt.
+Mobile `MobileAppModel.addWorkspaces` publishes new live workspaces, saves only eligible descriptors, records a saved Host's history event, and then calls `connect()`. An unsaved external-link workspace is not persisted or added to connection history. One active history ID belongs to each live workspace: failure and background suspension do not end the event, while explicit close ends it and removes the descriptor. Reopening a saved descriptor creates a new live workspace and a new event; selecting an already-live workspace returns it without another attempt. On load, descriptors for deleted Hosts are pruned; malformed workspace snapshots are not overwritten with an empty list, so their original bytes remain available for recovery.
 
 The platform rules intentionally differ:
 
@@ -245,10 +247,10 @@ The platform rules intentionally differ:
 | --- | --- | --- |
 | Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores only ordered local descriptors containing workspace ID, Host ID, kind and title. Cold launch shows saved descriptors but creates no sessions, history, or network activity. |
 | Reopen/select | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Opening a descriptor reuses or registers one live workspace across scenes and makes at most one initial connection attempt; a failure needs explicit retry. Peer switching retains the live workspace. |
-| Background/foreground | Closing a window tears down its workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks pending external edits, then initiates shared shutdown (with a bounded termination reply) and closes every live window. | Only when all tracked scenes are backgrounded does a background task begin. Its expiration immediately requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. Foreground ends the task and resumes workspaces that recorded foreground-resume intent. |
+| Background/foreground | Closing a window tears down its workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks pending external edits, then initiates shared shutdown (with a bounded termination reply) and closes every live window. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. |
 | Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes the live and recent entry and never retries it. |
 
-Desktop termination is idempotent: `AppModel.shutdownForTermination()` stops conversation runs, window workspaces, metrics, forwarding and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit before starting cleanup, then replies to macOS when it completes or after the three-second fallback; `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
+Desktop termination is idempotent: `AppModel.shutdownForTermination()` marks the app terminating, cancels pending Assistant preparation and stops conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit before starting cleanup, then replies to macOS when it completes or after the three-second fallback; `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
 
 Telnet is intentionally a separate terminal transport rather than an SSH fallback. `TelnetConnection` opens direct TCP with `NWConnection`, or obtains a proxied socket through `TerminalSocketConnector`; its own UUID generation rejects stale Network and socket callbacks. It performs incremental IAC negotiation, NVT line conversion, terminal type and NAWS support, and applies the configured charset only to application data. Optional username/password automation responds to recognized prompts, consumes and clears the password after use, and falls back to manual interaction when the expected flow does not materialize. It has no SSH host-key verification, jump-host route, SFTP channel, or shell integration.
 

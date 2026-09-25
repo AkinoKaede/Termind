@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:fad66ff965fef116da03a7c1877ac29d5e74a52a5776bd8fea95df12d9148d2c",
+  "pageVersion": "sha256:bb3a5b67d3da8de66b53b24fe55da7103fe7d8962e6cdb96883d7f5fd9afadc8",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -30,7 +30,7 @@
         },
         {
           "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:0f8ab7edddd7f46eff7dd9243f22784bf17088e42b5d014ec07f21a30afce0f3"
+          "version": "repo-file-v1:sha256:63640d49d35c18eb5a1be50fad27f4a80d8d32c6a896c502554061180cb9b140"
         }
       ]
     },
@@ -193,10 +193,82 @@
           "version": "repo-lines-v1:sha256:4671d9078217d05cd31d816db64336338463b15a907acf4ed5afbaff64ca141a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNDBhOTAwNmVlZjIwNzFhYjExMjY4ZjI4YTlmNjA2NGYzMmU3NzEwZDhiM2U0OTFlMGYxYTdiNTA2MTQwNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNzRjYmVjNDNkMmM0ZmNkMDFlMDMzZGMzMWQ4MjdjYmFiODViY2MyMmNjMjc0YTkxODllYjhhMjdmM2EzMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzY2ZiZmQ4OTZkOTViNmViYjQyMzMwZTQxZTQyMmQ0ZmQ5ZmYyYTFlMzUwNzdjMmQ3NzBlMDQyYzljNWQ4OGYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_3b419be6f956435d8a5cb390c6a91e79",
+      "statement": "Mobile marketing capture tests are opt-in via `TERMIND_MARKETING_SCREENSHOTS=1`; by default they capture five scenes, while `TERMIND_MARKETING_SCENES` filters the scene set.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L178-L188",
+          "version": "repo-lines-v1:sha256:3f4e88a88c3c4c8f2f6c1cb74428a67370e2e3db28e0f60f3ff38bb0a67439ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkNzE0MDc4Y2NhMTFlNzZmZDBlZGNlMGE3ZDQxNmQxZDU4OTcwOTVjYzljY2RhYTFlZTY0OTA0MmIxMjI2ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NjlkMjM3Y2Q0MjBiOWQzOGI5ODFhMGE0ZjY3NzAxOTBhNGE4M2RjYTFmZTU2YzRmNWJhMWUyY2JjMGVmNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxZjk4ODQzMTU3Y2NkM2M4NDgwMDM1NGQyMDIzYjY1NzgyNzY2MzJjY2Y1Y2U5MjAyNjdjOTBmNzk1MTZmODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlYjc1NTYyMDkwNzdkNzNmYmFhNzIxOGIzYzQwMTUyYTg2ZjI2ZjY3NzdjNGJlZWM3ZDk0M2UxZWRlOTg1ZjEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L13-L32",
+          "version": "repo-lines-v1:sha256:6456816fab7f7b44fea336be90f363fa1dbcd559ce8e7dacdadf1b39edb41262:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhNTI5MTU2MjRmNGQ4YWI0MDM1NTEzMTA1M2JiZjQwMjRmN2UzNDM5MDBmMGUzOTA0NTM3NmEyMzc3OTk4NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYjU1MjA0M2VkZjU1NTMzODY5MmVkMGE3NDhhODM2YTYwY2YxZTQxZTQxMmE4OWYzNTMyYjI5NTA2MDQ5MTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViYjAyMTQ2ZmY1MWYxNjI2ZDBiNGJjOTdlNzk3NzNhNDU5MzU2OGUwYzJjMGI2NTRmOTdhN2YxYWIzODk2OTgifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L32-L101",
+          "version": "repo-lines-v1:sha256:f92c3dd1f8917b596eda757b65f24498f6a59803e6422526a7aa0cb3e688a3b6:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYjU1MjA0M2VkZjU1NTMzODY5MmVkMGE3NDhhODM2YTYwY2YxZTQxZTQxMmE4OWYzNTMyYjI5NTA2MDQ5MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxMGM2MmUxODc1OGZhZTE2ODEyMjYyMDdkODUwYzNmNGQxZjViOTE3NGVmOTMyNjJkZWVjMGFiMmI0YjllYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMWE0N2JlODQ0YWFhMjk1YWQ2N2Y5YjljMWFlMTM3ZTY5YjVlZDgyYWVlMjU1MzMyM2NmOTE1NTBmMTI0NjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2d41a9874bf4410e9b66cd80ddcc449b",
+      "statement": "In system-capture mode the mobile marketing test presents each view in a key window, writes a ready marker containing a unique run capture ID and token, and waits for an acknowledgment; the runner ignores stale or repeated tokens, stages simulator screenshots, and promotes them only after test success and expected-count validation, while the test times out on missing acknowledgment.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L68-L147",
+          "version": "repo-lines-v1:sha256:afcbb8c937f699e1e64ec62445dfae8a217c2b9cf5b05e908ff0063b71d86331:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmYjQzNmJmNTRjMjdkMzM0MjE4Mzg2OTI4YTM2NzQwMWY3YzkyNmI3MjI2YTMwM2U3OTE0ODZiMmMzOTRjYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3YzA3ZDViNjk2NWFiNWNlOTMxMjI5ZGVjNDA0ZmExMmMwZDljMDQxN2Y3NmNmZmEzZmIxOTc0MDVlOTc5MjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxYTk4MjVlYWQ4MmM4OGY3M2M1NTliZWYxMjJjZmZmMmU5NTdiMjYxMDY3OGJiYmI0YWVlYjdkMmZlNWRhYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzMWZmZGRlMjgzZjg0ZWRjM2IwOTE0NGE3ZjQ5ZGJhYjk4ZTAwYmE2MWEwZmI4YzkzYjgwYmUzOTY0NDJiMWQifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L213-L258",
+          "version": "repo-lines-v1:sha256:720b85fcc846dc4e6c8577aadca429ac66ef2d5e2d505e9adc2a8801c9526f58:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllZGU5ODFmYzdhMjljMDI1NzE1ZmRhOWQzOWJmZDZiNTI1NWQyNGE0ZjlmZGE1NjZiZDA0N2JjYWY3NzY0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L287-L309",
+          "version": "repo-lines-v1:sha256:446ddb60216a49995138620061b9291e60873c61bcae57b733d28a50e110c357:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2Y2I4NWZmMTAwMDhjYzRkYWE5NDBkMjNhNmJkZDI4ZmM3NTQ1MjI5OTM0MzQzZGQ3OTAzODFkMjllNjdlMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlNWEyNDAwODkyOGNhNzhjYThmNzViYjc4MjdjN2E5NmVlNGE4OGRiMTRjN2M4NDZlZTZjMDQ4OTI2ZTJjNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMWIyMzQyOWIzZTNlYjM2YTVkMDc0OTgwNGIyMTVkZjljYmFmMjRkZjE1ZTU1YTdlZWJhZDAzNDBiNDE5MjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a8271d13b0424963b0ab13854aa5f392",
+      "statement": "Without system-capture mode a direct mobile marketing test writes rendered PNGs to the app's Documents/marketing-screenshots directory rather than to repository captures.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L256-L280",
+          "version": "repo-lines-v1:sha256:621f415a249eb7bb0d1b4a2eacff7587956582a51bc58a0ce9801d1f5381cb7b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlYmE4ZmUxZDcwZTEyNjgzMDUyYzdlYjEzOGQ0ZmQyZmMwZjZkN2E4MjU3N2EzYzU4YTU1ZmUxYjNmMzIyMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxMGY3NTFjMmEwODNmY2ViNTUyZTAwYmRjZWViODM2M2RkMWY3MGJjZWJlMTkxNGY3N2NkOWFiMmY3NTJkY2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9f6ae2eb07b24d708bef7d4cdd749c26",
+      "statement": "`MobileIconRenderingTests` is a separate opt-in in-app UI/icon-label rendering check: `TERMIND_ICON_SCREENSHOTS` selects a language for temporary light/dark and large-type PNGs, while its terminal keyboard size and SF Symbol assertions run even without that variable; these images are not marketing captures or layered app-icon sources.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L81-L86",
+          "version": "repo-lines-v1:sha256:69eb59b46f3e2b9527c0e1f49db6f4a2a87ec000235c76ad25225cd0a6ace7b3:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQ4MWUwMmM5MWE3ZTRmMThmM2MwNGEwYjg5MmRmOTM2YWJmYTQ5N2FmY2M2MDVlYzg1ZmI3YzgzZWZmYTQzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWZkNzdjZmI1NzAxNGRmYzkxYjc1YmQ4ZmM4ZTY0ZDg0MTQ3YWEwYjlmNjIyOTZkZTRjYTI2ZjYwODg3ZDFiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTgwMjE2ZDFlNGEyOTRkZmJlNWM1NTJhMWY5YTFlNTY1MWNhYmZjNjQ4OGU0ZjE1NGNmMDg1ZWY1ZDNjMGNhNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVhM2M3Y2Y3MzMzMjRkNzI5MTZlM2EwODEwMGIxMDJmMmJiZWNhMTdkOTE4YTM4NTcyMzU5NmY0MGNiMWY2NyJ9"
+        },
+        {
+          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json#L5-L89",
+          "version": "repo-lines-v1:sha256:fe731b5e0d9f5f682b8bc999b8e11fff1ac6d374746bd41f44e5507aaaf2364e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwZjhmMDUyNzliY2M3NjU4NzNhMTczZGJkMGMyMDU1OWE4YjE5OGVlNTBlMTU3NjM2MmJhY2NlZDBiOTg2ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MzNjNTdjMjQ5ZjllMjExNjA3OWZhNDQ3ZDkxZjA5ZDM1NGQ4NmQyMmMwY2M3N2NiMDhkMWM3YjhmOWFjMDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L14-L60",
+          "version": "repo-lines-v1:sha256:5381bcd642af60155a0f3e7f3852c686ceb63309d08f0361f43034d32dfea689:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwYmEwNjRlZjBiNmFjNWEwMzc3OGRiNDZiNTlkNzM0NWY3ZTVlMTZmMjY2ZjRmYzA5ZDY3YzRjNzViYTQyZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyZmY0OTU5NmNkOTE4MzZkYTk5OTFlMzY4M2VkOGMyMjcyMjU3ZjkzOGRiNmZkMDNmNDQ1ZjYzYTY5ODgyOWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YmRiOWVlNWU4MDQ4MzEzYTUxN2QwYTA2MDcwMWU3NGU4MDQyMTkwYTI3YzM2YzM0OWE3ODE3MDRlNzhmMzkifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L207-L275",
+          "version": "repo-lines-v1:sha256:2515a6df9b8ac9406e464e6ef6282bd517d9a54f6f1b7c835f2a8da338228f0e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZmY5Y2JiZGZiNTAxZWQ4YTA5NmQwOGZiMDBlZTZkYjIwN2UxMTgyMjA3MmUyOTM1YWJkYTZlOTAyN2NjYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiOWYzOTJmZWYzMzE5NjYwNWY2YzBkMWViZjM2OTU0ZmQxNjI1NWFiOTNhNjE1NGJlZTY3NWUxYTA1ZTlhMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L84-L95",
+          "version": "repo-lines-v1:sha256:9afcaeadab4158fc5d15c2db2911342e079e26be9e0dbf0c0bb2432bbbfd0080:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkMjZjMTk3ZWRjNDQwMjY3YmQ5NmE2NDQ3Y2QxYThiMjkzZTRiOTUyMTZhMDM2NzBkYTQ5OTg5YzZkNzg5MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMjNhYTIxZjE1NTlmZDcwMTQxOGI3OWVlZDAzMDUzZmY4ZGMyNjA2YzBlMzIwMGRkNzViNDUxMjFlYjZjNjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmZTYzMzA1ZTE0NTdhMzc0YzYyNGMwMWIwNjNmY2Q1NDZkYmM1ZGRmZWEwYWQyOWU4MmMwYzU1M2U3ZDk2NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNzZjYTJlMDliZmRkMmEwMDgxMTUwOGQ3MjY5YWFmYmIxN2YxMmJmYTA4YTFkMGExOTYxNjNjMWE1MTZmY2YifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T17:44:09.687Z"
+    "at": "2026-09-25T12:50:34.482Z"
   }
 }

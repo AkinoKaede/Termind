@@ -5,7 +5,7 @@ description: How macOS window navigation, sidebar modes, workspace sessions and 
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -77,7 +77,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # macOS UI and Workspace Ownership
@@ -144,13 +144,13 @@ sequenceDiagram
 
 Scene-request handoff: the source keeps the session until the target's native window registers.
 
-A workspace move waits for native destination registration before changing ownership. A pane released outside its source window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+A workspace move waits for native destination registration before changing ownership. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane released outside its source window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
 `RootView` owns the balanced `NavigationSplitView`: `WindowSidebarView` is the single leading column and the detail holds a persistent workspace deck with Vault, Assistant, Metrics or Settings layered above it. The sidebar visibility binding reads and writes `window.showsSidebar`; column widths and the window minimum adjust for available width. The floating status bar appears only over a selected workspace. The root also owns the window toolbar, search host, native window registration, title reporting, Quick Open, onboarding and presentation bridges. It supplies one leading creation area, a principal Metrics page picker when applicable, and one Find slot following the content in front. `WindowActivityReader` reports the focused SSH remote title for the window and key-window activity without tying either to a transient pane view.
 
-The sidebar is one column whose mode rail switches between Navigator, Assistant, Snippets and History. `WindowModel.activateSidebarMode` is an **intent operation**, not just a property assignment: choosing Navigator from the full Assistant restores its prior destination, while choosing Assistant inside a workspace opens the contextual sidebar rather than hiding the terminal. Direct mode assignment remains available for presentation/restoration without these navigation side effects. History is unavailable for focused Telnet/serial sessions, and reconciliation moves away from an invalid mode.
+The sidebar is one column whose mode rail switches between Navigator, Assistant, Snippets and History. `WindowModel.activateSidebarMode` is an **intent operation**, not just a property assignment: choosing Navigator from the full Assistant restores its prior destination (or Vault if that workspace closed), while choosing Assistant inside a workspace opens the contextual sidebar rather than hiding the terminal. Direct mode assignment remains available for presentation/restoration without these navigation side effects. History is unavailable for focused Telnet/serial sessions; a rejected direct assignment leaves the mode unchanged, while reconciliation replaces an already-invalid History mode with Snippets.
 
 The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
 
@@ -163,7 +163,7 @@ Keep the following coordinates distinct:
 - **Focused pane**: the session targeted by workspace commands.
 - **Presentation route**: an editor, chooser, sheet, or other transient interaction.
 
-They influence one another, but they are not interchangeable selections. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Settings navigation uses a window-local `SettingsRoute` hierarchy: toolbar Back walks to the parent, then restores the prior destination, falling back to Vault if its workspace was removed. `SettingsPageView` cleans up incomplete provider, MCP and skill drafts on route changes or disappearance rather than treating a hidden Settings page as a persistent editor. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection and recoverable close stack live in its `WorkspaceDeckModel`; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
+They influence one another, but they are not interchangeable selections. A workspace drag adds a fifth, temporary distinction: `selectedWorkspace` remains the command/selection owner, but `displayedWorkspace` can show the next (or previous) merge-capable neighbour when the selected combinable workspace is being dragged. This is a derived preview, not a selection or session transfer; clearing the drag restores the selected workspace, and a drag without an eligible neighbour leaves it displayed. `RootView` uses the derived workspace to decide which deck child is active, while Navigator highlights the displayed row. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Settings navigation uses a window-local `SettingsRoute` hierarchy: toolbar Back walks to the parent, then restores the prior destination, falling back to Vault if its workspace was removed. `SettingsPageView` cleans up incomplete provider, MCP and skill drafts on route changes or disappearance rather than treating a hidden Settings page as a persistent editor. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection and recoverable close stack live in its `WorkspaceDeckModel`; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
 
 ### Navigator interactions and workspace lifetime
 
@@ -202,7 +202,7 @@ Find command routing and keyboard handoff in the focused main window.
 
 Find ownership flows through the active window; the sidebar mode does not choose the query.
 
-On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item without changing the persistent split-view branch; the toolbar slot itself is fixed by OS availability, not by navigation. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
+On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item when `findKind` exists, binds it to `findContext()` and reports presentation as keyboard ownership; when Find is unavailable it dismisses search and releases that claim. Its Return and Escape handlers use the context's navigation/cancel callbacks when present. This host does not change the persistent split-view branch; the toolbar slot itself is fixed by OS availability, not by navigation. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
 
 ## Persistent workspace deck: hidden is not destroyed
 

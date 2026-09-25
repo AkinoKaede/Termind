@@ -5,7 +5,7 @@ description: Task-oriented routes to Termind's owning layer, startup and shutdow
 tags: [engineering, architecture, routing, testing, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T14:20:08.561Z
+    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -23,6 +23,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -41,7 +43,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T14:20:08.561Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
 ---
 
 # Termind Engineering Quickstart
@@ -52,7 +54,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 
 | Change | Route and focused check |
 | --- | --- |
-| Module placement, imports, nested directories, or shared resources | [Module and Product Map](/openwiki/architecture/module-map.md), [Shared Framework Responsibilities](/openwiki/architecture/shared-module-directories.md), [Native App Responsibilities](/openwiki/architecture/native-app-directories.md), and [Supporting Products and Tooling](/openwiki/architecture/supporting-system-directories.md); run `ArchitectureBoundaryTests` for dependency changes. |
+| Module placement, imports, nested directories, or shared resources | [Module and Product Map](/openwiki/architecture/module-map.md), [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md), [Shared Framework Responsibilities](/openwiki/architecture/shared-module-directories.md), [Native App Responsibilities](/openwiki/architecture/native-app-directories.md), and [Supporting Products and Tooling](/openwiki/architecture/supporting-system-directories.md); run `ArchitectureBoundaryTests` for dependency changes. |
 | Composition, startup failure, window/scene state, backgrounding, quit | [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md); use `AppTerminationTests`, `MobileAppTests`, or `MobileForwardingLifecycleTests` for the changed lifetime. |
 | Desktop Navigator, sidebar, workspaces, Vault, Assistant layout | [macOS UI and Workspace Ownership](/openwiki/architecture/desktop-ui.md); target window/navigation or layout tests. |
 | Desktop Workspace/Pane sorting, merging, drag-out new windows, or Assistant list reordering | [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md); preserve the native Workspace List source and live receiver contracts. Use `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests` or `AssistantConversationListDropTests`, plus the source/cancellation/animation suites listed in that guide. |
@@ -65,20 +67,20 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](/openwiki/concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools, or memory tests. |
 | SwiftData, secrets, migrations, CloudKit, settings | [Persistent Data, Migrations, and Secrets](/openwiki/concepts/persistence-and-secrets.md), [Settings, Vault, Metrics, History, Device, and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](/openwiki/operations/cloudkit-release-readiness.md); select repository, migration, or sync lifecycle tests. |
 | MCP server, external upload/download, bridge | [MCP Server, Transfers, and Stdio Bridge](/openwiki/integrations/mcp-server-and-bridge.md); run token, server-session, transfer, or bridge tests. |
-| StoreKit, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](/openwiki/operations/storefront-commerce-release.md), and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md); use localization, app, screenshot, StoreKit, or website checks as appropriate. |
+| StoreKit, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](/openwiki/operations/storefront-commerce-release.md), [Marketing Assets and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md); use localization, app, screenshot, StoreKit, or website checks as appropriate. |
 | Picking a deterministic test seam | [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md); run the narrow behavioral test before the affected target suite. |
 
 ## Lifetime and change boundaries
 
 `TermindDomain` defines portable rules; `TermindApplication` owns ports and use cases; `TermindPersistence` owns SwiftData models, repositories and container construction; infrastructure implements services; `TermindPresentation` owns reusable SwiftUI content and copy; apps assemble concrete dependencies and native UI. `ArchitectureBoundaryTests` checks **specific** forbidden imports per root, not an all-UI-framework ban: its five-framework rule excludes Presentation and rejects app targets plus `AppKit`, `UIKit`, `IOKit` and `ServiceManagement`; the separate Presentation rule allows `SwiftUI` but rejects app targets, `AppKit`/`UIKit`, storage, concrete infrastructure and `StoreKit`. Shared Application cannot import Infrastructure, Persistence or SwiftData; desktop Application/Features and mobile layers have their own checks. The tests also guard concrete constructions in selected feature/application roots, AgentKit type duplication and SwiftData ownership. Fix an ownership violation rather than bypassing the test; see [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for the precise scope.
 
-`TermindApp` makes the macOS container and shared `AppModel` at launch; XCTest and debug screenshot demos use in-memory stores. If the local database cannot open, startup fails rather than replacing it with an empty store. Each main `WindowGroup` instance gets its own `WindowModel` for selection and workspaces while app services are shared; `RootView` registers the window, installs its focused scene value and keeps mounted workspace views when switching destinations. `TermindIOSApp` migrates language preferences and creates one live or testing `MobileAppModel`; successful scenes receive its container, and failure shows an unavailable-data view. Each `MobileRootView` makes a scene-local `MobileSceneModel`, but the mobile app model shares services and live workspaces across scenes. Restore workspace descriptors, not live transports or credentials. Desktop session/pane and mobile workspace owners end their own connection-history entries on close.
+`TermindApp` makes the macOS container and shared `AppModel` at launch; XCTest and debug screenshot demos use in-memory stores. If the local database cannot open, startup fails rather than replacing it with an empty store. Each main `WindowGroup` instance gets its own `WindowModel` for selection and workspaces while app services are shared; `RootView` registers the window, installs its focused scene value and keeps mounted workspace views when switching destinations. The separate external-authentication `Window` shares the app environment, but removes its manual Window-menu command; it is not another main workspace. `TermindIOSApp` migrates language preferences and creates one live or testing `MobileAppModel`; successful scenes receive its container, and failure shows an unavailable-data view. Each `MobileRootView` makes a scene-local `MobileSceneModel`, but the mobile app model shares services and live workspaces across scenes. It publishes a restored workspace to the shared registry before connecting so two scenes opening the same descriptor reuse a single connection attempt. Restore workspace descriptors, not live transports or credentials. Desktop session/pane and mobile workspace owners end their own connection-history entries on close.
 
 In Debug XCTest runs, the **real desktop app** still launches. By default it suppresses automatic launch of the main and external-auth scenes and disables main-scene restoration; an explicit `TERMIND_WINDOW_TESTS=1` lifts suppression, as does an active screenshot demo. This host-level safeguard complements, rather than replaces, `.requiresVisibleWindow` on any test that presents a window or takes focus. Screenshot demos also disable main-scene restoration. See [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md).
 
 Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback. Use [Platform Runtime](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
 
-AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. For a cross-repository change, release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** `Package.resolved`; the sibling working tree does not affect Xcode's pinned build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
+AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.15.2` or later within the next major version; `Package.resolved` pins **`0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`**. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 
 ## Focused validation
 
