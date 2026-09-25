@@ -11,7 +11,7 @@ final class MobileMultiHostPickerModel {
     private(set) var selected: Set<Host.ID>
 
     private let library: HostLibraryModel
-    private let useCase: HostUseCase
+    private var useCase: HostUseCase
     private let isEligible: (Host) -> Bool
 
     init(
@@ -30,7 +30,15 @@ final class MobileMultiHostPickerModel {
     var orderedSelection: [Host.ID] { availableHostIDs.filter { selected.contains($0) } }
     var allResultsSelected: Bool { !hosts.isEmpty && hosts.allSatisfy { selected.contains($0.id) } }
 
-    func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
+    func loginAddress(for host: Host) -> String {
+        if useCase == .preferredTerminal { return library.preferredTerminalLoginAddress(for: host) }
+        return library.loginAddress(for: host)
+    }
+
+    func updateUseCase(_ useCase: HostUseCase) {
+        self.useCase = useCase
+        reconcileSelection()
+    }
 
     func reconcileSelection() { selected.formIntersection(availableHostIDs) }
 

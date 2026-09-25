@@ -57,7 +57,8 @@ struct MobileWorkspaceListView: View {
             MobileWorkspaceToolbar(
                 hasWorkspaces: scene.canCloseAllWorkspaces,
                 closeAll: scene.closeAllWorkspaces,
-                connect: scene.openConnectionPicker
+                connect: scene.openConnectionPicker,
+                batchStartup: scene.openBatchStartup
             )
         }
         .navigationDestination(item: $scene.workspaceID) { id in
@@ -89,6 +90,9 @@ struct MobileWorkspaceListView: View {
                 )
             }
             .mobileSheetPresentation(compact: true)
+        }
+        .sheet(isPresented: $scene.isBatchStartupPresented, onDismiss: scene.completeBatchStartup) {
+            MobileBatchStartupPicker(library: app.library, connect: scene.prepareBatchStartup)
         }
         .task(id: scene.selectedDestination) {
             guard scene.selectedDestination == .workspaces else { return }

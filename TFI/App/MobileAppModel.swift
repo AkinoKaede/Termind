@@ -383,6 +383,19 @@ final class MobileAppModel {
         return workspace.id
     }
 
+    @discardableResult
+    func batchStartup(
+        hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol
+    ) -> [MobileWorkspace.ID] {
+        let wanted = Set(hostIDs)
+        return library.hosts(matching: "", for: connectionProtocol.useCase)
+            .filter { wanted.contains($0.id) }
+            .compactMap { host in
+                guard let kind = connectionProtocol.kind(for: host) else { return nil }
+                return open(hostID: host.id, kind: kind)
+            }
+    }
+
     func openExternalConnection(_ request: RemoteConnectionURL) -> MobileWorkspace.ID {
         let host: Host
         let kind: ConnectionHistoryEntry.Kind

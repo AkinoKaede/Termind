@@ -227,20 +227,22 @@ struct MobileConnectionPickerTests {
 
     @Test(
         arguments: [
-            ("en", "Connect", "More", "Close All"),
-            ("zh-Hans", "连接", "更多", "全部关闭"),
-            ("zh-Hant", "連線", "更多", "全部關閉"),
+            ("en", "Connect", "More", "Close All", "Batch Startup"),
+            ("zh-Hans", "连接", "更多", "全部关闭", "批量启动"),
+            ("zh-Hant", "連線", "更多", "全部關閉", "批次啟動"),
         ])
     func workspaceToolbarExposesLocalizedActions(
         language: String, expectedConnectName: String, expectedMoreName: String,
-        expectedCloseAllName: String
+        expectedCloseAllName: String, expectedBatchName: String
     ) async throws {
         var connectActivations = 0
+        var batchActivations = 0
         try await withNavigation(
             ToolbarHost(
                 hasWorkspaces: true,
                 closeAll: {},
-                connect: { connectActivations += 1 }),
+                connect: { connectActivations += 1 },
+                batchStartup: { batchActivations += 1 }),
             language: language
         ) { navigation in
             let connect = try #require(toolbarButton(named: expectedConnectName, in: navigation))
@@ -257,11 +259,22 @@ struct MobileConnectionPickerTests {
                 #expect(more.isEnabled)
                 menu = try #require(more.menu)
             }
-            let actions = try await resolvedMenuActions(menu, in: page.view)
+            let resolved = try await resolvedMenu(menu, in: page.view)
+            let actions = menuActions(resolved)
             let closeAll = try #require(actions.first { $0.title == expectedCloseAllName })
             #expect(closeAll.attributes.contains(.destructive))
             #expect(!closeAll.attributes.contains(.disabled))
-            #expect(actions.count == 1)
+            #expect(actions.map(\.title) == [expectedBatchName, expectedCloseAllName])
+            let batch = try #require(actions.first)
+            #expect(!batch.attributes.contains(.disabled))
+            #expect(batch.image == UIImage(systemName: "wind"))
+            let button = UIButton(primaryAction: batch)
+            button.sendActions(for: .touchUpInside)
+            #expect(batchActivations == 1)
+            let groups = resolved.children.compactMap { $0 as? UIMenu }
+                .filter { $0.options.contains(.displayInline) }
+                .map { menuActions($0).map(\.title) }
+            #expect(groups.contains([expectedCloseAllName]))
         }
     }
 
@@ -280,6 +293,8 @@ struct MobileConnectionPickerTests {
             let actions = try await resolvedMenuActions(menu, in: page.view)
             let closeAll = try #require(actions.first { $0.title == "Close All" })
             #expect(closeAll.attributes.contains(.disabled))
+            let batch = try #require(actions.first { $0.title == "Batch Startup" })
+            #expect(!batch.attributes.contains(.disabled))
             #expect(actions.contains { $0.title == "Clear History" } == false)
         }
     }
@@ -343,6 +358,10 @@ struct MobileConnectionPickerTests {
     }
 
     private func resolvedMenuActions(_ menu: UIMenu, in view: UIView) async throws -> [UIAction] {
+        menuActions(try await resolvedMenu(menu, in: view))
+    }
+
+    private func resolvedMenu(_ menu: UIMenu, in view: UIView) async throws -> UIMenu {
         let button = UIButton(frame: CGRect(x: 20, y: 100, width: 44, height: 44))
         button.menu = menu
         button.showsMenuAsPrimaryAction = true
@@ -351,14 +370,14 @@ struct MobileConnectionPickerTests {
         button.performPrimaryAction()
         try await Task.sleep(for: .milliseconds(500))
         let interaction = try #require(button.contextMenuInteraction)
-        var actions: [UIAction] = []
+        var result: UIMenu?
         interaction.updateVisibleMenu { resolved in
-            actions = menuActions(resolved)
+            result = resolved
             return resolved
         }
         interaction.dismissMenu()
         try await Task.sleep(for: .milliseconds(300))
-        return actions
+        return try #require(result)
     }
 
     private func menuActions(_ menu: UIMenu) -> [UIAction] {
@@ -401,6 +420,7 @@ private struct ToolbarHost: View {
     let hasWorkspaces: Bool
     let closeAll: () -> Void
     let connect: () -> Void
+    var batchStartup: () -> Void = {}
 
     var body: some View {
         Color.clear
@@ -409,7 +429,8 @@ private struct ToolbarHost: View {
                 MobileWorkspaceToolbar(
                     hasWorkspaces: hasWorkspaces,
                     closeAll: closeAll,
-                    connect: connect
+                    connect: connect,
+                    batchStartup: batchStartup
                 )
             }
     }

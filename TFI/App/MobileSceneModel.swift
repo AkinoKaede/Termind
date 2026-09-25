@@ -22,6 +22,7 @@ final class MobileSceneModel {
     }
     var workspaceID: MobileWorkspace.ID?
     var isConnectionPickerPresented = false
+    var isBatchStartupPresented = false
     var isWorkspaceUnavailable = false
     var pendingExternalConnection: RemoteConnectionURL?
     var editingHost: Host?
@@ -31,6 +32,8 @@ final class MobileSceneModel {
 
     @ObservationIgnored private let app: MobileAppModel
     @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
+    @ObservationIgnored private var pendingBatchStartup:
+        (hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol)?
     @ObservationIgnored private var recentWorkspaceIDs: [MobileWorkspace.ID] = []
 
     init(app: MobileAppModel) {
@@ -63,10 +66,36 @@ final class MobileSceneModel {
     }
 
     func openConnectionPicker() {
+        pendingBatchStartup = nil
+        isBatchStartupPresented = false
         pendingWorkspaceID = nil
         selectedDestination = .workspaces
         workspaceID = nil
         isConnectionPickerPresented = true
+    }
+
+    func openBatchStartup() {
+        pendingWorkspaceID = nil
+        pendingBatchStartup = nil
+        selectedDestination = .workspaces
+        workspaceID = nil
+        isConnectionPickerPresented = false
+        isBatchStartupPresented = true
+    }
+
+    func prepareBatchStartup(hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol) {
+        guard isBatchStartupPresented, pendingBatchStartup == nil, !hostIDs.isEmpty else { return }
+        pendingBatchStartup = (hostIDs, connectionProtocol)
+    }
+
+    func completeBatchStartup() {
+        isBatchStartupPresented = false
+        guard let request = pendingBatchStartup else { return }
+        pendingBatchStartup = nil
+        pendingWorkspaceID = nil
+        selectedDestination = .workspaces
+        workspaceID = nil
+        app.batchStartup(hostIDs: request.hostIDs, connectionProtocol: request.connectionProtocol)
     }
 
     func openNewConversation() {

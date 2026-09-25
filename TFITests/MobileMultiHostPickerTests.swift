@@ -9,7 +9,7 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileMultiHostPickerTests {
-    @Test(arguments: [HostUseCase.metrics, .snippetExecution])
+    @Test(arguments: [HostUseCase.metrics, .snippetExecution, .preferredTerminal, .sftp])
     func filteredSelectAllPreservesOtherSelectionsAndLibraryOrder(useCase: HostUseCase) {
         let hosts = ["Alpha", "Bravo", "Charlie"].enumerated().map { index, name in
             Host(name: name, host: "\(name.lowercased()).invalid", sortIndex: Double(index))

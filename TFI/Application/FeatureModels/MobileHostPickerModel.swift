@@ -24,7 +24,7 @@ final class MobileHostPickerModel {
 @MainActor
 @Observable
 final class MobileConnectionPickerModel {
-    var kind = ConnectionHistoryEntry.Kind.ssh
+    var kind = MobileConnectionProtocol.ssh
 
     private let connect: (Host.ID, ConnectionHistoryEntry.Kind) -> Void
 
@@ -33,12 +33,7 @@ final class MobileConnectionPickerModel {
     }
 
     func select(_ host: Host) {
-        let resolved: ConnectionHistoryEntry.Kind
-        if kind == .ssh, host.preferredTerminalProtocol == .telnet {
-            resolved = .telnet
-        } else {
-            resolved = kind
-        }
+        guard let resolved = kind.kind(for: host) else { return }
         connect(host.id, resolved)
     }
 }

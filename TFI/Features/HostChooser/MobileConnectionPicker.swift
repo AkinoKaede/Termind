@@ -9,6 +9,7 @@ struct MobileWorkspaceToolbar: ToolbarContent {
     let hasWorkspaces: Bool
     let closeAll: () -> Void
     let connect: () -> Void
+    let batchStartup: () -> Void
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -17,6 +18,8 @@ struct MobileWorkspaceToolbar: ToolbarContent {
         }
         .mobileProminentAction()
         MobileToolbarOverflow {
+            Button(AppStrings.Vault.batchStartup, systemImage: "wind", action: batchStartup)
+            Divider()
             Button(AppStrings.Vault.closeAll.swiftUIKey, systemImage: "xmark", role: .destructive) {
                 closeAll()
             }
@@ -47,17 +50,25 @@ struct MobileConnectionPicker: View {
             emptyDescription: AppStrings.Vault.addAHostToConnectToIt,
             cancel: cancel,
             select: model.select,
-            isEligible: { host in model.kind != .sftp || host.sshEnabled },
+            isEligible: { model.kind.kind(for: $0) != nil },
             header: {
-                Section {
-                    Picker(AppStrings.Vault.connectionProtocol.swiftUIKey, selection: $model.kind) {
-                        Text(AppStrings.Vault.ssh).tag(ConnectionHistoryEntry.Kind.ssh)
-                        Text(AppStrings.SFTP.sftp).tag(ConnectionHistoryEntry.Kind.sftp)
-                    }
-                    .pickerStyle(.segmented)
-                }
+                MobileConnectionProtocolPicker(selection: $model.kind)
             }
         )
+    }
+}
+
+struct MobileConnectionProtocolPicker: View {
+    @Binding var selection: MobileConnectionProtocol
+
+    var body: some View {
+        Section {
+            Picker(AppStrings.Vault.connectionProtocol.swiftUIKey, selection: $selection) {
+                Text(AppStrings.Vault.ssh).tag(MobileConnectionProtocol.ssh)
+                Text(AppStrings.SFTP.sftp).tag(MobileConnectionProtocol.sftp)
+            }
+            .pickerStyle(.segmented)
+        }
     }
 }
 
