@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Supporting Products and Tooling
 description: Build ownership and integration boundaries for AgentKit, the MCP bridge, Live Activities, project tests, forwarding benchmarks, the Astro website, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -86,6 +83,9 @@ sources:
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 # Supporting Products and Tooling

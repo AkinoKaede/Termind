@@ -3,9 +3,6 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -43,7 +40,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 # Termind Engineering Quickstart
@@ -94,6 +94,6 @@ xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests T
 Scripts/check-zh-localization.sh
 ```
 
-For `TFI` tests use an installed iPhone/iPad simulator. Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` is serialized but not gated by that variable. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
+For `TFI` tests use an installed iPhone/iPad simulator. Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` is serialized but not gated by that variable. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
 
 Before submitting, inspect the diff for secrets, generated artifacts, cross-layer imports and accidental `Package.resolved` churn; use the routed operations pages for CloudKit deployment, StoreKit release, marketing assets, and forwarding benchmark measurement semantics.

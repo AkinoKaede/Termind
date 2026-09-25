@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f93b93d731879ae9ff7d870c23fab676e5dcfabc81fae99dded1a8487c2e65ac",
+  "pageVersion": "sha256:d7514c0b9212d9813279ee0bbe49f4f3222791493d0a1c9c5212932a4ef6614e",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -620,7 +620,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L48-L56",
-          "version": "repo-lines-v1:sha256:26697577d9457afd4d5953ff5464ff3ce8419e303deb7f51ea1d9644abdfc2ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "version": "repo-lines-v1:sha256:6c9efbc83da4073dc5b3a4125fcc4c35e2e3b8fac8d8f5ab0fdad06c6877a8ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
@@ -634,15 +634,15 @@
     },
     {
       "id": "claim_3ac8bf529e4442b6b368643cd0fd33c9",
-      "statement": "The SwiftSyntax presentation-copy script flags selected user-facing literal forms in TFM and TFI, and the repository requires it alongside the Chinese localization check; it does not comprehensively verify every possible UI string or displayed translation.",
+      "statement": "The SwiftSyntax AppStrings checker flags selected user-facing literal forms in TFM and TFI, and the repository requires it alongside the Chinese localization check; it does not comprehensively verify every possible UI string or displayed translation.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L50-L56",
-          "version": "repo-lines-v1:sha256:b5df0daff218d23f396510a7891b777fc68204b7a47fefcf1d09764515cf952e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZTRlNzI3Y2I2NDdhZTE3NWIzMzEwOWMyNmE0NzFkMGE2YzdhNzZhOGQxMGNjNDhhNTFiZmU3NDFhYjg0NTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "version": "repo-lines-v1:sha256:23035bfac52c17545b535d40b4930b5cdc25acf77a2870d68874c55f71c22836:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjllNGU3MjdjYjY0N2FlMTc1YjMzMTA5YzI2YTQ3MWQwYTZjN2E3NmE4ZDEwY2M0OGE1MWJmZTc0MWFiODQ1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODM0NTZkMjYyMWEzM2E1YmZhNmJjNTAzYWY5YTI3YzdkMmNmMTU1YWUxMWUyOWFiZDliYzIyMTUzZWJiZDY0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZThlOWYzMDg0MzUyNWNjN2Y0N2FjOGRjZTQ5MmQ1ZDE1OWM3ZTMzYmVjMzgwYWM0MTAxMDJjMmUxODcwMWY5NCJ9"
         },
         {
-          "resource": "repo://Scripts/check-presentation-copy.swift#L7-L78",
-          "version": "repo-lines-v1:sha256:91d24826d49a5a4ea7c1bd74f3fcf11a4ab8c6c2dbb2d1f1265ef37312d423d4:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ODk1NTkwOGUxODQxMjRjZWE5NzA4YTNkNTYxYzcyOWMzYTNmNGI4YjcxZTY5ZTRlNjA3ZGE4NWFjNGQ1NzEifQ"
+          "resource": "repo://Scripts/check-appstrings.swift#L7-L78",
+          "version": "repo-lines-v1:sha256:508720cc274799661b3b8a090c3dc0052bd5e69535320fc04f5e1bb98cfe79e5:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MzdlMWZiY2RkNmE5MDMwNGExYTg1MzUzOTMwYjk4MWZiMzlkMTYwM2I4ZGRhOWZlNWEwMDU3N2YyNGM3YzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxMTExNmNhMmRiMWQzZmJmMDVhZTFiMDFmZTk4ZTY0OTEzMzhkMzQ4Yzg4NmY2Yjk1NGJkNDg1MmE4ZmIyODAifQ"
         }
       ]
     },
@@ -722,7 +722,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L50-L69",
-          "version": "repo-lines-v1:sha256:b5df0daff218d23f396510a7891b777fc68204b7a47fefcf1d09764515cf952e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZTRlNzI3Y2I2NDdhZTE3NWIzMzEwOWMyNmE0NzFkMGE2YzdhNzZhOGQxMGNjNDhhNTFiZmU3NDFhYjg0NTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+          "version": "repo-lines-v1:sha256:d727f084e92599587f11dce4e842982826f500cab97f59a85d9ae52284a2be64:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZTRlNzI3Y2I2NDdhZTE3NWIzMzEwOWMyNmE0NzFkMGE2YzdhNzZhOGQxMGNjNDhhNTFiZmU3NDFhYjg0NTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
           "resource": "repo://Scripts/normalize-string-catalogs.py",
@@ -739,11 +739,11 @@
       "statement": "Localization checks complement rather than replace rendering coverage: the SwiftSyntax copy checker flags selected UI literals in TFM and TFI, while the Chinese catalog checker verifies normal form, valid JSON, finished zh-Hans/zh-Hant translations and spacing; neither proves semantic reuse or display-time correctness.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-presentation-copy.swift#L5-L18",
+          "resource": "repo://Scripts/check-appstrings.swift#L5-L18",
           "version": "repo-lines-v1:sha256:092f3212071893f610272a62e0dee5a7c9296cffe95064fc25cc8ed65bc5ce27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYTY4ZDE3MmNlYjAzZWM2MjVmYTAwZDYyY2NkMGIwNGViYjIzOTNjMjRkMzQ1NTU0YjMwNTdmZGU4ZDQ4NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDI0NDU4MmI2ZmIwM2QyM2I4NDE1YWJlY2QzNDZiMGM5ZjQ2NmI2Zjc1MmIwNjgxODljZTdlOWEyZGMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3OTQzZmRkMjkzYzI3Yzk5YmQzZmU4MjlmOGZlY2EzYTFkZjc3MDZmYmMyNTIzZjAxNDE1ZDgzNjA3ZTVhMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NmIxOWU5ODgxNmYxMjE5NjE3ZjQzZTljMTM2ZDZiNTcxMGQ5ZmVmNzAzZmFhNThkMzVkNjY4NGIxMWYwODUifQ"
         },
         {
-          "resource": "repo://Scripts/check-presentation-copy.swift#L64-L87",
+          "resource": "repo://Scripts/check-appstrings.swift#L64-L87",
           "version": "repo-lines-v1:sha256:e567e2575025771a0f17f7c9e93126a63ce6c603b8f0c2e32035f9f7731d4860:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1M2I1YzQ2NjY5ZmJhOTI5Y2YxNmEyNmEzM2U2MGVhNWIwYzFkNzg3OTc0ZTMxNzk2OTllMWU5MzMxMTFhMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjZlYjBjY2QyNTMzMWVlNTZkZDAwN2Q2MjczOGQ0NDAxMjIzMWViMmI2NDhmNzhhYjA2ODc5Y2Q5MGNkNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
@@ -839,6 +839,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-25T12:50:34.482Z"
+    "at": "2026-09-25T14:05:02.933Z"
   }
 }

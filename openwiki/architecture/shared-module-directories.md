@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Shared Framework Responsibilities
 description: Directory ownership and collaboration across Termind's six shared frameworks and product-bundled resources, including explicit CloudKit synchronization, durable replay, and remote protocol adapters.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-cd70c531c7abdbbdcb0ea290
     resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
@@ -129,8 +126,8 @@ sources:
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
-  - id: openwiki-source-aa9e36be30555d3a6c7a3f6a
-    resource: repo://Scripts/check-presentation-copy.sh
+  - id: openwiki-source-985b6a509f7d84d0b5153a7a
+    resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-66092b0aa632065907bc7606
@@ -139,7 +136,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 # Shared Framework Responsibilities
@@ -317,7 +317,7 @@ Details: [UI Design Principles](../concepts/ui-design-principles.md).
 
 `Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs); AgentKit's model capability resolver searches the main and package bundles for the Pi catalog and optional overrides. If the icon catalog cannot load, icon lookup returns no entry. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
 
-App-facing resource definitions belong in `TermindPresentation/Strings`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. The shared catalogs are manually managed: do not treat a single target's stale extraction flag as proof that cross-platform copy is unused; normalize edited catalogs with `Scripts/normalize-string-catalogs.py --write` and keep generated string symbols disabled. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
+App-facing resource definitions belong in `TermindPresentation/Strings`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. The shared catalogs are manually managed: do not treat a single target's stale extraction flag as proof that cross-platform copy is unused; normalize edited catalogs with `Scripts/normalize-string-catalogs.py --write` and keep generated string symbols disabled. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
 
 ## Cross-layer flow: edit, persist, synchronize, render
 

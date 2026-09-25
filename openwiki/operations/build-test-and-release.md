@@ -3,9 +3,6 @@ type: release operations
 title: Build, Test, and Release Gates
 description: Validation gates for pinned Xcode builds, opt-in UI and commerce tests, shared localization, marketing captures, website builds, and cross-repository AgentKit releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -23,10 +20,10 @@ sources:
     resource: repo://LandingPage/package.json
   - id: openwiki-source-c76cbada020604024adadb22
     resource: repo://LandingPage/README.md
-  - id: openwiki-source-aa9e36be30555d3a6c7a3f6a
-    resource: repo://Scripts/check-presentation-copy.sh
-  - id: openwiki-source-f6e4a8e5d7aef42804ab0509
-    resource: repo://Scripts/check-presentation-copy.swift
+  - id: openwiki-source-985b6a509f7d84d0b5153a7a
+    resource: repo://Scripts/check-appstrings.sh
+  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
+    resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-de562e98d49cbf6502c23c13
@@ -63,7 +60,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 # Build, Test, and Release Gates
@@ -183,7 +183,7 @@ Define user-facing copy as shared `LocalizedStringResource` entries under `Frame
 The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit run `Scripts/normalize-string-catalogs.py --write` for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter. The normalizer leaves translations intact and does not touch AgentKit's catalog. Before committing, run both checks (the catalog check requires `jq` and optionally accepts a catalog path):
 
 ```sh
-Scripts/check-presentation-copy.sh
+Scripts/check-appstrings.sh
 Scripts/check-zh-localization.sh
 ```
 
@@ -238,7 +238,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 1. Identify the smallest affected product surface and run its focused tests.
 2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes.
 3. Run strict Swift format lint for Swift changes.
-4. Run `Scripts/check-presentation-copy.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
+4. Run `Scripts/check-appstrings.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
 6. Keep visible-window, mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
 7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.

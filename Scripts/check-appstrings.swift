@@ -28,7 +28,7 @@ final class CopyBoundaryVisitor: SyntaxVisitor {
         guard prose.contains(where: { $0.isLetter }), isPresentationLiteral(node) else { return .visitChildren }
         let line = locations.location(for: node.positionAfterSkippingLeadingTrivia).line
         violations.append(
-            "\(path):\(line): move presentation copy into TermindPresentation/Strings: \(node.trimmedDescription)")
+            "\(path):\(line): move strings into TermindPresentation/Strings: \(node.trimmedDescription)")
         return .visitChildren
     }
 

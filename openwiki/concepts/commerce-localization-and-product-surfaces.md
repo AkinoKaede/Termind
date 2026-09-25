@@ -3,9 +3,6 @@ type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
 description: Explains StoreKit-derived Pro access, native paywall and review ownership, localization completion rules, and the app, widget, screenshot, and marketing-site surfaces that present the product.
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -51,8 +48,8 @@ sources:
     resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-446ef49ac8edac86b5511fe5
     resource: repo://Marketing/README.md
-  - id: openwiki-source-f6e4a8e5d7aef42804ab0509
-    resource: repo://Scripts/check-presentation-copy.swift
+  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
+    resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-de562e98d49cbf6502c23c13
@@ -115,7 +112,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 ## Scope and ownership
@@ -190,7 +190,7 @@ User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, 
 
 Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers, preference migration, regional Traditional lookup, token terminology, placeholder ordering and selected plural structures. Catalog-wide completion and manual formatting are enforced by the shell check and normalizer, **not** by `AppLanguageTests`. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
 
-`Scripts/check-presentation-copy.sh` runs a SwiftSyntax visitor across TFM/TFI and flags selected string literals used as first arguments or named copy arguments in UI APIs, as localized string declarations, or in localized return types. Its detection is deliberately narrower than “all app text”: it excludes macros and only recognizes specified call forms; review new copy ownership and semantic reuse even when the script passes. The script checks that `Strings/AppStrings.swift` exists. `ArchitectureBoundaryTests.presentationCopyHasOneSharedOwner` prevents an app-local `AppStrings` declaration and bans app, AppKit/UIKit, TermindInfrastructure and TermindPersistence imports in the Strings directory. Run the copy check alongside `Scripts/check-zh-localization.sh`; neither replaces language-aware rendering and behavior tests. See [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md) for the ownership map.
+`Scripts/check-appstrings.sh` runs a SwiftSyntax visitor across TFM/TFI and flags selected string literals used as first arguments or named copy arguments in UI APIs, as localized string declarations, or in localized return types. Its detection is deliberately narrower than “all app text”: it excludes macros and only recognizes specified call forms; review new copy ownership and semantic reuse even when the script passes. The script checks that `Strings/AppStrings.swift` exists. `ArchitectureBoundaryTests.presentationCopyHasOneSharedOwner` prevents an app-local `AppStrings` declaration and bans app, AppKit/UIKit, TermindInfrastructure and TermindPersistence imports in the Strings directory. Run the copy check alongside `Scripts/check-zh-localization.sh`; neither replaces language-aware rendering and behavior tests. See [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md) for the ownership map.
 
 ### Vault labels and locale-sensitive presentation
 
@@ -219,5 +219,5 @@ The public site is a separate Astro app in `LandingPage/`, with strict TypeScrip
 - For an access change, update `ProFeature`/callers and `ProAccessController` together; test entitlement phases, verification failures, pending Ask to Buy, restore, and metadata failure separately. `StoreKitTrialTests` exercises the local `SKTestSession` configuration (opt in with `TERMIND_STOREKIT_TESTS=1`, ideally restricting to `TFMTests/StoreKitTrialTests`): it covers trial metadata and restoration, lifetime precedence, cancellation and catalog network errors, pending Ask to Buy approval, unverified transactions, annual purchase without an introductory offer, invalid annual product shape, and empty restore. `CommerceConfigurationTests` catches drift between product identifiers and the fixture.
 - Treat local StoreKit testing as insufficient evidence for production: configure and verify App Store Connect metadata and use Sandbox/review environments for storefront prices, subscription lifecycle, restore, Family Sharing, and cross-device behavior.
 - For paywall or review work, test both platform presenters and the shared controller’s cancellation, persistence, cooldown, and multi-surface rules. Do not infer a rating or prompt display from an attempt record.
-- For text or product-copy changes, define semantic resource entries under `TermindPresentation/Strings` and complete both Chinese translations in the manual catalogs. Run `Scripts/normalize-string-catalogs.py --write` after catalog edits, then `Scripts/check-presentation-copy.sh` with `Scripts/check-zh-localization.sh`, `PresentationCopyTests`, `AppLanguageTests`, `ProOfferPresentationTests` and `ProPaywallPresentationTests` where applicable; inspect affected native screens in all three app languages and on both platforms as needed.
+- For text or product-copy changes, define semantic resource entries under `TermindPresentation/Strings` and complete both Chinese translations in the manual catalogs. Run `Scripts/normalize-string-catalogs.py --write` after catalog edits, then `Scripts/check-appstrings.sh` with `Scripts/check-zh-localization.sh`, `PresentationCopyTests`, `AppLanguageTests`, `ProOfferPresentationTests` and `ProPaywallPresentationTests` where applicable; inspect affected native screens in all three app languages and on both platforms as needed.
 - For widget/deep-link changes, test bounded payload construction, restoration/duplicate handling, and route validation. For marketing changes, run `npm run build` in `LandingPage/`, preserve real device chrome, and recapture affected locale/platform combinations.

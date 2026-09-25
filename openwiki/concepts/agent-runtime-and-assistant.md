@@ -3,9 +3,6 @@ type: assistant runtime concept
 title: Assistant and Agent Runtime
 description: How Termind captures assistant submissions, prepares and cancels AgentKit runs, persists conversations, and gates host tools, skills, and device-local memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-0e8cfe7d74554d8a17af60b7
     resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
@@ -98,6 +95,9 @@ sources:
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-25T14:05:02.933Z
 ---
 
 # Assistant and Agent Runtime
