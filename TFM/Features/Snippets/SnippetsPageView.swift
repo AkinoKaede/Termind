@@ -539,22 +539,19 @@ private struct SnippetCardContent: View {
     }
 }
 
-struct SnippetEditorSheet: View {
-    private enum Route: Hashable { case targets }
-
+struct SnippetEditorView: View {
     let existing: Snippet?
     let save: (Snippet) -> Void
-    var requestedClose: (() -> Void)?
+    let close: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(VaultWorkEditingSession.self) private var editingSession
-    @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var bodyText: String
     @State private var packageID: SnippetPackage.ID?
     @State private var targets: Set<Host.ID>
-    @State private var route: Route?
+    @State private var showsTargetPicker = false
     @State private var error: String?
     @State private var confirmsDeletion = false
     @State private var editingToken: UUID?
@@ -562,11 +559,11 @@ struct SnippetEditorSheet: View {
     init(
         snippet: Snippet? = nil, packageID: SnippetPackage.ID? = nil,
         save: @escaping (Snippet) -> Void,
-        close: (() -> Void)? = nil
+        close: @escaping () -> Void
     ) {
         existing = snippet
         self.save = save
-        requestedClose = close
+        self.close = close
         _title = State(initialValue: snippet?.title ?? "")
         _bodyText = State(initialValue: snippet?.body ?? "")
         _packageID = State(initialValue: snippet?.packageID ?? packageID)
@@ -575,9 +572,11 @@ struct SnippetEditorSheet: View {
 
     var body: some View {
         ZStack {
-            if let route {
-                destination(route)
-                    .transition(.move(edge: .trailing))
+            if showsTargetPicker {
+                SnippetTargetPickerView(selected: targets, back: { showsTargetPicker = false }) {
+                    targets = $0
+                }
+                .transition(.move(edge: .trailing))
             } else {
                 editor
                     .transition(.move(edge: .leading))
@@ -588,7 +587,7 @@ struct SnippetEditorSheet: View {
         // detail, which makes its destination cover the Snippets collection too.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
-        .animation(.snappy(duration: 0.2), value: route)
+        .animation(.snappy(duration: 0.2), value: showsTargetPicker)
         .onAppear {
             editingToken = editingSession.register(
                 route: .snippetEditor(snippetID: existing?.id, packageID: packageID), isDirty: { isDirty }
@@ -663,7 +662,7 @@ struct SnippetEditorSheet: View {
                         Text(AppStrings.Snippets.targets)
                         Spacer()
                         Button {
-                            route = .targets
+                            showsTargetPicker = true
                         } label: {
                             Label(AppStrings.Common.addHosts.swiftUIKey, systemImage: "plus")
                         }
@@ -710,10 +709,6 @@ struct SnippetEditorSheet: View {
         app.snippets.searchHosts("").filter { targets.contains($0.id) }
     }
 
-    private func close() {
-        if let requestedClose { requestedClose() } else { dismiss() }
-    }
-
     private func cancelEditing() {
         editingSession.requestTransition(
             route: .snippetEditor(snippetID: existing?.id, packageID: packageID), action: close)
@@ -747,20 +742,6 @@ struct SnippetEditorSheet: View {
         app.snippets.delete(snippetIDs: [existing.id])
         window.pruneVaultSelections(in: app.snippets)
         close()
-    }
-
-    @ViewBuilder
-    private func destination(_ route: Route) -> some View {
-        switch route {
-        case .targets:
-            SnippetTargetPickerView(selected: targets, back: closeNestedEditor) {
-                targets = $0
-            }
-        }
-    }
-
-    private func closeNestedEditor() {
-        route = nil
     }
 }
 
@@ -874,11 +855,6 @@ struct SnippetTargetPickerView: View {
 
     private var footer: some View {
         HStack {
-            Text(AppStrings.Common.selected(chooser.selected.count))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-
             Button(
                 allResultsChecked ? AppStrings.Common.deselectAll.swiftUIKey : AppStrings.Common.selectAll.swiftUIKey
             ) {

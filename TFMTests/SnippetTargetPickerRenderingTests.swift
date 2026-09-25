@@ -40,6 +40,7 @@ struct SnippetTargetPickerRenderingTests {
             Notification(name: NSControl.textDidChangeNotification, object: search)
         )
         await fixture.settle()
+        try fixture.focusSearch()
         try fixture.sendKey(" ", code: 49)
         try fixture.performKeyEquivalent("\u{1B}", code: 53)
         #expect(capture.backCount == 1)
@@ -54,6 +55,7 @@ struct SnippetTargetPickerRenderingTests {
             Notification(name: NSControl.textDidChangeNotification, object: reopenedSearch)
         )
         await fixture.settle()
+        try fixture.focusSearch()
         try fixture.sendKey(" ", code: 49)
         try fixture.performKeyEquivalent("\r", code: 36)
         #expect(capture.backCount == cancelBackCount + 1)
@@ -120,6 +122,11 @@ struct SnippetTargetPickerRenderingTests {
 
         func sendKey(_ characters: String, code: UInt16) throws {
             NSApp.sendEvent(try keyEvent(characters, code: code))
+        }
+
+        func focusSearch() throws {
+            let search = try #require(visibleTextFields.first { $0.isEditable })
+            #expect(window.makeFirstResponder(search))
         }
 
         func performKeyEquivalent(_ characters: String, code: UInt16) throws {

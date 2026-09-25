@@ -73,7 +73,7 @@ struct VaultWorkDetailView: View {
         case .exportKeys(let ids):
             ExportKeyToHostsSheet(keys: ids.compactMap(app.hostLibrary.key))
         case .snippetEditor(let snippetID, let packageID):
-            SnippetEditorSheet(
+            SnippetEditorView(
                 snippet: snippetID.flatMap(app.hostLibrary.snippet), packageID: packageID,
                 save: { snippet in
                     app.hostLibrary.upsert(snippet)
