@@ -33,9 +33,13 @@ struct PresentationCopyTests {
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 7])
     func fileDeletionKeepsLiteralPathsAndLocalizesItsRemainder(language: String, remaining: Int) {
+        let locale = Locale(identifier: language)
+        let title = AppLocalization.resolve(AppStrings.SFTP.deleteConfirmation("file.txt"), locale: locale)
         let paths = "/home/example/file\n/home/example/[draft]"
         let message = AppStrings.SFTP.deletionMessage(
-            paths: paths, remainingCount: remaining, locale: Locale(identifier: language))
+            paths: paths, remainingCount: remaining, locale: locale)
+        #expect(title.contains("file.txt"))
+        #expect(!title.contains("NSLanguage"))
         #expect(message.hasPrefix(paths))
         if remaining > 0 {
             #expect(
@@ -47,6 +51,16 @@ struct PresentationCopyTests {
             #expect(message.hasPrefix(paths + "\n\n"))
         }
         #expect(!message.contains("%"))
+        #expect(!message.contains("NSLanguage"))
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func singleFileDeletionWarningDoesNotRepeatTheTitlePath(language: String) {
+        let locale = Locale(identifier: language)
+        let warning = AppLocalization.resolve(AppStrings.SFTP.recursiveDeletionWarning, locale: locale)
+        #expect(!warning.contains("/home/example/file.txt"))
+        #expect(!warning.contains("NSLanguage"))
+        #expect(!warning.isEmpty)
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 2])

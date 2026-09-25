@@ -313,7 +313,7 @@ struct PortForwardingDetailView: View {
             Text(AppStrings.Forwarding.anyActiveForwardingSessionForThisRuleWillBeStopped)
         }
         .alert(
-            AppStrings.Common.operationFailed.swiftUIKey,
+            AppStrings.Common.operationFailed,
             isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey) { deletionError = nil }

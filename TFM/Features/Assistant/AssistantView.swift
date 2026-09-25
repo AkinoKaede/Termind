@@ -368,7 +368,7 @@ private struct AssistantConversationList: View {
                 setExpanded(true, for: conversation.isPinned ? .pinned : .chats)
             }
             .alert(
-                AppStrings.Assistant.deleteConversationConfirmation.swiftUIKey,
+                AppStrings.Assistant.deleteConversationConfirmation,
                 isPresented: Binding(
                     get: { deleteTarget != nil },
                     set: { if !$0 { deleteTarget = nil } }

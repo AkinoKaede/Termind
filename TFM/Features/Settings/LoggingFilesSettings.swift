@@ -55,7 +55,7 @@ struct LoggingFilesSettings: View {
                 perform { try app.logging.deleteAll() }
             }
         }
-        .alert(AppStrings.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+        .alert(AppStrings.Settings.logging, isPresented: errorPresented) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")

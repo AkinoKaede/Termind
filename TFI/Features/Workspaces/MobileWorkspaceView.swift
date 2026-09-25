@@ -42,6 +42,7 @@ struct MobileWorkspaceView: View {
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var locale
     @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @TerminalFontSettings private var font
     @State private var downloadTarget: RemoteFile?
@@ -391,7 +392,7 @@ struct MobileWorkspaceView: View {
             } message: {
                 Text(AppStrings.SFTP.applyToAllConflicts)
             }
-            .alert(AppStrings.SFTP.newFolder.swiftUIKey, isPresented: $creatingDirectory) {
+            .alert(AppStrings.SFTP.newFolder, isPresented: $creatingDirectory) {
                 TextField(AppStrings.Common.name.swiftUIKey, text: $directoryName.singleLineText, axis: .horizontal)
                     .singleLinePaste().lineLimit(1)
                 Button(AppStrings.Common.create.swiftUIKey) {
@@ -403,12 +404,16 @@ struct MobileWorkspaceView: View {
                 Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
             }
             .confirmationDialog(
-                AppStrings.Workspace.deleteFileConfirmation, isPresented: deletingPresented,
+                deletionTitle, isPresented: deletingPresented,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                     if let file = deleting { Task { await workspace.sftpChannel.delete(file) } }
                     deleting = nil
+                }
+            } message: {
+                if let deleting {
+                    Text(AppStrings.SFTP.deletionMessage(paths: deleting.path, remainingCount: 0, locale: locale))
                 }
             }
     }
@@ -700,6 +705,11 @@ struct MobileWorkspaceView: View {
             get: { deleting != nil },
             set: { if !$0 { deleting = nil } }
         )
+    }
+
+    private var deletionTitle: LocalizedStringResource {
+        deleting.map { AppStrings.SFTP.deleteConfirmation($0.name) }
+            ?? AppStrings.Workspace.deleteFileConfirmation
     }
 
     @ViewBuilder

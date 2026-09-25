@@ -103,7 +103,7 @@ struct MobileCommandHistoryView: View {
                 }
             }
             .alert(
-                AppStrings.Snippets.saveAsSnippet.swiftUIKey,
+                AppStrings.Snippets.saveAsSnippet,
                 isPresented: Binding(
                     get: { snippetEntry != nil },
                     set: { if !$0 { cancelSavingSnippet() } }

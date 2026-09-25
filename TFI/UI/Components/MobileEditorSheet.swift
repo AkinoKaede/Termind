@@ -96,7 +96,7 @@ struct MobileEditorSheet<Content: View>: View {
                 Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
             }
             .alert(
-                AppStrings.Common.unableToSave.swiftUIKey,
+                AppStrings.Common.unableToSave,
                 isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
             ) {
                 Button(AppStrings.Common.ok.swiftUIKey, role: .cancel, action: { error = nil })

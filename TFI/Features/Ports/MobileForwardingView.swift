@@ -65,7 +65,7 @@ struct MobileForwardingView: View {
             }
         }
         .alert(
-            AppStrings.Common.operationFailed.swiftUIKey,
+            AppStrings.Common.operationFailed,
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey) { error = nil }

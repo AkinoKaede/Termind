@@ -108,7 +108,7 @@ struct MobileAssistantComposer: View {
                 }
             }
             .alert(
-                AppStrings.Assistant.attachmentError.swiftUIKey,
+                AppStrings.Assistant.attachmentError,
                 isPresented: Binding(
                     get: { composer.attachmentImportError != nil },
                     set: { if !$0 { composer.attachmentImportError = nil } }

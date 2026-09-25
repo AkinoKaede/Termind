@@ -129,7 +129,7 @@ struct MobileCredentialsView: View {
             Text(AppStrings.Keychain.deleteKeyWarning)
         }
         .alert(
-            AppStrings.Common.unableToDelete.swiftUIKey,
+            AppStrings.Common.unableToDelete,
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { error = nil }

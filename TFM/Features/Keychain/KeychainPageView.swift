@@ -379,7 +379,7 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
             // be missed: leaving a key the user asked to remove sitting there
             // with no explanation is the one outcome worth interrupting for.
             .alert(
-                AppStrings.Keychain.keychainOperationFailed.swiftUIKey,
+                AppStrings.Keychain.keychainOperationFailed,
                 isPresented: Binding(
                     get: { state.errorMessage != nil },
                     set: { if !$0 { state.errorMessage = nil } }

@@ -52,7 +52,7 @@ public struct SFTPEditUploadOverlay: View {
                     Text("The remote file changed or could not be verified. Replace it with your saved local changes?")
                 }
                 .alert(
-                    AppStrings.SFTP.sftpError.swiftUIKey,
+                    AppStrings.SFTP.sftpError,
                     isPresented: Binding(
                         get: { errorDetails != nil }, set: { if !$0 { errorDetails = nil } })
                 ) {

@@ -9109,6 +9109,23 @@
         }
       }
     },
+    "Directories are deleted recursively. This cannot be undone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目录将被递归删除。此操作无法撤销。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目錄將被遞迴刪除。此操作無法復原。"
+          }
+        }
+      }
+    },
     "Directory created" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -127,7 +127,7 @@ struct MobileAssistantView: View {
                 restoreComposerFocusAfterLibrary = false
             }
             .alert(
-                AppStrings.Common.rename.swiftUIKey,
+                AppStrings.Common.rename,
                 isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
             ) {
                 TextField(
@@ -154,7 +154,7 @@ struct MobileAssistantView: View {
             }
             .task { await model.load() }
             .alert(
-                AppStrings.Common.operationFailed.swiftUIKey,
+                AppStrings.Common.operationFailed,
                 isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })
             ) {
                 Button(AppStrings.Common.ok.swiftUIKey) { model.error = nil }
@@ -344,7 +344,7 @@ struct MobileAssistantLibrary: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query.singleLineText, prompt: AppStrings.Common.search.swiftUIKey)
         .alert(
-            AppStrings.Common.rename.swiftUIKey,
+            AppStrings.Common.rename,
             isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
         ) {
             TextField(AppStrings.Assistant.conversationName.swiftUIKey, text: $title.singleLineText, axis: .horizontal)

@@ -172,7 +172,7 @@ struct RootView: View {
         )
         .animation(Motion.panel(reduceMotion: reduceMotion), value: presentations.route?.id)
         .alert(
-            AppStrings.Assistant.conversationOperationFailed.swiftUIKey,
+            AppStrings.Assistant.conversationOperationFailed,
             isPresented: Binding(
                 get: { window.assistantOperationError != nil },
                 set: { if !$0 { window.assistantOperationError = nil } }
@@ -183,7 +183,7 @@ struct RootView: View {
             Text(window.assistantOperationError ?? "")
         }
         .alert(
-            AppStrings.Workspace.workspaceTemplate.swiftUIKey,
+            AppStrings.Workspace.workspaceTemplate,
             isPresented: Binding(
                 get: { window.workspaceTemplateNotice != nil },
                 set: { if !$0 { window.workspaceTemplateNotice = nil } }
@@ -417,7 +417,7 @@ private struct ExternalConnectionURLPresenter: ViewModifier {
         content
             .onOpenURL { app.openExternalConnection($0, in: window) }
             .alert(
-                AppStrings.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
+                AppStrings.Workspace.openTelnetConnectionConfirmation,
                 isPresented: Binding(
                     get: { window.pendingExternalConnection != nil },
                     set: { if !$0 { window.pendingExternalConnection = nil } }
@@ -429,7 +429,7 @@ private struct ExternalConnectionURLPresenter: ViewModifier {
                 Text(AppStrings.Workspace.advisoryTelnetPassword)
             }
             .alert(
-                AppStrings.Workspace.connectionLinkFailed.swiftUIKey,
+                AppStrings.Workspace.connectionLinkFailed,
                 isPresented: Binding(
                     get: { window.externalConnectionError != nil },
                     set: { if !$0 { window.externalConnectionError = nil } }

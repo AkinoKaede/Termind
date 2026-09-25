@@ -62,7 +62,7 @@ struct MobileLoggingView: View {
         ) {
             Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }
         }
-        .alert(AppStrings.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+        .alert(AppStrings.Settings.logging, isPresented: errorPresented) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")

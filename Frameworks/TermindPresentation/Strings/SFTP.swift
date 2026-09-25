@@ -321,6 +321,9 @@ extension AppStrings {
         public static func deletionWarning(paths: String, remainder: String) -> LocalizedStringResource {
             "\(paths)\(remainder)\n\nDirectories are deleted recursively. This cannot be undone."
         }
+        public static var recursiveDeletionWarning: LocalizedStringResource {
+            "Directories are deleted recursively. This cannot be undone."
+        }
         public static var modifiedDate: LocalizedStringResource {
             "Date"
         }

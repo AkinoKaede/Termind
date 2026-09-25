@@ -307,7 +307,7 @@ struct MobileMCPEditor: View {
         .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
         .onDisappear { model.cancel() }
         .alert(
-            (alert?.title ?? AppStrings.Common.unableToSave).swiftUIKey,
+            alert?.title ?? AppStrings.Common.unableToSave,
             isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { alert = nil }

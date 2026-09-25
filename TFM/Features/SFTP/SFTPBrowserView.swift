@@ -234,6 +234,9 @@ struct SFTPBrowserView: View {
     }
 
     private var deleteConfirmationMessage: String {
+        if deleteTargets.count == 1 {
+            return AppLocalization.resolve(AppStrings.SFTP.recursiveDeletionWarning, locale: locale)
+        }
         let paths = deleteTargets.prefix(6).map { sftpChannel.displayPath($0.path) }
             .joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
@@ -336,7 +339,7 @@ struct SFTPBrowserView: View {
             sftpChannel.connectIfNeeded(using: app.transfers)
             sftpChannel.startAutomaticRefresh()
         }
-        .alert(AppStrings.SFTP.newFolder.swiftUIKey, isPresented: $newFolderPresented) {
+        .alert(AppStrings.SFTP.newFolder, isPresented: $newFolderPresented) {
             TextField(AppStrings.SFTP.folderName.swiftUIKey, text: $newFolderName.singleLineText, axis: .horizontal)
                 .singleLinePaste()
                 .lineLimit(1)
@@ -348,7 +351,7 @@ struct SFTPBrowserView: View {
             }
         }
         .alert(
-            AppStrings.Common.rename.swiftUIKey,
+            AppStrings.Common.rename,
             isPresented: Binding(
                 get: { renameTarget != nil },
                 set: { if !$0 { renameTarget = nil } }
@@ -376,8 +379,8 @@ struct SFTPBrowserView: View {
             deleteTargets.count == 1
                 ? AppStrings.SFTP.deleteConfirmation(
                     deleteTargets.first.map { sftpChannel.displayPath($0.path) } ?? ""
-                ).swiftUIKey
-                : AppStrings.SFTP.deleteItemsConfirmation(deleteTargets.count).swiftUIKey,
+                )
+                : AppStrings.SFTP.deleteItemsConfirmation(deleteTargets.count),
             isPresented: Binding(
                 get: { !deleteTargets.isEmpty },
                 set: { if !$0 { deleteTargets = [] } }
@@ -406,7 +409,7 @@ struct SFTPBrowserView: View {
             Text(AppStrings.SFTP.applyToAllConflicts)
         }
         .alert(
-            AppStrings.SFTP.sftpError.swiftUIKey,
+            AppStrings.SFTP.sftpError,
             isPresented: Binding(
                 get: { sftpChannel.operationError != nil },
                 set: { if !$0 { sftpChannel.operationError = nil } }

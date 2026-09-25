@@ -71,7 +71,7 @@ struct MobileRootView: View {
         .onOpenURL(perform: scene.open)
         .focusedSceneValue(\.mobileScene, scene)
         .alert(
-            AppStrings.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
+            AppStrings.Workspace.openTelnetConnectionConfirmation,
             isPresented: Binding(
                 get: { scene.pendingExternalConnection != nil },
                 set: { if !$0 { scene.pendingExternalConnection = nil } }

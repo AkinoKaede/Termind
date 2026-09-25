@@ -152,7 +152,7 @@ struct MobileKeyEditor: View {
             }
         }
         .alert(
-            AppStrings.Keychain.unableToReadFile.swiftUIKey,
+            AppStrings.Keychain.unableToReadFile,
             isPresented: Binding(get: { fileError != nil }, set: { if !$0 { fileError = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { fileError = nil }

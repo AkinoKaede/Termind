@@ -640,7 +640,7 @@ struct ComposerView: View {
             }
         }
         .alert(
-            AppStrings.Assistant.attachmentError.swiftUIKey,
+            AppStrings.Assistant.attachmentError,
             isPresented: Binding(
                 get: { conversation.composer.attachmentImportError != nil },
                 set: { if !$0 { conversation.composer.attachmentImportError = nil } }

@@ -203,15 +203,22 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
-    func confirmationDialogsPassLocalizedResourcesDirectly() throws {
+    func dialogTitlesPassLocalizedResourcesDirectly() throws {
         let bridgedTitle = try Regex(
-            #"\.confirmationDialog\(\s*AppStrings\.[A-Za-z0-9_.]+\.swiftUIKey"#)
-        for directory in ["", "../TFI"] {
+            #"\.(?:alert|confirmationDialog)\([\s\S]*?\.swiftUIKey\s*,\s*isPresented:"#)
+        #expect(
+            ".confirmationDialog(flag ? AppStrings.A.swiftUIKey : AppStrings.B.swiftUIKey, isPresented:"
+                .firstMatch(of: bridgedTitle) != nil)
+        #expect(".alert((title ?? fallback).swiftUIKey, isPresented:".firstMatch(of: bridgedTitle) != nil)
+        #expect(
+            ".alert(AppStrings.Title, isPresented: flag) { Button(AppStrings.OK.swiftUIKey) {} }"
+                .firstMatch(of: bridgedTitle) == nil)
+        for directory in ["", "../TFI", "../Frameworks/TermindPresentation"] {
             for file in try swiftFiles(in: directory) {
                 let source = try String(contentsOf: file, encoding: .utf8)
                 #expect(
                     source.firstMatch(of: bridgedTitle) == nil,
-                    "Pass LocalizedStringResource directly to confirmationDialog in \(file.path)"
+                    "Pass LocalizedStringResource directly to dialog titles in \(file.path)"
                 )
             }
         }

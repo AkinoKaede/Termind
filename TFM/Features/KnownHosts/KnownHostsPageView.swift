@@ -264,7 +264,7 @@ struct KnownHostEditorView: View {
             Text(AppStrings.KnownHosts.deleteKnownHostWarning)
         }
         .alert(
-            AppStrings.KnownHosts.knownHostsOperationFailed.swiftUIKey,
+            AppStrings.KnownHosts.knownHostsOperationFailed,
             isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
         ) {
             Button(AppStrings.Common.ok.swiftUIKey) { deletionError = nil }
