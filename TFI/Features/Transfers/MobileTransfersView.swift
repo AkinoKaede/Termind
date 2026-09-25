@@ -31,7 +31,7 @@ struct MobileTransfersView: View {
             }
             MobileCardGrid {
                 ForEach(items) { transfer in
-                    MobileCard { transferCard(transfer) }
+                    transferItem(transfer)
                 }
             }
         }
@@ -52,6 +52,20 @@ struct MobileTransfersView: View {
         }
     }
 
+    @ViewBuilder
+    private func transferItem(_ transfer: SFTPTransfer) -> some View {
+        if openableURL(for: transfer) != nil || transfers.canPause(transfer.id) || transfer.state == .paused {
+            MobileActionCard(
+                action: { performDefaultAction(for: transfer.id) },
+                content: { transferCard(transfer) },
+                actions: { transferActions(for: transfer) }
+            )
+        } else {
+            MobileCard { transferCard(transfer) }
+                .contextMenu { transferActions(for: transfer) }
+        }
+    }
+
     private func transferCard(_ transfer: SFTPTransfer) -> some View {
         let active = transfer.state == .queued || transfer.state == .running
         return VStack(alignment: .leading, spacing: 12) {
@@ -60,25 +74,6 @@ struct MobileTransfersView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(transfer.fileName).font(.headline).lineLimit(1)
                     Text(transfer.statusLabel).font(.caption).foregroundStyle(tint(for: transfer))
-                }
-                Spacer(minLength: 8)
-                if transfers.canPause(transfer.id) {
-                    Button(AppStrings.SFTP.pauseTransfer.swiftUIKey, systemImage: "pause.circle") {
-                        transfers.pause(transfer.id)
-                    }
-                    .labelStyle(.iconOnly).font(.title3)
-                } else if transfer.state == .paused {
-                    Button(AppStrings.SFTP.resumeTransfer.swiftUIKey, systemImage: "play.circle") {
-                        transfers.resume(transfer.id)
-                    }
-                    .labelStyle(.iconOnly).font(.title3)
-                }
-                if active || transfer.state == .paused {
-                    Button(AppStrings.SFTP.cancelTransfer.swiftUIKey, systemImage: "xmark.circle.fill") {
-                        transfers.cancel(transfer.id)
-                    }
-                    .labelStyle(.iconOnly)
-                    .font(.title3)
                 }
             }
 
@@ -95,19 +90,53 @@ struct MobileTransfersView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(detailTint(for: transfer))
                 .lineLimit(2)
+        }
+    }
 
-            if transfer.direction == .download, transfer.state == .completed {
-                let url = URL(fileURLWithPath: transfer.localPath)
-                if FileManager.default.fileExists(atPath: url.path) {
-                    HStack {
-                        Button(AppStrings.Common.open.swiftUIKey, systemImage: "eye") { previewURL = url }
-                        ShareLink(item: url) {
-                            Label(AppStrings.Common.share.swiftUIKey, systemImage: "square.and.arrow.up")
-                        }
-                    }
-                    .frame(minHeight: 44)
-                }
+    @ViewBuilder
+    private func transferActions(for transfer: SFTPTransfer) -> some View {
+        if let url = openableURL(for: transfer) {
+            Button(AppStrings.Common.open.swiftUIKey, systemImage: "eye") { previewURL = url }
+            ShareLink(item: url) {
+                Label(AppStrings.Common.share.swiftUIKey, systemImage: "square.and.arrow.up")
             }
+            Divider()
+        }
+        if transfers.canPause(transfer.id) {
+            Button(AppStrings.Metrics.pause.swiftUIKey, systemImage: "pause.circle") {
+                transfers.pause(transfer.id)
+            }
+        } else if transfer.state == .paused {
+            Button(AppStrings.Metrics.resume.swiftUIKey, systemImage: "play.circle") {
+                transfers.resume(transfer.id)
+            }
+        }
+        switch transfer.state {
+        case .queued, .running, .paused:
+            Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark.circle.fill") {
+                transfers.cancel(transfer.id)
+            }
+        case .completed, .cancelled, .failed:
+            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                transfers.removeFinished(transfer.id)
+            }
+        }
+    }
+
+    private func openableURL(for transfer: SFTPTransfer) -> URL? {
+        guard transfer.direction == .download, transfer.state == .completed else { return nil }
+        let url = URL(fileURLWithPath: transfer.localPath)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private func performDefaultAction(for id: SFTPTransfer.ID) {
+        guard let transfer = transfers.sftpTransfers.first(where: { $0.id == id }) else { return }
+        if let url = openableURL(for: transfer) {
+            previewURL = url
+        } else if transfers.canPause(id) {
+            transfers.pause(id)
+        } else if transfer.state == .paused {
+            transfers.resume(id)
         }
     }
 

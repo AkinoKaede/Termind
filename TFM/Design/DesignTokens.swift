@@ -267,11 +267,12 @@ nonisolated enum Metrics {
 
     enum TransferCenter {
         static let width: CGFloat = 360
-        static let estimatedRowHeight: CGFloat = 92
+        static let estimatedRowHeight: CGFloat = 104
         static let maxListHeight: CGFloat = 420
 
         static func listHeight(itemCount: Int) -> CGFloat {
-            min(maxListHeight, CGFloat(max(0, itemCount)) * estimatedRowHeight)
+            let count = max(0, itemCount)
+            return min(maxListHeight, CGFloat(count) * estimatedRowHeight + CGFloat(max(0, count - 1)))
         }
     }
 

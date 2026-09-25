@@ -1917,6 +1917,17 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
     }
 
+    /// Removes one terminal record without affecting its downloaded file or live transfers.
+    public func removeFinishedSFTPTransfer(_ id: SFTPTransfer.ID) {
+        guard let transfer = sftpTransfer(id) else { return }
+        switch transfer.state {
+        case .completed, .cancelled, .failed:
+            sftpTransfers.removeAll { $0.id == id }
+        case .queued, .running, .paused:
+            break
+        }
+    }
+
     /// Files one or more hosts into a group, preserving the order supplied.
     ///
     /// `next` is the host that should follow the moved batch; `nil` appends it.

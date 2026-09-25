@@ -571,7 +571,11 @@ private struct TransferCenterPopover: View {
                                 canPause: coordinator.canPause(item.id),
                                 pause: { coordinator.pause(item.id) },
                                 resume: { coordinator.resume(item.id) },
-                                cancel: { coordinator.cancel(item.id) }
+                                cancel: { coordinator.cancel(item.id) },
+                                delete: {
+                                    coordinator.removeFinished(item.id)
+                                    if coordinator.sftpTransfers.isEmpty { dismiss() }
+                                }
                             )
                             if item.id != transferItems.last?.id { Divider() }
                         }
@@ -616,12 +620,19 @@ private struct TransferCenterRow: View {
     let pause: () -> Void
     let resume: () -> Void
     let cancel: () -> Void
+    let delete: () -> Void
 
     private var isActive: Bool {
         transfer.state == .queued || transfer.state == .running
     }
     private var isFailure: Bool {
         if case .failed = transfer.state { true } else { false }
+    }
+    private var isFinished: Bool {
+        switch transfer.state {
+        case .completed, .cancelled, .failed: true
+        case .queued, .running, .paused: false
+        }
     }
     private var detail: String {
         if case .failed(let reason) = transfer.state { return reason }
@@ -637,65 +648,79 @@ private struct TransferCenterRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: Metrics.Space.l) {
-            Image(systemName: transfer.direction.symbol)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(iconStyle)
-                .frame(width: 30, height: 30)
-                .background(
-                    .primary.opacity(0.055),
-                    in: .rect(cornerRadius: Metrics.Radius.medium)
-                )
+        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+            HStack(alignment: .top, spacing: Metrics.Space.l) {
+                Image(systemName: transfer.direction.symbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(iconStyle)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        .primary.opacity(0.055),
+                        in: .rect(cornerRadius: Metrics.Radius.medium)
+                    )
 
-            VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-                HStack(spacing: Metrics.Space.s) {
+                VStack(alignment: .leading, spacing: Metrics.Space.xs) {
                     Text(transfer.fileName)
                         .font(.body.weight(.medium))
                         .lineLimit(1)
-                    Spacer(minLength: Metrics.Space.s)
                     Text(transfer.statusLabel)
                         .font(.caption)
                         .foregroundStyle(stateStyle)
                         .lineLimit(1)
                 }
-
-                Text(route)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                Spacer(minLength: Metrics.Space.s)
 
                 if isActive {
-                    ProgressView(value: transfer.progress)
-                        .progressViewStyle(.linear)
+                    controlButton("xmark.circle.fill", title: AppStrings.SFTP.cancelTransfer, action: cancel)
+                } else if transfer.state == .paused {
+                    controlButton("play.circle", title: AppStrings.SFTP.resumeTransfer, action: resume)
                 }
-
-                Text(detail)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(detailStyle)
-                    .lineLimit(isFailure ? 2 : 1)
             }
 
+            Text(route)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            if isActive {
+                ProgressView(value: transfer.progress)
+                    .progressViewStyle(.linear)
+            }
+            Text(detail)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(detailStyle)
+                .lineLimit(isFailure ? 2 : 1)
+        }
+        .padding(.vertical, Metrics.Space.m)
+        .frame(maxWidth: .infinity, minHeight: Metrics.TransferCenter.estimatedRowHeight, alignment: .topLeading)
+        .padding(.horizontal, Metrics.Space.l)
+        .contentShape(.rect)
+        .contextMenu {
             if canPause {
-                Button(AppStrings.SFTP.pauseTransfer.swiftUIKey, systemImage: "pause.circle", action: pause)
-                    .labelStyle(.iconOnly).buttonStyle(.plain).help(AppStrings.SFTP.pauseTransfer.swiftUIKey)
+                Button(AppStrings.Metrics.pause.swiftUIKey, systemImage: "pause.circle", action: pause)
             } else if transfer.state == .paused {
-                Button(AppStrings.SFTP.resumeTransfer.swiftUIKey, systemImage: "play.circle", action: resume)
-                    .labelStyle(.iconOnly).buttonStyle(.plain).help(AppStrings.SFTP.resumeTransfer.swiftUIKey)
-            }
-            if isActive || transfer.state == .paused {
-                Button(action: cancel) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .termindInputAwareFocusEffect()
-                .help(AppStrings.SFTP.cancelTransfer.swiftUIKey)
-                .accessibilityLabel(AppStrings.SFTP.cancelTransfer.swiftUIKey)
+                Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark.circle.fill", action: cancel)
+            } else if isFinished {
+                Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: delete)
             }
         }
-        .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.l)
+    }
+
+    private func controlButton(
+        _ symbol: String, title: LocalizedStringResource, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 18))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .termindInputAwareFocusEffect()
+        .help(title.swiftUIKey)
+        .accessibilityLabel(title.swiftUIKey)
     }
 
     private var iconStyle: AnyShapeStyle {

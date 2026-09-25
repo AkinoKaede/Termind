@@ -106,6 +106,34 @@ struct SFTPFeatureTests {
     }
 
     @Test
+    func removingOneFinishedTransferPreservesActiveWorkAndDownloadedFile() throws {
+        let localURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data("downloaded".utf8).write(to: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        let queued = SFTPTransfer(localPath: "/tmp/queued", remotePath: "/queued", state: .queued)
+        let running = SFTPTransfer(localPath: "/tmp/running", remotePath: "/running", state: .running)
+        let paused = SFTPTransfer(localPath: "/tmp/paused", remotePath: "/paused", state: .paused)
+        let completed = SFTPTransfer(
+            direction: .download, localPath: localURL.path, remotePath: "/completed", state: .completed)
+        let cancelled = SFTPTransfer(localPath: "/tmp/cancelled", remotePath: "/cancelled", state: .cancelled)
+        let failed = SFTPTransfer(localPath: "/tmp/failed", remotePath: "/failed", state: .failed("lost"))
+        let store = HostLibraryModel(sftpTransfers: [queued, running, paused, completed, cancelled, failed])
+        let coordinator = SFTPTransferCoordinator(store: store)
+
+        for id in [queued.id, running.id, paused.id, UUID()] { coordinator.removeFinished(id) }
+        #expect(store.sftpTransfers.count == 6)
+
+        coordinator.removeFinished(completed.id)
+        #expect(store.sftpTransfers.map(\.id) == [queued.id, running.id, paused.id, cancelled.id, failed.id])
+        #expect(FileManager.default.fileExists(atPath: localURL.path))
+
+        coordinator.removeFinished(cancelled.id)
+        coordinator.removeFinished(failed.id)
+        #expect(store.sftpTransfers.map(\.id) == [queued.id, running.id, paused.id])
+    }
+
+    @Test
     func remotePathsNormalizeWithoutEscapingRoot() {
         #expect(RemotePath.normalized(" /srv//releases/../current/ ") == "/srv/current")
         #expect(RemotePath.normalized("../../etc") == "/etc")

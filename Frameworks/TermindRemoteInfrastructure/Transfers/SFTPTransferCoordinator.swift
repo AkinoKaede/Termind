@@ -485,6 +485,8 @@ public final class SFTPTransferCoordinator {
 
     public func clearFinished() { store.clearFinishedSFTPTransfers() }
 
+    public func removeFinished(_ id: SFTPTransfer.ID) { store.removeFinishedSFTPTransfer(id) }
+
     private func schedule() {
         for sftpTransfer in store.sftpTransfers where sftpTransfer.state == .queued {
             guard activeTasks[sftpTransfer.id] == nil, admissionTasks[sftpTransfer.id] == nil,
