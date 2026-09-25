@@ -2,10 +2,6 @@ import SwiftUI
 import TermindDomain
 import TermindPresentation
 
-#if canImport(AppKit)
-    import AppKit
-#endif
-
 struct MCPServerSettings: View {
     @Environment(AppModel.self) private var app
     @State private var showsToken = false
@@ -66,28 +62,40 @@ struct MCPServerSettings: View {
                     .accessibilityLabel(
                         showsToken
                             ? AppStrings.Settings.hideSecret.swiftUIKey : AppStrings.Settings.showSecret.swiftUIKey)
-                    Button(AppStrings.Common.copy.swiftUIKey) { copy(displayToken) }
+                    HStack(spacing: Metrics.Space.xxs) {
+                        CopyButton(text: displayToken)
+                            .disabled(displayToken.isEmpty)
+                        if !displayToken.isEmpty {
+                            Button {
+                                server.rotateToken()
+                                showsToken = true
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .frame(width: 28, height: 28)
+                                    .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .help(Text(AppStrings.Settings.rotateToken))
+                            .accessibilityLabel(Text(AppStrings.Settings.rotateToken))
+                        }
+                    }
                 }
             }
-            HStack {
-                Button(
-                    displayToken.isEmpty
-                        ? AppStrings.Settings.generateToken.swiftUIKey : AppStrings.Settings.rotateToken.swiftUIKey
-                ) {
-                    server.rotateToken()
-                    showsToken = true
-                }
-                if !displayToken.isEmpty {
-                    Text(AppStrings.Settings.rotatingDisconnectsEveryActiveMcpSession)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            if !displayToken.isEmpty {
+                Text(AppStrings.Settings.rotatingDisconnectsEveryActiveMcpSession)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             if let error = server.tokenStorageError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+        }
+        .task(id: app.proAccess.canUse(.mcpServer)) {
+            if app.proAccess.canUse(.mcpServer) { _ = server.ensureToken() }
         }
 
         clientSetupSection
@@ -181,9 +189,6 @@ struct MCPServerSettings: View {
                 }
             }
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                if displayToken.isEmpty {
-                    Text(AppStrings.Settings.generateATokenToCopyClientSetupCommands)
-                }
                 if setup.bridgePath == nil {
                     Text(AppStrings.Settings.missingMCPBridge)
                 }
@@ -205,13 +210,6 @@ struct MCPServerSettings: View {
         case .failed: .red
         case .stopped: .secondary
         }
-    }
-
-    private func copy(_ value: String) {
-        #if canImport(AppKit)
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(value, forType: .string)
-        #endif
     }
 }
 

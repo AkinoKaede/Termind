@@ -22,7 +22,7 @@ struct MCPClientSetupCommand {
         guard !token.isEmpty else { return nil }
         if client.requiresBridge, bridgePath?.isEmpty != false { return nil }
 
-        let url = "http://127.0.0.1:\(port)/mcp"
+        let url = "http://localhost:\(port)/mcp"
         let quotedURL = Self.quote(url)
         let header = Self.quote("Authorization: Bearer \(token)")
         let urlEnvironment = Self.quote("TERMIND_MCP_URL=\(url)")

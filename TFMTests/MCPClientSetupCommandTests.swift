@@ -17,7 +17,7 @@ struct MCPClientSetupCommandTests {
     @Test
     func eachClientReceivesItsSupportedRegistrationArguments() throws {
         let setup = MCPClientSetupCommand(port: 7391, token: "test-token", bridgePath: bridge)
-        let url = "http://127.0.0.1:7391/mcp"
+        let url = "http://localhost:7391/mcp"
         let cases: [(MCPClientSetupCommand.Client, [String])] = [
             (
                 .codex,
@@ -69,7 +69,7 @@ struct MCPClientSetupCommandTests {
         let command = try #require(updated.command(for: client))
         let arguments = try shellArguments(command)
         #expect(command != oldCommand)
-        #expect(arguments.contains { $0.contains("http://127.0.0.1:18443/mcp") })
+        #expect(arguments.contains { $0.contains("http://localhost:18443/mcp") })
         #expect(arguments.contains { $0.contains("rotated-token") })
         #expect(!command.contains("old-token"))
         #expect(!command.contains(":7391/"))

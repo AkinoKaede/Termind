@@ -20,25 +20,15 @@ struct CopyButton: View {
                 hasCopied = false
             }
         } label: {
-            if let title {
-                Label(
-                    hasCopied ? AppStrings.Common.copied.swiftUIKey : title.swiftUIKey,
-                    systemImage: hasCopied ? "checkmark" : "doc.on.doc"
-                )
+            Image(systemName: hasCopied ? "checkmark" : "doc.on.doc")
                 .contentTransition(.symbolEffect(.replace))
-                .frame(minHeight: 28)
+                .frame(width: 28, height: 28)
                 .contentShape(.rect)
-            } else {
-                Image(systemName: hasCopied ? "checkmark" : "doc.on.doc")
-                    .contentTransition(.symbolEffect(.replace))
-                    .frame(width: 28, height: 28)
-                    .contentShape(.rect)
-            }
         }
         .buttonStyle(.plain)
-        .font(.caption)
+        .font(.body)
         .foregroundStyle(.secondary)
-        .help(Text(title ?? AppStrings.Common.copy))
+        .help(Text(AppStrings.Common.copy))
         .accessibilityLabel(Text(title ?? AppStrings.Common.copy))
     }
 }
