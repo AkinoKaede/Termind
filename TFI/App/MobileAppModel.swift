@@ -265,6 +265,7 @@ final class MobileAppModel {
             repository: MemoryIndexedAgentRepository(
                 base: SwiftDataAgentRunRepository(context: ModelContext(container)), memory: memory),
             memory: memory,
+            modelSelectionStore: SwiftDataAssistantModelSelectionStore(context: ModelContext(container)),
             hostServices: AgentHostServices.live(
                 store: library,
                 coordinator: connectionCoordinator,
@@ -337,6 +338,7 @@ final class MobileAppModel {
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)
         }
+        ai.didChange = { [weak assistant] in assistant?.repairUnavailableModels() }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)

@@ -635,6 +635,7 @@ struct MobileAssistantComposer: View {
                 Task { await model.compact(conversation, instructions: instructions) }
             },
             send: model.send,
+            selectModel: { model.selectModel($0) },
             authorizeRemoteMCP: { pro.require(.remoteMCP) },
             localized: { AppLocalization.string($0, locale: locale) }
         )

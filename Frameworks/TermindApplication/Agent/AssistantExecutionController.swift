@@ -13,6 +13,8 @@ public final class AssistantExecutionController {
     private let skills: SkillLibraryModel
     private let memory: MemoryModel?
     private let agentRunRepository: any AgentRunPersisting
+    private let modelSelections: AssistantModelSelectionController?
+    public var reportModelSelectionError: (@MainActor (String) -> Void)?
     private let authorize: @MainActor () -> Bool
     private let makeRegistry: RegistryFactory
     private let title: @MainActor (ConversationTitleContext) async throws -> String
@@ -98,6 +100,8 @@ public final class AssistantExecutionController {
     public init(
         ai: AIConfigurationModel, skills: SkillLibraryModel, repository: any AgentRunPersisting,
         memory: MemoryModel? = nil,
+        modelSelections: AssistantModelSelectionController? = nil,
+        reportModelSelectionError: (@MainActor (String) -> Void)? = nil,
         authorize: @escaping @MainActor () -> Bool, makeRegistry: @escaping RegistryFactory,
         title: @escaping @MainActor (ConversationTitleContext) async throws -> String,
         logger: Logger = ApplicationLogger.disabled("termind.agent")
@@ -105,6 +109,8 @@ public final class AssistantExecutionController {
         self.ai = ai
         self.skills = skills
         self.memory = memory
+        self.modelSelections = modelSelections
+        self.reportModelSelectionError = reportModelSelectionError
         agentRunRepository = repository
         self.authorize = authorize
         self.makeRegistry = makeRegistry
@@ -530,6 +536,12 @@ public final class AssistantExecutionController {
         beginPreparation: Bool,
         supersedePreparation: Bool = false
     ) -> RunCapture? {
+        do {
+            try modelSelections?.prepareForSend(conversation)
+        } catch {
+            reportModelSelectionError?(error.localizedDescription)
+            return nil
+        }
         let id = UUID()
         let chat = ai.resolve(conversation: conversation.model)
         let secret = chat.flatMap { ai.modelSecret(for: $0.provider) }

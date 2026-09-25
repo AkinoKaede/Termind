@@ -34,13 +34,12 @@ public final class AIConfigurationModel {
 
     /// The last model picked in a conversation's model menu.
     ///
-    /// This is what makes the app usable with no configuration at all: choosing
-    /// a model once, in the place you were already looking, quietly becomes the
-    /// default for every conversation that has not chosen. It sits below an
-    /// explicit Chat assignment and above first-available in `resolve`, so it
-    /// never overrides a decision the user made in Settings. It is persisted on
-    /// this device but deliberately excluded from Settings sync.
+    /// Automatic uses this device-local choice when creating a conversation or
+    /// repairing one whose fixed model is unavailable. An explicit Chat role
+    /// assignment takes precedence, and existing valid conversations keep their
+    /// own model. This selection is excluded from Settings sync.
     public private(set) var lastSelectedModel: AIModelRef?
+    public var didChange: (() -> Void)?
 
     /// The approval posture new and otherwise-unset conversations follow.
     /// Stored in local preferences rather than provider configuration so it
@@ -157,6 +156,12 @@ public final class AIConfigurationModel {
         return (provider, model)
     }
 
+    public func lookupChat(_ ref: AIModelRef) -> (provider: ModelProvider, model: AIModel)? {
+        guard let hit = lookup(ref), hit.provider.chatModels.contains(where: { $0.id == ref.modelID })
+        else { return nil }
+        return hit
+    }
+
     /// The fallback of last resort: the first chat model of the first enabled
     /// provider, in the order the lists are shown.
     public var firstAvailableModel: AIModelRef? {
@@ -183,7 +188,7 @@ public final class AIConfigurationModel {
     /// The practical effect: add one provider, press Fetch, and the assistant
     /// works — the role pickers are for tuning, not for setup.
     public func resolve(_ role: AIRole) -> (provider: ModelProvider, model: AIModel)? {
-        if let ref = roles[role], let hit = lookup(ref) { return hit }
+        if let ref = roles[role], let hit = role == .chat ? lookupChat(ref) : lookup(ref) { return hit }
         if role == .guardian {
             if let codex = firstGuardianModel(named: "codex-auto-review") {
                 return codex
@@ -202,9 +207,9 @@ public final class AIConfigurationModel {
     }
 
     private func resolveAutomaticChat() -> (provider: ModelProvider, model: AIModel)? {
-        if let ref = roles[.chat], let hit = lookup(ref) { return hit }
-        if let ref = lastSelectedModel, let hit = lookup(ref) { return hit }
-        if let ref = firstAvailableModel, let hit = lookup(ref) { return hit }
+        if let ref = roles[.chat], let hit = lookupChat(ref) { return hit }
+        if let ref = lastSelectedModel, let hit = lookupChat(ref) { return hit }
+        if let ref = firstAvailableModel, let hit = lookupChat(ref) { return hit }
         return nil
     }
 
@@ -272,16 +277,11 @@ public final class AIConfigurationModel {
         id.lowercased().split(separator: "/").last.map(String.init) ?? id.lowercased()
     }
 
-    /// The model a conversation will actually use.
-    ///
-    /// Its own choice if it made one, and whatever `.chat` resolves to if it did
-    /// not. A conversation is left unset rather than assigned a model on
-    /// creation, so this is the only place that difference has to be understood
-    /// — the Assistant sidebar's model menu, the composer's caption, and the status bar
-    /// all ask here instead of each reimplementing the fallback slightly
-    /// differently.
+    /// A fixed conversation choice wins. New drafts and restored conversations
+    /// receive a fixed choice from `AssistantModelSelectionController`; this
+    /// fallback covers unavailable models until that controller saves a repair.
     public func resolve(conversation model: AIModelRef?) -> (provider: ModelProvider, model: AIModel)? {
-        if let model, let hit = lookup(model) { return hit }
+        if let model, let hit = lookupChat(model) { return hit }
         return resolve(.chat)
     }
 
@@ -368,6 +368,7 @@ public final class AIConfigurationModel {
         self.webSearch = webSearch
         secrets.removeAll()
         storageError = nil
+        didChange?()
     }
 
     // MARK: - Secrets
@@ -629,10 +630,14 @@ public final class AIConfigurationModel {
     private func mutatePersistedState(_ mutation: () -> Void) -> Bool {
         let previous = persistedSnapshot
         mutation()
-        guard let persistence else { return true }
+        guard let persistence else {
+            didChange?()
+            return true
+        }
         do {
             try persistence.save(persistedSnapshot)
             storageError = nil
+            didChange?()
             return true
         } catch {
             modelProviders = previous.providers

@@ -264,6 +264,36 @@ struct SettingsSyncTests {
     }
 
     @Test
+    func automaticChatRoleSyncsWithoutOverwritingTheOtherDevicesLastModel() throws {
+        let (sourceContainer, source, _) = try fixture()
+        let (destinationContainer, destination, _) = try fixture()
+        defer { withExtendedLifetime((sourceContainer, destinationContainer)) {} }
+        var provider = provider()
+        provider.models.append(AIModel(id: "second-chat"))
+        let first = AIModelRef(modelProviderID: provider.id, modelID: provider.models[0].id)
+        let second = AIModelRef(modelProviderID: provider.id, modelID: provider.models[1].id)
+
+        var sourceConfiguration = try source.load().configuration
+        sourceConfiguration.providers = [provider]
+        sourceConfiguration.roles[.chat] = first
+        sourceConfiguration.lastSelectedModel = first
+        try source.saveConfiguration(sourceConfiguration)
+        sourceConfiguration.roles[.chat] = nil
+        try source.saveConfiguration(sourceConfiguration)
+
+        var localConfiguration = try destination.load().configuration
+        localConfiguration.providers = [provider]
+        localConfiguration.lastSelectedModel = second
+        try AIPersistence(context: destination.context).save(localConfiguration)
+
+        let applied = try destination.applyRemote(source.journal.pendingEnvelopes())
+        #expect(applied.snapshot.configuration.roles[.chat] == nil)
+        #expect(applied.snapshot.configuration.lastSelectedModel == second)
+        #expect(try !source.journal.pendingEnvelopes().contains { $0.key.kind == .selection })
+        #expect(try destination.load().configuration.lastSelectedModel == second)
+    }
+
+    @Test
     func legacySecurityReviewRecordDecodesAsCanonicalGuardian() throws {
         let canonical = envelope(.role(.guardian, nil))
         let data = try legacyGuardianData(canonical)

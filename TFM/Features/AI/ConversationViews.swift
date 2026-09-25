@@ -1038,7 +1038,16 @@ struct ComposerView: View {
             compact: { instructions in
                 Task { await app.compact(conversation, instructions: instructions) }
             },
-            send: sendDraft
+            send: sendDraft,
+            selectModel: { ref in
+                do {
+                    try app.assistantModelSelections.select(ref, for: conversation)
+                    return true
+                } catch {
+                    window.assistantOperationError = error.localizedDescription
+                    return false
+                }
+            }
         )
     }
 
@@ -1674,8 +1683,12 @@ struct ComposerView: View {
     /// app-wide fallback for conversations that have not chosen one.
     private func select(_ model: AIModel, on provider: ModelProvider) {
         let ref = AIModelRef(modelProviderID: provider.id, modelID: model.id)
-        conversation.model = ref
-        app.aiConfiguration.select(ref)
+        do {
+            try app.assistantModelSelections.select(ref, for: conversation)
+        } catch {
+            window.assistantOperationError = error.localizedDescription
+            return
+        }
         let resolution = ModelCapabilityResolver.reasoning(model: model, provider: provider)
         conversation.reasoningEffort = resolution.clamp(conversation.reasoningEffort)
     }

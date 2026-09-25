@@ -984,13 +984,9 @@ public final class ConversationModel: Identifiable {
     /// used by `model` below.
     public var permissionMode: AgentPermissionMode?
 
-    /// The model this conversation was told to use, if it was told.
-    ///
-    /// `nil` is the normal state and is not a missing value — it means "whatever
-    /// the Chat role resolves to", which `AIConfigurationModel.resolve(_:)` answers. Keeping
-    /// it unset rather than assigning a default on creation is what lets a
-    /// change in Settings move every conversation that never chose, and lets one
-    /// that did keep its choice.
+    /// The model fixed for this conversation. New drafts are seeded from the
+    /// Chat role and durable conversations restore their saved reference.
+    /// `nil` is possible only before a model is available or in legacy callers.
     ///
     /// A ref rather than a name: two providers can both offer `gpt-5`, and which
     /// key pays for it is the question. The store is not held here — views

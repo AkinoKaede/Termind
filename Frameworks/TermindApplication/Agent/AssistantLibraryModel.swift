@@ -70,7 +70,7 @@ public final class AssistantConversationStore {
         return index
     }
 
-    public func restore(_ stored: [StoredAgentConversation]) {
+    public func restore(_ stored: [StoredAgentConversation], modelSelections: [UUID: AIModelRef] = [:]) {
         let existingIDs = Set(conversations.map(\.id))
         let restored = stored.filter { !existingIDs.contains($0.id) }.map { value in
             let conversation = ConversationModel(
@@ -112,6 +112,7 @@ public final class AssistantConversationStore {
             // Empty is "never summarized", not a name of nothing — `derivedTitle`
             // has to be able to tell those apart to fall back.
             conversation.title = value.title.isEmpty ? nil : value.title
+            conversation.model = modelSelections[value.id]
             conversation.customTitle =
                 value.metadata.customTitle.isEmpty
                 ? nil : value.metadata.customTitle
@@ -156,6 +157,9 @@ public final class AssistantConversationStore {
 public final class AssistantLibraryModel {
     private var store: AssistantConversationStore
     public var selectedConversationID: ConversationModel.ID?
+    public var modelSelections: AssistantModelSelectionController? {
+        didSet { modelSelections?.seed(draftConversation) }
+    }
     /// Window-local scratch space for the Assistant destination's New Chat surface.
     /// It is promoted into the shared history only after its first real send,
     /// so merely entering Assistant never creates an empty list row.
@@ -251,7 +255,7 @@ public final class AssistantLibraryModel {
 
     @discardableResult
     public func createConversation() -> ConversationModel {
-        let conversation = ConversationModel()
+        let conversation = newConversation()
         store.insert(conversation)
         selectedConversationID = conversation.id
         return conversation
@@ -277,7 +281,7 @@ public final class AssistantLibraryModel {
     @discardableResult
     public func resetDraftConversation() -> ConversationModel {
         selectedConversationID = nil
-        draftConversation = ConversationModel()
+        draftConversation = newConversation()
         return draftConversation
     }
 
@@ -287,7 +291,7 @@ public final class AssistantLibraryModel {
     public func startDraftConversation() -> ConversationModel? {
         let conversation = draftConversation
         guard let started = startConversation(conversation) else { return nil }
-        draftConversation = ConversationModel()
+        draftConversation = newConversation()
         return started
     }
 
@@ -310,8 +314,14 @@ public final class AssistantLibraryModel {
         guard conversation === draftConversation,
             promoteCapturedConversation(conversation)
         else { return false }
-        draftConversation = ConversationModel()
+        draftConversation = newConversation()
         return true
+    }
+
+    private func newConversation() -> ConversationModel {
+        let conversation = ConversationModel()
+        modelSelections?.seed(conversation)
+        return conversation
     }
 
     /// Promotes the sidebar's scratch conversation into history on its first
@@ -341,8 +351,8 @@ public final class AssistantLibraryModel {
         selectedConversationID = (pinnedConversations + activeConversations).first?.id
     }
 
-    public func restore(_ stored: [StoredAgentConversation]) {
-        store.restore(stored)
+    public func restore(_ stored: [StoredAgentConversation], modelSelections: [UUID: AIModelRef] = [:]) {
+        store.restore(stored, modelSelections: modelSelections)
         if let selectedConversationID,
             conversation(id: selectedConversationID) == nil
         {

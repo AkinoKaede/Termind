@@ -110,6 +110,7 @@ final class AppModel {
     /// `AssistantConversationStore`.
     private let assistantConversations: AssistantConversationStore
     private let agentRunRepository: any AgentRunPersisting
+    let assistantModelSelections: AssistantModelSelectionController
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
     private let agentAuthentication: AgentSSHAuthenticationRegistry
@@ -202,6 +203,9 @@ final class AppModel {
         serialPorts = dependencies.serialPortService
         agentRunRepository = MemoryIndexedAgentRepository(
             base: dependencies.agentRunRepository ?? InMemoryAgentRunRepository(), memory: memory)
+        assistantModelSelections = AssistantModelSelectionController(
+            ai: ai,
+            store: dependencies.assistantModelSelectionStore ?? InMemoryAssistantModelSelectionStore())
         let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
         let agentHostServices = AgentHostServices.live(
             store: hosts,
@@ -336,6 +340,7 @@ final class AppModel {
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)
         }
+        ai.didChange = { [weak self] in self?.repairUnavailableAssistantModels() }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
@@ -353,6 +358,16 @@ final class AppModel {
             deviceSync?.start()
             metricsSync?.start()
             settingsSync?.start()
+        }
+    }
+
+    private func repairUnavailableAssistantModels() {
+        do {
+            try assistantModelSelections.repairUnavailable(in: assistantConversations.conversations)
+        } catch {
+            for window in windows.values.compactMap(\.value) {
+                window.assistantOperationError = error.localizedDescription
+            }
         }
     }
 
@@ -405,10 +420,16 @@ final class AppModel {
     }
 
     @ObservationIgnored private lazy var assistantOperations = AssistantConversationOperations(
-        repository: agentRunRepository)
+        repository: agentRunRepository, modelSelections: assistantModelSelections)
 
     @ObservationIgnored private lazy var assistantExecution = AssistantExecutionController(
         ai: ai, skills: skills, repository: agentRunRepository, memory: memory,
+        modelSelections: assistantModelSelections,
+        reportModelSelectionError: { [weak self] message in
+            for window in self?.windows.values.compactMap(\.value) ?? [] {
+                window.assistantOperationError = message
+            }
+        },
         authorize: { [weak self] in
             guard let self, !self.isTerminating else { return false }
             return self.proAccess.require(.assistant)
@@ -519,6 +540,7 @@ final class AppModel {
         window.commandHistoryStore = commandHistory
         window.sftpHistoryStore = sftpHistory
         window.assistantLibrary.adopt(assistantConversations)
+        window.assistantLibrary.modelSelections = assistantModelSelections
         window.assistantCommands = AssistantConversationCommands(
             delete: { [weak self] id in self?.deleteAgentConversation(id) },
             togglePin: { [weak self, weak window] id in
@@ -544,13 +566,17 @@ final class AppModel {
             }
         )
         Task { [agentRunRepository, weak window, weak self] in
-            guard let restored = try? await agentRunRepository.loadConversations(),
-                window?.isClosed == false
-            else { return }
-            let visible = restored.filter {
-                self?.deletedAgentConversationIDs.contains($0.id) != true
+            do {
+                let restored = try await agentRunRepository.loadConversations()
+                guard window?.isClosed == false else { return }
+                let visible = restored.filter {
+                    self?.deletedAgentConversationIDs.contains($0.id) != true
+                }
+                let selections = try self?.assistantModelSelections.selectionsForRestore(visible) ?? [:]
+                window?.assistantLibrary.restore(visible, modelSelections: selections)
+            } catch {
+                window?.assistantOperationError = error.localizedDescription
             }
-            window?.assistantLibrary.restore(visible)
         }
     }
 

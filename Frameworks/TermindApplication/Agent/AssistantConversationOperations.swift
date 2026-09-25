@@ -5,9 +5,16 @@ import Foundation
 @MainActor
 public final class AssistantConversationOperations {
     private let repository: any AgentRunPersisting
+    private let modelSelections: AssistantModelSelectionController?
     private var pending = Set<UUID>()
 
-    public init(repository: any AgentRunPersisting) { self.repository = repository }
+    public init(
+        repository: any AgentRunPersisting,
+        modelSelections: AssistantModelSelectionController? = nil
+    ) {
+        self.repository = repository
+        self.modelSelections = modelSelections
+    }
 
     public func setArchived(_ value: Bool, conversation: ConversationModel) async throws {
         await conversation.cancelPendingAgentPreparationAndWait()
@@ -106,6 +113,12 @@ public final class AssistantConversationOperations {
                     applicationName: TermindAgentPolicy.scratchDirectoryName)
             }.value
             try await repository.createConversation(stored)
+            do {
+                try modelSelections?.persistFork(fork)
+            } catch {
+                try? await repository.deleteConversation(fork.id)
+                throw error
+            }
             return fork
         } catch {
             try? await AgentScratchWorkspace(

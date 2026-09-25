@@ -273,7 +273,7 @@ struct CloudSyncSafetyPersistenceTests {
         #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Existing data"])
         #expect(!TermindSchemaV30.models.contains { $0 == PersistentCloudSyncQuarantine.self })
         #expect(TermindSchemaV31.models.contains { $0 == PersistentCloudSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV38.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV39.versionIdentifier)
     }
 
     private func writeInterruptedFetch(

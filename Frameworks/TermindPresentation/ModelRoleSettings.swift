@@ -4,9 +4,7 @@ import TermindApplication
 
 /// The "Model Roles" section: which model answers which job.
 ///
-/// Chat always names the model that will actually answer, matching the concrete-only
-/// model picker in the Assistant. Each auxiliary role supplies the label for its own
-/// automatic resolution behavior.
+/// An unset Chat role follows the device's last manual choice for new conversations.
 public struct ModelRoleSettings: View {
     let ai: AIConfigurationModel
 
@@ -43,9 +41,7 @@ private struct RolePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Picker(role.displayName, selection: selection) {
-                if role != .chat {
-                    Text(role.unsetLabel).tag(AIModelRef?.none)
-                }
+                Text(role.unsetLabel).tag(AIModelRef?.none)
 
                 // Grouped by provider, because the same model id can appear
                 // under two of them and the provider is the only thing that
@@ -59,7 +55,6 @@ private struct RolePicker: View {
                     }
                 }
             }
-            .disabled(modelProviders.isEmpty)
 
             Text(role.detail)
                 .font(.caption)
@@ -71,9 +66,7 @@ private struct RolePicker: View {
     private var selection: Binding<AIModelRef?> {
         Binding(
             get: {
-                if let assignment = ai.assignment(for: role) { return assignment }
-                guard role == .chat, let resolved = ai.resolve(.chat) else { return nil }
-                return AIModelRef(modelProviderID: resolved.provider.id, modelID: resolved.model.id)
+                ai.assignment(for: role)
             },
             set: { ai.assign($0, to: role) }
         )

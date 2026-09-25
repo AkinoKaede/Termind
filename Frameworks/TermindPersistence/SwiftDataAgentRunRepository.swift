@@ -607,6 +607,8 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         for row in conversations where row.id == id { context.delete(row) }
         let orderRows = try context.fetch(FetchDescriptor<PersistentAgentConversationOrder>())
         for row in orderRows where row.conversationID == id { context.delete(row) }
+        let selectionRows = try context.fetch(FetchDescriptor<PersistentAssistantModelSelection>())
+        for row in selectionRows where row.conversationID == id { context.delete(row) }
         for row in try context.fetch(FetchDescriptor<PersistentAgentCompaction>())
         where row.conversationID == id { context.delete(row) }
         try context.save()

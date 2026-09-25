@@ -15,6 +15,7 @@ public struct ChatSlashCommandContext {
     public let newConversation: (() -> Void)?
     public let compact: (String) -> Void
     public let send: () -> Void
+    public let selectModel: ((AIModelRef) -> Bool)?
     public let authorizeRemoteMCP: () -> Bool
     public let localized: (String.LocalizationValue) -> String
 
@@ -27,6 +28,7 @@ public struct ChatSlashCommandContext {
         newConversation: (() -> Void)? = nil,
         compact: @escaping (String) -> Void,
         send: @escaping () -> Void,
+        selectModel: ((AIModelRef) -> Bool)? = nil,
         authorizeRemoteMCP: @escaping () -> Bool = { true },
         localized: @escaping (String.LocalizationValue) -> String = { String(localized: $0) }
     ) {
@@ -38,6 +40,7 @@ public struct ChatSlashCommandContext {
         self.newConversation = newConversation
         self.compact = compact
         self.send = send
+        self.selectModel = selectModel
         self.authorizeRemoteMCP = authorizeRemoteMCP
         self.localized = localized
     }
@@ -366,8 +369,12 @@ extension ChatSlashCommandRegistry {
                     let choice = context.modelChoices.first(where: { $0.argument == argument })
                 else { return false }
                 let reference = AIModelRef(modelProviderID: choice.provider.id, modelID: choice.model.id)
-                context.conversation.model = reference
-                context.configuration.select(reference)
+                if let selectModel = context.selectModel {
+                    guard selectModel(reference) else { return false }
+                } else {
+                    context.conversation.model = reference
+                    context.configuration.select(reference)
+                }
                 context.conversation.reasoningEffort = ModelCapabilityResolver.reasoning(
                     model: choice.model, provider: choice.provider
                 ).clamp(context.conversation.reasoningEffort)

@@ -19,6 +19,7 @@ final class MobileAssistantModel {
     let skills: SkillLibraryModel
     private let authorize: @MainActor () -> Bool
     private let repository: any AgentRunPersisting
+    fileprivate let modelSelections: AssistantModelSelectionController
     private let operations: AssistantConversationOperations
     private let execution: AssistantExecutionController
     private let connections: AgentConnectionPool
@@ -42,6 +43,7 @@ final class MobileAssistantModel {
 
     init(
         configuration: AIConfigurationModel, repository: any AgentRunPersisting, memory: MemoryModel? = nil,
+        modelSelectionStore: any AssistantModelSelectionStoring = InMemoryAssistantModelSelectionStore(),
         hostServices: AgentHostServices, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
         authorize: @escaping @MainActor () -> Bool,
         speech: SpeechTranscriptionCoordinator,
@@ -51,10 +53,11 @@ final class MobileAssistantModel {
         self.authorize = authorize
         self.configuration = configuration
         self.repository = repository
+        modelSelections = AssistantModelSelectionController(ai: configuration, store: modelSelectionStore)
         self.skills = skills
         self.speech = speech
         self.attachmentLoader = attachmentLoader
-        operations = AssistantConversationOperations(repository: repository)
+        operations = AssistantConversationOperations(repository: repository, modelSelections: modelSelections)
         let resolver = hostServices.resolver
         let connections = hostServices.connections
         let authentication = hostServices.authentication
@@ -64,6 +67,7 @@ final class MobileAssistantModel {
         let titles = ConversationTitleController(ai: configuration)
         execution = AssistantExecutionController(
             ai: configuration, skills: skills, repository: repository, memory: memory,
+            modelSelections: modelSelections,
             authorize: authorize,
             makeRegistry: { conversation, model, provider, catalog, channel in
                 AssistantToolRegistry.make(
@@ -71,6 +75,7 @@ final class MobileAssistantModel {
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
                     connections: connections, authentication: authentication, background: background)
             }, title: { try await titles.summarize($0) }, logger: logger)
+        execution.reportModelSelectionError = { [weak self] message in self?.error = message }
     }
 
     func load() async {
@@ -90,7 +95,9 @@ final class MobileAssistantModel {
 
     private func loadOnce() async {
         do {
-            store.restore(try await repository.loadConversations())
+            let restored = try await repository.loadConversations()
+            let selections = try modelSelections.selectionsForRestore(restored)
+            store.restore(restored, modelSelections: selections)
             store.conversations.forEach(configure)
             loaded = true
         } catch {
@@ -157,13 +164,27 @@ final class MobileAssistantModel {
 
     func waitForSuspension() async { await suspensionTask?.value }
 
-    fileprivate func selectModel(_ value: AIModelRef, for conversation: ConversationModel) {
-        guard let resolved = configuration.lookup(value) else { return }
-        conversation.model = value
-        configuration.select(value)
+    func repairUnavailableModels() {
+        do {
+            try modelSelections.repairUnavailable(in: store.conversations)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    fileprivate func selectModel(_ value: AIModelRef, for conversation: ConversationModel) -> Bool {
+        guard let resolved = configuration.lookup(value) else { return false }
+        do {
+            try modelSelections.select(value, for: conversation)
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
         conversation.reasoningEffort = ModelCapabilityResolver.reasoning(
             model: resolved.model, provider: resolved.provider
         ).clamp(conversation.reasoningEffort)
+        return true
     }
 
     fileprivate func archive(
@@ -265,6 +286,7 @@ final class MobileAssistantSceneModel {
     init(runtime: MobileAssistantModel, library: AssistantLibraryModel? = nil) {
         self.runtime = runtime
         self.library = library ?? AssistantLibraryModel(store: runtime.store)
+        self.library.modelSelections = runtime.modelSelections
         runtime.configure(self.library.draftConversation)
     }
 
@@ -281,7 +303,8 @@ final class MobileAssistantSceneModel {
     func select(_ conversation: ConversationModel) { runtime.select(conversation, in: library) }
     func newConversation() { runtime.newConversation(in: library) }
     func send() { runtime.send(in: library) }
-    func selectModel(_ value: AIModelRef) { runtime.selectModel(value, for: conversation) }
+    @discardableResult
+    func selectModel(_ value: AIModelRef) -> Bool { runtime.selectModel(value, for: conversation) }
 
     func archive(_ conversation: ConversationModel, archived: Bool) async {
         await runtime.archive(conversation, archived: archived, in: library)

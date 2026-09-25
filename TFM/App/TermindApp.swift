@@ -171,6 +171,9 @@ struct TermindApp: App {
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
                         ),
+                        assistantModelSelectionStore: SwiftDataAssistantModelSelectionStore(
+                            context: container.mainContext
+                        ),
                         vaultSync: vaultSync, connectionHistorySync: connectionHistorySync, deviceSync: deviceSync,
                         settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
