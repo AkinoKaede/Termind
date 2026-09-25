@@ -77,7 +77,7 @@ enum MobileHomeScreenQuickActions {
 
     static func refresh(app: MobileAppModel) {
         let rows = MobileConnectionHistory.recentHostRows(
-            entries: app.connectionHistory.localEntries(),
+            history: app.connectionHistory,
             library: app.library,
             limit: ConnectionHistoryModel.limit
         )

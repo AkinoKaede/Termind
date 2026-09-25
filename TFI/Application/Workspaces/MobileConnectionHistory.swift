@@ -49,28 +49,20 @@ enum MobileConnectionHistoryActionPolicy {
 @MainActor
 enum MobileConnectionHistory {
     static func recentHostRows(
-        entries: [ConnectionHistoryEntry],
+        history: ConnectionHistoryModel,
         library: HostLibraryModel,
         limit: Int
     ) -> [MobileRecentHostRow] {
-        guard limit > 0 else { return [] }
-
-        var seen = Set<Host.ID>()
-        var rows: [MobileRecentHostRow] = []
-        for entry in entries {
-            guard let host = library.host(entry.hostID) else { continue }
-            guard seen.insert(host.id).inserted else { continue }
+        history.recentLocalHosts(in: library, limit: limit).map { recent in
+            let host = recent.host
             let preferredKind = preferredKind(for: host)
-            rows.append(
-                MobileRecentHostRow(
-                    entry: entry,
-                    host: host,
-                    loginAddress: library.preferredTerminalLoginAddress(for: host),
-                    preferredKind: preferredKind
-                ))
-            if rows.count == limit { break }
+            return MobileRecentHostRow(
+                entry: recent.entry,
+                host: host,
+                loginAddress: library.preferredTerminalLoginAddress(for: host),
+                preferredKind: preferredKind
+            )
         }
-        return rows
     }
 
     static func eventRows(

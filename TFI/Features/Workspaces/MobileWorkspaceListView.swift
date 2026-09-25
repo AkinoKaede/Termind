@@ -187,7 +187,7 @@ struct MobileWorkspaceListView: View {
     var historyRows: [MobileRecentHostRow] {
         _ = app.connectionHistory.revision
         return MobileConnectionHistory.recentHostRows(
-            entries: app.connectionHistory.localEntries(),
+            history: app.connectionHistory,
             library: app.library,
             limit: Self.historyLimit
         )

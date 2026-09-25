@@ -246,7 +246,7 @@ struct ConnectionHistoryTests {
 
         #expect(history.entries().map(\.hostID) == [first.id, second.id, first.id])
         #expect(history.entries().map(\.kind) == [.sftp, .sftp, .ssh])
-        #expect(app.recentHosts().map(\.id) == [first.id, second.id])
+        #expect(history.recentLocalHosts(in: app.hostLibrary, limit: 5).map(\.id) == [first.id, second.id])
         #expect(app.lastConnectedAt(for: first.id) != nil)
     }
 
@@ -270,8 +270,8 @@ struct ConnectionHistoryTests {
         let app = AppModel(
             hosts: HostLibraryModel(hosts: [local, remote]), connectionHistory: history)
 
-        #expect(app.recentHosts(localOnly: true).map(\.id) == [local.id])
-        #expect(app.recentHosts(localOnly: false).map(\.id) == [remote.id, local.id])
+        #expect(history.recentLocalHosts(in: app.hostLibrary, limit: 5).map(\.id) == [local.id])
+        #expect(history.entries().map(\.hostID) == [remote.id, local.id])
         #expect(app.lastConnectedLocallyAt(for: local.id) == Date(timeIntervalSince1970: 10))
         #expect(app.lastConnectedLocallyAt(for: remote.id) == nil)
     }
@@ -280,10 +280,13 @@ struct ConnectionHistoryTests {
     func clearAllHistoryForHostKeepsHostAndOtherHostHistory() {
         let host = Host(name: "Host", host: "host.example")
         let other = Host(name: "Other", host: "other.example")
-        let connections = ConnectionHistoryModel(entries: [
-            ConnectionHistoryEntry(hostID: host.id, kind: .ssh),
-            ConnectionHistoryEntry(hostID: other.id, kind: .ssh),
-        ])
+        let localID = UUID()
+        let connections = ConnectionHistoryModel(
+            entries: [
+                ConnectionHistoryEntry(hostID: host.id, kind: .ssh, sourceDeviceID: localID),
+                ConnectionHistoryEntry(hostID: other.id, kind: .ssh, sourceDeviceID: localID),
+            ],
+            sourceDeviceID: localID)
         let commands = CommandHistoryModel(entries: [
             CommandHistoryEntry(hostID: host.id, command: "uptime")
         ])
@@ -303,6 +306,6 @@ struct ConnectionHistoryTests {
         #expect(commands.entries(for: host.id).isEmpty)
         #expect(files.entries(for: host.id).isEmpty)
         #expect(connections.entries(for: other.id).count == 1)
-        #expect(app.recentHosts().map(\.id) == [other.id])
+        #expect(connections.recentLocalHosts(in: app.hostLibrary, limit: 5).map(\.id) == [other.id])
     }
 }

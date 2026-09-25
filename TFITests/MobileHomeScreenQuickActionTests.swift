@@ -37,7 +37,7 @@ struct MobileHomeScreenQuickActionTests {
             kind: .ssh, for: UUID(), at: Date(timeIntervalSince1970: 70))
 
         let rows = MobileConnectionHistory.recentHostRows(
-            entries: app.connectionHistory.localEntries(),
+            history: app.connectionHistory,
             library: app.library,
             limit: ConnectionHistoryModel.limit
         )

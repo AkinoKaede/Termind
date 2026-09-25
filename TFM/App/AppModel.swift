@@ -980,17 +980,6 @@ final class AppModel {
         connectionHistory.clearAll()
     }
 
-    /// Saved Hosts ordered by their latest connection event, with each Host
-    /// appearing only once.
-    func recentHosts(limit: Int = 5, localOnly: Bool = false) -> [Host] {
-        var seen = Set<Host.ID>()
-        let entries = localOnly ? connectionHistory.localEntries() : connectionHistory.entries()
-        return entries.compactMap { entry in
-            guard seen.insert(entry.hostID).inserted else { return nil }
-            return hosts.host(entry.hostID)
-        }.prefix(limit).map { $0 }
-    }
-
     func lastConnectedAt(for hostID: Host.ID) -> Date? {
         connectionHistory.mostRecentDate(for: hostID)
     }

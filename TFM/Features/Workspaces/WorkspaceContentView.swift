@@ -989,11 +989,12 @@ struct WelcomeView: View {
                     }
                 }
             }
-            let hosts = app.recentHosts(limit: max(0, 6 - templates.count), localOnly: true)
+            let hosts = app.connectionHistory.recentLocalHosts(
+                in: app.hostLibrary, limit: max(0, 6 - templates.count))
             if !hosts.isEmpty {
                 section(AppStrings.Workspace.recents) {
-                    ForEach(hosts) { host in
-                        WelcomeHostRow(host: host)
+                    ForEach(hosts) { recent in
+                        WelcomeHostRow(host: recent.host)
                     }
                 }
             }

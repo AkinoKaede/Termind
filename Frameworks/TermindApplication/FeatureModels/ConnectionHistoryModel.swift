@@ -4,6 +4,13 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
+public struct RecentConnectionHost: Identifiable {
+    public let entry: ConnectionHistoryEntry
+    public let host: Host
+
+    public var id: Host.ID { host.id }
+}
+
 @MainActor
 @Observable
 public final class ConnectionHistoryModel {
@@ -53,6 +60,20 @@ public final class ConnectionHistoryModel {
 
     public func localEntries() -> [ConnectionHistoryEntry] {
         entries().filter(isLocal)
+    }
+
+    /// The latest local connection for each saved Host, in connection order.
+    public func recentLocalHosts(in library: HostLibraryModel, limit: Int) -> [RecentConnectionHost] {
+        guard limit > 0 else { return [] }
+
+        var seen = Set<Host.ID>()
+        var hosts: [RecentConnectionHost] = []
+        for entry in localEntries() {
+            guard let host = library.host(entry.hostID), seen.insert(entry.hostID).inserted else { continue }
+            hosts.append(RecentConnectionHost(entry: entry, host: host))
+            if hosts.count == limit { break }
+        }
+        return hosts
     }
 
     public func mostRecentDate(for hostID: Host.ID) -> Date? {
