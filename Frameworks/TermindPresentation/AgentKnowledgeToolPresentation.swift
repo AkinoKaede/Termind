@@ -73,7 +73,7 @@ nonisolated enum AgentKnowledgeToolPresentation {
             AgentToolDetailFormatting.nonempty(args[key]?.stringValue)
         }
         let skills = localized("skills")
-        let memory = localized("persistent memory")
+        let memory = AppLocalization.resolve(AppStrings.Assistant.memorySearchScope, locale: locale)
         let sessions = localized("saved conversations")
         switch kind {
         case .skillsList:

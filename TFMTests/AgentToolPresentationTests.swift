@@ -1102,6 +1102,40 @@ struct AgentToolPresentationTests {
 struct AgentKnowledgeSearchPresentationTests {
     private let store = PresentationMemoryAccess()
 
+    @Test func memoryToolUsesMemoryInSummariesApprovalsAndBatches() {
+        let descriptor = MemoryTool(store: store).descriptor
+        let arguments: [String: AgentJSONValue] = [
+            "operations": .array([
+                .object(["action": .string("add"), "target": .string("memory"), "content": .string("Remember")])
+            ])
+        ]
+        var memory = card(descriptor, arguments: arguments)
+        memory.state = .completed
+        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "en")) == "Updated memory")
+        #expect(
+            AgentToolPresentation.batchSummary(for: [memory, memory], locale: Locale(identifier: "en"))
+                == "Updated memory (2 times)")
+        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "zh-Hans")) == "已更新记忆")
+        #expect(AgentToolPresentation.summary(for: memory, locale: Locale(identifier: "zh-Hant")) == "已更新記憶")
+
+        let request = AgentApprovalRequest(
+            invocation: memory.invocation, descriptor: descriptor, userIntent: "Remember")
+        #expect(
+            AgentToolPresentation.approval(for: request, locale: Locale(identifier: "en")).title
+                == "Update memory")
+        #expect(
+            AgentToolPresentation.approval(for: request, locale: Locale(identifier: "zh-Hans")).title
+                == "更新记忆")
+
+        var fallback = card(
+            .init(
+                name: "other_memory_tool", summary: "Other memory tool", inputSchema: .object([:]),
+                target: .local, approvalPolicy: .approve,
+                presentation: .init(symbol: "brain", activity: .semanticLabel(.memory), actionKind: .read)))
+        fallback.state = .completed
+        #expect(AgentToolPresentation.summary(for: fallback, locale: Locale(identifier: "en")) == "Read memory")
+    }
+
     @Test func searchedQueryAndScopeAppearInSingleToolBatchHeaders() {
         let memory = MemorySearchTool(store: store).descriptor
         let chats = SessionSearchTool(store: store).descriptor

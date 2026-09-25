@@ -1171,7 +1171,7 @@ nonisolated public enum AgentToolPresentation {
         case .secret: localized("a secret", locale: locale)
         case .skill: localized("a skill", locale: locale)
         case .skills: localized("skills", locale: locale)
-        case .memory: localized("persistent memory", locale: locale)
+        case .memory: localized(AppStrings.Assistant.memorySearchScope, locale: locale)
         case .sessions: localized("saved conversations", locale: locale)
         case .sshCommand: localized("a command", locale: locale)
         case .suggestion: localized("a suggestion", locale: locale)
