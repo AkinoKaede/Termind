@@ -837,7 +837,7 @@ extension AppStrings {
         }
 
         public static var workspaceNumberingExplanation: LocalizedStringResource {
-            "New Workspaces with the same Host name use the next number, regardless of protocol."
+            "New Workspaces with the same Host name use the next number."
         }
 
         public static func wouldGoBackToAutomatic(_ names: String) -> LocalizedStringResource {
