@@ -44,7 +44,7 @@ struct MobileForwardingRenderingTests {
                             MobileForwardingEditor(app: app, rule: rule, isNew: false)
                         })
             })
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         let windowScene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = windowScene.keyWindow
         let window = UIWindow(windowScene: windowScene)

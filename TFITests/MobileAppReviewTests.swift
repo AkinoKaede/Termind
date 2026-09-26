@@ -11,7 +11,7 @@ struct MobileAppReviewTests {
     @Test
     func presenterAllowsOnlyMobileEquivalentsOfDesktopReviewPages() throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         for page in ["vault.hosts", "vault.keychain", "vault.snippets", "vault.knownHosts"] {
             scene.selectedDestination = .vault
@@ -38,9 +38,9 @@ struct MobileAppReviewTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Review Test", host: "127.0.0.1")
         app.library.upsert(host)
-        let workspaceID = try #require(app.open(hostID: host.id, kind: .ssh))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        let workspaceID = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.enterReviewPage("vault.hosts")
         scene.selectedDestination = .workspaces
         scene.workspaceID = workspaceID
@@ -51,7 +51,7 @@ struct MobileAppReviewTests {
     @Test
     func pageLifecycleDoesNotLetAnOutgoingPageClearItsReplacement() throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.enterReviewPage("vault.hosts")
         scene.enterReviewPage("vault.keychain")
         scene.leaveReviewPage("vault.hosts")

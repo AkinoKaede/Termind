@@ -5,17 +5,14 @@ import Testing
 
 @Suite @MainActor
 struct MobileWorkspaceStoreTests {
-    @Test func emptyLegacyArrayMigratesAndCanBeSavedAgain() throws {
+    @Test func legacyReadPreservesBytesUntilOwnershipIsSaved() throws {
         try withStore("[]") { store, defaults in
-            #expect(try store.load().isEmpty)
-            let data = try #require(defaults.data(forKey: MobileWorkspaceStore.key))
-            let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-            #expect(object["version"] as? Int == 1)
-            #expect((object["workspaces"] as? [Any])?.isEmpty == true)
-            #expect(try store.load().isEmpty)
+            #expect(try store.load().unassigned.isEmpty)
+            #expect(defaults.data(forKey: MobileWorkspaceStore.key) == Data("[]".utf8))
             let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "New", kind: .ssh)
-            try store.save([descriptor])
-            #expect(try MobileWorkspaceStore(defaults: defaults).load() == [descriptor])
+            let snapshot = MobileWorkspaceStore.Snapshot(sessions: ["first": [descriptor]])
+            try store.save(snapshot)
+            #expect(try MobileWorkspaceStore(defaults: defaults).load() == snapshot)
         }
     }
 
@@ -33,16 +30,16 @@ struct MobileWorkspaceStoreTests {
             ]
             """
         try withStore(json) { store, defaults in
-            let descriptors = try store.load()
+            let descriptors = try store.load().unassigned
             #expect(descriptors.map(\.id) == ids)
             #expect(descriptors.map(\.title) == ["Custom", "Explicit", "Third", "Files", "Other"])
             #expect(descriptors.map(\.kind) == [.ssh, .ssh, .ssh, .sftp, .ssh])
             let migrated = defaults.data(forKey: MobileWorkspaceStore.key)
-            #expect(!String(decoding: try #require(migrated), as: UTF8.self).contains("duplicateIndex"))
-            #expect(try MobileWorkspaceStore(defaults: defaults).load() == descriptors)
+            #expect(migrated == Data(json.utf8))
+            #expect(try MobileWorkspaceStore(defaults: defaults).load().unassigned == descriptors)
             #expect(defaults.data(forKey: MobileWorkspaceStore.key) == migrated)
             defaults.set(Data(json.utf8), forKey: MobileWorkspaceStore.key)
-            #expect(try store.load() == descriptors)
+            #expect(try store.load().unassigned == descriptors)
         }
     }
 
@@ -56,7 +53,7 @@ struct MobileWorkspaceStoreTests {
             ]
             """
         try withStore(json) { store, _ in
-            let descriptors = try store.load()
+            let descriptors = try store.load().unassigned
             #expect(descriptors.map(\.title) == ["One", "Two", "Files"])
         }
     }
@@ -66,9 +63,9 @@ struct MobileWorkspaceStoreTests {
             let descriptors = [
                 MobileWorkspaceDescriptor(hostID: UUID(), title: "Custom", kind: .sftp)
             ]
-            try store.save(descriptors)
+            try store.save(.init(unassigned: descriptors))
             let data = defaults.data(forKey: MobileWorkspaceStore.key)
-            #expect(try store.load() == descriptors)
+            #expect(try store.load().unassigned == descriptors)
             #expect(defaults.data(forKey: MobileWorkspaceStore.key) == data)
         }
     }
@@ -80,11 +77,11 @@ struct MobileWorkspaceStoreTests {
     func invalidDataIsPreservedUntilASuccessfulLoad(json: String) throws {
         try withStore(json) { store, defaults in
             #expect(throws: (any Error).self) { try store.load() }
-            #expect(throws: (any Error).self) { try store.save([]) }
+            #expect(throws: (any Error).self) { try store.save(.init()) }
             #expect(defaults.data(forKey: MobileWorkspaceStore.key) == Data(json.utf8))
             defaults.set(Data("[]".utf8), forKey: MobileWorkspaceStore.key)
-            #expect(try store.load().isEmpty)
-            try store.save([])
+            #expect(try store.load().unassigned.isEmpty)
+            try store.save(.init())
         }
     }
 
@@ -100,8 +97,22 @@ struct MobileWorkspaceStoreTests {
             """
         try withStore(json) { store, defaults in
             #expect(throws: (any Error).self) { try store.load() }
-            #expect(throws: (any Error).self) { try store.save([]) }
+            #expect(throws: (any Error).self) { try store.save(.init()) }
             #expect(defaults.data(forKey: MobileWorkspaceStore.key) == Data(json.utf8))
+        }
+    }
+
+    @Test func duplicateOwnersAreRejectedWithoutOverwritingAValidSnapshot() throws {
+        try withStore("[]") { store, defaults in
+            let descriptor = MobileWorkspaceDescriptor(hostID: UUID(), title: "Saved", kind: .ssh)
+            let valid = MobileWorkspaceStore.Snapshot(sessions: ["a": [descriptor]])
+            try store.save(valid)
+            let bytes = defaults.data(forKey: MobileWorkspaceStore.key)
+            #expect(throws: (any Error).self) {
+                try store.save(.init(sessions: ["a": [descriptor], "b": [descriptor]]))
+            }
+            #expect(defaults.data(forKey: MobileWorkspaceStore.key) == bytes)
+            #expect(try store.load() == valid)
         }
     }
 

@@ -152,8 +152,8 @@ struct MobileSnippetTests {
         let snippet = Snippet(title: "Status", body: "uptime", targetHostIDs: [first.id])
         app.snippets.upsert(snippet)
 
-        let opened = app.execute(snippet, on: [second.id, first.id, second.id])
-        defer { for id in opened { app.close(id) } }
+        let opened = app.testWorkspaceSession.execute(snippet, on: [second.id, first.id, second.id])
+        defer { for id in opened { app.testWorkspaceSession.close(id) } }
 
         #expect(opened.count == 2)
         #expect(app.workspaces.suffix(2).map(\.descriptor.hostID) == [first.id, second.id])
@@ -173,11 +173,11 @@ struct MobileSnippetTests {
         let second = Host(name: "Second", host: "second.example.invalid")
         app.library.upsert(first)
         app.library.upsert(second)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         let snippet = Snippet(title: "Status", body: "uptime")
 
         scene.execute(snippet, on: [first.id, second.id])
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
 
         #expect(scene.selectedDestination == .workspaces)
         #expect(scene.workspaceID == nil)

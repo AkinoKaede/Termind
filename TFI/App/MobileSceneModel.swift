@@ -8,12 +8,13 @@ import struct TermindDomain.Host
 
 /// Navigation and presentation state owned by one iOS/iPadOS scene.
 ///
-/// App data remains shared through `MobileAppModel`, while commands and deep
-/// links act only on the scene that published this model as its focused value.
+/// App data remains shared through `MobileAppModel`. Focused commands operate on
+/// this window's workspaces; workspace links activate their persistent native owner.
 @MainActor
 @Observable
 final class MobileSceneModel {
     let id = UUID()
+    let workspaceSession: MobileWorkspaceSessionModel
     let assistant: MobileAssistantSceneModel
     var selectedDestination: MobileDestination? = .vault {
         didSet {
@@ -36,20 +37,23 @@ final class MobileSceneModel {
         (hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol)?
     @ObservationIgnored private var recentWorkspaceIDs: [MobileWorkspace.ID] = []
 
-    init(app: MobileAppModel) {
+    init(app: MobileAppModel, sessionID: String) {
+        workspaceSession = app.workspaceSession(for: sessionID)
         self.app = app
         assistant = app.assistant.makeSceneModel()
     }
 
     var activeWorkspace: MobileWorkspace? {
         guard selectedDestination == .workspaces, let workspaceID else { return nil }
-        return app.workspaces.first { $0.id == workspaceID }
+        return workspaceSession.workspaces.first { $0.id == workspaceID }
     }
 
-    var hasWorkspaces: Bool { !app.workspaces.isEmpty }
-    var canCloseAllWorkspaces: Bool { !app.savedWorkspaceDescriptors.isEmpty || !app.workspaces.isEmpty }
-    var canCloseMultipleWorkspaces: Bool { app.closableWorkspaceCount > 1 }
-    var workspaceCount: Int { app.workspaces.count }
+    var hasWorkspaces: Bool { !workspaceSession.workspaces.isEmpty }
+    var canCloseAllWorkspaces: Bool {
+        !workspaceSession.savedWorkspaceDescriptors.isEmpty || !workspaceSession.workspaces.isEmpty
+    }
+    var canCloseMultipleWorkspaces: Bool { workspaceSession.closableWorkspaceCount > 1 }
+    var workspaceCount: Int { workspaceSession.workspaces.count }
     var canCloseWorkspace: Bool { activeWorkspace != nil }
     var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind == .ssh }
 
@@ -95,7 +99,7 @@ final class MobileSceneModel {
         pendingWorkspaceID = nil
         selectedDestination = .workspaces
         workspaceID = nil
-        app.batchStartup(hostIDs: request.hostIDs, connectionProtocol: request.connectionProtocol)
+        workspaceSession.batchStartup(hostIDs: request.hostIDs, connectionProtocol: request.connectionProtocol)
     }
 
     func openNewConversation() {
@@ -110,7 +114,7 @@ final class MobileSceneModel {
     }
 
     func open(hostID: Host.ID, kind: ConnectionHistoryEntry.Kind) {
-        guard let id = app.open(hostID: hostID, kind: kind) else { return }
+        guard let id = workspaceSession.open(hostID: hostID, kind: kind) else { return }
         selectWorkspace(id)
     }
 
@@ -143,13 +147,13 @@ final class MobileSceneModel {
         }
         let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
         let matchingIDs = Set(
-            app.workspaces.lazy
+            workspaceSession.workspaces.lazy
                 .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == kind }
                 .map(\.id)
         )
         let workspaceID =
             recentWorkspaceIDs.first(where: matchingIDs.contains)
-            ?? app.workspaces.last(where: {
+            ?? workspaceSession.workspaces.last(where: {
                 $0.descriptor.hostID == hostID && $0.descriptor.kind == kind
             })?.id
         guard let workspaceID else {
@@ -160,17 +164,19 @@ final class MobileSceneModel {
     }
 
     func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
-        guard let id = app.open(hostID: launch.hostID, kind: launch.kind, initialPath: launch.path) else { return }
+        guard let id = workspaceSession.open(hostID: launch.hostID, kind: launch.kind, initialPath: launch.path) else {
+            return
+        }
         selectWorkspace(id)
     }
 
     func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) {
-        guard let first = app.execute(snippet, on: hostIDs).first else { return }
+        guard let first = workspaceSession.execute(snippet, on: hostIDs).first else { return }
         selectWorkspace(first)
     }
 
     func selectWorkspace(_ id: MobileWorkspace.ID) {
-        guard app.openWorkspace(id) != nil else {
+        guard workspaceSession.openWorkspace(id) != nil else {
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
             workspaceID = nil
@@ -194,7 +200,7 @@ final class MobileSceneModel {
     }
 
     private func presentWorkspace(_ id: MobileWorkspace.ID) {
-        guard app.workspaces.contains(where: { $0.id == id }) else { return }
+        guard workspaceSession.workspaces.contains(where: { $0.id == id }) else { return }
         pendingWorkspaceID = nil
         selectedDestination = .workspaces
         workspaceID = id
@@ -204,35 +210,35 @@ final class MobileSceneModel {
     }
 
     func selectWorkspace(at index: Int) {
-        guard app.workspaces.indices.contains(index) else { return }
-        selectWorkspace(app.workspaces[index].id)
+        guard workspaceSession.workspaces.indices.contains(index) else { return }
+        selectWorkspace(workspaceSession.workspaces[index].id)
     }
 
     func selectNextWorkspace() {
-        guard !app.workspaces.isEmpty else { return }
+        guard !workspaceSession.workspaces.isEmpty else { return }
         guard let activeWorkspace,
-            let index = app.workspaces.firstIndex(where: { $0.id == activeWorkspace.id })
+            let index = workspaceSession.workspaces.firstIndex(where: { $0.id == activeWorkspace.id })
         else {
             selectWorkspace(at: 0)
             return
         }
-        selectWorkspace(at: (index + 1) % app.workspaces.count)
+        selectWorkspace(at: (index + 1) % workspaceSession.workspaces.count)
     }
 
     func selectPreviousWorkspace() {
-        guard !app.workspaces.isEmpty else { return }
+        guard !workspaceSession.workspaces.isEmpty else { return }
         guard let activeWorkspace,
-            let index = app.workspaces.firstIndex(where: { $0.id == activeWorkspace.id })
+            let index = workspaceSession.workspaces.firstIndex(where: { $0.id == activeWorkspace.id })
         else {
-            selectWorkspace(at: app.workspaces.count - 1)
+            selectWorkspace(at: workspaceSession.workspaces.count - 1)
             return
         }
-        selectWorkspace(at: (index - 1 + app.workspaces.count) % app.workspaces.count)
+        selectWorkspace(at: (index - 1 + workspaceSession.workspaces.count) % workspaceSession.workspaces.count)
     }
 
     func selectLastWorkspace() {
-        guard !app.workspaces.isEmpty else { return }
-        selectWorkspace(at: app.workspaces.count - 1)
+        guard !workspaceSession.workspaces.isEmpty else { return }
+        selectWorkspace(at: workspaceSession.workspaces.count - 1)
     }
 
     func generateTerminalCommand() {
@@ -251,11 +257,12 @@ final class MobileSceneModel {
     }
 
     func beginWorkspaceRename(_ descriptor: MobileWorkspaceDescriptor) {
+        guard workspaceSession.orderedWorkspaceItems.contains(where: { $0.id == descriptor.id }) else { return }
         renamingWorkspace = descriptor
     }
 
     func closeWorkspace(_ id: MobileWorkspace.ID) {
-        app.close(id)
+        workspaceSession.close(id)
         recentWorkspaceIDs.removeAll { $0 == id }
         if pendingWorkspaceID == id { pendingWorkspaceID = nil }
         if workspaceID == id { workspaceID = nil }
@@ -267,14 +274,15 @@ final class MobileSceneModel {
     }
 
     func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
-        app.closeOtherWorkspaces(than: id)
+        guard workspaceSession.orderedWorkspaceItems.contains(where: { $0.id == id }) else { return }
+        workspaceSession.closeOtherWorkspaces(than: id)
         recentWorkspaceIDs.removeAll { $0 != id }
         if pendingWorkspaceID != id { pendingWorkspaceID = nil }
         if workspaceID != id { workspaceID = nil }
     }
 
     func closeAllWorkspaces() {
-        app.closeAll()
+        workspaceSession.closeAll()
         recentWorkspaceIDs.removeAll()
         pendingWorkspaceID = nil
         workspaceID = nil
@@ -297,7 +305,7 @@ final class MobileSceneModel {
                 if request.kind == .telnet, request.advisoryPassword != nil {
                     pendingExternalConnection = request
                 } else {
-                    selectWorkspace(app.openExternalConnection(request))
+                    if let id = workspaceSession.openExternalConnection(request) { selectWorkspace(id) }
                 }
             } catch {
                 app.error = error.localizedDescription
@@ -312,13 +320,25 @@ final class MobileSceneModel {
             return
         }
         guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
+        isWorkspaceUnavailable = false
+        guard let owner = app.workspaceOwner(id) else {
+            pendingWorkspaceID = nil
+            selectedDestination = .workspaces
+            workspaceID = nil
+            isWorkspaceUnavailable = true
+            return
+        }
+        if owner != workspaceSession.id {
+            app.activateWorkspaceSession(owner, id) { [weak self] in self?.isWorkspaceUnavailable = true }
+            return
+        }
         selectWorkspace(id)
-        app.workspaces.first(where: { $0.id == id })?.terminal.requestFocus()
+        workspaceSession.workspaces.first(where: { $0.id == id })?.terminal.requestFocus()
     }
 
     func confirmExternalConnection() {
         guard let request = pendingExternalConnection else { return }
         pendingExternalConnection = nil
-        selectWorkspace(app.openExternalConnection(request))
+        if let id = workspaceSession.openExternalConnection(request) { selectWorkspace(id) }
     }
 }

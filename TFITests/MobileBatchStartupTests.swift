@@ -54,14 +54,14 @@ struct MobileBatchStartupTests {
 
     @Test func batchCreatesIndependentOrderedWorkspacesWithHistoryAndRestoration() throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         let alpha = Host(name: "Alpha", host: "alpha.invalid")
         let bravo = Host(name: "Bravo", host: "bravo.invalid", sshEnabled: false, telnetEnabled: true)
         let charlie = Host(name: "Charlie", host: "charlie.invalid")
         for host in [charlie, alpha, bravo] { app.library.upsert(host) }
-        let existing = try #require(app.open(hostID: alpha.id, kind: .ssh))
+        let existing = try #require(app.testWorkspaceSession.open(hostID: alpha.id, kind: .ssh))
 
-        let ids = app.batchStartup(
+        let ids = app.testWorkspaceSession.batchStartup(
             hostIDs: [charlie.id, bravo.id, alpha.id, alpha.id, UUID()], connectionProtocol: .ssh)
         let added = ids.compactMap { id in app.workspaces.first { $0.id == id } }
 
@@ -69,8 +69,8 @@ struct MobileBatchStartupTests {
         #expect(added.map(\.descriptor.kind) == [.ssh, .telnet, .ssh])
         #expect(ids.count == 3)
         #expect(!ids.contains(existing))
-        #expect(app.orderedWorkspaceItems.map(\.id) == [existing] + ids)
-        #expect(app.savedWorkspaceDescriptors.map(\.id) == [existing] + ids)
+        #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == [existing] + ids)
+        #expect(app.testWorkspaceSession.savedWorkspaceDescriptors.map(\.id) == [existing] + ids)
         #expect(app.connectionHistory.entries(for: alpha.id).count == 2)
         #expect(app.connectionHistory.entries(for: bravo.id).map(\.kind) == [.telnet])
         #expect(added.allSatisfy { $0.busy || $0.authenticationRequired })
@@ -78,7 +78,7 @@ struct MobileBatchStartupTests {
 
     @Test func confirmationRechecksProtocolAvailabilityAndAllocatesDistinctNames() throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         #expect(app.workspaceSettings.setAutomaticRenaming(true))
         let first = Host(name: "Server", host: "first.invalid")
         let second = Host(name: "Server", host: "second.invalid")
@@ -88,21 +88,22 @@ struct MobileBatchStartupTests {
         changed.telnetEnabled = true
         app.library.upsert(changed)
 
-        let ids = app.batchStartup(
+        let ids = app.testWorkspaceSession.batchStartup(
             hostIDs: [first.id, changed.id, second.id, UUID()], connectionProtocol: .sftp)
         #expect(ids.count == 2)
         #expect(app.workspaces.map(\.descriptor.title) == ["Server", "Server (1)"])
         #expect(app.workspaces.allSatisfy { $0.descriptor.kind == .sftp })
-        #expect(app.batchStartup(hostIDs: [], connectionProtocol: .ssh).isEmpty)
+        #expect(app.testWorkspaceSession.batchStartup(hostIDs: [], connectionProtocol: .ssh).isEmpty)
     }
 
     @Test func sceneDefersStartupUntilDismissalAndKeepsOtherScenesUnchanged() throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         let host = Host(name: "Host", host: "host.invalid")
         app.library.upsert(host)
-        let first = MobileSceneModel(app: app)
-        let second = MobileSceneModel(app: app)
+        let first = MobileSceneModel(app: app, sessionID: "test")
+        let second = MobileSceneModel(app: app, sessionID: "other")
+        defer { second.closeAllWorkspaces() }
         second.open(hostID: host.id, kind: .ssh)
         let otherWorkspace = second.workspaceID
 
@@ -115,7 +116,9 @@ struct MobileBatchStartupTests {
         first.completeBatchStartup()
         first.completeBatchStartup()
         #expect(app.workspaces.count == 2)
-        #expect(app.workspaces.last?.descriptor.kind == .sftp)
+        #expect(first.workspaceSession.workspaces.first?.descriptor.kind == .sftp)
+        #expect(first.workspaceSession.workspaces.count == 1)
+        #expect(second.workspaceSession.workspaces.count == 1)
         #expect(!first.isBatchStartupPresented)
         #expect(first.selectedDestination == .workspaces)
         #expect(first.workspaceID == nil)
@@ -129,10 +132,10 @@ struct MobileBatchStartupTests {
 
     @Test func openingConnectDiscardsAnUnfinishedBatchRequest() throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         let host = Host(name: "Host", host: "host.invalid")
         app.library.upsert(host)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.openBatchStartup()
         scene.prepareBatchStartup(hostIDs: [host.id], connectionProtocol: .ssh)
         scene.openConnectionPicker()

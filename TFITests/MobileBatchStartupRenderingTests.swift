@@ -22,12 +22,12 @@ struct MobileBatchStartupRenderingTests {
         language: String, title: String, connectTitle: String
     ) async throws {
         let app = try MobileAppModel(inMemory: true)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         app.library.upsert(Host(name: "Production Gateway", host: "gateway.example.invalid"))
         app.library.upsert(Host(name: "Staging Server", host: "staging.example.invalid"))
         app.library.upsert(
             Host(name: "Legacy Console", host: "console.example.invalid", sshEnabled: false, telnetEnabled: true))
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .workspaces
         try await withWindow(
             MobileRootView(app: app, scene: scene)

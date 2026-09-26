@@ -46,7 +46,7 @@ struct MobileConnectionPickerTests {
 
     @Test func emptyWorkspaceHistoryKeepsTheLatestFiveUniqueLocalHosts() throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         let repeatedHost = Host(
             name: "Repeated", host: "repeated.example.invalid",
             telnetEnabled: true, telnetPort: 2323)
@@ -180,8 +180,8 @@ struct MobileConnectionPickerTests {
             name: "Console", host: "console.example.invalid",
             sshEnabled: false, telnetEnabled: true)
         app.library.upsert(host)
-        let scene = MobileSceneModel(app: app)
-        defer { app.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        defer { app.testWorkspaceSession.closeAll() }
 
         scene.open(hostID: host.id, kind: .telnet)
         scene.activatePendingWorkspace()

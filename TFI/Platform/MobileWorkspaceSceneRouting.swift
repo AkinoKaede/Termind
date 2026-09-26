@@ -1,0 +1,41 @@
+import Foundation
+import UIKit
+
+/// Links keep their existing workspace UUID. Window ownership is resolved locally by the app.
+@MainActor
+enum MobileWorkspaceSceneRouting {
+    static let activityType = "com.akinokaede.termind.open-workspace"
+    private static let workspaceIDKey = "workspaceID"
+
+    static func activity(for workspaceID: UUID) -> NSUserActivity {
+        let activity = NSUserActivity(activityType: activityType)
+        activity.userInfo = [workspaceIDKey: workspaceID.uuidString]
+        return activity
+    }
+
+    static func workspaceID(from activity: NSUserActivity) -> UUID? {
+        guard activity.activityType == activityType,
+            let value = activity.userInfo?[workspaceIDKey] as? String
+        else { return nil }
+        return UUID(uuidString: value)
+    }
+
+    static func reconcile(app: MobileAppModel, activeSessionID: String?) {
+        app.reconcileWorkspaceSessions(
+            openSessionIDs: Set(UIApplication.shared.openSessions.map(\.persistentIdentifier)),
+            activeSessionID: activeSessionID)
+    }
+
+    static func activate(sessionID: String, workspaceID: UUID, unavailable: @escaping @MainActor () -> Void) {
+        guard let session = UIApplication.shared.openSessions.first(where: { $0.persistentIdentifier == sessionID })
+        else {
+            unavailable()
+            return
+        }
+        UIApplication.shared.requestSceneSessionActivation(
+            session, userActivity: activity(for: workspaceID), options: nil
+        ) { _ in
+            MainActor.assumeIsolated { unavailable() }
+        }
+    }
+}

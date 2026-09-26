@@ -76,7 +76,7 @@ struct MobileLiveActivityRestorationTests {
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         seed.library.upsert(host)
         let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save([descriptor])
+        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
         let backend = Backend()
         let existing = TestActivity(focusedWorkspaceID: descriptor.id)
         backend.existing = [existing]
@@ -91,8 +91,8 @@ struct MobileLiveActivityRestorationTests {
         #expect(existing.updates.isEmpty)
         #expect(backend.requests.isEmpty)
         #expect(app.workspaces.isEmpty)
-        #expect(app.recentWorkspaces == [descriptor])
-        app.closeAll()
+        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptor])
+        app.testWorkspaceSession.closeAll()
         #expect(await eventually { existing.ended })
     }
 
@@ -104,7 +104,7 @@ struct MobileLiveActivityRestorationTests {
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         seed.library.upsert(host)
         let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save([descriptor])
+        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
         let backend = Backend()
         var dependencies = MobileAppDependencies.testing()
         dependencies.container = seed.container
@@ -115,13 +115,13 @@ struct MobileLiveActivityRestorationTests {
         app.sceneChanged(sceneID, phase: .active)
         app.sceneChanged(sceneID, phase: .background)
         app.sceneChanged(sceneID, phase: .active)
-        _ = try #require(app.open(hostID: host.id, kind: .ssh))
+        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
         #expect(await eventually { backend.requests.count == 1 })
         #expect(backend.requests.map(\.workspaceCount) == [1])
-        app.close(app.workspaces[0].id)
-        #expect(app.recentWorkspaces == [descriptor])
+        app.testWorkspaceSession.close(app.workspaces[0].id)
+        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptor])
         #expect(await eventually { backend.created.first?.ended == true })
-        app.closeAll()
+        app.testWorkspaceSession.closeAll()
     }
 
     @Test func emptyColdLaunchEndsOrphanedActivity() async throws {
@@ -145,7 +145,7 @@ struct MobileLiveActivityRestorationTests {
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         seed.library.upsert(host)
         let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save([descriptor])
+        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
         let backend = Backend()
         backend.canStart = false
         let old = TestActivity(focusedWorkspaceID: descriptor.id)
@@ -155,8 +155,8 @@ struct MobileLiveActivityRestorationTests {
         dependencies.workspaceStore = MobileWorkspaceStore(defaults: defaults)
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
         let app = try MobileAppModel(dependencies: dependencies)
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         #expect(await eventually { old.ended })
         if linkFirst {
             scene.open(descriptor.destinationURL)
@@ -180,7 +180,7 @@ struct MobileLiveActivityRestorationTests {
         app.sceneChanged(scene.id, phase: .background)
         app.sceneChanged(scene.id, phase: .active)
         // A barrier proves earlier foreground updates have run without creating a second activity.
-        app.closeAll()
+        app.testWorkspaceSession.closeAll()
         let next = session()
         app.liveActivities.start([next])
         #expect(await eventually { backend.requests.count == 2 })

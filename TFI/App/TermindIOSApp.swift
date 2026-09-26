@@ -12,6 +12,7 @@ struct TermindIOSApp: App {
             let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
             return try MobileAppModel(dependencies: isTesting ? .testing() : .live())
         }
+        appDelegate.app = try? startup.get()
     }
 
     var body: some Scene {

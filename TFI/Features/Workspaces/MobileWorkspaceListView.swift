@@ -45,10 +45,10 @@ struct MobileWorkspaceListView: View {
                     Label(AppStrings.SFTP.transfers.swiftUIKey, systemImage: "arrow.up.arrow.down")
                 }
             }
-            if !app.orderedWorkspaceItems.isEmpty || historyRows.isEmpty {
+            if !scene.workspaceSession.orderedWorkspaceItems.isEmpty || historyRows.isEmpty {
                 Section(AppStrings.Navigation.workspaces.swiftUIKey) { workspaceRows }
             }
-            if app.orderedWorkspaceItems.isEmpty, !historyRows.isEmpty {
+            if scene.workspaceSession.orderedWorkspaceItems.isEmpty, !historyRows.isEmpty {
                 Section(AppStrings.Workspace.recents.swiftUIKey) { historyRowsContent }
             }
         }
@@ -62,10 +62,10 @@ struct MobileWorkspaceListView: View {
             )
         }
         .navigationDestination(item: $scene.workspaceID) { id in
-            if let workspace = app.workspaces.first(where: { $0.id == id }) {
+            if let workspace = scene.workspaceSession.workspaces.first(where: { $0.id == id }) {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: app.orderedWorkspaceItems.map(\.descriptor),
+                    workspace: workspace, workspaces: scene.workspaceSession.orderedWorkspaceItems.map(\.descriptor),
                     selectWorkspace: scene.selectWorkspace,
                     renameWorkspace: scene.beginWorkspaceRename,
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
@@ -121,7 +121,7 @@ struct MobileWorkspaceListView: View {
 
     @ViewBuilder
     private var workspaceRows: some View {
-        if app.orderedWorkspaceItems.isEmpty {
+        if scene.workspaceSession.orderedWorkspaceItems.isEmpty {
             ContentUnavailableView(
                 AppStrings.Workspace.noWorkspaces.swiftUIKey, systemImage: "terminal",
                 description: Text(AppStrings.Workspace.useConnectToStartAWorkspace)
@@ -129,7 +129,7 @@ struct MobileWorkspaceListView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         }
-        ForEach(app.orderedWorkspaceItems) { item in
+        ForEach(scene.workspaceSession.orderedWorkspaceItems) { item in
             Button {
                 scene.selectWorkspace(item.id)
             } label: {

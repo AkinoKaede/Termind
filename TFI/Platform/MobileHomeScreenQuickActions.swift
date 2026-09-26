@@ -87,6 +87,9 @@ enum MobileHomeScreenQuickActions {
 
 @MainActor
 final class MobileSceneDelegate: NSObject, UIWindowSceneDelegate, ObservableObject {
+    @Published private(set) var sessionID: String?
+    @Published private(set) var pendingWorkspaceID: UUID?
+    private(set) weak var app: MobileAppModel?
     @Published private(set) var pendingQuickAction: MobileHomeScreenQuickAction?
 
     func scene(
@@ -94,8 +97,48 @@ final class MobileSceneDelegate: NSObject, UIWindowSceneDelegate, ObservableObje
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
+        sessionID = session.persistentIdentifier
+        for activity in connectionOptions.userActivities { receiveWorkspaceActivity(activity) }
         guard let shortcutItem = connectionOptions.shortcutItem else { return }
         _ = receive(shortcutItem)
+    }
+
+    func bind(to app: MobileAppModel) {
+        self.app = app
+        reconcileWindowOwnership()
+    }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        reconcileWindowOwnership(activeSessionID: scene.session.persistentIdentifier)
+    }
+
+    private func reconcileWindowOwnership(activeSessionID: String? = nil) {
+        let application = UIApplication.shared
+        let activeID =
+            activeSessionID
+            ?? application.connectedScenes.first {
+                $0.activationState == .foregroundActive
+            }?.session.persistentIdentifier
+        if let app { MobileWorkspaceSceneRouting.reconcile(app: app, activeSessionID: activeID) }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        receiveWorkspaceActivity(userActivity)
+    }
+
+    func sceneDidDisconnect(_ scene: UIScene) {
+        app?.disconnectWorkspaceScene(scene.session.persistentIdentifier)
+        reconcileWindowOwnership()
+    }
+
+    func receiveWorkspaceActivity(_ activity: NSUserActivity) {
+        guard let id = MobileWorkspaceSceneRouting.workspaceID(from: activity) else { return }
+        pendingWorkspaceID = id
+    }
+
+    func consumePendingWorkspaceID() -> UUID? {
+        defer { pendingWorkspaceID = nil }
+        return pendingWorkspaceID
     }
 
     func windowScene(

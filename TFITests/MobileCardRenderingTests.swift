@@ -108,7 +108,7 @@ struct MobileCardRenderingTests {
                 }
                 try await capture("workspaces-recents", language: language, scheme: scheme) {
                     NavigationStack {
-                        MobileWorkspaceListView(app: app, scene: MobileSceneModel(app: app))
+                        MobileWorkspaceListView(app: app, scene: MobileSceneModel(app: app, sessionID: "test"))
                     }
                 }
                 try await capture("snippets", language: language, scheme: scheme) {

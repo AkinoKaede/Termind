@@ -13,22 +13,6 @@ import UIKit
 
 import struct TermindDomain.Host
 
-private enum MobileWorkspaceStartup {
-    case none
-    case command(String)
-    case directory(String)
-}
-
-@MainActor
-struct MobileWorkspaceItem: Identifiable {
-    let descriptor: MobileWorkspaceDescriptor
-    let workspace: MobileWorkspace?
-    let host: Host?
-    let loginAddress: String
-
-    var id: MobileWorkspaceDescriptor.ID { descriptor.id }
-}
-
 enum MobileSnippetTimestamp {
     static let fallbackKey = "mobile.snippets.baselineModifiedAtFallback.v1"
 
@@ -58,7 +42,8 @@ final class MobileAppModel {
     let forwardings: PortForwardingController
     let sftpEdits: SFTPEditService
     let transfers: SFTPTransferCoordinator
-    private(set) var workspaces: [MobileWorkspace] = []
+    private var workspaceSessions: [MobileWorkspaceSessionModel] = []
+    var workspaces: [MobileWorkspace] { workspaceSessions.flatMap(\.workspaces) }
     var error: String?
     let terminalSettings: TerminalSettingsModel
     let sshSettings: SSHSettingsModel
@@ -89,39 +74,19 @@ final class MobileAppModel {
     private let settingsDefaults: UserDefaults
     private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
-    private let workspaceConnectionServices: MobileWorkspaceConnectionServices
+    let workspaceConnectionServices: MobileWorkspaceConnectionServices
     private let workspaceStore: MobileWorkspaceStore
-    private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor] = []
-    private var workspaceDisplayOrder: [MobileWorkspaceDescriptor.ID] = []
-
-    var recentWorkspaces: [MobileWorkspaceDescriptor] {
-        let opened = Set(workspaces.map(\.id))
-        return savedWorkspaceDescriptors.filter { !opened.contains($0.id) }
-    }
-
-    var orderedWorkspaceItems: [MobileWorkspaceItem] {
-        workspaceDisplayOrder.compactMap { id in
-            let workspace = workspaces.first { $0.id == id }
-            guard let descriptor = workspace?.descriptor ?? savedWorkspaceDescriptors.first(where: { $0.id == id })
-            else { return nil }
-            let host = library.host(descriptor.hostID) ?? workspace?.presentationHost
-            let loginAddress =
-                workspace?.temporaryLoginAddress
-                ?? host.map {
-                    library.loginAddress(
-                        for: $0,
-                        protocol: descriptor.kind == .telnet ? .telnet : .ssh)
-                }
-                ?? descriptor.title
-            return MobileWorkspaceItem(
-                descriptor: descriptor,
-                workspace: workspace,
-                host: host,
-                loginAddress: loginAddress)
-        }
-    }
+    private var workspaceSnapshot = MobileWorkspaceStore.Snapshot()
+    private var hasBoundWorkspaceSession = false
+    private var orphanedSessionIDs: Set<String> = []
+    // Disconnect and discard are separate UIKit callbacks. A later explicit discard must still close
+    // precisely the workspaces recovered from that window, even if another window already received them.
+    private var recoveredWorkspaceIDs: [String: Set<UUID>] = [:]
+    private var discardedSessionIDs: Set<String> = []
+    var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void
 
     let outbox: OutboxRunner
+    private var sceneSessionIDs: [UUID: String] = [:]
     private var scenePhases: [UUID: ScenePhase] = [:]
 
     convenience init(
@@ -149,6 +114,7 @@ final class MobileAppModel {
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
+        activateWorkspaceSession = dependencies.activateWorkspaceSession
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =
@@ -365,161 +331,6 @@ final class MobileAppModel {
             canUseVaultSync: pro.canUse(.vaultSync))
     }
 
-    func open(
-        hostID: UUID, kind: ConnectionHistoryEntry.Kind,
-        initialPath: String? = nil
-    ) -> UUID? {
-        guard let host = library.host(hostID) else { return nil }
-        let startup: MobileWorkspaceStartup
-        if let initialPath,
-            !initialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        {
-            startup = .directory(RemotePath.normalized(initialPath))
-        } else {
-            startup = .none
-        }
-        let workspace = makeWorkspace(host: host, kind: kind, startup: startup)
-        addWorkspaces([workspace])
-        return workspace.id
-    }
-
-    @discardableResult
-    func batchStartup(
-        hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol
-    ) -> [MobileWorkspace.ID] {
-        let wanted = Set(hostIDs)
-        return library.hosts(matching: "", for: connectionProtocol.useCase)
-            .filter { wanted.contains($0.id) }
-            .compactMap { host in
-                guard let kind = connectionProtocol.kind(for: host) else { return nil }
-                return open(hostID: host.id, kind: kind)
-            }
-    }
-
-    func openExternalConnection(_ request: RemoteConnectionURL) -> MobileWorkspace.ID {
-        let host: Host
-        let kind: ConnectionHistoryEntry.Kind
-        switch request.kind {
-        case .ssh:
-            host = Host(name: request.host, host: request.host, port: request.port)
-            kind = .ssh
-        case .sftp:
-            host = Host(name: request.host, host: request.host, port: request.port)
-            kind = .sftp
-        case .telnet:
-            host = Host(
-                name: request.host, host: request.host,
-                sshEnabled: false, telnetEnabled: true, telnetPort: request.port)
-            kind = .telnet
-        }
-        let route = SSHConnectionRoute(
-            hosts: [host], usernames: request.username.map { [host.id: $0] } ?? [:])
-        let workspace = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(
-                hostID: host.id, title: host.name, kind: kind),
-            hosts: library, transfers: transfers, sftpEdits: sftpEdits,
-            terminalSettings: terminalSettings, commandHistory: commandHistory,
-            sftpHistory: sftpHistory, connectionServices: workspaceConnectionServices,
-            transientHost: host,
-            connectionRoute: request.kind == .telnet ? nil : route,
-            usernameHint: request.username,
-            connectionOrigin: .externalLink(
-                hostKeyConstraints: request.hostKeyFingerprint.map { [host.id: $0] } ?? [:]),
-            advisoryTelnetPassword: request.advisoryPassword.map(SSHSecret.init),
-            externalSFTPResourcePath: request.kind == .sftp ? request.path : nil,
-            externalSFTPMustBeDirectory: request.sftpType == .directory)
-        addWorkspaces([workspace], persists: false)
-        return workspace.id
-    }
-
-    /// Opens one independent SSH workspace per target. The command is intentionally
-    /// carried only by the live workspace and never enters its restoration descriptor.
-    func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) -> [MobileWorkspace.ID] {
-        let wanted = Set(hostIDs)
-        let targets = library.hosts(matching: "", for: .snippetExecution)
-            .filter { wanted.contains($0.id) }
-        let opened = targets.map { makeWorkspace(host: $0, kind: .ssh, startup: .command(snippet.body)) }
-        addWorkspaces(opened)
-        return opened.map(\.id)
-    }
-
-    @discardableResult
-    func renameWorkspace(_ id: MobileWorkspace.ID, to title: String) -> Bool {
-        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return false }
-        let workspace = workspaces.first { $0.id == id }
-        let savedIndex = savedWorkspaceDescriptors.firstIndex { $0.id == id }
-        guard workspace != nil || savedIndex != nil else { return false }
-        if let workspace {
-            guard workspace.rename(to: title) else { return false }
-        } else {
-            guard let savedIndex, savedWorkspaceDescriptors[savedIndex].title != title else { return false }
-            savedWorkspaceDescriptors[savedIndex].title = title
-        }
-        if let savedIndex, let workspace {
-            savedWorkspaceDescriptors[savedIndex] = workspace.descriptor
-        }
-        saveWorkspaces()
-        return true
-    }
-
-    func close(_ id: UUID) {
-        let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
-        guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
-        endConnectionHistory(for: id)
-        if let workspace = workspaces.first(where: { $0.id == id }) {
-            workspace.didChangeState = nil
-            workspace.didRequestClose = nil
-            workspace.disconnect()
-        }
-        workspaces.removeAll { $0.id == id }
-        savedWorkspaceDescriptors.removeAll { $0.id == id }
-        workspaceDisplayOrder.removeAll { $0 == id }
-        if wasSaved { saveWorkspaces() }
-        workspaceActivitySessions.removeAll { $0.id == id }
-        liveActivities.update(workspaceActivitySessions)
-    }
-
-    var closableWorkspaceCount: Int {
-        Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id)).count
-    }
-
-    func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
-        let knownIDs = Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id))
-        guard knownIDs.contains(id), knownIDs.count > 1 else { return }
-
-        let closing = workspaces.filter { $0.id != id }
-        workspaces.removeAll { $0.id != id }
-        savedWorkspaceDescriptors.removeAll { $0.id != id }
-        workspaceDisplayOrder.removeAll { $0 != id }
-        saveWorkspaces()
-        workspaceActivitySessions.removeAll { $0.id != id }
-        for workspace in closing {
-            endConnectionHistory(for: workspace.id)
-            workspace.didChangeState = nil
-            workspace.didRequestClose = nil
-            workspace.disconnect()
-        }
-        liveActivities.update(workspaceActivitySessions)
-    }
-
-    func closeAll() {
-        guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
-        let closing = workspaces
-        workspaces.removeAll()
-        savedWorkspaceDescriptors.removeAll()
-        workspaceDisplayOrder.removeAll()
-        saveWorkspaces()
-        workspaceActivitySessions.removeAll()
-        for workspace in closing {
-            endConnectionHistory(for: workspace.id)
-            workspace.didChangeState = nil
-            workspace.didRequestClose = nil
-            workspace.disconnect()
-        }
-        liveActivities.update(workspaceActivitySessions)
-    }
-
     private func disconnectWorkspaces(
         for hostID: Host.ID, protocol connectionProtocol: HostTerminalProtocol
     ) {
@@ -534,7 +345,16 @@ final class MobileAppModel {
     }
 
     private func closeWorkspaces(for hostID: UUID) {
-        for descriptor in savedWorkspaceDescriptors where descriptor.hostID == hostID { close(descriptor.id) }
+        for session in workspaceSessions {
+            for item in session.orderedWorkspaceItems where item.descriptor.hostID == hostID {
+                session.close(item.id)
+            }
+        }
+        workspaceSnapshot.unassigned.removeAll { $0.hostID == hostID }
+        for id in workspaceSnapshot.sessions.keys {
+            workspaceSnapshot.sessions[id]?.removeAll { $0.hostID == hostID }
+        }
+        persistWorkspaceSnapshot()
     }
 
     @discardableResult
@@ -592,7 +412,47 @@ final class MobileAppModel {
             modifiedAt: snippets.modifiedAt(for: snippetID), fallback: snippetTimestampFallback)
     }
 
-    func sceneChanged(_ id: UUID, phase: ScenePhase) {
+    func disconnectWorkspaceScene(_ sessionID: String) {
+        guard !discardedSessionIDs.contains(sessionID) else { return }
+        for id in Array(sceneSessionIDs.keys) where sceneSessionIDs[id] == sessionID {
+            sceneChanged(id, phase: .background)
+            removeScene(id)
+        }
+        // A disconnected UIScene may still have a restorable UISceneSession. Only a native
+        // openSessions reconciliation can establish that its window has actually disappeared.
+    }
+
+    func reconcileWorkspaceSessions(openSessionIDs: Set<String>, activeSessionID: String?) {
+        orphanedSessionIDs = Set(workspaceSessions.map(\.id))
+            .subtracting(openSessionIDs).subtracting(discardedSessionIDs)
+        let target = activeSessionID.flatMap { id in workspaceSessions.first { $0.id == id } }
+        if let target, openSessionIDs.contains(target.id) { recoverOrphanedWorkspaces(into: target) }
+    }
+
+    private func recoverOrphanedWorkspaces(into target: MobileWorkspaceSessionModel) {
+        orphanedSessionIDs.remove(target.id)
+        guard !target.isDiscarded else { return }
+        for source in workspaceSessions where orphanedSessionIDs.contains(source.id) {
+            let recovery = source.recovery
+            var snapshot = workspaceSnapshot
+            snapshot.sessions[source.id] = nil
+            snapshot.sessions[target.id] = target.savedWorkspaceDescriptors + recovery.descriptors
+            do {
+                try workspaceStore.save(snapshot)
+                workspaceSnapshot = snapshot
+            } catch {
+                self.error = String(localized: AppStrings.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
+                continue
+            }
+            recoveredWorkspaceIDs[source.id, default: []].formUnion(recovery.order)
+            source.releaseForRecovery()
+            target.acceptRecovery(recovery)
+            orphanedSessionIDs.remove(source.id)
+        }
+    }
+
+    func sceneChanged(_ id: UUID, phase: ScenePhase, workspaceSessionID: String? = nil) {
+        if let workspaceSessionID { sceneSessionIDs[id] = workspaceSessionID }
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = phase
         let isBackground = allScenesAreBackgrounded
@@ -672,6 +532,7 @@ final class MobileAppModel {
     func removeScene(_ id: UUID) {
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = nil
+        sceneSessionIDs[id] = nil
         if allScenesAreBackgrounded && !wasBackground { enterBackground() }
         reconcileSync()
     }
@@ -705,103 +566,104 @@ final class MobileAppModel {
         liveActivities.focus(id, in: workspaceActivitySessions)
     }
 
-    /// Publish before connecting so every scene shares one instance and one initial attempt.
-    @discardableResult
-    func openWorkspace(_ id: UUID) -> MobileWorkspace? {
-        if let workspace = workspaces.first(where: { $0.id == id }) { return workspace }
-        guard let descriptor = savedWorkspaceDescriptors.first(where: { $0.id == id }) else { return nil }
-        guard library.host(descriptor.hostID) != nil else {
-            close(id)
-            return nil
+    func workspaceSession(for id: String) -> MobileWorkspaceSessionModel {
+        if let session = workspaceSessions.first(where: { $0.id == id }) { return session }
+        var descriptors = workspaceSnapshot.sessions[id] ?? []
+        if !hasBoundWorkspaceSession, !discardedSessionIDs.contains(id) {
+            // A new process starts with one workspace window, even if UIKit restores several old scenes.
+            // Keep records until ownership and the full consolidation can be saved together.
+            var migrated = workspaceSnapshot
+            descriptors = migrated.unassigned + migrated.sessions.keys.sorted().flatMap { migrated.sessions[$0] ?? [] }
+            migrated.unassigned = []
+            migrated.sessions = [id: descriptors]
+            do {
+                try workspaceStore.save(migrated)
+                workspaceSnapshot = migrated
+                hasBoundWorkspaceSession = true
+            } catch {
+                // Fence this launch too: another window must not claim the same recovery records.
+                hasBoundWorkspaceSession = true
+                descriptors = []
+                self.error = String(localized: AppStrings.Workspace.restoreWorkspacesFailure)
+            }
         }
-        let workspace = MobileWorkspace(
-            descriptor: descriptor, hosts: library, transfers: transfers, sftpEdits: sftpEdits,
-            terminalSettings: terminalSettings, commandHistory: commandHistory, sftpHistory: sftpHistory,
-            connectionServices: workspaceConnectionServices)
-        addWorkspaces([workspace])
-        return workspace
+        let session = MobileWorkspaceSessionModel(id: id, app: self, descriptors: descriptors)
+        workspaceSessions.append(session)
+        if discardedSessionIDs.contains(id) { session.discard() }
+        return session
+    }
+
+    func workspaceOwner(_ workspaceID: UUID) -> String? {
+        if let session = workspaceSessions.first(where: { $0.orderedWorkspaceItems.contains { $0.id == workspaceID } })
+        {
+            return session.id
+        }
+        return workspaceSnapshot.sessions.first(where: { $0.value.contains { $0.id == workspaceID } })?.key
+    }
+
+    func discardWorkspaceSessions(_ ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        discardedSessionIDs.formUnion(ids)
+        orphanedSessionIDs.subtract(ids)
+        for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
+        let recoveredIDs = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
+        for session in workspaceSessions {
+            for workspaceID in recoveredIDs { session.close(workspaceID) }
+        }
+        for id in ids { recoveredWorkspaceIDs[id] = nil }
+        for session in workspaceSessions where ids.contains(session.id) { session.discard() }
+        workspaceSessions.removeAll { ids.contains($0.id) }
+        // Before the first binding, these are records from the previous process awaiting consolidation.
+        // UIKit discarding an old session must not erase them during cold launch.
+        if hasBoundWorkspaceSession {
+            for id in ids { workspaceSnapshot.sessions[id] = nil }
+            persistWorkspaceSnapshot()
+        }
+    }
+
+    func saveWorkspaceDescriptors(_ descriptors: [MobileWorkspaceDescriptor], for id: String) {
+        guard !discardedSessionIDs.contains(id) else { return }
+        workspaceSnapshot.sessions[id] = descriptors
+        persistWorkspaceSnapshot()
     }
 
     private func loadRecentWorkspaces() {
         do {
-            let descriptors = try workspaceStore.load()
-            savedWorkspaceDescriptors = descriptors.filter { library.host($0.hostID) != nil }
-            workspaceDisplayOrder = savedWorkspaceDescriptors.map(\.id)
-            if savedWorkspaceDescriptors.count != descriptors.count { saveWorkspaces() }
+            workspaceSnapshot = try workspaceStore.load()
+            workspaceSnapshot.unassigned.removeAll { library.host($0.hostID) == nil }
+            for id in workspaceSnapshot.sessions.keys {
+                workspaceSnapshot.sessions[id]?.removeAll { library.host($0.hostID) == nil }
+            }
+            // Persist pruning with the first binding, so legacy migration and ownership stay atomic.
         } catch {
             self.error = String(localized: AppStrings.Workspace.restoreWorkspacesFailure)
         }
-        // No sessions exist at cold launch. Old URLs still resolve through the saved descriptors.
         liveActivities.update([])
     }
 
-    private func saveWorkspaces() {
+    private func persistWorkspaceSnapshot() {
         do {
-            try workspaceStore.save(savedWorkspaceDescriptors)
+            try workspaceStore.save(workspaceSnapshot)
         } catch {
             self.error = String(localized: AppStrings.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
         }
     }
 
-    private func makeWorkspace(
-        host: Host, kind: ConnectionHistoryEntry.Kind, startup: MobileWorkspaceStartup = .none
-    ) -> MobileWorkspace {
-        let initialCommand: String?
-        let recordsInitialCommandInHistory: Bool
-        let initialSFTPPath: String?
-        switch (kind, startup) {
-        case (.ssh, .command(let command)):
-            initialCommand = command
-            recordsInitialCommandInHistory = true
-            initialSFTPPath = nil
-        case (.ssh, .directory(let path)):
-            initialCommand = RemoteShellCommand.changeDirectory(to: path)
-            recordsInitialCommandInHistory = false
-            initialSFTPPath = nil
-        case (.sftp, .directory(let path)):
-            initialCommand = nil
-            recordsInitialCommandInHistory = true
-            initialSFTPPath = path
-        case (.ssh, .none), (.sftp, .none), (.sftp, .command),
-            (.telnet, .none), (.telnet, .command), (.telnet, .directory):
-            initialCommand = nil
-            recordsInitialCommandInHistory = true
-            initialSFTPPath = nil
-        }
-        let title = WorkspaceNameAllocator.nextName(
-            prefix: host.name,
-            occupiedNames: savedWorkspaceDescriptors.map(\.title),
-            automaticallyRenames: workspaceSettings.preferences.automaticallyRenamesWorkspaces)
-        return MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(
-                hostID: host.id, title: title, kind: kind),
-            hosts: library, transfers: transfers, sftpEdits: sftpEdits, terminalSettings: terminalSettings,
-            commandHistory: commandHistory, sftpHistory: sftpHistory,
-            connectionServices: workspaceConnectionServices,
-            initialCommand: initialCommand,
-            recordsInitialCommandInHistory: recordsInitialCommandInHistory,
-            initialSFTPPath: initialSFTPPath)
+    func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {
+        observeActivityState(of: workspace)
+        workspace.didRequestClose = close
+        startConnectionHistory(for: workspace)
     }
 
-    private func addWorkspaces(_ added: [MobileWorkspace], persists: Bool = true) {
-        guard !added.isEmpty else { return }
-        var orderedIDs = Set(workspaceDisplayOrder)
-        for id in added.map(\.id) where orderedIDs.insert(id).inserted {
-            workspaceDisplayOrder.append(id)
-        }
-        for workspace in added {
-            observeActivityState(of: workspace)
-            startConnectionHistory(for: workspace)
-        }
-        workspaces.append(contentsOf: added)
-        if persists {
-            let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
-            savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
-            saveWorkspaces()
-        }
+    func workspacesDidOpen(_ added: [MobileWorkspace]) {
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         liveActivities.start(workspaceActivitySessions)
-        for workspace in added { workspace.connect() }
+    }
+
+    func workspaceDidClose(_ id: UUID) {
+        endConnectionHistory(for: id)
+        workspaceActivitySessions.removeAll { $0.id == id }
+        liveActivities.update(workspaceActivitySessions)
     }
 
     private func startConnectionHistory(for workspace: MobileWorkspace) {
@@ -819,9 +681,6 @@ final class MobileAppModel {
     }
 
     private func observeActivityState(of workspace: MobileWorkspace) {
-        workspace.didRequestClose = { [weak self] id in
-            self?.close(id)
-        }
         workspace.didChangeState = { [weak self] session in
             guard let self,
                 let index = workspaceActivitySessions.firstIndex(where: { $0.id == session.id })

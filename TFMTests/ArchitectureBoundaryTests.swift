@@ -32,7 +32,10 @@ struct ArchitectureBoundaryTests {
         #expect(containsToken("SessionReconnectController", in: controller))
         #expect(controller.contains("interactionPolicy: .forbidden"))
         #expect(containsToken("enforcingInteractionPolicy", in: controller))
-        for path in ["../TFI/App/MobileAppModel.swift", "../TFI/App/MobileRootView.swift"] {
+        for path in [
+            "../TFI/App/MobileAppModel.swift", "../TFI/App/MobileRootView.swift",
+            "../TFI/App/MobileWorkspaceSessionModel.swift",
+        ] {
             let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
             #expect(!containsToken("SSHKeyboardInteractiveQueue", in: source))
             #expect(!containsToken("keyboardAuthentication", in: source))

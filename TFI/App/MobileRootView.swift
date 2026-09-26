@@ -13,7 +13,7 @@ struct MobileRootView: View {
 
     init(
         app: MobileAppModel,
-        scene: MobileSceneModel? = nil,
+        scene: MobileSceneModel,
         features: MobileFeatureRegistry = .standard(),
         pendingQuickAction: MobileHomeScreenQuickAction? = nil,
         consumePendingQuickAction: @escaping () -> MobileHomeScreenQuickAction? = { nil }
@@ -22,7 +22,7 @@ struct MobileRootView: View {
         self.features = features
         self.pendingQuickAction = pendingQuickAction
         self.consumePendingQuickAction = consumePendingQuickAction
-        _scene = State(initialValue: scene ?? MobileSceneModel(app: app))
+        _scene = State(initialValue: scene)
     }
 
     var body: some View {
@@ -43,11 +43,11 @@ struct MobileRootView: View {
         }
         .sheet(item: $scene.renamingWorkspace) { descriptor in
             MobileWorkspaceRenameView(descriptor: descriptor) { title in
-                app.renameWorkspace(descriptor.id, to: title)
+                scene.workspaceSession.renameWorkspace(descriptor.id, to: title)
             }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
-            app.sceneChanged(scene.id, phase: phase)
+            app.sceneChanged(scene.id, phase: phase, workspaceSessionID: scene.workspaceSession.id)
             MobileHomeScreenQuickActions.refresh(app: app)
         }
         .onChange(of: app.connectionHistory.revision, initial: true) { _, _ in
@@ -64,11 +64,14 @@ struct MobileRootView: View {
             _ = scene.perform(action)
         }
         .onChange(of: app.pro.hasProAccess) { _, _ in app.reconcileSync() }
-        .onChange(of: app.workspaces.map(\.id)) { _, workspaceIDs in
+        .onChange(of: scene.workspaceSession.workspaces.map(\.id)) { _, workspaceIDs in
             scene.reconcileWorkspaceIDs(workspaceIDs)
         }
         .onDisappear { app.removeScene(scene.id) }
-        .onOpenURL(perform: scene.open)
+        .onOpenURL { url in
+            MobileWorkspaceSceneRouting.reconcile(app: app, activeSessionID: scene.workspaceSession.id)
+            scene.open(url)
+        }
         .focusedSceneValue(\.mobileScene, scene)
         .alert(
             AppStrings.Workspace.openTelnetConnectionConfirmation,

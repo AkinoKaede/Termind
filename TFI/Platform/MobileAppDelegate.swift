@@ -2,6 +2,27 @@ import UIKit
 
 @MainActor
 final class MobileAppDelegate: NSObject, UIApplicationDelegate {
+    weak var app: MobileAppModel? {
+        didSet {
+            guard let app else { return }
+            app.discardWorkspaceSessions(pendingDiscardedSessionIDs)
+            pendingDiscardedSessionIDs.removeAll()
+        }
+    }
+    private var pendingDiscardedSessionIDs: Set<String> = []
+
+    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
+        discardSessions(Set(sceneSessions.map(\.persistentIdentifier)))
+    }
+
+    func discardSessions(_ ids: Set<String>) {
+        if let app {
+            app.discardWorkspaceSessions(ids)
+        } else {
+            pendingDiscardedSessionIDs.formUnion(ids)
+        }
+    }
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil

@@ -38,10 +38,36 @@ private struct MobileQuickActionSceneRoot: View {
     @EnvironmentObject private var sceneDelegate: MobileSceneDelegate
 
     var body: some View {
+        if let sessionID = sceneDelegate.sessionID {
+            MobileBoundSceneRoot(app: app, sessionID: sessionID, delegate: sceneDelegate)
+                .id(sessionID)
+        }
+    }
+}
+
+private struct MobileBoundSceneRoot: View {
+    let app: MobileAppModel
+    @ObservedObject var delegate: MobileSceneDelegate
+    @State private var scene: MobileSceneModel
+
+    init(app: MobileAppModel, sessionID: String, delegate: MobileSceneDelegate) {
+        self.app = app
+        self.delegate = delegate
+        _scene = State(initialValue: MobileSceneModel(app: app, sessionID: sessionID))
+    }
+
+    var body: some View {
         MobileRootView(
             app: app,
-            pendingQuickAction: sceneDelegate.pendingQuickAction,
-            consumePendingQuickAction: sceneDelegate.consumePendingQuickAction
+            scene: scene,
+            pendingQuickAction: delegate.pendingQuickAction,
+            consumePendingQuickAction: delegate.consumePendingQuickAction
         )
+        .onAppear { delegate.bind(to: app) }
+        .onChange(of: delegate.pendingWorkspaceID, initial: true) { _, id in
+            guard id != nil, let id = delegate.consumePendingWorkspaceID() else { return }
+            MobileWorkspaceSceneRouting.reconcile(app: app, activeSessionID: scene.workspaceSession.id)
+            scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+        }
     }
 }

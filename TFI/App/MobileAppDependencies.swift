@@ -18,6 +18,8 @@ struct MobileAppDependencies {
     var container: ModelContainer? = nil
     var workspaceStore: MobileWorkspaceStore? = nil
     var liveActivities: MobileLiveActivityController? = nil
+    var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void =
+        MobileWorkspaceSceneRouting.activate
     var makeForwardings: (HostLibraryModel) -> PortForwardingController = { PortForwardingController(hosts: $0) }
 
     static func live() -> MobileAppDependencies {

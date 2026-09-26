@@ -11,7 +11,7 @@ import UIKit
 struct MobileAdaptiveLayoutTests {
     @Test func metricsRetainsItsNativeListAndScrollPositionAcrossFoldsAndVerticalMenuChanges() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
         let server = ServerMetric(selection: MetricsSelection(id: UUID(), enabled: false), name: "Fold Metrics")
         server.processes = (1...100).map {
@@ -77,7 +77,7 @@ struct MobileAdaptiveLayoutTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func foldingKeepsAssistantTranscriptComposerFocusAndMarkedText(language: String) async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .assistant
         await scene.assistant.load()
         let conversation = scene.assistant.conversation
@@ -131,7 +131,7 @@ struct MobileAdaptiveLayoutTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [DynamicTypeSize.large, .accessibility3])
     func fiveNativeTabsRemainAvailableAcrossWindowWidths(language: String, typeSize: DynamicTypeSize) async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         try await withRoot(app: app, scene: scene, language: language, typeSize: typeSize) { controller in
             let tabs = try #require(find(UITabBarController.self, in: controller))
             #expect(tabs.tabs.count == 5)
@@ -177,7 +177,7 @@ struct MobileAdaptiveLayoutTests {
 
     @Test func compactLaunchKeepsTheConversationAndDraftAcrossResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .assistant
         let conversation = scene.assistant.conversation
         conversation.composer.draft = "Keep this draft through rotation"
@@ -197,7 +197,7 @@ struct MobileAdaptiveLayoutTests {
 
     @Test func metricsStaysSelectedAcrossResizingAndTabRoundTrips() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
         try await withRoot(app: app, scene: scene) { controller in
             let metrics = try #require(navigation(titled: "Metrics", in: controller))
@@ -221,7 +221,7 @@ struct MobileAdaptiveLayoutTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func assistantSwitchersReflectAvailableConversationsAcrossToolbarLayouts(language: String) async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .assistant
         await scene.assistant.load()
         let conversation = scene.assistant.conversation
@@ -310,7 +310,7 @@ struct MobileAdaptiveLayoutTests {
     func assistantTitleAdaptsWithoutLosingItsConversationMenuOrDrafts(language: String) async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .assistant
         await scene.assistant.load()
         let first = ConversationModel()
@@ -387,7 +387,7 @@ struct MobileAdaptiveLayoutTests {
     func metricsDetailTitleAdaptsWhileItsPickerAndNavigationSurvive(language: String) async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
         let server = ServerMetric(
             selection: MetricsSelection(id: UUID(), enabled: false),
@@ -448,7 +448,7 @@ struct MobileAdaptiveLayoutTests {
 
     @Test func settingsDepthAndUnsavedFormsSurviveWidthChanges() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.openSettings()
         try await withRoot(app: app, scene: scene) { controller in
             let settings = try #require(navigation(titled: "Settings", in: controller))
@@ -494,7 +494,7 @@ struct MobileAdaptiveLayoutTests {
         for index in 0..<40 {
             app.library.upsert(TermindDomain.Host(name: "Production \(index)", host: "server-\(index).example.invalid"))
         }
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         let windowScene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let nativeSizeClass = windowScene.traitCollection.horizontalSizeClass
         let nativeWidth: CGFloat = nativeSizeClass == .regular ? 1024 : 430
@@ -531,8 +531,8 @@ struct MobileAdaptiveLayoutTests {
 
     @Test func twoWindowsKeepIndependentPagesAndDraftsDuringResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let first = MobileSceneModel(app: app)
-        let second = MobileSceneModel(app: app)
+        let first = MobileSceneModel(app: app, sessionID: "test")
+        let second = MobileSceneModel(app: app, sessionID: "other")
         first.selectedDestination = .metrics
         second.openNewHost()
         let hostID = second.editingHost?.id
@@ -559,7 +559,7 @@ struct MobileAdaptiveLayoutTests {
     @Test(arguments: [false, true])
     func savingSurvivesResizingThroughCompletionAndErrorFeedback(fails: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.openSettings()
         let draft = SavingDraft(fails: fails)
         var features = MobileFeatureRegistry()
@@ -621,13 +621,13 @@ struct MobileAdaptiveLayoutTests {
         ]
         for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular] {
             let store = MobileWorkspaceStore(defaults: defaults)
-            try store.save(descriptors)
+            try store.save(.init(unassigned: descriptors))
             var dependencies = MobileAppDependencies.testing()
             dependencies.container = seed.container
             dependencies.workspaceStore = store
             let app = try MobileAppModel(dependencies: dependencies)
-            defer { app.closeAll() }
-            let scene = MobileSceneModel(app: app)
+            defer { app.testWorkspaceSession.closeAll() }
+            let scene = MobileSceneModel(app: app, sessionID: "test")
             let historyCount = app.connectionHistory.entries().count
             scene.selectedDestination = .workspaces
             try await withRoot(app: app, scene: scene, language: language, initialSizeClass: sizeClass) { root in
@@ -640,7 +640,7 @@ struct MobileAdaptiveLayoutTests {
                 let list = try #require(find(UICollectionView.self, in: page.view))
                 #expect(list.numberOfSections == 2)  // Transfers and the unified Workspaces section.
                 #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
-                #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+                #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
                 let width = sizeClass == .compact ? "narrow" : "wide"
                 capture(root, name: "recent-workspaces-\(width)-\(language)")
                 // SwiftUI Button uses its gesture action, not UICollectionView's selection delegate.
@@ -648,8 +648,8 @@ struct MobileAdaptiveLayoutTests {
                 try await settle()
                 #expect(scene.workspaceID == descriptors[1].id)
                 #expect(app.workspaces.map(\.id) == [descriptors[1].id])
-                #expect(app.recentWorkspaces == [descriptors[0]])
-                #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+                #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[0]])
+                #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
                 #expect(list.numberOfSections == 2)
                 #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
                 #expect(navigation.viewControllers.count == 2)
@@ -659,7 +659,7 @@ struct MobileAdaptiveLayoutTests {
                 #expect(scene.workspaceID == nil)
                 scene.closeAllWorkspaces()
                 try await settle()
-                #expect(app.recentWorkspaces.isEmpty)
+                #expect(app.testWorkspaceSession.recentWorkspaces.isEmpty)
                 #expect(!scene.canCloseAllWorkspaces)
                 #expect(app.connectionHistory.entries().count == historyCount + 1)
                 #expect(MobileWorkspaceListView(app: app, scene: scene).historyRows.isEmpty == false)

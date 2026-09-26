@@ -50,7 +50,7 @@ struct MobileShortcutTests {
 
     @Test func sceneCommandsNavigateToTheirMobileDestinations() throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         scene.openSettings()
         #expect(scene.selectedDestination == .settings)
@@ -74,7 +74,7 @@ struct MobileShortcutTests {
 
     @Test func homeScreenConnectActionUsesTheWorkspaceConnectionPicker() throws {
         let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         #expect(scene.perform(.connect))
         #expect(scene.selectedDestination == .workspaces)
@@ -86,8 +86,8 @@ struct MobileShortcutTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Files", host: "files.example.invalid")
         app.library.upsert(host)
-        let scene = MobileSceneModel(app: app)
-        defer { app.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        defer { app.testWorkspaceSession.closeAll() }
 
         #expect(scene.perform(.history(hostID: host.id)))
         scene.activatePendingWorkspace()
@@ -101,49 +101,46 @@ struct MobileShortcutTests {
         #expect(app.connectionHistory.entries().count == historyCount)
     }
 
-    @Test func hostCardActivationReusesTheScenesMostRecentSSHWorkspace() throws {
+    @Test func hostCardActivationReusesOnlyTheScenesMostRecentSSHWorkspace() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        let first = try #require(app.open(hostID: host.id, kind: .ssh))
-        let second = try #require(app.open(hostID: host.id, kind: .ssh))
-        _ = try #require(app.open(hostID: host.id, kind: .sftp))
-        defer { app.closeAll() }
-
-        let firstScene = MobileSceneModel(app: app)
-        firstScene.selectWorkspace(first)
+        let firstScene = MobileSceneModel(app: app, sessionID: "first")
+        let secondScene = MobileSceneModel(app: app, sessionID: "second")
+        defer {
+            firstScene.closeAllWorkspaces()
+            secondScene.closeAllWorkspaces()
+        }
+        firstScene.open(hostID: host.id, kind: .ssh)
         firstScene.activatePendingWorkspace()
-        firstScene.selectWorkspace(second)
-
-        let secondScene = MobileSceneModel(app: app)
-        secondScene.selectWorkspace(second)
+        let first = firstScene.workspaceID
+        firstScene.open(hostID: host.id, kind: .ssh)
+        let mostRecent = firstScene.workspaceID
+        secondScene.activateHost(host.id)
         secondScene.activatePendingWorkspace()
-        secondScene.selectWorkspace(first)
+        let second = secondScene.workspaceID
+        #expect(second != first && second != mostRecent)
 
-        let workspaceCount = app.workspaces.count
-        let historyCount = app.connectionHistory.entries(for: host.id).count
         firstScene.openSettings()
         firstScene.activateHost(host.id)
         firstScene.activatePendingWorkspace()
         secondScene.openSettings()
         secondScene.activateHost(host.id)
         secondScene.activatePendingWorkspace()
-
-        #expect(firstScene.workspaceID == second)
-        #expect(secondScene.workspaceID == first)
-        #expect(app.workspaces.count == workspaceCount)
-        #expect(app.connectionHistory.entries(for: host.id).count == historyCount)
+        #expect(firstScene.workspaceID == mostRecent)
+        #expect(secondScene.workspaceID == second)
+        #expect(app.workspaces.count == 3)
     }
 
     @Test func hostCardActivationFallsBackToTheNewestMatchingSSHWorkspace() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        _ = try #require(app.open(hostID: host.id, kind: .ssh))
-        let newestSSH = try #require(app.open(hostID: host.id, kind: .ssh))
-        _ = try #require(app.open(hostID: host.id, kind: .sftp))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let newestSSH = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         scene.activateHost(host.id)
         scene.activatePendingWorkspace()
@@ -156,9 +153,9 @@ struct MobileShortcutTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        let sftp = try #require(app.open(hostID: host.id, kind: .sftp))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        let sftp = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         scene.activateHost(host.id)
         scene.activatePendingWorkspace()
@@ -173,10 +170,10 @@ struct MobileShortcutTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        let first = try #require(app.open(hostID: host.id, kind: .ssh))
-        let second = try #require(app.open(hostID: host.id, kind: .ssh))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        let first = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let second = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectWorkspace(first)
         scene.activatePendingWorkspace()
         scene.selectWorkspace(second)
@@ -192,11 +189,11 @@ struct MobileShortcutTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        let first = try #require(app.open(hostID: host.id, kind: .ssh))
-        let second = try #require(app.open(hostID: host.id, kind: .sftp))
-        let third = try #require(app.open(hostID: host.id, kind: .ssh))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
+        let first = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let second = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
+        let third = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        defer { app.testWorkspaceSession.closeAll() }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
 
         scene.openSettings()
         scene.selectNextWorkspace()
@@ -232,11 +229,11 @@ struct MobileShortcutTests {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        let first = try #require(app.open(hostID: host.id, kind: .ssh))
-        let second = try #require(app.open(hostID: host.id, kind: .sftp))
-        defer { app.closeAll() }
-        let scene = MobileSceneModel(app: app)
-        let otherScene = MobileSceneModel(app: app)
+        let first = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let second = try #require(app.workspaceSession(for: "other").open(hostID: host.id, kind: .sftp))
+        defer { app.discardWorkspaceSessions(["test", "other"]) }
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        let otherScene = MobileSceneModel(app: app, sessionID: "other")
         otherScene.selectWorkspace(second)
         otherScene.activatePendingWorkspace()
 

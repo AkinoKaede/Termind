@@ -166,8 +166,8 @@ struct MobileCardTests {
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
 
-        let ssh = try #require(app.open(hostID: host.id, kind: .ssh))
-        let sftp = try #require(app.open(hostID: host.id, kind: .sftp))
+        let ssh = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let sftp = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
 
         #expect(Set(app.connectionHistory.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
         #expect(
@@ -180,8 +180,8 @@ struct MobileCardTests {
             repository: SwiftDataConnectionHistoryRepository(context: ModelContext(app.container)))
         #expect(Set(restored.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
 
-        app.close(ssh)
-        app.close(sftp)
+        app.testWorkspaceSession.close(ssh)
+        app.testWorkspaceSession.close(sftp)
         #expect(app.connectionHistory.entries(for: host.id).allSatisfy { $0.endedAt != nil })
     }
 

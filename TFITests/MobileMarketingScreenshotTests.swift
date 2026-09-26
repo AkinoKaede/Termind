@@ -141,23 +141,24 @@ struct MobileMarketingScreenshotTests {
             writeSSH: { _, _ in }
         )
         let app = try makeApp(language: language, connectionServices: services)
-        defer { app.closeAll() }
+        defer { app.testWorkspaceSession.closeAll() }
         let identity = Identity(name: "Deploy", username: "deploy")
         try app.library.upsert(identity, passwordUpdate: .replace("marketing-fixture-only"))
         var host = try #require(app.library.hosts.first(where: { $0.name == "web-01" }))
         host.identityID = identity.id
         app.library.upsert(host)
-        let id = try #require(app.open(hostID: host.id, kind: kind))
+        let id = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: kind))
         let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
         for _ in 0..<200 where !workspace.connected {
             try await Task.sleep(for: .milliseconds(25))
         }
         try #require(workspace.connected)
         if kind == .sftp {
-            #expect(app.renameWorkspace(id, to: text(language, "Production files", "生产文件", "正式環境檔案")))
+            #expect(
+                app.testWorkspaceSession.renameWorkspace(id, to: text(language, "Production files", "生产文件", "正式環境檔案")))
             try #require(workspace.sftpChannel.files.count == 6)
         }
-        let scene = MobileSceneModel(app: app)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectWorkspace(id)
         try await capture(kind == .ssh ? "ssh" : "sftp", language: language) {
             MobileRootView(app: app, scene: scene)

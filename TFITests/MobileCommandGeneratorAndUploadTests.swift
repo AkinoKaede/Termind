@@ -319,9 +319,9 @@ struct MobileCommandGeneratorTests {
                 fingerprint: "SHA256:test"
             ))
         let command = try #require(RemoteShellCommand.changeDirectory(to: "/srv/it's live"))
-        let id = try #require(app.open(hostID: host.id, kind: .ssh, initialPath: "/srv/it's live"))
+        let id = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh, initialPath: "/srv/it's live"))
         let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
-        defer { app.close(id) }
+        defer { app.testWorkspaceSession.close(id) }
 
         #expect(await eventually { workspace.connected })
         #expect(!connections.writes.contains(Data((command + "\r").utf8)))
@@ -358,9 +358,9 @@ struct MobileCommandGeneratorTests {
                 fingerprint: "SHA256:test"
             ))
         let snippet = Snippet(title: "Status", body: "uptime")
-        let id = try #require(app.execute(snippet, on: [host.id]).first)
+        let id = try #require(app.testWorkspaceSession.execute(snippet, on: [host.id]).first)
         let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
-        defer { app.close(id) }
+        defer { app.testWorkspaceSession.close(id) }
 
         #expect(await eventually { workspace.connected })
         #expect(!connections.writes.contains(Data((snippet.body + "\r").utf8)))
@@ -883,7 +883,8 @@ struct MobileUploadBatchTests {
         let clients = MobileParallelUploadClients()
         let primary = clients.makeClient()
         let transfers = SFTPTransferCoordinator(
-            store: library, clientFactory: { clients.makeClient() }, globalLimit: 15, perHostLimit: 5)
+            store: library, clientFactory: { clients.makeClient() }, globalLimit: 15, perHostLimit: 5,
+            strategy: .connectionsPreferred)
         let services = MobileWorkspaceConnectionServices(
             makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
@@ -1039,7 +1040,8 @@ struct MobileUploadBatchTests {
                 report.path: report,
                 broken.path: broken,
                 changedDirectory.path: changedDirectory,
-            ])
+            ],
+            failedDownloadPaths: [broken.path])
         let transferClient = MobileUploadSFTPClient(failedDownloadPaths: [broken.path])
         let transfers = SFTPTransferCoordinator(store: library) { transferClient }
         let services = MobileWorkspaceConnectionServices(
