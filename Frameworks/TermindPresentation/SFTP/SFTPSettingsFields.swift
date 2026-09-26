@@ -26,7 +26,7 @@ public struct SFTPSettingsFields: View {
             label("Per-Host Transfers", value: model.preferences.perHostLimit)
         }
         Text(
-            "Changes apply to queued transfers. Active transfers continue unchanged. If additional connections cannot open without authentication prompts, transfers use parallel channels on the existing connection."
+            "Changes apply to queued transfers; active transfers continue. If new connections would prompt for authentication, transfers use parallel channels on the existing connection."
         )
         .font(.caption).foregroundStyle(.secondary)
         if let error = model.storageError { Text(error).foregroundStyle(.red) }

@@ -725,11 +725,11 @@ extension AppStrings {
         }
 
         public static var skillDescriptionExplanation: LocalizedStringResource {
-            "What this does and when to use it. This is the only part the assistant sees until it loads the skill, so it decides whether the skill is used at all."
+            "Describe what the skill does and when to use it so the assistant knows when to load it."
         }
 
         public static var skillExplanation: LocalizedStringResource {
-            "A skill is a procedure the assistant loads when a task matches its description, and then follows. It never approves an action: commands, writes and transfers still ask exactly as they would otherwise."
+            "The assistant loads and follows a skill when a task matches its description. Commands, writes, and transfers retain their usual approval rules."
         }
 
         public static var skills: LocalizedStringResource {
@@ -873,7 +873,7 @@ extension AppStrings {
         }
 
         public static var directProviderConnectionExplanation: LocalizedStringResource {
-            "Requests go directly from this Mac to each endpoint, not through an SSH host."
+            "Requests go directly from this Mac to each endpoint."
         }
 
         public static var rightClickPasteExplanation: LocalizedStringResource {
@@ -909,7 +909,7 @@ extension AppStrings {
         }
 
         public static var mcpServerAccessExplanation: LocalizedStringResource {
-            "The server listens only on 127.0.0.1 and ::1. It is off by default; when enabled, external calls execute without per-call approval."
+            "The server listens only on 127.0.0.1 and ::1. When enabled, client tool calls run without per-call approval."
         }
 
         public static var mcpToolChangesExplanation: LocalizedStringResource {
