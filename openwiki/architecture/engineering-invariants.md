@@ -3,6 +3,9 @@ type: architecture-contract
 title: Cross-Cutting Engineering Invariants
 description: Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, agent, localization]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -108,6 +111,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-5b8c72c5373a41af34fa9fd4
+    resource: repo://TFI/App/MobileStartupView.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
@@ -166,10 +173,7 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
-generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -209,7 +213,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens.
-- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
+- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
@@ -238,7 +242,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### Windows and sessions
 
-- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns the live Workspace array and process services while each `MobileSceneModel` owns its destination, selected Workspace and Assistant navigation. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
+- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns process services, the complete Workspace descriptor snapshot and a registry of `MobileWorkspaceSessionModel`s. Each native scene session owns its ordered live Workspaces and saved descriptors through that model; `MobileSceneModel` owns the destination, selected Workspace and Assistant navigation. Workspace links activate the existing native owner rather than opening a duplicate in another scene. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
 - New desktop windows start at Welcome; Dock reopen preserves destination and Metrics entry selects Metrics. Dock
   New Window uses the registered factory and activates hidden/windowless apps. Restoration never reconnects live
   Workspaces. New windows snapshot ordinary content size once, after full-size content styling; fullscreen/auxiliary
@@ -782,7 +786,7 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
 ### Workspaces and activity
 
 - One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
-  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. When all scenes background, the app pauses sync, Metrics, edits and outbox and begins a finite background task; **only on its expiration** it suspends Workspace transports, stops forwarding, pauses transfers and expires Assistant work. Foreground resumes only existing live Workspaces with foreground-resume intent; it does not cold-open other saved descriptors. This resume can initiate a fresh connection attempt, so it is not an implicit trust approval or command replay.
+  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. When every tracked scene enters background, the app pauses sync, Metrics, edit monitoring, memory, outbox and speech recording, then begins a finite background task; **only on its expiration** it suspends active Workspace flows, stops forwarding, pauses transfers and expires Assistant work. Foreground resumes only existing live Workspaces with foreground-resume intent; it does not cold-open other saved descriptors. This resume can initiate a fresh connection attempt, so it is not an implicit trust approval or command replay.
 - `MobileBackgroundController` delivers expiration on the MainActor **synchronously** before retiring its finite UIKit
   lease; the expiration closure immediately requests Workspace/forwarding/transfer/Assistant cancellation, but async
   Assistant persistence and transport drains remain best effort under OS suspension. Replacement/finished leases ignore
@@ -808,10 +812,7 @@ sequenceDiagram
     Assistant->>Assistant: drain saves then close agent transports best effort
 ```
 The finite UIKit lease ends after synchronous cancellation requests, not after asynchronous Assistant cleanup.
-- `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title), no commands/secrets/paths/content/transfers.
-  Cold launch after Hosts loads Recent only, no sessions/history/network. MainActor open-by-ID reuses or publishes then connects one instance across scenes; repeated selection does not retry a failed first attempt. Save retains unopened entries/order. Read legacy arrays/v1 and migrate legacy arrays to the versioned envelope;
-  only successful loads permit save. Corrupt/unknown bytes remain/write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries;
-  Close All preserves connection history. Local Host deletion closes both live and unopened descriptors immediately, with outbox cleanup for surviving durable work; remote removal closes them through Vault-apply handling.
+- `mobile.workspaces.v1` persists a version-2 snapshot of ordered, scene-session-owned local descriptors (ID/Host/kind/title), with unassigned legacy entries but no commands/secrets/paths/content/transfers. Cold launch after Hosts loads Recent only, no sessions/history/network. The first bound native scene consolidates prior scene descriptors and unassigned records into one owner in a single save; later scenes cannot claim those recovery records again. A disconnected scene is not presumed discarded: on reconciliation, orphaned live Workspaces transfer to an active scene only after the ownership snapshot saves; an explicit native session discard closes its entries. MainActor open-by-ID reuses or publishes then connects one instance in its owning scene; repeated selection does not retry a failed first attempt. Save retains unopened entries/order. Read legacy arrays/v1 and migrate on first binding rather than on read; only successful loads permit save. Corrupt/unknown bytes remain write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries; Close All preserves connection history. Local Host deletion closes both live and unopened descriptors immediately, with outbox cleanup for surviving durable work; remote removal closes them through Vault-apply handling.
 - Connection history is a separate native-field History event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
   event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
   installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. `DeviceDirectoryModel`

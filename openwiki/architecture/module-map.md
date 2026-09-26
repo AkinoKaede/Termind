@@ -5,7 +5,7 @@ description: Maps Termind's native products, six shared frameworks, package depe
 tags: [architecture, modules, products, dependencies, ownership]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -51,10 +51,18 @@ sources:
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-c8d832474c03f5ebad7b0578
+    resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-b360f8803ec98b554faad9bb
+    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
+  - id: openwiki-source-4f39e055f4a833394b6a0207
+    resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -67,7 +75,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Module and Product Map
@@ -96,7 +104,7 @@ These are orientation guides, not replacements for [System Boundaries](system-bo
 | `Frameworks/TermindInfrastructure` | General concrete services: CloudKit, commerce, speech, logging, importers, and metrics parsing. | Separate from remote transport mechanics. |
 | `Frameworks/TermindRemoteInfrastructure` | SSH/SFTP/Telnet, remote credentials, transfers, forwarding, sampling, and host-aware Agent tools. | Owns protocol machinery, not native interaction surfaces. |
 | `Frameworks/TermindPresentation` | Reusable SwiftUI content, forms, formatting, transcript policy, and terminal appearance. | Not a persistence or native-app owner; some shared views use conditional AppKit/UIKit for platform-specific rendering. |
-| `TFM` / `TFI` | Native composition, interaction, navigation, adapters, and runtime lifetimes. | macOS windows and mobile scenes are deliberately different owners. |
+| `TFM` / `TFI` | Native composition, interaction, navigation, adapters, and runtime lifetimes. | Desktop windows own their workspaces; on mobile each persistent UIKit scene session owns a workspace collection through an app-managed `MobileWorkspaceSessionModel`. |
 | `Frameworks/Resources` | Shared bundle assets, localization, model catalogs, and privacy metadata. | A resource group, not a seventh framework. |
 | `AgentKit` | Reference checkout of the separately versioned, host-neutral agent package. | Xcode consumes the resolved remote package, not this checkout. |
 | Supporting products | MCP stdio bridge, Live Activity extension, and standalone forwarding benchmark. | Different executable/extension boundaries, not app feature folders. |
@@ -163,28 +171,33 @@ This split is also a placement rule: shared behavior belongs with its existing o
 
 ## Composition and state boundaries
 
-The composition boundary is directional: app entrypoints choose concrete adapters and inject them into shared feature models; the resulting workspaces have a different owner on each platform. A scene or window route is not a durable store or a transport. Initialization failures have different product behavior: desktop aborts launch if its database cannot open; mobile renders unavailable content instead. Test composition uses in-memory stores and omits live sync, so an in-memory passing test does not verify CloudKit transport.
+The composition boundary is directional: app entrypoints choose concrete adapters and inject them into shared feature models. A scene or window route is not a durable store or a transport. Both platforms keep window-local workspace collections, but mobile session models are retained by the shared app model and keyed to persistent UIKit scene IDs. Initialization failures have different product behavior: desktop aborts launch if its database cannot open; mobile renders unavailable content instead. Test composition uses in-memory stores and omits live sync, so an in-memory passing test does not verify CloudKit transport.
 
 ```mermaid
 flowchart LR
     DesktopEntry["TermindApp"] --> DesktopApp["AppModel and shared stores"]
     DesktopEntry --> DesktopWindow["WindowModel per main window"]
     DesktopWindow --> DesktopWorkspaces["Window workspaces"]
-    MobileEntry["TermindIOSApp"] --> MobileApp["MobileAppModel and live workspaces"]
-    MobileEntry --> MobileRoot["MobileRootView"]
+    MobileEntry["TermindIOSApp"] --> MobileApp["MobileAppModel and shared services"]
+    MobileEntry --> MobileRoot["MobileStartupView and MobileRootView"]
     MobileRoot --> MobileScene["MobileSceneModel per scene"]
-    MobileScene -->|"selects by ID"| MobileApp
+    MobileScene -->|"binds persistent session ID"| MobileApp
+    MobileApp --> MobileSession["MobileWorkspaceSessionModel per UIKit session"]
+    MobileScene -->|"selects in bound session"| MobileSession
+    MobileSession --> MobileWorkspaces["Session workspaces"]
 ```
 
-Composition and navigation lifetimes: desktop windows own their workspace collection, while mobile scenes reference app-owned live workspaces.
+Composition and navigation lifetimes: desktop windows own workspaces; mobile scene navigation binds an app-retained workspace session for its persistent UIKit window ID.
 
-`TFM/App/TermindApp.swift` is the desktop `@main` entrypoint. It opens the Persistence container, wires stores, Keychain-backed secrets, sync and connection coordinators into an app-wide `AppModel`, and injects that model and container into each `WindowGroup` root. Each main window receives its own `WindowModel`; a separate authentication window uses the shared app environment. A failed desktop database open ends launch with `fatalError`. On mobile, `TFI/App/TermindIOSApp.swift` is the actual `@main`, **not** `MobileAppModel.swift`: it chooses live versus test dependencies, creates one `MobileAppModel` and supplies its container to the scene root, or shows an unavailable-content view if initialization throws. `MobileAppModel` assembles SwiftData, Keychain or in-memory secrets, remote services, sync coordinators, Assistant and workspaces. In the in-memory/test path it disables live sync and Live Activities. `MobileSceneModel` resolves selected workspace IDs against app-owned live instances rather than owning connections itself.
+`TFM/App/TermindApp.swift` is the desktop `@main` entrypoint. It opens the Persistence container, wires stores, Keychain-backed secrets, sync and connection coordinators into an app-wide `AppModel`, and injects that model and container into each `WindowGroup` root. Each main window receives its own `WindowModel`; a separate authentication window uses the shared app environment. A failed desktop database open ends launch with `fatalError`. On mobile, `TFI/App/TermindIOSApp.swift` is the actual `@main`, **not** `MobileAppModel.swift`: it chooses live versus test dependencies and constructs one `MobileAppModel`. `MobileStartupView` installs its container for the bound scene root or displays unavailable content if initialization throws. `MobileAppModel` assembles SwiftData, Keychain or in-memory secrets, remote services, sync coordinators and Assistant; it retains the workspace sessions and a flattened view of their live workspaces. In the in-memory/test path it omits live sync and disables Live Activities by default. Each `MobileSceneModel` binds to the `MobileWorkspaceSessionModel` for its persistent UIKit session ID. That session owns live workspaces, ordered restoration descriptors and open/close operations; scene navigation selects from **its own session**, not from all app workspaces. Cross-window workspace links activate the owning native session rather than stealing its connection.
 
 - **Process-wide:** shared stores, service coordinators, and application models.
 - **Desktop window:** navigation, workspace collection, pane selection, searches, and transcript caches.
-- **Mobile scene:** navigation, selected workspace/conversation, and transient presentations; live workspace instances remain app-owned.
+- **Mobile UIKit session:** its app-retained `MobileWorkspaceSessionModel` owns connection intent, live workspaces and persisted descriptors; the scene model owns selection, navigation, conversation and transient presentations. Backgrounding or view disappearance does not discard the session. Explicit native-session discard closes only its workspaces.
 - **Session/workspace:** transport and terminal/browser runtime state. Disappearing views are not a general disconnect signal.
-- **Durable storage:** metadata, histories, configuration, and separately governed memory; not live transports or transient credentials.
+- **Durable storage:** metadata, histories, configuration, and separately governed memory; not live transports or transient credentials. Mobile restoration saves descriptors per session, not live connections.
+
+On mobile, `workspaceSession(for:)` consolidates saved descriptors into the first bound window on a new process launch without opening connections. Later sessions start with their own collections. A disconnected scene can still be a restorable native session, so reconciliation against UIKit open-session IDs precedes recovery of orphaned live workspaces into an active session; the snapshot is saved before transferring the live instances. If saving fails, recovery is skipped and an error is reported instead of silently duplicating ownership. An explicit discard closes that session's workspaces (including any previously recovered from it). `TFITests/MobileWorkspaceSessionTests.swift` covers independent windows, cold-launch consolidation, reclaim versus discard, recovery, and activity-link routing; `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows only when `TERMIND_MOBILE_UI_TESTS=1` with parallel testing disabled.
 
 For lifetime diagrams, continue with [Native App Directory Responsibilities](native-app-directories.md) and [Platform Runtime](platform-runtime.md). For change-oriented navigation and verification, return to the [Engineering Quickstart](../quickstart.md).
 

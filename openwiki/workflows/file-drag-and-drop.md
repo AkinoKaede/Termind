@@ -5,7 +5,7 @@ description: File drag event routing, payload selection, Assistant attachment im
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T17:55:27.475Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
@@ -59,7 +59,7 @@ sources:
     resource: repo://TFMTests/FileURLDropTargetTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # File Drag and Drop Across TFM and TFI
@@ -148,11 +148,27 @@ On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered
 
 The temporary `SFTPChannelModel` prepares the local upload or remote-copy batch. After awaits, cancellation and connection-generation checks prevent an old preparation from publishing into a new session. Conflicts present Replace / Skip / Keep Both; otherwise the batch is enqueued. Enqueue dispatches to the corresponding local/remote planner, then releases the temporary channel owner. Disconnect/reconnect or disappearance cancels pending terminal preparation; already queued transfer lifetimes belong to the coordinator/context, not the view.
 
-On TFI, `MobileWorkspace.prepareUpload` captures the connection generation and destination, opens an independent SFTP client for SSH, and checks preparation ID, generation, and destination again around preflight. It creates a donated transfer context for that client. For an SFTP Workspace it instead uses the existing browser client/context. Enqueue releases the donated owner while queue references preserve the transport for pending work. Mobile SSH setup does not use the desktop PTY fallback helper.
+On TFI, `MobileWorkspace.prepareUpload` rejects non-file URLs or an unavailable transfer snapshot/destination, then captures a preparation ID, connection generation and destination. SSH opens an independent SFTP client from the snapshot (without the desktop PTY fallback); an SFTP Workspace borrows its browser client. After connection and home-directory lookup, and again after local upload preflight, it checks cancellation, preparation ID, generation and destination. It creates a donated transfer context only for the SSH client; the browser uses its existing context. Conflicts leave a pending batch for policy selection; a conflict-free batch enqueues immediately. Cancellation or preparation failure disconnects an owned client, while enqueue and pending-batch cancellation release its donated owner. Admitted queue references retain the transport independently of the Workspace.
+
+```mermaid
+flowchart TD
+    Receive["Mobile staged file URLs"] --> Check["Validate destination and transfer snapshot"]
+    Check --> Open["SSH opens SFTP client or browser borrows client"]
+    Open --> Preflight["Check identity and destination around preflight"]
+    Preflight --> Conflicts{"Remote conflicts?"}
+    Conflicts -->|Yes| Policy["Wait for conflict policy"]
+    Conflicts -->|No| Queue["Enqueue batch"]
+    Policy --> Queue
+    Open -->|Cancellation or failure| Cleanup["Disconnect owned client"]
+    Preflight -->|Cancellation or failure| Cleanup
+    Queue --> Release["Release donated owner after enqueue"]
+```
+
+Mobile upload preparation and ownership handoff; cancellation does not turn a stale preflight into a new transfer.
 
 Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path.
 
-Evidence: [OSC 7 producer](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L439-L476), [desktop observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1093-L1104), [mobile observation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L295-L299), [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L3-L26), [desktop resolver/request](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L8-L73), [desktop preparation/enqueue](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L248-L398), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1302-L1392), [mobile enqueue/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1539-L1618).
+Evidence: [OSC 7 producer](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L439-L476), [desktop observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1093-L1104), [mobile observation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L295-L299), [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L3-L26), [desktop resolver/request](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L8-L73), [desktop preparation/enqueue](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L248-L398), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1311-L1414), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1563-L1644).
 
 ## SFTP uploads and desktop remote-file dragging
 

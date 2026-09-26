@@ -3,9 +3,10 @@ type: assistant runtime concept
 title: Assistant and Agent Runtime
 description: How Termind captures assistant submissions, prepares and cancels AgentKit runs, persists conversations, and gates host tools, skills, and device-local memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
-  - id: openwiki-source-0e8cfe7d74554d8a17af60b7
-    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
@@ -66,8 +67,6 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
-  - id: openwiki-source-3dfad0e95bb7d66f292c20c9
-    resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -92,19 +91,14 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
-  - id: openwiki-source-8d265a8732f0af93c5d4e274
-    resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Assistant and Agent Runtime
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the host-specific integration: SSH and SFTP tools and transport pools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The sibling `AgentKit/` checkout is useful for reading runtime contracts, but the Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.15.2), not from that sibling directory. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins version 0.15.2 at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`: changes to the sibling working tree do not change the built app. For a cross-boundary change, release the package first, then update the Xcode version requirement and resolved revision with the consuming Termind change; build with `-onlyUsePackageVersionsFromResolvedFile`.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.15.2); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins version 0.15.2 at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`: changes to the sibling working tree do not change the built app. For a cross-boundary change, release the package first, then update the Xcode version requirement and resolved revision with the consuming Termind change; build with `-onlyUsePackageVersionsFromResolvedFile`.
 
 ## Responsibilities and assembly
 
@@ -112,7 +106,7 @@ For file and image drop entrypoints, attachment import lifetimes, and the shared
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. When configured, `AssistantModelSelectionController.prepareForSend` first persists a valid per-conversation chat-model choice (or replaces an unavailable choice with the current default); a write error refuses capture without consuming the draft. Drafts are seeded with a model in memory, while restore backfills durable choices, and later Chat-role changes do not silently switch an existing valid choice. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 
-A runtime is deliberately single-run. It owns one event stream and one event consumer. `ConversationModel` owns the live runtime and projects its events into visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`. A composed user turn likewise has two texts: `authoredText` is the user's draft shown in the bubble, edit form and title input, while model-facing `text` also includes captured attachment blocks and an armed skill directive. Images and context attachments travel as structured payloads; `pendingPriorMessages` omits the final user turn because the run request appends that prompt itself.
+Termind creates a fresh `AgentRuntime` per run; `ConversationModel.start` owns its queued request and one event consumer. `ConversationModel` owns the live runtime and projects its events into visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`. A composed user turn likewise has two texts: `authoredText` is the user's draft shown in the bubble, edit form and title input, while model-facing `text` also includes captured attachment blocks and an armed skill directive. Images and context attachments travel as structured payloads; `pendingPriorMessages` omits the final user turn because the request carries that prompt separately; integrated runtime tests confirm the prompt appears in saved messages.
 
 The tool catalog and plan posture are captured at submission; AgentKit selects that captured catalog's executable mode-specific subset when the runtime starts. A tool-capable model receives the captured skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. `AgentTurnContextSnapshot` is the persistable context portion of the capture: session facts, skill catalog text, plan posture, surface availability, and memory-session identity. It is not a durable copy of provider credentials or all runtime configuration. Surface availability follows the latest delivered user snapshot rather than mutable UI focus.
 
@@ -145,11 +139,12 @@ Desktop sidebar, standalone Assistant, and mobile first sends use the same contr
 
 Edits have a separate two-stage entry point: desktop and mobile UI call `prepareAgentEdit` synchronously before creating their UI `Task`. It preserves the original attachment payload and model-facing suffix while capturing fresh context and configuration for the replacement submission. `performAgentEdit` checks the capture identity before starting a tracked history task; persistence succeeds before the live edit is applied, and another identity check precedes runtime preparation. A cancelled or superseded prepared edit cannot later enter truncation or start a runtime.
 
-Once the runtime begins, the submitted prompt is persisted as part of its running snapshot before model work. AgentKit streams a provider turn, emits ordered UI and durable events through a shared `AgentEventChannel`, validates any complete tool call, then schedules execution. Tool results are appended to the model transcript and persisted before the following model round. This preserves a grammatically answerable transcript even for refusal, cancellation, or failure paths.
+At the AgentKit handoff, Termind supplies an `AgentRunRequest` with the captured prompt, context, prior transcript and permission mode, plus a repository and a shared `AgentEventChannel`. Termind's integration tests exercise streaming model turns, schema rejection before approval, tool-result replay and terminal snapshots; the precise internal order of AgentKit's writes relative to provider requests or the next tool round cannot be proven from this checkout of the pinned 0.15.2 package. Do not treat the diagram's runtime portion as a substitute for auditing that pinned release when changing its persistence ordering.
 
 ```mermaid
 sequenceDiagram
     participant User
+    participant Library as Assistant Library
     participant Conversation
     participant Controller
     participant Runtime
@@ -162,14 +157,14 @@ sequenceDiagram
     Controller->>Controller: capture turn and runtime configuration
     Controller->>Conversation: mark preparing and append captured turn
     opt first send
-        Controller->>Conversation: promote captured conversation
+        Controller->>Library: promote captured conversation
     end
     opt preparation needs compaction or memory
         Controller->>Controller: await captured compaction then memory session
     end
     alt capture stopped during preparation
         Controller->>Store: save interrupted snapshot
-        Controller->>Conversation: retire preparation after save attempt
+        Controller->>Conversation: project interruption if saved and retire preparation
     else captured model or credential missing
         Controller->>Store: save failed snapshot while preparation is owned
         Controller->>Conversation: project failure only if save succeeds
@@ -179,7 +174,7 @@ sequenceDiagram
             Conversation->>Store: save cancelled snapshot in separate task
         else event consumer starts runtime
             Conversation->>Runtime: start and consume events
-            Runtime->>Store: save running snapshot
+            Runtime->>Store: persist run snapshots and durable events
             Runtime->>Runtime: stream provider turn
             Runtime->>Runtime: validate tool schema
             Runtime->>Gate: authorize when policy asks
@@ -187,20 +182,18 @@ sequenceDiagram
                 Gate-->>Runtime: allow
                 Runtime->>Host: execute SSH or SFTP work
                 Host-->>Runtime: bounded result
-                Runtime->>Store: record durable tool event
-                Runtime->>Store: save transcript snapshot
-                Runtime->>Runtime: next model round
+                Runtime->>Runtime: continue model loop with tool result
             else denied or review failure
                 Gate-->>Runtime: deny
-                Runtime->>Store: save refusal result
+                Runtime->>Runtime: continue with refusal result
             end
-            Runtime-->>Conversation: ordered events and terminal state
+            Runtime-->>Conversation: events and terminal state
         end
     end
     Conversation-->>User: messages and tool cards
 ```
 
-Accepted-send lifecycle: model selection and capture precede asynchronous preparation, whose interrupted and failed saves are distinct from queued prestart cancellation and the running runtime's snapshots. Edits first commit their history replacement before runtime preparation.
+Accepted-send lifecycle: model selection and capture precede asynchronous preparation. Interrupted and captured-failure saves belong to Termind's controller; queued prestart cancellation belongs to `ConversationModel`; AgentKit owns persistence once started. Edits first commit their history replacement before runtime preparation. The runtime's internal snapshot timing is not specified by this diagram.
 
 ### Preparation and cancellation ownership
 
@@ -212,11 +205,11 @@ Archive/delete operations cancel and await pending preparation before their exis
 
 ### Streaming, steering, and cancellation
 
-While a run is live, a further user message is queued as steering rather than starting another run. It becomes visible and durable only at the next model boundary, when AgentKit delivers it to the model; if the run has already ended, the UI returns queued text and attachments to the composer. This prevents history from claiming that a message was delivered when it was not.
+While a run is live, a further user message is queued as steering rather than starting another run. Termind makes it visible in the transcript on `steeringDelivered`; integration tests show delivery in the next model request and a saved snapshot, but the pinned package's exact write ordering is not visible here; if the run has already ended, the UI returns queued text and attachments to the composer. This prevents history from claiming that a message was delivered when it was not.
 
 Steering captures the sending session context and updates only the `terminal_suggest` availability entry. It preserves other tool overrides, the fixed skill catalog and plan contract, and the memory-session identity. Queuing does not change `ConversationModel.activeContextSnapshot`; delivery does. If the conversation has no legacy snapshot, steering keeps that context unknown instead of filling it from current UI state. The persisted availability key remains `terminal_suggest`.
 
-For an already-started runtime, stopping requests cancellation of runtime/tool work, discards run-scoped secrets, marks running cards interrupted in the presentation, and returns undelivered steering text. `stopAndWait()` requests preparation and active-run cancellation before awaiting preparation and the tracked run consumers; it does not wait to request runtime cancellation until preparation finishes.
+For an already-started runtime, stopping requests runtime cancellation, marks running cards interrupted in the presentation, and returns undelivered steering text. The runtime integration test shows an in-flight tool is cancelled; secret lifecycle is exercised in integration tests, but its precise disposal timing must be checked against the pinned AgentKit release. `stopAndWait()` requests preparation and active-run cancellation before awaiting preparation and the tracked run consumers; it does not wait to request runtime cancellation until preparation finishes.
 
 The queued-runtime handoff has its own cancellation persistence path. `ConversationModel.start` installs an owner before scheduling its event consumer; if stop wins while that owner is still queued, it constructs a cancelled snapshot from captured request data, starts a separate repository save and `stopAndWait()` joins the consumer that awaits it. If the consumer has entered `AgentRuntime.start`, runtime cancellation and its terminal snapshot path take over. Thus a queued stop need not create a *running* snapshot or call the provider, but a successful queued-cancellation save is durable; the presentation may show cancellation before the save finishes, and the queued save currently swallows repository errors. Do not confuse this handoff with preparation interruption, which is an earlier, separately saved state.
 
@@ -280,7 +273,7 @@ A fork copies its scratch scope before creating the forked conversation and remo
 
 `SwiftDataAgentRunRepository` stores conversations, runs, messages, replay backing, attachments, tool invocations/results, reviews, ordering metadata, and compaction records. It writes messages by message ID rather than run ID, so replaying prior conversation history into later run snapshots does not duplicate historical rows. Tool event persistence is restricted to durable lifecycle events rather than streamed token deltas.
 
-A saved context snapshot preserves historical session, skill-catalog text, plan and surface facts for replay and fork history. Explicit `startAgentRun` uses the last user turn's stored snapshot, or a neutral `AgentTurnContextSnapshot()` for legacy absent context rather than inventing facts from current UI state. This is context replay, not reconstruction of historical model/provider settings, credentials or skill-package bytes: the controller still captures the current runtime configuration. An edited submission deliberately captures fresh context instead of inheriting the historical snapshot. There is no manual Retry/Resume UI or automatic recovery execution; provider retry remains AgentKit-owned.
+A saved context snapshot preserves historical session, skill-catalog text, plan and surface facts for replay and fork history. Explicit `startAgentRun` uses the last user turn's stored snapshot, or a neutral `AgentTurnContextSnapshot()` for legacy absent context rather than inventing facts from current UI state. This is context replay, not reconstruction of historical model/provider settings, credentials or skill-package bytes: the controller still captures the current runtime configuration. An edited submission deliberately captures fresh context instead of inheriting the historical snapshot. Restored nonterminal runs are interrupted rather than automatically executed again. The visible transcript surfaces inspected here do not expose a manual Retry/Resume action; any provider-level retry semantics are AgentKit-owned and must be verified in the pinned release.
 
 Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
 
@@ -369,4 +362,4 @@ The focused tests establish behavior that is important when changing this area:
 
 ## Change guidance
 
-When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register host-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.
+For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved 0.15.2 package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register host-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.

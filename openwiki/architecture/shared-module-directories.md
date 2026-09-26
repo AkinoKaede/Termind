@@ -3,15 +3,20 @@ type: architecture directory guide
 title: Shared Framework Responsibilities
 description: Directory ownership and collaboration across Termind's six shared frameworks and product-bundled resources, including explicit CloudKit synchronization, durable replay, and remote protocol adapters.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
-  - id: openwiki-source-cd70c531c7abdbbdcb0ea290
-    resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-96ab247f0823a449c632fdd9
     resource: repo://Frameworks/Resources/LinuxDistributionIcons.json
   - id: openwiki-source-9f18104a9eafdddd0b6ca08a
     resource: repo://Frameworks/Resources/LinuxDistributionIcons/SimpleIcons.DISCLAIMER.md
+  - id: openwiki-source-1a906e9aae78eda115cd7411
+    resource: repo://Frameworks/Resources/ModelCatalogOverrides.json
+  - id: openwiki-source-95f55b38dce1a2c2151359fe
+    resource: repo://Frameworks/Resources/PiModelCatalog.json
   - id: openwiki-source-859ed729b25c47286f7d5a83
     resource: repo://Frameworks/Resources/PrivacyInfo.xcprivacy
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -124,6 +129,8 @@ sources:
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-256e2b134a8446ea63b15585
+    resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
@@ -134,17 +141,16 @@ sources:
     resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Shared Framework Responsibilities
 
-The six module roots live under `Frameworks`. Paths in each table are **relative to the named framework root**. All current functional child directories are covered; these modules mostly stop at that level. Persistence is flat, while Presentation and Application also contain substantial root-level functionality. The “root files” rows are real responsibilities, not proposed folders. Xcode uses file-system-synchronized groups for the framework roots; the shared `Resources` group is attached to product targets, not to every framework target. A file's directory and its compiled target membership must not be conflated.
+The six module roots live under `Frameworks`. Paths in each table are **relative to the named framework root**. All current functional child directories are covered; these modules mostly stop at that level. Persistence is flat, while Presentation and Application also contain substantial root-level functionality. The “root files” rows are real responsibilities, not proposed folders. Xcode uses file-system-synchronized groups for the framework roots; the shared `Resources` group is attached to product targets, not to every framework target. A file's directory and its compiled target membership must not be conflated. AgentKit is a **remote Swift package** resolved at version 0.15.2 in `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; its loop/provider/built-in tool implementations are outside these framework directories, not source files under this repository's empty `AgentKit/` checkout.
 
 See the [Module Map](module-map.md) for build dependencies and [Native App Directories](native-app-directories.md) for the app-owned halves of these features.
 
@@ -234,7 +240,7 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
-The container factory selects the complete **V40** versioned schema and migration plan; platform roots choose its location and lifetime. The released V31→V34 migration replaces Host, connection-history, and Identity shapes and backfills device attribution; V35 adds History journal/state and capability checkpoints, V36 removes the retired legacy-import checkpoint, V37 adds scoped cloud record/replica state, and V38 adds deletion-handoff and asset-cleanup state. V39 persists per-conversation Assistant model selection; V40 removes retired per-category quarantine models while retaining scoped quarantine. These local versions do not version the CloudKit record formats. The factory disables automatic SwiftData CloudKit storage because explicit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
+The container factory selects the complete **V40** versioned schema and migration plan; platform roots choose its location and lifetime. Separately, `GRDBMemoryStore` is actor-owned and lazily opens its dedicated `memory.sqlite` directory: merely constructing disabled memory does not create files. Its own migrations maintain message full-text indexing, learning activity and memory-reference dates rather than modifying the SwiftData schema. The released V31→V34 migration replaces Host, connection-history, and Identity shapes and backfills device attribution; V35 adds History journal/state and capability checkpoints, V36 removes the retired legacy-import checkpoint, V37 adds scoped cloud record/replica state, and V38 adds deletion-handoff and asset-cleanup state. V39 persists per-conversation Assistant model selection; V40 removes retired per-category quarantine models while retaining scoped quarantine. These local versions do not version the CloudKit record formats. The factory disables automatic SwiftData CloudKit storage because explicit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
 
 The agent repository saves runs by run ID but deduplicates replayed history by **message ID**; compaction messages are not stored as ordinary transcript rows. It keeps per-message frozen context/model text and attachments alongside run, tool, review, and result rows. On reload, it sorts messages within run order, restores the compaction projection and recovers a tool result already persisted before its transcript snapshot, rather than leaving an unanswered call in model history. Initialization marks unfinished runs interrupted. Editing a user turn truncates the suffix and stages a replacement run; the real run adopts the staged message instead of inserting it twice. Deletes remove the associated message/replay/attachment/tool graph, and guards prevent late saves for deleted conversations or retired runs. Title writes redact model-influenced text. These rules belong to Persistence, while the Application controller decides *when* to run, compact, approve, or display failure.
 
@@ -315,7 +321,7 @@ Details: [UI Design Principles](../concepts/ui-design-principles.md).
 | `Assets.xcassets/LinuxDistributions` | Distribution-specific `LinuxDistro-*.imageset` assets used by host/system presentation. |
 | `LinuxDistributionIcons` | Upstream icon license and disclaimer material, separate from the actual image sets. |
 
-`Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs); AgentKit's model capability resolver searches the main and package bundles for the Pi catalog and optional overrides. If the icon catalog cannot load, icon lookup returns no entry. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
+`Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs). If the icon catalog cannot load, icon lookup returns no entry. The product resources also include `PiModelCatalog.json` and `ModelCatalogOverrides.json`; the resolver that consumes those model files belongs to the separately pinned AgentKit package, whose source is not present here, so this page does not prescribe its bundle-search behavior. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
 
 App-facing resource definitions belong in `TermindPresentation/Strings`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. The shared catalogs are manually managed: do not treat a single target's stale extraction flag as proof that cross-platform copy is unused; normalize edited catalogs with `Scripts/normalize-string-catalogs.py --write` and keep generated string symbols disabled. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
 

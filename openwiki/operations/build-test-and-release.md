@@ -1,8 +1,11 @@
 ---
 type: release operations
-title: Build, Test, and Release Gates
-description: Validation gates for pinned Xcode builds, opt-in UI and commerce tests, shared localization, marketing captures, website builds, and cross-repository AgentKit releases.
+title: Build, Test, and Release
+description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -10,8 +13,6 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-a2cca747926cafc62fde5fb2
     resource: repo://.swift-format
-  - id: openwiki-source-82dc2a330fa464405febe5a2
-    resource: repo://AgentKit/Package.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
@@ -60,15 +61,12 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
-# Build, Test, and Release Gates
+# Build, Test, and Release
 
-This page is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The Astro landing page is a separate Node workspace under `LandingPage/`.
+This is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The Astro landing page is a separate Node workspace under `LandingPage/`.
 
 Choose the narrowest quiet check that proves the changed behavior, then expand to the affected target or default suite before delivery. Preserve complete failure output: a green unrelated build is not evidence that the changed feature works.
 
@@ -137,7 +135,7 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Run this 
 
 ### Mobile key-window integration tests
 
-Do not treat mobile integration suites as part of routine default coverage. Suites that take UIKit's process-wide key-window/presentation state, including `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests`, and `MobileSavedNameRenderingTests`, use a suite-level `TERMIND_MOBILE_UI_TESTS=1` gate and serialization. To run a changed suite, use an installed iPhone or iPad simulator, disable parallel testing, and narrow the selection:
+Do not treat gated mobile integration suites as part of routine default coverage. Suites that take UIKit's process-wide key-window/presentation state, including `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests`, and `MobileSavedNameRenderingTests`, use a suite-level `TERMIND_MOBILE_UI_TESTS=1` gate and serialization. To run a changed suite, use an installed iPhone or iPad simulator, disable parallel testing, and narrow the selection:
 
 ```sh
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileEditorToolbarTests
@@ -187,7 +185,7 @@ Scripts/check-appstrings.sh
 Scripts/check-zh-localization.sh
 ```
 
-The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON and, for each Chinese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, menus, plurals and SwiftUI resource bridging.
+The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON and, for each Chinese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 
@@ -207,7 +205,7 @@ Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.15.2`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The project links the core `AgentKit` product and the opt-in `AgentKitScrubber` product; the package declares the latter as an adapter depending on `ScrubberKit`, leaving the core free of that dependency. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule. Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.15.2`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release is not present in this checkout, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule. Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -240,7 +238,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-appstrings.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
-6. Keep visible-window, mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
+6. Keep visible-window, gated mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
 7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.
 8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
 9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.

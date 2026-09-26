@@ -5,7 +5,7 @@ description: How the macOS loopback MCP server and stdio bridge expose host tool
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -21,6 +21,8 @@ sources:
     resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-37c42ec0ebc182c487dd27aa
+    resource: repo://TFM/App/DesktopSettingsKey.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-8a6e94328a445c3566ef9d57
@@ -33,6 +35,8 @@ sources:
     resource: repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift
   - id: openwiki-source-ef4c6426a19087a6c49e4841
     resource: repo://TFM/Features/Settings/MCPClientSetupCommand.swift
+  - id: openwiki-source-883d6a1cb850ad090f77e1e2
+    resource: repo://TFM/Features/Settings/MCPServerSettings.swift
   - id: openwiki-source-26497da8830feaa637835d00
     resource: repo://TFM/Infrastructure/MCP/MCPServerProtocol.swift
   - id: openwiki-source-9d465cf017037915bf209e49
@@ -55,7 +59,7 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # MCP Server, Transfers, and Stdio Bridge
@@ -66,7 +70,7 @@ The shared `AgentHostServices.live(...)` composition is not a shared MCP listene
 
 The desktop app explicitly revokes MCP tickets when a host is deleted (including host-deletion outbox handling and remotely applied vault removals), alongside cancelling ordinary SFTP work and SSH connections. On app termination, it stops MCP and waits for ordinary SFTP cancellation before closing shared agent background commands and connections. Mobile host-deletion handling instead cancels its ordinary SFTP transfers; there are no inbound MCP sessions to revoke there.
 
-The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurable. The server is off by default and requires the MCP Server Pro entitlement to enable, configure, rotate its token, or change exported tools.
+The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurable. The server is off by default and requires the MCP Server Pro entitlement to enable, configure, rotate its token, or change exported tools. These inbound-server preferences are device-local rather than synced AI or remote MCP client settings.
 
 ## Components and ownership
 
@@ -84,7 +88,7 @@ This division keeps AgentKit’s execution machinery from becoming the network o
 
 ## Startup, gating, and token operations
 
-`MCPServerController` reads enabled state, port, and disabled-tool names from `UserDefaults`; disabled names are intersected with the known export set. Enabling, choosing a port, changing a tool, and rotating a token request Pro access. Startup refuses to run without both entitlement and a usable token, configures transfer URLs with the selected port, then starts the HTTP server. A port change restarts the listener. Loss of Pro access stops it; returning access resumes it only when the user had enabled it.
+`MCPServerController` reads enabled state, port, and disabled-tool names from `UserDefaults`; disabled names are intersected with the known export set. Enabling, choosing a port, changing a tool, and rotating a token request Pro access. The port setter clamps to 1024–65535. Startup refuses to run without both entitlement and a usable token and port, configures transfer URLs with the selected port, then starts the HTTP server. A port change restarts the listener, stopping existing sessions and tickets. Loss of Pro access stops it; returning access resumes it only when the user had enabled it.
 
 The long-lived server token is generated from 32 secure random bytes and encoded as URL-safe Base64. It is stored only in this-device Keychain storage. Older iCloud-stored values are migrated only after a verified local copy exists, then the cloud copy is removed; a failed migration remains retryable rather than silently losing the credential.
 
@@ -246,7 +250,17 @@ sequenceDiagram
 
 This shows bridge-side negotiation: it captures `Mcp-Session-Id` from the initialize response and `protocolVersion` from its result, then supplies both on subsequent requests. It uses an ephemeral `URLSession` and is not a credential store.
 
-For direct HTTP clients, settings generates quoted setup commands for Claude Code, GitHub Copilot CLI, and OpenClaw. Codex and Hermes use the bridge and pass the URL/token through environment variables. Missing token disables all generated commands; missing bundled bridge disables only those bridge-based registrations.
+In macOS settings, `MCPServerSettings` obtains the bridge path via `Bundle.main.url(forAuxiliaryExecutable: "termind-mcp")`, displays a masked preview until the token is revealed, and copies the real generated command. Commands register the current `http://localhost:<port>/mcp` endpoint (the listener supports both loopback families); **only Codex and Hermes Agent need the bridge**. The commands are shell-quoted, including path and credential values:
+
+| Client | Generated registration shape |
+| --- | --- |
+| Claude Code | `claude mcp add --scope user --transport http --header 'Authorization: Bearer <token>' termind 'http://localhost:<port>/mcp'` |
+| GitHub Copilot CLI | `copilot mcp add --transport http --header 'Authorization: Bearer <token>' termind 'http://localhost:<port>/mcp'` |
+| OpenClaw | `openclaw mcp add termind --url 'http://localhost:<port>/mcp' --transport streamable-http --header 'Authorization=Bearer <token>'` |
+| Codex | `codex mcp add termind --env 'TERMIND_MCP_URL=http://localhost:<port>/mcp' --env 'TERMIND_MCP_TOKEN=<token>' -- '<bridgePath>'` |
+| Hermes Agent | `hermes mcp add termind --command '<bridgePath>' --env 'TERMIND_MCP_URL=http://localhost:<port>/mcp' 'TERMIND_MCP_TOKEN=<token>'` |
+
+Missing token disables all generated commands; a missing bundled bridge disables only Codex and Hermes registration. `MCPClientSetupCommandTests` parses every command through inert CLI functions in real `/bin/sh` and checks metacharacter-safe arguments in both `/bin/sh` and `/bin/zsh`; it also verifies that changing the port or token updates all five commands. The commands are configuration snippets, not a running connection: copying one does not enable the listener, and changing the token or port requires updating previously registered clients.
 
 ## Operations and focused verification
 

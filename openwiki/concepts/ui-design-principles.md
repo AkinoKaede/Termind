@@ -5,7 +5,7 @@ description: Source-backed guide to shared localized copy and form fields, nativ
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -43,6 +43,10 @@ sources:
     resource: repo://TFI/App/MobileFeatureRegistry.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
+  - id: openwiki-source-e43a0da5ab77c2fc3554244d
+    resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-99e98ad50ba8a7c6df018977
     resource: repo://TFI/Design/MobileDesignTokens.swift
   - id: openwiki-source-0368ecce931d0fb26fe8f35f
@@ -143,7 +147,7 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -253,22 +257,22 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 Hidden content must also stop receiving input and accessibility focus: parked desktop panes and covered mobile panels gate hit testing and accessibility together with visibility. Mobile adaptive layout subtracts active divisions/occlusions, selects the largest continuous usable region and splits only if both regions fit. `MobilePaneLayout` retains the same native children and cached usable sizes when a panel is covered. Assistant allocates transcript and composer regions; Metrics shows two panels when feasible and otherwise its selected panel. Adaptive tests check the *same* transcript scroll view, marked input and composer focus, Metrics list and offset, search controller, editor draft and in-flight save across folds and widths rather than only the final strings.
 
-`MobileRootView` keeps a scene-owned destination and a `NavigationStack` for each registered tab under `.sidebarAdaptable`. Adaptive tests check the same native tab controller, five available tabs and scene/native selection across regular and compact widths, text sizes and English/both Chinese variants. Regular-width system tab bars may scroll; compact tests require all titles visible. Reduce Motion helpers and selected accessibility traits exist, but a new animation, clipped large-text control or menu still needs call-site verification.
+`MobileRootView` binds the tab selection to `MobileSceneModel` and builds a `NavigationStack` per `MobileFeatureRegistry` registration under `.sidebarAdaptable`; the standard registry contains Vault, Metrics, Workspaces, Assistant and Settings. Adaptive tests check the same native tab controller, five available tabs, matching scene/native selection and a visible title for each selected tab across regular and compact widths, text sizes and English/both Chinese variants. Regular-width system tab bars may scroll; compact tests require all five titles visible simultaneously. Reduce Motion helpers and selected accessibility traits exist, but a new animation, clipped large-text control or menu still needs call-site verification.
 
-Mobile workspace descriptors and live sessions are different lifetimes. At cold launch `MobileAppModel` loads recent descriptors without reconnecting everything. Selecting a descriptor publishes one shared live workspace before `connect()` so scenes reuse the same initial attempt; a missing Host descriptor is removed. Explicit close disconnects and removes its saved row. Once all scenes background, expiration suspends live work; an active scene resumes it without reconstructing tabs. A fold or tab switch is not a close.
+Mobile workspace descriptors and live sessions have different lifetimes and are scoped to persistent scene sessions. At cold launch `MobileAppModel` loads and prunes saved descriptors, consolidating prior scene records into the first bound session without reconnecting everything. `MobileWorkspaceSessionModel.openWorkspace` returns an already-live workspace for that session or publishes a saved descriptor as one live workspace before `connect()`, so repeated selection shares the same initial attempt; a missing Host descriptor is removed. Explicit close disconnects and removes its saved row. On loss of a scene session, native open-session reconciliation can recover its workspaces into the active session; merely disconnecting a `UIScene` is not proof that its session has disappeared. Once all scenes background, expiration suspends live work; an active scene resumes it without reconstructing tabs. A fold or tab switch is not a close.
 
 ```mermaid
 flowchart TD
-    Saved[Saved descriptor at cold launch] --> Selected[Scene selects row]
-    Selected --> Published[Publish shared live workspace]
-    Published --> Connected[Connect]
-    Connected --> Expired[Background expiration suspends work]
-    Expired --> Active[Active scene resumes work]
-    Connected --> Closed[Explicit close disconnects and removes row]
+    Saved["Saved descriptor in scene session"] --> Selected["Scene selects row"]
+    Selected --> Published["Publish live workspace in session"]
+    Published --> Connected["Connect"]
+    Connected --> Expired["Background expiration suspends work"]
+    Expired --> Active["Active scene resumes work"]
+    Connected --> Closed["Explicit close disconnects and removes row"]
     Active --> Closed
 ```
 
-Descriptor persistence and live-session lifetime must not be conflated.
+Descriptor persistence and live-session lifetime must not be conflated; scene-session recovery is separate from a tab or size-class change.
 
 Desktop workspace drag similarly preserves native identity: a dragged pane remains mounted but leaves temporary split geometry; native receivers use the live window/displayed workspace and matching pasteboard identity at drop time, preview edge insertion on occupied panes and replacement in empty slots, and reject stale/hidden destinations. The Navigator overlays its native List with a receiver using measured row frames; preview boundaries include the dragged row while move indices exclude it. See [Desktop Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) before changing drag source mounting or previews. Continuity does not mean every hidden view keeps measuring or accepting events.
 

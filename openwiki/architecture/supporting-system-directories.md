@@ -3,25 +3,14 @@ type: architecture directory guide
 title: Supporting Products and Tooling
 description: Build ownership and integration boundaries for AgentKit, the MCP bridge, Live Activities, project tests, forwarding benchmarks, the Astro website, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
-  - id: openwiki-source-82dc2a330fa464405febe5a2
-    resource: repo://AgentKit/Package.swift
-  - id: openwiki-source-7d407889e0fdf98a8da45d51
-    resource: repo://AgentKit/Scripts/build-localizations.sh
-  - id: openwiki-source-a8f2957ebda6de083a5e705b
-    resource: repo://AgentKit/Sources/AgentKit/MCP/MCPClient.swift
-  - id: openwiki-source-0e8cfe7d74554d8a17af60b7
-    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
-  - id: openwiki-source-1b7f4621a0a6d022a3b65b1b
-    resource: repo://AgentKit/Sources/AgentKit/Security/AgentSecurity.swift
-  - id: openwiki-source-b3c829b218957268073c0f43
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentToolCatalog.swift
-  - id: openwiki-source-437ae5db92ccf61cdbffc8e9
-    resource: repo://AgentKit/Sources/AgentKitScrubber/ScrubberWebClient.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-7f5c1cb6f348742514987bf8
@@ -82,10 +71,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Supporting Products and Tooling
@@ -94,41 +80,9 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project builds the remote Swift package, not the submodule or sibling working tree**: `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.15.2`, and `Package.resolved` pins version `0.15.2` to revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The submodule is useful for inspecting package organization, but its checkout is not evidence of the source at Xcode's resolved revision. Use `-onlyUsePackageVersionsFromResolvedFile` for reproducible app builds rather than allowing an ordinary resolution to move the pin.
+`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. In this checkout the submodule directory is unpopulated, so its source layout, manifest, tests, resource generation, and dependency graph cannot be verified here. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.15.2`; `Package.resolved` records version `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
 
-The directory table describes the checked-out package's organization, not a guarantee that its source matches the app's resolved package revision. The checkout manifest defines a dependency-free `AgentKit` core and an opt-in `AgentKitScrubber` product that depends on the core and ScrubberKit; the Xcode project links the core into both apps and shared frameworks, and the Scrubber adapter into the desktop app and `TermindRemoteInfrastructure`. Treat these as separately versioned package products, not source groups copied into the app. For a cross-repository change, test and release AgentKit first, then update the Xcode package minimum version and re-resolve `Package.resolved` in the app-side commit. `ArchitectureBoundaryTests` also guards against redefining AgentKit-owned runtime types in app source.
-
-| Directory, relative to AgentKit | Responsibility |
-| --- | --- |
-| `Sources/AgentKit` | Dependency-free core product: host-neutral runtime, model-provider integration, tool contracts, security, and services. Its functional children are expanded below. |
-| `Sources/AgentKitScrubber` | Optional ScrubberKit-backed web fetch/search adapter; kept out of the core product's dependency graph. |
-| `Tests/AgentKitTests` | Package-level runtime, tools, security, provider, MCP, localization, and other behavioral tests. |
-| `Localizations` | Authoring catalog for package-owned English and Chinese text. |
-| `Scripts` | Localization compilation and Chinese-catalog validation. This directory is flat. |
-| `Sources/AgentKit/Resources` | Generated runtime localization resources in `en.lproj`, `zh-Hans.lproj`, and `zh-Hant.lproj`. |
-
-### Core product functional directories
-
-Paths below are relative to `AgentKit/Sources/AgentKit`.
-
-| Directory | Responsibility |
-| --- | --- |
-| `Core` | Agent/message/run values, localization access, memory and skill/package concepts. |
-| `Runtime` | Turn loop/driver, event delivery, context building/estimation/compaction, streaming/pacing, tool execution/scheduling, run-persistence contract, and loop hooks. |
-| `Providers` | Provider/model configuration, discovery/capabilities, authentication/networking, request encoding, response/stream decoding, and tool-name adaptation. |
-| `Security` | Secret handles/lifecycle, redaction, approvals/security policy, and Guardian evaluation/session state. |
-| `Services` | Conversation-title generation and memory-learning services over runtime/provider capabilities. |
-| `MCP` | MCP client transport/protocol and configured-server values. This is not Termind's desktop HTTP server. |
-| `Tools` | Tool/schema/argument contracts, validation, catalog/registry, output/detail presentation values, and injected services. |
-| `Tools/MCP` | Adapt tools advertised by configured MCP servers into agent tools. |
-| `Tools/BuiltIn/Plan` | Planning and task-management tools. |
-| `Tools/BuiltIn/Scratch` | Scoped scratch workspace and local file/diff tools. |
-| `Tools/BuiltIn/Skills` | Skill/package installation and file access, knowledge presentation, memory and session-search tools. |
-| `Tools/BuiltIn/UserInput` | User-input and secret-request tools routed through run interaction handlers. |
-| `Tools/BuiltIn/Web` | Web-fetch/search tools and injectable web capabilities. |
-| `Resources` | Compiled package-local strings and plural resources; not app-bundle localization ownership. |
-
-Termind adds host-specific tools through `TermindRemoteInfrastructure/Agent`. SSH, SFTP, app UI, and Termind-specific behavior must not be moved into this package. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md) for integration and release sequencing.
+The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from that separate repository; this checkout cannot substantiate their implementation. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
 ## MCP bridge and desktop server
 
@@ -249,7 +203,7 @@ The App Store branch represents a separate artwork workflow, not a claim that th
 | --- | --- |
 | `Termind.xcodeproj` | Target definitions, build settings, source/resource membership, linking, and product embedding. |
 | `Termind.xcodeproj/xcshareddata/xcschemes` | Shared build/test/run schemes for the apps, bridge, and benchmark. |
-| `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm` | Resolved remote-package revisions. This is the app's dependency pin, independent of the AgentKit reference checkout. |
+| `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm` | Resolved remote-package revisions. This is the app's dependency pin, independent of the AgentKit submodule and sibling repository. |
 | `.github/workflows` | Scheduled/manual OpenWiki refresh and documentation-PR automation. |
 | `.agents/skills/openwiki` | Repository-installed OpenWiki lifecycle instructions and integration metadata; `agents` contains host descriptors. |
 | `.codex` | Coding-agent integration configuration, not application runtime configuration. |

@@ -1,11 +1,11 @@
 ---
 type: asset-production-operations
-title: Marketing Assets, Screenshot Production, Figma Exports, and App Icons
-description: End-to-end rules for localized captures, device frames, website imagery, App Store boards, Figma exports, and layered app-icon sources.
+title: Marketing Assets and App Icons
+description: Locate the localized screenshot runners, derived device frames, App Store export checks, and layered app-icon sources for release artwork.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
@@ -55,10 +55,10 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
-# Marketing Assets, Screenshot Production, Figma Exports, and App Icons
+# Marketing Assets and App Icons
 
 Marketing fixtures may mount real views with in-memory data, but must never change production behavior or contact a real Host, account, or network merely to make a screenshot easier. Keep source captures, derived device frames, Figma compositions, final App Store exports, and app icons as distinct artifact classes.
 

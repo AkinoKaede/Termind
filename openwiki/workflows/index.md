@@ -1,6 +1,6 @@
 # Files
 
-- [TFM Drag and Drop: Workspaces, Panes, and Assistant](desktop-drag-and-drop.md) - Native drag sources, live drop routing, split previews, cancellation and deferred window transfer in TFM, with Assistant list reordering and a focused regression map.
+- [Desktop Workspace Drag and Drop](desktop-drag-and-drop.md) - Native workspace and pane dragging in TFM, including live drop routing, cancellation, and deferred new-window ownership and placement. Also covers the distinct Assistant reorder path and focused regression tests.
 - [File Drag and Drop Across TFM and TFI](file-drag-and-drop.md) - File drag event routing, payload selection, Assistant attachment import, SSH and SFTP upload lifetimes, desktop remote-file copying and Key import, with a brief guide to the shared Overlay UI.
 - [Port Forwarding: Multi-Connection Pool and Flow Dispatch](port-forwarding-pool-and-dispatch.md) - Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown.
 - [Settings, Vault, Metrics, History, Device, and Cloud Sync](settings-and-cloud-sync.md) - Per-category CloudKit replication, durable journals, compatibility fences, fetch-before-send authorization, account and environment transitions, and recovery for Termind configuration and activity data.

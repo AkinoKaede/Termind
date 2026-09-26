@@ -3,6 +3,9 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -16,6 +19,12 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
+  - id: openwiki-source-e43a0da5ab77c2fc3554244d
+    resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-5b8c72c5373a41af34fa9fd4
+    resource: repo://TFI/App/MobileStartupView.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
@@ -24,14 +33,14 @@ sources:
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-b360f8803ec98b554faad9bb
+    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-  - id: openwiki-source-22b9fca540c3029c5ace451e
-    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -40,10 +49,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "omp", at: "2026-09-25T14:05:02.933Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T14:05:02.933Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Termind Engineering Quickstart
@@ -55,11 +61,11 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Change | Route and focused check |
 | --- | --- |
 | Module placement, imports, nested directories, or shared resources | [Module and Product Map](/openwiki/architecture/module-map.md), [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md), [Shared Framework Responsibilities](/openwiki/architecture/shared-module-directories.md), [Native App Responsibilities](/openwiki/architecture/native-app-directories.md), and [Supporting Products and Tooling](/openwiki/architecture/supporting-system-directories.md); run `ArchitectureBoundaryTests` for dependency changes. |
-| Composition, startup failure, window/scene state, backgrounding, quit | [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md); use `AppTerminationTests`, `MobileAppTests`, or `MobileForwardingLifecycleTests` for the changed lifetime. |
+| Composition, startup failure, window/scene state, backgrounding, quit | [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md); use `AppTerminationTests`, `MobileAppTests`, `MobileWorkspaceSessionTests`, or `MobileForwardingLifecycleTests` for the changed lifetime. |
 | Desktop Navigator, sidebar, workspaces, Vault, Assistant layout | [macOS UI and Workspace Ownership](/openwiki/architecture/desktop-ui.md); target window/navigation or layout tests. |
 | Desktop Workspace/Pane sorting, merging, drag-out new windows, or Assistant list reordering | [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md); preserve the native Workspace List source and live receiver contracts. Use `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests` or `AssistantConversationListDropTests`, plus the source/cancellation/animation suites listed in that guide. |
 | File-drop events, Assistant attachments, SSH terminal/SFTP uploads, desktop remote-file dragging or Key import | [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md); trace native routing, payload priority, provider staging and transfer lifetimes. Use `FileURLDropTargetTests`, `MobileDropTests`, upload/attachment/import suites listed there; the guide also locates the shared Overlay UI. |
-| Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); target `MobileAdaptiveLayoutTests`, `MobileNavigationParityTests`, or the relevant feature test. |
+| Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connection/routing changes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI changes. |
 | Shared UI conventions, fields, tokens, accessibility | [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md); check platform renderings and `ArchitectureBoundaryTests`. |
 | SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
 | Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. |
@@ -74,7 +80,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 
 `TermindDomain` defines portable rules; `TermindApplication` owns ports and use cases; `TermindPersistence` owns SwiftData models, repositories and container construction; infrastructure implements services; `TermindPresentation` owns reusable SwiftUI content and copy; apps assemble concrete dependencies and native UI. `ArchitectureBoundaryTests` checks **specific** forbidden imports per root, not an all-UI-framework ban: its five-framework rule excludes Presentation and rejects app targets plus `AppKit`, `UIKit`, `IOKit` and `ServiceManagement`; the separate Presentation rule allows `SwiftUI` but rejects app targets, `AppKit`/`UIKit`, storage, concrete infrastructure and `StoreKit`. Shared Application cannot import Infrastructure, Persistence or SwiftData; desktop Application/Features and mobile layers have their own checks. The tests also guard concrete constructions in selected feature/application roots, AgentKit type duplication and SwiftData ownership. Fix an ownership violation rather than bypassing the test; see [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for the precise scope.
 
-`TermindApp` makes the macOS container and shared `AppModel` at launch; XCTest and debug screenshot demos use in-memory stores. If the local database cannot open, startup fails rather than replacing it with an empty store. Each main `WindowGroup` instance gets its own `WindowModel` for selection and workspaces while app services are shared; `RootView` registers the window, installs its focused scene value and keeps mounted workspace views when switching destinations. The separate external-authentication `Window` shares the app environment, but removes its manual Window-menu command; it is not another main workspace. `TermindIOSApp` migrates language preferences and creates one live or testing `MobileAppModel`; successful scenes receive its container, and failure shows an unavailable-data view. Each `MobileRootView` makes a scene-local `MobileSceneModel`, but the mobile app model shares services and live workspaces across scenes. It publishes a restored workspace to the shared registry before connecting so two scenes opening the same descriptor reuse a single connection attempt. Restore workspace descriptors, not live transports or credentials. Desktop session/pane and mobile workspace owners end their own connection-history entries on close.
+`TermindApp` makes the macOS container and shared `AppModel` at launch; XCTest and debug screenshot demos use in-memory stores. If the local database cannot open, startup fails rather than replacing it with an empty store. Each main `WindowGroup` instance gets its own `WindowModel` for selection and workspaces while app services are shared; `RootView` registers the window, installs its focused scene value and keeps mounted workspace views when switching destinations. The separate external-authentication `Window` shares the app environment, but removes its manual Window-menu command; it is not another main workspace. `TermindIOSApp` migrates language preferences and creates one live or testing `MobileAppModel`; `MobileStartupView` injects its container on success and shows unavailable data on failure. `MobileBoundSceneRoot` constructs a `MobileSceneModel` for each persistent UIKit session; the scene owns navigation and an Assistant presentation model, while its `MobileWorkspaceSessionModel` owns that window's live workspaces and saved descriptors. The app model aggregates shared services and sessions, **not one interchangeable workspace pool across windows**. Cold launch consolidates saved descriptors into the first bound session without connecting; selecting one publishes its workspace in that owner's session before connecting. A link received in another window activates the owner rather than making another connection. If a native session truly disappears, reconciliation can transfer its live workspace to an active session without reconnecting; explicit discard closes the affected workspace. Do not persist transports, secrets, one-shot commands or initial paths in descriptors. Desktop session/pane and mobile workspace owners end their own connection-history entries on close. See [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md) and [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md).
 
 In Debug XCTest runs, the **real desktop app** still launches. By default it suppresses automatic launch of the main and external-auth scenes and disables main-scene restoration; an explicit `TERMIND_WINDOW_TESTS=1` lifts suppression, as does an active screenshot demo. This host-level safeguard complements, rather than replaces, `.requiresVisibleWindow` on any test that presents a window or takes focus. Screenshot demos also disable main-scene restoration. See [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md).
 

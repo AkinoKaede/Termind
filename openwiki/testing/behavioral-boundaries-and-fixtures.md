@@ -5,7 +5,7 @@ description: Focused regression seams for Termind's shared frameworks, desktop a
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -53,6 +53,10 @@ sources:
     resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-9c78befae6b387426c603305
+    resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
@@ -105,7 +109,7 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Behavioral Tests and Fixtures
@@ -227,11 +231,25 @@ For MCP upload changes use `MCPUploadTests` with the real coordinator and stream
 
 External connection URLs are another ownership boundary: opening one creates an ephemeral workspace and does not create a Vault host or saved workspace descriptor. Conversely, closing all workspaces disconnects each live workspace and is repeatable. Background-expiration tests provide a controlled connection service and cover resume intent, foreground recovery, and rejection of retired callbacks. A lifecycle change must preserve the appropriate one of these contracts rather than merely asserting that a view updates.
 
-`MobileWorkspaceStoreTests` protects the device-local restoration format. The store contains connection intent only—workspace descriptor identity, host reference, title and kind—not credentials, commands, duplicate indices or live session state. It migrates legacy arrays into the versioned snapshot while preserving IDs, titles and kinds and discarding legacy indices. If bytes are malformed, unknown-version, or invalid (including duplicate IDs), loading and later saving fail while the original bytes remain untouched; a successful load is required before replacement. Add a fixture for every format transition and for corruption behavior, because silently replacing unreadable restoration data with an empty list loses recoverable user state.
+`MobileWorkspaceStoreTests` protects the device-local restoration format. The store contains connection intent only—workspace descriptor identity, host reference, title and kind—not credentials, commands, duplicate indices or live session state. Its current v2 snapshot maps persistent scene session IDs to descriptor lists and holds legacy unassigned descriptors until ownership is bound. It reads legacy arrays and v1 `workspaces` into `unassigned`, preserving IDs, titles and kinds while ignoring legacy duplicate indices; **load does not rewrite bytes**. `MobileAppModel.workspaceSession(for:)` consolidates unassigned and prior-session descriptors into the first native scene, saving the whole snapshot before accepting ownership; a failed save fences that scene from claiming the records. The store rejects malformed or unknown-version data, empty session keys and duplicate descriptor IDs across owners. A failed load blocks later saves until a successful load; invalid saves leave previously valid bytes unchanged. Startup reports unreadable restoration data without overwriting it on later workspace mutations. App-level restoration tests check dormant order across launch, lazy one-time activation and owner routing, removal on close/host deletion, and that reopening does not replay a snippet or initial directory. These are in-process launch simulations with injected connection services, not an OS relaunch. Add a format-transition and corruption fixture when changing the snapshot: silently replacing unreadable restoration data with an empty list loses recoverable user state.
+
+```mermaid
+flowchart TD
+    Bytes["Saved device-local bytes"] --> Load{"Store load valid"}
+    Load -->|No| Fence["Report error and block saves"]
+    Load -->|Yes| Pending["Keep unassigned and scene descriptors"]
+    Pending --> Bind["First native scene binds all descriptors"]
+    Bind --> Save{"Whole snapshot saved"}
+    Save -->|No| Fence
+    Save -->|Yes| Dormant["Restore dormant workspace entries"]
+    Dormant --> Select["Explicit selection opens connection"]
+```
+
+The restoration fixture tests the save-before-ownership boundary separately from explicit live connection activation.
 
 `MobileBackgroundControllerTests` replaces UIKit's background-task platform to drive expiration synchronously. The tests check stale/repeated callbacks end each lease at most once, reentrant expiration during `begin` retires the returned old identifier without overwriting a newly begun lease, and an invalid identifier expires once without an `end` call. Use these for lease mechanics; `MobileAppTests` covers foreground recovery and retired workspace callbacks at the app boundary.
 
-`MobileCardTests` exercises card policy offscreen: adaptive column thresholds and accessibility sizing, bounded tag display and measured stable card heights, plus in-memory app/repository checks for saved-host timestamps and draft color persistence. Use `MobileCardRenderingTests` or the affected mobile rendering suite for visual output instead of making basic layout-policy tests acquire a key window.
+`MobileCardTests` exercises card policy offscreen: adaptive column thresholds and accessibility sizing, bounded tag display and stable card heights measured with `UIHostingController.sizeThatFits`, plus in-memory app/repository checks for saved-host timestamps and host/identity/key draft-color persistence. These tests do not call `makeKeyAndVisible`. Use the separately serialized `MobileCardRenderingTests` for screenshot output: its `TERMIND_CARD_SCREENSHOTS` guard returns without capture by default, and the capture path creates and restores a key `UIWindow` across English/Chinese locales and light/dark appearances. Run that suite only with its screenshot opt-in and parallel testing disabled; offscreen sizing is not a substitute for key-window interaction coverage.
 
 ### Mobile settings ports: prove propagation and rollback without a cloud engine
 
@@ -255,7 +273,7 @@ Run a named visible-window suite only when its interaction contract changed, for
 TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/ChooserInteractionTests
 ```
 
-In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. Mobile key-window integration tests should be explicitly gated because UIKit presentation is process-wide; do not assume a suite-wide gate in `MobileConnectionPickerTests` (its toolbar navigation cases currently lack one). For gated suites opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (forwarded as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>` filter. `TFITests/ProPaywallRenderingTests.swift` follows that policy: its serialized test mounts `ProPaywallContent` in a `UIHostingController`, makes a temporary `UIWindow` key, then hides it and restores the previous key window. StoreKit tests require separate manual authorization and remain skipped by default; run `TERMIND_STOREKIT_TESTS=1` with a narrow `-only-testing:TFMTests/StoreKitTrialTests` filter. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, an opted-in window/key-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
+In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. Mobile key-window integration tests should be explicitly gated because UIKit presentation is process-wide; do not assume a suite-wide gate in `MobileConnectionPickerTests` (its toolbar navigation cases currently lack one). Its `.serialized` annotation prevents overlap within the suite but does not skip toolbar tests, which mount a `UIHostingController` in a key `UIWindow` through `withNavigation`. Before running the entire picker suite in an ordinary simulator test host, gate those toolbar tests as well or filter to the offscreen model/policy cases; `TERMIND_MOBILE_UI_TESTS=1` alone gates only the multi-host picker case. For gated suites opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (forwarded as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>` filter. `TFITests/ProPaywallRenderingTests.swift` follows that policy: its serialized test mounts `ProPaywallContent` in a `UIHostingController`, makes a temporary `UIWindow` key, then hides it and restores the previous key window. StoreKit tests require separate manual authorization and remain skipped by default; run `TERMIND_STOREKIT_TESTS=1` with a narrow `-only-testing:TFMTests/StoreKitTrialTests` filter. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, an opted-in window/key-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
 
 ### Pro paywall: separate commerce policy from rendering
 

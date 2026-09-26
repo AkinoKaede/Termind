@@ -3,9 +3,6 @@ type: workflow
 title: SSH, Telnet, Trust, and Workspace Session Lifecycle
 description: Traces how Termind prepares SSH and Telnet connections, routes them through proxies and jump hosts, authorizes server identity, consumes credentials, and retires or restores live workspace sessions.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -41,6 +38,8 @@ sources:
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
@@ -49,6 +48,12 @@ sources:
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
     resource: repo://TFI/Platform/MobileBackgroundController.swift
+  - id: openwiki-source-de285e30d853611503042782
+    resource: repo://TFI/Platform/MobileWorkspaceSceneRouting.swift
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-b360f8803ec98b554faad9bb
+    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -65,7 +70,10 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-26T22:20:04.073Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -239,16 +247,18 @@ Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it insta
 
 A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey.
 
-Mobile `MobileAppModel.addWorkspaces` publishes new live workspaces, saves only eligible descriptors, records a saved Host's history event, and then calls `connect()`. An unsaved external-link workspace is not persisted or added to connection history. One active history ID belongs to each live workspace: failure and background suspension do not end the event, while explicit close ends it and removes the descriptor. Reopening a saved descriptor creates a new live workspace and a new event; selecting an already-live workspace returns it without another attempt. On load, descriptors for deleted Hosts are pruned; malformed workspace snapshots are not overwritten with an empty list, so their original bytes remain available for recovery.
+On mobile, each persistent UIKit scene session has a `MobileWorkspaceSessionModel`; `MobileAppModel` owns the collection, a single snapshot store, and history IDs. The session's `addWorkspaces` calls `workspaceWillOpen` (recording one attempt-time history entry for a saved Host), publishes the live workspace, saves eligible descriptors, and only then calls `connect()`. Transient external-link workspaces have neither persisted descriptors nor saved-host history. A history entry stays open through failure or background suspension; closing the live workspace ends it, disconnects, and removes its descriptor, while closing an unopened recent descriptor removes only the descriptor. Opening a dormant descriptor creates a live workspace and records a new event; opening an already-live descriptor returns that same object without another attempt. A failed first attempt stays visible and selecting it again does not retry; the user must explicitly retry. A normal successful SSH exit requests workspace close; a transport failure after prior success instead schedules recovery. Local recents show saved descriptors not yet live, not a replay of prior commands or SFTP paths.
 
 The platform rules intentionally differ:
 
 | Situation | Desktop macOS | Mobile iOS and iPadOS |
 | --- | --- | --- |
-| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores only ordered local descriptors containing workspace ID, Host ID, kind and title. Cold launch shows saved descriptors but creates no sessions, history, or network activity. |
-| Reopen/select | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Opening a descriptor reuses or registers one live workspace across scenes and makes at most one initial connection attempt; a failure needs explicit retry. Peer switching retains the live workspace. |
-| Background/foreground | Closing a window tears down its workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks pending external edits, then initiates shared shutdown (with a bounded termination reply) and closes every live window. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. |
-| Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes the live and recent entry and never retries it. |
+| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores device-local ordered descriptors (workspace ID, Host ID, kind and title) by native scene-session ID. Cold launch loads and prunes them but creates no live workspace, new history event, or connection; the first bound scene atomically consolidates legacy unassigned and previously owned descriptors into one window. Commands, SFTP paths, credentials and transport state are not restored. |
+| Reopen/select and scene ownership | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Opening a dormant descriptor creates one live workspace in its owning scene; selecting it again shares the same initial attempt. Links from another window route to the owning native scene rather than create a duplicate. UIKit scene disconnect alone preserves ownership while its native session exists. Only after reconciling against `UIApplication.shared.openSessions` can a missing session's live workspaces and descriptors move to an active window without reconnecting; persistence must succeed before the handoff. An explicit native discard closes that session's workspaces, including ones handed off earlier. |
+| Background/foreground | Closing a window tears down its workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks pending external edits, then initiates shared shutdown (with a bounded termination reply) and closes every live window. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes only workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. Returning before expiration leaves a healthy connection intact. |
+| Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes that workspace's live and recent entry and never retries it; deleting a saved Host also removes its live and unopened records across scenes. |
+
+The mobile store accepts legacy arrays and version-one snapshots but does not rewrite them on read: the first native scene binding commits migration, pruning and ownership together. If that save fails, binding is fenced for this launch and exposes a restoration error rather than claiming the same records in another window. An unreadable or invalid snapshot disables subsequent writes, preserving its original bytes even if users open or close workspaces. Scene recovery likewise saves the destination snapshot before transferring any live objects; if saving fails the source retains ownership. A native disconnect is not an explicit discard, and when no active replacement scene exists recovery waits instead of silently closing transports.
 
 Desktop termination is idempotent: `AppModel.shutdownForTermination()` marks the app terminating, cancels pending Assistant preparation and stops conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit before starting cleanup, then replies to macOS when it completes or after the three-second fallback; `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
 
@@ -263,13 +273,17 @@ stateDiagram-v2
     waitingTrust --> opening: approve current handshake
     waitingCredentials --> opening: submit one shot credentials
     opening --> authenticated: handshake and auth succeed
-    opening --> failed: unrecoverable failure
+    opening --> failed: first attempt fails or trust is rejected
     authenticated --> recovering: transport loss after first connect
-    recovering --> opening: scheduled retry
-    authenticated --> retired: owner teardown or background expiry
-    waitingTrust --> retired: reject or disconnect
-    waitingCredentials --> retired: cancel or disconnect
+    recovering --> opening: scheduled retry when allowed
+    authenticated --> retired: explicit close or normal SSH exit
+    authenticated --> suspended: mobile background expiration
+    opening --> suspended: mobile expiration during active flow
+    suspended --> opening: foreground with resume intent
+    waitingTrust --> retired: disconnect
+    waitingCredentials --> retired: disconnect
     failed --> opening: explicit retry
+    failed --> retired: explicit close
     retired --> [*]
 ```
 
@@ -286,7 +300,7 @@ When changing connection code, preserve these boundaries:
 - Have the owner that opened a client retire it on every failed connect and on explicit close; do not transfer a half-open client to a workspace. Do not tie the Agent pool's life to a workspace, window, or Assistant turn.
 - When changing Agent authentication, preserve the separation between temporary per-opening secrets and reusable route-fingerprinted transports; cancel the final prompt waiter, close late opens, and never replay a command after its channel started.
 
-`ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
+`ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent window ownership, legacy migration and first-binding consolidation without network activity, non-reconnecting live handoff versus explicit discard, and native-session-aware reconciliation; `MobileAppTests` checks cold-launch descriptors without command replay, at-most-once selection and history, explicit retry after first failure, pruning, unreadable snapshot protection, normal SSH exit, and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
 
 ## Related pages
 

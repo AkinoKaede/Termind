@@ -5,7 +5,7 @@ description: "The concrete ownership and scheduling layers behind Termind SSH: p
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
@@ -31,15 +31,21 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
+  - id: openwiki-source-b9bae3a52f35a3a412f81e10
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift
+  - id: openwiki-source-6f2f3aed2218602847085f4d
+    resource: repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
+  - id: openwiki-source-83498f1ebb2addd4dded3bc1
+    resource: repo://TFMTests/SFTPConcurrencySchedulerTests.swift
   - id: openwiki-source-7364a5d16e49e89eb03bbee2
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling
@@ -58,7 +64,7 @@ Concurrency therefore has several independent meanings:
 | libssh2 ownership | A single session handle | The owning dispatch queue serializes every library call. |
 | I/O progression | Exec command, forwarding flow, or SFTP operation | Bounded nonblocking turns yield to peers; the exact wake/retry mechanism depends on the owner. |
 
-Do not conflate an `SSHChannelLease` with an SFTP file permit or with a pool slot. More admitted files need not mean more sockets; more forwarding sockets do not increase the channel ceiling on an existing connection.
+Do not conflate an `SSHChannelLease` with an SFTP file permit or with a pool slot. More admitted files need not mean more sockets; more forwarding sockets do not increase the channel ceiling on an existing connection. The file scheduler grants one global permit per logical file operation and consumes one per-host slot for each distinct endpoint (so a cross-host copy uses one global slot and two host slots). It rotates eligible hosts before work sources within a host; the `smart` strategy chooses channels at unknown size or at most 64,000,000 bytes and prefers connections above that threshold. This mode is a selection hint for the transfer context, not permission to exceed a connection's channel budget.
 
 ```mermaid
 flowchart TD
@@ -78,7 +84,7 @@ This is a conceptual layering diagram, not a claim that every owner supports eve
 
 ## Serial ownership is not serial completion
 
-`SSHConnection` is an actor facade, but `SSHConnectionWorker.queue` is the actual libssh2 owner. Async callers can have several outstanding exec commands; they do not each receive a blocking thread that independently enters the shared session. The worker keeps per-command state and advances it on a serial queue. SFTP drivers submit short operations to that same queue. The PTY worker constructs the same `SSHMultiplexedSFTPChannelOwner` with its own context/queue instead of creating a second libssh2 owner for the terminal transport.
+`SSHConnection` is an actor facade, but `SSHConnectionWorker.queue` is the actual libssh2 owner. Async callers can have several outstanding exec commands; they do not each receive a blocking thread that independently enters the shared session. The worker keeps per-command state and advances it on a serial queue. SFTP drivers submit short operations to that same queue. The PTY worker constructs the same `SSHMultiplexedSFTPChannelOwner` with its own context/queue instead of creating a second libssh2 owner for the terminal transport. Worker destruction also obeys that boundary: a last reference released on the owning queue cleans up there, while release elsewhere synchronously enters that queue; it must not synchronously reenter the queue that is already executing it.
 
 Metrics deliberately opts out of concurrent operations: `SSHExclusiveConnectionAdapter.withConnection` uses a busy flag and FIFO continuations to serialize complete operations on its owned connection. That adapter has no topology/fallback policy. Similar-looking SSH usage does not authorize merging Metrics, terminal, Agent, and forwarding lifetimes.
 
@@ -188,6 +194,8 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Question | Source/tests to inspect |
 | --- | --- |
 | Why is the eleventh session channel waiting? | `SSHMaxSessionsPolicyTests`: default capacity, FIFO, live decrease/increase, cancellation, independent transport budgets. |
+| Is a worker safe to release from its own queue? | `SSHConnectionWorkerLifecycleTests`: last reference released on the connection queue and from outside it; guards against synchronous self-reentry during cleanup. |
+| Are file permits fair or identical to channel leases? | `SFTPConcurrencySchedulerTests`: host/source rotation, five slots split across two workspaces, cross-host copy accounting and the 64,000,000-byte smart boundary. |
 | Does EAGAIN preserve bytes and pointers? | `SSHForwardingPumpTests`: blocked write stability, partial writes, encrypted packet buffering and shared flush allowance. |
 | Can a busy/slow flow starve or corrupt a peer? | `SSHForwardingPumpTests`: ready-queue rotation, watermarks, window updates, half-close; `SSHForwardingWireTests`: concurrent streams and slow consumer. |
 | Why did SFTP open another socket rather than a sibling? | File permit's selected mode and `SFTPTransferContext.capability`, not the exec ready queue. |

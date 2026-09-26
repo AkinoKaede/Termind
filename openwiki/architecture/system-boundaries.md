@@ -5,7 +5,7 @@ description: Enforced import scopes and ownership of shared application ports, p
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -31,6 +31,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-0198125ac2a5c63e2b200fb9
+    resource: repo://FrameworkTests/HistoryRenderingSnapshotTests.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
     resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -51,7 +53,9 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+  - id: openwiki-source-c15cd5bef4646aaf64df407e
+    resource: repo://TFMTests/ConnectionHistoryTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # Dependency and Ownership Boundaries
@@ -110,13 +114,13 @@ For a directory-oriented view, start with the [Module and Directory Architecture
 | Mobile `TFI/Application` | `SwiftUI`, `UIKit`, `SwiftData`, `GRDB`, `TermindPersistence`. |
 | Mobile `TFI/UI` | `SwiftData`, `GRDB`, `TermindPersistence`, `TermindRemoteInfrastructure`. Mobile `TFI/Features` gets only the concrete-symbol guard. |
 
-The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes: these are regression checks, **not** proof of an exhaustive compiler-enforced boundary or a ban on all concrete code. Composition roots deliberately import SwiftData and concrete frameworks. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
+The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. These are **source-root checks**, not blanket rules for all of `TFM` or `TFI`: for example, the desktop `App/TermindApp.swift` and mobile `App/MobileAppModel.swift` composition files can import SwiftData and concrete frameworks. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes; neither proves an exhaustive compiler-enforced boundary or bans all concrete code. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
 
 ## Persistence is a single-owner boundary
 
 `TermindPersistence` exports the complete current schema (`TermindSchemaV40`) and builds a `ModelContainer` using its migration plan. V39 added persistent assistant model selection; V40 removes retired per-category quarantine tables while keeping scoped quarantine, with lightweight stages from V38 through V40. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
-Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models. `DeviceDirectoryModel` registers the current installation at initialization and resolves names by ID from its cached repository snapshot, falling back to the supplied local name for the current device. A failed load returns an empty list and records `storageError`; explicit renaming calls `upsert`, invalidates the cache, and increments `revision` only on success. The SwiftData adapter's launch-time `registerIfNeeded` deliberately leaves a remotely deleted directory entry deleted, whereas an explicit `upsert` commits a changed name or new record with the History journal snapshot and notifies the injected device-sync callback after a successful mutation.
+Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models. `DeviceDirectoryModel` registers the current installation at initialization and resolves names by ID from its cached repository snapshot, falling back to the supplied local name for the current device. The constructor defaults to an in-memory directory when no repository is supplied. Registration failure records `storageError` but still attempts a read, so already-saved names may remain visible; `reload()` clears the snapshot on read failure, records `storageError`, and increments `revision` even on failure. Explicit renaming calls `upsert` and updates the local name only after the write succeeds, then reloads the snapshot; a failed rename retains the previous local name and records the error. The SwiftData adapter's launch-time `registerIfNeeded` deliberately leaves a remotely deleted directory entry deleted, whereas an explicit `upsert` commits a changed name or new record with the History journal snapshot and notifies the injected device-sync callback after a successful mutation.
 
 ```mermaid
 sequenceDiagram
@@ -141,7 +145,7 @@ The registration path crosses the app naming, Application port, and Persistence 
 
 This separation matters for migrations: all SwiftData models, frozen historical schemas, migration plans, and container construction stay together in Persistence. The boundary test rejects `@Model` declarations in scanned desktop, mobile, Domain, Application, and Infrastructure roots and requires Persistence to contain Swift files; the `@Model` scan does not currently include Remote Infrastructure or Presentation. That scan asserts absence of declarations in those roots, not that all models in the repository are discovered or that every historical schema is correct. A separate SwiftData-repository-declaration check covers those two roots as well as both apps, the other shared frameworks, bridge, benchmark, widget, and workspace-activity support targets; it uses a Swift declaration parser and requires at least one such declaration in Persistence. These checks still do not constitute an exhaustive ownership proof. A new persisted SwiftData entity therefore requires a Persistence schema/migration decision—not a model embedded in a feature, app, or general infrastructure module.
 
-Desktop calls `TermindPersistence.makeContainer` with in-memory storage for tests and screenshot demos; an unavailable local database causes a startup `fatalError`, rather than silent replacement with an empty store. Mobile `MobileAppModel` uses an injected container when provided, otherwise calls the same factory with a file under Application Support for live storage or in-memory storage for tests/injected hosts. `TermindIOSApp` builds the model once during startup and displays an unavailable-data screen when composition fails. See [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for the app/window/scene lifetime split and platform-specific failure handling.
+Desktop calls `TermindPersistence.makeContainer` with in-memory storage for tests and screenshot demos; an unavailable local database causes a startup `fatalError`, rather than silent replacement with an empty store. Mobile `MobileAppModel` uses an injected container when provided, otherwise calls the same factory with a file under Application Support for live storage or in-memory storage for tests/injected host repositories; it creates the directory for a live store and prepares persistence before wiring feature models. `TermindIOSApp` builds the model once during startup and `MobileStartupView` displays an unavailable-data screen when composition fails. See [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for the app/window/scene lifetime split and platform-specific failure handling.
 
 ## Composition, resource, and state ownership
 
@@ -169,7 +173,7 @@ The most common failure modes are a UI feature importing Persistence “just to 
 
 ## Focused verification
 
-`TFMTests/ArchitectureBoundaryTests.swift` is the focused regression suite for these constraints. In addition to layer imports and SwiftData ownership, it checks that AgentKit runtime type names are not redefined locally, limits `ListViewKit` to an explicit native-list allowlist, keeps forwarding/mobile authentication feature-owned, and ensures the forwarding benchmark is independent of app and test targets. The checks fail closed if an expected production root is missing or contains no Swift files, so relocating source cannot silently disable the safeguards.
+`TFMTests/ArchitectureBoundaryTests.swift` is the focused regression suite for these constraints. In addition to layer imports and SwiftData ownership, it checks that AgentKit runtime type names are not redefined locally, limits `ListViewKit` to an explicit native-list allowlist, keeps forwarding/mobile authentication feature-owned, and ensures the forwarding benchmark is independent of app and test targets. The checks fail closed if an expected production root is missing or contains no Swift files, so relocating source cannot silently disable the safeguards. For the device-directory boundary, `FrameworkTests/HistoryRenderingSnapshotTests.swift` checks that a failed registration still leaves readable names visible, rendering reads do not fetch or publish changes, and reload recovers from a failed read; `TFMTests/ConnectionHistoryTests.swift` checks stable device IDs and rename projection for existing history events.
 
 For normal project validation, use the resolved dependency graph rather than allowing a fresh resolution:
 

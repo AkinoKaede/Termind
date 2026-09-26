@@ -5,7 +5,7 @@ description: How macOS window navigation, sidebar modes, workspace sessions and 
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -77,7 +77,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
 # macOS UI and Workspace Ownership
@@ -125,7 +125,7 @@ The main layers are:
 
 `TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel` (which starts at Vault/Welcome), while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. `AppModel.registerWindow` wires shared connections, histories, host and metrics services into that model and adopts the shared conversation store; its workspace list, queries, presentation routes and transcript cache remain window-local. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; in debug builds XCTest normally suppresses automatic test windows unless `TERMIND_WINDOW_TESTS=1`, and tests or screenshot mode disable main-scene restoration.
 
-`MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame.
+`MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame. The coordinator tracks normal-size and sidebar-width fallbacks from registered main windows, preferring the most recently used window; requested scenes inherit source layout, while restored windows are not forcibly resized. Full-screen requests wait until the new window is key, and main-window registration disallows native tabbing. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for app lifecycle and auxiliary windows.
 
 ```mermaid
 sequenceDiagram
@@ -144,7 +144,7 @@ sequenceDiagram
 
 Scene-request handoff: the source keeps the session until the target's native window registers.
 
-A workspace move waits for native destination registration before changing ownership. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane released outside its source window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+A workspace move waits for native destination registration before changing ownership. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
@@ -171,9 +171,7 @@ They influence one another, but they are not interchangeable selections. A works
 
 Inline rename seeds the editor with `workspace.title(in: app.hostLibrary, locale: locale)` **before** activating the rename field; commit sends the text to `WindowModel.rename`, cancel discards it. The model refuses non-renameable workspaces and trims whitespace: split names belong to the workspace, single-pane overrides to its pane; clearing restores an automatically allocated/derived name. This ordering matters because the native text field selects its initial text when focused. The visible-window `WorkspaceNavigatorRenameTests` exercise both the context-menu and double-click entrypoints and require the full existing title in the editable field.
 
-The layout drop receiver overlays the `List`, rather than attaching a target behind its native rows. Workspace and pane drags carry IDs, but live `WindowModel.dragging` identifies the payload during native callbacks, even before another SwiftUI render. On macOS 26+, the workspace row uses `.draggable` and the **active** native drag session sets this state from the pasteboard; querying a writer after a click must not start a drag. Earlier systems set it with `.onDrag`. Row/header frames are measured in global coordinates, translated at the receiver, then insertion geometry excludes the dragged workspace from the mutation index. A valid drop reorders with `move` or lifts a pane from a split workspace with `detachPane`; a lone pane cannot detach into another workspace in the same window. Within the List receiver, pointer positions clamp to Workspace insertion boundaries, including above the first and below the last workspace row. Switching away from Navigator or a mismatched pasteboard rejects the drop; successful drops clear drag state. Older systems may retain workspace drag state after a release outside any target until the next click or drag, so receivers still validate the pasteboard.
-
-Preserve this native List drag source when extending Workspace behavior. On macOS 26+, its completion observer adds new-window creation for an unaccepted release outside the **source** window, excluding Escape and a still-held primary mouse button. A small data-source forwarding adapter disables the native failed-drop return animation at `willBegin`; it does not replace row dragging or drop geometry. Pane titles use a separate native drag source with completion callbacks on all supported macOS versions. See [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) for the full interaction matrix, preview lifetimes and regression tests.
+Navigator layout interaction is window-scoped: `WindowModel.dragging` carries the live workspace or pane identity for the native `List` receiver, while workspace ordering and pane ownership change only on an accepted drop. The selected workspace remains the command owner during preview. The Navigator overlays the native rows with its receiver because an ancestor receiver would compete with pane targets. For drag-source behavior, geometry, cancellation and cross-window release cases, see [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md).
 
 ### Toolbar commands follow the detail, not the mode rail
 
@@ -245,7 +243,7 @@ The floating status bar overlays the current workspace rather than docking below
 
 During divider dragging, a local preview fraction drives geometry. The gesture uses global coordinates and commits the model change once, instead of publishing the entire workspace tree for every mouse event. The divider's visible hairline and its wider hit region are separate design decisions.
 
-Pane dragging also separates **preview** from **mutation**. The dragged branch is temporarily omitted from the preview geometry while its source view stays mounted; removing the native drag source can terminate the drag before it reaches the Navigator. The model tree changes only when the drop lands. `RootView` deliberately has no ancestor drop target that would compete with pane and Navigator targets for the same internal text payload.
+Pane interaction separates **preview** from **mutation**. The dragged branch is temporarily omitted from preview geometry while its source view stays mounted; the model tree changes only on an accepted drop. `RootView` deliberately has no ancestor drop target that would compete with pane and Navigator targets. See [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) for receiver mechanics.
 
 ## Vault and management pages
 
@@ -314,7 +312,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 
 | Change | Focused seams |
 | --- | --- |
-| Scene ownership, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MultiWindowTests`, `WindowStateTests`, `SettingsNavigationTests`. |
+| Scene ownership, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |

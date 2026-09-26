@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ff1be2ef80ee4380d12600b617927c4a697e8a40d38e6b740cde639c9f25cc8d",
+  "pageVersion": "sha256:a7dde928aed7466db503919e969e000f4b07faaaa3e426330d9fe2dad129fef3",
   "claims": [
     {
       "id": "claim_c56b98e3167443d9a8aa8d3405b35eca",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L8-L131",
-          "version": "repo-lines-v1:sha256:193cd4b48d8149ba2c9919ad80dfd65aeece1adf8642a39b87f39cfe134f61e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMjM5MGNhZmNjYTg0OTFjNWY4NzFmNjQ5ZWRlMWIwZGNhYzJlNmMyYWQ3OTdkNTQxYzUxMmM0ZjA3MzVmMzlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1YjEzYWJjN2JiZjlhMTcwMmM3OTMzYmZhNzRmNzdhNDhjMzMxMjQ5YjM2Y2JmODBiZTZjMjE0N2Q5ZGU3NDlhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlZGRiODU3ODAwYTVkNzI0N2ZmMjNjNWNkNWU1MmM1NDdiYmY0YmMzNjViOWE3NDI2OTllZTMzZGJiMjg5MmMwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NTJiMzc4ZTE0ZjJiMTgzOWMwNjU5YTlmZjUyNTVkZGEwOTM0YTZmODE5OTI4YmE5NWJlYTVhOTk2YWY4N2M2In0"
+          "version": "repo-lines-v1:sha256:e29537dfd92a1b6f6e892d29e5261d37be9e2248075419ac6355d95c0a4fb1e0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMjM5MGNhZmNjYTg0OTFjNWY4NzFmNjQ5ZWRlMWIwZGNhYzJlNmMyYWQ3OTdkNTQxYzUxMmM0ZjA3MzVmMzlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1YjEzYWJjN2JiZjlhMTcwMmM3OTMzYmZhNzRmNzdhNDhjMzMxMjQ5YjM2Y2JmODBiZTZjMjE0N2Q5ZGU3NDlhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlZGRiODU3ODAwYTVkNzI0N2ZmMjNjNWNkNWU1MmM1NDdiYmY0YmMzNjViOWE3NDI2OTllZTMzZGJiMjg5MmMwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NTJiMzc4ZTE0ZjJiMTgzOWMwNjU5YTlmZjUyNTVkZGEwOTM0YTZmODE5OTI4YmE5NWJlYTVhOTk2YWY4N2M2In0"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L813-L831",
@@ -279,10 +279,64 @@
           "version": "repo-lines-v1:sha256:4dd9039bd21715f37990fd518ca73cb901c0ad62ec4f732409137e701b3123ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMDM3YWQ2ZjQ0NmMwNGMxMzUzZjE1MDM3OGQ5OTEwMmRmZjkyZmRmMmNlN2JmZmRiMTdkMjRiNjI0NGRjMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjMTRkOGZmOGYyYTBlY2IyOTMxZTY2NjQ5NmJlNGNjMmJhOTIzYmY3NWM5OWJiMzQ3MDc2MzBkYTY0M2I0NTAifQ"
         }
       ]
+    },
+    {
+      "id": "claim_9c17e5fb4aaa4dd6bf3981e5cc41c1b6",
+      "statement": "SSHConnectionWorker teardown remains queue-confined even when its last reference is released by an owning-queue callback: deinit cleans up directly on that queue and synchronously dispatches cleanup to it only when released elsewhere, avoiding synchronous self-reentry.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift#L7-L34",
+          "version": "repo-lines-v1:sha256:df40e1862c0e0f28fe049dfdccd7c962616c911d68a4fee99043675efb157d1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhM2Q2ZGI3NWZmMTQxZTlhNTA5NTRkYzMzMDFmOWE4NzEzOWFkZjlhM2MyNjY3NDViYzg3MGQ1ZTk2Y2VjZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNGM2OTVlMTdjOTZiN2U4MjJlYjAyMTAwMDcwZTkxZDgzZjlkNzk5N2Y4YWI2YWQ0YjNiOTk1OGNlNDc1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L142-L150",
+          "version": "repo-lines-v1:sha256:3b7e6cd46ab689f6fdaf48fa5060a82cba01cbbdb28ebf68617cf5bed74cdac2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWY3NjQ1ODQxNTFhZDMwYjI4MDdjMTI2NjJhNTY3YmNjNTRiYjE1ZTMzNDM1YjM0OWE3YWJiMGRiNmJiZGY5MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhmODk0MGJkNmYzYzMyMzA5MmZiYTBjODM4YmEwMDRjZWM2ZmZlN2Q2NjA3NjhlYjE5NTQ4ZDU1YTRkMDhkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGViNWQyODAyNDgwMjhjYWU1YjE3ZTRkYmUxNTMwMjMwNTQ1MjAyMzY2ZGNkODI4MTI4MDdmYWM2MTM5YTIwMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3063a3f4bd7c4dd0b5f2c127cf2d905e",
+      "statement": "SFTPConcurrencyScheduler accounts one global logical-file permit and one per-host slot for each distinct endpoint, and grants eligible queued work by rotating hosts then sources within a host rather than scheduling libssh2 bytes.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L133-L166",
+          "version": "repo-lines-v1:sha256:ac5dc1b9b48d0a40dc164abad62d8f1e9bda60b1b93b86f32937666de5ffdbcb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MTNjNjAzZWU5NjQ5OTU5OTJhMmUyZjYxY2ZkYTY5OTU2ZDM1MDU5YmU3ZDYzYjhkYjBhMDMwMmQ2OTUxMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiYzYwMWFhNzYyMDE0MDcxOWE4ZmI2ZDcwMzBhYjQ0ZDI4ZWM5NTIxMGY5YTNlZTY2NWJhNmI5YzA5MDVmOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NTExNDMwNzk3NTU2OWExNzJhZGZhNDAwMDdmOTFjNzE1NmE2MzU1MDZmZDAyNzIzM2FhMWU3MmVjZTdmNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzZDA3Mjc0YzRjMmFjYzlkMDg2ZDE2ZGJiOGEzYzM4OTAyZTVmZDgzNzFkNDEwNGNkYmY1N2IyZmFlZTI2ZWYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L29-L59",
+          "version": "repo-lines-v1:sha256:e5766ed7530d7a126f5332f4983aadc634531286238a47a13c533136d8359095:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MzMxZDIxZmVjZDMyZTdkMTUyOTg5OTZjMDkxOGJhZDVhNGViNGMyNzE3OGJmMzRlZTA4ZmU1OTk2YWU3YTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDQ5NTAwMmM4MWJiMDZiMjkxYzJiZTgzMzljM2NjZWRkZjdiYzVkZWIxZmMxNjgyYzU0ZTlhMjEzNjdlNDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNzEwZTdkOWVmMjI4ZGE0YzUxYTcyY2Q4NGMyOTIyMDU5NGNmZWI2ZDQwZTgyNGRiNjI4MTQ4N2Y5YzAwOTcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L31-L112",
+          "version": "repo-lines-v1:sha256:48d1b351f0acf522015965eecb894a9e957f2210826b1795916a34310cb405a3:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzYjgwZmU4NzVkYWJkOGI0NzcxMGYzNTlhZTZjZWJiYjU0M2UyODNiYmI3YzE1N2ZlY2FjNmEzZDk2YjIxMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZmVkYzgxYmM2OTM2MTY4ZGNlODA0NGEzMmQ3NDg0NDVhZjI3MjFlYTcxYWFjOTkwNTc3NzE3NDU3N2I5YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3MmQ1MzlmYTY4MmY3YjM3OGQ4YmUwMDAwOTFlODNhNTc2OTRiMmIyMmNkNWI5MzI5ZGQ1NWM4OWFjZWRiZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_72a63834a5a04aa995c41bb6a2b4d452",
+      "statement": "With smart SFTP scheduling, unknown size and files of at most 64,000,000 bytes select channelsOnly while larger files select connectionsPreferred; the permit's scheduling mode is distinct from session-channel admission.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L57-L58",
+          "version": "repo-lines-v1:sha256:d1f726759be5ee9343b7bbe2d018d38ecb3e9a18c899e4a0c20770875cfa36ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzViZjk0NTZiMTIzODU0Mjk4NmM0MjRkYjIwYWE1MWQ5OWY4MWFjNTg1MjU3YTRjZjg5ODg3MzhiYzI2ZDI5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmMxNzZlZTI1OTZmMGVjNjUyZjI0MWUwMjJhZDQxMjJjZTkxNWJmMWZkNDA3MDE3ZjkyZWZlZDZkMTA4M2Y1ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQzMzU2MGNlODY0YThmOTUzMTYxMWYyZmY0OTExMGQ0YzMyODBmNjRkZTE2MTYyMzdkNWUzNmVhOGQyOWU4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2VmNjgzNTNmNjhmMGE0ZDFjZTU3ZjNkZDZlMDYxMDBhYjA0ZjI4OWJiNmM0ZWZkNDY4ODY3YmJiYWVhYWY2NyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L10-L26",
+          "version": "repo-lines-v1:sha256:d6ae9fa0d57100ec247042a99758810972cd9f64132fa882ec46b96667a81395:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5NzA3MjUyYjUyYWVhYThlZDI2NDdjZGM3M2I2MzJiYjAxYWMzOTIzMWM4NDMwOTJiYjBhOGNhYjI5YzE0YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMzIzNDkyYWZlYWI2YjVhZDE5OGE2NTM2Yzg1ZjVhNWI4MzliNTc5ZjhjNzE5MWE5MWNkYjRlZDliNzFmNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNTQ4M2JhYTVjZDEwYjkwYTVmMGI0MzdjM2Q5M2IyODhhMTVjZjkzNTYwMzRmZWM4OThiMzQxMTQzNTljZTIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L169-L182",
+          "version": "repo-lines-v1:sha256:6ede6cd5e9b2351dbd9fd55c595e761d34c268db3f909d18087b64fa1ecf06d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkNjQzODE2N2U1MmE1YjVlOTM5OTdiNzcxZDBhMzcxOTc4ZjdmYzU4M2FiMjE4MDZjNzlhNWUwYTJjZTIwYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4YWNlOWI3NWYyZWQ5ZTRiMDk4NTZlNGJjYjFhMDJiMzVjNzY1MzRjNzhiZjM0MjZlYjllYWQxNWM2YmUyYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNjU1MDc5MjZlNjQ1MWUzZmYzNWIyNWUzNTM0MmU5N2ZiY2YzYTI2YTgwNzdmNzFjMTJkYmQ1YjM4OTYwMzMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L8-L29",
+          "version": "repo-lines-v1:sha256:55c90256c73fdf48a07b1c47d05f2285c09e3309166e2053f12b4c7821824bf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNzk2ODAyMDQwMDM5ZTNlZjgwZDk3Mzc4MGU0YWVhNmNjMDQxYzFkYmY1MGUyOGYyYTg1YWJkMTk0OGIzNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhMjM0MmZiMGQ4MjEyNWRmMmVhZmMwMDUwMGQyZWRmODBlNzExZjYzY2QxZWJlMDIwOTBhYzU5YTc0MDBlMDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZWM0NGYyMzYxNDlmOTRhMjViZjU1ODMyODM3YWMzOTIxMGIyYjc4ZGFiYTNhYzM2NTMzMzNjMjE3YTc1YWYifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-26T22:20:04.073Z"
   }
 }

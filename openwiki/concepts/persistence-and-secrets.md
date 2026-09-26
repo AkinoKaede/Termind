@@ -1,11 +1,11 @@
 ---
 type: persistence and security concept
-title: Persistent Data, Migrations, and Secret Boundaries
+title: Persistent Data, Migrations, and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -21,6 +21,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
+  - id: openwiki-source-d5d0b5c98f2f54ae5e0beba1
+    resource: repo://Frameworks/TermindApplication/MemoryDateAnnotations.swift
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
     resource: repo://Frameworks/TermindApplication/SecretStoring.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
@@ -101,10 +103,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
 ---
 
-# Persistent Data, Migrations, and Secret Boundaries
+# Persistent Data, Migrations, and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -118,7 +120,7 @@ flowchart TD
     SwiftData --> References["Credential references and secret location metadata"]
     References --> Keychain["Keychain device or iCloud secret material"]
     App --> GRDB["GRDB HermesMemory SQLite directory"]
-    GRDB --> Memory["Memory snapshots and searchable history"]
+    GRDB --> Memory["Memory entries reference dates and searchable history"]
     Keychain --> Resolver["SecretStoring resolution"]
     Resolver --> Runtime["SSHSecret one-shot runtime allocation"]
     Runtime --> Session["Live SSH session"]
@@ -193,7 +195,7 @@ Examples show why this matters:
 
 ### Synchronized connection events and device directory
 
-`SwiftDataConnectionHistoryRepository` stores each saved-host SSH, Telnet or SFTP attempt as an independent event with stable ID, Host ID, protocol, start time, `sourceDeviceID` and optional end time. Every insert/end/delete/clear reconciles the complete local event set with `HistorySyncStore` inside the same `ModelContext` commit, so a successful history mutation and its envelope or tombstone cannot diverge. The repository and remote-merge path sort by start time and UUID, then deterministically retain the newest 250. The History limits of 100 desktop rows and 50 mobile rows are presentation-only.
+`SwiftDataConnectionHistoryRepository` stores each saved-host SSH, Telnet or SFTP attempt as an independent event with stable ID, Host ID, protocol, start time, `sourceDeviceID` and optional end time. Every insert/end/delete/clear reconciles the complete local event set with `HistorySyncStore` inside the same `ModelContext` commit, so a successful history mutation and its envelope or tombstone cannot diverge. The repository and remote-merge path sort by start time and UUID, then deterministically retain the newest 250. The History limits of 100 desktop rows and 50 mobile rows are presentation-only. `ConnectionHistoryModel` caches readable entries even when its initial retention trim fails, reporting the write error rather than hiding existing history; failed record/end/delete/clear operations report `storageError` without publishing a successful mutation. Its recent-host projection selects the newest local event per still-present saved Host, not the newest event from another device.
 
 `SwiftDataDeviceDirectoryRepository` independently persists reusable `DeviceRecord` values that map installation IDs to mutable display names. Its upsert and `.device` journal envelope commit together. Device records are not dropped when a Host is deleted, History is cleared, or the 250-event retention rule prunes old events; this lets any feature resolve the current name for a stable installation ID. A system-name change updates one directory row, so all connection events and future consumers display the new name without event rewrites.
 
@@ -237,11 +239,11 @@ A session receives resolved credentials, not a database record. `SSHCredentials`
 
 ## GRDB Hermes Memory is a separate durable store
 
-Hermes Memory does not share the SwiftData database. `GRDBMemoryStore` is an actor that lazily creates and exclusively owns a `memory.sqlite` queue and its directory, so constructing a disabled memory feature does no filesystem work. On first access it enables WAL and applies `hermes-v1` (memory state, snapshots, review checkpoints, session/message history, FTS5 index, triggers and ordering index), then `hermes-policy-learning-v2` (drops the old snapshots table and adds durable learning activity and reviewed-correction checkpoints). These GRDB migration names are independent of SwiftData and cloud wire versions.
+Hermes Memory does not share the SwiftData database. `GRDBMemoryStore` is an actor that lazily creates and exclusively owns a `memory.sqlite` queue and its directory, so constructing a disabled memory feature does no filesystem work. On first access it enables WAL and applies `hermes-v1` (memory state, legacy snapshots, review checkpoints, session/message history, FTS5 index, triggers and ordering index), then `hermes-policy-learning-v2` (drops the old snapshots table and adds durable learning activity and reviewed-correction checkpoints), then `hermes-reference-dates-v3` (adds per-entry last-reference dates). These GRDB migration names are independent of SwiftData and cloud wire versions.
 
-Memory updates run in database writes. A review or correction is accepted only when its expected base `AgentMemoryState` still matches; otherwise it returns `nil` without recording the review or correction. Learning activity is keyed by conversation, event and kind, and review progress is committed with accepted operations. History replacement deletes no-longer-present sessions and only stores user, assistant, and tool messages after visible-text/JSON redaction. Search uses trigram FTS for queries of at least three Unicode scalars and a case-insensitive fallback for shorter queries. `close()` releases the queue; `destroy()` closes it first and removes the entire owned directory.
+Memory updates run in database writes. A review or correction is accepted only when its expected base `AgentMemoryState` still matches; otherwise it returns `nil` without recording the review or correction. Learning activity is keyed by conversation, event and kind, and review progress is committed with accepted operations. History replacement deletes no-longer-present sessions and only stores user, assistant, and tool messages after visible-text/JSON redaction. Session search uses trigram FTS when a query admits an FTS5 plan and a case-folded substring fallback for short terms; it tries matches for all terms before falling back to any term, across the whole result set rather than just one page. Memory search separately records last-reference dates only for returned existing entry IDs, taking the maximum date on repeat visits; memory-state saves prune dates for removed entries. Editable memory text strips generated UTC date annotations before saving, preserves IDs and creation dates for unambiguously matched entries, and rejects malformed date annotations. `close()` releases the queue; `destroy()` closes it first and removes the entire owned directory.
 
-The focused Hermes tests prove disabled memory creates no files, snapshots survive a close/reopen, stale background reviews cannot overwrite foreground changes, indexed history is searchable and removed with history replacement, and destroy revokes old access before a later enable can backfill retained conversation history.
+The focused Hermes tests prove disabled memory creates no files, memory state survives a close/reopen and V1 snapshots disappear without losing entries, stale background reviews cannot overwrite foreground changes, indexed history is searchable and removed with history replacement, reference dates survive reopen without invalidating review, and destroy revokes old access before a later enable can backfill retained conversation history.
 
 `MemoryIndexedAgentRepository` wraps agent history rather than moving it into GRDB: it requests indexing only after a successful terminal run save, conversation creation, title change, truncation or deletion. `MemoryModel` loads the SwiftData-backed conversation projection through `AgentRunPersisting` and replaces the separate searchable memory history; disabled or suspended memory does not start that work. Reindexing coalesces changes while a task is running, and a memory search waits for the current indexing task. This is a derived local index, not a second authoritative copy of agent runs. The GRDB replacement compares redacted message IDs and content, not timestamps alone, so editing a turn with an unchanged timestamp still refreshes the index.
 
