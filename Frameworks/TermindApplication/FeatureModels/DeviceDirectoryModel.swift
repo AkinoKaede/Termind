@@ -8,7 +8,7 @@ public final class DeviceDirectoryModel {
     private let repository: any DeviceDirectoryRepository
     public let currentDeviceID: UUID
     public private(set) var currentDeviceName: String
-    private var cachedDevices: [UUID: DeviceRecord]?
+    private var cachedDevices: [UUID: DeviceRecord] = [:]
     public private(set) var revision: UInt64 = 0
     public private(set) var storageError: String?
 
@@ -25,28 +25,25 @@ public final class DeviceDirectoryModel {
 
     public func devices() -> [DeviceRecord] {
         _ = revision
-        if let cachedDevices { return Array(cachedDevices.values) }
-        do {
-            let values = try repository.devices()
-            cachedDevices = Dictionary(uniqueKeysWithValues: values.map { ($0.id, $0) })
-            storageError = nil
-            return values
-        } catch {
-            storageError = error.localizedDescription
-            return []
-        }
+        return Array(cachedDevices.values)
     }
 
     public func name(for deviceID: UUID?) -> String? {
         guard let deviceID else { return nil }
-        if cachedDevices == nil { _ = devices() }
-        return cachedDevices?[deviceID]?.displayName
+        _ = revision
+        return cachedDevices[deviceID]?.displayName
             ?? (deviceID == currentDeviceID ? currentDeviceName : nil)
     }
 
     public func reload() {
-        cachedDevices = nil
-        storageError = nil
+        do {
+            let values = try repository.devices()
+            cachedDevices = Dictionary(uniqueKeysWithValues: values.map { ($0.id, $0) })
+            storageError = nil
+        } catch {
+            cachedDevices = [:]
+            storageError = error.localizedDescription
+        }
         revision &+= 1
     }
 
@@ -54,9 +51,7 @@ public final class DeviceDirectoryModel {
         do {
             try repository.upsert(DeviceRecord(id: currentDeviceID, displayName: name))
             currentDeviceName = name
-            cachedDevices = nil
-            storageError = nil
-            revision &+= 1
+            reload()
         } catch {
             storageError = error.localizedDescription
         }
@@ -66,8 +61,13 @@ public final class DeviceDirectoryModel {
         do {
             try repository.registerIfNeeded(
                 DeviceRecord(id: currentDeviceID, displayName: currentDeviceName))
-            cachedDevices = nil
-            storageError = nil
+        } catch {
+            storageError = error.localizedDescription
+        }
+        // Registration can fail while previously saved device names remain readable.
+        do {
+            let values = try repository.devices()
+            cachedDevices = Dictionary(uniqueKeysWithValues: values.map { ($0.id, $0) })
         } catch {
             storageError = error.localizedDescription
         }

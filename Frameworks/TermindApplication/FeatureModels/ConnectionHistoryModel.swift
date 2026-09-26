@@ -18,7 +18,7 @@ public final class ConnectionHistoryModel {
 
     private let repository: any ConnectionHistoryRepository
     public let sourceDeviceID: UUID
-    private var cachedEntries: [ConnectionHistoryEntry]?
+    private var cachedEntries: [ConnectionHistoryEntry] = []
     public private(set) var revision: UInt64 = 0
     public private(set) var storageError: String?
 
@@ -34,20 +34,17 @@ public final class ConnectionHistoryModel {
         } catch {
             storageError = error.localizedDescription
         }
+        // A failed maintenance write must not hide readable existing history.
+        do {
+            cachedEntries = try self.repository.entries()
+        } catch {
+            storageError = error.localizedDescription
+        }
     }
 
     public func entries() -> [ConnectionHistoryEntry] {
         _ = revision
-        if let cachedEntries { return cachedEntries }
-        do {
-            let values = try repository.entries()
-            cachedEntries = values
-            storageError = nil
-            return values
-        } catch {
-            storageError = error.localizedDescription
-            return []
-        }
+        return cachedEntries
     }
 
     public func entries(for hostID: Host.ID) -> [ConnectionHistoryEntry] {
@@ -95,9 +92,7 @@ public final class ConnectionHistoryModel {
         )
         do {
             try repository.insert(entry, limit: Self.limit)
-            cachedEntries = nil
-            storageError = nil
-            revision &+= 1
+            reload()
             return entry
         } catch {
             storageError = error.localizedDescription
@@ -108,35 +103,34 @@ public final class ConnectionHistoryModel {
     public func end(_ id: ConnectionHistoryEntry.ID, at date: Date = Date()) {
         do {
             try repository.end(id, at: date)
-            cachedEntries = nil
-            storageError = nil
-            revision &+= 1
+            reload()
         } catch { storageError = error.localizedDescription }
     }
 
-    /// The sync coordinator persists remote events through its own transaction.
-    /// Drop the presentation cache so the next read observes those committed rows.
+    /// Refresh outside rendering, after a local write or a committed sync transaction.
+    /// View reads must never publish cache or error changes into an active graph update.
     public func reload() {
-        cachedEntries = nil
-        storageError = nil
+        do {
+            cachedEntries = try repository.entries()
+            storageError = nil
+        } catch {
+            cachedEntries = []
+            storageError = error.localizedDescription
+        }
         revision &+= 1
     }
 
     public func delete(_ id: ConnectionHistoryEntry.ID) {
         do {
             try repository.delete(id)
-            cachedEntries = nil
-            storageError = nil
-            revision &+= 1
+            reload()
         } catch { storageError = error.localizedDescription }
     }
 
     public func clear(for hostID: Host.ID) {
         do {
             try repository.clear(for: hostID)
-            cachedEntries = nil
-            storageError = nil
-            revision &+= 1
+            reload()
         } catch { storageError = error.localizedDescription }
     }
 

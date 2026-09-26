@@ -90,7 +90,8 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         }
     }
 
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.connection")
+    private let queue: DispatchQueue
+    private let queueKey = DispatchSpecificKey<Void>()
     private let logger: Logger
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
     private var connection: SSHAuthenticatedConnection?
@@ -114,9 +115,14 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     private var connectionFailure: (@Sendable (String) -> Void)?
     private var didReportConnectionFailure = false
 
-    init(logger: Logger, maxSessionsPolicy: SSHMaxSessionsPolicy) {
+    init(
+        logger: Logger, maxSessionsPolicy: SSHMaxSessionsPolicy,
+        queue: DispatchQueue = DispatchQueue(label: "com.akinokaede.termind.ssh.connection")
+    ) {
+        self.queue = queue
         self.logger = logger
         self.maxSessionsPolicy = maxSessionsPolicy
+        queue.setSpecific(key: queueKey, value: ())
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
@@ -134,7 +140,13 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     }
 
     deinit {
-        queue.sync { cleanup(error: CancellationError()) }
+        // A queued callback can release the last reference to this worker.
+        // Cleanup must stay serialized without synchronously reentering its queue.
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            cleanup(error: CancellationError())
+        } else {
+            queue.sync { cleanup(error: CancellationError()) }
+        }
     }
 
     func connect(
