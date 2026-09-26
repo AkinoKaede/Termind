@@ -775,7 +775,7 @@ struct MobileWorkspaceLifecycleMenuActions: View {
         if canCloseMultipleWorkspaces {
             Divider()
             Button(
-                AppStrings.Workspace.closeOther.swiftUIKey, systemImage: "xmark", role: .destructive,
+                AppStrings.Workspace.closeOthers.swiftUIKey, systemImage: "xmark", role: .destructive,
                 action: closeOthers)
         }
     }

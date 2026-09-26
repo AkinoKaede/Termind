@@ -708,13 +708,81 @@ struct MobileUploadBatchTests {
         #expect(workspace.uploadNotice == nil)
     }
 
+    @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp])
+    func transferRoutesRetainTheRemoteHomeAfterWorkspaceClosure(_ kind: ConnectionHistoryEntry.Kind) async throws {
+        let workspace = uploadWorkspace(client: MobileUploadSFTPClient(), kind: kind)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        if kind == .ssh { workspace.receiveWorkingDirectory("/home/test") }
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "report.txt")
+        try Data("report".utf8).write(to: file)
+
+        #expect(workspace.prepareUpload([file]))
+        let transfers = try #require(workspace.transfers)
+        #expect(await eventually { transfers.sftpTransfers.first?.state == .completed })
+        workspace.disconnect()
+
+        let transfer = try #require(transfers.sftpTransfers.first)
+        #expect(transfer.destinationHomeDirectory == "/home/test")
+        #expect(transfer.routeLabel { _ in "Upload" } == "Upload · ~/report.txt")
+        #expect(workspace.sftpChannel.homeDirectory == nil)
+    }
+
+    @Test func downloadsAndRemoteCopiesRetainResolvedHomeDirectories() async throws {
+        let workspace = uploadWorkspace(client: MobileUploadSFTPClient(), kind: .sftp)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let transfers = try #require(workspace.transfers)
+        let file = RemoteFile(
+            path: "/home/test/report.txt", name: "report.txt", kind: .file, size: 0,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        let destination = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: destination) }
+
+        workspace.prepareDownload(file, to: destination)
+        #expect(await eventually { transfers.sftpTransfers.first?.state == .completed })
+        let download = try #require(transfers.sftpTransfers.first)
+        #expect(download.sourceHomeDirectory == "/home/test")
+        #expect(download.routeLabel { _ in "Upload" } == "Upload · ~/report.txt")
+
+        let source = try #require(workspace.remoteCopySource(for: file))
+        let payload = transfers.registerRemoteCopySource(source)
+        await workspace.sftpChannel.openDirectory("/home/test/archive")
+        workspace.prepareRemoteCopy(payload)
+        #expect(await eventually { transfers.sftpTransfers.contains { $0.direction == .copy } })
+        let copy = try #require(transfers.sftpTransfers.first { $0.direction == .copy })
+        #expect(copy.sourceHomeDirectory == "/home/test")
+        #expect(copy.destinationHomeDirectory == "/home/test")
+        #expect(copy.routeLabel { _ in "Upload" } == "Upload · ~/report.txt → Upload · ~/archive/report.txt")
+        transfers.cancelAll()
+        await transfers.waitForCancellation()
+    }
+
+    @Test func unavailableHomeDoesNotPreventConnectingToAnExplicitDirectory() async throws {
+        let workspace = uploadWorkspace(
+            client: MobileUploadSFTPClient(homeDirectory: nil), kind: .sftp, initialPath: "/srv")
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        #expect(workspace.sftpChannel.path == "/srv")
+        #expect(workspace.sftpChannel.homeDirectory == nil)
+    }
+
     private func uploadWorkspace(
         client: MobileUploadSFTPClient,
         kind: ConnectionHistoryEntry.Kind = .ssh,
+        initialPath: String = "",
         open: (() async throws -> any SFTPClientProtocol)? = nil
     ) -> MobileWorkspace {
         let identity = Identity(name: "Upload", username: "user")
-        let host = Host(name: "Upload", host: "example.invalid", identityID: identity.id)
+        let host = Host(
+            name: "Upload", host: "example.invalid", identityID: identity.id, sftpChannelInitialPath: initialPath)
         let library = HostLibraryModel(hosts: [host], identities: [identity])
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
@@ -1008,6 +1076,7 @@ struct MobileUploadBatchTests {
             })
         #expect(!history.entries(for: host.id).contains { $0.path == broken.path })
 
+        #expect(transfers.sftpTransfers.allSatisfy { $0.sourceHomeDirectory == "/home/test" })
         #expect(!(await workspace.reopenHistoryFile(at: "/srv/missing.txt")))
         #expect(!(await workspace.reopenHistoryFile(at: changedDirectory.path)))
         #expect(!history.entries(for: host.id).contains { $0.path == changedDirectory.path })
@@ -1181,6 +1250,7 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var removedPaths: [String] = []
     private(set) var disconnectCount = 0
     private(set) var startedUploads = 0
+    private let resolvedHomeDirectory: String?
     private let blocksUpload: Bool
     private let requiresInteraction: Bool
     private let failureStage: UploadFailureStage?
@@ -1190,12 +1260,14 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private let children: [String: [RemoteFile]]
 
     init(
+        homeDirectory: String? = "/home/test",
         attributes: [String: RemoteFile] = [:],
         failedDownloadPaths: Set<String> = [],
         children: [String: [RemoteFile]] = [:],
         blocksUpload: Bool = false, requiresInteraction: Bool = false,
         failureStage: UploadFailureStage? = nil
     ) {
+        self.resolvedHomeDirectory = homeDirectory
         self.blocksUpload = blocksUpload
         self.requiresInteraction = requiresInteraction
         self.failureStage = failureStage
@@ -1213,7 +1285,10 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         for waiter in pending { waiter.resume() }
     }
     func disconnect() async { disconnectCount += 1 }
-    func homeDirectory() async throws -> String { "/home/test" }
+    func homeDirectory() async throws -> String {
+        guard let resolvedHomeDirectory else { throw SFTPError.operation("Home unavailable") }
+        return resolvedHomeDirectory
+    }
     func listDirectory(at path: String) async throws -> [RemoteFile] {
         listedDirectories.append(path)
         return children[path, default: []]

@@ -30,8 +30,8 @@ extension AppStrings {
             "Close All Workspaces"
         }
 
-        public static var closeOther: LocalizedStringResource {
-            "Close Other"
+        public static var closeOthers: LocalizedStringResource {
+            "Close Others"
         }
 
         public static var closeOtherWorkspaces: LocalizedStringResource {

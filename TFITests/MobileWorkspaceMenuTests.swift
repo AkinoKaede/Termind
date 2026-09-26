@@ -41,7 +41,7 @@ struct MobileWorkspaceMenuTests {
             let actions = menuActions(menu)
             let expected =
                 canCloseMultipleWorkspaces
-                ? ["Rename", "Close", "Close Other"]
+                ? ["Rename", "Close", "Close Others"]
                 : ["Rename", "Close"]
             #expect(actions.map(\.title) == expected)
             #expect(!actions[0].attributes.contains(.destructive))
@@ -54,7 +54,7 @@ struct MobileWorkspaceMenuTests {
             let separatedActions = menu.children.compactMap { $0 as? UIMenu }
                 .filter { $0.options.contains(.displayInline) }
                 .map { menuActions($0).map(\.title) }
-            #expect(separatedActions == (canCloseMultipleWorkspaces ? [["Close Other"]] : []))
+            #expect(separatedActions == (canCloseMultipleWorkspaces ? [["Close Others"]] : []))
         }
     }
 

@@ -648,7 +648,7 @@ private struct WorkspaceNavigatorRow: View {
             }
         )
         entries.append(.separator)
-        // Close Other and Close All are the same verb as the item above them,
+        // Close Others and Close All are the same verb as the item above them,
         // so only the first of the run carries a glyph.
         entries.append(
             NativeMenuEntry(

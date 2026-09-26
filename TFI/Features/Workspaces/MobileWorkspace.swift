@@ -23,6 +23,7 @@ private nonisolated enum MobileSSHSessionEvent: Sendable {
 private struct MobilePendingUpload {
     var batch: SFTPLocalUploadBatch
     var destination: String
+    var homeDirectory: String?
     var client: any SFTPClientProtocol
     var ownsClient: Bool
     var context: SFTPTransferContext
@@ -757,13 +758,20 @@ final class MobileWorkspace: Identifiable {
                         return
                     }
                     sftp = client
+                    let homeDirectoryResult: Result<String, any Error>
+                    do {
+                        homeDirectoryResult = .success(try await client.homeDirectory())
+                    } catch {
+                        homeDirectoryResult = .failure(error)
+                    }
+                    guard generation == token, !Task.isCancelled else { return }
                     let initialPath: String
                     if reconnecting {
                         initialPath = sftpChannel.path
                     } else if let requested = externalSFTPResourcePath {
                         let resolved: String
                         if requested == "/~" || requested.hasPrefix("/~/") {
-                            let home = RemotePath.normalized(try await client.homeDirectory())
+                            let home = RemotePath.normalized(try homeDirectoryResult.get())
                             resolved = requested == "/~" ? home : RemotePath.join(home, String(requested.dropFirst(3)))
                         } else {
                             resolved = RemotePath.normalized(requested)
@@ -786,13 +794,14 @@ final class MobileWorkspace: Identifiable {
                     } else if let pendingInitialSFTPPath {
                         initialPath = pendingInitialSFTPPath
                     } else if host.sftpChannelInitialPath.isEmpty {
-                        initialPath = try await client.homeDirectory()
+                        initialPath = try homeDirectoryResult.get()
                     } else {
                         initialPath = host.sftpChannelInitialPath
                     }
                     try await sftpChannel.attach(
                         fileSystem: client,
                         path: initialPath,
+                        homeDirectory: try? homeDirectoryResult.get(),
                         connectionGeneration: token,
                         handlesConnectionError: { [weak self] error in
                             self?.handleSFTPConnectionError(error, connection: token) == true
@@ -1344,6 +1353,17 @@ final class MobileWorkspace: Identifiable {
                     generation == connectionGeneration, uploadDestination == destination,
                     let client
                 else { throw CancellationError() }
+                let homeDirectory: String?
+                if descriptor.kind == .sftp {
+                    homeDirectory = sftpChannel.homeDirectory
+                } else {
+                    let proposed = try? await client.homeDirectory()
+                    homeDirectory = proposed.flatMap { $0.hasPrefix("/") ? RemotePath.normalized($0) : nil }
+                }
+                try Task.checkCancellation()
+                guard uploadPreparationID == preparationID,
+                    generation == connectionGeneration, uploadDestination == destination
+                else { throw CancellationError() }
                 let batch = try await SFTPLocalUploadPlanner.prepare(
                     urls,
                     destination: destination,
@@ -1370,6 +1390,7 @@ final class MobileWorkspace: Identifiable {
                 pendingUpload = MobilePendingUpload(
                     batch: batch,
                     destination: destination,
+                    homeDirectory: homeDirectory,
                     client: client,
                     ownsClient: ownsClient,
                     context: context,
@@ -1399,7 +1420,8 @@ final class MobileWorkspace: Identifiable {
         return SFTPRemoteCopySource(
             hostID: descriptor.hostID,
             connection: .context(transferContext),
-            files: [file]
+            files: [file],
+            homeDirectory: sftpChannel.homeDirectory
         )
     }
 
@@ -1497,6 +1519,7 @@ final class MobileWorkspace: Identifiable {
                         pendingRemoteCopy.batch, policy: policy,
                         destinationHostID: descriptor.hostID,
                         destinationConnection: .context(transferContext),
+                        destinationHomeDirectory: sftpChannel.homeDirectory,
                         client: sftp, coordinator: transfers
                     ) { [weak self] state in
                         guard state == .completed else { return }
@@ -1517,6 +1540,7 @@ final class MobileWorkspace: Identifiable {
                     pendingDownload.batch, policy: policy,
                     hostID: descriptor.hostID,
                     connection: .context(transferContext),
+                    homeDirectory: sftpChannel.homeDirectory,
                     coordinator: transfers
                 ) { [sftpHistory, hostID = descriptor.hostID] path, state in
                     guard state == .completed else { return }
@@ -1557,6 +1581,7 @@ final class MobileWorkspace: Identifiable {
                     policy: policy,
                     hostID: descriptor.hostID,
                     connection: .context(pendingUpload.context),
+                    homeDirectory: pendingUpload.homeDirectory,
                     client: pendingUpload.client,
                     coordinator: transfers
                 ) { [weak self] state in
@@ -1646,7 +1671,8 @@ final class MobileWorkspace: Identifiable {
             Task {
                 do {
                     let url = try await sftpEdits.open(
-                        file, hostID: descriptor.hostID, connection: .context(transferContext), client: sftp)
+                        file, hostID: descriptor.hostID, connection: .context(transferContext), client: sftp,
+                        homeDirectory: sftpChannel.homeDirectory)
                     if connectionOrigin.allowsPersistence {
                         sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
                     }
@@ -1666,7 +1692,8 @@ final class MobileWorkspace: Identifiable {
             transfers.enqueue(
                 direction: .download, batchID: UUID(), localURL: localURL,
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
-                connection: .context(transferContext), scopedRoot: directory, overwrite: false
+                connection: .context(transferContext), scopedRoot: directory, overwrite: false,
+                homeDirectory: sftpChannel.homeDirectory
             ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
                 guard state == .completed else { return }
                 if self.connectionOrigin.allowsPersistence {
@@ -1683,7 +1710,10 @@ final class MobileWorkspace: Identifiable {
 
     func uploadEdit(_ id: UUID, replacing: Bool) async -> Bool {
         guard connected, let sftpEdits, let sftp, let transferContext else { return false }
-        return await sftpEdits.upload(id, connection: .context(transferContext), client: sftp, replacing: replacing) {
+        return await sftpEdits.upload(
+            id, connection: .context(transferContext), client: sftp,
+            homeDirectory: sftpChannel.homeDirectory, replacing: replacing
+        ) {
             [weak self] in
             Task { await self?.sftpChannel.reload() }
         }

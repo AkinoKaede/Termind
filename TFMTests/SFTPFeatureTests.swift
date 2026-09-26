@@ -56,13 +56,21 @@ struct SFTPFeatureTests {
             localPath: "/tmp/second", remotePath: "/srv/second",
             byteCount: 300, transferredBytes: 0, state: .queued
         )
+        let paused = SFTPTransfer(
+            hostID: host.id, localPath: "/tmp/paused", remotePath: "/paused",
+            byteCount: 1_000, transferredBytes: 500, state: .paused
+        )
+        let finished = SFTPTransfer(
+            hostID: host.id, localPath: "/tmp/finished", remotePath: "/finished",
+            byteCount: 1_000, transferredBytes: 1_000, state: .completed
+        )
         let failed = SFTPTransfer(
             hostID: host.id, direction: .download,
             localPath: "/tmp/failed", remotePath: "/srv/failed",
             byteCount: 10, transferredBytes: 4, state: .failed("Network lost")
         )
         let store = HostLibraryModel(
-            hosts: [host], sftpTransfers: [first, second, failed]
+            hosts: [host], sftpTransfers: [first, second, paused, finished, failed]
         )
         let coordinator = SFTPTransferCoordinator(store: store)
 
@@ -82,6 +90,10 @@ struct SFTPFeatureTests {
             hostID: host.id, localPath: "/tmp/running", remotePath: "/running",
             state: .running
         )
+        let paused = SFTPTransfer(
+            hostID: host.id, localPath: "/tmp/paused", remotePath: "/paused",
+            state: .paused
+        )
         let completed = SFTPTransfer(
             hostID: host.id, localPath: "/tmp/completed", remotePath: "/completed",
             state: .completed
@@ -96,13 +108,13 @@ struct SFTPFeatureTests {
         )
         let store = HostLibraryModel(
             hosts: [host],
-            sftpTransfers: [queued, running, completed, cancelled, failed]
+            sftpTransfers: [queued, running, paused, completed, cancelled, failed]
         )
         let coordinator = SFTPTransferCoordinator(store: store)
 
         coordinator.clearFinished()
 
-        #expect(store.sftpTransfers.map(\.id) == [queued.id, running.id])
+        #expect(store.sftpTransfers.map(\.id) == [queued.id, running.id, paused.id])
     }
 
     @Test

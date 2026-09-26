@@ -169,7 +169,7 @@ public final class SFTPTransferCoordinator {
     }
     public var activeCount: Int { activeTasks.count }
     public var summary: SFTPTransferSummary {
-        let active = sftpTransfers.filter { $0.state == .queued || $0.state == .running }
+        let active = sftpTransfers.filter { $0.state.isActive }
         let failedCount = sftpTransfers.filter {
             if case .failed = $0.state { true } else { false }
         }.count
@@ -348,7 +348,7 @@ public final class SFTPTransferCoordinator {
 
     public func canPause(_ id: SFTPTransfer.ID) -> Bool {
         guard let transfer = store.sftpTransfer(id) else { return false }
-        return runtimes[id] != nil && (transfer.state == .queued || transfer.state == .running)
+        return runtimes[id] != nil && transfer.state.isActive
     }
 
     public func pause(_ id: SFTPTransfer.ID) {
@@ -440,7 +440,7 @@ public final class SFTPTransferCoordinator {
     }
 
     public func pauseAll() {
-        for transfer in sftpTransfers where transfer.state == .queued || transfer.state == .running {
+        for transfer in sftpTransfers where transfer.state.isActive {
             if canPause(transfer.id) { pause(transfer.id) } else { cancel(transfer.id) }
         }
     }
@@ -453,12 +453,7 @@ public final class SFTPTransferCoordinator {
     }
 
     public func cancelAll() {
-        let ids = store.sftpTransfers.compactMap { sftpTransfer -> SFTPTransfer.ID? in
-            switch sftpTransfer.state {
-            case .queued, .running, .paused: sftpTransfer.id
-            case .completed, .failed, .cancelled: nil
-            }
-        }
+        let ids = store.sftpTransfers.filter { !$0.state.isFinished }.map(\.id)
         for id in ids { cancel(id) }
     }
 
@@ -470,7 +465,7 @@ public final class SFTPTransferCoordinator {
 
     public func cancelTransfers(usingBorrowedConnection connectionID: UUID) async {
         let ids = store.sftpTransfers.compactMap { transfer -> SFTPTransfer.ID? in
-            guard transfer.state == .queued || transfer.state == .running || transfer.state == .paused,
+            guard !transfer.state.isFinished,
                 borrowedIDs(for: transfer).contains(connectionID)
             else { return nil }
             return transfer.id

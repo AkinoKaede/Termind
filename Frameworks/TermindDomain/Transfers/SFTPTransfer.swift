@@ -1,6 +1,6 @@
 import Foundation
 
-/// One queued or running SFTP transfer.
+/// One SFTP transfer and its current-session history.
 ///
 /// The queue is app-wide rather than per-SFTP workspace: a copy started from one
 /// browser should keep running when that workspace is closed. The browser session only
@@ -28,6 +28,19 @@ public nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
         case completed
         case cancelled
         case failed(String)
+
+        /// Work awaiting admission or moving bytes; paused work is not active.
+        public var isActive: Bool {
+            self == .queued || self == .running
+        }
+
+        /// Only terminal records may be removed from the transfer history.
+        public var isFinished: Bool {
+            switch self {
+            case .completed, .cancelled, .failed: true
+            case .queued, .running, .paused: false
+            }
+        }
 
         public var label: String {
             switch self {

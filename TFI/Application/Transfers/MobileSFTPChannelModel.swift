@@ -10,6 +10,7 @@ import struct TermindDomain.Host
 @Observable
 final class MobileSFTPChannelModel {
     private(set) var path = "/"
+    private(set) var homeDirectory: String?
     var pathText = "/"
     private(set) var files: [RemoteFile] = []
     var query = ""
@@ -58,11 +59,13 @@ final class MobileSFTPChannelModel {
     func attach(
         fileSystem: any RemoteFileSystem,
         path: String,
+        homeDirectory: String? = nil,
         connectionGeneration: UUID,
         handlesConnectionError: @escaping (any Error) -> Bool,
         didChangePath: @escaping () -> Void
     ) async throws {
         self.fileSystem = fileSystem
+        self.homeDirectory = homeDirectory.flatMap { $0.hasPrefix("/") ? RemotePath.normalized($0) : nil }
         self.connectionGeneration = connectionGeneration
         self.handlesConnectionError = handlesConnectionError
         self.didChangePath = didChangePath
@@ -80,6 +83,7 @@ final class MobileSFTPChannelModel {
 
     func detach() {
         fileSystem = nil
+        homeDirectory = nil
         connectionGeneration = nil
         directoryRequest = UUID()
         handlesConnectionError = nil

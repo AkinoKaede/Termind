@@ -1906,26 +1906,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
     }
 
-    /// Clears terminal transfer records while leaving queued and running work
+    /// Clears terminal transfer records while leaving queued, running and paused work
     /// untouched. The transfer center is a current-session history, not a log.
     public func clearFinishedSFTPTransfers() {
-        sftpTransfers.removeAll {
-            switch $0.state {
-            case .completed, .cancelled, .failed: true
-            case .queued, .running, .paused: false
-            }
-        }
+        sftpTransfers.removeAll { $0.state.isFinished }
     }
 
     /// Removes one terminal record without affecting its downloaded file or live transfers.
     public func removeFinishedSFTPTransfer(_ id: SFTPTransfer.ID) {
-        guard let transfer = sftpTransfer(id) else { return }
-        switch transfer.state {
-        case .completed, .cancelled, .failed:
-            sftpTransfers.removeAll { $0.id == id }
-        case .queued, .running, .paused:
-            break
-        }
+        guard let transfer = sftpTransfer(id), transfer.state.isFinished else { return }
+        sftpTransfers.removeAll { $0.id == id }
     }
 
     /// Files one or more hosts into a group, preserving the order supplied.

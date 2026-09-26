@@ -5594,23 +5594,6 @@
         }
       }
     },
-    "Close Other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭其他"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉其他"
-          }
-        }
-      }
-    },
     "Close Other Workspaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5624,6 +5607,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉其他工作區"
+          }
+        }
+      }
+    },
+    "Close Others" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭其他"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉其他"
           }
         }
       }
