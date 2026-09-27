@@ -33,7 +33,7 @@ struct MobileNotificationMenuLabel: View {
         return UIGraphicsImageRenderer(size: size, format: format).image { _ in
             symbol.withTintColor(tint, renderingMode: .alwaysOriginal).draw(at: CGPoint(x: 3, y: 3))
             UIColor(Color.accentColor).resolvedColor(with: traits).setFill()
-            UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: 6, height: 6)).fill()
+            UIBezierPath(ovalIn: CGRect(x: size.width - 6, y: 0, width: 6, height: 6)).fill()
         }.withRenderingMode(.alwaysOriginal)
     }
 }
