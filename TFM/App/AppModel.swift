@@ -48,6 +48,9 @@ final class AppModel {
         weak var value: WindowModel?
         init(_ value: WindowModel) { self.value = value }
     }
+    private final class WeakAssistantChatCoordinator {
+        weak var value: AssistantChatCoordinator?
+    }
 
     private let hosts: HostLibraryModel
     let proAccess: ProAccessController
@@ -134,6 +137,8 @@ final class AppModel {
     private let assistantConversations: AssistantConversationStore
     private let agentRunRepository: any AgentRunPersisting
     let assistantModelSelections: AssistantModelSelectionController
+    private let assistantChatCollaborationStore: any AssistantChatCollaborationStoring
+    @ObservationIgnored private let assistantChatCoordinatorBox = WeakAssistantChatCoordinator()
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
     private let agentAuthentication: AgentSSHAuthenticationRegistry
@@ -230,6 +235,8 @@ final class AppModel {
         assistantModelSelections = AssistantModelSelectionController(
             ai: ai,
             store: dependencies.assistantModelSelectionStore ?? InMemoryAssistantModelSelectionStore())
+        assistantChatCollaborationStore =
+            dependencies.assistantChatCollaborationStore ?? InMemoryAssistantChatCollaborationStore()
         let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
         let agentHostServices = AgentHostServices.live(
             store: hosts,
@@ -399,6 +406,7 @@ final class AppModel {
             metricsSync?.start()
             settingsSync?.start()
         }
+        _ = assistantChatCoordinator
     }
 
     private func repairUnavailableAssistantModels() {
@@ -475,19 +483,47 @@ final class AppModel {
             guard let self, !self.isTerminating else { return false }
             return self.proAccess.require(.assistant)
         },
-        makeRegistry: { [weak self] conversation, model, provider, skills, channel, panes in
+        makeRegistry: { [weak self] conversation, model, provider, skills, channel, panes, source in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
             return AssistantToolRegistry.make(
                 conversation: conversation, model: model, provider: provider,
                 skills: skills, channel: channel, ai: ai, hosts: agentHosts, metrics: serverMetrics,
                 connections: agentConnections, authentication: agentAuthentication,
-                background: agentBackgroundCommands, panes: panes)
+                background: agentBackgroundCommands, panes: panes,
+                chatModels: assistantChatCoordinatorBox.value, chats: assistantChatCoordinatorBox.value,
+                chatSource: source)
         },
         title: { [weak self] context in
             guard let self else { throw CancellationError() }
             return try await conversationTitles.summarize(context)
         },
         logger: logging.makeLogger(label: "termind.agent"))
+
+    @ObservationIgnored private lazy var assistantChatCoordinator: AssistantChatCoordinator = {
+        let coordinator = AssistantChatCoordinator(
+            conversations: assistantConversations, ai: ai,
+            modelSelections: assistantModelSelections,
+            collaborationStore: assistantChatCollaborationStore,
+            prepareDelivery: { [weak self] text, origin, conversation in
+                self?.assistantExecution.prepareIncomingAgentMessage(
+                    text, origin: origin, in: conversation)
+            },
+            persistDelivery: { [weak self] prepared, conversation in
+                guard let self else { throw CancellationError() }
+                try await self.assistantExecution.persistPreparedAgentDelivery(
+                    prepared, in: conversation)
+            },
+            startDelivery: { [weak self] prepared, conversation in
+                self?.assistantNotifications.observe(conversation)
+                self?.assistantExecution.startPreparedAgentDelivery(prepared, in: conversation)
+            },
+            cancelDelivery: { [weak self] prepared, conversation in
+                await self?.assistantExecution.cancelPreparedAgentDelivery(
+                    prepared, in: conversation)
+            })
+        assistantChatCoordinatorBox.value = coordinator
+        return coordinator
+    }()
 
     func sendAgentDraft(
         _ conversation: ConversationModel, context: SessionContext = .none,

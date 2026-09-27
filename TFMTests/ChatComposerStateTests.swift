@@ -2257,7 +2257,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func editingAUserTurnRemovesItsDownstreamWorkGroup() throws {
+    func editingAUserTurnWithDownstreamToolActivityIsRejectedWithoutChangingHistory() {
         let conversation = ConversationModel()
         let user = conversation.appendUserTurnContent("Question")
         let runID = UUID()
@@ -2283,15 +2283,46 @@ struct ChatComposerStateTests {
                 )))
         #expect(conversation.workGroups.count == 1)
 
-        _ = try #require(conversation.editUserMessage(user.id, authoredText: "Edited"))
+        #expect(!conversation.canEditUserMessage(user.id))
+        #expect(conversation.editUserMessage(user.id, authoredText: "Edited") == nil)
 
-        #expect(conversation.workGroups.isEmpty)
-        #expect(conversation.toolCards.isEmpty)
+        #expect(conversation.workGroups.count == 1)
+        #expect(conversation.toolCards.map(\.invocation.id) == [invocation.id])
         #expect(conversation.runSummaries.count == 1)
-        let staging = try #require(conversation.runSummaries.values.first)
-        #expect(staging.id == conversation.transcript.last?.id)
-        #expect(staging.state == .completed)
-        #expect(staging.failure == nil)
+        #expect(conversation.runSummaries[runID] != nil)
+        #expect(conversation.transcript.map(\.id) == [user.id, process.id])
+    }
+
+    @Test(arguments: [
+        AgentToolCard.State.proposed, .waitingForApproval, .waitingForUser, .reviewing,
+        .running, .completed, .denied, .failed, .interrupted,
+    ])
+    func editEligibilityUsesToolOwnershipForEveryLifecycleState(_ state: AgentToolCard.State) {
+        let instant = Date(timeIntervalSinceReferenceDate: 100)
+        let runID = UUID()
+        let opening = AgentTranscriptMessage(role: .user, text: "Opening", createdAt: instant)
+        let process = AgentTranscriptMessage(role: .assistant, text: "Checking", createdAt: instant)
+        let later = AgentTranscriptMessage(role: .user, text: "Later", createdAt: instant)
+        let answer = AgentTranscriptMessage(role: .assistant, text: "Answer", createdAt: instant)
+        let transcript = [opening, process, later, answer]
+        let conversation = ConversationModel(
+            messages: transcript.map {
+                ChatMessage(id: $0.id, role: $0.role == .user ? .user : .assistant, text: $0.text)
+            }, transcript: transcript, runState: .completed,
+            messageRunIDs: Dictionary(uniqueKeysWithValues: transcript.map { ($0.id, runID) }),
+            runs: [AgentRunSummary(id: runID, state: .completed, startedAt: instant)])
+        conversation.toolCards = [
+            AgentToolCard(
+                invocation: AgentToolInvocation(
+                    runID: runID, call: AgentToolCall(id: "read", name: "lookup", arguments: .object([:])),
+                    sourceMessageID: process.id, createdAt: instant.addingTimeInterval(-60)),
+                descriptor: AgentToolDescriptor(
+                    name: "lookup", summary: "Read-only lookup", inputSchema: .object([:]),
+                    target: .local, approvalPolicy: .approve), state: state)
+        ]
+
+        #expect(!conversation.canEditUserMessage(opening.id))
+        #expect(conversation.canEditUserMessage(later.id))
     }
 
     @Test

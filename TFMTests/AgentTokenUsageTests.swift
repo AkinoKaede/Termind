@@ -338,7 +338,12 @@ struct AgentTokenUsageTests {
             ))
         expectSnapshotMatchesReference(conversation)
 
-        _ = try #require(conversation.editUserMessage(opening.id, authoredText: "edited"))
+        #expect(conversation.editUserMessage(opening.id, authoredText: "edited") == nil)
+        expectSnapshotMatchesReference(conversation)
+
+        let followUp = conversation.appendUserTurnContent("Explain the result")
+        conversation.handle(.messageFinished(AgentTranscriptMessage(role: .assistant, text: "explanation")))
+        _ = try #require(conversation.editUserMessage(followUp.id, authoredText: "edited"))
         expectSnapshotMatchesReference(conversation)
 
         conversation.applyCompaction(summary: "summary", cut: 1)

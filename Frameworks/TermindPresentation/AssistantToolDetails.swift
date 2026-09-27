@@ -1,12 +1,26 @@
 import AgentKit
 import SwiftUI
 
+private struct AssistantToolNavigationKey: EnvironmentKey {
+    static let defaultValue: (@MainActor (AgentToolDetail.NavigationReference) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// App-owned navigation for trusted references emitted by built-in tool presenters.
+    public var assistantToolNavigation: (@MainActor (AgentToolDetail.NavigationReference) -> Void)?
+    {
+        get { self[AssistantToolNavigationKey.self] }
+        set { self[AssistantToolNavigationKey.self] = newValue }
+    }
+}
+
 public struct AssistantToolDetails: View {
     private let items: [AgentToolDetail.Item]
     private let isError: Bool
     private let copy: ((String) -> Void)?
     private let shortensText: Bool
     private let textColor: Color
+    @Environment(\.assistantToolNavigation) private var navigate
     public init(
         items: [AgentToolDetail.Item],
         isError: Bool = false,
@@ -31,7 +45,12 @@ public struct AssistantToolDetails: View {
         case .field(let field):
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(field.label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                if let url = allowedURL(field.url) {
+                if let navigation = field.navigation, let navigate {
+                    Button(field.value) { navigate(navigation) }
+                        .font(field.isMonospaced ? .caption.monospaced() : .caption)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                } else if let url = allowedURL(field.url) {
                     Link(field.value, destination: url).font(.caption)
                 } else {
                     Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
@@ -79,7 +98,9 @@ public struct AssistantToolDetails: View {
                     if let subtitle = row.subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
                     if let detail = row.detail { Text(detail).font(.caption.monospaced()) }
                     if !row.badges.isEmpty { Text(row.badges.joined(separator: " · ")).font(.caption) }
-                    if let url = allowedURL(row.url) {
+                    if let navigation = row.navigation, let navigate {
+                        Button(AppStrings.Common.open.swiftUIKey) { navigate(navigation) }
+                    } else if let url = allowedURL(row.url) {
                         Link(AppStrings.Common.open.swiftUIKey, destination: url)
                     }
                 }

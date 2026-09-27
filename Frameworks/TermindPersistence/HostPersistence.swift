@@ -862,6 +862,19 @@ public enum TermindSchemaV41: VersionedSchema {
     }
 }
 
+/// V42 adds agent-message provenance, chat creation relations, and durable
+/// collaboration delivery receipts without changing any historical model shape.
+public enum TermindSchemaV42: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(42, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV41.models + [
+            PersistentAgentMessageOrigin.self,
+            PersistentAgentConversationOrigin.self,
+            PersistentAgentDeliveryReceipt.self,
+        ]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -876,6 +889,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
+            TermindSchemaV42.self,
         ]
     }
 
@@ -976,6 +990,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV38.self, toVersion: TermindSchemaV39.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV39.self, toVersion: TermindSchemaV40.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV40.self, toVersion: TermindSchemaV41.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV41.self, toVersion: TermindSchemaV42.self),
         ]
     }
 }

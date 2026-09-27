@@ -7,7 +7,10 @@ import TermindDomain
 @MainActor
 public final class AssistantExecutionController {
     public typealias RegistryFactory =
-        @MainActor (ConversationModel, AIModel, ModelProvider, AgentSkillCatalog, AgentEventChannel, AgentPaneAccess?)
+        @MainActor (
+            ConversationModel, AIModel, ModelProvider, AgentSkillCatalog,
+            AgentEventChannel, AgentPaneAccess?, AgentChatSourceContext
+        )
         ->
         AgentToolRegistry
     private let ai: AIConfigurationModel
@@ -80,6 +83,11 @@ public final class AssistantExecutionController {
         fileprivate var capture: RunCapture
         fileprivate var replacement: AgentTranscriptMessage
         fileprivate var messageID: UUID
+    }
+
+    public struct PreparedAgentDelivery {
+        fileprivate var capture: RunCapture
+        public var message: AgentTranscriptMessage
     }
 
     @discardableResult
@@ -309,6 +317,75 @@ public final class AssistantExecutionController {
         }
     }
 
+    /// Captures the target's own run settings while keeping the incoming agent text
+    /// outside its composer, attachments, armed skill, and model picker state.
+    public func prepareIncomingAgentMessage(
+        _ text: String, origin: AgentMessageOrigin, in conversation: ConversationModel
+    ) -> PreparedAgentDelivery? {
+        guard authorize(), canSubmit(to: conversation), !text.isEmpty else { return nil }
+        let snapshot = contextSnapshot(
+            for: conversation, context: .none,
+            terminalSuggestionsAvailable: false)
+        let prompt = conversation.composeIncomingAgentTurn(text, origin: origin)
+        guard
+            let capture = captureRun(
+                conversation, prompt: prompt, contextSnapshot: snapshot,
+                beginPreparation: true, panes: nil)
+        else { return nil }
+        let message = AgentTranscriptMessage(
+            id: prompt.id, role: .user, text: prompt.text,
+            authoredText: nil, contextSnapshot: snapshot, origin: origin)
+        return PreparedAgentDelivery(capture: capture, message: message)
+    }
+
+    /// Persists the incoming prompt as a staging run before the coordinator accepts
+    /// delivery. The real run adopts this row when it starts.
+    public func persistPreparedAgentDelivery(
+        _ prepared: PreparedAgentDelivery, in conversation: ConversationModel
+    ) async throws {
+        let capture = prepared.capture
+        guard isCurrent(capture, for: conversation) else { throw CancellationError() }
+        try await agentRunRepository.save(
+            AgentRunSnapshot(
+                id: prepared.message.id, conversationID: conversation.id,
+                state: .completed, permissionMode: capture.permissionMode,
+                messages: [prepared.message], startedAt: prepared.message.createdAt,
+                finishedAt: prepared.message.createdAt))
+        // The prompt save is the acceptance boundary and, for durable stores,
+        // atomically confirms its delivery receipt. Metadata is useful but not
+        // allowed to turn that accepted message into an orphan outside the live
+        // library when a later write fails.
+        try? await agentRunRepository.setConversationMetadata(
+            conversation.metadata, conversationID: conversation.id)
+    }
+
+    public func startPreparedAgentDelivery(
+        _ prepared: PreparedAgentDelivery, in conversation: ConversationModel
+    ) {
+        let capture = prepared.capture
+        guard isCurrent(capture, for: conversation) else { return }
+        guard
+            let prompt = conversation.appendIncomingAgentTurnContent(
+                capture.prompt, contextSnapshot: capture.contextSnapshot)
+        else {
+            Task { await cancelPreparedAgentDelivery(prepared, in: conversation) }
+            return
+        }
+        var submitted = capture
+        submitted.prompt = prompt
+        startPreparation(submitted, for: conversation, compactBeforeRun: true)
+    }
+
+    public func cancelPreparedAgentDelivery(
+        _ prepared: PreparedAgentDelivery, in conversation: ConversationModel
+    ) async {
+        guard isCurrent(prepared.capture, for: conversation) else { return }
+        await requestCancellation(
+            for: conversation, expectedID: prepared.capture.id,
+            recordsInterruption: false
+        ).value
+    }
+
     private func captureDraft(
         _ conversation: ConversationModel, context: SessionContext,
         terminalSuggestionsAvailable: Bool, panes: AgentPaneAccess?
@@ -349,7 +426,8 @@ public final class AssistantExecutionController {
             text: prompt ?? lastUserTurn?.text ?? "",
             authoredText: authoredPrompt ?? lastUserTurn?.authoredText ?? "",
             images: promptImages ?? lastUserTurn?.images ?? [],
-            contextAttachments: promptContextAttachments ?? lastUserTurn?.contextAttachments ?? [])
+            contextAttachments: promptContextAttachments ?? lastUserTurn?.contextAttachments ?? [],
+            origin: lastUserTurn?.origin)
         guard
             !resolvedPrompt.text.isEmpty || !resolvedPrompt.images.isEmpty
                 || !resolvedPrompt.contextAttachments.isEmpty
@@ -511,7 +589,8 @@ public final class AssistantExecutionController {
             request: AgentRunRequest(
                 conversationID: conversation.id,
                 promptID: capture.prompt.id, prompt: capture.prompt.text,
-                authoredPrompt: capture.prompt.authoredText,
+                authoredPrompt: capture.prompt.origin == nil ? capture.prompt.authoredText : nil,
+                promptOrigin: capture.prompt.origin,
                 promptImages: capture.prompt.images,
                 promptContextAttachments: capture.prompt.contextAttachments,
                 permissionMode: capture.permissionMode, isPlanning: isPlanning,
@@ -570,7 +649,15 @@ public final class AssistantExecutionController {
         let channel = chat != nil && secret != nil ? AgentEventChannel(repository: agentRunRepository) : nil
         let baseRegistry = channel.flatMap { channel in
             chat.map {
-                makeRegistry(conversation, $0.model, $0.provider, skillCatalog, channel, panes)
+                let modelReference = AIModelRef(
+                    modelProviderID: $0.provider.id, modelID: $0.model.id)
+                return makeRegistry(
+                    conversation, $0.model, $0.provider, skillCatalog, channel, panes,
+                    AgentChatSourceContext(
+                        conversationID: conversation.id, title: conversation.derivedTitle,
+                        modelReference: AssistantChatCoordinator.reference(modelReference),
+                        permissionMode: permissionMode,
+                        mode: conversation.isPlanning ? .planning : .acting))
             }
         }
         let guardian: GuardianCapture? = {

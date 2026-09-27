@@ -90,15 +90,31 @@ struct TranscriptListConfiguration: Equatable {
     let isCompact: Bool
     let showsTerminalActions: Bool
     let isConversationStreaming: Bool
+    let chatDestinations: [UUID: String]
     let locale: Locale
     let reduceMotion: Bool
     let colorScheme: ColorScheme
     var horizontalInset: CGFloat { isCompact ? Metrics.Space.l : Metrics.Space.xl }
+
+    init(
+        isCompact: Bool, showsTerminalActions: Bool, isConversationStreaming: Bool,
+        chatDestinations: [UUID: String] = [:], locale: Locale, reduceMotion: Bool,
+        colorScheme: ColorScheme
+    ) {
+        self.isCompact = isCompact
+        self.showsTerminalActions = showsTerminalActions
+        self.isConversationStreaming = isConversationStreaming
+        self.chatDestinations = chatDestinations
+        self.locale = locale
+        self.reduceMotion = reduceMotion
+        self.colorScheme = colorScheme
+    }
 }
 
 @MainActor
 struct TranscriptListActions {
     var hostName: (UUID) -> String? = { _ in nil }
+    var navigateChat: (UUID) -> Void = { _ in }
     var editUserMessage: (UUID, String) -> Void = { _, _ in }
     var forkAssistantMessage: (UUID) -> Void = { _ in }
     var resolvePlan: (UUID, AgentPlan.Outcome) -> Void = { _, _ in }

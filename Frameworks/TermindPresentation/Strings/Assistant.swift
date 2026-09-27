@@ -35,6 +35,18 @@ extension AppStrings {
             "Agent error"
         }
 
+        public static var agent: LocalizedStringResource {
+            "Agent"
+        }
+
+        public static func agentFrom(_ title: String) -> LocalizedStringResource {
+            "Agent from \(title)"
+        }
+
+        public static var chatDetailsUnavailable: LocalizedStringResource {
+            "Chat details unavailable"
+        }
+
         public static var allowCameraAccessInSettingsToTakeAPhoto: LocalizedStringResource {
             "Allow camera access in Settings to take a photo."
         }

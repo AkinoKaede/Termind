@@ -31,7 +31,10 @@ struct AgentReplayPersistenceTests {
         snapshot.id = UUID()
         snapshot.startedAt = snapshot.startedAt.addingTimeInterval(1)
         snapshot.finishedAt = snapshot.startedAt
-        snapshot.messages.append(.init(role: .user, text: "continue", contextSnapshot: .init()))
+        let continued = AgentTranscriptMessage(
+            role: .user, text: "continue", authoredText: "continue",
+            contextSnapshot: .init(sessionContext: "host B"))
+        snapshot.messages.append(continued)
         try await repository.save(snapshot)
         let restored = try #require(try await repository.loadConversations().first)
         #expect(restored.messages.first?.contextSnapshot == first.contextSnapshot)
@@ -39,7 +42,9 @@ struct AgentReplayPersistenceTests {
         #expect(restored.messages.first { $0.role == .tool }?.modelText == "fixed preview")
         #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentMessageReplay>()) == 3)
         let model = ConversationModel(messages: [], transcript: restored.messages)
-        let editable = try #require(model.editedUserMessage(first.id, authoredText: "edited"))
+        #expect(model.editedUserMessage(first.id, authoredText: "edited") == nil)
+        let editable = try #require(
+            model.editedUserMessage(continued.id, authoredText: "edited"))
         #expect(editable.text == "edited")
         #expect(editable.contextSnapshot == nil)
         try await repository.deleteConversation(snapshot.conversationID)
@@ -224,7 +229,7 @@ struct AgentReplayPersistenceTests {
         let controller = AssistantExecutionController(
             ai: AIConfigurationModel(), skills: SkillLibraryModel(), repository: repository,
             authorize: { true },
-            makeRegistry: { _, _, _, _, _, _ in AgentToolRegistry([]) },
+            makeRegistry: { _, _, _, _, _, _, _ in AgentToolRegistry([]) },
             title: { _ in "Title" }
         )
         let operations = AssistantConversationOperations(repository: repository)

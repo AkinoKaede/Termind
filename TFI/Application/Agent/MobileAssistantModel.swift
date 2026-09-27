@@ -6,6 +6,12 @@ import TermindApplication
 import TermindDomain
 import TermindRemoteInfrastructure
 
+@MainActor
+@Observable
+private final class MobileAssistantSuspensionGate {
+    var isSuspending = false
+}
+
 /// Application-owned Assistant runs and services. Scene-local navigation lives in
 /// `MobileAssistantSceneModel`; only the conversation store is shared here.
 @MainActor
@@ -21,6 +27,7 @@ final class MobileAssistantModel {
     private let repository: any AgentRunPersisting
     fileprivate let modelSelections: AssistantModelSelectionController
     private let operations: AssistantConversationOperations
+    private let chatCoordinator: AssistantChatCoordinator
     var observeNotifications: ((ConversationModel) -> Void)? {
         didSet { execution.observeNotifications = observeNotifications }
     }
@@ -30,8 +37,9 @@ final class MobileAssistantModel {
     private let attachmentLoader: ContextAttachmentLoading
     private var loadTask: Task<Void, Never>?
     private var suspensionTask: Task<Void, Never>?
+    private let suspensionGate: MobileAssistantSuspensionGate
     private var loaded = false
-    private(set) var isSuspending = false
+    var isSuspending: Bool { suspensionGate.isSuspending }
     var error: String?
 
     var isRunning: Bool { store.conversations.contains { $0.isStreaming } }
@@ -47,6 +55,7 @@ final class MobileAssistantModel {
     init(
         configuration: AIConfigurationModel, repository: any AgentRunPersisting, memory: MemoryModel? = nil,
         modelSelectionStore: any AssistantModelSelectionStoring = InMemoryAssistantModelSelectionStore(),
+        chatCollaborationStore: any AssistantChatCollaborationStoring = InMemoryAssistantChatCollaborationStore(),
         hostServices: AgentHostServices, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
         authorize: @escaping @MainActor () -> Bool,
         speech: SpeechTranscriptionCoordinator,
@@ -67,18 +76,45 @@ final class MobileAssistantModel {
         let background = hostServices.background
         self.connections = connections
         self.background = background
+        let suspensionGate = MobileAssistantSuspensionGate()
+        self.suspensionGate = suspensionGate
         let titles = ConversationTitleController(ai: configuration)
+        final class CoordinatorBox {
+            weak var value: AssistantChatCoordinator?
+        }
+        let coordinatorBox = CoordinatorBox()
         execution = AssistantExecutionController(
             ai: configuration, skills: skills, repository: repository, memory: memory,
             modelSelections: modelSelections,
             authorize: authorize,
-            makeRegistry: { conversation, model, provider, catalog, channel, panes in
+            makeRegistry: { conversation, model, provider, catalog, channel, panes, source in
                 AssistantToolRegistry.make(
                     conversation: conversation, model: model, provider: provider,
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
                     connections: connections, authentication: authentication, background: background,
-                    panes: panes)
+                    panes: panes, chatModels: coordinatorBox.value,
+                    chats: coordinatorBox.value, chatSource: source)
             }, title: { try await titles.summarize($0) }, logger: logger)
+        chatCoordinator = AssistantChatCoordinator(
+            conversations: store, ai: configuration, modelSelections: modelSelections,
+            collaborationStore: chatCollaborationStore,
+            prepareDelivery: { [weak execution, suspensionGate] text, origin, conversation in
+                guard !suspensionGate.isSuspending else { return nil }
+                return execution?.prepareIncomingAgentMessage(text, origin: origin, in: conversation)
+            },
+            persistDelivery: { [weak execution] prepared, conversation in
+                guard let execution else { throw CancellationError() }
+                try await execution.persistPreparedAgentDelivery(prepared, in: conversation)
+            },
+            startDelivery: { [weak execution] prepared, conversation in
+                conversation.attachmentLoader = attachmentLoader
+                execution?.observeNotifications?(conversation)
+                execution?.startPreparedAgentDelivery(prepared, in: conversation)
+            },
+            cancelDelivery: { [weak execution] prepared, conversation in
+                await execution?.cancelPreparedAgentDelivery(prepared, in: conversation)
+            })
+        coordinatorBox.value = chatCoordinator
         execution.reportModelSelectionError = { [weak self] message in self?.error = message }
     }
 
@@ -151,7 +187,7 @@ final class MobileAssistantModel {
 
     func expireBackground() {
         guard !isSuspending else { return }
-        isSuspending = true
+        suspensionGate.isSuspending = true
         execution.cancelPendingRuns()
         speech.cancelAll()
         let conversations = store.conversations
@@ -161,7 +197,7 @@ final class MobileAssistantModel {
             for conversation in conversations { await conversation.stopAndWait() }
             await background.closeAll()
             await connections.closeAll()
-            isSuspending = false
+            suspensionGate.isSuspending = false
             suspensionTask = nil
         }
     }

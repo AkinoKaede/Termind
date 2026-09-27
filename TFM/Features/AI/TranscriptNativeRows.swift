@@ -707,7 +707,8 @@ private enum NativeTranscriptFactory {
         let actions = NativeStack.horizontal()
         actions.identifier = NSUserInterfaceItemIdentifier("Transcript.MessageActions")
         actions.addArrangedSubview(NativeFlexibleSpacer())
-        actions.addArrangedSubview(
+        let hoverActions = NativeStack.horizontal()
+        hoverActions.addArrangedSubview(
             NativeLabel(
                 ChatMessageTimestampFormatter.string(
                     for: message.createdAt,
@@ -719,16 +720,43 @@ private enum NativeTranscriptFactory {
                 ),
                 color: .tertiaryLabelColor
             ))
-        if canEdit {
+        if canEdit, message.origin == nil {
             let edit = NativeButton(symbol: "pencil", help: String(localized: AppStrings.Common.edit))
             edit.handler = {
                 context.presentation.beginEditingMessage(message.id, text: message.text)
                 context.invalidate(context.entryID, false)
             }
-            actions.addArrangedSubview(edit)
+            hoverActions.addArrangedSubview(edit)
         }
-        actions.addArrangedSubview(NativeCopyButton(text: message.text))
-        context.registerHoverView(actions)
+        hoverActions.addArrangedSubview(NativeCopyButton(text: message.text))
+        actions.addArrangedSubview(hoverActions)
+        if message.origin == nil {
+            context.registerHoverView(actions)
+        } else {
+            context.registerHoverView(hoverActions)
+        }
+        if let origin = message.origin {
+            let agent = NativeButton(title: String(localized: AppStrings.Assistant.agent))
+            agent.identifier = NSUserInterfaceItemIdentifier("Transcript.AgentOrigin")
+            agent.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
+            let sourceTitle =
+                context.configuration.chatDestinations[origin.sourceConversationID]
+                ?? origin.sourceTitle
+            let label =
+                sourceTitle.map {
+                    AppLocalization.resolve(
+                        AppStrings.Assistant.agentFrom($0),
+                        locale: context.configuration.locale)
+                }
+                ?? AppLocalization.resolve(
+                    AppStrings.Assistant.agent,
+                    locale: context.configuration.locale)
+            agent.toolTip = label
+            agent.setAccessibilityLabel(label)
+            agent.isEnabled = context.configuration.chatDestinations[origin.sourceConversationID] != nil
+            agent.handler = { context.actions.navigateChat(origin.sourceConversationID) }
+            actions.addArrangedSubview(agent)
+        }
         outer.addArrangedSubview(actions)
         actions.widthAnchor.constraint(equalTo: outer.widthAnchor).isActive = true
         return outer
@@ -835,7 +863,8 @@ private enum NativeTranscriptFactory {
                     detail.addArrangedSubview(compactToolDetail(projected, card: card, context: context))
                 } else {
                     for item in projected.items {
-                        detail.addArrangedSubview(toolDetail(item, isError: card.result?.isError == true))
+                        detail.addArrangedSubview(
+                            toolDetail(item, isError: card.result?.isError == true, context: context))
                     }
                 }
             }
@@ -1423,7 +1452,8 @@ private enum NativeTranscriptFactory {
         let expanded = context.presentation.disclosures.isExpanded(id)
         let body = NativeStack.vertical()
         for item in expanded ? preview.fullItems : preview.items {
-            body.addArrangedSubview(toolDetail(item, isError: card.result?.isError == true))
+            body.addArrangedSubview(
+                toolDetail(item, isError: card.result?.isError == true, context: context))
         }
         let scale = max(1, NSFont.preferredFont(forTextStyle: .caption1).pointSize / NSFont.smallSystemFontSize)
         let height = 180 * scale
@@ -1456,7 +1486,9 @@ private enum NativeTranscriptFactory {
         return stack
     }
 
-    private static func toolDetail(_ item: AgentToolDetail.Item, isError: Bool) -> NSView {
+    private static func toolDetail(
+        _ item: AgentToolDetail.Item, isError: Bool, context: NativeTranscriptContext
+    ) -> NSView {
         switch item {
         case .field(let field):
             let row = NativeStack.horizontal(spacing: Metrics.Space.s)
@@ -1471,7 +1503,14 @@ private enum NativeTranscriptFactory {
                 field.isMonospaced
                 ? .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
                 : .systemFont(ofSize: NSFont.smallSystemFontSize)
-            if let raw = field.url, let url = URL(string: raw) {
+            if case .some(.chat(let id)) = field.navigation {
+                let link = NativeButton(title: field.value)
+                link.font = font
+                link.contentTintColor = .linkColor
+                link.isEnabled = context.configuration.chatDestinations[id] != nil
+                link.handler = { context.actions.navigateChat(id) }
+                row.addArrangedSubview(link)
+            } else if let raw = field.url, let url = URL(string: raw) {
                 let link = NativeButton(title: field.value)
                 link.font = font
                 link.contentTintColor = .linkColor
@@ -1546,7 +1585,7 @@ private enum NativeTranscriptFactory {
                         color: .secondaryLabelColor
                     ))
             } else {
-                for row in list.rows { stack.addArrangedSubview(toolListRow(row)) }
+                for row in list.rows { stack.addArrangedSubview(toolListRow(row, context: context)) }
             }
             return stack
         case .groupedList(let list):
@@ -1563,13 +1602,15 @@ private enum NativeTranscriptFactory {
                         section.title,
                         font: .boldSystemFont(ofSize: NSFont.smallSystemFontSize)
                     ))
-                for row in section.rows { stack.addArrangedSubview(toolListRow(row)) }
+                for row in section.rows { stack.addArrangedSubview(toolListRow(row, context: context)) }
             }
             return stack
         }
     }
 
-    private static func toolListRow(_ row: AgentToolDetail.ListRow) -> NSView {
+    private static func toolListRow(
+        _ row: AgentToolDetail.ListRow, context: NativeTranscriptContext
+    ) -> NSView {
         let outer = NativeStack.horizontal(spacing: Metrics.Space.s)
         if let symbol = row.symbol {
             let icon = NSImageView(
@@ -1580,7 +1621,14 @@ private enum NativeTranscriptFactory {
             outer.addArrangedSubview(icon)
         }
         let body = NativeStack.vertical(spacing: Metrics.Space.xxs)
-        if let raw = row.url, let url = URL(string: raw) {
+        if case .some(.chat(let id)) = row.navigation {
+            let link = NativeButton(title: row.title)
+            link.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
+            link.contentTintColor = .linkColor
+            link.isEnabled = context.configuration.chatDestinations[id] != nil
+            link.handler = { context.actions.navigateChat(id) }
+            body.addArrangedSubview(link)
+        } else if let raw = row.url, let url = URL(string: raw) {
             let link = NativeButton(title: row.title)
             link.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
             link.contentTintColor = .linkColor

@@ -88,6 +88,7 @@ public final class AssistantConversationStore {
                                 contextAttachments: message.contextAttachments
                             ),
                             images: message.images,
+                            origin: message.origin,
                             createdAt: message.createdAt
                         )
                     case .assistant:

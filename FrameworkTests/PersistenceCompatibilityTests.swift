@@ -257,6 +257,7 @@ struct PersistenceCompatibilityTests {
         #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(32, 0, 0) })
         #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(33, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV34.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV42.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -400,6 +401,36 @@ struct PersistenceCompatibilityTests {
         #expect(host.telnetEnabled)
         #expect(try migrated.mainContext.fetchCount(FetchDescriptor<PersistentCloudSyncQuarantine>()) == 0)
         #expect(try migrated.mainContext.fetchCount(FetchDescriptor<PersistentCloudSyncRecovery>()) == 0)
+    }
+
+    @Test
+    func version41StoreMigratesToVersion42WithEmptyCollaborationSidecars() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV41.self)
+        let oldConfiguration = ModelConfiguration(
+            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none)
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration])
+        oldContainer?.mainContext.insert(PersistentHostGroup(HostGroup(name: "Before collaboration")))
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        #expect(
+            try migrated.mainContext.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name)
+                == ["Before collaboration"])
+        #expect(
+            try migrated.mainContext.fetchCount(
+                FetchDescriptor<PersistentAgentMessageOrigin>()) == 0)
+        #expect(
+            try migrated.mainContext.fetchCount(
+                FetchDescriptor<PersistentAgentConversationOrigin>()) == 0)
+        #expect(
+            try migrated.mainContext.fetchCount(
+                FetchDescriptor<PersistentAgentDeliveryReceipt>()) == 0)
     }
 
     @Test

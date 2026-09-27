@@ -285,12 +285,14 @@ nonisolated public struct ChatMessage: Identifiable, Hashable, Sendable {
     /// Restored conversations carry their stored time so history does not
     /// re-sort itself behind every card the moment a window opens.
     public var createdAt: Date = .now
+    /// App-authored provenance for an incoming agent message.
+    public var origin: AgentMessageOrigin?
 
     public init(
         id: UUID = UUID(), role: Role, text: String, reasoning: [AgentReasoningBlock] = [],
         contextChips: [ContextChipReference] = [], images: [AgentImageAttachment] = [],
         commands: [SuggestedCommand] = [], retryProgress: AgentModelRetryProgress? = nil,
-        isStreaming: Bool = false, createdAt: Date = .now
+        isStreaming: Bool = false, origin: AgentMessageOrigin? = nil, createdAt: Date = .now
     ) {
         self.id = id
         self.role = role
@@ -301,8 +303,13 @@ nonisolated public struct ChatMessage: Identifiable, Hashable, Sendable {
         self.commands = commands
         self.retryProgress = retryProgress
         self.isStreaming = isStreaming
+        self.origin = origin
         self.createdAt = createdAt
     }
+}
+
+nonisolated public enum AgentMessageDeliveryState: String, Hashable, Sendable {
+    case queued, delivered, undelivered
 }
 
 nonisolated public struct AgentToolCard: Identifiable, Hashable, Sendable {
@@ -899,6 +906,11 @@ public final class ConversationModel: Identifiable {
 
     public var isAgentRunActive: Bool { isStreaming || isPreparingAgentRun }
 
+    /// The posture captured by the active run. The UI toggle remains editable while
+    /// a run is executing, so collaboration policy must use the frozen request until
+    /// that run releases ownership.
+    public var effectiveIsPlanning: Bool { activeRunOwner?.request.isPlanning ?? isPlanning }
+
     /// The current task list, whole. Replaced rather than patched — see
     /// `AgentTask`.
     public private(set) var tasks: [AgentTask] = []
@@ -1009,6 +1021,7 @@ public final class ConversationModel: Identifiable {
 
     /// Independent app notification events, separate from title and Memory callbacks.
     @ObservationIgnored public var notificationEvent: ((AssistantNotificationEvent) -> Void)?
+    @ObservationIgnored public var chatStateDidChange: ((UUID) -> Void)?
     @ObservationIgnored private var lastNotificationInteraction: AssistantNotificationInteraction?
     private var unreadNotificationIDs = Set<String>()
     public var unreadNotificationCount: Int { unreadNotificationIDs.count }
@@ -1020,6 +1033,7 @@ public final class ConversationModel: Identifiable {
     func removeUnreadNotification(_ id: String) { unreadNotificationIDs.remove(id) }
 
     private func publishNotificationInteraction() {
+        chatStateDidChange?(id)
         let current = notificationInteraction
         guard current != lastNotificationInteraction else { return }
         lastNotificationInteraction = current
@@ -1032,6 +1046,9 @@ public final class ConversationModel: Identifiable {
     public var memoryUserAccepted: ((AgentTranscriptMessage, [AgentTranscriptMessage]) -> Void)?
     public var memoryRunFinished: ((AgentRunSummary, [UUID], [MemoryLearningEvent], [AgentTranscriptMessage]) -> Void)?
     public var memoryToolBatchFinished: (([MemoryLearningEvent], [AgentTranscriptMessage]) -> Void)?
+    /// Durable delivery ownership stays in the app coordinator; the conversation reports
+    /// boundary transitions without knowing how receipts are stored.
+    public var agentMessageDeliveryChanged: ((AgentTranscriptMessage, AgentMessageDeliveryState) -> Void)?
     private var startedMemoryTools: [UUID: [UUID: UUID]] = [:]
     private var finishedMemoryTools: [UUID: [UUID: UUID]] = [:]
 
@@ -1117,7 +1134,65 @@ public final class ConversationModel: Identifiable {
         guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging,
             !isPersistingAgentPreparationFailure
         else { return false }
-        return transcript.contains { $0.id == id && $0.role == .user && !$0.isCompaction }
+        guard
+            let target = transcript.firstIndex(where: {
+                $0.id == id && $0.role == .user && !$0.isCompaction && $0.origin == nil
+            })
+        else { return false }
+        return !removedSuffixContainsToolActivity(from: target)
+    }
+
+    /// The edit operation removes this entire suffix. Any tool lifecycle in that scope
+    /// makes the user turn immutable, including proposed, denied, failed, and read-only calls.
+    private func removedSuffixContainsToolActivity(from target: Int) -> Bool {
+        let original = transcript[target]
+        let removed = Array(transcript[target...])
+        if removed.contains(where: {
+            $0.role == .tool || !$0.toolCalls.isEmpty || $0.toolCallID != nil || $0.toolName != nil
+        }) {
+            return true
+        }
+
+        let visibleTarget = messages.firstIndex(where: { $0.id == original.id })
+        let visiblePrefix = visibleTarget.map { Array(messages[..<$0]) } ?? []
+        let visibleRemoved = visibleTarget.map { Array(messages[$0...]) } ?? []
+        let removedMessageIDs = Set(removed.map(\.id)).union(visibleRemoved.map(\.id))
+        let keptMessageIDs = Set(transcript[..<target].map(\.id)).union(visiblePrefix.map(\.id))
+        let removedCallIDs = Set(removed.flatMap { $0.toolCalls.map(\.id) })
+        let keptCallIDs = Set(transcript[..<target].flatMap { $0.toolCalls.map(\.id) })
+        let keptRunIDs = Set(keptMessageIDs.compactMap { messageRunIDs[$0] })
+        var removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
+        let orderedRuns = runSummaries.values.sorted {
+            if $0.startedAt != $1.startedAt { return $0.startedAt < $1.startedAt }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+        let targetRunID = messageRunIDs[original.id]
+        if let targetRunID, let runIndex = orderedRuns.firstIndex(where: { $0.id == targetRunID }) {
+            removedRunIDs.formUnion(orderedRuns.dropFirst(runIndex + 1).map(\.id))
+        }
+        return toolCards.contains { card in
+            if let targetRunID {
+                if card.invocation.runID != targetRunID {
+                    if keptRunIDs.contains(card.invocation.runID) { return false }
+                    if removedRunIDs.contains(card.invocation.runID) { return true }
+                }
+            } else if removedRunIDs.contains(card.invocation.runID) {
+                return true
+            }
+            if let source = card.invocation.sourceMessageID {
+                if removedMessageIDs.contains(source) { return true }
+                if keptMessageIDs.contains(source) { return false }
+            }
+            if removedCallIDs.contains(card.invocation.call.id) { return true }
+            if keptCallIDs.contains(card.invocation.call.id) { return false }
+            let resultMessageID = AgentTranscriptMessage.toolResultID(
+                runID: card.invocation.runID, callID: card.invocation.call.id)
+            if removedMessageIDs.contains(resultMessageID) { return true }
+            if keptMessageIDs.contains(resultMessageID) { return false }
+            // Historical cards may not have source ownership. Timestamp is the
+            // conservative fallback already used by persisted truncation.
+            return card.invocation.createdAt >= original.createdAt
+        }
     }
 
     public func canForkAssistantMessage(_ id: UUID) -> Bool {
@@ -1337,7 +1412,8 @@ public final class ConversationModel: Identifiable {
                     contextChips: ContextChip.visibleReferences(
                         in: message.text, images: message.images,
                         contextAttachments: message.contextAttachments
-                    ), images: message.images, createdAt: message.createdAt
+                    ), images: message.images, origin: message.origin,
+                    createdAt: message.createdAt
                 )
             case .assistant:
                 guard !message.text.isEmpty || !message.reasoning.isEmpty else { return nil }
@@ -1933,16 +2009,18 @@ public final class ConversationModel: Identifiable {
         public var authoredText: String
         public var images: [AgentImageAttachment]
         public var contextAttachments: [AgentContextAttachment]
+        public var origin: AgentMessageOrigin?
 
         public init(
             id: UUID, text: String, authoredText: String, images: [AgentImageAttachment],
-            contextAttachments: [AgentContextAttachment]
+            contextAttachments: [AgentContextAttachment], origin: AgentMessageOrigin? = nil
         ) {
             self.id = id
             self.text = text
             self.authoredText = authoredText
             self.images = images
             self.contextAttachments = contextAttachments
+            self.origin = origin
         }
     }
 
@@ -1970,14 +2048,47 @@ public final class ConversationModel: Identifiable {
         messages.append(
             ChatMessage(
                 id: messageID, role: .user, text: composed.authoredText,
-                contextChips: contextChips, images: composed.images
+                contextChips: contextChips, images: composed.images,
+                origin: composed.origin
             )
         )
         transcript.append(
             AgentTranscriptMessage(
                 id: messageID, role: .user, text: composed.text,
-                authoredText: composed.authoredText, images: composed.images,
-                contextAttachments: composed.contextAttachments, contextSnapshot: contextSnapshot
+                authoredText: composed.origin == nil ? composed.authoredText : nil,
+                images: composed.images,
+                contextAttachments: composed.contextAttachments, contextSnapshot: contextSnapshot,
+                origin: composed.origin
+            )
+        )
+        if let message = transcript.last {
+            contextEstimateTracker.upsert(message)
+            publishContextEstimateImmediately()
+        }
+        updatedAt = .now
+        return composed
+    }
+
+    /// Appends an incoming agent turn without reading or mutating any composer state.
+    /// Routed messages never inherit the target's pending chips or armed skill.
+    @discardableResult
+    public func appendIncomingAgentTurnContent(
+        _ composed: ComposedUserTurn, contextSnapshot: AgentTurnContextSnapshot? = nil
+    ) -> ComposedUserTurn? {
+        guard composed.origin != nil, composed.images.isEmpty,
+            composed.contextAttachments.isEmpty
+        else { return nil }
+        messages.append(
+            ChatMessage(
+                id: composed.id, role: .user, text: composed.authoredText,
+                contextChips: [], images: [], origin: composed.origin
+            )
+        )
+        transcript.append(
+            AgentTranscriptMessage(
+                id: composed.id, role: .user, text: composed.text,
+                authoredText: nil, contextSnapshot: contextSnapshot,
+                origin: composed.origin
             )
         )
         if let message = transcript.last {
@@ -2032,6 +2143,15 @@ public final class ConversationModel: Identifiable {
         )
     }
 
+    /// Builds a turn delivered by another agent without touching composer state.
+    public func composeIncomingAgentTurn(
+        _ text: String, origin: AgentMessageOrigin
+    ) -> ComposedUserTurn {
+        ComposedUserTurn(
+            id: UUID(), text: text, authoredText: text, images: [],
+            contextAttachments: [], origin: origin)
+    }
+
     /// The history to replay for a run whose prompt is the last user turn.
     public var pendingPriorMessages: [AgentTranscriptMessage] {
         guard let last = transcript.lastIndex(where: { $0.role == .user }),
@@ -2053,6 +2173,7 @@ public final class ConversationModel: Identifiable {
         agentPreparationID = id
         cancelAgentPreparation = cancellation
         isPreparingAgentRun = true
+        chatStateDidChange?(self.id)
         return true
     }
 
@@ -2062,6 +2183,7 @@ public final class ConversationModel: Identifiable {
         agentPreparationID = id
         cancelAgentPreparation = cancellation
         isPreparingAgentRun = true
+        chatStateDidChange?(self.id)
     }
 
     func finishAgentPreparation(id: UUID) {
@@ -2070,11 +2192,13 @@ public final class ConversationModel: Identifiable {
         cancelAgentPreparation = nil
         isPreparingAgentRun = false
         isPersistingAgentPreparationFailure = false
+        chatStateDidChange?(self.id)
     }
 
     func beginAgentPreparationFailurePersistence(id: UUID) {
         guard agentPreparationID == id else { return }
         isPersistingAgentPreparationFailure = true
+        chatStateDidChange?(self.id)
     }
 
     @discardableResult
@@ -2154,6 +2278,7 @@ public final class ConversationModel: Identifiable {
             authoredText: request.authoredPrompt, images: request.promptImages,
             contextAttachments: request.promptContextAttachments,
             contextSnapshot: request.contextSnapshot,
+            origin: request.promptOrigin,
             createdAt: transcript.first(where: { $0.id == request.promptID })?.createdAt
                 ?? owner.startedAt
         )
@@ -2381,6 +2506,27 @@ public final class ConversationModel: Identifiable {
         }
     }
 
+    /// Queues an app-routed agent message without reading or changing the target composer.
+    @discardableResult
+    public func submitIncomingAgentSteering(_ message: AgentTranscriptMessage) -> Bool {
+        guard message.role == .user, message.origin != nil, message.authoredText == nil,
+            let owner = activeRunOwner, !isArchived, !isCompacting, !isHistoryChanging,
+            !isPreparingAgentRun
+        else { return false }
+        let pending = PendingSteeringMessage(draft: message.text, message: message)
+        pendingSteering.append(pending)
+        agentMessageDeliveryChanged?(message, .queued)
+        let runtime = owner.runtime
+        Task { [weak self] in
+            guard await runtime.steer(message) else {
+                guard self?.activeRunOwner === owner else { return }
+                self?.returnAllSteeringToDraft()
+                return
+            }
+        }
+        return true
+    }
+
     /// Hands one queued message back to the composer.
     ///
     /// Called by the ✕ on a queued row, and by every path that ends a run with
@@ -2389,6 +2535,10 @@ public final class ConversationModel: Identifiable {
     public func returnSteeringToDraft(_ id: AgentTranscriptMessage.ID) {
         guard let index = pendingSteering.firstIndex(where: { $0.id == id }) else { return }
         let pending = pendingSteering.remove(at: index)
+        if pending.message.origin != nil {
+            agentMessageDeliveryChanged?(pending.message, .undelivered)
+            return
+        }
         composer.draft = [pending.draft, composer.draft]
             .filter { !$0.isEmpty }.joined(separator: "\n\n")
         for chip in pending.attachments { attach(chip) }
@@ -2879,7 +3029,9 @@ public final class ConversationModel: Identifiable {
             runSummaries[run.id] = run
             let userIDs =
                 run.state == .completed
-                ? transcript.filter { $0.role == .user && messageRunIDs[$0.id] == run.id }.map(\.id) : []
+                ? transcript.filter {
+                    $0.role == .user && $0.origin == nil && messageRunIDs[$0.id] == run.id
+                }.map(\.id) : []
             let tools = (startedMemoryTools.removeValue(forKey: run.id) ?? [:]).map {
                 MemoryLearningEvent(id: $0.key, sourceMessageID: $0.value, kind: .tool)
             }
@@ -2975,9 +3127,11 @@ public final class ConversationModel: Identifiable {
                 ChatMessage(
                     id: message.id, role: .user, text: visibleText,
                     contextChips: contextChips, images: message.images,
+                    origin: message.origin,
                     createdAt: message.createdAt
                 ))
             transcript.append(message)
+            if message.origin != nil { agentMessageDeliveryChanged?(message, .delivered) }
             memoryUserAccepted?(message, transcript)
             contextEstimateTracker.upsert(message)
             publishContextEstimateImmediately()

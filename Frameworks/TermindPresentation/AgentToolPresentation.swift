@@ -12,6 +12,10 @@ nonisolated public enum AgentToolPresentation {
     public static let displayCharacterLimit = 8_192
     public static let displayLineLimit = 120
 
+    private static let chatCollaborationToolNames: Set<String> = [
+        "list_models", "create_new_chat", "list_chats", "read_chat", "send_to_chat", "wait_chats",
+    ]
+
     nonisolated public struct OutputPreview: Equatable, Sendable {
         public let displayed: String
         public let full: String
@@ -20,6 +24,7 @@ nonisolated public enum AgentToolPresentation {
     }
 
     public static func usesCompactDetails(for descriptor: AgentToolDescriptor) -> Bool {
+        if isChatCollaborationTool(descriptor) { return true }
         guard let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) else { return false }
         return kind != .legacySkill
     }
@@ -59,7 +64,9 @@ nonisolated public enum AgentToolPresentation {
             detail: AgentToolDetail(
                 items: approvalArgumentItems(
                     request.invocation.call.arguments, presenter: presenter,
-                    hidesHostID: hostName != nil, locale: locale)
+                    hidesHostID: hostName != nil,
+                    hidesSensitiveChatArguments: isChatCollaborationTool(request.descriptor),
+                    locale: locale)
             )
         )
     }
@@ -366,6 +373,32 @@ nonisolated public enum AgentToolPresentation {
             ])
         }
 
+        if isChatCollaborationTool(card.descriptor) {
+            let fallback = AgentToolDetail(items: [
+                .message(
+                    AppLocalization.resolve(AppStrings.Assistant.chatDetailsUnavailable, locale: locale),
+                    result.isError ? .failure : .secondary)
+            ])
+            if result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted {
+                guard
+                    detailOutput(
+                        from: result, presentation: card.descriptor.presentation,
+                        review: card.review) != nil
+                else { return nil }
+                return fallback
+            }
+            let raw = result.untrustedPayload ?? result.content
+            guard let value = try? AgentJSONValue.decode(Data(raw.utf8)), let presenter else {
+                return fallback
+            }
+            return AgentToolDetail(
+                items: presenter.present(
+                    .init(
+                        result: value,
+                        arguments: card.invocation.call.arguments.objectValue ?? [:],
+                        locale: locale)))
+        }
+
         // MCP output is remote-defined and intentionally keeps the established
         // JSON presentation. Built-ins below never fall back to JSON syntax.
         if card.descriptor.target == .mcp {
@@ -487,8 +520,16 @@ nonisolated public enum AgentToolPresentation {
         _ arguments: AgentJSONValue,
         presenter: AgentToolDetailPresenter?,
         hidesHostID: Bool,
+        hidesSensitiveChatArguments: Bool,
         locale: Locale
     ) -> [AgentToolDetail.Item] {
+        if hidesSensitiveChatArguments {
+            guard let object = arguments.objectValue,
+                let projected = presenter?.presentArguments(
+                    .init(arguments: object, locale: locale))
+            else { return [] }
+            return projected
+        }
         guard let object = arguments.objectValue else {
             return [
                 .text(
@@ -508,6 +549,10 @@ nonisolated public enum AgentToolPresentation {
             return projected
         }
         return AgentToolDetailFormatting.genericItems(.object(visible), locale: locale)
+    }
+
+    private static func isChatCollaborationTool(_ descriptor: AgentToolDescriptor) -> Bool {
+        descriptor.target == .local && chatCollaborationToolNames.contains(descriptor.name)
     }
 
     private static func renderedPreview(

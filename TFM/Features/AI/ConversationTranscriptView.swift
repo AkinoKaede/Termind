@@ -307,6 +307,10 @@ private struct ConversationTranscriptSurface: View {
                 isCompact: isCompact,
                 showsTerminalActions: showsTerminalActions,
                 isConversationStreaming: conversation.isStreaming,
+                chatDestinations: Dictionary(
+                    uniqueKeysWithValues: window.assistantLibrary.conversations.map {
+                        ($0.id, $0.derivedTitle)
+                    }),
                 locale: locale,
                 reduceMotion: reduceMotion,
                 colorScheme: colorScheme
@@ -315,6 +319,7 @@ private struct ConversationTranscriptSurface: View {
                 hostName: { id in
                     app.hostLibrary.host(id)?.name ?? String(id.uuidString.prefix(8))
                 },
+                navigateChat: { window.selectAssistant($0) },
                 editUserMessage: { id, text in
                     window.editAssistantUserMessage(
                         conversation.id,

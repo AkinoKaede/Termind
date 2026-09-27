@@ -305,6 +305,8 @@ final class MobileAppModel {
                 base: SwiftDataAgentRunRepository(context: ModelContext(container)), memory: memory),
             memory: memory,
             modelSelectionStore: SwiftDataAssistantModelSelectionStore(context: ModelContext(container)),
+            chatCollaborationStore: SwiftDataAssistantChatCollaborationStore(
+                context: ModelContext(container)),
             hostServices: AgentHostServices.live(
                 store: library,
                 coordinator: connectionCoordinator,

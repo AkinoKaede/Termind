@@ -868,6 +868,55 @@ struct AgentPersistenceTests {
         #expect(restored.messages.map(\.text) == ["One", "Answer one", "Edited"])
     }
 
+    @Test(arguments: [false, true])
+    func truncationRejectsSuffixToolsWithoutMutatingHistory(_ hasTranscriptCall: Bool) async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let runID = UUID()
+        let instant = Date(timeIntervalSinceReferenceDate: 100)
+        let opening = AgentTranscriptMessage(role: .user, text: "Opening", createdAt: instant)
+        let steering = AgentTranscriptMessage(role: .user, text: "Steering", createdAt: instant)
+        let call = AgentToolCall(id: "suffix", name: "inspect", arguments: .object([:]))
+        let answer = AgentTranscriptMessage(
+            role: .assistant, text: "Answer", toolCalls: hasTranscriptCall ? [call] : [], createdAt: instant)
+        let messages = [opening, steering, answer]
+        try await repository.save(
+            AgentRunSnapshot(
+                id: runID, conversationID: conversationID, state: .failed,
+                permissionMode: .askForApproval, messages: messages,
+                startedAt: instant, finishedAt: instant))
+        let invocation = AgentToolInvocation(
+            runID: runID, call: call,
+            sourceMessageID: hasTranscriptCall ? answer.id : UUID(), createdAt: instant)
+        try await repository.record(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: "inspect", summary: "Inspect", inputSchema: .object([:]),
+                    target: .local, approvalPolicy: .approve)), runID: runID)
+        let before = try #require(try await repository.loadConversations().first)
+        let replacement = AgentTranscriptMessage(role: .user, text: "Replacement")
+        let store = AssistantConversationStore()
+        store.restore([before])
+        let live = try #require(store.conversations.first)
+        #expect(!live.canEditUserMessage(steering.id))
+        #expect(
+            try await AssistantConversationOperations(repository: repository).edit(
+                live, messageID: steering.id, replacement: replacement) == nil)
+
+        await #expect(throws: AgentConversationPersistenceError.self) {
+            try await repository.truncateConversation(
+                conversationID, fromUserMessageID: steering.id, replacingWith: replacement)
+        }
+
+        let after = try #require(try await repository.loadConversations().first)
+        #expect(after.messages.map(\.id) == before.messages.map(\.id))
+        #expect(after.toolCards.map(\.invocation.id) == before.toolCards.map(\.invocation.id))
+        #expect(after.toolCards.map(\.state) == before.toolCards.map(\.state))
+        #expect(after.runs == before.runs)
+    }
+
     @Test
     func sameRunTruncationPreservesThePrefixAndAtomicallyAdoptsTheReplacement() async throws {
         let configuration = localModelConfiguration(
@@ -907,15 +956,10 @@ struct AgentPersistenceTests {
             role: .user, text: "Steer", authoredText: "Steer",
             contextAttachments: [removedAttachment],
             contextSnapshot: .init(sessionContext: "removed context"), createdAt: instant)
-        let suffixCall = AgentToolCall(
-            id: "suffix-call", name: "inspect", arguments: .object([:]))
         let suffixAssistant = AgentTranscriptMessage(
-            role: .assistant, text: "Suffix", toolCalls: [suffixCall], createdAt: instant)
-        let suffixResult = AgentTranscriptMessage(
-            role: .tool, text: "suffix result", toolCallID: suffixCall.id,
-            toolName: suffixCall.name, modelText: "suffix preview", createdAt: instant)
+            role: .assistant, text: "Suffix", createdAt: instant)
         let oldMessages = [
-            opening, prefixAssistant, prefixResult, steering, suffixAssistant, suffixResult,
+            opening, prefixAssistant, prefixResult, steering, suffixAssistant,
         ]
         let replacement = AgentTranscriptMessage(
             id: replacementID, role: .user, text: "Replacement", authoredText: "Replacement",
@@ -953,36 +997,17 @@ struct AgentPersistenceTests {
         let prefixInvocation = AgentToolInvocation(
             runID: oldRunID, call: prefixCall, sourceMessageID: nil,
             createdAt: instant.addingTimeInterval(1))
-        let suffixInvocation = AgentToolInvocation(
-            runID: oldRunID, call: suffixCall,
-            sourceMessageID: suffixAssistant.id, createdAt: instant)
         let review = GuardianDecision(
             verdict: .approve, risk: .low, userAuthorization: .high, reason: "Allowed")
-        for invocation in [prefixInvocation, suffixInvocation] {
-            try await repository.record(.toolProposed(invocation, descriptor), runID: oldRunID)
-            try await repository.record(
-                .toolFinished(
-                    invocation,
-                    AgentToolResult(callID: invocation.call.id, content: "recorded result")),
-                runID: oldRunID)
-            let request = AgentApprovalRequest(
-                invocation: invocation, descriptor: descriptor, userIntent: "Inspect")
-            try await repository.record(.reviewFinished(request, review), runID: oldRunID)
-        }
-        // Provider-native tools can finish durably before their synthetic assistant
-        // source message reaches a snapshot. Its unknown source must fall through
-        // to the conservative timestamp rule when this steering suffix is edited.
-        let orphanInvocation = AgentToolInvocation(
-            runID: oldRunID,
-            call: AgentToolCall(id: "native-call", name: "web_search", arguments: .object([:])),
-            sourceMessageID: UUID(), createdAt: instant)
-        try await repository.record(.toolProposed(orphanInvocation, descriptor), runID: oldRunID)
+        try await repository.record(.toolProposed(prefixInvocation, descriptor), runID: oldRunID)
         try await repository.record(
             .toolFinished(
-                orphanInvocation,
-                AgentToolResult(callID: orphanInvocation.call.id, content: "native result")),
+                prefixInvocation,
+                AgentToolResult(callID: prefixInvocation.call.id, content: "recorded result")),
             runID: oldRunID)
-
+        let request = AgentApprovalRequest(
+            invocation: prefixInvocation, descriptor: descriptor, userIntent: "Inspect")
+        try await repository.record(.reviewFinished(request, review), runID: oldRunID)
         let nilBoundary = AgentCompactionRecord(
             compactedThroughMessageID: nil, sequence: 0, summary: "Legacy base",
             summarizedTokens: 4, keptTokens: 1, displayAnchor: instant)
@@ -996,10 +1021,7 @@ struct AgentPersistenceTests {
         let preEditStore = AssistantConversationStore()
         preEditStore.restore(try await repository.loadConversations())
         let persistedLive = try #require(preEditStore.conversations.first)
-        #expect(
-            Set(persistedLive.toolCards.map(\.invocation.id)) == [
-                prefixInvocation.id, suffixInvocation.id, orphanInvocation.id,
-            ])
+        #expect(persistedLive.toolCards.map(\.invocation.id) == [prefixInvocation.id])
         let operations = AssistantConversationOperations(repository: repository)
         #expect(
             try await operations.edit(

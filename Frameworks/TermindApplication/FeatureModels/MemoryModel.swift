@@ -340,7 +340,7 @@ public final class MemoryModel {
         model: any AgentModelCompleting, sessionToken: UUID? = nil, historyEpoch: UUID? = nil
     ) {
         let authored = message.authoredText ?? ContextChip.visiblePrompt(in: message.text)
-        guard isEnabled, !isSuspended, reviewEnabled,
+        guard message.origin == nil, isEnabled, !isSuspended, reviewEnabled,
             sessionToken == nil || sessionToken == generation,
             historyEpoch == nil || historyEpoch == learningEpoch(for: conversationID),
             Self.looksLikeCorrection(authored), !queuedCorrectionIDs.contains(message.id),

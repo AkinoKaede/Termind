@@ -23,6 +23,7 @@ struct AppDependencies {
     let serialPortService: any SerialPortServing
     let agentRunRepository: (any AgentRunPersisting)?
     let assistantModelSelectionStore: (any AssistantModelSelectionStoring)?
+    let assistantChatCollaborationStore: (any AssistantChatCollaborationStoring)?
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
@@ -41,6 +42,7 @@ struct AppDependencies {
         serialPortService: any SerialPortServing = SystemSerialPortService(),
         agentRunRepository: (any AgentRunPersisting)? = nil,
         assistantModelSelectionStore: (any AssistantModelSelectionStoring)? = nil,
+        assistantChatCollaborationStore: (any AssistantChatCollaborationStoring)? = nil,
         vaultSync: VaultSyncCoordinator? = nil,
         connectionHistorySync: ConnectionHistorySyncCoordinator? = nil,
         deviceSync: DeviceSyncCoordinator? = nil,
@@ -59,6 +61,7 @@ struct AppDependencies {
         self.serialPortService = serialPortService
         self.agentRunRepository = agentRunRepository
         self.assistantModelSelectionStore = assistantModelSelectionStore
+        self.assistantChatCollaborationStore = assistantChatCollaborationStore
         self.vaultSync = vaultSync
         self.connectionHistorySync = connectionHistorySync
         self.deviceSync = deviceSync

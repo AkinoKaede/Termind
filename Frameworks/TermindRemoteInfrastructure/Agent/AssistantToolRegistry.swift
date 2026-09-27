@@ -12,7 +12,10 @@ public enum AssistantToolRegistry {
         ai: AIConfigurationModel, hosts: AgentHostResolver,
         metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry, background: AgentBackgroundCommands,
-        panes: AgentPaneAccess? = nil
+        panes: AgentPaneAccess? = nil,
+        chatModels: (any AgentChatModelCatalog)? = nil,
+        chats: (any AgentChatCoordinating)? = nil,
+        chatSource: AgentChatSourceContext? = nil
     ) -> AgentToolRegistry {
         let native =
             ai.webSearch.isEnabled && ai.webSearch.prefersBuiltIn && provider.supportsNativeWebSearch(model: model)
@@ -52,6 +55,7 @@ public enum AssistantToolRegistry {
                     tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
                     plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
                     skills: skillCatalog,
+                    chatModels: chatModels, chats: chats, chatSource: chatSource,
                     mcpServers: servers,
                     mcpClient: MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
                 ),

@@ -263,6 +263,140 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func everyChatCollaborationToolUsesCompactDetails() {
+        for name in [
+            "list_models", "create_new_chat", "list_chats", "read_chat",
+            "send_to_chat", "wait_chats",
+        ] {
+            let card = makeCard(name: name, target: .local)
+            #expect(
+                AgentToolPresentation.usesCompactDetails(for: card.descriptor),
+                Comment(rawValue: "\(name) should use bounded compact details"))
+        }
+    }
+
+    @Test
+    func missingChatApprovalPresenterNeverFallsBackToPromptOrMessageFields() {
+        for (name, arguments, secret) in [
+            (
+                "create_new_chat",
+                ["prompt": AgentJSONValue.string("private create body")],
+                "private create body"
+            ),
+            (
+                "send_to_chat",
+                [
+                    "chat_id": AgentJSONValue.string(UUID().uuidString),
+                    "message": AgentJSONValue.string("private send body"),
+                ],
+                "private send body"
+            ),
+        ] {
+            let card = makeCard(name: name, target: .local, arguments: arguments)
+            let request = AgentApprovalRequest(
+                invocation: card.invocation, descriptor: card.descriptor,
+                userIntent: "Collaborate")
+
+            let approval = AgentToolPresentation.approval(
+                for: request, presenter: nil, locale: Locale(identifier: "en"))
+            let rendered = AgentToolDetailPreview(approval.detail).fullText
+            #expect(!rendered.contains(secret))
+            #expect(approval.detail.items.isEmpty)
+        }
+    }
+
+    @Test
+    func chatFallbacksNeverExposeMalformedErrorOrUnprojectedBodies() throws {
+        let privateBody = "private routed body"
+        let validPayload = AgentJSONValue.object([
+            "chat_id": .string(UUID().uuidString),
+            "title": .string("Target"),
+            "status": .string("delivered"),
+            "message": .string(privateBody),
+        ]).encodedString
+        let cases: [(String, AgentToolResult, AgentToolDetailPresenter?)] = [
+            (
+                "malformed",
+                AgentToolResult(callID: "call", content: privateBody),
+                TermindAgentTools.presenter(id: "builtin.send_to_chat")
+            ),
+            (
+                "error",
+                AgentToolResult(callID: "call", content: privateBody, isError: true),
+                TermindAgentTools.presenter(id: "builtin.send_to_chat")
+            ),
+            (
+                "missing presenter",
+                AgentToolResult(callID: "call", content: validPayload),
+                nil
+            ),
+        ]
+
+        for (label, result, presenter) in cases {
+            var card = makeCard(
+                name: "send_to_chat", target: .local,
+                presentation: .init(
+                    symbol: "paperplane", activity: .semanticLabel(.chat),
+                    output: .json, presenterID: "builtin.send_to_chat",
+                    actionKind: .send))
+            card.result = result
+            if result.isError { card.state = .failed }
+            let detail = try #require(
+                AgentToolPresentation.detail(
+                    for: card, presenter: presenter,
+                    locale: Locale(identifier: "en")),
+                Comment(rawValue: label))
+            let rendered = AgentToolDetailPreview(detail).fullText
+            #expect(!rendered.contains(privateBody), Comment(rawValue: label))
+            #expect(!rendered.contains("\"message\""), Comment(rawValue: label))
+            #expect(rendered == "Chat details unavailable", Comment(rawValue: label))
+        }
+    }
+
+    @Test
+    func chatCompactPreviewAndFullCopyContainOnlyProjectedBoundedFields() throws {
+        let secret = "body-that-must-never-render"
+        let chats = (0..<12).map { index in
+            AgentJSONValue.object([
+                "chat_id": .string(UUID().uuidString),
+                "title": .string("Chat \(index)"),
+                "status": .string("completed"),
+                "message": .string("\(secret)-\(index)"),
+            ])
+        }
+        var card = makeCard(
+            name: "list_chats", target: .local,
+            presentation: .init(
+                symbol: "bubble.left.and.bubble.right",
+                activity: .semanticLabel(.chats), output: .json,
+                presenterID: "builtin.list_chats", actionKind: .list))
+        card.result = AgentToolResult(
+            callID: "call",
+            content: AgentJSONValue.object(["chats": .array(chats)]).encodedString)
+
+        let detail = try #require(
+            AgentToolPresentation.detail(
+                for: card,
+                presenter: TermindAgentTools.presenter(id: "builtin.list_chats"),
+                locale: Locale(identifier: "en")))
+        let preview = AgentToolDetailPreview(detail)
+
+        #expect(preview.isShortened)
+        #expect(preview.fullText.contains("Chat 11"))
+        #expect(!preview.fullText.contains(secret))
+        let displayed = AgentToolDetailPreview(
+            AgentToolDetail(items: preview.items)
+        ).fullText
+        #expect(!displayed.contains(secret))
+        guard case .list(let list) = try #require(preview.items.first) else {
+            Issue.record("Expected compact chat list")
+            return
+        }
+        #expect(list.rows.count == AgentToolDetailPreview.rowLimit)
+        #expect(displayed.count <= AgentToolDetailPreview.characterLimit + 20)
+    }
+
+    @Test
     func unknownPresenterIDCannotSelectOrImpersonateBuiltInCode() throws {
         var card = makeCard(
             name: "fetch", target: .network,

@@ -196,6 +196,24 @@ struct MobileAssistantImageFlowLayout: Layout {
     }
 }
 
+@MainActor
+struct MobileAssistantAgentOriginPresentation: Equatable {
+    let label: String
+    let canNavigate: Bool
+
+    init(
+        origin: AgentMessageOrigin, source: ConversationModel?,
+        locale: Locale = .current
+    ) {
+        let sourceTitle = source?.derivedTitle ?? origin.sourceTitle
+        label =
+            sourceTitle.map {
+                AppLocalization.resolve(AppStrings.Assistant.agentFrom($0), locale: locale)
+            } ?? AppLocalization.resolve(AppStrings.Assistant.agent, locale: locale)
+        canNavigate = source != nil
+    }
+}
+
 struct MobileAssistantUserBubble: View {
     let text: String
 
@@ -514,6 +532,12 @@ struct MobileAssistantConversation: View {
                 .accessibilityHidden(!MobileContentRegions.isUsable(panes.second))
                 .clipped()
             }
+        }
+        .environment(\.assistantToolNavigation) { reference in
+            guard case .chat(let id) = reference,
+                let target = model.library.conversation(id: id)
+            else { return }
+            model.select(target)
         }
         .background(Color(uiColor: .systemBackground))
         .mobileConversationAttachmentDropTarget(
@@ -881,15 +905,17 @@ struct MobileAssistantConversation: View {
                 UIPasteboard.general.string = message.text
             }
             ShareLink(item: message.text)
-            if conversation.canEditUserMessage(message.id) {
-                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
-                    editedText = message.text
-                    editing = message
+            if message.origin == nil {
+                if conversation.canEditUserMessage(message.id) {
+                    Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
+                        editedText = message.text
+                        editing = message
+                    }
                 }
-            }
-            if conversation.canForkAssistantMessage(message.id) {
-                Button(AppStrings.Assistant.forkConversation.swiftUIKey, systemImage: "arrow.triangle.branch") {
-                    Task { await model.fork(conversation, at: message.id) }
+                if conversation.canForkAssistantMessage(message.id) {
+                    Button(AppStrings.Assistant.forkConversation.swiftUIKey, systemImage: "arrow.triangle.branch") {
+                        Task { await model.fork(conversation, at: message.id) }
+                    }
                 }
             }
         }
@@ -911,6 +937,24 @@ struct MobileAssistantConversation: View {
 
             messageAction(AppStrings.Common.copy, systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = message.text
+            }
+
+            if let origin = message.origin {
+                let presentation = MobileAssistantAgentOriginPresentation(
+                    origin: origin,
+                    source: model.library.conversation(id: origin.sourceConversationID),
+                    locale: locale)
+                Button(AppStrings.Assistant.agent.swiftUIKey) {
+                    guard let target = model.library.conversation(id: origin.sourceConversationID) else { return }
+                    model.select(target)
+                }
+                .font(.caption.weight(.medium))
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .disabled(!presentation.canNavigate)
+                .accessibilityLabel(Text(presentation.label))
+                .help(presentation.label)
+                .accessibilityIdentifier("AssistantMessage.AgentOrigin")
             }
 
             if conversation.canForkAssistantMessage(message.id) {

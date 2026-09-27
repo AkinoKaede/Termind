@@ -175,6 +175,9 @@ struct TermindApp: App {
                         assistantModelSelectionStore: SwiftDataAssistantModelSelectionStore(
                             context: container.mainContext
                         ),
+                        assistantChatCollaborationStore: SwiftDataAssistantChatCollaborationStore(
+                            context: container.mainContext
+                        ),
                         vaultSync: vaultSync, connectionHistorySync: connectionHistorySync, deviceSync: deviceSync,
                         settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
