@@ -784,8 +784,22 @@ struct MobileVaultView: View {
         } content: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
-                    HostSystemIcon(asset: entry?.asset, size: 36)
-                        .tint(tint)
+                    ZStack(alignment: .bottomTrailing) {
+                        HostSystemIcon(asset: entry?.asset, size: 36)
+                            .tint(tint)
+                        if let workspace = reviewScene?.workspaceActivatedByHostRow(for: host),
+                            let indicator = MobileWorkspaceConnectionIndicator.resolve(
+                                connected: workspace.connected,
+                                busy: workspace.busy,
+                                reconnecting: workspace.reconnectState != nil
+                            )
+                        {
+                            Circle()
+                                .fill(indicator.tint)
+                                .frame(width: 8, height: 8)
+                                .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
+                        }
+                    }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(host.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
                         Text(app.library.preferredTerminalLoginAddress(for: host)).font(.caption.monospaced())

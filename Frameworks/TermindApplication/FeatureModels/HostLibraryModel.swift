@@ -1009,11 +1009,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         statuses[id] = status
     }
 
-    /// Records one live connection's state and projects terminals and File
-    /// Transfer browsers for the same host into the status dot shown by Hosts
-    /// and host pickers. A connected source wins over a connecting or failed
-    /// sibling, so closing one pane cannot make an otherwise-online host appear
-    /// offline.
+    /// Records one live connection's state for Host-level consumers, including
+    /// the Vault and Recents dots and the agent Host listing. A connected source
+    /// wins over a connecting or failed sibling, so closing one pane cannot make
+    /// an otherwise-online Host appear offline.
     public func setConnectionStatus(
         _ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID
     ) {

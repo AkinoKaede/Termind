@@ -1035,12 +1035,11 @@ final class AppModel {
         return !unsafeExtensions.contains((file.name as NSString).pathExtension.lowercased())
     }
 
-    /// Mark as recently used, and flip the status dot.
+    /// Optimistically shows connecting until the session reports its own state.
     ///
     /// Its own method because three code paths now open hosts — one, a batch of
     /// workspaces, and a batch into one Workspace — and *where it lands* is the only
-    /// thing that should differ between them. Inlining this was fine while there
-    /// were two.
+    /// thing that should differ between them.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
         switch target {
         case .preferredTerminal, .sshSession, .telnetSession:

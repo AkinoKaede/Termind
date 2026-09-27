@@ -237,8 +237,8 @@ extension HostLibraryModel {
             knownHosts: knownHosts
         )
 
-        // A spread of connection states so the sidebar, workspace list, and status bar
-        // can be checked against every dot color without a server.
+        // A spread of connection states so Vault and Welcome Host cards can be
+        // checked against every dot color without a server.
         store.setStatus(.connected, for: web01.id)
         store.setStatus(.connecting, for: db.id)
         if let staging = hosts.first(where: { $0.name == "staging-app" }) {

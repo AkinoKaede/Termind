@@ -171,6 +171,32 @@ struct MobileWorkspaceSessionTests {
         #expect(second.isWorkspaceUnavailable)
     }
 
+    @Test func vaultHostIndicatorFollowsTheWorkspaceOpenedByItsCard() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "vault-card")
+        let other = MobileSceneModel(app: app, sessionID: "other-window")
+        let host = fixture.host
+
+        other.open(hostID: host.id, kind: .ssh)
+        #expect(scene.workspaceActivatedByHostRow(for: host) == nil)
+
+        scene.open(hostID: host.id, kind: .sftp)
+        #expect(scene.workspaceActivatedByHostRow(for: host) == nil)
+
+        scene.open(hostID: host.id, kind: .ssh)
+        let first = try #require(scene.workspaceActivatedByHostRow(for: host))
+        scene.open(hostID: host.id, kind: .ssh)
+        let second = try #require(scene.workspaceActivatedByHostRow(for: host))
+        #expect(first !== second)
+
+        scene.selectWorkspace(first.id)
+        #expect(scene.workspaceActivatedByHostRow(for: host) === first)
+        scene.activateHost(host.id)
+        #expect(scene.activeWorkspace === first)
+    }
+
     @Test func everyCreationEntryPointUsesTheReceivingWindow() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

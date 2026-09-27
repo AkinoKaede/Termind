@@ -37,7 +37,7 @@ final class MobileSceneModel {
     @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
     @ObservationIgnored private var pendingBatchStartup:
         (hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol)?
-    @ObservationIgnored private var recentWorkspaceIDs: [MobileWorkspace.ID] = []
+    private var recentWorkspaceIDs: [MobileWorkspace.ID] = []
 
     init(app: MobileAppModel, sessionID: String) {
         workspaceSession = app.workspaceSession(for: sessionID)
@@ -179,21 +179,28 @@ final class MobileSceneModel {
             return
         }
         let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
+        guard let workspace = workspaceActivatedByHostRow(for: host) else {
+            open(hostID: hostID, kind: kind)
+            return
+        }
+        selectWorkspace(workspace.id)
+    }
+
+    /// The connection a Vault Host card will reopen in this window.
+    func workspaceActivatedByHostRow(for host: Host) -> MobileWorkspace? {
+        guard let connectionProtocol = host.preferredTerminalProtocol else { return nil }
+        let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
         let matchingIDs = Set(
             workspaceSession.workspaces.lazy
-                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == kind }
+                .filter { $0.descriptor.hostID == host.id && $0.descriptor.kind == kind }
                 .map(\.id)
         )
         let workspaceID =
             recentWorkspaceIDs.first(where: matchingIDs.contains)
             ?? workspaceSession.workspaces.last(where: {
-                $0.descriptor.hostID == hostID && $0.descriptor.kind == kind
+                $0.descriptor.hostID == host.id && $0.descriptor.kind == kind
             })?.id
-        guard let workspaceID else {
-            open(hostID: hostID, kind: kind)
-            return
-        }
-        selectWorkspace(workspaceID)
+        return workspaceID.flatMap { id in workspaceSession.workspaces.first { $0.id == id } }
     }
 
     func openSameDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {

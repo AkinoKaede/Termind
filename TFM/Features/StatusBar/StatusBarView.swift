@@ -231,7 +231,6 @@ struct StatusBarView: View {
         sshSession?.status
             ?? sftpChannel?.status
             ?? serialSession?.status
-            ?? pane?.hostID.map { app.hostLibrary.status(of: $0) }
             ?? .disconnected
     }
 
