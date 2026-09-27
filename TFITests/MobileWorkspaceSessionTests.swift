@@ -13,6 +13,45 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func notificationRouterWaitsForASceneAndConsumesTheTransferClickOnce() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        var activated: [String] = []
+        let router = MobileNotificationRouter(app: app) { activated.append($0) }
+        router.open(.transfers)
+        #expect(activated.isEmpty)
+        let scene = MobileSceneModel(app: app, sessionID: "notification-routing")
+        router.resume()
+        #expect(scene.showsTransfers)
+        #expect(activated == [scene.workspaceSession.id])
+        router.resume()
+        #expect(activated.count == 1)
+        router.stop()
+        router.open(.transfers)
+        #expect(activated.count == 1)
+    }
+
+    @Test func assistantNotificationRouterUsesTheLatestClick() async throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "assistant-routing")
+        let first = ConversationModel()
+        let second = ConversationModel()
+        first.composer.draft = "First"
+        second.composer.draft = "Second"
+        _ = try #require(scene.assistant.library.startConversation(first))
+        _ = try #require(scene.assistant.library.startConversation(second))
+        let activations = AsyncStream<String>.makeStream()
+        let router = MobileNotificationRouter(app: app) { activations.continuation.yield($0) }
+        router.open(.assistant(first.id))
+        router.open(.assistant(second.id))
+        var iterator = activations.stream.makeAsyncIterator()
+        #expect(await iterator.next() == scene.workspaceSession.id)
+        #expect(scene.assistant.library.selectedConversationID == second.id)
+    }
+
     @Test func transferNotificationOpensTransfersWithoutMarkingUnread() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

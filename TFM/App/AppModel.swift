@@ -73,8 +73,19 @@ final class AppModel {
     let logging: any ApplicationLogManaging
     let notifications = SystemNotifications()
     let notificationSettings: NotificationSettingsModel
-    private var pendingAssistantNotification: UUID?
+    @ObservationIgnored private lazy var notificationRouter = DesktopNotificationRouter(app: self)
     @ObservationIgnored private var notificationBadge: NotificationBadgeCoordinator?
+    @ObservationIgnored private lazy var terminalNotifications = TerminalNotificationCoordinator(
+        service: notifications,
+        preferences: { [weak self] in self?.notificationSettings.preferences ?? .init() },
+        isFocused: { [weak self] in self?.isTerminalNotificationFocused($0) ?? false },
+        title: { [weak self] id in
+            guard let self, let (_, workspace, _) = self.commandNotificationTarget(id) else { return nil }
+            return workspace.title(in: self.hostLibrary, locale: .current)
+        },
+        body: CommandNotificationContent.body,
+        ringBell: TerminalNotificationPlatform.ringBell)
+
     @ObservationIgnored private lazy var assistantNotifications = AssistantNotificationCoordinator(
         service: notifications,
         preferences: { [weak self] in self?.notificationSettings.preferences ?? .init() },
@@ -354,7 +365,7 @@ final class AppModel {
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)
         }
-        notifications.onOpen = { [weak self] target in self?.openNotification(target) }
+        notifications.onOpen = { [weak self] target in self?.notificationRouter.open(target) }
         sftpNotifications = SFTPNotificationCoordinator(
             service: notifications, initialTransfers: hosts.sftpTransfers,
             preferences: { [weak self] in self?.notificationSettings.preferences ?? .init() },
@@ -363,6 +374,7 @@ final class AppModel {
             },
             content: SFTPNotificationContent.make)
         hosts.sftpTransferStateDidChange = { [weak self] in self?.sftpNotifications?.receive($0) }
+        hosts.sftpTransfersDidRemove = { [weak self] in self?.sftpNotifications?.forgetFinishedTransfers($0) }
         notificationBadge = NotificationBadgeCoordinator(service: notifications) { [weak self] in
             guard let self, self.notificationSettings.preferences.isEnabled else { return 0 }
             return self.unreadNotificationCount
@@ -650,16 +662,25 @@ final class AppModel {
             do {
                 let restored = try await agentRunRepository.loadConversations()
                 guard window?.isClosed == false else { return }
-                let visible = restored.filter {
-                    self?.deletedAgentConversationIDs.contains($0.id) != true
-                }
-                let selections = try self?.assistantModelSelections.selectionsForRestore(visible) ?? [:]
-                window?.assistantLibrary.restore(visible, modelSelections: selections)
-                self?.routePendingAssistantNotification()
+                try self?.restoreAssistantConversations(restored)
+                self?.notificationRouter.resume()
             } catch {
                 window?.assistantOperationError = error.localizedDescription
             }
         }
+    }
+
+    var notificationWindows: [WindowModel] { windows.values.compactMap(\.value).filter { !$0.isClosed } }
+
+    func restoreAssistantConversations() async throws {
+        try restoreAssistantConversations(await agentRunRepository.loadConversations())
+    }
+
+    private func restoreAssistantConversations(_ restored: [StoredAgentConversation]) throws {
+        guard !isTerminating else { return }
+        let visible = restored.filter { !deletedAgentConversationIDs.contains($0.id) }
+        let selections = try assistantModelSelections.selectionsForRestore(visible)
+        assistantConversations.restore(visible, modelSelections: selections)
     }
 
     private func deleteAgentConversation(_ id: UUID) {
@@ -842,6 +863,9 @@ final class AppModel {
         isTerminating = true
         notificationBadge?.stop()
         sftpNotifications?.stop()
+        assistantNotifications.stop()
+        terminalNotifications.stop()
+        notificationRouter.stop()
         NSApp.dockTile.badgeLabel = nil
         if let terminationTask { return terminationTask }
         let conversations = assistantConversations.conversations
@@ -1155,33 +1179,8 @@ final class AppModel {
         }
     }
 
-    private func commandNotificationExists(_ id: UUID) -> Bool { commandNotificationTarget(id) != nil }
     private func isTerminalNotificationFocused(_ id: UUID) -> Bool {
         isCommandWorkspaceFocused(id, windowIsFocused: mainWindows.isFocused)
-    }
-
-    private func openNotification(_ target: NotificationTarget) {
-        switch target {
-        case .transfers: mainWindows.showTransfers()
-        case .terminal(let id): openCommandNotification(id)
-        case .assistant(let id):
-            pendingAssistantNotification = id
-            if windows.values.compactMap(\.value).allSatisfy(\.isClosed) { mainWindows.newWindow() }
-            Task { [weak self] in
-                guard let self else { return }
-                do {
-                    let restored = try await agentRunRepository.loadConversations()
-                        .filter { !deletedAgentConversationIDs.contains($0.id) }
-                    let selections = try assistantModelSelections.selectionsForRestore(restored)
-                    assistantConversations.restore(restored, modelSelections: selections)
-                    routePendingAssistantNotification()
-                } catch {
-                    for window in windows.values.compactMap(\.value) {
-                        window.assistantOperationError = error.localizedDescription
-                    }
-                }
-            }
-        }
     }
 
     @discardableResult
@@ -1202,12 +1201,6 @@ final class AppModel {
         return window
     }
 
-    private func routePendingAssistantNotification() {
-        guard let id = pendingAssistantNotification, let window = selectAssistantNotificationTarget(id) else { return }
-        pendingAssistantNotification = nil
-        mainWindows.activate(window)
-    }
-
     func commandNotificationTarget(_ id: UUID) -> (WindowModel, Workspace, Pane)? {
         for window in windows.values.compactMap(\.value) where !window.isClosed {
             for workspace in window.workspaces {
@@ -1226,30 +1219,7 @@ final class AppModel {
 
     private func configureCommandMonitor(_ pane: Pane) {
         guard let monitor = pane.commandMonitor, let id = pane.commandSessionID else { return }
-        monitor.preferences = { [weak self] in self?.notificationSettings.preferences ?? .init() }
-        monitor.isWorkspaceFocused = { [weak self] in
-            guard let self else { return false }
-            return self.isCommandWorkspaceFocused(id, windowIsFocused: self.mainWindows.isFocused)
-        }
-        monitor.alert = { [weak self] completion, settings in
-            guard let self, let (_, workspace, _) = self.commandNotificationTarget(id) else { return }
-            if settings.terminalDelivery == .bell {
-                TerminalNotificationPlatform.ringBell()
-            } else {
-                let title = workspace.title(in: self.hostLibrary, locale: .current)
-                let body = CommandNotificationContent.body(completion)
-                Task { [weak self] in
-                    guard let self else { return }
-                    await notifications.send(.init(target: .terminal(id), title: title, body: body)) { [weak self] in
-                        guard let self else { return false }
-                        let settings = self.notificationSettings.preferences
-                        return settings.terminalDelivery == .systemNotifications && self.commandNotificationExists(id)
-                            && settings.allowsTerminal(
-                                duration: completion.duration, isFocused: self.isTerminalNotificationFocused(id))
-                    }
-                }
-            }
-        }
+        terminalNotifications.observe(monitor, id: id)
     }
 
     @discardableResult
@@ -1262,7 +1232,7 @@ final class AppModel {
         return window
     }
 
-    private func openCommandNotification(_ id: UUID) {
+    func openCommandNotification(_ id: UUID) {
         guard let window = selectCommandNotificationTarget(id) else {
             _ = mainWindows.openExisting()
             NSApp.activate(ignoringOtherApps: true)
@@ -1276,15 +1246,17 @@ final class AppModel {
         }
     }
 
-    private func configureConnectionHistory(in window: WindowModel) {
-        notifications.onOpen = { [weak self] target in self?.openNotification(target) }
+    private func configureCommandNotifications(in window: WindowModel) {
         window.configureCommandNotifications = { [weak self] pane in self?.configureCommandMonitor(pane) }
         window.commandFocusChanged = { [weak self, weak window] in
             guard let self, let window, self.mainWindows.isFocused(window) else { return }
             window.selectedWorkspace?.markCommandsRead()
         }
         window.workspaces.flatMap(\.panes).forEach(configureCommandMonitor)
+    }
 
+    private func configureConnectionHistory(in window: WindowModel) {
+        configureCommandNotifications(in: window)
         window.hostStore = hosts
         window.workspacePreferences = { [weak self] in
             self?.workspaceSettings.preferences ?? WorkspacePreferences()

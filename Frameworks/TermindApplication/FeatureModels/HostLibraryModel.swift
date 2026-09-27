@@ -19,6 +19,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var portForwardings: [PortForwardingRule] = []
     public private(set) var sftpTransfers: [SFTPTransfer] = []
     @ObservationIgnored public var sftpTransferStateDidChange: ((SFTPTransfer) -> Void)?
+    @ObservationIgnored public var sftpTransfersDidRemove: ((Set<UUID>) -> Void)?
     public private(set) var knownHosts: [KnownHostEntry] = []
     public private(set) var workspaceTemplates: [WorkspaceTemplate] = []
 
@@ -1912,13 +1913,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Clears terminal transfer records while leaving queued, running and paused work
     /// untouched. The transfer center is a current-session history, not a log.
     public func clearFinishedSFTPTransfers() {
+        let ids = Set(sftpTransfers.filter { $0.state.isFinished }.map(\.id))
         sftpTransfers.removeAll { $0.state.isFinished }
+        if !ids.isEmpty { sftpTransfersDidRemove?(ids) }
     }
 
     /// Removes one terminal record without affecting its downloaded file or live transfers.
     public func removeFinishedSFTPTransfer(_ id: SFTPTransfer.ID) {
         guard let transfer = sftpTransfer(id), transfer.state.isFinished else { return }
         sftpTransfers.removeAll { $0.id == id }
+        sftpTransfersDidRemove?([id])
     }
 
     /// Files one or more hosts into a group, preserving the order supplied.

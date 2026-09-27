@@ -13,6 +13,7 @@ public final class SFTPNotificationCoordinator {
     private var finished = Set<UUID>()
     private var results: [UUID: Bool] = [:]
     private var stopped = false
+    private var tasks: [String: Task<Void, Never>] = [:]
 
     public init(
         service: any NotificationSending,
@@ -50,8 +51,9 @@ public final class SFTPNotificationCoordinator {
         guard preferences().allowsSFTP(isFocused: isFocused()) else { return }
         let text = content(succeeded, failed)
         let notification = AppNotification(target: .transfers, title: text.title, body: text.body)
-        Task { [weak self] in
+        tasks[notification.id] = Task { [weak self] in
             guard let self else { return }
+            defer { tasks[notification.id] = nil }
             await service.send(notification) { [weak self] in
                 guard let self else { return false }
                 return !stopped && preferences().allowsSFTP(isFocused: isFocused())
@@ -59,5 +61,15 @@ public final class SFTPNotificationCoordinator {
         }
     }
 
-    public func stop() { stopped = true }
+    /// Dropping history does not discard outcomes waiting for the rest of their batch.
+    public func forgetFinishedTransfers(_ ids: Set<UUID>) { finished.subtract(ids) }
+
+    public func stop() {
+        stopped = true
+        for task in tasks.values { task.cancel() }
+        tasks.removeAll()
+        active.removeAll()
+        finished.removeAll()
+        results.removeAll()
+    }
 }

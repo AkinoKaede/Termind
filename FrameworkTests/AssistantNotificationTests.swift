@@ -9,6 +9,41 @@ import Testing
 
 @Suite @MainActor
 struct AssistantNotificationTests {
+    @Test(arguments: [false, true])
+    func removingConversationOrStoppingCancelsDeliveryAndDetachesEvents(stop: Bool) async {
+        let conversation = ConversationModel()
+        let store = AssistantConversationStore(conversations: [conversation])
+        let sender = NotificationDeliveryRecorder()
+        let coordinator = AssistantNotificationCoordinator(
+            service: sender, preferences: { .init() }, isFocused: { _ in false },
+            content: AssistantNotificationContent.make)
+        coordinator.observe(conversation)
+        conversation.handle(.runFinished(.init(id: UUID(), state: .completed, startedAt: .now)))
+        _ = await sender.nextRequest()
+        if stop { coordinator.stop() } else { store.remove(conversation.id) }
+        await sender.finishDelivery()
+        #expect(sender.sent.isEmpty)
+        let unread = conversation.unreadNotificationCount
+        conversation.handle(.runFinished(.init(id: UUID(), state: .completed, startedAt: .now)))
+        #expect(conversation.unreadNotificationCount == unread)
+        #expect(conversation.notificationEvent == nil)
+    }
+
+    @Test func stoppingKeepsAlreadyDeliveredCompletionNotifications() async {
+        let conversation = ConversationModel()
+        let sender = NotificationDeliveryRecorder()
+        let coordinator = AssistantNotificationCoordinator(
+            service: sender, preferences: { .init() }, isFocused: { _ in false },
+            content: AssistantNotificationContent.make)
+        coordinator.observe(conversation)
+        conversation.handle(.runFinished(.init(id: UUID(), state: .completed, startedAt: .now)))
+        _ = await sender.nextRequest()
+        await sender.finishDelivery()
+        coordinator.stop()
+        #expect(sender.sent.count == 1)
+        #expect(sender.removed.isEmpty)
+    }
+
     @Test func manuallyChangingUnreadStateIsIdempotentAndDoesNotSendNotifications() async {
         let fixture = AssistantNotificationFixture()
         let conversation = fixture.conversation

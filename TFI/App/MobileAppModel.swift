@@ -45,9 +45,16 @@ final class MobileAppModel {
     let notifications = SystemNotifications()
     let notificationSettings: NotificationSettingsModel
     @ObservationIgnored private var sftpNotifications: SFTPNotificationCoordinator?
-    private var pendingTransferNotification = false
-    private var pendingAssistantNotification: UUID?
+    @ObservationIgnored private lazy var notificationRouter = MobileNotificationRouter(app: self)
     @ObservationIgnored private var notificationBadge: NotificationBadgeCoordinator?
+    @ObservationIgnored private lazy var terminalNotifications = TerminalNotificationCoordinator(
+        service: notifications,
+        preferences: { [weak self] in self?.notificationSettings.preferences ?? .init() },
+        isFocused: { [weak self] in self?.isTerminalNotificationFocused($0) ?? false },
+        title: { [weak self] id in self?.workspaces.first { $0.id == id }?.descriptor.title },
+        body: CommandNotificationContent.body,
+        ringBell: TerminalNotificationPlatform.ringBell)
+
     @ObservationIgnored private lazy var assistantNotifications = AssistantNotificationCoordinator(
         service: notifications,
         preferences: { [weak self] in self?.notificationSettings.preferences ?? .init() },
@@ -65,7 +72,6 @@ final class MobileAppModel {
     func registerPaneScene(_ scene: MobileSceneModel) {
         paneScenes = paneScenes.filter { $0.value.value != nil }
         paneScenes[scene.id] = WeakPaneScene(scene)
-        notifications.onOpen = { [weak self] target in self?.openNotification(target) }
     }
 
     func paneAccess(for source: MobileSceneModel) -> AgentPaneAccess {
@@ -378,7 +384,8 @@ final class MobileAppModel {
             isFocused: { [weak self] in self?.scenePhases.values.contains { $0 != .background } ?? false },
             content: SFTPNotificationContent.make)
         library.sftpTransferStateDidChange = { [weak self] in self?.sftpNotifications?.receive($0) }
-        notifications.onOpen = { [weak self] target in self?.openNotification(target) }
+        library.sftpTransfersDidRemove = { [weak self] in self?.sftpNotifications?.forgetFinishedTransfers($0) }
+        notifications.onOpen = { [weak self] target in self?.notificationRouter.open(target) }
         notificationBadge = NotificationBadgeCoordinator(service: notifications) { [weak self] in
             guard let self, self.notificationSettings.preferences.isEnabled else { return 0 }
             return self.unreadNotificationCount
@@ -537,8 +544,7 @@ final class MobileAppModel {
         scenePhases[id] = phase
         refreshCommandFocus()
         if phase == .active {
-            resumePendingAssistantNotification()
-            resumePendingTransferNotification()
+            notificationRouter.resume()
         }
         let isBackground = allScenesAreBackgrounded
         if isBackground && !wasBackground {
@@ -756,41 +762,12 @@ final class MobileAppModel {
     func clearNotificationBadge() {
         notificationBadge?.stop()
         sftpNotifications?.stop()
+        assistantNotifications.stop()
+        terminalNotifications.stop()
+        notificationRouter.stop()
     }
 
-    private func commandNotificationExists(_ id: UUID) -> Bool { workspaces.contains { $0.id == id } }
     private func isTerminalNotificationFocused(_ id: UUID) -> Bool { isCommandWorkspaceFocused(id) }
-
-    private func openNotification(_ target: NotificationTarget) {
-        switch target {
-        case .transfers:
-            pendingTransferNotification = true
-            resumePendingTransferNotification()
-        case .terminal(let id): openCommandNotification(id)
-        case .assistant(let id):
-            pendingAssistantNotification = id
-            resumePendingAssistantNotification()
-        }
-    }
-
-    private func resumePendingAssistantNotification() {
-        guard let id = pendingAssistantNotification else { return }
-        Task { [weak self] in
-            guard let self else { return }
-            await assistant.load()
-            guard pendingAssistantNotification == id,
-                let scene = selectAssistantNotificationTarget(id)
-            else { return }
-            pendingAssistantNotification = nil
-            MobileNotificationPlatform.activate(sessionID: scene.workspaceSession.id)
-        }
-    }
-
-    private func resumePendingTransferNotification() {
-        guard pendingTransferNotification, let scene = selectTransferNotificationTarget() else { return }
-        pendingTransferNotification = false
-        MobileNotificationPlatform.activate(sessionID: scene.workspaceSession.id)
-    }
 
     @discardableResult
     func selectTransferNotificationTarget() -> MobileSceneModel? {
@@ -826,7 +803,7 @@ final class MobileAppModel {
         }
     }
 
-    private func openCommandNotification(_ id: UUID) {
+    func openCommandNotification(_ id: UUID) {
         guard workspaces.contains(where: { $0.id == id }), let owner = workspaceOwner(id) else { return }
         if let scene = paneScenes.values.compactMap(\.value).first(where: { $0.workspaceSession.id == owner }) {
             scene.selectWorkspace(id)
@@ -835,33 +812,7 @@ final class MobileAppModel {
     }
 
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {
-        workspace.commandMonitor.preferences = { [weak self] in
-            self?.notificationSettings.preferences ?? .init()
-        }
-        workspace.commandMonitor.isWorkspaceFocused = { [weak self, weak workspace] in
-            guard let self, let workspace else { return false }
-            return self.isCommandWorkspaceFocused(workspace.id)
-        }
-        workspace.commandMonitor.alert = { [weak self, weak workspace] completion, settings in
-            guard let self, let workspace else { return }
-            if settings.terminalDelivery == .bell {
-                TerminalNotificationPlatform.ringBell()
-            } else {
-                let title = workspace.descriptor.title
-                let body = CommandNotificationContent.body(completion)
-                let id = workspace.id
-                Task { [weak self] in
-                    guard let self else { return }
-                    await notifications.send(.init(target: .terminal(id), title: title, body: body)) { [weak self] in
-                        guard let self else { return false }
-                        let settings = self.notificationSettings.preferences
-                        return settings.terminalDelivery == .systemNotifications && self.commandNotificationExists(id)
-                            && settings.allowsTerminal(
-                                duration: completion.duration, isFocused: self.isTerminalNotificationFocused(id))
-                    }
-                }
-            }
-        }
+        terminalNotifications.observe(workspace.commandMonitor, id: workspace.id)
 
         observeActivityState(of: workspace)
         workspace.didRequestClose = close

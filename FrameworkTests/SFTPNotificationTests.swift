@@ -6,6 +6,36 @@ import Testing
 
 @Suite @MainActor
 struct SFTPNotificationTests {
+    @Test func clearingFinishedHistoryPreservesThePendingBatchSummary() async {
+        let fixture = Fixture()
+        var removed = Set<UUID>()
+        fixture.store.sftpTransfersDidRemove = { [weak coordinator = fixture.coordinator] ids in
+            removed.formUnion(ids)
+            coordinator?.forgetFinishedTransfers(ids)
+        }
+        let first = fixture.enqueue()
+        let second = fixture.enqueue()
+        fixture.store.finishSFTPTransfer(first, state: .completed)
+        fixture.store.removeFinishedSFTPTransfer(first)
+        #expect(removed == [first])
+        fixture.store.finishSFTPTransfer(second, state: .failed("failure"))
+        fixture.store.clearFinishedSFTPTransfers()
+        #expect(removed == [first, second])
+        await settle()
+        #expect(fixture.sender.sent.map(\.body) == ["1/1"])
+    }
+
+    @Test func stoppingCancelsASuspendedDelivery() async {
+        let sender = NotificationDeliveryRecorder()
+        let coordinator = SFTPNotificationCoordinator(
+            service: sender, preferences: { .init() }, isFocused: { false }, content: { _, _ in ("", "") })
+        coordinator.receive(SFTPTransfer(localPath: "local", remotePath: "remote", state: .completed))
+        _ = await sender.nextRequest()
+        coordinator.stop()
+        await sender.finishDelivery()
+        #expect(sender.sent.isEmpty)
+    }
+
     @Test func allTransfersFinishBeforeOneSummaryAndPausedWorkIsExcluded() async {
         let fixture = Fixture()
         let first = fixture.enqueue()

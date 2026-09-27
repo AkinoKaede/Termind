@@ -66,6 +66,7 @@ public final class AssistantConversationStore {
     public func remove(_ id: ConversationModel.ID) -> Int? {
         guard let index = conversations.firstIndex(where: { $0.id == id }) else { return nil }
         conversations[index].stop()
+        conversations[index].notificationEvent?(.removed)
         conversations.remove(at: index)
         return index
     }

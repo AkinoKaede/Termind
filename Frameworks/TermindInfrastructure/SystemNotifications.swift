@@ -13,14 +13,18 @@ public final class SystemNotifications: NSObject, NotificationSending, UNUserNot
         }
     }
     private var pendingTarget: NotificationTarget?
-    private let center: UNUserNotificationCenter?
+    private let center: (any UserNotificationCenterClient)?
     private var desiredBadgeCount = 0
     private var badgeTask: Task<Void, Never>?
 
-    public override init() {
-        center =
-            ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
-            ? UNUserNotificationCenter.current() : nil
+    public override convenience init() {
+        self.init(
+            center: ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+                ? NativeUserNotificationCenter() : nil)
+    }
+
+    init(center: (any UserNotificationCenterClient)?) {
+        self.center = center
         super.init()
         center?.delegate = self
         setBadgeCount(0)
@@ -28,10 +32,10 @@ public final class SystemNotifications: NSObject, NotificationSending, UNUserNot
 
     public func authorization(request: Bool = false) async -> NotificationAuthorization {
         guard let center else { return .denied }
-        var status = await center.notificationSettings().authorizationStatus
+        var status = await center.authorizationStatus()
         if request, status == .notDetermined {
             _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
-            status = await center.notificationSettings().authorizationStatus
+            status = await center.authorizationStatus()
         }
         switch status {
         case .authorized, .provisional, .ephemeral: return .allowed
@@ -76,7 +80,7 @@ public final class SystemNotifications: NSObject, NotificationSending, UNUserNot
         }
     }
 
-    private nonisolated static func target(_ content: UNNotificationContent) -> NotificationTarget? {
+    nonisolated static func target(_ content: UNNotificationContent) -> NotificationTarget? {
         guard let kind = content.userInfo["targetKind"] as? String,
             let id = content.userInfo["targetID"] as? String
         else { return nil }
@@ -92,13 +96,50 @@ public final class SystemNotifications: NSObject, NotificationSending, UNUserNot
     public nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
     ) async {
-        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
-            let target = Self.target(response.notification.request.content)
-        else { return }
-        let identifier = response.notification.request.identifier
-        await MainActor.run {
-            remove([identifier])
-            if let onOpen { onOpen(target) } else { pendingTarget = target }
-        }
+        await receiveResponse(
+            action: response.actionIdentifier,
+            identifier: response.notification.request.identifier,
+            target: Self.target(response.notification.request.content))
     }
+
+    func receiveResponse(action: String, identifier: String, target: NotificationTarget?) {
+        guard action == UNNotificationDefaultActionIdentifier, let target else { return }
+        remove([identifier])
+        if let onOpen { onOpen(target) } else { pendingTarget = target }
+    }
+}
+
+/// A narrow seam for exercising delivery races without accessing the user's notification center.
+@MainActor
+protocol UserNotificationCenterClient: AnyObject {
+    var delegate: (any UNUserNotificationCenterDelegate)? { get set }
+    func authorizationStatus() async -> UNAuthorizationStatus
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
+    func add(_ request: UNNotificationRequest) async throws
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String])
+    func setBadgeCount(_ count: Int) async throws
+}
+
+@MainActor
+private final class NativeUserNotificationCenter: UserNotificationCenterClient {
+    private let center = UNUserNotificationCenter.current()
+    var delegate: (any UNUserNotificationCenterDelegate)? {
+        get { center.delegate }
+        set { center.delegate = newValue }
+    }
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await center.notificationSettings().authorizationStatus
+    }
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
+        try await center.requestAuthorization(options: options)
+    }
+    func add(_ request: UNNotificationRequest) async throws { try await center.add(request) }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+    func setBadgeCount(_ count: Int) async throws { try await center.setBadgeCount(count) }
 }

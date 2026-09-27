@@ -9,6 +9,35 @@ import Testing
 
 @Suite @MainActor
 struct CommandNotificationTests {
+    @Test func notificationRouterUsesTheLatestClickAndConsumesItOnce() async throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let window = WindowModel()
+        app.registerWindow(window)
+        let first = ConversationModel()
+        let second = ConversationModel()
+        first.composer.draft = "First"
+        second.composer.draft = "Second"
+        _ = try #require(window.assistantLibrary.startConversation(first))
+        _ = try #require(window.assistantLibrary.startConversation(second))
+        let activations = AsyncStream<Void>.makeStream()
+        var count = 0
+        let router = DesktopNotificationRouter(app: app) { _ in
+            count += 1
+            activations.continuation.yield(())
+        }
+        router.open(.assistant(first.id))
+        router.open(.assistant(second.id))
+        var iterator = activations.stream.makeAsyncIterator()
+        _ = await iterator.next()
+        #expect(window.assistantLibrary.selectedConversationID == second.id)
+        router.resume()
+        #expect(count == 1)
+        router.stop()
+        router.open(.assistant(first.id))
+        router.resume()
+        #expect(window.assistantLibrary.selectedConversationID == second.id)
+    }
+
     @Test func manuallyUnreadWorkspacesCountOnceWithoutRequiringATerminal() {
         let app = AppModel(hosts: HostLibraryModel())
         let window = WindowModel()
