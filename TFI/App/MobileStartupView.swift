@@ -45,29 +45,40 @@ private struct MobileQuickActionSceneRoot: View {
     }
 }
 
-private struct MobileBoundSceneRoot: View {
+struct MobileBoundSceneRoot: View {
     let app: MobileAppModel
+    let sessionID: String
     @ObservedObject var delegate: MobileSceneDelegate
-    @State private var scene: MobileSceneModel
-
-    init(app: MobileAppModel, sessionID: String, delegate: MobileSceneDelegate) {
-        self.app = app
-        self.delegate = delegate
-        _scene = State(initialValue: MobileSceneModel(app: app, sessionID: sessionID))
-    }
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var scene: MobileSceneModel?
 
     var body: some View {
-        MobileRootView(
-            app: app,
-            scene: scene,
-            pendingQuickAction: delegate.pendingQuickAction,
-            consumePendingQuickAction: delegate.consumePendingQuickAction
-        )
-        .onAppear { delegate.bind(to: app) }
-        .onChange(of: delegate.pendingWorkspaceID, initial: true) { _, id in
-            guard id != nil, let id = delegate.consumePendingWorkspaceID() else { return }
-            MobileWorkspaceSceneRouting.reconcile(app: app, activeSessionID: scene.workspaceSession.id)
-            scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+        Group {
+            if let scene {
+                MobileRootView(
+                    app: app,
+                    scene: scene,
+                    pendingQuickAction: delegate.pendingQuickAction,
+                    consumePendingQuickAction: delegate.consumePendingQuickAction
+                )
+                .onAppear { delegate.bind(to: app) }
+                .task(id: scenePhase == .active ? delegate.pendingWorkspaceID : nil) {
+                    guard scenePhase == .active, delegate.pendingWorkspaceID != nil else { return }
+                    await Task.yield()
+                    guard !Task.isCancelled, let id = delegate.consumePendingWorkspaceID() else { return }
+                    MobileWorkspaceSceneRouting.reconcile(app: app, activeSessionID: scene.workspaceSession.id)
+                    scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+                }
+            } else {
+                // WindowGroup needs a concrete loading child to start the scene's lifecycle work.
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task {
+            // Creating a scene registers observable app state. Keep it out of view construction
+            // and body evaluation, and retain the same scene when its parent updates.
+            if scene == nil { scene = MobileSceneModel(app: app, sessionID: sessionID) }
         }
     }
 }

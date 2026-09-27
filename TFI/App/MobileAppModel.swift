@@ -546,7 +546,11 @@ final class MobileAppModel {
         scenePhases[id] = phase
         refreshCommandFocus()
         if phase == .active {
-            notificationRouter.resume()
+            Task { [weak self] in
+                await Task.yield()
+                guard let self, self.scenePhases[id] == .active else { return }
+                self.notificationRouter.resume()
+            }
         }
         let isBackground = allScenesAreBackgrounded
         if isBackground && !wasBackground {
@@ -771,30 +775,28 @@ final class MobileAppModel {
 
     private func isTerminalNotificationFocused(_ id: UUID) -> Bool { isCommandWorkspaceFocused(id) }
 
-    @discardableResult
-    func selectTransferNotificationTarget() -> MobileSceneModel? {
-        let available = paneScenes.values.compactMap(\.value)
-        guard let scene = available.first(where: { scenePhases[$0.id] == .active }) ?? available.first else {
-            return nil
-        }
-        scene.openTransfers()
-        return scene
+    func isNotificationSceneActive(_ scene: MobileSceneModel) -> Bool { scenePhases[scene.id] == .active }
+
+    var hasActiveNotificationScene: Bool { scenePhases.values.contains(.active) }
+
+    private var notificationScenes: [MobileSceneModel] {
+        paneScenes.values.compactMap(\.value).sorted { $0.id.uuidString < $1.id.uuidString }
     }
 
-    @discardableResult
-    func selectAssistantNotificationTarget(_ id: UUID) -> MobileSceneModel? {
-        let available = paneScenes.values.compactMap(\.value).sorted { $0.id.uuidString < $1.id.uuidString }
-        guard
-            let scene = available.first(where: { scenePhases[$0.id] == .active && $0.isShowingAssistant(id) })
-                ?? available.first(where: { $0.isShowingAssistant(id) })
-                ?? available.first(where: {
-                    scenePhases[$0.id] == .active && $0.assistant.library.selectedConversationID == id
-                })
-                ?? available.first(where: { $0.assistant.library.selectedConversationID == id })
-                ?? available.first(where: { scenePhases[$0.id] == .active }) ?? available.first
-        else { return nil }
-        scene.openAssistantNotification(id)
-        return scene
+    func transferNotificationTarget() -> MobileSceneModel? {
+        let available = notificationScenes
+        return available.first(where: isNotificationSceneActive) ?? available.first
+    }
+
+    func assistantNotificationTarget(_ id: UUID) -> MobileSceneModel? {
+        let available = notificationScenes
+        return available.first(where: { isNotificationSceneActive($0) && $0.isShowingAssistant(id) })
+            ?? available.first(where: { $0.isShowingAssistant(id) })
+            ?? available.first(where: {
+                isNotificationSceneActive($0) && $0.assistant.library.selectedConversationID == id
+            })
+            ?? available.first(where: { $0.assistant.library.selectedConversationID == id })
+            ?? available.first(where: isNotificationSceneActive) ?? available.first
     }
 
     func isCommandWorkspaceFocused(_ id: UUID) -> Bool {
@@ -809,12 +811,9 @@ final class MobileAppModel {
         }
     }
 
-    func openCommandNotification(_ id: UUID) {
-        guard workspaces.contains(where: { $0.id == id }), let owner = workspaceOwner(id) else { return }
-        if let scene = paneScenes.values.compactMap(\.value).first(where: { $0.workspaceSession.id == owner }) {
-            scene.selectWorkspace(id)
-        }
-        MobileWorkspaceSceneRouting.activate(sessionID: owner, workspaceID: id, unavailable: {})
+    func commandNotificationTarget(in sessionID: String) -> MobileSceneModel? {
+        let available = notificationScenes.filter { $0.workspaceSession.id == sessionID }
+        return available.first(where: isNotificationSceneActive) ?? available.first
     }
 
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {

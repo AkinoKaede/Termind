@@ -32,13 +32,13 @@ struct MobileWorkspaceSessionTests {
         app.sceneChanged(scenes[0].id, phase: .inactive)
         app.sceneChanged(scenes[1].id, phase: .active)
 
-        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[1])
-        if !visible { scenes[1].selectedDestination = .vault }
+        #expect(app.assistantNotificationTarget(conversation.id) === scenes[1])
+        #expect(scenes[1].isShowingAssistant(conversation.id) == visible)
         app.sceneChanged(scenes[0].id, phase: .active)
-        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[0])
+        #expect(app.assistantNotificationTarget(conversation.id) === scenes[0])
 
         app.removeScene(scenes[0].id)
-        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[1])
+        #expect(app.assistantNotificationTarget(conversation.id) === scenes[1])
     }
 
     @Test(arguments: [true, false])
@@ -60,26 +60,24 @@ struct MobileWorkspaceSessionTests {
         app.sceneChanged(other.id, phase: .active)
         app.sceneChanged(owner.id, phase: .background)
         #expect(!app.isAssistantNotificationFocused(conversation.id))
-        let activations = AsyncStream<String>.makeStream()
-        var activationCount = 0
-        let router = MobileNotificationRouter(app: app) {
-            activationCount += 1
-            activations.continuation.yield($0)
-        }
+        var activations: [String] = []
+        let router = MobileNotificationRouter(app: app) { sessionID, _ in activations.append(sessionID) }
         router.open(.assistant(conversation.id))
-        var iterator = activations.stream.makeAsyncIterator()
-        #expect(await iterator.next() == owner.workspaceSession.id)
-        #expect(owner.isShowingAssistant(conversation.id))
+        #expect(activations == [owner.workspaceSession.id])
+        #expect(!owner.isShowingAssistant(conversation.id))
         #expect(other.assistant.library.selectedConversationID == nil)
         router.resume()
-        #expect(activationCount == 1)
+        #expect(activations.count == 1)
+        app.sceneChanged(owner.id, phase: .active)
+        router.resume()
+        try await waitUntil { owner.isShowingAssistant(conversation.id) }
         router.stop()
 
         owner.selectedDestination = .vault
         other.openAssistantNotification(conversation.id)
         app.sceneChanged(owner.id, phase: .active)
         app.sceneChanged(other.id, phase: .background)
-        #expect(app.selectAssistantNotificationTarget(conversation.id) === other)
+        #expect(app.assistantNotificationTarget(conversation.id) === other)
         #expect(owner.selectedDestination == .vault)
     }
 
@@ -88,18 +86,29 @@ struct MobileWorkspaceSessionTests {
         defer { fixture.cleanUp() }
         let app = try fixture.makeApp()
         var activated: [String] = []
-        let router = MobileNotificationRouter(app: app) { activated.append($0) }
+        let router = MobileNotificationRouter(app: app) { sessionID, _ in activated.append(sessionID) }
         router.open(.transfers)
         #expect(activated.isEmpty)
         let scene = MobileSceneModel(app: app, sessionID: "notification-routing")
         router.resume()
-        #expect(scene.showsTransfers)
-        #expect(activated == [scene.workspaceSession.id])
+        #expect(!scene.showsTransfers)
+        #expect(activated.isEmpty)
+        app.sceneChanged(scene.id, phase: .active)
         router.resume()
-        #expect(activated.count == 1)
+        #expect(scene.showsTransfers)
+        #expect(activated.isEmpty)
+        scene.showsTransfers = false
+        router.resume()
+        #expect(!scene.showsTransfers)
         router.stop()
         router.open(.transfers)
-        #expect(activated.count == 1)
+        #expect(!scene.showsTransfers)
+        #expect(activated.isEmpty)
+        let foregroundRouter = MobileNotificationRouter(app: app) { sessionID, _ in activated.append(sessionID) }
+        foregroundRouter.open(.transfers)
+        #expect(scene.showsTransfers)
+        #expect(activated.isEmpty)
+        foregroundRouter.stop()
     }
 
     @Test func assistantNotificationRouterUsesTheLatestClick() async throws {
@@ -113,13 +122,56 @@ struct MobileWorkspaceSessionTests {
         second.composer.draft = "Second"
         _ = try #require(scene.assistant.library.startConversation(first))
         _ = try #require(scene.assistant.library.startConversation(second))
-        let activations = AsyncStream<String>.makeStream()
-        let router = MobileNotificationRouter(app: app) { activations.continuation.yield($0) }
+        app.sceneChanged(scene.id, phase: .active)
+        var activations: [String] = []
+        scene.assistant.library.select(first.id)
+        scene.selectedDestination = .vault
+        let router = MobileNotificationRouter(app: app) { sessionID, _ in activations.append(sessionID) }
         router.open(.assistant(first.id))
         router.open(.assistant(second.id))
-        var iterator = activations.stream.makeAsyncIterator()
-        #expect(await iterator.next() == scene.workspaceSession.id)
+        try await waitUntil { scene.isShowingAssistant(second.id) }
+        #expect(activations.isEmpty)
         #expect(scene.assistant.library.selectedConversationID == second.id)
+        router.stop()
+    }
+
+    @Test func notificationActivationRetriesAndIgnoresFailuresFromEarlierClicks() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let owner = MobileSceneModel(app: app, sessionID: "retry-notification")
+        let other = MobileSceneModel(app: app, sessionID: "active-notification")
+        owner.open(hostID: fixture.host.id, kind: .ssh)
+        owner.activatePendingWorkspace()
+        let workspaceID = try #require(owner.activeWorkspace?.id)
+        owner.selectedDestination = .vault
+        app.sceneChanged(owner.id, phase: .background)
+        app.sceneChanged(other.id, phase: .active)
+        var activations: [String] = []
+        var failures: [@MainActor () -> Void] = []
+        let router = MobileNotificationRouter(app: app) { sessionID, failed in
+            activations.append(sessionID)
+            failures.append(failed)
+        }
+
+        router.open(.terminal(workspaceID))
+        #expect(activations == [owner.workspaceSession.id])
+        #expect(owner.selectedDestination == .vault)
+        let firstFailure = try #require(failures.first)
+        firstFailure()
+        router.resume()
+        #expect(activations.count == 2)
+        let retryFailure = try #require(failures.last)
+        router.open(.terminal(workspaceID))
+        #expect(activations == Array(repeating: owner.workspaceSession.id, count: 3))
+        // The earlier request can fail after a new click has requested this same window.
+        retryFailure()
+        router.resume()
+        #expect(activations.count == 3)
+        app.sceneChanged(owner.id, phase: .active)
+        router.resume()
+        #expect(owner.selectedDestination == .workspaces)
+        router.stop()
     }
 
     @Test func transferNotificationOpensTransfersWithoutMarkingUnread() throws {
@@ -130,7 +182,11 @@ struct MobileWorkspaceSessionTests {
         scene.open(hostID: fixture.host.id, kind: .sftp)
         scene.activatePendingWorkspace()
         app.sceneChanged(scene.id, phase: .active)
-        #expect(app.selectTransferNotificationTarget() === scene)
+        #expect(app.transferNotificationTarget() === scene)
+        #expect(!scene.showsTransfers)
+        let router = MobileNotificationRouter(app: app) { _, _ in Issue.record("Scene is already active") }
+        defer { router.stop() }
+        router.open(.transfers)
         #expect(scene.selectedDestination == .workspaces && scene.showsTransfers && scene.workspaceID == nil)
         #expect(app.unreadNotificationCount == 0)
     }
@@ -159,7 +215,7 @@ struct MobileWorkspaceSessionTests {
         #expect(second.unreadWorkspaceIDs.isEmpty)
     }
 
-    @Test func assistantNotificationsRespectSceneFocusAndOpenTheExistingConversation() throws {
+    @Test func assistantNotificationsRespectSceneFocusAndOpenTheExistingConversation() async throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
         let app = try fixture.makeApp()
@@ -184,13 +240,18 @@ struct MobileWorkspaceSessionTests {
         #expect(first.assistant.library.conversation(id: peer.id) === peer)
         app.sceneChanged(first.id, phase: .background)
         #expect(app.isAssistantNotificationFocused(conversation.id))
-        #expect(app.selectAssistantNotificationTarget(conversation.id) === first)
+        #expect(app.assistantNotificationTarget(conversation.id) === first)
         #expect(first.assistant.conversation === conversation)
         first.selectedDestination = .vault
         #expect(!app.isAssistantNotificationFocused(conversation.id))
         #expect(app.isAssistantNotificationFocused(peer.id))
-        #expect(app.selectAssistantNotificationTarget(UUID()) === second)
-        #expect(second.assistantLibraryRoute == .conversations)
+        let missingConversationID = UUID()
+        #expect(app.assistantNotificationTarget(missingConversationID) === second)
+        #expect(second.assistantLibraryRoute == nil)
+        let router = MobileNotificationRouter(app: app) { _, _ in Issue.record("Scene is already active") }
+        defer { router.stop() }
+        router.open(.assistant(missingConversationID))
+        try await waitUntil { second.assistantLibraryRoute == .conversations }
     }
 
     @Test func commandCompletionDotsUseVisibleWorkspaceInItsOwningScene() throws {
@@ -227,6 +288,50 @@ struct MobileWorkspaceSessionTests {
         first.closeWorkspace(workspace.id)
         workspace.commandMonitor.receiveOSC133(exitCode: 0, durationNanos: 1)
         #expect(!workspace.commandMonitor.hasUnreadCompletion)
+    }
+
+    @Test func commandNotificationWaitsForItsBackgroundWindowToActivate() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let owner = MobileSceneModel(app: app, sessionID: "command-owner")
+        let other = MobileSceneModel(app: app, sessionID: "command-other")
+        owner.open(hostID: fixture.host.id, kind: .ssh)
+        owner.activatePendingWorkspace()
+        let workspaceID = try #require(owner.activeWorkspace?.id)
+        owner.selectedDestination = .vault
+        app.sceneChanged(owner.id, phase: .background)
+        var activations: [String] = []
+        let router = MobileNotificationRouter(app: app) { sessionID, _ in activations.append(sessionID) }
+        router.open(.terminal(workspaceID))
+
+        // Wait for UIKit to foreground the app before requesting a different owner window.
+        router.resume()
+        #expect(activations.isEmpty)
+        #expect(owner.selectedDestination == .vault)
+        app.sceneChanged(other.id, phase: .active)
+        router.resume()
+        #expect(owner.selectedDestination == .vault)
+        #expect(owner.workspaceID == workspaceID)
+        #expect(other.selectedDestination == .vault)
+        #expect(activations.count == 1)
+        #expect(activations.first == owner.workspaceSession.id)
+
+        // UIKit activates the owner, then the pending route selects its workspace.
+        app.sceneChanged(owner.id, phase: .active)
+        #expect(app.workspaceOwner(workspaceID) == owner.workspaceSession.id)
+        router.resume()
+        #expect(owner.selectedDestination == .workspaces)
+        owner.activatePendingWorkspace()
+        #expect(owner.activeWorkspace?.id == workspaceID)
+        #expect(activations.count == 1)
+
+        owner.selectedDestination = .vault
+        router.open(.terminal(workspaceID))
+        #expect(owner.selectedDestination == .workspaces)
+        owner.activatePendingWorkspace()
+        #expect(owner.activeWorkspace?.id == workspaceID)
+        #expect(activations.count == 1)
     }
 
     @Test func paneAccessExcludesDormantAndDisconnectedWorkspacesAcrossScenes() throws {
@@ -526,6 +631,14 @@ struct MobileWorkspaceSessionTests {
     private final class Background: MobileBackgroundTaskManaging {
         func begin(expiration: @escaping @MainActor () -> Void) {}
         func finish() {}
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        for _ in 0..<100 {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(condition())
     }
 
     private final class Fixture {
