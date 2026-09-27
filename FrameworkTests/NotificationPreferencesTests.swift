@@ -9,6 +9,49 @@ import Testing
 
 @Suite @MainActor
 struct NotificationPreferencesTests {
+    @Test func initialAuthorizationIsRequestedOnceAcrossConcurrentScenesAndReactivation() async {
+        let model = NotificationSettingsModel()
+        let service = InitialAuthorizationService()
+        service.holdAuthorization = true
+        let firstScene = Task { await model.requestInitialAuthorization(using: service) }
+        await service.nextRequest()
+        await model.requestInitialAuthorization(using: service)
+        #expect(service.requests == [true])
+        service.finishRequest()
+        await firstScene.value
+        await model.requestInitialAuthorization(using: service)
+        #expect(service.requests == [true])
+    }
+
+    @Test(arguments: [false, true])
+    func initialAuthorizationRespectsDisabledNotificationsAndBellOnlyDelivery(bellOnly: Bool) async {
+        let store = NotificationStore()
+        if bellOnly {
+            store.value.assistantMode = .never
+            store.value.sftpMode = .never
+            store.value.terminalDelivery = .bell
+        } else {
+            store.value.isEnabled = false
+        }
+        let model = NotificationSettingsModel(persistence: store)
+        let service = InitialAuthorizationService()
+        await model.requestInitialAuthorization(using: service)
+        #expect(service.requests.isEmpty)
+        model.applyRemoteSnapshot(.init())
+        await model.requestInitialAuthorization(using: service)
+        #expect(service.requests == [true])
+    }
+
+    @Test func failedPreferenceLoadDoesNotRequestAuthorizationUsingDefaults() async {
+        let store = NotificationStore()
+        store.fails = true
+        let model = NotificationSettingsModel(persistence: store)
+        let service = InitialAuthorizationService()
+        await model.requestInitialAuthorization(using: service)
+        #expect(model.storageError != nil)
+        #expect(service.requests.isEmpty)
+    }
+
     @Test func defaultsAndIndependentModesAndPermissionRequirements() {
         var value = NotificationPreferences()
         #expect(value.isEnabled)
@@ -145,11 +188,42 @@ struct NotificationPreferencesTests {
 @MainActor private final class NotificationStore: NotificationPreferencesPersisting {
     var value = NotificationPreferences()
     var fails = false
-    func loadNotificationPreferences() throws -> NotificationPreferences { value }
+    func loadNotificationPreferences() throws -> NotificationPreferences {
+        if fails { throw CocoaError(.fileReadUnknown) }
+        return value
+    }
     func saveNotificationPreferences(_ value: NotificationPreferences) throws {
         if fails { throw CocoaError(.fileWriteUnknown) }
         self.value = value
     }
+}
+
+@MainActor private final class InitialAuthorizationService: NotificationSending {
+    var requests: [Bool] = []
+    var holdAuthorization = false
+    private var pending: CheckedContinuation<Void, Never>?
+    private let arrivals = AsyncStream<Void>.makeStream()
+
+    func authorization(request: Bool) async -> NotificationAuthorization {
+        requests.append(request)
+        if holdAuthorization {
+            await withCheckedContinuation {
+                pending = $0
+                arrivals.continuation.yield(())
+            }
+        }
+        return .notDetermined
+    }
+    func nextRequest() async {
+        var iterator = arrivals.stream.makeAsyncIterator()
+        _ = await iterator.next()
+    }
+    func finishRequest() {
+        pending?.resume()
+        pending = nil
+    }
+    func send(_ notification: AppNotification, ifCurrent: @escaping @MainActor () -> Bool) async {}
+    func remove(_ identifiers: [String]) {}
 }
 
 @MainActor private struct NotificationFixture {

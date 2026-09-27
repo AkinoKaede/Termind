@@ -206,6 +206,7 @@ struct RootView: View {
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.
         .environment(window)
+        .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
         .modifier(AppReviewPresenter(window: window))
         .proPaywallPresenter(app: app, window: window)
         .focusedSceneValue(\.window, window)

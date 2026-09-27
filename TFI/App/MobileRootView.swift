@@ -40,6 +40,7 @@ struct MobileRootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
         .onChange(of: scene.visibleAssistantConversationID, initial: true) { app.refreshAssistantReadState() }
         .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {

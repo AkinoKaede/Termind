@@ -7,6 +7,17 @@ import UserNotifications
 
 @Suite @MainActor
 struct SystemNotificationsTests {
+    @Test(arguments: [UNAuthorizationStatus.authorized, .denied, .provisional])
+    func configuredAuthorizationDoesNotPromptAgain(status: UNAuthorizationStatus) async {
+        let center = Center()
+        center.status = status
+        let service = SystemNotifications(center: center)
+        let result = await service.authorization(request: true)
+        #expect(result == (status == .denied ? .denied : .allowed))
+        #expect(center.authorizationRequests == 0)
+        #expect(center.requests.isEmpty)
+    }
+
     @Test func permissionIsRequestedOnlyExplicitlyAndOnlyWhenUndetermined() async {
         let center = Center()
         center.status = .notDetermined
