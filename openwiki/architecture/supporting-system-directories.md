@@ -5,7 +5,7 @@ description: Build ownership and integration boundaries for AgentKit, the MCP br
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -41,6 +41,10 @@ sources:
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-6a4176e7d97bf05b3983882c
+    resource: repo://Scripts/run-mac-marketing-screenshots.sh
+  - id: openwiki-source-9621f35145a32a9f8391084b
+    resource: repo://Scripts/run-mobile-marketing-screenshots.sh
   - id: openwiki-source-a90133154199a9c011127920
     resource: repo://Scripts/Tests/test_bump_version.py
   - id: openwiki-source-a1213a08e73ca7ac095748f3
@@ -69,9 +73,11 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-e2813ac17589f2155998862e
+    resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Supporting Products and Tooling
@@ -80,7 +86,7 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. In this checkout the submodule directory is unpopulated, so its source layout, manifest, tests, resource generation, and dependency graph cannot be verified here. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.15.2`; `Package.resolved` records version `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
+`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. In this checkout the submodule directory is unpopulated, so its source layout, manifest, tests, resource generation, and dependency graph cannot be verified here. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.16.0`; `Package.resolved` records version `0.16.0` at revision `f78416b2b8523d09950872b96f0de841e2d704e8`. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
 
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from that separate repository; this checkout cannot substantiate their implementation. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
@@ -146,7 +152,7 @@ The script root has multiple independent workflows:
 
 - **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
 - **Remote fixtures and benchmarks:** SSH authentication, OpenSSH forwarding, and Telnet fixtures; native/external forwarding runners and their shared benchmark helpers.
-- **Screenshots and assets:** Mac/mobile capture runners, screenshot-demo launcher, and reproducible device-frame generation.
+- **Screenshots and assets:** Mac/mobile capture runners, screenshot-demo launcher, and reproducible device-frame generation. `run-mac-marketing-screenshots.sh` requires macOS 27, defaults to the workspace scene in `en`, `zh-Hans`, and `zh-Hant`, and accepts scene/locale filters. It builds `TFM` for testing with resolved dependencies, starts only `MacMarketingScreenshotTests` for each selection, waits for its focused-key-window readiness marker, checks capture dimensions, backs up existing files, then copies captures into `Marketing/Screenshots/Captures`. A missing readiness marker, lost focus, failing test, or wrong dimensions aborts instead of silently producing a replacement image. The mobile runner similarly uses a pinned `TFI` build, iOS 27 simulators and locale-specific capture tests, and only copies a locale's images after its test and expected-count checks pass.
 
 Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) to choose tests and [Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md) for measurement semantics. Routine documentation validation does not imply these app or wire suites have run.
 
@@ -168,7 +174,7 @@ Paths below are relative to `LandingPage`. This is a separate Node/Astro build, 
 | `public/brands` | Small third-party/product brand artwork used by the site. |
 | Root configuration | Astro/TypeScript/package configuration and locked web dependencies. |
 
-Marketing screenshots are imported from the asset pipeline, not copied wholesale into `public`. The production build runs Astro checks and asset generation. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
+Marketing screenshots are imported from the asset pipeline, not copied wholesale into `public`. `npm ci` installs locked dependencies; `npm run dev` runs local Astro, and `npm run build` performs `astro check && astro build`, transforming allowlisted frames into responsive outputs. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
 
 ## Marketing and design assets
 

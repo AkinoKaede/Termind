@@ -1,12 +1,22 @@
 ---
 type: asset-production-operations
 title: Marketing Assets and App Icons
-description: Locate the localized screenshot runners, derived device frames, App Store export checks, and layered app-icon sources for release artwork.
+description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and maintain layered platform app icons and shared UI assets.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
+  - id: openwiki-source-d87a42cf655efbaeefd54d4d
+    resource: repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
+  - id: openwiki-source-68ca54483f1d0e8fb48ee5cc
+    resource: repo://Frameworks/Resources/Assets.xcassets/LinuxDistributions/LinuxDistro-ubuntu.imageset/Contents.json
+  - id: openwiki-source-a6809548e658973d3caeb87b
+    resource: repo://Frameworks/TermindPresentation/HostDistributionIcon.swift
+  - id: openwiki-source-9991b648b0458ed9d4eb11d5
+    resource: repo://Frameworks/TermindPresentation/HostSystemIcon.swift
+  - id: openwiki-source-9f84e62524d638f4155e0c76
+    resource: repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-95b8dd8eb7ad1785ad9ce406
@@ -47,6 +57,8 @@ sources:
     resource: repo://TFITests/MobileMarketingScreenshotTests.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
     resource: repo://TFM/App/ScreenshotDemo.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-a93c339a06b550013d027e29
     resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
   - id: openwiki-source-6477f7482bee83060dc1667d
@@ -55,7 +67,7 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Marketing Assets and App Icons
@@ -120,7 +132,7 @@ Recapture an affected scene in every locale and regenerate only its matching fra
 
 ## Mac capture workflow
 
-`TFMTests/MacMarketingScreenshotTests.swift` captures the production `WindowGroup` through `ScreenshotDemoConfiguration`, not a second RootView, terminal, or transcript. It verifies that the app is active and the window key before and after capture, waits 300 ms for focused rendering, and captures at native 2× scale. The runner requires macOS 27.x and backs up replaced sources under `.build/screenshot-backups/<timestamp>/`.
+`TFMTests/MacMarketingScreenshotTests.swift` captures the production `WindowGroup` through `ScreenshotDemoConfiguration`, not a second RootView, terminal, or transcript. The debug demo launch selects an in-memory store and demo models rather than normal persisted data; the test forces a light, non-restorable, centered production window. It moves the pointer outside the content, temporarily ignores mouse events to prevent hover highlights, requires an active app and key window through the capture interval, waits 300 ms for focused rendering, and requires native 2× backing scale. The runner requires macOS 27.x and backs up replaced sources under `.build/screenshot-backups/<timestamp>/`.
 
 ```sh
 Scripts/run-mac-marketing-screenshots.sh
@@ -176,7 +188,9 @@ done
 
 Expect 18 opaque sRGB RGB images at each platform size, and inspect embedded ICC profiles rather than trusting colorspace alone. Do not deliver `.DS_Store`, manifests, previews, or temporary PNGs.
 
-## Layered app icons
+## Shared UI artwork versus layered app icons
+
+`Frameworks/Resources/Assets.xcassets` holds shared UI resources, not the App Store icon: `AccentColor.colorset` and `LinuxDistributions/` vector image sets. Each distribution image set preserves its SVG vector representation and uses template rendering; the bundled Linux distribution catalog maps detected distro IDs (including like-IDs) to those named assets. `HostDistributionIcon` tints the selected asset using the host color, distro brand color, or accent-color fallback; `HostSystemIcon` falls back to `server.rack` when no asset is selected. Changing a host-row screenshot may therefore require checking the shared asset and catalog as well as the marketing fixture. Do not confuse these runtime icons with the layered platform app icons.
 
 `TFM/Resources/AppIcon.icon` and `TFI/Resources/AppIcon.icon` are the platform icon sources selected by `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`. Each `icon.json` composes the SVG layers in order: Terminal, FrontWindow, MiddleWindow, BackWindow. Preserve that order, the shared-square platform declaration, individual lighting, disabled glass/specular/translucency, zero Terminal shadow, and the subtle 0.08 neutral shadow on the three window layers.
 

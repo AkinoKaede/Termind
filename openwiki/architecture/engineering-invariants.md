@@ -3,9 +3,6 @@ type: architecture-contract
 title: Cross-Cutting Engineering Invariants
 description: Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, agent, localization]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -17,6 +14,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-ce9687e1e441c1da9a8f908a
     resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
+  - id: openwiki-source-367221086eefa5586eade075
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantNotifications.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-875da2c4f1040409e53757af
@@ -27,16 +26,28 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-cd830b9886c3f5d3d7181662
+    resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
+  - id: openwiki-source-7697b59eb0c427284ef2b7a2
+    resource: repo://Frameworks/TermindApplication/NotificationBadgeCoordinator.swift
+  - id: openwiki-source-4bbd480165ecb32ecec906ec
+    resource: repo://Frameworks/TermindApplication/SFTPNotificationCoordinator.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-a6d04eaf0b5dc762d077f17e
+    resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
+  - id: openwiki-source-1b008d375c28ace3a9684717
+    resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
   - id: openwiki-source-8a925ad4232be8815ba03a04
     resource: repo://Frameworks/TermindDomain/Connections/HistorySyncTypes.swift
   - id: openwiki-source-c3006decff414f8b4ca021c4
     resource: repo://Frameworks/TermindDomain/Hosts/HostDeletion.swift
+  - id: openwiki-source-1ca741e9f21312b87c75fa28
+    resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
@@ -49,12 +60,16 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
   - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
+  - id: openwiki-source-95647caf87bfc76c0a8884d2
+    resource: repo://Frameworks/TermindInfrastructure/SystemNotifications.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-6bdc502f2e27478a98f042fa
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-bcf5761569fe8b5098014524
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-63e25c47c9c7d38b354f4123
@@ -87,6 +102,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-e1f030139039cf085fdbfce0
+    resource: repo://FrameworkTests/AssistantNotificationTests.swift
   - id: openwiki-source-aec5af6c3be13b44140585c2
     resource: repo://FrameworkTests/AssistantTranscriptPresentationTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -95,10 +112,16 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-e722f35e92f0823055985cb7
+    resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-3ff855d6e002a67eb54f3199
+    resource: repo://FrameworkTests/SFTPNotificationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-91ab1bac45c855f8665d0f25
+    resource: repo://FrameworkTests/SystemNotificationsTests.swift
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
     resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
@@ -131,6 +154,8 @@ sources:
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
     resource: repo://TFI/Platform/MobileBackgroundController.swift
+  - id: openwiki-source-8d3004f1cede60c9ccecb4d3
+    resource: repo://TFI/Platform/MobileNotificationRouter.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
@@ -153,6 +178,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
     resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
+  - id: openwiki-source-f4986a7f614f5d372e1dc644
+    resource: repo://TFM/Platform/DesktopNotificationRouter.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
@@ -173,7 +200,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-27T22:47:06.500Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -196,7 +226,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V40 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V42 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -208,7 +238,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V40 schema/plan; one container per process serves all scenes. Never
+  migration. `makeContainer` fixes the complete V42 schema/plan; one container per process serves all scenes. Never
   recreate a failed store silently: macOS fails startup on store error, while iOS displays a store-open failure view.
   macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
@@ -220,12 +250,35 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V40 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V42 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
-  asset-cleanup state), V39 (device-local Assistant model selections) and V40 (removes retired per-category quarantine tables,
-  retaining scoped quarantine). `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
+  retaining scoped quarantine), V41 (shared notification preferences) and V42 (agent-message provenance, chat creation
+  relations and durable collaboration delivery receipts). Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
+
+### Notification ownership and delivery
+
+`NotificationPreferences` is shared Settings state, not a per-window toggle: the V41 `PersistentNotificationPreferences` row journals the `NotificationPreferencesItem` in Settings sync; the live V42 schema retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load prevents initial authorization using fallback defaults, and initial authorization is requested at most once per process model when any system-delivered category is enabled. Remote application updates the model without echoing another local write. Bell-only terminal delivery needs no system notification permission. See `FrameworkTests/NotificationPreferencesTests.swift` for migration, round-trip, permission and failure coverage.
+
+```mermaid
+sequenceDiagram
+    participant Event as Session or conversation
+    participant Coordinator as Notification coordinator
+    participant Service as SystemNotifications
+    participant Router as Platform router
+    Event->>Coordinator: completion or interaction event
+    Coordinator->>Coordinator: check preferences and focus
+    Coordinator->>Service: send with currentness check
+    Service->>Service: verify authorization and currentness
+    Service-->>Router: notification click with target
+    Router->>Event: navigate to still available owner
+```
+The shared coordinators decide eligibility and the native routers navigate without turning a notification into a new session or replayed event.
+
+- Terminal command monitoring belongs to each live terminal, not command history or a view mount: Shell Integration command start/finish or fallback OSC 133 completion produces an unread count and an alert only when the duration and focus policy allow. `TerminalNotificationCoordinator` uses the app's title/focus and native bell, and rechecks policy and target existence at send time. A bell does not require system delivery. `SFTPNotificationCoordinator` accumulates outcomes until queued/running transfers in the batch finish; paused/cancelled work does not hold the batch, and policy is checked again before sending. See `FrameworkTests/TerminalNotificationCoordinatorTests.swift` and `FrameworkTests/SFTPNotificationTests.swift`.
+- `AssistantNotificationCoordinator` observes conversations independently of view mounting. It deduplicates completion and current-interaction IDs, consumes even focus-suppressed events rather than replaying them later, and removes obsolete interaction notifications. Unread marks and badge counts derive from live app state, not persisted notification preferences or conversation transcript output. `SystemNotifications` carries only target kind/ID and display title/body, checks authorization and currentness before and after enqueueing, and defers a click until an app router exists. Desktop routing restores a conversation before navigation; mobile activates its owning native scene and never cold-opens a terminal for a stale notification. Test races in `FrameworkTests/AssistantNotificationTests.swift` and `FrameworkTests/SystemNotificationsTests.swift`.
 
 ## State, navigation and editing
 
@@ -614,7 +667,8 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
   user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
   summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
-  and opening-title preservation. See [Persistent Data](/openwiki/concepts/persistence-and-secrets.md) for graph cleanup and rollback.
+  and opening-title preservation. The repository rejects an edit if the removed suffix contains tool messages or tool cards, or if the
+  selected user message has agent-message provenance; do not silently erase executed work or collaboration-origin turns. See [Persistent Data](/openwiki/concepts/persistence-and-secrets.md) for graph cleanup and rollback.
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
   the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
@@ -678,7 +732,10 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
   may format the remaining arguments for review; compact action titles keep commands/paths in scrollable detail.
   Result detail decodes local built-ins through an injected presenter or generic formatting, but MCP keeps its remote
   JSON output; failed/denied/interrupted knowledge results cannot be rendered by a success presenter. A denial reason
-  identical to the review reason is displayed only once. Batch summaries group by tool, state and knowledge action so
+  identical to the review reason is displayed only once. Collaboration tools expose only presenter-selected argument fields
+  (or none when unavailable), not generic raw arguments; their result cards use presenter-selected fields or an unavailable-details
+  message, not a raw JSON fallback. Local pane reads/lists are a stricter exception: transcript cards show pane metadata,
+  never terminal output, including on replay. Batch summaries group by tool, state and knowledge action so
   mixed failures cannot be mislabeled successful; preview keeps head/tail within 8,192 characters and 120 lines while
   Copy retains the full transformed output. Focused checks: `FrameworkTests/AssistantTranscriptPresentationTests.swift`.
 

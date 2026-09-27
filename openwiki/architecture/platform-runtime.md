@@ -5,7 +5,7 @@ description: How macOS and iOS compose shared persistence and runtime services, 
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -89,7 +89,7 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Platform Composition and Lifetimes
@@ -202,7 +202,7 @@ Desktop termination orders assistant draining before agent connection teardown, 
 
 ## Mobile composition
 
-`TermindIOSApp` runs language-preference migration and constructs one startup `Result<MobileAppModel, Error>`. It selects `.testing()` dependencies when XCTest is detected and `.live()` otherwise. The `WindowGroup` renders `MobileStartupView`, which injects the shared model container into successful scene content or presents an unavailable-data screen if construction failed; unlike macOS, failure is surfaced in the window instead of terminating the process. `MobileAppDelegate` handles native scene configuration and discard notifications, including discards arriving before the app model has been assigned.
+`TermindIOSApp` runs language-preference migration and constructs one startup `Result<MobileAppModel, Error>`. It selects `.testing()` dependencies when XCTest is detected and `.live()` otherwise. The `WindowGroup` uses `MobileStartupView.sceneContent(for:)`, a `@Sendable` closure carrying only the result: SwiftUI can invoke lazy scene content off the main actor, so the view accesses main-actor app state only in `body`. A successful body injects the shared model container into scene content; construction failure instead displays an unavailable-data screen rather than terminating the process. `MobileAppDelegate` configures UIKit window scenes, registers for remote notifications outside tests, and queues native session discards received before the model is assigned.
 
 ```mermaid
 flowchart TD
@@ -212,8 +212,10 @@ flowchart TD
     MobileApp --> Services["Libraries sync transfer forwarding assistant metrics"]
     MobileApp --> Sessions["Workspace session registry keyed by UIKit session ID"]
     MobileApp --> Group["WindowGroup"]
-    Group --> Root["MobileRootView per scene"]
-    Root --> Scene["MobileSceneModel per scene"]
+    Group --> Startup["MobileStartupView success or unavailable store"]
+    Startup --> Bound["Bound scene root keyed by UIKit session ID"]
+    Bound --> Scene["MobileSceneModel created in task per scene"]
+    Scene --> Root["MobileRootView retains scene"]
     Scene --> Nav["Tab and navigation selection"]
     Scene --> Owner["Own UIKit workspace session"]
     Sessions --> Owner
@@ -221,7 +223,7 @@ flowchart TD
     Workspace --> Transport["Workspace-owned connection"]
     Root --> Phase["scenePhase"]
     Phase --> MobileApp
-    Phase --> Background["Suspend or expire runtime work"]
+    MobileApp --> Background["Aggregate phases then suspend or expire runtime work"]
 ```
 
 This diagram shows app-managed mobile workspace sessions with distinct native-window ownership and scene-local navigation.
@@ -236,7 +238,7 @@ The app model wires cross-service invalidation at construction. Local `deleteHos
 
 ### Scene-local navigation and native-window workspace ownership
 
-`MobileSceneDelegate` supplies its UIKit session's persistent identifier. `MobileBoundSceneRoot` constructs a `MobileSceneModel` in `@State` for that ID and passes it to `MobileRootView`, which retains it in `@State`, reports `scenePhase` to the shared app model and exposes a focused scene value. The root uses a sidebar-adaptable `TabView` with a `NavigationStack` per feature. The scene model owns destination and workspace selection, presentations and assistant navigation, but obtains its `MobileWorkspaceSessionModel` from the app by persistent session ID. Assistant conversation storage remains shared while scene-specific drafts and selection remain independent.
+`MobileSceneDelegate` supplies its UIKit session's persistent identifier. `MobileQuickActionSceneRoot` waits for that ID and keys `MobileBoundSceneRoot` by it; the bound root initially renders a loading child, then creates its `MobileSceneModel` in an asynchronous `.task` if absent and retains it in `@State`. This keeps registration of observable app state out of view construction and body evaluation. `MobileRootView` retains the resulting scene in `@State`, reports `scenePhase` to the shared app model and exposes a focused scene value. The root uses a sidebar-adaptable `TabView` with a `NavigationStack` per feature. The scene model owns destination and workspace selection, presentations and assistant navigation, but obtains its `MobileWorkspaceSessionModel` from the app by persistent session ID. Assistant conversation storage remains shared while scene-specific drafts and selection remain independent.
 
 The UIKit `MobileSceneDelegate` holds a pending Home Screen quick action per scene; `MobileBoundSceneRoot` passes its action and one-shot consumer into `MobileRootView`. The root consumes it on change and asks its own `MobileSceneModel` to open the connection picker or open a recent Host using the Host's **current** preferred connection kind. Unknown shortcuts are rejected; a missing or unusable Host presents the workspace-unavailable alert instead of restoring a stale session. The shortcut list is refreshed from local connection history and host changes, limited to three openable recent Hosts.
 
@@ -255,8 +257,9 @@ flowchart TD
     Reclaim --> Owner
     Owner --> Missing["Native session no longer open"]
     Missing --> Save["Save transfer to active session"]
-    Save --> Owner
-    Owner --> Discard["Explicit native session discard"]
+    Save --> Target["Active window session accepts live workspaces"]
+    Target --> Discard["Explicit native session discard"]
+    Owner --> Discard
     Discard --> Close["Close owner workspaces and descriptors"]
 ```
 

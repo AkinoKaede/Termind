@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cd866b9205678378f619a91e7148bee8056cf35ba2ce4442d0eaa585888f514a",
+  "pageVersion": "sha256:7b431f0e59ebfd6abb6cf59725e00ba1a3be55a38ae8f9c9eafe12214cfcbf7a",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
+          "version": "repo-file-v1:sha256:f1be0a4b84b28c64f24ed1f81401785a75ffe5b7b095834f571900d9f93a58f0"
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
@@ -40,15 +40,15 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md#L15-L54",
-          "version": "repo-lines-v1:sha256:94d69ea908376630bb0dd5b5a6ce88abab7958d51434ef8cf73a7e9563ef6a48:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZGZmNDIxOTMxNDE2ZWQ2MjcyYzhiMmEwZDVlZTgyMDAwYjFlYmNiZTAyNzNmZWVkZmM2MDhkMTdhNjZkMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNzQxMDZhNjMxMzJjOWVlNjQ5YzI2ZjJhZjhhNmQ1ODk1NmQ4Y2ZlZGY5Y2NjNTk0MTI0M2E4YmUwYThiNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMzc1ZDE4ZDVhNjU2NzMxNzE1ZTlkMzc5MjZhYjIyOGQ2YjIyN2M0MzI1YzFkNDk5ZmYyNjM0MTUzMWFlNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTA0OWU3ZWFkNjEwOGU1YThmY2ViYmQwZGFiM2QyN2UzM2VmYmExYjkyZmZiZmZmYjZiMzFiNDI3MzE1NWMifQ"
+          "version": "repo-lines-v1:sha256:6d201b189b1eb9b8993a0138a6b913fc24fcf792109ea4c1bf3b609be48f54fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZGZmNDIxOTMxNDE2ZWQ2MjcyYzhiMmEwZDVlZTgyMDAwYjFlYmNiZTAyNzNmZWVkZmM2MDhkMTdhNjZkMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNzQxMDZhNjMxMzJjOWVlNjQ5YzI2ZjJhZjhhNmQ1ODk1NmQ4Y2ZlZGY5Y2NjNTk0MTI0M2E4YmUwYThiNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMzc1ZDE4ZDVhNjU2NzMxNzE1ZTlkMzc5MjZhYjIyOGQ2YjIyN2M0MzI1YzFkNDk5ZmYyNjM0MTUzMWFlNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTA0OWU3ZWFkNjEwOGU1YThmY2ViYmQwZGFiM2QyN2UzM2VmYmExYjkyZmZiZmZmYjZiMzFiNDI3MzE1NWMifQ"
         },
         {
           "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L10-L159",
-          "version": "repo-lines-v1:sha256:2fa8b7fcac545d04fde5ed1929f526fba40d8cabc9f4d4723f63f6234388a879:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNjljMzAzNjMwNzQ4ZmYxZDQ4ZWI3MjRmYjkwMTk0MzRjY2ZkMDRiMDMxZmY3ZWNlZjM1YTc0NGE1MWU4NzE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxNjIyNWU1MDNiYWY1MDlhZjc4OGExNTVkMDFiODFmNTU4OTlkYzE2MDVmODdhZDBiNWI3NWFkMzAwMmFhMmUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTE2ZTIyMTdmZWQyOWU5YzM5MTFjYzM1OWQzYjljMjc5ZWE0MzA0ZjExZTNhYzc3YzE3YTljNzliOGI5NWVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "version": "repo-lines-v1:sha256:e98495cd0c42fee9bcd7717eb301a7ebf5aa09374b9a1a59287dc5dd9ddd7b8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNjljMzAzNjMwNzQ4ZmYxZDQ4ZWI3MjRmYjkwMTk0MzRjY2ZkMDRiMDMxZmY3ZWNlZjM1YTc0NGE1MWU4NzE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxNjIyNWU1MDNiYWY1MDlhZjc4OGExNTVkMDFiODFmNTU4OTlkYzE2MDVmODdhZDBiNWI3NWFkMzAwMmFhMmUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTE2ZTIyMTdmZWQyOWU5YzM5MTFjYzM1OWQzYjljMjc5ZWE0MzA0ZjExZTNhYzc3YzE3YTljNzliOGI5NWVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         },
         {
           "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L11-L69",
-          "version": "repo-lines-v1:sha256:862c972a69e73b4d217e56604330c2d5f1e693c945debadb212feee2a68b14d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1OTI5Njk2NDllYmI0N2QyODcxYTQ2ZDU3MWY5OWE4YmVhNTk3NjJiZWY2MGU5OWFiZmViODRkYjFkNzRiZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMDVhY2M0MTMyYzAwYWNmYmNjNGVlY2NkOWY5ODljYmJhNTQ0Y2UxMTNkNWY5NWZlMmMyNGU1OGIxYjE1ZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNzI3ODYyMTFjN2MzMjliNWViNGQ4ZmQ5Y2NiMmNkMDc5MzNmYTFiNGRjMWRjNTc5OThkNmE1OTBhYTMyMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
+          "version": "repo-lines-v1:sha256:f22575081daea3c1f763a5575443886e69c4434b70635d00e394b85719f88ec1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1OTI5Njk2NDllYmI0N2QyODcxYTQ2ZDU3MWY5OWE4YmVhNTk3NjJiZWY2MGU5OWFiZmViODRkYjFkNzRiZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNzI3ODYyMTFjN2MzMjliNWViNGQ4ZmQ5Y2NiMmNkMDc5MzNmYTFiNGRjMWRjNTc5OThkNmE1OTBhYTMyMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
         }
       ]
     },
@@ -72,43 +72,43 @@
       "evidence": [
         {
           "resource": "repo://Marketing/AppStore/en/ipad-13/06-vault.jpg",
-          "version": "repo-file-v1:sha256:73b5850f586ae06246498d955ffae9eefac2439d90ecfb19114e55dbcc198767"
+          "version": "repo-file-v1:sha256:0450e129119a665c494c59c5b53796802630e747218f89f11275d0280fd4fd9b"
         },
         {
           "resource": "repo://Marketing/AppStore/en/iphone-6.5/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:4aae65c8a4c965a99d6fc95a74b6a3e9eab72b25848134255627a1a4b4e5ce93"
+          "version": "repo-file-v1:sha256:61caf08ec6031abc5fbfcb25938e45d9aed0fd2ce840b47eeba7183cb6fe434a"
         },
         {
           "resource": "repo://Marketing/AppStore/en/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:4bb52a843824a43e8d19a4930c59a3ec37fae381e806bd4c02b0aed614a980ff"
+          "version": "repo-file-v1:sha256:13e83a3a7f3b9fef1272650441ddfbc1e2822e71266da202c0ee99fa25e035d9"
         },
         {
           "resource": "repo://Marketing/AppStore/en/mac/06-command-generator.jpg",
-          "version": "repo-file-v1:sha256:ddba1429eaa70c7dcbbfa4607a353c9af93ee31ea3d2b073ab0c9d1ee0dba7fb"
+          "version": "repo-file-v1:sha256:cf4eec8adc9a86db7c78aaa79101e5eaf62e8c6ac7753f680d853584f1f447b5"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/ipad-13/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:91f42bd4886963bf869f67acc8340d482b1c77eeff7d63d3c18a3a3d8a675b52"
+          "version": "repo-file-v1:sha256:b80c7495217268e53f2bc4b5457a1e2797e5253f5b5f10a87464030e22a1d3de"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg",
-          "version": "repo-file-v1:sha256:01b2ec95f0e134c358c73b6f121c8e5856e78c0c9362831fed6e2d2591a35700"
+          "version": "repo-file-v1:sha256:1cc72d2b8bdd17543a1459adbac42251f3e7dd4f063dcb2832d1b71885d27827"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:ddbafedc19cf30b482b9841ab580e1064bf3e39abe8f07a2404a014cce05f549"
+          "version": "repo-file-v1:sha256:3aa324cdcbb121ba1bffdeaea17069c4bf9577bcc332686cda07af129d58efa6"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg",
-          "version": "repo-file-v1:sha256:536ccf9e8449b92ea3ff55b30280d51cfcc7415ffacc36b26ea545110fa9c15a"
+          "version": "repo-file-v1:sha256:5e137b09d7376bbaf4e11224b7192befafd45cf4b257d3e76052ee687af27c8f"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/iphone-6.5/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:95192049858148512686ea6569f29cb6b7a7a2bac9b9926bb10fbd0c14bd94de"
+          "version": "repo-file-v1:sha256:14b9c3c21d9f5728cabbef0ed7c19f81fe873243650e13f8ff4798db63dee5c4"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/mac/06-command-generator.jpg",
-          "version": "repo-file-v1:sha256:b7ad12e3cea76b4decf922671e49979f4448144e5b02ef014ec3449ab45765f9"
+          "version": "repo-file-v1:sha256:0a34c02a65c9d24f754730eeb579f342ca291ede83b3d856b0b469ea7150e936"
         }
       ]
     },
@@ -154,7 +154,7 @@
       "evidence": [
         {
           "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:2ada0e1cbf1bb7aafd3156e6b449749de147dcf270fa304c9a1bca12d4c88728"
+          "version": "repo-file-v1:sha256:4cb9d7d9fd01a6cec7140df431c3e9c8c20744b37174ccb50f0c07372a9a46f6"
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
@@ -265,10 +265,62 @@
           "version": "repo-lines-v1:sha256:9afcaeadab4158fc5d15c2db2911342e079e26be9e0dbf0c0bb2432bbbfd0080:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkMjZjMTk3ZWRjNDQwMjY3YmQ5NmE2NDQ3Y2QxYThiMjkzZTRiOTUyMTZhMDM2NzBkYTQ5OTg5YzZkNzg5MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMjNhYTIxZjE1NTlmZDcwMTQxOGI3OWVlZDAzMDUzZmY4ZGMyNjA2YzBlMzIwMGRkNzViNDUxMjFlYjZjNjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmZTYzMzA1ZTE0NTdhMzc0YzYyNGMwMWIwNjNmY2Q1NDZkYmM1ZGRmZWEwYWQyOWU4MmMwYzU1M2U3ZDk2NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNzZjYTJlMDliZmRkMmEwMDgxMTUwOGQ3MjY5YWFmYmIxN2YxMmJmYTA4YTFkMGExOTYxNjNjMWE1MTZmY2YifQ"
         }
       ]
+    },
+    {
+      "id": "claim_79fb63d9f8dd47af8a36e91ef9d944c0",
+      "statement": "The Mac debug screenshot launch uses an in-memory store and demo models rather than ordinary persisted app data; the capture test prepares a centered light production window, moves the pointer off content and ignores mouse events to avoid hover highlights during the focused capture interval.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L332-L360",
+          "version": "repo-lines-v1:sha256:fdebc4718991d4aab5791e74e0cb2dd9c97860c9d21b005ad2b8ad39c8f88f94:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlZGNlMDY4NGFmOTI4NmM1NzhmZTkxOTRkMmUwZTE2N2VjMjkyODQzOTNhYzdjYWZkYjVmOTA1NzQ4M2U1ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzYmY5ZTZiODQ1MDUwMDRhZjdiNzA1NTA3MzFjMzVmMjIzODI0YWI5OTBiNDY4ZDUyMTQ1ZDc4YzU0MGJjZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0YzU1OGZhNDM0OWI1ZDVmZTE3OWNjNTU3ZDc3Y2Y5NWUyYWQ5ZGE0MTQ4NzA3MmYxMzM4YWUwOTdmZGQ0MjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhY2YyMzViMTRiMzEyNmRmYmIxOTkzN2FhZjFmNTk0Y2IwYzhlNjg5ZTBlMDRhMjEwM2JkNDVmNGI2ZWQ0OTEifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L44-L74",
+          "version": "repo-lines-v1:sha256:9faed3c3be2a75df241fb6245bc905d34332d07d69b0332119e259feb9727392:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNWU1MzZjNGQ3N2U0MTM0YmYyMDg2YThjZjRmN2Q2ZGQwMWFjNTg1ZGNhZDI1MDJiNGVmMDllMWJmMzE4YWUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L15-L98",
+          "version": "repo-lines-v1:sha256:5dcd86af40e684795522ee54b09fe9f3426bb444a2d6cc70466194a9de67e6a1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYmVmN2M0M2JhYTIxZDJhNDVlNWNkOWY5MjNjMjlmN2FkOWMzMGE0Mjk1ZWE1MzgzOWUzYjYyNDVmNDVkNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2ODc0ZjNmZmZlYzQ2NjlmOTFlYTUwZGU1NWRjZmNjOTVmMGU5NDI2NmI0OWM3Y2NkYjliNTgyMWEyNjI4OGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bc91018db0144f5999c76a1306399b68",
+      "statement": "Shared `Frameworks/Resources/Assets.xcassets` supplies runtime AccentColor and vector, template-rendered Linux-distribution artwork distinct from the platform `AppIcon.icon` sources; the distribution catalog resolves detected IDs or like-IDs and host icon rendering uses the selected asset with host/brand/accent tint fallback or a server.rack symbol when no asset is selected.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json",
+          "version": "repo-file-v1:sha256:7501ecef837bb9589a86bab20482e346fe8721989e91bf4a8ac5d225c0edf19f"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/Assets.xcassets/LinuxDistributions/LinuxDistro-ubuntu.imageset/Contents.json",
+          "version": "repo-file-v1:sha256:75d055e76efc42aebc81d1043e69d58aa268b755c8003773a7e82f79e80b7d6e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift#L18-L26",
+          "version": "repo-lines-v1:sha256:49156442880f70a6011648efbb37d15e3f10417d1c7d99aa81d4b338ec38cd60:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzljOTY1MmQ4NzhiZWRjMGRmZDE3NTU0NGQ0NzVmYWY1N2Q1Njk3YzQwZTY3MGE4ZmMxYjNmNDg2NmZhZjVmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWYyMGUyNGQ0NTY1NGQ5OWQxNWY2MWI3NzBkNjUyMDM4OTIwNzA2NGE0NDE5M2RkOTY1NDViMGE1NTM4MzUxYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift#L22-L31",
+          "version": "repo-lines-v1:sha256:50f9c072d7aae1ef16a57f5c050f67dd3ef936a4d71aaacc4c34c55f7fdd5770:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5Yzk2NTJkODc4YmVkYzBkZmQxNzU1NDRkNDc1ZmFmNTdkNTY5N2M0MGU2NzBhOGZjMWIzZjQ4NjZmYWY1ZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5NTYxMDdiOGIxNGIzYTkzYzg5OTg2NGRhMjBjN2Q2NTdjYzc2MGI1NzE1ODQ4NDE5NTRmNDk2YTI3MGM1OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRjNGMwNDA2ZDc2NDY1OTBmMTE0Y2Q4MDI4ZDE4MzEwMGRiYTFlZTA3NGQ1NzE5YWRhYjNmMzRmMzRlZjI1NjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift#L11-L35",
+          "version": "repo-lines-v1:sha256:ac25a50716070642dd63d4d60e39cc2f9e20c6f65f4b56c2109fc96aea6d3d85:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2MGNlZjlmMmI2YTlhNTY4OTMzNWQzNmM4YmUyMDAzM2QzMWY3ZWZiYzNkYjZkZDZlOGE5Yzg1Njc0MmVjY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzNDlmYjQ2ZDM2OWY3YTIwZTU5YzdkOTZjOWU5Yzg2NzE2MzNmOWU2NTgyOGUxMWE1NGMwYjQ2YTQwZmE3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        },
+        {
+          "resource": "repo://TFM/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-26T22:20:04.073Z"
+    "at": "2026-09-27T22:47:06.500Z"
   }
 }

@@ -5,7 +5,7 @@ description: Reproducible Xcode builds and pinned dependency updates, opt-in UI 
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -21,6 +21,8 @@ sources:
     resource: repo://LandingPage/package.json
   - id: openwiki-source-c76cbada020604024adadb22
     resource: repo://LandingPage/README.md
+  - id: openwiki-source-554fe71f1ba6efebee0d020c
+    resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
     resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
@@ -33,6 +35,8 @@ sources:
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
     resource: repo://Scripts/run-mobile-marketing-screenshots.sh
+  - id: openwiki-source-60d4159ef162d09de4f4b469
+    resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -55,13 +59,15 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-e2813ac17589f2155998862e
+    resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Build, Test, and Release
@@ -205,7 +211,7 @@ Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.15.2`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.15.2` at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release is not present in this checkout, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule. Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.16.0`; `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins AgentKit `0.16.0` at revision `f78416b2b8523d09950872b96f0de841e2d704e8`. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release is not present in this checkout, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 

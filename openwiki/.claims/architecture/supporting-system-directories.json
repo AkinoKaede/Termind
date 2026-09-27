@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:dc380e66d543a9a6f4ae836062c848f4cfb49d58ad37af3f50a444b0895a53ad",
+  "pageVersion": "sha256:6e96a215f2cd65cb9fe40bba72d31acc128c23b0b04eec986820e6ab2d708070",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,11 +12,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cb5e91918f5a639246a0b45eb9b3b03988bf507ea64aec8b97d4e7bd6b55da1c"
+          "version": "repo-file-v1:sha256:920d757f3a462a6ff9bbf9de1bd69f8622993e6f9cb9fcff7861984a9a49b2d5"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:710e66c233f5cb696769131d7daf8c4600d093c3564edf497b3e256709a94e75"
+          "version": "repo-file-v1:sha256:fc3de90d7d487a70533e5658fa8648fce2a100e176b0d304a71551633b39f818"
         }
       ]
     },
@@ -42,7 +42,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L81-L130",
-          "version": "repo-lines-v1:sha256:c96aff1845b317ec0c53f2ecf151d5a530c793306ac76e3f022b60bcaa4baa16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY5ZGIzYzBkNGZjYzA4YjgxOWIxZmNkNzE5YjMzYzc5ZDljZGVjNDdkMWJhOWYxZGRhMmRmM2MwOWZhZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNjczYWJkNDU3YTk3ZWVhMTdhNjAwNjJlYjBmYWVhNmJkZjA5NDg2OGNjNmI4ZjhjMGViZGEyZjYxZWQ0MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNzJhMmNhNDdjMTY2YWY3M2MzZDdiZjQxMzQwYTdjMmVjYWE1ZTYwMWEzYTlhOTFiMjZhNTUzMGYwM2NkZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NWNiN2ZkZDQzNDU3YmYyMmM2Y2YxYzVlYjQzN2QzMTcwZTM4NDk4M2M0NDcwMDA3YWUwNmVhYWQyZmQyYWMifQ"
+          "version": "repo-lines-v1:sha256:e2f087e9b072f1954a37994608363ea698276b7231ebd945476380536fae49e9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY5ZGIzYzBkNGZjYzA4YjgxOWIxZmNkNzE5YjMzYzc5ZDljZGVjNDdkMWJhOWYxZGRhMmRmM2MwOWZhZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNjczYWJkNDU3YTk3ZWVhMTdhNjAwNjJlYjBmYWVhNmJkZjA5NDg2OGNjNmI4ZjhjMGViZGEyZjYxZWQ0MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNzJhMmNhNDdjMTY2YWY3M2MzZDdiZjQxMzQwYTdjMmVjYWE1ZTYwMWEzYTlhOTFiMjZhNTUzMGYwM2NkZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NWNiN2ZkZDQzNDU3YmYyMmM2Y2YxYzVlYjQzN2QzMTcwZTM4NDk4M2M0NDcwMDA3YWUwNmVhYWQyZmQyYWMifQ"
         }
       ]
     },
@@ -82,7 +82,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cb5e91918f5a639246a0b45eb9b3b03988bf507ea64aec8b97d4e7bd6b55da1c"
+          "version": "repo-file-v1:sha256:920d757f3a462a6ff9bbf9de1bd69f8622993e6f9cb9fcff7861984a9a49b2d5"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -122,7 +122,7 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
+          "version": "repo-file-v1:sha256:f1be0a4b84b28c64f24ed1f81401785a75ffe5b7b095834f571900d9f93a58f0"
         },
         {
           "resource": "repo://Scripts/Tests/test_bump_version.py",
@@ -152,7 +152,7 @@
       "evidence": [
         {
           "resource": "repo://LandingPage/package.json",
-          "version": "repo-file-v1:sha256:394edb8c9c67744600e13244e95a3a3089556fb93f3b9727bf35ec9eb979c8ed"
+          "version": "repo-file-v1:sha256:6b7d2b85ef1d79f6822da37ed247e1af791fe5376b5141ef2c4d56e15eca1e37"
         },
         {
           "resource": "repo://LandingPage/src/layouts/BaseLayout.astro",
@@ -194,7 +194,7 @@
         },
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
+          "version": "repo-file-v1:sha256:f1be0a4b84b28c64f24ed1f81401785a75ffe5b7b095834f571900d9f93a58f0"
         }
       ]
     },
@@ -208,7 +208,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cb5e91918f5a639246a0b45eb9b3b03988bf507ea64aec8b97d4e7bd6b55da1c"
+          "version": "repo-file-v1:sha256:920d757f3a462a6ff9bbf9de1bd69f8622993e6f9cb9fcff7861984a9a49b2d5"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -230,11 +230,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L2864-L2871",
-          "version": "repo-lines-v1:sha256:695458b0e15b7a70f24f99b7950dad0459770af406ee0fb7b743a31c666e6f83:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "version": "repo-lines-v1:sha256:58ced2b61f2a5f0a3999f6483f40837e1df3c53ec0de558ddb29125325570191:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L4-L12",
-          "version": "repo-lines-v1:sha256:c689a866cb5bb3b605a3f06c9a8190cc47f42a4cd1c24da1c8708e9c14ab763d:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWZmNzZlNDczNTc5ZjY2ZjA4ZDYwNzE5YWQ5ZWI0MGZhZGRhN2M5ZTE2NjFlZjY4MzM5MzAyZDYwNDI3ZDFhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY5NDc0MjNlZmI2YjU1MDBhNGNkODk0MzY1ZTM4ZTJkYjBiZDY0MDQyMmJlYWUyNDEwOWNjY2Q5YjhmMDE1MSJ9"
+          "version": "repo-lines-v1:sha256:0a3fc714346e44afc1006b18a556e5ae842158e1f6054f483d06884bf24779c2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWZmNzZlNDczNTc5ZjY2ZjA4ZDYwNzE5YWQ5ZWI0MGZhZGRhN2M5ZTE2NjFlZjY4MzM5MzAyZDYwNDI3ZDFhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY5NDc0MjNlZmI2YjU1MDBhNGNkODk0MzY1ZTM4ZTJkYjBiZDY0MDQyMmJlYWUyNDEwOWNjY2Q5YjhmMDE1MSJ9"
         }
       ]
     },
@@ -308,7 +308,7 @@
     },
     {
       "id": "claim_66be87c535d7418d8b8d757a4764c13c",
-      "statement": "The app's AgentKit remote package reference requires versions from 0.15.2 up to the next major version; its resolved dependency pins 0.15.2 at revision 4540847d4762f9040be7a8bab4cadd82e494c36d, rather than compiling the checked-out submodule or sibling working tree.",
+      "statement": "The app's AgentKit remote package reference requires versions starting at 0.16.0 up to the next major version; its resolved dependency pins 0.16.0 at revision f78416b2b8523d09950872b96f0de841e2d704e8, rather than compiling the checked-out submodule or sibling working tree.",
       "evidence": [
         {
           "resource": "repo://.gitmodules#L1-L3",
@@ -320,11 +320,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L2864-L2871",
-          "version": "repo-lines-v1:sha256:695458b0e15b7a70f24f99b7950dad0459770af406ee0fb7b743a31c666e6f83:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "version": "repo-lines-v1:sha256:58ced2b61f2a5f0a3999f6483f40837e1df3c53ec0de558ddb29125325570191:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L4-L12",
-          "version": "repo-lines-v1:sha256:c689a866cb5bb3b605a3f06c9a8190cc47f42a4cd1c24da1c8708e9c14ab763d:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWZmNzZlNDczNTc5ZjY2ZjA4ZDYwNzE5YWQ5ZWI0MGZhZGRhN2M5ZTE2NjFlZjY4MzM5MzAyZDYwNDI3ZDFhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY5NDc0MjNlZmI2YjU1MDBhNGNkODk0MzY1ZTM4ZTJkYjBiZDY0MDQyMmJlYWUyNDEwOWNjY2Q5YjhmMDE1MSJ9"
+          "version": "repo-lines-v1:sha256:0a3fc714346e44afc1006b18a556e5ae842158e1f6054f483d06884bf24779c2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWZmNzZlNDczNTc5ZjY2ZjA4ZDYwNzE5YWQ5ZWI0MGZhZGRhN2M5ZTE2NjFlZjY4MzM5MzAyZDYwNDI3ZDFhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjY5NDc0MjNlZmI2YjU1MDBhNGNkODk0MzY1ZTM4ZTJkYjBiZDY0MDQyMmJlYWUyNDEwOWNjY2Q5YjhmMDE1MSJ9"
         }
       ]
     },
@@ -404,13 +404,71 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L1-L12",
-          "version": "repo-lines-v1:sha256:bc2769c74e3a87dd6b8235dc701e11bfadac868b6ba227f1cbe8cde762dbc2a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+          "version": "repo-lines-v1:sha256:f8b7874556ab4009b66f478ff6a28f17dd9de73d18159b7301d993786c973b52:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b7119dd242e744479dfbe8c8ac4c07cf",
+      "statement": "The Mac marketing capture runner requires macOS 27, defaults to the workspace scene in all three locales and accepts scene/locale filters; it builds TFM tests with resolved packages, waits for a focused-key-window readiness marker from the capture test, validates image dimensions, and backs up previous captures before replacing them, aborting on failed readiness, test or dimension checks.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L59-L159",
+          "version": "repo-lines-v1:sha256:bd6e809fa6fea36ccbf8afb431256caf5364f34af1a43ae6970c4a12c30becfb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwNDFjZjcyYTEyMjhlNDFjZmMyOTUyNjVkZGQ1YWRiMWEyYTQ5YmVmODI0ZDQ0NzM4Y2U0ZTA3ZGE1MjM0ZmJiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxNjIyNWU1MDNiYWY1MDlhZjc4OGExNTVkMDFiODFmNTU4OTlkYzE2MDVmODdhZDBiNWI3NWFkMzAwMmFhMmUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5MTZmNTVmNTk5YTRjNmQyYzEyM2RiNjE4YTQ2YmM3MjhjMWYxYWE3ZWI3ZTljMDEyNmZmZWMzOTVkNjU4OTQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        },
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L6-L51",
+          "version": "repo-lines-v1:sha256:52ba9d1baa5b5537b1d1ec6c59ec4c9eb6a57f09e8529b0070474758e6dac6b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMWI4YTE1Nzg1N2EwNDU4OTJjZjY4MDg3OTNmOWViNTJiNjhkZTk4YTExOWI4NWEzNTVmMzE3ZGRkNWY4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiZDFiMzg5OTA3YzEyNzM3OTczNjVhM2Y4YjQ1ZWFhYjYyYTQ0Mzg5ZWE4OGM3ZWMyZGEwNGQ2NjhiZGJkZWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMGIxYjViNjU3NzFkMDIyMWQ3YTc3ODE3YjFkZWFmNzkzOGQxN2I2ODUyZDNkYWQ5OTk5NThkOTIxZWM4NTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4ZjhmMDRhZjA3ZjBlZmNkYjU3ZDFiYjI5ZDI0MGY4ZDNhZThkYjA4ZGMxMDJlMWNiMjI4ZGJiMTA4ZjhiNzcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L63-L99",
+          "version": "repo-lines-v1:sha256:fc804bf1b9de9078bd6505f157b9dc2483afedcf8fe3e9168e8049e5c719cfed:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5MWNmMGIyNzU4OTI3NjNmMmI4NzQ1ZWM5NzFkMzE4OTI1YjU3YmZkMmZmZGYwZDQ3MTJhNjkwMGY3YzlmMzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3ZWUzMGE4MzA4YzA1NTVhMTU0YmNiMWU1MTYyNGQ2OGViNDM4YWZhNDA4NDllNGQ1YjM4MTQyNmFmMDBjYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiMTg2M2Q4Njg3OTcxYTY0ZjViOTdkMmI1YTMzNmYyYWE0NTIzYWU3MjU2MDIxOTg2YTQ2MjdlY2ViMTUxMzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3b54b0e58a514bbcb2cfa75355fc51fd",
+      "statement": "The mobile marketing runner builds TFI tests using resolved packages on an iOS 27 simulator, captures each selected device and locale using a capture-test handshake, and installs the new source images only after the test succeeds and its expected capture count matches.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L150-L201",
+          "version": "repo-lines-v1:sha256:2b49877553e80df165c8d93a912731df30180ca693c379eb608a8b1277916769:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlMjBmNDE0Y2QwY2ZjNzkyMWE2MzMxMmE2MTlhMDQ5MWI5ZjdjMTBjMDc0NjY1YWQyOGQyZjlhZDg4YmU2MmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNzg1ODkxNmVlYzYzY2QxOThjM2Q5OWU0YTVmMjNkMzEyY2EyYjNlYjcwNmVjYzY5Y2YwMDY4Yjc2MGMwM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiODliYzg3NjY4MWY5MzllMjQ1NTZmN2FjZGI0MmRiOTA0YmRiNWYyNjE3NzMzNWY0NDA5MjQ2ZWU1NjgxOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L68-L147",
+          "version": "repo-lines-v1:sha256:afcbb8c937f699e1e64ec62445dfae8a217c2b9cf5b05e908ff0063b71d86331:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmYjQzNmJmNTRjMjdkMzM0MjE4Mzg2OTI4YTM2NzQwMWY3YzkyNmI3MjI2YTMwM2U3OTE0ODZiMmMzOTRjYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3YzA3ZDViNjk2NWFiNWNlOTMxMjI5ZGVjNDA0ZmExMmMwZDljMDQxN2Y3NmNmZmEzZmIxOTc0MDVlOTc5MjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxYTk4MjVlYWQ4MmM4OGY3M2M1NTliZWYxMjJjZmZmMmU5NTdiMjYxMDY3OGJiYmI0YWVlYjdkMmZlNWRhYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzMWZmZGRlMjgzZjg0ZWRjM2IwOTE0NGE3ZjQ5ZGJhYjk4ZTAwYmE2MWEwZmI4YzkzYjgwYmUzOTY0NDJiMWQifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L8-L32",
+          "version": "repo-lines-v1:sha256:45d5002ddf540f1360a95bc2eb7f8bd250260ab3bba6a41ae9ca0dd576721d86:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxOWJkMWE3YTE1YjA1ZGI0ZTU2ZDBjMWViZjU5ZGIxYjJjZTAxMDE2YjFhZmY5NjM1ZGQwYWJlZmRmMTNjOGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1NTc3ZDc2N2NlOWY0NmRiMDlmZjJiOWExMjUwNDJlNzg2NGNlZDIyZWYxNjIxYjIwNzIxYjNmZjcyM2Y1ZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5NWIzMjcwZjRkOWU0ODEzZDJhYzlmZDE1NTJjNTAyYWNmMDc0OGNjYjA2MmMyOTc1M2Y2NWZkMzY3OTYyMTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b78d8b8a82bc4d0ba497713a74f19645",
+      "statement": "LandingPage uses locked npm dependencies for local Astro development; its production npm build first runs Astro's check and then builds the site with optimized image transformations of allowlisted device frames.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L30-L32",
+          "version": "repo-lines-v1:sha256:20a0ea9e4e79427ac2750998e863fb8a6d13429b4afc4fa097b98ae435750e75:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRiZGQxZGM1ODQ0ZmFhNTZhNGM4NmQ5ZjkyNzA2OGJmM2E4ODM3MzBiNDRjYzFiNzkxOWE5MjFmNmM5Nzc3YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNkZGYwYjM4NzRlMWFmZmJlMzgwYTg1YWUxM2E2MDNhMzNjZmNmMDQ4YzBmNDM0NTNmYThkOTY4OTcyOTk2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjAxZmU3OGFhMzBmMTNhMWI5YjY1OTI5NjMyNTNjZTkzMTE5MDFhZjYxMGE1ZTIwNDE5ZTJlMDRhMWU4YjZmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
+        },
+        {
+          "resource": "repo://LandingPage/package.json#L6-L21",
+          "version": "repo-lines-v1:sha256:a34f7c0f9df0c2fac0931415da8e79fcf0a2464760338559f723f8e07e5f4580:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0ODMzZDU5NDljMDNhNDBjYTk1MjQ5MTYxMGE2NjU5NjQ0YjNhYTQ2NjM2MmY3OTkwMjBkYmYxOTgxNTQ3ZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5ZDViZDg5OWMzOWQwNDA0Y2VhNTUxZDk5YmExNzA1OWY1NzI2Y2ZiYjFlYjYzZmE2N2U4YjI0Nzg1ZWY4Y2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/components/ScreenshotPicture.astro#L13-L19",
+          "version": "repo-lines-v1:sha256:f264bbfb428c99d77534dedde1e5a3513e270666d0ec9bd046b3f9e27b5bb9ce:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTNlNDgxZmRlNGViNWY3MzM1N2U4NGUzNWNjZTE4NGQ4MWViMzUzYTMzYThkMWFkNWNmNjk0Y2M3ZjY2OTA4ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTVlMjZjZDkyMzY2ZjYwZDhlZDkyZDAyMzlmMDdmZWY3NGNhYzE0YWE2OWFkZGY5YzJjYzBkMTFlYjAwYTQ2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzkzZTkzMTMzNjg3Y2I3ODU3OWQxYjliMTUxMjZhMjE5NmY2OTI4ZmQ2YWUyMzBiMDJiMzllNWM2ZTM1Y2M3YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTlkYzA4YjI1NTVlMmU2NDA2NDQxMDVhNmNiMGVkZTRkYWI4MmM1OTZjZDc3OWU0ZmNhYmM4MjY5YmFmZjVhYyJ9"
+        },
+        {
+          "resource": "repo://LandingPage/src/lib/marketingImages.ts#L3-L23",
+          "version": "repo-lines-v1:sha256:86c124b99c90d342641043bab72dfaa9ace050fff58c3dd61c4a07e2be97f96d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxOTViOTUyNWFjMTJlZGY5NTVmOThhOTgwZjJjNGE3OTBiZWEzNjkxMDFlNjk1M2JmZGNmZTkyMDdjMjE5NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYTYzNTcyMmVmYzBmNzI4Y2E1ZDM1NGUwM2ZlODRiNGYxZTljODM1M2ExZWNlN2M0NzI3YmJiNzRlNmU0MWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1ZGFmN2YzOTc5NDVkYWQ3OTE1ZDhkYWI1Njc4YTViOTE4NzY4MDJlYjIwODg2ZDEwMGVkY2UyYTExYjFhYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjNhMGQ0ZWIyYzU1Zjg0OTRkN2MxZTYyN2EyMzY4NTIzY2IwNWU5YzQzMjA2YzAwZTQ3M2Q3NmE2YzQ0MjEifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-26T22:20:04.073Z"
+    "at": "2026-09-27T22:47:06.500Z"
   }
 }

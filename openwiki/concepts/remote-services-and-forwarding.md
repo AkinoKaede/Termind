@@ -1,11 +1,11 @@
 ---
-type: "Remote service ownership"
-title: "Remote Services and Forwarding"
-description: "Ownership boundaries among terminal, metrics, SFTP, Agent, and forwarding SSH runtimes, including which configuration is saved and which connections and authentication journeys remain live-only."
-tags: [ssh, terminal, metrics, sftp, port-forwarding, scheduling]
+type: Remote service ownership
+title: Remote Services and Forwarding
+description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and forwarding, including saved intent versus live connections and authentication.
+tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
     resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
@@ -15,10 +15,22 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift
   - id: openwiki-source-5e7fb300dcdfa0227467d965
     resource: repo://Frameworks/TermindDomain/Metrics/ServerMetrics.swift
+  - id: openwiki-source-1fc00d0407016efa5a0378eb
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-ead8e57ca19639dd536b792d
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-6d31fde4399bc6391f30aaf0
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/GetMetricsTool.swift
+  - id: openwiki-source-d2d4c06f734241db3badc1f5
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
+  - id: openwiki-source-ab74624bdc6b7046d91bcbac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
   - id: openwiki-source-20118197848107cfa8e87aa9
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift
   - id: openwiki-source-d371db64770fd2fcc301086b
@@ -39,6 +51,8 @@ sources:
     resource: repo://FrameworkTests/SSHMetricsSamplerTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-13f2deff6904678799b19444
     resource: repo://TFI/Application/Metrics/MobileMetricsModel.swift
   - id: openwiki-source-a053f8c3524e81f98b0b0938
@@ -47,11 +61,15 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-9e75ae93f5450c1993472c5d
     resource: repo://TFM/Features/Metrics/MetricsView.swift
+  - id: openwiki-source-23ab3fe73660b171f78763a4
+    resource: repo://TFMTests/AgentToolPresentationTests.swift
+  - id: openwiki-source-7cc9fc3d79582cde4157ce7a
+    resource: repo://TFMTests/GetMetricsToolTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 
@@ -83,7 +101,7 @@ These controls compose rather than replace each other. For example, an SFTP file
 | Interactive terminal | `SSHPTYChannel` opens a PTY and shell on its own authenticated connection. | Its connection journey may obtain trust, credentials, and keyboard-interactive answers. | It does not make those answers durable for later physical connections. |
 | Metrics | Application-owned `ServerMetricsModel` runs one serial worker per enabled, available SSH Host selection on a dedicated sampler connection; `SSHMetricsSampler` performs bounded SSH exec requests. | Each `ServerMetric` owns its own `ConnectionJourney`, host-key authorization, and authentication queue; the mobile wrapper delegates to this same core model. | It does not start a terminal shell or use terminal environment variables/startup snippets. |
 | Port forwarding | `PortForwardingController` shares a host-scoped forwarding transport among explicitly started rules; it optionally creates an `SSHForwardingConnectionPool`. | The first open can present the forwarding Journey. Recovery and auxiliary opens forbid interaction. | It does not persist a connected transport, listener, temporary password, passphrase, or once-only trust decision. |
-| Agent SSH/SFTP | Agent SSH and primary Agent SFTP share an Agent-owned pooled Host transport and fair libssh2 owner. | Agent interactions use Agent queues, not a terminal or forwarding prompt. | It is not a forwarding pool or an interactive PTY session. |
+| Agent SSH/SFTP | `AgentHostServices` supplies a Host resolver, authentication registry, background command owner and Host-keyed `AgentConnectionPool`; exec and primary SFTP share its multiplexed connection. | Tool invocations use the Agent's SSH interaction service, not a terminal or forwarding Journey. | It is not a forwarding pool or an interactive PTY session. |
 
 A `PortForwardingRule` is a portable saved description, not a listener. It identifies a Host and has `local`, `remote`, or `dynamic` (SOCKS5) kind, bind address/port, optional target address/port, label, and color. Dynamic rules deliberately erase target fields; a valid rule needs a nonblank bind host and port in `1...65_535`, while local/remote rules also require a nonblank target and valid target port. Rules remain independent of Host renames, but Host deletion removes its rules.
 
@@ -123,6 +141,36 @@ Shell integration is likewise a terminal concern. When enabled, the PTY channel 
 Remote shells can emit banners, OSC sequences, or exit-hook text around an exec command. The sampler wraps every command in `__TERMIND_METRICS_BEGIN__` and `__TERMIND_METRICS_END__` markers, parses only the enclosed payload, and permits a small framing allowance beyond the payload limit. Invalid primary-sample diagnostics redact the address section before logging and record sizes rather than treating raw remote output as safe telemetry.
 
 Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that framing ignores shell preamble/trailer, that absent/truncated/oversized frames fail, and that unsupported/GPU exit codes retain their special meanings. `FrameworkTests/MetricsJourneyTests.swift` exercises background sampler callbacks, restored monitor reconciliation, independent prompts and retry behavior; `FrameworkTests/MetricsSyncTests.swift` checks that selections survive missing Hosts, sync across devices, and failed saves leave the runtime unchanged.
+
+## Agent tools: host services, not terminal or forwarding sessions
+
+The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. Only tool-capable models get a tool registry. It composes AgentKit built-ins with Termind's `TermindAgentTools` and configured MCP tools: the runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH exec/wait, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Tool reports go through the ordered event channel; SSH secret handles are restricted to `ssh_exec` standard input, **not** SSH login.
+
+```mermaid
+sequenceDiagram
+    participant App as App shell
+    participant Catalog as AssistantToolRegistry
+    participant Tool as Termind host tool
+    participant Auth as AgentSSHAuthenticationRegistry
+    participant Pool as AgentConnectionPool
+    participant Reader as ServerMetricsModel
+    App->>Catalog: inject host services and metrics reader
+    Catalog->>Tool: register tools for tool capable model
+    alt get_metrics
+        Tool->>Reader: snapshot for Host ID
+        Reader-->>Tool: cached snapshot or monitoring state
+    else ssh_exec or SFTP
+        Tool->>Auth: request Host connection or SFTP lease
+        Auth->>Pool: reuse or open authenticated Host transport
+        Pool-->>Tool: exec connection or SFTP channel
+    end
+```
+
+This shows why an Agent metrics read does not start a sampler and why Agent SSH/SFTP tools do not borrow terminal or forwarding transports.
+
+`get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. See [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) for worker internals.
+
+When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics.
 
 ## Forwarding: explicit intent and host-scoped runtime
 

@@ -3,9 +3,6 @@ type: storefront-release-operations
 title: Storefront Commerce Release Checks
 description: Cross-platform checks for Termind Pro annual trials, lifetime purchases, localized paywalls, App Store metadata, and storefront imagery before release.
 tags: [app-store, storekit, commerce, subscriptions, localization, release]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-25T12:50:34.482Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md

@@ -3,12 +3,11 @@ type: assistant runtime concept
 title: Assistant and Agent Runtime
 description: How Termind captures assistant submissions, prepares and cancels AgentKit runs, persists conversations, and gates host tools, skills, and device-local memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-0dc45e296e0ec3d99731a2f2
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantChatCollaboration.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -25,6 +24,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
+  - id: openwiki-source-33d69cea4b24d60ab000a0cc
+    resource: repo://Frameworks/TermindPersistence/AssistantChatCollaborationPersistence.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -47,6 +48,12 @@ sources:
     resource: repo://FrameworkTests/AgentSteeringTests.swift
   - id: openwiki-source-32bb2b0bf7a39f2a4856d7bf
     resource: repo://FrameworkTests/AgentUserInputTests.swift
+  - id: openwiki-source-b564fb5c588f5bcbd8ca96f9
+    resource: repo://FrameworkTests/AssistantChatCollaborationEdgeTests.swift
+  - id: openwiki-source-e2abe97c93dbb91be81b63e2
+    resource: repo://FrameworkTests/AssistantChatCollaborationPersistenceTests.swift
+  - id: openwiki-source-579d339703ac4d9a47649b91
+    resource: repo://FrameworkTests/AssistantChatCollaborationReviewTests.swift
   - id: openwiki-source-247755d873c5d94b0a364217
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
@@ -91,14 +98,17 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-27T22:47:06.500Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Assistant and Agent Runtime
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the host-specific integration: SSH and SFTP tools and transport pools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.15.2); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins version 0.15.2 at revision `4540847d4762f9040be7a8bab4cadd82e494c36d`: changes to the sibling working tree do not change the built app. For a cross-boundary change, release the package first, then update the Xcode version requirement and resolved revision with the consuming Termind change; build with `-onlyUsePackageVersionsFromResolvedFile`.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.16.0); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins version 0.16.0 at revision `f78416b2b8523d09950872b96f0de841e2d704e8`: changes to the sibling working tree do not change the built app. For a cross-boundary change, release the package first, then update the Xcode version requirement and resolved revision with the consuming Termind change; build with `-onlyUsePackageVersionsFromResolvedFile`.
 
 ## Responsibilities and assembly
 
@@ -112,9 +122,11 @@ The tool catalog and plan posture are captured at submission; AgentKit selects t
 
 Termind composes the registry in this order:
 
-1. AgentKit generic tools, including scratch, skill, memory, fetch/search, task, plan, secret, and MCP support.
+1. AgentKit generic tools, including scratch, skill, memory, fetch/search, task, plan, secret, chat collaboration (`list_models`, `create_new_chat`, `list_chats`, `read_chat`, `send_to_chat`, `wait_chats`), and MCP support.
 2. Termind's host tools: host/metrics discovery, `ssh_exec`, terminal suggestions, SFTP operations, and the host-facing `scratch_pull` / `scratch_push` endpoints.
 3. Discovered MCP tools, which are additive and cannot shadow a built-in or Termind tool name.
+
+The shared `AssistantChatCoordinator` implements AgentKit's chat catalog and coordinating interfaces for both native apps; `AssistantToolRegistry` injects it and the captured source context into AgentKit's generic chat tools, rather than defining a second set of platform-specific collaboration tools. The chat model catalog reports enabled Chat models and readiness without exposing credentials. See the [cross-chat delivery lifecycle](#cross-chat-collaboration-and-delivery) for its persistence boundary.
 
 ### Catalog, run mode, and surface availability
 
@@ -139,7 +151,7 @@ Desktop sidebar, standalone Assistant, and mobile first sends use the same contr
 
 Edits have a separate two-stage entry point: desktop and mobile UI call `prepareAgentEdit` synchronously before creating their UI `Task`. It preserves the original attachment payload and model-facing suffix while capturing fresh context and configuration for the replacement submission. `performAgentEdit` checks the capture identity before starting a tracked history task; persistence succeeds before the live edit is applied, and another identity check precedes runtime preparation. A cancelled or superseded prepared edit cannot later enter truncation or start a runtime.
 
-At the AgentKit handoff, Termind supplies an `AgentRunRequest` with the captured prompt, context, prior transcript and permission mode, plus a repository and a shared `AgentEventChannel`. Termind's integration tests exercise streaming model turns, schema rejection before approval, tool-result replay and terminal snapshots; the precise internal order of AgentKit's writes relative to provider requests or the next tool round cannot be proven from this checkout of the pinned 0.15.2 package. Do not treat the diagram's runtime portion as a substitute for auditing that pinned release when changing its persistence ordering.
+At the AgentKit handoff, Termind supplies an `AgentRunRequest` with the captured prompt, context, prior transcript and permission mode, plus a repository and a shared `AgentEventChannel`. Termind's integration tests exercise streaming model turns, schema rejection before approval, tool-result replay and terminal snapshots; the precise internal order of AgentKit's writes relative to provider requests or the next tool round cannot be proven from this checkout of the pinned 0.16.0 package. Do not treat the diagram's runtime portion as a substitute for auditing that pinned release when changing its persistence ordering.
 
 ```mermaid
 sequenceDiagram
@@ -281,9 +293,43 @@ Tool cards resolve their persisted presenter ID through the immutable presenter 
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation.
 
+### Cross-chat collaboration and delivery
+
+AgentKit supplies the generic chat tool interfaces; Termind coordinates local conversations and the durable receipt. `create_new_chat` chooses an explicit available Chat model or the captured source model, persists the target's selection, and inherits the **captured** permission and plan mode. It does not inherit source session context, composer drafts, attachments or armed skill. `send_to_chat` refuses self-delivery, archived or history-changing targets and planning-to-acting sends (checking the target's effective running posture). Idle targets capture **their own** model and policy with no terminal-suggestion context, without consuming a human draft; active targets instead queue an origin-tagged steering message. Agent-origin user turns are not editable like ordinary human turns.
+
+```mermaid
+sequenceDiagram
+    participant Source as Source run
+    participant Coord as Chat coordinator
+    participant Target as Target conversation
+    participant Store as Collaboration store
+    participant Repo as Run repository
+    Source->>Coord: create or send with source run and call IDs
+    Coord->>Store: look up existing receipt
+    alt idle target or new chat
+        Coord->>Target: capture incoming turn
+        Coord->>Store: reserve queued receipt and creation relation if new
+        Coord->>Repo: save origin tagged staged prompt
+        Repo->>Store: confirm queued receipt with message commit
+        Coord->>Target: insert if new and start preparation
+    else active target
+        Coord->>Store: reserve queued receipt
+        Coord->>Target: queue origin tagged steering
+        Target->>Repo: persist delivered message in runtime snapshot
+        Repo->>Store: confirm receipt with message commit
+    end
+    Coord-->>Source: status and receipt ID
+```
+
+Cross-chat delivery: the durable prompt save is the acceptance boundary for an idle/new target; a queued steering message is not delivered until it enters the target transcript. The repository confirmation applies to SwiftData, while the in-memory store confirms from delivery callbacks.
+
+A receipt is keyed by `(sourceRunID, sourceToolCallID)` and links source and target IDs to the incoming message ID. Repeating the same call returns its receipt/status instead of delivering a second prompt; `delivered` cannot be downgraded by a stale queued or undelivered write. The SwiftData repository inserts message-origin backing and upgrades matching queued receipts **in the same message-save transaction**, even when the receipt store and repository use different `ModelContext`s. For idle/new deliveries, a prompt save failure cancels preparation and marks the receipt undelivered; a later metadata write failure is nonfatal after the durable prompt. For active targets, an unaccepted or cancelled steering message becomes undelivered and **does not** enter the human composer. On restore the coordinator reconciles queued receipts against persisted transcript/display message IDs: a found prompt confirms delivery for stores without transactional confirmation, while an absent prompt with no live owner is undelivered. Retries after target deletion report historical receipt status, not a newly created chat.
+
+Creation relations are a separate durable sidecar from individual message origins. `list_chats` batches creator relations per 20-chat page, defaults to excluding archived chats, and resolves the source's current title or the *matching creation message's* saved title if the source is gone; a later delivery does not change the creator, and a manual fork is user-created. `read_chat` pages visible (not replay) messages and recent tool summaries and receipts, limiting each displayed message to 8,000 characters and the page's combined text to 40,000. `wait_chats` validates targets and waits for a terminal or user-waiting state, but never treats an older completed run as ready while a new one prepares. It races target change against timeout and user interjection without stopping the target run.
+
 ### Message-boundary edits and replacement provenance
 
-`AssistantConversationOperations.edit` validates an ordinary replacement user message before persistence and applies the live mutation only after truncation succeeds. SwiftData checks cancellation before its synchronous transaction and uses the same canonical order for restore and truncation: runs by start time then UUID, messages by run order then sequence, timestamp, role and UUID. The selected message and everything after it are removed, not automatically its entire run. For `opening → assistant → steering → assistant`, editing the steering turn retains the opening and preceding assistant/tool batch. The retained partial run becomes a neutral `.completed` summary with no old failure and ends at its last retained non-tool message; wholly later runs, including empty ones, are removed.
+`AssistantConversationOperations.edit` validates an ordinary replacement user message before persistence and applies the live mutation only after truncation succeeds. Editing is refused if the removed suffix contains any tool call, result or tool lifecycle card (even a proposed, denied or read-only call); a compacted visible suffix and persisted invocation rows are checked too. A retained prefix can keep its own tool graph. This prevents rewriting history after an action was attempted. SwiftData checks cancellation before its synchronous transaction and uses the same canonical order for restore and truncation: runs by start time then UUID, messages by run order then sequence, timestamp, role and UUID. The selected message and everything after it are removed, not automatically its entire run. For `opening → assistant → steering → assistant`, editing the steering turn retains the opening and preceding assistant/tool batch. The retained partial run becomes a neutral `.completed` summary with no old failure and ends at its last retained non-tool message; wholly later runs, including empty ones, are removed.
 
 Tool cleanup follows ownership before time. Known source-message and run-local call identities distinguish retained prefix tools from removed suffix tools, with results and reviews deleted alongside removed invocations. Restore infers missing legacy source IDs from the raw assistant call grammar; deterministic recovered tool-result IDs receive run ownership. The live projection additionally uses retained result ownership and the full visible prefix when compaction has hidden raw messages from the model transcript. Only invocations/cards without recoverable ownership fall back to `createdAt >= target.createdAt`, conservatively including the exact cutoff. This includes legacy rows and modern provider-native events persisted before their source message reaches a snapshot. Compaction records are removed only when their explicit boundary message is removed; nil-boundary fork bases survive, and live compaction marks are rebuilt. Editing after a retained opening does not clear its title, even when that opening is compacted out of the model transcript; live plans at or after the cutoff are removed.
 
@@ -351,7 +397,7 @@ The focused tests establish behavior that is important when changing this area:
 
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.
-- `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and reloads through a fresh `ModelContext` and repository to verify durable provenance and replay backing.
+- `FrameworkTests/AssistantChatCollaborationPersistenceTests.swift` checks atomic cross-context receipt confirmation, monotonic delivered state, and creation-relation reopen; `FrameworkTests/AssistantChatCollaborationReviewTests.swift` and `AssistantChatCollaborationEdgeTests.swift` check source/target isolation, retries, planning restrictions, bounded listing, receipt failures and wait/interjection races. `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and reloads through a fresh `ModelContext` and repository to verify durable provenance and replay backing.
 - `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Blocked and failing saves verify that captured failure keeps preparation owned through stop and archive/delete until save completion and only adopts staging on success. `FrameworkTests/AssistantModelSelectionTests.swift` checks draft model seeding, restored choices, unavailable-model repair, and persistence-first model selection.
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order/edit mutations, invalid edit rejection before repository calls, failed edits leaving the live prefix unchanged, and activity guards. Immediate `stopAndWait()` also verifies a persisted cancelled prestart snapshot with captured prompt and context but no provider/tool calls; a gated-save test verifies the join.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
@@ -362,4 +408,4 @@ The focused tests establish behavior that is important when changing this area:
 
 ## Change guidance
 
-For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved 0.15.2 package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register host-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.
+For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved 0.16.0 package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. For cross-chat changes, keep the AgentKit generic chat-tool interface separate from Termind's coordinator and preserve receipt atomicity, deduplication and per-target composer isolation. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register host-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.

@@ -5,7 +5,7 @@ description: Find macOS and iOS app owners for composition, window and scene sta
 tags: [architecture, macos, ios, directories, navigation, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -59,6 +59,8 @@ sources:
     resource: repo://TFI/Platform/MobileHomeScreenQuickActions.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
+  - id: openwiki-source-8d3004f1cede60c9ccecb4d3
+    resource: repo://TFI/Platform/MobileNotificationRouter.swift
   - id: openwiki-source-ce94d13059ea7e57a90adf59
     resource: repo://TFI/Platform/MobileSFTPOpenWithPresenter.swift
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
@@ -135,7 +137,7 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Native App Responsibilities
@@ -221,7 +223,7 @@ flowchart TD
 
 Scene phases and Pro eligibility govern app-wide background and sync services.
 
-Scene registration and entitlement gate app-owned services independently of whichever tab is visible. `TFITests/MobileWorkspaceSessionTests.swift` covers window isolation, legacy migration, handoff, system reclaim versus explicit discard, activity routing and host deletion; opt-in `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows with `TERMIND_MOBILE_UI_TESTS=1` and serialized testing. `TFITests/MobileAppTests.swift` covers background expiration/reentry; `TFITests/MobileBackgroundControllerTests.swift` covers lease replacement, synchronous expiry and invalid IDs; `TFITests/MobileSettingsPortTests.swift` checks the in-memory cloud boundary and settings-to-transfer preference updates.
+Scene registration and entitlement gate app-owned services independently of whichever tab is visible. Notification routing is another app-to-native-scene handoff: `MobileAppModel` aggregates unread Assistant and command-completion counts across sessions, but terminal notification focus requires the workspace to be visible in an active owning scene. `MobileNotificationRouter` keeps a pending terminal, Assistant or transfer target until it can deliver it to an active scene, requests native activation for a different window when appropriate, and ignores failures from superseded activation requests. Assistant conversation data is shared while its selection and composer draft remain scene-local. Home Screen Connect and recent-host shortcuts are generated from app history, then consumed by the receiving scene to open its connection picker or preferred host connection; they do not select an app-global workspace. `TFITests/MobileWorkspaceSessionTests.swift` covers window isolation, legacy migration, handoff, system reclaim versus explicit discard, activity and notification routing, unread ownership and host deletion; opt-in `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows with `TERMIND_MOBILE_UI_TESTS=1` and serialized testing. `TFITests/MobileAppTests.swift` covers background expiration/reentry and shared Assistant conversations with scene-local drafts; `TFITests/MobileBackgroundControllerTests.swift` covers lease replacement, synchronous expiry and invalid IDs; `TFITests/MobileSettingsPortTests.swift` checks the in-memory cloud boundary and settings-to-transfer preference updates.
 
 ## Placement: policy, adapters and presentation
 

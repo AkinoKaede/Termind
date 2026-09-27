@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -115,7 +115,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 ## Scope and ownership
@@ -212,7 +212,7 @@ Screenshot/demo data must not modify production behavior. In DEBUG macOS builds,
 
 Marketing capture uses real feature views with fixture-only data: mobile tests mount real views in system windows, while macOS captures the production `WindowGroup` through `ScreenshotDemoConfiguration`. Asset source captures are organized by feature/device/locale; the sanctioned locales are `en`, `zh-hans`, and `zh-hant`. UI chrome and marketing copy are localized, while terminal command and transcript content remains English. A UI change affecting a captured scene must be recaptured in every locale rather than fabricating missing platform UI or changing product behavior for an image.
 
-The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts`; do not copy marketing sources into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. When changing entitlement gates or the native paywall, check that this FAQ and the storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
+The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts` directly from `Marketing/Screenshots/DeviceFrames`; the production build resizes them and emits AVIF, WebP, and JPEG variants. Do not copy source screenshots or device frames into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. When changing entitlement gates or the native paywall, check that this FAQ and the storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
 
 ## Change and verification guide
 

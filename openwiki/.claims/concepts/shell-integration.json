@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ed30aee242a42146cd75d69d5a4e30ca8dc8fd7d5dc8db4ca3d401b8a73e894a",
+  "pageVersion": "sha256:3c92451659ada3c0bf7b787ff1003077f4f204735ee2f78c3d3af48b45e28307",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -110,15 +110,19 @@
     },
     {
       "id": "claim_ee7e1649cd0847a583d24f85e9e2e504",
-      "statement": "Desktop installation availability does not mark the shell prompt ready, whereas mobile additionally treats availability and command completion as prompt-readiness recovery boundaries; both use shell events to associate history with command completion.",
+      "statement": "Desktop SSH shell-integration availability leaves prompt readiness false and only promptReady sets it true; mobile additionally treats availability as ready and command completion as a readiness recovery boundary when integration is available. Both clients associate command-start and command-finish events with history completion.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L537-L598",
-          "version": "repo-lines-v1:sha256:6d89df935a9c75efc237328c919e3bc6ca1c78f99c6c13f7046995690e4a744e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNmI1YzY4ZDUzMjk0NzYxNjkyN2YzMTc3MmEzNmY5ZmY5ZWZmZDA2NDQyOGE0YTJlNDQwYzMxYTZhODYyNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODIxZTIwZTQzYWNkNDk3OWZhMmVhMjViOWFhOGJjNjE3YTYxNGU2NmM5MjA4ZTg5MDZjNzBmNWI1NWY3NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4ZTcxY2JkOThlNWM1ZTg2ODZkODQ5NmI0Y2Q0M2UyNGZkN2QyNmFmNGJiMjA4YjZjNjc0NGZkOTRiMzQ5OTEifQ"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L554-L615",
+          "version": "repo-lines-v1:sha256:5539796556ffdf720160f60fba28f3cfe7f6dba2a770c335a20000043790145d:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNmI1YzY4ZDUzMjk0NzYxNjkyN2YzMTc3MmEzNmY5ZmY5ZWZmZDA2NDQyOGE0YTJlNDQwYzMxYTZhODYyNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODIxZTIwZTQzYWNkNDk3OWZhMmVhMjViOWFhOGJjNjE3YTYxNGU2NmM5MjA4ZTg5MDZjNzBmNWI1NWY3NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkODlhMWMzYzk5NDY3NmQ2ZmI4ZjBhZTBmZmMwOGQ1NWUzNzEzYzMwYjYwZWE5YzY1NDkxZTE1MDRlODBlZTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1131-L1243",
-          "version": "repo-lines-v1:sha256:ca18861ef703aa764dd5a336b22baadb3f133fbf2de8b2942aac358d6eb07c4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ZDkzMjJlNjcwMzQyYzQyZDRmMWExNjYyNWU2YmZkZDE4MzVkNTI4N2Q1OTYxMGM1Y2Q1MzAzMjY0ZTM0NWUyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxNGEyNDg3M2UzMjIwZDkxNzYyNDRlNjE3MTUzNzA0YWQzMWViNTY0Y2UzYWVjNGNlNWU2MDZkMGMwMDQwY2M5In0"
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1129-L1171",
+          "version": "repo-lines-v1:sha256:c980b055634c1b89c50efce672c58a3a1fff74e2efbc8b9bbcb7a1d6ee7f2e16:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkOTMyMmU2NzAzNDJjNDJkNGYxYTE2NjI1ZTZiZmRkMTgzNWQ1Mjg3ZDU5NjEwYzVjZDUzMDMyNjRlMzQ1ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiODdkNGM2YWNkOTc0MDBlMGZlNzgyZmUxNzIxMTg0OTAwNjQwYzdmNzc2NDczOWYyYzE2OGFkNGI1MGIwNTcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1201-L1241",
+          "version": "repo-lines-v1:sha256:9a7e9d6d16a0f47acfdb1b8769892e3457e026b80d73c8490afe8c8ff0997e58:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZDUzYmFhYzE4Nzg1MmI0MzFjMjMyZTA1MTYwNjFkNDk2ZjdhMjE1NmVlNGJmN2RlYTY0N2ZjNjY0OTg2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkMmIzZDQ2YWI3YzNiNDBkOTA4YzY0ZjZkMjA4NzA5ZTcxZDdiMGRhYTkxN2Y5OThmMjkyYmRhNTRlMGJmMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlZmU4NTA0NTU3YTViYzNlZDRhYTI4OGQ1Nzg4ZTNmODZmYTI5Y2MwYWY1MTk3Y2VjNjJjMGFkZGFmMGYyZDQifQ"
         }
       ]
     },
@@ -233,10 +237,126 @@
           "version": "repo-file-v1:sha256:669be133495ace7709a537d328d7ba5e31fa8159dbd50a7f3e193cc91f807d74"
         }
       ]
+    },
+    {
+      "id": "claim_8b3350278ac847b88f846448b77a9be6",
+      "statement": "A per-terminal TerminalCommandMonitor selects OSC 133 completions until a shell-integration available event switches that connection to private start/finish events; it ignores subsequent OSC 133 reports, requires a pending start for a private finish, and resets source and running command across connections.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L49-L86",
+          "version": "repo-lines-v1:sha256:ccab43bf42c472050075b540582121f582b6f153ed041243b7679deb08b19e94:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2MTc3NDc5NmQwYjFmMzljYzAzZDkzMzEyZTVlYmNmNWJhYzU5NDNjOGU0MGMyMTI0ODdiNGMzNzFkMGEyOTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L26-L79",
+          "version": "repo-lines-v1:sha256:3aa4056b7f7f29769db0e1a1996200a7ef3cc6d5b25e65e33dae11f967f00782:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNmYyZjQ4Mzk1ZTA0ODdjMmJlMDJmNzY4OWQzYjg4YjE4Y2EwMjA3ODZmMTRkY2ZhYjg0NTAxOTA4ZGIzZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4NDU3NzE3MGUwNmUxZTI0NTZkNTgxYjI5YTk3ZGY1ZDRhZWI0MzIyODhhZTYyZGFiYWE2ODliMjQzYzE1NmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_55379eac80f44313bf2d9fc9777579b6",
+      "statement": "TerminalCommandObservation subscribes to Ghostty's duration publication, skips an already-present initial value, and pairs each subsequent completion with its synchronous exit code even when durations are equal; the observed OSC 133 completion has no command text and is independent of shell-hook availability.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L76-L79",
+          "version": "repo-lines-v1:sha256:f79a0c2a4ed9a78c6ff4ffb4ffc76f4e6a01451d49e70c76fcf976f0c1adc68b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk0ZmUwMTE0YTQwOTY3ZDQ4M2RhMWIzYzk3NjI1NDJmMjJjMzNhMjJlMjZiYTIyODU5NzQ3M2JkNmExOTY4NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzg0NTc3MTcwZTA2ZTFlMjQ1NmQ1ODFiMjlhOTdkZjVkNGFlYjQzMjI4OGFlNjJkYWJhYTY4OWIyNDNjMTU2ZSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandObservation.swift#L5-L17",
+          "version": "repo-lines-v1:sha256:cc5e09d283d9adfa64cb72175291331efb0a96f95828a5b44b47ee5c64cccb98:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3ZTdkZWZjMmY0YjkzMDRjZWQzZmU5NWUxZjhkZDRkZjA5YzRmMWU5M2QwYzI4MjA1YjI4MTQ0MmM0YTQzMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkZDkxNDA1OThiMzYxOTg3OTI0MjM5MjlmZTU1NWMxNzRjMDQwZGYxNWFmOTNiNjRmZjI4YWQzMWFiMjc2NmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/CommandNotificationTests.swift#L156-L175",
+          "version": "repo-lines-v1:sha256:06e24deb0d94fc9fbfa78c471f6975b3e12c2472f1c9ccaf71e6e338995e84f4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2ZDFjNDRlMWFlNzZjYzdiY2U5NjE1MGI1ZDA3YTA1ZjMwNTcyN2YwYTBlODI0NGJkNjY4ZDkzNzg3ZTI0MjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmNGYzZTJlYThhNzM5ZmIxMTRlOTA5MDFjMmY3MTZkMzdlNDk5ZmJjMjdhMThhZmQ3MzlkOTUzMDE3NjhlMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmZjliOWFmOTkyMDc0ZWI1NDgxODA4YTVmOWFiZDgwMzMwNGU5N2Y1ODhkZjM0MDhkOTM0ZGQzNmNiY2ZhOTkifQ"
+        },
+        {
+          "resource": "repo://TFMTests/CommandNotificationTests.swift#L270-L283",
+          "version": "repo-lines-v1:sha256:3e7abd5ecfb484c875935242f4fda38f4f1dc41ec04556d5b67b4b9f451b975d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4YWI2ZTcyMjBjNzdmOWQ3YjhlNTA3OTJlY2YxNjA2ZjM3ODNlMzEyYmYzMjY5OGJhNWY5MmViZmE5YzNjYjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMDU2MmI0Njk1Y2IzMWNiODFlNzEyNmVlNTJjYTZlM2E2ZWQxOWI3Y2NlZWExMjZkMTYxOWVmZjlmYTA3ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7b0aea11b8c8457f89f65d8a6405ffed",
+      "statement": "For private hook completions the monitor uses a valid nonnegative finite reported duration or falls back to nonnegative elapsed uptime, and consumes the pending command once so duplicate or unmatched finishes do not create another completion.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L49-L70",
+          "version": "repo-lines-v1:sha256:73d362608852535adc1f5f8d0c39a08fe31c3c78883bb73febe175dcf1f5a580:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OThmMWIzODRjMzY4Yjg2YmQ3ZGNlNjBjZDBhY2QwYjllYTY2MzFkOTA4MDA3YmFiNWMwMzFmZWI2MjRhMTgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L62-L71",
+          "version": "repo-lines-v1:sha256:02cdc77f1b2e982e33347d82adfd20b9689c3fca269ebed38612af4cf557e8da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDYyNmQ1OTMxYWU2ZTQ2NTU4ZTVjYzYyNjkyOWViMDc4ZjZhYTlmZTE5MWEwODEyZDUxMDNhN2FmMmFlYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllYTkyMTMxZGM5Y2ZjNGIxOWFhNjgwODlmNjA4YzlhNjJiYmQ0NzMyZDVhMDU1NDNlYjQ4ZWM1OGIyNWU3ODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkMjAzMDNjMGIxMDVjZWI2ZTc0YTVhNmQwZjAyN2Y5Yjg0NjJiNDU4NWJmZDhjZGY3MDVjODUwMGQxZmYwOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMDZjMThlOGM0ZGZhM2I0ZmIzZWU1Yjk2NGY1Zjg4ZGU3MjBlZGJjM2IxYWMzMWQyZGI5ZGYxZGE2OWM5YzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_23688ad423ef40e383f60cf5243f7219",
+      "statement": "Unread completion accounting is independent of alert eligibility: background completions increment unread before settings filtering, focused completions clear it, and markRead explicitly resets it; alerts depend on enabled notification settings, terminal mode, focus and minimum duration.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L11-L46",
+          "version": "repo-lines-v1:sha256:8fe0fa96dc1259a3e539a19445a2089115324b1b05fcd2836a4607cf7437d507:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MzBhZmY2OGE4OTY2ZGQ4NmRlMTdjY2FlM2Y4OTQ4NjQzYzkwYzUwYTYxNDBlMWI2NDljNmNjZGVhOTcwZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MzNjOTcyYzExZjI2NWM0M2JlMWY3ODI5NjIzMGZlMjcxZjk4YjRhOTZjOGYwZGU1Yjg3NTdlNjZiYzY1MTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4OGMwMmE3MjgzMjBhYjVmN2QyZWEzNmY4MzE4NjY0NTQ2NTE0YjU1NjE0MzUzOThjZGEyNDBhMTg2MzIwNmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1MzU5MDBjZmY5ZTJmYWUxN2VkMGEyZTExYjFiZWM0MTU4NDE5YzY1MzRlMjFiN2ZlNjFhMzgyNGM0MGMxNjMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L55-L87",
+          "version": "repo-lines-v1:sha256:6c3e12a50b61f9a8f9273ffd5e2f35886ffa61ffaf1b9b993c4606f1acf89eae:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlODBkOTA5NDdlNTU4YmQ0OGFhNTJmMWRlOWMzYTdmYzhlZWI0MWEyYzkyM2ExZmU5MWJhYmM4ZmU3MjgzMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzZTUwMTZhMjc2ZWJkZDE1NTg1OTU3YTRhZDc1NjE5MTg3NGU0MzE3Y2JjNThjNDIyZGM5YWQ2ZDE1MmU4ZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L3-L21",
+          "version": "repo-lines-v1:sha256:8bd9be68c600110b8ddc270c62150d6686b3c97d2152b192ff359d9645c221d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0YjRiZGQ5ZDk2ZWRmMDlhNzIxZjVkNzZlNTNiMDViOGIyMjNhNGJmYjMzMmE5YmM2NjkzODUyNGYyOTcxYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNjUxZjk2NmI3OWNmYzA2ZjRiNTQzNTU0MzdjNjE4ZTgxYWE4MTRkZDk5MDUwYjQzOTFhNTdkNWViYjE0NGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzYjFkMGJjNTAzMzFjMmM0ODc5MWI3YjhlZjIxYmE4MGNmMzNmYTYzY2I1MTExNTIyNTgxNmIwMjI3N2JmYTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L39-L57",
+          "version": "repo-lines-v1:sha256:2fa070aefac5a70d0361d307f5ff59dd78f1db0b66fbb43d9aa6459210f331fa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5NWU3OTBkYjQxMTAxMzNlOTY0YmM4NTJjZDU5OWNmODdiMmFhNzc0NzliNDJhNjVhOTlmNjRlZGU1M2YxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1NDMwMjkwMDM0NGViODVlZmMxY2JlYzZlMjZiNTNlOThmNDliNGY5ZWZhNjk4YjZmZGZlMTg1MGMyNTAxNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_35ec93fd632e451eaa9ad1a8adcc56d1",
+      "statement": "The application owns exclusive bell-versus-system terminal completion delivery, rechecks live policy and target before a queued system notification is sent, and disables Ghostty's own command-finish notification setting even in custom terminal configurations.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalNotificationCoordinatorTests.swift#L10-L49",
+          "version": "repo-lines-v1:sha256:caa4dcff7cb8cb41a4e4f27e4fbc4d1d696e35f0a25cf23a064f0bf5380ddcc6:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwMzNiMjVhMDhhNDZiOGY3Y2ZkYjM0NzBiODJiMzg0ZjNlZTU0YTU1MWZlNTViNjdjNmU3NDFhNGIwYjczNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllM2FiZTI5Zjg4NDc5YjRiZjBkYzdiZjRmMjRiMDZjNWQ4MjIyOTY4Y2UyOTU2NGE5ZDNhYTFiZTJjODYwZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1YmZlNDBlMDY1YTc1N2RkYTJlNDMwNTYyNzFlYmZiMTI3NzQxOTJkMzg2MDU3MjA4NmNmNTgyMTJmYmIzMGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift#L32-L63",
+          "version": "repo-lines-v1:sha256:8be2bbfbc0856746a631f20060b0012f6656132ff1ecd2489cd9789dfa6895d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5NDhiM2U3YTMzMWUxYzVmYmQwNDA5Nzg2NmNkYjA1ZTkyZTBiNzIyZDhmOGJlOTY4MzFmYWUxYTRmNGU0NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5OTM3NGRjMmU0MGFkZmQ0ODEwMzRmMDAzMDQzMTk4MDYxODRlOWUwMjBiZjYyYmQ4MWRlZDFhNzM5NzIyNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L117-L135",
+          "version": "repo-lines-v1:sha256:f3802266af183f0f1695b2d185fd5c843dff63a3f369a06fef9a9168b6efc853:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L28-L37",
+          "version": "repo-lines-v1:sha256:136db19368d13aa4cc4852306826417962adf3416f58cd0f247fcab1a302d1e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMTQzN2JjYWY4ZmEyZTIzMjhmNTlkOGE3NGE4YjVjZTIyNmE2M2U0MDJiYTQ3ODY2ZDYwY2JhMmE5ODU1NjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxY2ViNzRiYzA1Nzg0ZmI3ZDI4ZjU1NzU2NWQyNGU3N2Q4ZDBkMDBiZWZhNDZlNWQ0YTk5YzA1ZTEwMzhhYTkifQ"
+        },
+        {
+          "resource": "repo://TFMTests/CommandNotificationTests.swift#L145-L154",
+          "version": "repo-lines-v1:sha256:07b9975e0f307f3314be2b177e57d26e7ede5410f6b74ab8047187ff04c21887:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5Y2ZjYjI2YjRjODU5NzNiYThlNGI5OGM2NDNjMTc1NTZhNTQ0ZTY4YmQ4Mjc5MTBlOTZmYzZkNWYzNjg3ZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1YTY5MzIyOTEzZDQwNTdlOWYzNTViMGQxMTdkM2M5NjE0NTI2NmVjMDQ4MTc1ZmQwNDRmNmY2ZTNlMjBiOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0YWFkNmIwYzZlMjZmM2Q3MjQyMDdlNTk0ODg4YmQxM2NmZDZkY2MxYzk2NDM5MzkzZjRkNWEwYTQ1NzZlNGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec84881757294afcb24525ab93b83d33",
+      "statement": "Completion notification content formats exit status and duration with an optional command preview that removes controls, collapses whitespace, and limits display length; fallback OSC 133 completions cannot supply a command preview.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L5-L24",
+          "version": "repo-lines-v1:sha256:95db6dddeb313b343e3dbc69ee77aaeac0496581d6ca3e2b8423504078c73d6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4Y2Q2YTIxNmQ5OWM5ZjU2NDEyZmJiZTRkNDZmM2VjYWM3OWI2M2YxMTk5Mjk2NWI0MmI2N2I4NTNjZjQzMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiYjY5YmQzOWVkYTlhZDc5YzQyMTM3MDhjYmY1ZTY1OTE1NDY2MjExOTdkYTczZDBmOGQ0YTU0MGRkZTNhNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZjkyYzIxYzk2Njg1MmY3MTVlYjg2MDI0MmFjZmNhYTlkMzY1YzRiYjg3NWM5NTkxNDdlZWY2YmU1Y2ZiYzQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L76-L79",
+          "version": "repo-lines-v1:sha256:f79a0c2a4ed9a78c6ff4ffb4ffc76f4e6a01451d49e70c76fcf976f0c1adc68b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk0ZmUwMTE0YTQwOTY3ZDQ4M2RhMWIzYzk3NjI1NDJmMjJjMzNhMjJlMjZiYTIyODU5NzQ3M2JkNmExOTY4NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzg0NTc3MTcwZTA2ZTFlMjQ1NmQ1ODFiMjlhOTdkZjVkNGFlYjQzMjI4OGFlNjJkYWJhYTY4OWIyNDNjMTU2ZSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandNotificationContent.swift#L4-L15",
+          "version": "repo-lines-v1:sha256:1ffd85610ef344955a7298d6f5270f7271510c176dc6bb2bda9ecd2b784fcd6a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3MWVlNmRhN2I4ZGI2MDZlZjhmOTQ0ZGM5NjIyNGY5NzE2YjRiNzlhODA2YzY5ZjVjODU2NzM3OGNmZmE1NTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-27T22:47:06.500Z"
   }
 }

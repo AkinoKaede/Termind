@@ -1,14 +1,16 @@
 ---
 type: integration guide
 title: MCP Server, Transfers, and Stdio Bridge
-description: How the macOS loopback MCP server and stdio bridge expose host tools and scoped SFTP byte transfers, including session authorization, ticket lifecycle, and failure recovery. Contrasts the desktop inbound server with the iOS outbound MCP client.
+description: How the macOS loopback MCP server and stdio bridge expose host tools and scoped SFTP byte transfers, including session authorization, ticket lifecycle, and failure recovery. Distinguishes desktop inbound serving from the embedded Assistant's outbound AgentKit MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
+  - id: openwiki-source-1c845e5af67c400566be83bd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-a62bfbbc7de13a894444718b
@@ -59,14 +61,14 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # MCP Server, Transfers, and Stdio Bridge
 
 Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, store a bearer credential, configure per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
-The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. macOS also constructs a separate ordinary `SFTPTransferCoordinator` for its own file-transfer UI; the MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not either app's ordinary transfer coordinator. The mobile MCP editor performs outbound discovery with `MCPClient` and preserves per-tool policies across rediscovery; mobile MCP settings gate adding/editing remote servers with `.remoteMCP`.
+The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. macOS also constructs a separate ordinary `SFTPTransferCoordinator` for its own file-transfer UI; the MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not either app's ordinary transfer coordinator. The mobile MCP editor performs outbound discovery with `MCPClient` and preserves per-tool policies across rediscovery; mobile MCP settings gate adding/editing remote servers with `.remoteMCP`. Both platforms' Assistant can instead construct an **embedded AgentKit MCP client**: `AssistantToolRegistry.make` adds configured usable remote servers and their bearer credentials to the AgentKit tool catalog, with a conversation-scoped scratch workspace and other Assistant tools. That client calls *out* to configured servers; it is not `MCPServerController`, and the desktop inbound registry does not inherit its remote tools, scratch files, or permissions.
 
 The desktop app explicitly revokes MCP tickets when a host is deleted (including host-deletion outbox handling and remotely applied vault removals), alongside cancelling ordinary SFTP work and SSH connections. On app termination, it stops MCP and waits for ordinary SFTP cancellation before closing shared agent background commands and connections. Mobile host-deletion handling instead cancels its ordinary SFTP transfers; there are no inbound MCP sessions to revoke there.
 
@@ -131,15 +133,17 @@ sequenceDiagram
     HTTP-->>Client: HTTP response
 ```
 
+The inbound request crosses the loopback token and Origin boundary, then the MCP session and enabled-tool boundary; SSH and secret interactions cross into the desktop UI only when needed. The embedded Assistant's outbound AgentKit `MCPClient` is a different flow and is not a participant here.
+
 This shows the normal streamable MCP request path. Authentication is routed to the local Termind UI rather than returned as an interactive protocol prompt.
 
 There is also a legacy compatibility transport: `GET /sse` opens an SSE stream and emits an endpoint event for `/messages?sessionId=...`; clients post messages there and receive responses as SSE messages. `GET /mcp` is deliberately rejected because streamable HTTP does not expose a standalone SSE stream.
 
-A session owns a UUID run ID and a `SecretBroker`. The protocol supports at most 64 sessions, sweeps idle sessions after 30 minutes, and reports client count to the UI. A session with active transfer work is retained rather than expired. Explicit `DELETE /mcp`, listener stop, token rotation, or expiry finishes legacy streams, cancels session copies/transfers and external prompts, unregisters audit state, and discards all brokered secrets.
+A session owns a UUID run ID and a `SecretBroker`. The protocol supports at most 64 sessions, sweeps idle sessions after 30 minutes, and reports client count to the UI. Session capacity exhaustion returns HTTP `503`; absent or expired session IDs return `400` or `404`, and a mismatched negotiated version returns `400`. `tools/list` and `tools/call` require `notifications/initialized`; unknown or disabled tools and non-object call arguments return JSON-RPC `-32602`. Tool execution errors are represented in tool results or JSON-RPC errors, not authorization to call a hidden tool. A session with active transfer work is retained rather than expired. Explicit `DELETE /mcp`, listener stop, token rotation, or expiry finishes legacy streams, cancels session copies/transfers and external prompts, unregisters audit state, and discards all brokered secrets.
 
 ## Tools, policy, and external authentication
 
-The exposed registry is an allowlist—not the complete AgentKit catalog. It includes host discovery and cached metrics; `request_user_secret`; `ssh_exec` and `ssh_wait`; ordinary SFTP inspection/mutation/copy operations; and four upload/download ticket/status tools, for 18 exported names. `terminal_suggest` is not exported. Scratch workspaces and generic fetch tools are intentionally excluded because an external MCP client has no Termind conversation backing them.
+The exposed registry is an allowlist—not the complete AgentKit catalog. To extend it, add the host or transfer implementation and dependencies, explicitly opt the name into `exportedNames`, verify its acting-mode descriptor and MCP schema, and decide whether disabling it must revoke a capability. Adding a tool to the Assistant catalog or configuring a remote MCP server alone does not export it through the desktop listener. It includes host discovery and cached metrics; `request_user_secret`; `ssh_exec` and `ssh_wait`; ordinary SFTP inspection/mutation/copy operations; and four upload/download ticket/status tools, for 18 exported names. `terminal_suggest` is not exported. Scratch workspaces and generic fetch tools are intentionally excluded because an external MCP client has no Termind conversation backing them.
 
 `MCPServerTools.makeRegistry` composes AgentKit's user-interaction group, the same `TermindAgentTools` definitions used by Assistant, and the four MCP transfer tools. It supplies no scratch workspace, so the dependency-based factories cannot construct `scratch_pull` or `scratch_push`. It then explicitly selects `.available(in: .acting)` **before** applying the exported-name allowlist and disabled-tool filter. Thus MCP uses the acting `ssh_exec` implementation, not Assistant's planning wrapper; mode selection, dependency injection, and export policy are distinct boundaries. The stdio bridge forwards requests to this registry rather than building another catalog.
 
@@ -222,7 +226,7 @@ The server pulls no more than 64 KiB per send and revalidates bytes, size, and m
 
 ## The `termind-mcp` stdio bridge
 
-Some MCP clients expect a stdio command rather than HTTP. The bundled `termind-mcp` executable is a protocol forwarder only: it does not expose another listener or implement Termind tools. It reads one JSON-RPC object per stdin line, sends its original bytes to the configured loopback URL as HTTP POST, and writes each JSON response as one stdout line. Diagnostics go to stderr.
+Some MCP clients expect a stdio command rather than HTTP. The bundled `termind-mcp` executable is a protocol forwarder only: it does not expose another listener or implement Termind tools. It reads one JSON-RPC object per stdin line, sends its original bytes to the configured loopback URL as HTTP POST, and writes each JSON response as one stdout line. Diagnostics go to stderr. It forwards JSON-RPC and session headers only; a client must separately perform ticket-authorized `PUT`/`GET` for file bytes, not send them over bridge stdin.
 
 By default it uses `TERMIND_MCP_URL` or `http://127.0.0.1:7391/mcp`, and requires `TERMIND_MCP_TOKEN`; `--url` and `--token` override those values. Invalid stdin lines are ignored with an error on stderr. For HTTP failure or reachability failure, requests with an `id` receive a JSON-RPC `-32000` error; notifications produce only stderr diagnostics. On EOF, it best-effort sends `DELETE` with the established session ID.
 
@@ -271,6 +275,7 @@ Missing token disables all generated commands; a missing bundled bridge disables
 
 ## Related pages
 
+* [System boundaries](/openwiki/architecture/system-boundaries.md) — inbound desktop integration versus embedded outbound client ownership.
 * [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) — tool execution, approval, and secret-handle semantics.
 * [Persistence and secrets](/openwiki/concepts/persistence-and-secrets.md) — Keychain and local-secret ownership.
 * [SFTP transfer and external edit](/openwiki/workflows/sftp-transfer-and-external-edit.md) — shared SFTP channel and transfer behavior.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4ef4f3ac5cb1875e4160c7f10b5e2a3853af62def0d6b1e13dd7196b1c539f6b",
+  "pageVersion": "sha256:80ab32ca1d122ef9302e39e1dcbc49e577b2fe0ec108fc2ab6429a6e0b6099e6",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -150,15 +150,15 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credentials, environment order, snippets, Known Hosts, history and installation-ID backfill; V25/V26/V27/V30/V31 migrations and V35 retired-importer removal are covered, while the migration plan now ends at V40 and omits V29/V32/V33.",
+      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credential references, environment order, snippets, Known Hosts, history and installation-ID backfill; V1/V14, V25/V26/V27/V30/V31 and V35 historical stores are also covered, while the migration plan now ends at V42 and omits V29/V32/V33.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:e07da903bc9741e2e929cfeba64a2412f60152dfbae88d79765afeca90f82731"
+          "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:e6d3ae41393cf5e3e8015ffde46ff0be0901a6c6815172e0c32364a9b64fbe03"
+          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
         }
       ]
     },
@@ -167,8 +167,8 @@
       "statement": "Agent replay persistence tests verify frozen context/tool-result restoration, prevent replay-row duplication across later snapshots, remove replay backing on conversation deletion, and preserve a durable result recorded before the next snapshot.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift#L12-L69",
-          "version": "repo-lines-v1:sha256:5f1da27d6edf07122f88fab1e06ba2ca7c5d2e2f42a474ed81a99a27bef44804:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNTFmNjI3NGQ5NDk5MTAwOGM3NzI0OTMwMmZhOGQ5NjcxZDE5NmExOTk5MzdmOWM1ZDhmZDk1M2UzYmY0YjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYmFkZWE5NTg5OGQxNzlkNmY2NjRlMmZhYWU2ZjkxY2YxYmZlNDc3ZTRkNjAxMjBiOWU3NTFiZDNiOGIyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MzgwYmYzNGNkYmJjNGVmODdiMWZhMTc2NWNiYTY1OTFiZGJmODk4ZDAzOGNkNmY2MDg5YTAxYzUxNGU3MzEifQ"
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:14f58c527d4e7bd48d53770f4aa82830f48392d3de991a82f366d4f59abbc88c"
         }
       ]
     },
@@ -206,7 +206,7 @@
     },
     {
       "id": "claim_eb35f30233ca461cb7de961bbe793326",
-      "statement": "Disk-backed safety tests migrate synthetic V30 and V39 stores to V40 and check retained groups, schema retirement of per-category quarantine tables and survival of current scoped quarantine and cloud-presence state; interrupted fetches reopen with original quarantined bytes, recovery fencing and pending local intent while a compatible peer remains eligible. Lifecycle tests cover persistence/lookup failures, retired engines, overlapping callbacks and recovery gating, without claiming live CloudKit delivery; the migration fixtures do not assert import of retired per-category quarantine payloads into scoped quarantine.",
+      "statement": "Disk-backed safety tests migrate synthetic V30 and V39 stores into the V42 schema via V40 retirement of per-category quarantine tables, retaining groups and current scoped quarantine and cloud-presence state; interrupted fetches reopen with original quarantined bytes, recovery fencing and pending local intent while a compatible peer remains eligible. Lifecycle tests cover persistence/lookup failures, retired engines, overlapping callbacks and recovery gating without claiming live CloudKit delivery; the migration fixtures do not assert import of retired per-category quarantine payloads into scoped quarantine.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
@@ -214,11 +214,11 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:9b05291227bf8072982be0b0f0c1e3f8bc5384b298e6e1ff5834cf22c7e2a894"
+          "version": "repo-file-v1:sha256:ca11db5c596551b5627e8c258d0d684528386f4d7f2488cb46e5b2c9ea44065a"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:e6d3ae41393cf5e3e8015ffde46ff0be0901a6c6815172e0c32364a9b64fbe03"
+          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
         }
       ]
     },
@@ -228,7 +228,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:e07da903bc9741e2e929cfeba64a2412f60152dfbae88d79765afeca90f82731"
+          "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
           "resource": "repo://TFITests/MobileCardRenderingTests.swift",
@@ -253,12 +253,8 @@
       "statement": "The same-run SwiftData edit regression uses equal timestamps, reversed UUIDs, compacted production restoration, legacy and unknown tool ownership, backing-row counts, staging adoption and late-write attempts; the empty-run regression separately proves live/restored ordering when the replacement clock moves backward.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L1076-L1129",
-          "version": "repo-lines-v1:sha256:efe03eb3ded07d84ffe8704f6ed27d9afb9bb2bfb21c8f53d5fbfa2c747a6552:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhZjRjZmQyZjMzYTRkZmMwMDJmZmE2MWVkMDg2ZWU0YWIzNWU3NjA1YTZhNGFlZmM5YTc5YTFkZTMyYzIwYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmZjBkMGU1OWU0ZjE1YTE3NTI4Njg1NTE2MjkxZDVlNTM3N2ZjZjVmMTIyNmM1Y2U3NjVmZWM5YzM4YWU1YTYifQ"
-        },
-        {
-          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L872-L1074",
-          "version": "repo-lines-v1:sha256:2a68be1f9c455cfee76bc0c6c557a1d8af1bf909f951786b861e71498a31b67e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxYzlhMjg4MzM2YWFlNTM2ZWUyNDBiMGZjMGU5MTI5YzMwYmYzZGZiNmJiNWQwYzI1YThlNTk3ODk2N2Y1Y2Y3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5ZDAxODMwNWY5YTk2MzdiODgxYTY4ZWZlZjM3OGU0NTdhMDkxYWExMmIwYzQ2ZmYzZDVmYjgzN2RkOTE1ZGY2In0"
+          "resource": "repo://TFMTests/AgentPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:1324850a39f51812ae6b729166bc8fae480aa35546590ab14946929d6497fb3f"
         }
       ]
     },
@@ -296,7 +292,7 @@
         },
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:f604f88f04283a6002d7a35cbad59a02d03955a767fcc50a8cb74a8b998e5245"
+          "version": "repo-file-v1:sha256:91bea30639e8a57f6a08933772773386deb74091c3a25ce88eb5c39adafa9845"
         }
       ]
     },
@@ -306,11 +302,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:f604f88f04283a6002d7a35cbad59a02d03955a767fcc50a8cb74a8b998e5245"
+          "version": "repo-file-v1:sha256:91bea30639e8a57f6a08933772773386deb74091c3a25ce88eb5c39adafa9845"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:461768054d09fa251da565ac196b1559ff2bb93597a817fa2de8532c943f5e91"
+          "version": "repo-file-v1:sha256:a81448d72c5af34edadf02165ead1e1a1d45aca0c6f11675befbe6305a2eaa02"
         }
       ]
     },
@@ -320,7 +316,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
-          "version": "repo-file-v1:sha256:f604f88f04283a6002d7a35cbad59a02d03955a767fcc50a8cb74a8b998e5245"
+          "version": "repo-file-v1:sha256:91bea30639e8a57f6a08933772773386deb74091c3a25ce88eb5c39adafa9845"
         }
       ]
     },
@@ -398,7 +394,7 @@
       "evidence": [
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:902127d6f54c7c99b562104830516d8bb7ce5d547e3504c55dcff895af9526f7"
+          "version": "repo-file-v1:sha256:2d7a1c3057c400c8db7111d96d6ab3be73088c6aed51aa5bd69c3eaf2a64c02a"
         }
       ]
     },
@@ -614,7 +610,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:596fa2ecc1439cabf0fa3ea000e0b635cab9c66965930180856b5235097e0426"
+          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -642,13 +638,75 @@
         },
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:902127d6f54c7c99b562104830516d8bb7ce5d547e3504c55dcff895af9526f7"
+          "version": "repo-file-v1:sha256:2d7a1c3057c400c8db7111d96d6ab3be73088c6aed51aa5bd69c3eaf2a64c02a"
+        }
+      ]
+    },
+    {
+      "id": "claim_5b62ce62c08d46f49abe4376c6df325f",
+      "statement": "V41-to-V42 compatibility migrates an existing group with empty agent-message origin, conversation origin and delivery receipt sidecars; collaboration fixtures separately establish that persisting a delivered message confirms a queued receipt across SwiftData contexts without a stale downgrade, and that creation relations survive a disk reopen and stay scoped to requested chats.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantChatCollaborationPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:a0f32c679b10e5c276b4d468ce4b546777a79c20cf3759fc9229c3b962950df6"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
+        }
+      ]
+    },
+    {
+      "id": "claim_11f4624193ba4db7b308a4795688b4dc",
+      "statement": "Replay fixtures check that a queued cancellation adopts an edited staging turn and preserves its authored text, images, attachments and frozen context on fresh-context restoration, while a captured configuration failure adopts staging only after a failed snapshot is saved; a synthetic V15 migration does not invent historical context or replay rows.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:14f58c527d4e7bd48d53770f4aa82830f48392d3de991a82f366d4f59abbc88c"
+        }
+      ]
+    },
+    {
+      "id": "claim_6b858504ce504729a855c4a7abc01158",
+      "statement": "Controller fixtures require archive and delete to await completion of a blocked preparation-failure save and retain the controller and conversation through the save after external references are released; they exercise in-process persistence ownership rather than crash durability.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift",
+          "version": "repo-file-v1:sha256:91bea30639e8a57f6a08933772773386deb74091c3a25ce88eb5c39adafa9845"
+        }
+      ]
+    },
+    {
+      "id": "claim_918a18b624774d4ab354583dff6fb4ab",
+      "statement": "Across Vault, History, Device, Settings and Metrics journals, safety persistence tests require repeated identical system-field writes and upload acknowledgements not to dirty SwiftData, while changing system fields or pending-upload state does produce changes.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:ca11db5c596551b5627e8c258d0d684528386f4d7f2488cb46e5b2c9ea44065a"
+        }
+      ]
+    },
+    {
+      "id": "claim_157fdfe530fc4db4a2ba3198e6420a7a",
+      "statement": "Mobile workspace session fixtures direct assistant notifications to matching active or hidden owner scenes without stealing another scene's selection, and hold transfer clicks until an active scene is available, consuming them once; these exercise app/router ownership without a key-window dependency.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
+        },
+        {
+          "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
+          "version": "repo-file-v1:sha256:214281899d17158f45c67314a1f30f0676b67a18830f3942d7602e7f3be92b63"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-26T22:20:04.073Z"
+    "at": "2026-09-27T22:47:06.500Z"
   }
 }

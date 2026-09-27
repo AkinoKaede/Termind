@@ -1,13 +1,28 @@
 ---
 type: implementation guide
 title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
-description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, and how remote charset conversion differs between SSH PTY and Telnet terminal data paths."
+description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, how command completion notifications observe shell hooks or OSC 133, and how charset handling differs from Telnet."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
+  - id: openwiki-source-a6d04eaf0b5dc762d077f17e
+    resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
+  - id: openwiki-source-1b008d375c28ace3a9684717
+    resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
   - id: openwiki-source-9302a1b0b7b0f5227d741afd
     resource: repo://Frameworks/TermindDomain/Hosts/HostShellIntegrationMode.swift
+  - id: openwiki-source-1ca741e9f21312b87c75fa28
+    resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
+  - id: openwiki-source-8185a608f0b79f1af097efbd
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
+  - id: openwiki-source-54a73a4ca7b06eebfd474aad
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalCommandNotificationContent.swift
+  - id: openwiki-source-3abe60b0240ab06a4ce4b972
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalCommandObservation.swift
   - id: openwiki-source-9dfd0d1178e2ed5b33263580
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -16,20 +31,23 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
+  - id: openwiki-source-ff78389501d942aabe259a03
+    resource: repo://FrameworkTests/TerminalCommandMonitorTests.swift
+  - id: openwiki-source-cc833bafcd369a243c638b69
+    resource: repo://FrameworkTests/TerminalNotificationCoordinatorTests.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-b8ffa1b375037613d943e75b
     resource: repo://TFMTests/CommandHistoryTests.swift
+  - id: openwiki-source-0c0e5cf058fc9e65d592cc20
+    resource: repo://TFMTests/CommandNotificationTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
   - id: openwiki-source-b1446950c4c60caef12aa43a
     resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State
@@ -134,12 +152,32 @@ The token provides **session scoping and accidental/spoofed-frame rejection with
 ## Cwd, home, history, and composition are different state
 
 - **Cwd** comes through the terminal's OSC 7 handling. `RemoteOSC7CharsetFilter` recognizes `file://localhost`, buffers split prefixes/frames, unescapes the path bytes, decodes using the remote charset and re-encodes them as percent-encoded UTF-8 before the terminal parses them. For malformed UTF-8 `%FF`, the resulting path is `/%EF%BF%BD`, not the original byte. Its 64 KiB unterminated payload limit passes the oversized data through instead of retaining it indefinitely; an unfinished prefix is flushed on PTY close. Desktop observes `TerminalViewState.workingDirectory`. **Home** comes from the bootstrap HOME marker and is stored separately for path display; an unresolved home is not evidence that cwd is absent.
-- **Availability** means installation completed. On desktop, `.available` sets integration available but leaves `isShellPromptReady = false`; `.promptReady` sets it true and `.commandStarted` clears it. Mobile intentionally also treats `.available` and `.commandFinished` as prompt-ready recovery boundaries, because a separate prompt marker may not reach mobile state. Do not merge these policies during a shared-state refactor.
+- **Availability** reports bootstrap installation, not a universally observed prompt. On desktop, `.available` sets integration available **and explicitly sets `isShellPromptReady = false`**; only `.promptReady` sets it true, `.commandStarted` clears it, and `.commandFinished` records history without changing readiness. Mobile instead treats `.available` as ready and `.commandFinished` as a recovery boundary **only when integration is available**: its UIKit path may swallow the subsequent prompt marker. `.promptReady` also sets readiness there; command start clears it only after availability. These are client-side policies, not proof that OSC 777 authenticates the remote host. Do not merge them during a shared-state refactor.
 - **History** is driven by command-start/completion events, not by recording every keystroke. Both consumers normalize explicit line continuations and associate completion with the active recorded row. Their one-shot startup-command exclusion suppresses only the matching synthetic command rather than disabling subsequent history.
 - **Startup submission readiness** is separate from command-generator prompt readiness. Desktop can unblock a pending startup command on `.available`, `.promptReady`, or `.homeResolutionUnavailable`, so failed/late integration does not indefinitely withhold startup work.
 - **Composition** reads the current shell draft with `ESC [777;1~`. `TerminalCommandDraftController` allows one pending read, times it out after 2 seconds, and resolves it from a draft event. Replacement sends the clear binding `ESC [777;2~` followed by bracketed-paste start/content/end, with no submit newline. The feature gates reads on a live supported shell, enabled/available integration, and prompt readiness.
 
 Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md).
+
+## Completion observation and notifications are not prompt readiness
+
+`TerminalCommandMonitor` is per terminal/workspace and is **separate from command history and the prompt-ready bit**. Desktop SSH and mobile workspaces forward accepted integration events to it; desktop SSH, Telnet, Serial, and mobile terminal surfaces also attach `TerminalCommandObservation` to Ghostty's `TerminalViewState`. The observation drops the initial duration publisher value and reads the exit code in the same sink as each newly published `lastCommandDurationNanos`, including consecutive equal durations. It forwards OSC 133 completion data to the monitor without command text. This fallback can account for command completion even when no Termind hook was installed; it does not assert shell-hook availability or unlock draft composition.
+
+```mermaid
+flowchart TD
+    Surface["Ghostty terminal state"] --> Observer["OSC 133 completion observation"]
+    Hook["Accepted SSH shell event"] --> Monitor["Terminal command monitor"]
+    Observer --> Monitor
+    Monitor --> Gate["Focus and notification preferences"]
+    Gate --> Unread["Unread completion count"]
+    Gate --> Delivery["Bell or system notification"]
+```
+
+Completion reporting sources converge in the per-terminal monitor; notification delivery is downstream of source selection and independent of history.
+
+At `beginConnection` the monitor selects OSC 133 until an `.available` integration event switches that connection to private command-start/finish events; from that point OSC 133 is ignored to avoid duplicate completions. A private finish counts only when an accepted command start is pending; another start replaces the pending one, and an unmatched or duplicate finish is ignored. An absent, negative, or non-finite reported duration falls back to nonnegative elapsed uptime; a valid reported duration wins. `endConnection` discards the pending command and disables processing until the next begin, when OSC 133 can be selected again. These source-selection rules do **not** convert a completion into prompt readiness: the desktop session still requires `.promptReady`, while mobile applies its own recovery rule above.
+
+The monitor increments unread completions for background work **before** checking alert eligibility, even for a subthreshold completion, disabled notifications, or a `never` mode; a focused workspace clears the count at completion and `markRead` clears it explicitly. `NotificationPreferences` defaults to enabled, unfocused-only terminal delivery with a five-second minimum and system notifications; mode (`never`, `unfocused`, `always`), focus, nonnegative threshold and master switch determine whether to alert. The app's `TerminalNotificationCoordinator` then selects one delivery route: a bell or a notification targeted to the terminal identity, with live title and policy rechecked at actual system delivery. The command preview in notification content collapses control characters and whitespace and truncates at 160 characters; OSC 133 completions have no command text. Custom Ghostty `notify-on-command-finish` overrides are filtered and the terminal configuration forces it to `never`, leaving app settings in charge of delivery. See `TerminalCommandMonitorTests`, `TerminalNotificationCoordinatorTests`, and `CommandNotificationTests` for duplicate finishes, reconnect, equal-duration publication, focus/threshold and delivery-race coverage.
 
 ## Charset boundary and the separate Telnet path
 

@@ -5,7 +5,7 @@ description: How macOS window navigation, sidebar modes, workspace sessions and 
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -59,6 +59,8 @@ sources:
     resource: repo://TFMTests/AssistantConversationMenuTests.swift
   - id: openwiki-source-38f1f2c3597d520d66dcdd62
     resource: repo://TFMTests/CardMarqueeSelectionTests.swift
+  - id: openwiki-source-78797a18dd3153d23a2c42e2
+    resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-a22920a2a9767ac44e072c9f
     resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-98505b843db3ce6b8e4ca024
@@ -77,7 +79,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
 # macOS UI and Workspace Ownership
@@ -274,9 +276,9 @@ The renderer resolves a pointer to a section and insertion slot; it does not nee
 
 ## Assistant: route state and native rendering are separate
 
-The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation in the compact sidebar does not replace the foreground terminal. Its transcript region and interaction/composer region can be composed separately, and terminal context/actions are passed deliberately. Conversation list reordering has its own native receiver and hidden-list participation rules; see the brief [Assistant drag flow](/openwiki/workflows/desktop-drag-and-drop.md#assistant-conversation-reordering).
+The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation **from the contextual panel** does not replace the foreground terminal; the conversation navigator shown instead when no workspace is in front deliberately opens full Assistant. The compact surface composes its transcript and interaction/composer regions separately, passing focused-terminal context/actions deliberately. Conversation list reordering has its own native receiver and hidden-list participation rules; see the brief [Assistant drag flow](/openwiki/workflows/desktop-drag-and-drop.md#assistant-conversation-reordering).
 
-The compact Sidebar and full Assistant share one window-local Chat/Archive route. `AssistantLibraryModel.selectedConversationID` identifies the open chat, while `WindowModel.isAssistantArchivePresented` overrides it for Archive; entering Archive or returning to the chat landing state clears the selected conversation so the two surfaces cannot diverge. Surface actions still differ in navigation effect: a Sidebar action updates the shared route while leaving the workspace in front, whereas its full-screen counterpart also selects the Assistant destination. Closing the last workspace promotes a visible compact chat or Archive into that destination. The contextual Sidebar draft and focused-session context remain Sidebar-owned, and transcript owners remain keyed by conversation plus surface, so navigation is shared without merging draft or native-rendering lifetimes.
+The compact Sidebar and full Assistant share one window-local Chat/Archive route. `AssistantLibraryModel.selectedConversationID` identifies the open chat, while `WindowModel.isAssistantArchivePresented` overrides it for Archive; entering Archive or returning to the chat landing state clears the selected conversation so the two surfaces cannot diverge. **Contextual panel** list, Archive and Back actions (`openAssistantInSidebar`, `showAssistantArchiveInSidebar`, `closeAssistantInSidebar`) change that route without replacing the workspace. By contrast, the full Assistant navigator and its footer, the blank-area New Chat menu on either surface, and the compact panel's explicit expand button select the full Assistant destination. The compact panel's blank-area Archive menu stays in the workspace. `openAssistantFullScreen` also selects the Assistant sidebar mode. Closing the last workspace promotes a selected compact chat or Archive when Assistant mode is selected; an empty chat landing state instead returns to Vault. The contextual Sidebar draft and focused-session context remain Sidebar-owned, and transcript owners remain keyed by conversation plus surface, so navigation is shared without merging draft or native-rendering lifetimes.
 
 Native transcript ownership adds another boundary:
 

@@ -1,11 +1,11 @@
 ---
 type: interaction workflow
-title: Desktop Workspace Drag and Drop
+title: TFM Drag and Drop
 description: Native workspace and pane dragging in TFM, including live drop routing, cancellation, and deferred new-window ownership and placement. Also covers the distinct Assistant reorder path and focused regression tests.
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
+    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -55,10 +55,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
 ---
 
-# Desktop Workspace Drag and Drop
+# TFM Drag and Drop
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 
@@ -187,6 +187,7 @@ sequenceDiagram
     Coordinator->>Scene: createScene(request UUID)
     Note over Source: Live workspace and panes remain here
     Scene->>Target: Create fresh window model
+    Target->>Coordinator: Configure sidebar before first layout
     Target->>Coordinator: Register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
     Source-->>Coordinator: Existing live workspace or pane wrapper
@@ -196,21 +197,21 @@ sequenceDiagram
 
 Request-to-registration transfer keeps the live session in its source until the destination has a native window.
 
-`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory; `TermindApp.makeWindow` applies request layout before the first `RootView` layout, and `MainWindowRegistration` calls `register` once AppKit has attached the native window.
+`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`; `TermindApp.makeWindow` applies the request's sidebar presentation and preferred width before the first `RootView` layout. `MainWindowRegistration` calls `register` only once AppKit has attached the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
 
 Live layout ownership changes only when the requested destination window registers.
 
-The request stores a weak source, the move identity, a layout snapshot (ordinary content size, sidebar width and presentation, fullscreen state and source-screen center), and an optional release point. Repeated requests for the same source and move reuse the pending request ID; different pane requests may register in reverse order. A closed source, missing scene factory, nonexistent workspace, nonexistent or noncombinable pane cannot initiate a move. If the source or pane disappears before registration, the pending request cannot recreate it.
+The request stores a weak source, the move identity, a layout snapshot (ordinary content size, sidebar width and presentation, fullscreen state and source-screen center), and an optional release point. Repeated requests for the same source and move reuse the pending request ID; different pane requests may register in reverse order. A closed source, missing scene factory, nonexistent workspace, nonexistent or noncombinable pane cannot initiate a move. If the source or pane disappears before registration, the pending request cannot recreate it. The coordinator registers each native/model pair once and removes the request on the first successful registration; registering the same destination again cannot transfer a second copy.
 
 Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
 
-These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate the reopen stack. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome.
+These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate the reopen stack. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
 
 Closing the source window removes its pending requests. A pane closed before registration cannot be resurrected by a late destination; an already-created scene may remain empty. A restored scene with no pending request retains its restored geometry and does not replay the move.
 
 New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. Registration restores sidebar presentation and preferred width, then bumps the split-view layout generation after a move. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
 
-Evidence: [request, layout and registration](../../TFM/Platform/MainWindowCoordinator.swift#L175-L332), [fitting and source close](../../TFM/Platform/MainWindowCoordinator.swift#L369-L382), [frame fit](../../TFM/Platform/MainWindowCoordinator.swift#L437-L444), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction](../../TFM/App/TermindApp.swift#L202-L218), [registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L447-L497), [model extraction](../../TFM/Features/Workspaces/WindowModel.swift#L1339-L1368), [history guard](../../TFM/Features/Workspaces/WindowModel.swift#L1020-L1031), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
+Evidence: [request, layout and registration](../../TFM/Platform/MainWindowCoordinator.swift#L208-L348), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L350-L420), [frame fit](../../TFM/Platform/MainWindowCoordinator.swift#L501-L508), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction](../../TFM/App/TermindApp.swift#L210-L245), [registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L511-L560), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [history guard](../../TFM/Features/Workspaces/WindowModel.swift#L1043-L1055), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
 
 ## Assistant conversation reordering
 
@@ -222,7 +223,7 @@ The compact workspace Assistant remains mounted behind the other sidebar present
 
 On a successful drop, the view expands the target section, dispatches `WindowModel.moveAssistantConversation` and clears transient drag state. Production commands route through `AppModel` to `AssistantConversationOperations.move`: normalized ordering is persisted before `AssistantLibraryModel.applyOrder` changes visible pin/sort values. Failure leaves the prior order intact and reports an operation error; moving preserves the running conversation and its approvals/transcript. Assistant has no Workspace/Pane new-window completion path.
 
-Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift#L413-L496), [resolver](../../TFM/Features/Assistant/AssistantView.swift#L700-L754), [native participation](../../TFM/Features/Assistant/AssistantView.swift#L910-L1044), [source eligibility](../../TFM/Features/Assistant/AssistantView.swift#L1260-L1349), [durable ordering](../../Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift#L44-L60), [order normalization](../../Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift#L170-L225).
+Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift#L413-L496), [resolver](../../TFM/Features/Assistant/AssistantView.swift#L700-L754), [native participation](../../TFM/Features/Assistant/AssistantView.swift#L910-L1044), [source eligibility](../../TFM/Features/Assistant/AssistantView.swift#L1260-L1271), [drag guard](../../TFM/Features/Assistant/AssistantView.swift#L1354-L1356), [durable ordering](../../Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift#L44-L60), [order normalization](../../Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift#L170-L225).
 
 ## Regression map and change guidance
 
