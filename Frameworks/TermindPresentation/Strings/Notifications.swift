@@ -5,7 +5,7 @@ import TermindApplication
 extension AppStrings {
     public nonisolated enum Notifications {
         public static var title: LocalizedStringResource { "Notifications" }
-        public static var enabled: LocalizedStringResource { "Enable Notifications" }
+        public static var enabled: LocalizedStringResource { "Enabled" }
         public static var allow: LocalizedStringResource { "Allow Notifications" }
         public static var delivery: LocalizedStringResource { "Notification Type" }
         public static var system: LocalizedStringResource { "System Notifications" }

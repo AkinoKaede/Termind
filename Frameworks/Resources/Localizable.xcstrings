@@ -10617,23 +10617,6 @@
         }
       }
     },
-    "Enable Notifications" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "启用通知"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "啟用通知"
-          }
-        }
-      }
-    },
     "Enable SSH or Telnet before saving this Host." : {
       "extractionState" : "manual",
       "localizations" : {
