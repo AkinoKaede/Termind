@@ -1503,6 +1503,7 @@ private enum NativeTranscriptFactory {
                 : .systemFont(ofSize: NSFont.smallSystemFontSize)
             if case .some(.chat(let id)) = field.navigation {
                 let link = NativeButton(title: field.value)
+                link.alignment = .left
                 link.font = font
                 link.contentTintColor = .linkColor
                 link.isEnabled = context.configuration.chatDestinations[id] != nil
@@ -1510,6 +1511,7 @@ private enum NativeTranscriptFactory {
                 row.addArrangedSubview(link)
             } else if let raw = field.url, let url = URL(string: raw) {
                 let link = NativeButton(title: field.value)
+                link.alignment = .left
                 link.font = font
                 link.contentTintColor = .linkColor
                 link.handler = { NSWorkspace.shared.open(url) }
@@ -1621,6 +1623,7 @@ private enum NativeTranscriptFactory {
         let body = NativeStack.vertical(spacing: Metrics.Space.xxs)
         if case .some(.chat(let id)) = row.navigation {
             let link = NativeButton(title: row.title)
+            link.alignment = .left
             link.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
             link.contentTintColor = .linkColor
             link.isEnabled = context.configuration.chatDestinations[id] != nil
@@ -1628,6 +1631,7 @@ private enum NativeTranscriptFactory {
             body.addArrangedSubview(link)
         } else if let raw = row.url, let url = URL(string: raw) {
             let link = NativeButton(title: row.title)
+            link.alignment = .left
             link.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
             link.contentTintColor = .linkColor
             link.handler = { NSWorkspace.shared.open(url) }
