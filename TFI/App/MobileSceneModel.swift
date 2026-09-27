@@ -26,6 +26,7 @@ final class MobileSceneModel {
     var isConnectionPickerPresented = false
     var isBatchStartupPresented = false
     var isWorkspaceUnavailable = false
+    var showsTransfers = false
     var pendingExternalConnection: RemoteConnectionURL?
     var editingHost: Host?
     var renamingWorkspace: MobileWorkspaceDescriptor?
@@ -62,6 +63,15 @@ final class MobileSceneModel {
 
     func openSettings() {
         selectedDestination = .settings
+    }
+
+    func openTransfers() {
+        pendingWorkspaceID = nil
+        isConnectionPickerPresented = false
+        isBatchStartupPresented = false
+        workspaceID = nil
+        selectedDestination = .workspaces
+        showsTransfers = true
     }
 
     func enterReviewPage(_ id: String) {
@@ -103,6 +113,26 @@ final class MobileSceneModel {
         selectedDestination = .workspaces
         workspaceID = nil
         workspaceSession.batchStartup(hostIDs: request.hostIDs, connectionProtocol: request.connectionProtocol)
+    }
+
+    func isShowingAssistant(_ id: UUID) -> Bool {
+        selectedDestination == .assistant && assistantLibraryRoute == nil
+            && assistant.library.selectedConversationID == id
+    }
+
+    var visibleAssistantConversationID: UUID? {
+        guard let id = assistant.library.selectedConversationID, isShowingAssistant(id) else { return nil }
+        return id
+    }
+
+    func openAssistantNotification(_ id: UUID) {
+        assistantLibraryRoute = nil
+        selectedDestination = .assistant
+        if let conversation = assistant.library.conversation(id: id) {
+            assistant.select(conversation)
+        } else {
+            assistantLibraryRoute = .conversations
+        }
     }
 
     func openNewConversation() {

@@ -6,7 +6,7 @@ import SwiftData
 @MainActor
 public enum TermindPersistence {
     // Local schema migrations do not change the independently versioned CloudKit envelopes.
-    public static let schema = Schema(versionedSchema: TermindSchemaV40.self)
+    public static let schema = Schema(versionedSchema: TermindSchemaV41.self)
 
     public static func makeContainer(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
         precondition(!inMemory || url == nil, "An in-memory store cannot also have a file URL")

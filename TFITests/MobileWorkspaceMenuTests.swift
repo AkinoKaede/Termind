@@ -1,12 +1,14 @@
 import SwiftUI
+import TermindApplication
 import Testing
 import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"), .serialized) @MainActor
 struct MobileWorkspaceMenuTests {
-    @Test func switcherIncludesOpenedAndDormantWorkspaceDescriptorsInOrder() async throws {
+    @Test(arguments: [false, true])
+    func switcherIncludesOpenedAndDormantWorkspaceDescriptorsInOrder(iconSwitcher: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)
         let opened = MobileWorkspaceDescriptor(hostID: UUID(), title: "Opened", kind: .ssh)
         let dormant = MobileWorkspaceDescriptor(hostID: UUID(), title: "Dormant", kind: .sftp)
@@ -17,15 +19,51 @@ struct MobileWorkspaceMenuTests {
             MobileWorkspaceView(
                 library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                 workspace: workspace, workspaces: [opened, dormant],
+                unreadWorkspaceIDs: [dormant.id],
                 selectWorkspace: { _ in }, renameWorkspace: { _ in }, canCloseMultipleWorkspaces: true,
                 openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in }
             )
-            .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: true))
+            .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: iconSwitcher))
         ) { navigation in
-            let button = try #require(toolbarButton(named: "Workspaces", in: navigation))
-            let menu = try await resolvedMenu(#require(button.menu), in: navigation.view)
+            let source =
+                iconSwitcher
+                ? toolbarButton(named: "Workspaces", in: navigation)?.menu
+                : navigation.topViewController?.navigationItem.titleMenuProvider?([])
+            let menu = try await resolvedMenu(#require(source), in: navigation.view)
             let actions = menuActions(menu)
             #expect(actions.map(\.title) == ["Opened", "Dormant"])
+            #expect(try #require(actions[0].image).isSymbolImage)
+            #expect(try #require(actions[1].image).isSymbolImage == false)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func assistantSwitcherRemovesTheUnreadIconWhenTheConversationIsRead(iconSwitcher: Bool) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app, sessionID: "notification-menu")
+        await scene.assistant.load()
+        let first = ConversationModel()
+        first.appendUserTurn("Current conversation")
+        let second = ConversationModel()
+        second.appendUserTurn("Unread conversation")
+        scene.assistant.library.insertAndSelect(second)
+        scene.assistant.library.insertAndSelect(first)
+        second.markNotificationsUnread()
+        try await withNavigation(
+            MobileAssistantView(app: app, model: scene.assistant, libraryRoute: .constant(nil))
+                .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: iconSwitcher))
+        ) { navigation in
+            for unread in [true, false] {
+                if !unread { second.markNotificationsRead() }
+                try await Task.sleep(for: .milliseconds(350))
+                let source =
+                    iconSwitcher
+                    ? toolbarButton(named: "Conversations", in: navigation)?.menu
+                    : navigation.topViewController?.navigationItem.titleMenuProvider?([])
+                let menu = try await resolvedMenu(#require(source), in: navigation.view)
+                let action = try #require(menuActions(menu).first { $0.title == second.derivedTitle })
+                #expect(try #require(action.image).isSymbolImage == !unread)
+            }
         }
     }
 
@@ -92,6 +130,12 @@ struct MobileWorkspaceMenuTests {
         interaction.updateVisibleMenu { resolved in
             resolvedMenu = resolved
             return resolved
+        }
+        if let window = view.window {
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).pngData { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            Attachment.record(image, named: "workspace-menu.png")
         }
         interaction.dismissMenu()
         try await Task.sleep(for: .milliseconds(300))

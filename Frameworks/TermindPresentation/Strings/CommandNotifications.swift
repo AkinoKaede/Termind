@@ -21,13 +21,13 @@ extension AppStrings {
         }
         public static var completed: LocalizedStringResource { "Command completed" }
         public static func succeeded(_ duration: String) -> LocalizedStringResource {
-            "Succeeded · \(duration)"
+            "Completed successfully in \(duration)."
         }
         public static func failed(_ code: Int, _ duration: String) -> LocalizedStringResource {
-            "Exit code \(code) · \(duration)"
+            "Failed with exit code \(code) after \(duration)."
         }
         public static func finished(_ duration: String) -> LocalizedStringResource {
-            "Completed · \(duration)"
+            "Finished after \(duration)."
         }
     }
 }

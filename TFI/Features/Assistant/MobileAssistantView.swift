@@ -51,7 +51,9 @@ struct MobileAssistantView: View {
                         Menu {
                             conversationTitleMenu
                         } label: {
-                            Label(AppStrings.Assistant.conversations.swiftUIKey, systemImage: "rectangle.stack")
+                            MobileNotificationMenuLabel(
+                                title: String(localized: AppStrings.Assistant.conversations), symbol: "rectangle.stack",
+                                hasUnread: app.unreadAssistantNotificationCount > 0, isToolbar: true)
                         }
                         .labelStyle(.iconOnly)
                         .accessibilityValue(conversationTitle)
@@ -205,10 +207,11 @@ struct MobileAssistantView: View {
         Button {
             select(conversation)
         } label: {
-            Label(
-                conversation.derivedTitle,
-                systemImage: model.conversation.id == conversation.id
-                    ? "checkmark" : (conversation.isStreaming ? "ellipsis.circle" : "sparkles")
+            MobileNotificationMenuLabel(
+                title: conversation.derivedTitle,
+                symbol: model.conversation.id == conversation.id
+                    ? "checkmark" : (conversation.isStreaming ? "ellipsis.circle" : "sparkles"),
+                hasUnread: conversation.unreadNotificationCount > 0
             )
         }
     }
@@ -390,6 +393,7 @@ struct MobileAssistantLibrary: View {
                     }
                 }
                 Spacer(minLength: 0)
+                if conversation.unreadNotificationCount > 0 { NotificationUnreadDot() }
                 if model.conversation.id == conversation.id {
                     Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityHidden(true)
                 }
@@ -413,6 +417,10 @@ struct MobileAssistantLibrary: View {
             }
         }
         .contextMenu { actions(conversation) }
+        .accessibilityValue(
+            conversation.unreadNotificationCount > 0
+                ? String(localized: AppStrings.Notifications.unread(conversation.unreadNotificationCount)) : ""
+        )
         .accessibilityAddTraits(model.conversation.id == conversation.id ? .isSelected : [])
     }
 
@@ -422,9 +430,16 @@ struct MobileAssistantLibrary: View {
     }
 
     @ViewBuilder private func actions(_ conversation: ConversationModel) -> some View {
+        let hasUnread = conversation.unreadNotificationCount > 0
         Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil") {
             title = conversation.derivedTitle
             renaming = conversation
+        }
+        Button(
+            hasUnread ? AppStrings.Notifications.markRead : AppStrings.Notifications.markUnread,
+            systemImage: hasUnread ? "circle" : "circle.fill"
+        ) {
+            if hasUnread { conversation.markNotificationsRead() } else { conversation.markNotificationsUnread() }
         }
         if !conversation.isArchived {
             Button(

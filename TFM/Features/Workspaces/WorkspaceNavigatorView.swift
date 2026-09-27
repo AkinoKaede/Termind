@@ -472,8 +472,11 @@ private struct WorkspaceNavigatorRow: View {
                     )
                 )
                 .frame(width: Metrics.Sidebar.rowIcon)
-                .overlay(alignment: .topTrailing) {
-                    if workspace.hasUnreadCommandCompletion { WorkspaceCommandBadge().offset(x: 3, y: -3) }
+                .overlay(alignment: .bottomTrailing) {
+                    if workspace.status != .disconnected || workspace.hasUnreadOutput {
+                        StatusDot(status: workspace.status, hasUnread: workspace.hasUnreadOutput, size: 6)
+                            .offset(x: 3, y: 3)
+                    }
                 }
                 .accessibilityValue(
                     workspace.hasUnreadCommandCompletion
@@ -545,8 +548,8 @@ private struct WorkspaceNavigatorRow: View {
             }
             .buttonStyle(.plain)
             .help(Text(AppStrings.Workspace.closeWorkspaceClickToCloseTheOthers))
-        } else if workspace.status != .disconnected || workspace.hasUnreadOutput {
-            StatusDot(status: workspace.status, hasUnread: workspace.hasUnreadOutput, size: 6)
+        } else if workspace.hasUnreadCommandCompletion {
+            NotificationUnreadDot()
                 .frame(width: 14)
         } else {
             Color.clear.frame(width: 14, height: 14)
@@ -555,6 +558,13 @@ private struct WorkspaceNavigatorRow: View {
 
     private var contextMenu: [NativeMenuEntry] {
         var entries: [NativeMenuEntry] = []
+        let hasUnread = workspace.hasUnreadCommandCompletion
+        let readEntry = NativeMenuEntry(
+            title: localized(hasUnread ? AppStrings.Notifications.markRead : AppStrings.Notifications.markUnread),
+            symbol: hasUnread ? "circle" : "circle.fill"
+        ) {
+            if hasUnread { workspace.markCommandsRead() } else { workspace.markCommandsUnread() }
+        }
         entries.append(
             NativeMenuEntry(
                 title: localized(
@@ -576,6 +586,7 @@ private struct WorkspaceNavigatorRow: View {
                     action: onBeginRename
                 )
             )
+            entries.append(readEntry)
             if namedTitle != nil {
                 entries.append(
                     NativeMenuEntry(
@@ -586,6 +597,8 @@ private struct WorkspaceNavigatorRow: View {
                 )
             }
             entries.append(.separator)
+        } else {
+            entries.append(readEntry)
         }
         // Only a merged Workspace can be taken apart, and taking it apart is
         // the only way back — the last pane cannot be dragged out to the

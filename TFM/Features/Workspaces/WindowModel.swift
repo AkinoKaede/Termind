@@ -29,6 +29,10 @@ final class WindowModel {
         get { workspaceDeck.workspaces }
         set { workspaceDeck.workspaces = newValue }
     }
+
+    var unreadCompletionCount: Int {
+        workspaces.reduce(0) { $0 + $1.unreadCompletionCount }
+    }
     /// The top-level shell has Vault, Assistant, Settings, and dynamic SSH/SFTP
     /// Workspaces. This is the single source of truth for workspace selection.
     var selectedDestination: WindowDestination = .vault {
@@ -639,6 +643,19 @@ final class WindowModel {
     func showAssistantArchive() {
         presentAssistantArchive()
         selectedDestination = .assistant
+    }
+
+    func isShowingAssistant(_ id: UUID) -> Bool {
+        guard !isClosed, !isAssistantArchivePresented, assistantLibrary.selectedConversationID == id else {
+            return false
+        }
+        if selectedDestination == .assistant { return true }
+        return selectedWorkspace != nil && showsSidebar && sidebarMode == .assistant
+    }
+
+    var visibleAssistantConversationID: UUID? {
+        guard let id = assistantLibrary.selectedConversationID, isShowingAssistant(id) else { return nil }
+        return id
     }
 
     var sidebarAssistantConversation: ConversationModel? {

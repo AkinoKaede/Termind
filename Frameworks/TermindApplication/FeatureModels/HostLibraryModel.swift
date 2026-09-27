@@ -18,6 +18,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var snippetPackages: [SnippetPackage] = []
     public private(set) var portForwardings: [PortForwardingRule] = []
     public private(set) var sftpTransfers: [SFTPTransfer] = []
+    @ObservationIgnored public var sftpTransferStateDidChange: ((SFTPTransfer) -> Void)?
     public private(set) var knownHosts: [KnownHostEntry] = []
     public private(set) var workspaceTemplates: [WorkspaceTemplate] = []
 
@@ -1876,10 +1877,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func setSFTPTransferState(_ state: SFTPTransfer.State, for id: SFTPTransfer.ID) {
         guard let index = sftpTransfers.firstIndex(where: { $0.id == id }) else { return }
         sftpTransfers[index].state = state
+        sftpTransferStateDidChange?(sftpTransfers[index])
     }
 
     public func enqueueSFTPTransfer(_ sftpTransfer: SFTPTransfer) {
         sftpTransfers.append(sftpTransfer)
+        sftpTransferStateDidChange?(sftpTransfer)
     }
 
     public func sftpTransfer(_ id: SFTPTransfer.ID) -> SFTPTransfer? {
@@ -1904,6 +1907,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         if state == .completed {
             sftpTransfers[index].transferredBytes = sftpTransfers[index].byteCount
         }
+        sftpTransferStateDidChange?(sftpTransfers[index])
     }
 
     /// Clears terminal transfer records while leaving queued, running and paused work

@@ -24,7 +24,17 @@ struct MobileSettingsView: View {
                     Label(AppStrings.Settings.app.swiftUIKey, systemImage: "app.badge")
                 }
                 NavigationLink {
-                    MobileTerminalSettingsView(model: app.terminalSettings, notifications: app.commandNotifications)
+                    Form {
+                        NotificationSettingsFields(
+                            model: app.notificationSettings, service: app.notifications,
+                            openSettings: TerminalNotificationPlatform.openSettings)
+                    }
+                    .navigationTitle(AppStrings.Notifications.title)
+                } label: {
+                    Label(AppStrings.Notifications.title, systemImage: "bell.badge")
+                }
+                NavigationLink {
+                    MobileTerminalSettingsView(model: app.terminalSettings)
                 } label: {
                     Label(AppStrings.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }

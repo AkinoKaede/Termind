@@ -12,11 +12,13 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
     public var ssh = SSHPreferences()
     public var sftp = SFTPPreferences()
     public var workspace = WorkspacePreferences()
+    public var notifications = NotificationPreferences()
 
     public init(
         configuration: AIConfigurationSnapshot, skills: [AgentSkill], webSearch: AIWebSearchPreferences,
         terminal: TerminalPreferences = .init(), ssh: SSHPreferences = .init(),
-        sftp: SFTPPreferences = .init(), workspace: WorkspacePreferences = .init()
+        sftp: SFTPPreferences = .init(), workspace: WorkspacePreferences = .init(),
+        notifications: NotificationPreferences = .init()
     ) {
         self.configuration = configuration
         self.skills = skills
@@ -25,6 +27,7 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         self.ssh = ssh
         self.sftp = sftp
         self.workspace = workspace
+        self.notifications = notifications
     }
 
     public var recordPayloads: [SettingsRecordKey: SettingsRecordPayload] {
@@ -47,6 +50,7 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         payloads.append(.ssh(ssh))
         payloads.append(.sftp(sftp))
         payloads.append(.workspace(workspace))
+        payloads.append(.notifications(notifications))
         return Dictionary(uniqueKeysWithValues: payloads.map { ($0.key, $0) })
     }
 }
@@ -79,7 +83,7 @@ public final class SettingsSyncPersistence {
             // Add preferences introduced after an installed store completed its bootstrap.
             for payload in [
                 SettingsRecordPayload.terminal(previous.terminal), .ssh(previous.ssh), .sftp(previous.sftp),
-                .workspace(previous.workspace),
+                .workspace(previous.workspace), .notifications(previous.notifications),
             ] {
                 if try journal.envelope(for: payload.key) == nil {
                     let version = VaultVersion.baseline(writerID: try journal.state().installationID)
@@ -114,6 +118,7 @@ public final class SettingsSyncPersistence {
             try sshPreferences().apply(snapshot.ssh)
             try sftpPreferences().apply(snapshot.sftp)
             try workspacePreferences().apply(snapshot.workspace)
+            try notificationPreferences().apply(snapshot.notifications)
             try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
             let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
             try cloud.purgeScope()
@@ -137,7 +142,7 @@ public final class SettingsSyncPersistence {
             configuration: try ai.load(preservingUnresolvedReferences: true),
             skills: try skills.load(), webSearch: try preferences().value, terminal: try terminalPreferences().load(),
             ssh: try sshPreferences().load(), sftp: try sftpPreferences().load(),
-            workspace: try workspacePreferences().load())
+            workspace: try workspacePreferences().load(), notifications: try notificationPreferences().load())
     }
 
     public func saveConfiguration(_ configuration: AIConfigurationSnapshot) throws {
@@ -219,6 +224,7 @@ public final class SettingsSyncPersistence {
             try sshPreferences().apply(snapshot.ssh)
             try sftpPreferences().apply(snapshot.sftp)
             try workspacePreferences().apply(snapshot.workspace)
+            try notificationPreferences().apply(snapshot.notifications)
             try journal.markNeedsUpload(merge.needsUpload)
         }
         mirror(snapshot.webSearch)
@@ -243,6 +249,7 @@ public final class SettingsSyncPersistence {
         var ssh = try sshPreferences().load()
         var sftp = try sftpPreferences().load()
         var workspace = try workspacePreferences().load()
+        var notifications = try notificationPreferences().load()
         for envelope in envelopes where envelope.isDeleted {
             switch envelope.key.kind {
             case .webSearch: webSearch = AIWebSearchPreferences()
@@ -250,6 +257,7 @@ public final class SettingsSyncPersistence {
             case .ssh: ssh = SSHPreferences()
             case .sftp: sftp = SFTPPreferences()
             case .workspace: workspace = WorkspacePreferences()
+            case .notifications: notifications = NotificationPreferences()
             default: break
             }
         }
@@ -265,6 +273,7 @@ public final class SettingsSyncPersistence {
             case .ssh(let value): ssh = value
             case .sftp(let value): sftp = value
             case .workspace(let value): workspace = value
+            case .notifications(let value): notifications = value
             case nil: break
             }
         }
@@ -290,7 +299,7 @@ public final class SettingsSyncPersistence {
         }
         return SettingsSyncSnapshot(
             configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal,
-            ssh: ssh, sftp: sftp, workspace: workspace)
+            ssh: ssh, sftp: sftp, workspace: workspace, notifications: notifications)
     }
 
     private func terminalPreferences() throws -> PersistentTerminalPreferences {
@@ -356,6 +365,22 @@ public final class SettingsSyncPersistence {
         try saveLocal { try workspacePreferences().apply(value) }
     }
 
+    private func notificationPreferences() throws -> PersistentNotificationPreferences {
+        if let row = try context.fetch(FetchDescriptor<PersistentNotificationPreferences>()).first { return row }
+        let row = try PersistentNotificationPreferences(NotificationPreferences())
+        context.insert(row)
+        return row
+    }
+
+    public func loadNotificationPreferences() throws -> NotificationPreferences {
+        try notificationPreferences().load()
+    }
+
+    public func saveNotificationPreferences(_ value: NotificationPreferences) throws {
+        guard value.isValid else { throw SettingsSyncPersistenceError.invalidEnvelope("v1/notifications/default") }
+        try saveLocal { try notificationPreferences().apply(value) }
+    }
+
     private func preferences() throws -> PersistentAIWebSearchPreferences {
         if let row = try context.fetch(FetchDescriptor<PersistentAIWebSearchPreferences>()).first { return row }
         let row = PersistentAIWebSearchPreferences(
@@ -398,3 +423,5 @@ extension SettingsSyncPersistence: TerminalPreferencesPersisting {}
 extension SettingsSyncPersistence: SSHPreferencesPersisting {}
 extension SettingsSyncPersistence: SFTPPreferencesPersisting {}
 extension SettingsSyncPersistence: WorkspacePreferencesPersisting {}
+
+extension SettingsSyncPersistence: NotificationPreferencesPersisting {}

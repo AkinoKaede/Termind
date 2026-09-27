@@ -15,6 +15,7 @@ public final class AssistantExecutionController {
     private let memory: MemoryModel?
     private let agentRunRepository: any AgentRunPersisting
     private let modelSelections: AssistantModelSelectionController?
+    public var observeNotifications: ((ConversationModel) -> Void)?
     public var reportModelSelectionError: (@MainActor (String) -> Void)?
     private let authorize: @MainActor () -> Bool
     private let makeRegistry: RegistryFactory
@@ -103,6 +104,7 @@ public final class AssistantExecutionController {
         memory: MemoryModel? = nil,
         modelSelections: AssistantModelSelectionController? = nil,
         reportModelSelectionError: (@MainActor (String) -> Void)? = nil,
+        observeNotifications: ((ConversationModel) -> Void)? = nil,
         authorize: @escaping @MainActor () -> Bool, makeRegistry: @escaping RegistryFactory,
         title: @escaping @MainActor (ConversationTitleContext) async throws -> String,
         logger: Logger = ApplicationLogger.disabled("termind.agent")
@@ -112,6 +114,7 @@ public final class AssistantExecutionController {
         self.memory = memory
         self.modelSelections = modelSelections
         self.reportModelSelectionError = reportModelSelectionError
+        self.observeNotifications = observeNotifications
         agentRunRepository = repository
         self.authorize = authorize
         self.makeRegistry = makeRegistry
@@ -625,6 +628,7 @@ public final class AssistantExecutionController {
         compactBeforeRun: Bool
     ) {
         guard isCurrent(capture, for: conversation) else { return }
+        observeNotifications?(conversation)
         let needsAsync = (compactBeforeRun && capture.shouldCompact) || capture.memorySessionID != nil
         guard needsAsync else {
             switch performStartAgentRun(conversation, capture: capture) {

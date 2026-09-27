@@ -11,7 +11,6 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
     public var remoteWindowTitleInMenuBar = true
     public var copyOnSelect = false
     public var pasteOnRightClick = false
-    public var commandNotifications = CommandNotificationPreferences()
     public init(
         darkTheme: String = "Termind Dark",
         lightTheme: String = "Termind Light", darkCustomEnabled: Bool = false, lightCustomEnabled: Bool = false,
@@ -33,7 +32,7 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case darkTheme, lightTheme, darkCustomEnabled, lightCustomEnabled
         case darkCustomConfiguration, lightCustomConfiguration, shellIntegration, remoteWindowTitleInMenuBar
-        case copyOnSelect, pasteOnRightClick, commandNotifications
+        case copyOnSelect, pasteOnRightClick
     }
 
     public init(from decoder: any Decoder) throws {
@@ -46,8 +45,6 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
         lightCustomConfiguration = try values.decode(String.self, forKey: .lightCustomConfiguration)
         shellIntegration = try values.decode(Bool.self, forKey: .shellIntegration)
         remoteWindowTitleInMenuBar = try values.decode(Bool.self, forKey: .remoteWindowTitleInMenuBar)
-        commandNotifications =
-            try values.decodeIfPresent(CommandNotificationPreferences.self, forKey: .commandNotifications) ?? .init()
         // Existing local blobs and Settings sync records predate the mouse preferences.
         copyOnSelect = try values.decodeIfPresent(Bool.self, forKey: .copyOnSelect) ?? false
         pasteOnRightClick = try values.decodeIfPresent(Bool.self, forKey: .pasteOnRightClick) ?? false

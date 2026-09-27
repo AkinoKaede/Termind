@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindPresentation
 
 /// Process-owned scene requests; live workspaces stay in their source until the
 /// destination has a native window. Scene restoration never replays a move.
@@ -70,8 +71,31 @@ final class MainWindowCoordinator {
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored var createScene: ((UUID) -> Void)?
     @ObservationIgnored private var isTerminating = false
+    @ObservationIgnored private var transfersWindow: NSWindow?
     private(set) var paywallOwnerID: ObjectIdentifier?
     private var fullScreenWindows: Set<ObjectIdentifier> = []
+
+    func showTransfers() {
+        guard !isTerminating, let app else { return }
+        if let transfersWindow {
+            transfersWindow.deminiaturize(nil)
+            transfersWindow.makeKeyAndOrderFront(nil)
+        } else {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: Metrics.TransferCenter.width, height: 400),
+                styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.title = String(localized: AppStrings.SFTP.transfers)
+            window.contentViewController = NSHostingController(
+                rootView: TransferCenterPopover(
+                    coordinator: app.sftpTransfers, hosts: app.hostLibrary,
+                    dismiss: { [weak window] in window?.close() }))
+            transfersWindow = window
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
     init(app: AppModel, sizes: MainWindowSizeStore) {
         self.app = app
@@ -169,6 +193,8 @@ final class MainWindowCoordinator {
         }
         // Shutdown may close windows in a different order from their focus order.
         isTerminating = true
+        transfersWindow?.close()
+        transfersWindow = nil
     }
 
     isolated deinit {
@@ -304,6 +330,7 @@ final class MainWindowCoordinator {
         // A restored scene has no pending request. Its system-restored frame
         // must not be replaced with another window's shared fallback.
         entry.isReady = true
+        if pendingActivationID == model.id { activate(model) }
         if isFocused(model) { model.selectedWorkspace?.markCommandsRead() }
         recordSize(entry)
         if let width = model.sidebar.measuredWidth { recordSidebarWidth(width, for: model) }
@@ -407,12 +434,22 @@ final class MainWindowCoordinator {
         synchronizePaywall()
     }
 
+    private var pendingActivationID: UUID?
+
+    var mostRecentWindow: WindowModel? {
+        entries.reversed().first(where: { $0.window != nil && $0.model?.isClosed == false })?.model
+    }
+
     func isFocused(_ model: WindowModel) -> Bool {
         NSApp.isActive && entries.contains { $0.model === model && $0.window?.isKeyWindow == true }
     }
 
     func activate(_ model: WindowModel) {
-        guard let native = entries.first(where: { $0.model === model })?.window else { return }
+        guard let native = entries.first(where: { $0.model === model })?.window else {
+            pendingActivationID = model.id
+            return
+        }
+        pendingActivationID = nil
         native.deminiaturize(nil)
         native.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

@@ -55,7 +55,7 @@ struct MobileTerminalFontTests {
         defaults.set(family, forKey: SettingsKey.terminalFontFamily)
         defaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         let view = NavigationStack {
-            MobileTerminalSettingsView(model: TerminalSettingsModel(), notifications: SilentCommandNotifications())
+            MobileTerminalSettingsView(model: TerminalSettingsModel())
         }
         .defaultAppStorage(defaults)
         .environment(\.locale, Locale(identifier: language))
@@ -96,9 +96,4 @@ struct MobileTerminalFontTests {
         #expect(data.count > 10_000)
         Attachment.record(data, named: "\(name).png")
     }
-}
-
-@MainActor private final class SilentCommandNotifications: CommandNotificationSending {
-    func authorization(request: Bool) async -> CommandNotificationAuthorization { .notDetermined }
-    func send(sessionID: UUID, title: String, body: String) async {}
 }

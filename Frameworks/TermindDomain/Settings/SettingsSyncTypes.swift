@@ -157,7 +157,7 @@ public nonisolated struct AIWebSearchPreferences: Codable, Hashable, Sendable {
 }
 
 public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Sendable {
-    case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp, workspace
+    case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp, workspace, notifications
 
     /// `selection` remains decodable for compatibility with existing CloudKit
     /// records, but the conversation model picker is a device-local preference.
@@ -195,7 +195,7 @@ public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
             guard let uuid = UUID(uuidString: id), uuid.uuidString.lowercased() == id else { return nil }
         case .role:
             guard AIRole(rawValue: id) != nil || id == Self.legacySecurityReviewID else { return nil }
-        case .selection, .webSearch, .terminal, .ssh, .sftp, .workspace:
+        case .selection, .webSearch, .terminal, .ssh, .sftp, .workspace, .notifications:
             guard id == "default" else { return nil }
         }
         self.init(kind: kind, id: id)
@@ -213,6 +213,7 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
     case ssh(SSHPreferences)
     case sftp(SFTPPreferences)
     case workspace(WorkspacePreferences)
+    case notifications(NotificationPreferences)
 
     public var key: SettingsRecordKey {
         switch self {
@@ -226,6 +227,7 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
         case .ssh: .init(kind: .ssh, id: "default")
         case .sftp: .init(kind: .sftp, id: "default")
         case .workspace: .init(kind: .workspace, id: "default")
+        case .notifications: .init(kind: .notifications, id: "default")
         }
     }
 }
@@ -251,6 +253,7 @@ public nonisolated struct SettingsEnvelope: Codable, Hashable, Sendable {
     }
 
     public var isValid: Bool {
+        if case .notifications(let value) = payload, !value.isValid { return false }
         if case .ssh(let value) = payload, !value.isValid { return false }
         if case .sftp(let value) = payload, !value.isValid { return false }
         return formatVersion == Self.currentFormatVersion

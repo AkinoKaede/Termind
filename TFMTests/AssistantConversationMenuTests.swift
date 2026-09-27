@@ -7,6 +7,19 @@ import Testing
 
 @Suite @MainActor
 struct AssistantConversationMenuTests {
+    @Test func unreadActionChangesWithTheConversationState() throws {
+        let conversation = ConversationModel()
+        let unread = try #require(conversationRow(conversation).contextMenu.first { $0.symbol == "circle.fill" })
+        let entries = conversationRow(conversation).contextMenu
+        let renameIndex = try #require(entries.firstIndex { $0.symbol == MenuSymbol.rename })
+        #expect(entries[renameIndex + 1].symbol == "circle.fill")
+        unread.action()
+        #expect(conversation.unreadNotificationCount == 1)
+        let read = try #require(conversationRow(conversation).contextMenu.first { $0.symbol == "circle" })
+        read.action()
+        #expect(conversation.unreadNotificationCount == 0)
+    }
+
     @Test
     func archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront() throws {
         let host = Host(name: "Server", host: "server.example.invalid")

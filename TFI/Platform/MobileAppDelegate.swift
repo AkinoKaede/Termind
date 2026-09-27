@@ -11,6 +11,10 @@ final class MobileAppDelegate: NSObject, UIApplicationDelegate {
     }
     private var pendingDiscardedSessionIDs: Set<String> = []
 
+    func applicationWillTerminate(_ application: UIApplication) {
+        app?.clearNotificationBadge()
+    }
+
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
         discardSessions(Set(sceneSessions.map(\.persistentIdentifier)))
     }

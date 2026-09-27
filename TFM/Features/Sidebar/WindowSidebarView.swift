@@ -11,6 +11,7 @@ import struct TermindDomain.Host
 /// with a neutral selection highlight, keeping the symbols above the material.
 struct WindowSidebarView: View {
 
+    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.controlActiveState) private var controlActiveState
@@ -43,6 +44,20 @@ struct WindowSidebarView: View {
         }
         .padding(Metrics.Space.xs)
         .termindGlassCapsule()
+        .overlay {
+            HStack(spacing: Metrics.Space.xs) {
+                ForEach(WindowSidebarState.Mode.allCases) { mode in
+                    Color.clear.frame(width: 36, height: 36)
+                        .overlay(alignment: .topTrailing) {
+                            NotificationCountBadge(unreadCount(for: mode)).offset(y: 3)
+                        }
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(Metrics.Space.xs)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(AppStrings.Navigation.sidebar))
@@ -80,6 +95,10 @@ struct WindowSidebarView: View {
         .disabled(!isEnabled)
         .help(Text(mode.label))
         .accessibilityLabel(Text(mode.label))
+        .accessibilityValue(
+            unreadCount(for: mode) > 0
+                ? String(localized: AppStrings.Notifications.unread(unreadCount(for: mode))) : ""
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -92,6 +111,14 @@ struct WindowSidebarView: View {
             .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
             .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
             .frame(width: 36, height: 36)
+    }
+
+    private func unreadCount(for mode: WindowSidebarState.Mode) -> Int {
+        switch mode {
+        case .navigation: window.unreadCompletionCount
+        case .assistant: app.unreadAssistantNotificationCount
+        case .snippets, .history: 0
+        }
     }
 
     @ViewBuilder

@@ -8,7 +8,7 @@ import Testing
 struct TerminalCommandMonitorTests {
     private let available = SSHShellIntegrationEvent.available(shell: "zsh", systemInfo: nil, homeDirectory: nil)
 
-    @Test func notificationsDefaultOffButEveryBackgroundCompletionMarksUnread() {
+    @Test func shortBackgroundCompletionsCountUnreadEvenBelowTheNotificationThreshold() {
         let monitor = TerminalCommandMonitor()
         var alerts = 0
         monitor.alert = { _, _ in alerts += 1 }
@@ -20,13 +20,16 @@ struct TerminalCommandMonitorTests {
         #expect(!monitor.hasUnreadCompletion)
         monitor.receiveOSC133(exitCode: nil, durationNanos: 0)
         #expect(monitor.hasUnreadCompletion)
+        monitor.receiveOSC133(exitCode: 0, durationNanos: 0)
+        #expect(monitor.unreadCompletionCount == 2)
     }
 
-    @Test(arguments: CommandNotificationPreferences.Mode.allCases)
-    func modeAndThresholdUseFocusAtCompletion(_ mode: CommandNotificationPreferences.Mode) {
+    @Test(arguments: NotificationPreferences.Mode.allCases)
+    func modeAndThresholdUseFocusAtCompletion(_ mode: NotificationPreferences.Mode) {
         let monitor = TerminalCommandMonitor()
-        var settings = CommandNotificationPreferences()
-        settings.mode = mode
+        var settings = NotificationPreferences()
+        settings.isEnabled = true
+        settings.terminalMode = mode
         var focused = false
         var completions: [TerminalCommandCompletion] = []
         monitor.preferences = { settings }
@@ -46,8 +49,9 @@ struct TerminalCommandMonitorTests {
     @Test func privateIntegrationWinsAndDuplicateFinishesAreIgnoredWithoutHistory() {
         var clock: TimeInterval = 100
         let monitor = TerminalCommandMonitor(now: { clock })
-        var settings = CommandNotificationPreferences()
-        settings.mode = .always
+        var settings = NotificationPreferences()
+        settings.isEnabled = true
+        settings.terminalMode = .always
         monitor.preferences = { settings }
         var completions: [TerminalCommandCompletion] = []
         monitor.alert = { event, _ in completions.append(event) }
@@ -81,20 +85,23 @@ struct TerminalCommandMonitorTests {
         #expect(monitor.hasUnreadCompletion)
     }
 
-    @Test(arguments: [false, true], [false, true])
-    func notificationAndBellOptionsAreIndependent(notify: Bool, bell: Bool) {
+    @Test(arguments: NotificationPreferences.TerminalDelivery.allCases)
+    func terminalDeliveryIsExclusive(_ delivery: NotificationPreferences.TerminalDelivery) {
         let monitor = TerminalCommandMonitor()
-        var settings = CommandNotificationPreferences()
-        settings.mode = .always
-        settings.after = 0
-        settings.notify = notify
-        settings.bell = bell
+        var settings = NotificationPreferences()
+        settings.isEnabled = true
+        settings.terminalMode = .always
+        settings.terminalMinimumSeconds = 0
+        settings.terminalDelivery = delivery
         monitor.preferences = { settings }
-        var actions: [CommandNotificationPreferences] = []
-        monitor.alert = { _, value in actions.append(value) }
+        var actions: [NotificationPreferences.TerminalDelivery] = []
+        monitor.alert = { _, value in actions.append(value.terminalDelivery) }
         monitor.beginConnection()
         monitor.receiveOSC133(exitCode: 0, durationNanos: 0)
-        #expect(actions == (notify || bell ? [settings] : []))
+        #expect(actions == [delivery])
+        settings.isEnabled = false
+        monitor.receiveOSC133(exitCode: 0, durationNanos: 10_000_000_000)
+        #expect(actions == [delivery])
         #expect(monitor.hasUnreadCompletion)
     }
 
@@ -107,26 +114,4 @@ struct TerminalCommandMonitorTests {
         #expect(TerminalCommandCompletion(exitCode: nil, duration: 0).commandPreview == nil)
     }
 
-    @Test func preferencesRoundTripAndOldPayloadsUseDefaults() throws {
-        var preferences = TerminalPreferences()
-        preferences.commandNotifications.mode = .unfocused
-        preferences.commandNotifications.after = 10.5
-        preferences.commandNotifications.bell = true
-        let data = try JSONEncoder().encode(preferences)
-        #expect(try JSONDecoder().decode(TerminalPreferences.self, from: data) == preferences)
-        let row = try PersistentTerminalPreferences(preferences)
-        #expect(try row.load() == preferences)
-        let domain = "CommandPreferences.\(UUID())"
-        let defaults = try #require(UserDefaults(suiteName: domain))
-        defer { defaults.removePersistentDomain(forName: domain) }
-        preferences.mirror(to: defaults)
-        #expect(TerminalPreferences(defaults: defaults) == preferences)
-        let payload = SettingsRecordPayload.terminal(preferences)
-        #expect(try JSONDecoder().decode(SettingsRecordPayload.self, from: JSONEncoder().encode(payload)) == payload)
-        var old = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        old.removeValue(forKey: "commandNotifications")
-        let decoded = try JSONDecoder().decode(
-            TerminalPreferences.self, from: JSONSerialization.data(withJSONObject: old))
-        #expect(decoded.commandNotifications == CommandNotificationPreferences())
-    }
 }

@@ -13,6 +13,77 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func transferNotificationOpensTransfersWithoutMarkingUnread() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "transfers")
+        scene.open(hostID: fixture.host.id, kind: .sftp)
+        scene.activatePendingWorkspace()
+        app.sceneChanged(scene.id, phase: .active)
+        #expect(app.selectTransferNotificationTarget() === scene)
+        #expect(scene.selectedDestination == .workspaces && scene.showsTransfers && scene.workspaceID == nil)
+        #expect(app.unreadNotificationCount == 0)
+    }
+
+    @Test func manuallyUnreadWorkspacesFollowTheirWindowWithoutEnteringSavedDescriptors() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = app.workspaceSession(for: "unread-a")
+        let second = app.workspaceSession(for: "unread-b")
+        let id = try #require(first.open(hostID: fixture.host.id, kind: .sftp))
+        first.markUnread(id)
+        first.markUnread(id)
+        #expect(first.unreadCompletionCount == 1 && second.unreadCompletionCount == 0)
+        #expect(app.unreadNotificationCount == 1)
+        let fresh = MobileWorkspaceSessionModel(id: "fresh", app: app, descriptors: first.savedWorkspaceDescriptors)
+        #expect(fresh.unreadCompletionCount == 0)
+        let recovery = first.recovery
+        first.releaseForRecovery()
+        second.acceptRecovery(recovery)
+        #expect(first.unreadCompletionCount == 0 && second.unreadCompletionCount == 1)
+        second.markRead(id)
+        #expect(app.unreadNotificationCount == 0)
+        second.markUnread(id)
+        second.close(id)
+        #expect(second.unreadWorkspaceIDs.isEmpty)
+    }
+
+    @Test func assistantNotificationsRespectSceneFocusAndOpenTheExistingConversation() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "assistant-a")
+        let second = MobileSceneModel(app: app, sessionID: "assistant-b")
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Test"
+        _ = try #require(first.assistant.library.startConversation(conversation))
+        first.openAssistantNotification(conversation.id)
+        app.sceneChanged(first.id, phase: .active)
+        #expect(app.isAssistantNotificationFocused(conversation.id))
+        first.assistantLibraryRoute = .conversations
+        #expect(!app.isAssistantNotificationFocused(conversation.id))
+        first.assistantLibraryRoute = nil
+        app.sceneChanged(second.id, phase: .active)
+        let peer = ConversationModel()
+        peer.composer.draft = "Second conversation"
+        _ = try #require(second.assistant.library.startConversation(peer))
+        second.openAssistantNotification(peer.id)
+        #expect(app.isAssistantNotificationFocused(conversation.id))
+        #expect(app.isAssistantNotificationFocused(peer.id))
+        #expect(first.assistant.library.conversation(id: peer.id) === peer)
+        app.sceneChanged(first.id, phase: .background)
+        #expect(app.isAssistantNotificationFocused(conversation.id))
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === first)
+        #expect(first.assistant.conversation === conversation)
+        first.selectedDestination = .vault
+        #expect(!app.isAssistantNotificationFocused(conversation.id))
+        #expect(app.isAssistantNotificationFocused(peer.id))
+        #expect(app.selectAssistantNotificationTarget(UUID()) === second)
+        #expect(second.assistantLibraryRoute == .conversations)
+    }
+
     @Test func commandCompletionDotsUseVisibleWorkspaceInItsOwningScene() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
@@ -29,11 +100,14 @@ struct MobileWorkspaceSessionTests {
         workspace.commandMonitor.beginConnection()
         workspace.commandMonitor.receiveOSC133(exitCode: 1, durationNanos: 1)
         #expect(workspace.commandMonitor.hasUnreadCompletion)
+        #expect(first.workspaceSession.hasUnreadCompletion)
+        #expect(!second.workspaceSession.hasUnreadCompletion)
         #expect(!app.isCommandWorkspaceFocused(workspace.id))
         #expect(!second.activeWorkspace!.commandMonitor.hasUnreadCompletion)
         app.sceneChanged(first.id, phase: .active)
         #expect(app.isCommandWorkspaceFocused(workspace.id))
         #expect(!workspace.commandMonitor.hasUnreadCompletion)
+        #expect(!first.workspaceSession.hasUnreadCompletion)
         workspace.commandMonitor.receiveOSC133(exitCode: 0, durationNanos: 1)
         #expect(!workspace.commandMonitor.hasUnreadCompletion)
         first.workspaceID = nil

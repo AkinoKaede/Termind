@@ -28,15 +28,19 @@ struct MobileRootView: View {
     var body: some View {
         TabView(selection: selection) {
             ForEach(features.registrations) { feature in
-                Tab(feature.title.swiftUIKey, systemImage: feature.symbol, value: feature.id) {
+                Tab(value: feature.id) {
                     NavigationStack {
                         feature.makeView(app: app, scene: scene)
                     }
                     .mobileToolbarEnvironment()
+                } label: {
+                    Label(feature.title, systemImage: feature.symbol)
                 }
+                .badge(unreadCount(for: feature.id))
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .onChange(of: scene.visibleAssistantConversationID, initial: true) { app.refreshAssistantReadState() }
         .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
@@ -119,5 +123,13 @@ struct MobileRootView: View {
             get: { scene.selectedDestination ?? .vault },
             set: { scene.selectedDestination = $0 }
         )
+    }
+
+    private func unreadCount(for destination: MobileDestination) -> Int {
+        switch destination {
+        case .workspaces: scene.workspaceSession.unreadCompletionCount
+        case .assistant: app.unreadAssistantNotificationCount
+        default: 0
+        }
     }
 }

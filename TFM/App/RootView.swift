@@ -73,6 +73,7 @@ struct RootView: View {
                 )
         }
         .navigationSplitViewStyle(.balanced)
+        .onChange(of: window.visibleAssistantConversationID, initial: true) { app.refreshAssistantReadState() }
         .id(window.sidebar.initialLayoutGeneration)
         .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
         .background {

@@ -21,6 +21,9 @@ final class MobileAssistantModel {
     private let repository: any AgentRunPersisting
     fileprivate let modelSelections: AssistantModelSelectionController
     private let operations: AssistantConversationOperations
+    var observeNotifications: ((ConversationModel) -> Void)? {
+        didSet { execution.observeNotifications = observeNotifications }
+    }
     private let execution: AssistantExecutionController
     private let connections: AgentConnectionPool
     private let background: AgentBackgroundCommands

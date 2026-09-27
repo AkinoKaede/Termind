@@ -26,10 +26,11 @@ public nonisolated struct TerminalCommandCompletion: Equatable, Sendable {
 /// Per-terminal state, independent of history and transient view mounting.
 @MainActor @Observable
 public final class TerminalCommandMonitor {
-    public private(set) var hasUnreadCompletion = false
-    public var preferences: () -> CommandNotificationPreferences = { .init() }
+    public private(set) var unreadCompletionCount = 0
+    public var hasUnreadCompletion: Bool { unreadCompletionCount > 0 }
+    public var preferences: () -> NotificationPreferences = { .init() }
     public var isWorkspaceFocused: () -> Bool = { false }
-    public var alert: (TerminalCommandCompletion, CommandNotificationPreferences) -> Void = { _, _ in }
+    public var alert: (TerminalCommandCompletion, NotificationPreferences) -> Void = { _, _ in }
     private let now: () -> TimeInterval
     private var active = false
     private var usesShellIntegration = false
@@ -51,7 +52,7 @@ public final class TerminalCommandMonitor {
         usesShellIntegration = false
     }
 
-    public func markRead() { hasUnreadCompletion = false }
+    public func markRead() { unreadCompletionCount = 0 }
 
     public func receiveShellEvent(_ event: SSHShellIntegrationEvent) {
         guard active else { return }
@@ -79,13 +80,9 @@ public final class TerminalCommandMonitor {
 
     private func complete(_ completion: TerminalCommandCompletion) {
         let focused = isWorkspaceFocused()
-        hasUnreadCompletion = !focused
+        unreadCompletionCount = focused ? 0 : unreadCompletionCount + 1
         let settings = preferences()
-        guard settings.mode != .never,
-            settings.mode == .always || !focused,
-            completion.duration >= settings.threshold,
-            settings.notify || settings.bell
-        else { return }
+        guard settings.allowsTerminal(duration: completion.duration, isFocused: focused) else { return }
         alert(completion, settings)
     }
 }

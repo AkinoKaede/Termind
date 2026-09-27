@@ -1291,6 +1291,7 @@ struct AssistantConversationRow: View {
 
     var contextMenu: [NativeMenuEntry] {
         let managementDisabled = conversation.isStreaming || conversation.isCompacting
+        let hasUnread = conversation.unreadNotificationCount > 0
         var entries: [NativeMenuEntry] = [
             NativeMenuEntry(
                 title: localized(AppStrings.Assistant.openFullScreen), symbol: MenuSymbol.openFullScreen
@@ -1317,6 +1318,13 @@ struct AssistantConversationRow: View {
         )
         // Archive gets an active chat off the list. Permanent deletion is only
         // offered after the chat has already moved to Archive.
+        entries.append(
+            NativeMenuEntry(
+                title: localized(hasUnread ? AppStrings.Notifications.markRead : AppStrings.Notifications.markUnread),
+                symbol: hasUnread ? "circle" : "circle.fill"
+            ) {
+                if hasUnread { conversation.markNotificationsRead() } else { conversation.markNotificationsUnread() }
+            })
         entries.append(.separator)
         entries.append(
             NativeMenuEntry(
@@ -1354,7 +1362,8 @@ struct AssistantConversationRow: View {
                     SidebarSelectionStyle.iconForeground(
                         isSelected: isSelected,
                         controlActiveState: controlActiveState
-                    ))
+                    )
+                )
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
@@ -1392,6 +1401,8 @@ struct AssistantConversationRow: View {
                         conversation.isArchived
                             ? localized(AppStrings.Assistant.unarchive) : localized(AppStrings.Assistant.archive)
                     ))
+            } else {
+                if conversation.unreadNotificationCount > 0 { NotificationUnreadDot() }
             }
         }
     }

@@ -452,7 +452,7 @@ struct MobileAdaptiveLayoutTests {
         scene.openSettings()
         try await withRoot(app: app, scene: scene) { controller in
             let settings = try #require(navigation(titled: "Settings", in: controller))
-            try selectRow(3, inSectionWithCount: 5, in: settings.topViewController!)
+            try selectRow(4, inSectionWithCount: 6, in: settings.topViewController!)
             try await settle()
             let ai = try #require(navigation(titled: "AI", in: controller))
             try selectRow(0, inSectionWithCount: 4, in: ai.topViewController!)

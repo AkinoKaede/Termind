@@ -8,7 +8,7 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable {
-    case app, terminal, connections, ai, sync
+    case app, notifications, terminal, connections, ai, sync
     #if DEBUG
         case developer
     #endif
@@ -17,6 +17,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     var title: LocalizedStringResource {
         switch self {
+        case .notifications: AppStrings.Notifications.title
         case .app: AppStrings.Settings.app
         case .terminal: AppStrings.Settings.terminal
         case .connections: AppStrings.Settings.connections
@@ -30,6 +31,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     func title(locale: Locale = .current) -> String {
         switch self {
+        case .notifications: AppLocalization.resolve(AppStrings.Notifications.title, locale: locale)
         case .app: AppLocalization.resolve(AppStrings.Settings.app, locale: locale)
         case .terminal: AppLocalization.resolve(AppStrings.Settings.terminal, locale: locale)
         case .connections: AppLocalization.resolve(AppStrings.Settings.connections, locale: locale)
@@ -43,6 +45,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     var symbol: String {
         switch self {
+        case .notifications: "bell.badge"
         case .app: "app.badge"
         case .terminal: "terminal"
         case .connections: MenuSymbol.connect
@@ -156,6 +159,12 @@ struct SettingsPageView: View {
                 AppSettings()
                 StartupSettings()
                 AppInfoSettings()
+            }
+        case .notifications:
+            SettingsFormPage {
+                NotificationSettingsFields(
+                    model: app.notificationSettings, service: app.notifications,
+                    openSettings: TerminalNotificationPlatform.openSettings)
             }
         case .terminal:
             SettingsFormPage {
@@ -620,9 +629,6 @@ private struct TerminalSettings: View {
                     }
                 }
             }
-            TerminalCommandNotificationFields(
-                model: app.terminalSettings, service: app.commandNotifications,
-                openSettings: TerminalNotificationPlatform.openSettings)
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {

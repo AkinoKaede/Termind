@@ -39,9 +39,7 @@ struct MobileWorkspaceListView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink {
-                    MobileTransfersView(transfers: app.transfers, hosts: app.library)
-                } label: {
+                Button(action: scene.openTransfers) {
                     Label(AppStrings.SFTP.transfers.swiftUIKey, systemImage: "arrow.up.arrow.down")
                 }
             }
@@ -53,6 +51,9 @@ struct MobileWorkspaceListView: View {
             }
         }
         .navigationTitle(AppStrings.Navigation.workspaces.swiftUIKey)
+        .navigationDestination(isPresented: $scene.showsTransfers) {
+            MobileTransfersView(transfers: app.transfers, hosts: app.library)
+        }
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: scene.canCloseAllWorkspaces,
@@ -66,6 +67,7 @@ struct MobileWorkspaceListView: View {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: scene.workspaceSession.orderedWorkspaceItems.map(\.descriptor),
+                    unreadWorkspaceIDs: scene.workspaceSession.unreadWorkspaceIDs,
                     selectWorkspace: scene.selectWorkspace,
                     renameWorkspace: scene.beginWorkspaceRename,
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
@@ -136,14 +138,6 @@ struct MobileWorkspaceListView: View {
                 HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
                     ZStack(alignment: .bottomTrailing) {
                         hostIcon(item.host)
-                            .overlay(alignment: .topTrailing) {
-                                if item.workspace?.commandMonitor.hasUnreadCompletion == true {
-                                    WorkspaceCommandBadge()
-                                }
-                            }
-                            .accessibilityValue(
-                                item.workspace?.commandMonitor.hasUnreadCompletion == true
-                                    ? String(localized: AppStrings.CommandNotifications.unread) : "")
                         if let workspace = item.workspace,
                             let indicator = MobileWorkspaceConnectionIndicator.resolve(
                                 connected: workspace.connected,
@@ -170,11 +164,20 @@ struct MobileWorkspaceListView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    if scene.workspaceSession.unreadCount(for: item.id) > 0 {
+                        NotificationUnreadDot()
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .accessibilityValue(
+                scene.workspaceSession.unreadCount(for: item.id) > 0
+                    ? String(
+                        localized: AppStrings.Notifications.unread(
+                            scene.workspaceSession.unreadCount(for: item.id))) : ""
+            )
             .accessibilityIdentifier("workspace-\(item.id)")
             .swipeActions {
                 Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark", role: .destructive) {
@@ -182,11 +185,20 @@ struct MobileWorkspaceListView: View {
                 }
             }
             .contextMenu {
+                let hasUnread = scene.workspaceSession.unreadCount(for: item.id) > 0
                 MobileWorkspaceLifecycleMenuActions(
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
                     rename: { scene.beginWorkspaceRename(item.descriptor) },
                     close: { scene.closeWorkspace(item.id) },
-                    closeOthers: { scene.closeOtherWorkspaces(than: item.id) }
+                    closeOthers: { scene.closeOtherWorkspaces(than: item.id) },
+                    hasUnread: hasUnread,
+                    toggleRead: {
+                        if hasUnread {
+                            scene.workspaceSession.markRead(item.id)
+                        } else {
+                            scene.workspaceSession.markUnread(item.id)
+                        }
+                    }
                 )
             }
         }

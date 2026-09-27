@@ -97,6 +97,7 @@ public final class SettingsSyncJournal {
             SettingsRecordKey(kind: .ssh, id: "default"),
             SettingsRecordKey(kind: .sftp, id: "default"),
             SettingsRecordKey(kind: .workspace, id: "default"),
+            SettingsRecordKey(kind: .notifications, id: "default"),
         ] {
             let envelope = SettingsEnvelope(
                 key: key, version: .baseline(writerID: state.installationID), isDeleted: true)

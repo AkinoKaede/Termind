@@ -117,9 +117,16 @@ final class Workspace: Identifiable {
 
     var status: ConnectionStatus { focusedPane.status }
 
-    var hasUnreadCommandCompletion: Bool { panes.contains { $0.commandMonitor?.hasUnreadCompletion == true } }
+    private var manuallyUnread = false
+    var unreadCompletionCount: Int {
+        max(manuallyUnread ? 1 : 0, panes.reduce(0) { $0 + ($1.commandMonitor?.unreadCompletionCount ?? 0) })
+    }
+    var hasUnreadCommandCompletion: Bool { unreadCompletionCount > 0 }
+
+    func markCommandsUnread() { manuallyUnread = true }
 
     func markCommandsRead() {
+        manuallyUnread = false
         for pane in panes { pane.commandMonitor?.markRead() }
     }
 

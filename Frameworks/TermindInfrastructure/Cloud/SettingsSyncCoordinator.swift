@@ -15,6 +15,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     // Older clients filter by record type before decoding, so they can ignore newer preferences safely.
     public nonisolated static let sshRecordType = "SSHPreferencesItem"
     public nonisolated static let sftpRecordType = "SFTPPreferencesItem"
+    public nonisolated static let notificationRecordType = "NotificationPreferencesItem"
     public nonisolated static let workspaceRecordType = "WorkspacePreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
     nonisolated static let assetDirectoryName = "Termind/SettingsSyncAssets"
@@ -97,7 +98,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 pendingChanges: {
                     try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
                 },
-                safety: .persistent(context: context),
+                safety: .persistent(
+                    context: context,
+                    capabilityID: SettingsRecordKind.allCases.filter(\.participatesInSync)
+                        .map { "\($0.rawValue):1" }.sorted().joined(separator: ";")),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
@@ -304,6 +308,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
         type == recordType || type == sshRecordType || type == sftpRecordType || type == workspaceRecordType
+            || type == notificationRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
@@ -311,6 +316,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         case .ssh: sshRecordType
         case .sftp: sftpRecordType
         case .workspace: workspaceRecordType
+        case .notifications: notificationRecordType
         default: recordType
         }
     }

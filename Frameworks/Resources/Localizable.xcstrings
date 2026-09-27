@@ -2887,6 +2887,52 @@
         }
       }
     },
+    "All %lld transfers are complete." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All %lld transfers are complete."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld项传输已全部完成。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld項傳輸已全部完成。"
+          }
+        }
+      }
+    },
+    "All %lld transfers failed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All %lld transfers failed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld项传输均失败。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld項傳輸均失敗。"
+          }
+        }
+      }
+    },
     "All Default Disks" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2951,6 +2997,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允許"
+          }
+        }
+      }
+    },
+    "Allow Notifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許通知"
           }
         }
       }
@@ -3155,6 +3218,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一律包含"
+          }
+        }
+      }
+    },
+    "An action needs your approval." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An action needs your approval."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有一项操作需要你确认。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有一項操作需要你確認。"
           }
         }
       }
@@ -4170,6 +4256,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bearer權杖"
+          }
+        }
+      }
+    },
+    "Bell" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "响铃"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "響鈴"
           }
         }
       }
@@ -6189,6 +6292,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已傳輸大小"
+          }
+        }
+      }
+    },
+    "Completed successfully in %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed successfully in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "执行成功，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行成功，用時%@。"
           }
         }
       }
@@ -10429,6 +10555,23 @@
         }
       }
     },
+    "Enable Notifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟用通知"
+          }
+        }
+      }
+    },
     "Enable SSH or Telnet before saving this Host." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11348,6 +11491,29 @@
         }
       }
     },
+    "Failed with exit code %lld after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed with exit code %lld after %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "执行失败，退出码为%lld，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行失敗，結束代碼為%lld，用時%@。"
+          }
+        }
+      }
+    },
     "Family Shared" : {
       "comment" : "A label for a family-shared subscription.",
       "extractionState" : "manual",
@@ -11707,6 +11873,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請補全引號或跳脫參數。"
+          }
+        }
+      }
+    },
+    "Finished after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finished after %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "执行结束，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行結束，用時%@。"
           }
         }
       }
@@ -15255,6 +15444,52 @@
         }
       }
     },
+    "Mark as Read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as Read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为已读"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標記為已讀"
+          }
+        }
+      }
+    },
+    "Mark as Unread" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as Unread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为未读"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標記為未讀"
+          }
+        }
+      }
+    },
     "Markdown. Returned whole when the assistant loads this skill." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17644,6 +17879,40 @@
         }
       }
     },
+    "Notification Type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提醒方式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提醒方式"
+          }
+        }
+      }
+    },
+    "Notifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        }
+      }
+    },
     "Notifications are disabled in system settings." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17691,6 +17960,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通知時機"
+          }
+        }
+      }
+    },
+    "Notify when all transfers finish, excluding paused transfers. Unfocused means no app window is in the foreground." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify when all transfers finish, excluding paused transfers. Unfocused means no app window is in the foreground."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有传输结束时通知，暂停的传输不计入。未聚焦表示应用没有处于前台的窗口。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有傳輸結束時通知，暫停的傳輸不計入。未聚焦表示應用程式沒有處於前景的視窗。"
           }
         }
       }
@@ -19638,6 +19930,121 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "計畫模式—按一下以關閉"
+          }
+        }
+      }
+    },
+    "Please complete SSH authentication to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please complete SSH authentication to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请完成SSH身份验证以继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請完成SSH身分驗證以繼續。"
+          }
+        }
+      }
+    },
+    "Please confirm this host's key to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please confirm this host's key to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请确认这台主机的密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請確認這台主機的金鑰。"
+          }
+        }
+      }
+    },
+    "Please enter your SSH key passphrase." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter your SSH key passphrase."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入SSH密钥的口令。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入SSH金鑰的密碼。"
+          }
+        }
+      }
+    },
+    "Please enter your credentials to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter your credentials to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入凭据以继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入憑證以繼續。"
+          }
+        }
+      }
+    },
+    "Please provide some information to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please provide some information to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要你补充一些信息才能继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要你補充一些資訊才能繼續。"
           }
         }
       }
@@ -21879,13 +22286,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要Shell集成或OSC 133。工作区红点也会标记较短的命令。"
+            "value" : "需要Shell集成或OSC 133。工作区未读标记也会显示较短的命令。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要Shell整合或OSC 133。工作區紅點也會標記較短的指令。"
+            "value" : "需要Shell整合或OSC 133。工作區未讀標記也會顯示較短的指令。"
           }
         }
       }
@@ -26023,6 +26430,23 @@
         }
       }
     },
+    "System Notifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統通知"
+          }
+        }
+      }
+    },
     "Tab" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28471,6 +28895,52 @@
         }
       }
     },
+    "The task failed. Open the conversation for details." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The task failed. Open the conversation for details."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务未能完成，请打开对话查看详情。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任務未能完成，請打開對話查看詳情。"
+          }
+        }
+      }
+    },
+    "The task is complete." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The task is complete."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务已完成。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任務已完成。"
+          }
+        }
+      }
+    },
     "The template “%@” will be removed from the Vault." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28484,6 +28954,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "範本「%@」將從保管庫中移除。"
+          }
+        }
+      }
+    },
+    "The transfer failed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transfer failed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输失败。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳輸失敗。"
+          }
+        }
+      }
+    },
+    "The transfer is complete." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The transfer is complete."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输已完成。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳輸已完成。"
           }
         }
       }
@@ -30019,6 +30535,29 @@
         }
       }
     },
+    "Transfers finished: %lld completed, %lld failed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers finished: %lld completed, %lld failed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输已结束：%lld项完成，%lld项失败。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳輸已結束：%lld項完成，%lld項失敗。"
+          }
+        }
+      }
+    },
     "Transport" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30501,6 +31040,23 @@
         }
       }
     },
+    "Unfocused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未聚焦时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未聚焦時"
+          }
+        }
+      }
+    },
     "Ungrouped" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30701,6 +31257,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有未讀的指令完成訊息"
+          }
+        }
+      }
+    },
+    "Unread notifications: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread notifications: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未读通知：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未讀通知：%lld"
           }
         }
       }

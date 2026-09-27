@@ -23,6 +23,7 @@ struct MobileWorkspaceView: View {
     let commandGenerator: any CommandGenerating
     @Bindable var workspace: MobileWorkspace
     let workspaces: [MobileWorkspaceDescriptor]
+    var unreadWorkspaceIDs: Set<UUID> = []
     let selectWorkspace: (UUID) -> Void
     let renameWorkspace: (MobileWorkspaceDescriptor) -> Void
     let canCloseMultipleWorkspaces: Bool
@@ -137,7 +138,9 @@ struct MobileWorkspaceView: View {
                     Menu {
                         workspaceSwitchActions
                     } label: {
-                        Label(AppStrings.Navigation.workspaces.swiftUIKey, systemImage: "rectangle.stack")
+                        MobileNotificationMenuLabel(
+                            title: String(localized: AppStrings.Navigation.workspaces), symbol: "rectangle.stack",
+                            hasUnread: !unreadWorkspaceIDs.isEmpty, isToolbar: true)
                     }
                     .labelStyle(.iconOnly)
                     .accessibilityValue(workspace.descriptor.title)
@@ -712,13 +715,11 @@ struct MobileWorkspaceView: View {
             ?? AppStrings.Workspace.deleteFileConfirmation
     }
 
-    @ViewBuilder
     private func workspaceTitleMenuLabel(for candidate: MobileWorkspaceDescriptor) -> some View {
-        if candidate.id == workspace.id {
-            Label(candidate.title, systemImage: "checkmark")
-        } else {
-            Label(candidate.title, systemImage: candidate.kind.symbol)
-        }
+        MobileNotificationMenuLabel(
+            title: candidate.title,
+            symbol: candidate.id == workspace.id ? "checkmark" : candidate.kind.symbol,
+            hasUnread: unreadWorkspaceIDs.contains(candidate.id))
     }
 
     @ViewBuilder
@@ -768,9 +769,16 @@ struct MobileWorkspaceLifecycleMenuActions: View {
     let rename: () -> Void
     let close: () -> Void
     let closeOthers: () -> Void
+    var hasUnread: Bool? = nil
+    var toggleRead: () -> Void = {}
 
     var body: some View {
         Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil", action: rename)
+        if let hasUnread {
+            Button(
+                hasUnread ? AppStrings.Notifications.markRead : AppStrings.Notifications.markUnread,
+                systemImage: hasUnread ? "circle" : "circle.fill", action: toggleRead)
+        }
         Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark", role: .destructive, action: close)
         if canCloseMultipleWorkspaces {
             Divider()

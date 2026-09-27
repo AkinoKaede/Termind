@@ -79,6 +79,8 @@ struct SettingsNavigationTests {
         let serverID = UUID()
 
         #expect(SettingsRoute.index.parent == nil)
+        #expect(SettingsRoute.category(.notifications).parent == .index)
+        #expect(SettingsCategory.notifications.symbol == "bell.badge")
         #expect(SettingsRoute.category(.terminal).parent == .index)
         #expect(SettingsRoute.modelProvider(providerID).parent == .category(.ai))
         #expect(

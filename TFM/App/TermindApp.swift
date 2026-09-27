@@ -151,6 +151,7 @@ struct TermindApp: App {
                         : MemoryModel(
                             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: .standard),
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
+                    notificationSettings: NotificationSettingsModel(persistence: settingsPersistence),
                     sshSettings: SSHSettingsModel(persistence: settingsPersistence),
                     sftpSettings: SFTPSettingsModel(persistence: settingsPersistence),
                     workspaceSettings: WorkspaceSettingsModel(persistence: settingsPersistence),

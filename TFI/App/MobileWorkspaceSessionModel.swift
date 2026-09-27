@@ -28,6 +28,28 @@ struct MobileWorkspaceItem: Identifiable {
 final class MobileWorkspaceSessionModel {
     let id: String
     private(set) var workspaces: [MobileWorkspace] = []
+    private var manuallyUnreadIDs = Set<UUID>()
+    var unreadWorkspaceIDs: Set<UUID> {
+        Set(orderedWorkspaceItems.filter { unreadCount(for: $0.id) > 0 }.map(\.id))
+    }
+    var hasUnreadCompletion: Bool { unreadCompletionCount > 0 }
+    var unreadCompletionCount: Int { orderedWorkspaceItems.reduce(0) { $0 + unreadCount(for: $1.id) } }
+
+    func unreadCount(for id: UUID) -> Int {
+        max(
+            manuallyUnreadIDs.contains(id) ? 1 : 0,
+            workspaces.first { $0.id == id }?.commandMonitor.unreadCompletionCount ?? 0)
+    }
+
+    func markRead(_ id: UUID) {
+        manuallyUnreadIDs.remove(id)
+        workspaces.first { $0.id == id }?.commandMonitor.markRead()
+    }
+
+    func markUnread(_ id: UUID) {
+        guard orderedWorkspaceItems.contains(where: { $0.id == id }) else { return }
+        manuallyUnreadIDs.insert(id)
+    }
     private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor]
     private var workspaceDisplayOrder: [MobileWorkspace.ID]
     private(set) var isDiscarded = false
@@ -44,19 +66,24 @@ final class MobileWorkspaceSessionModel {
         var workspaces: [MobileWorkspace]
         var descriptors: [MobileWorkspaceDescriptor]
         var order: [MobileWorkspace.ID]
+        var manuallyUnreadIDs: Set<UUID> = []
     }
 
     var recovery: Recovery {
-        Recovery(workspaces: workspaces, descriptors: savedWorkspaceDescriptors, order: workspaceDisplayOrder)
+        Recovery(
+            workspaces: workspaces, descriptors: savedWorkspaceDescriptors, order: workspaceDisplayOrder,
+            manuallyUnreadIDs: manuallyUnreadIDs)
     }
 
     func releaseForRecovery() {
+        manuallyUnreadIDs.removeAll()
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
         workspaceDisplayOrder.removeAll()
     }
 
     func acceptRecovery(_ recovery: Recovery) {
+        manuallyUnreadIDs.formUnion(recovery.manuallyUnreadIDs)
         workspaces.append(contentsOf: recovery.workspaces)
         savedWorkspaceDescriptors.append(contentsOf: recovery.descriptors)
         workspaceDisplayOrder.append(contentsOf: recovery.order)
@@ -203,6 +230,7 @@ final class MobileWorkspaceSessionModel {
     }
 
     func close(_ id: UUID) {
+        manuallyUnreadIDs.remove(id)
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
         app.workspaceDidClose(id)
@@ -226,6 +254,7 @@ final class MobileWorkspaceSessionModel {
         guard knownIDs.contains(id), knownIDs.count > 1 else { return }
 
         let closing = workspaces.filter { $0.id != id }
+        manuallyUnreadIDs = manuallyUnreadIDs.intersection([id])
         workspaces.removeAll { $0.id != id }
         savedWorkspaceDescriptors.removeAll { $0.id != id }
         workspaceDisplayOrder.removeAll { $0 != id }
@@ -239,6 +268,7 @@ final class MobileWorkspaceSessionModel {
     }
 
     func closeAll() {
+        manuallyUnreadIDs.removeAll()
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
         let closing = workspaces
         workspaces.removeAll()

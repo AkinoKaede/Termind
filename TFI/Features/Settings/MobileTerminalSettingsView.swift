@@ -5,7 +5,6 @@ import TermindPresentation
 
 struct MobileTerminalSettingsView: View {
     let model: TerminalSettingsModel
-    let notifications: any CommandNotificationSending
     @State private var editingDark: Bool?
     @State private var customText = ""
     @TerminalFontSettings private var font
@@ -18,9 +17,6 @@ struct MobileTerminalSettingsView: View {
             Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
-            TerminalCommandNotificationFields(
-                model: model, service: notifications,
-                openSettings: TerminalNotificationPlatform.openSettings)
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(AppStrings.Settings.shellIntegration.swiftUIKey, isOn: binding(\.shellIntegration))
             }

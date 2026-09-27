@@ -854,6 +854,14 @@ public enum TermindSchemaV40: VersionedSchema {
     }
 }
 
+/// V41 adds shared notification preferences without changing historical model shapes.
+public enum TermindSchemaV41: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(41, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV40.models + [PersistentNotificationPreferences.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -867,7 +875,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self,
             TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
-            TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self,
+            TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
         ]
     }
 
@@ -967,6 +975,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV37.self, toVersion: TermindSchemaV38.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV38.self, toVersion: TermindSchemaV39.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV39.self, toVersion: TermindSchemaV40.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV40.self, toVersion: TermindSchemaV41.self),
         ]
     }
 }

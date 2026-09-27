@@ -687,7 +687,7 @@ public final class ConversationModel: Identifiable {
     private var attachmentImportTasks: [PendingContextAttachment.ID: Task<Void, Never>] = [:]
     /// The last state the run reported, before anything outstanding in the UI
     /// is taken into account.
-    private var reportedRunState: AgentRunState = .idle
+    private var reportedRunState: AgentRunState = .idle { didSet { publishNotificationInteraction() } }
 
     /// What the transcript shows, ranked from the reported state and actual
     /// outstanding work. There is deliberately no second stored run state.
@@ -734,10 +734,18 @@ public final class ConversationModel: Identifiable {
     ///
     /// Only the head is presented. Showing three cards at once would ask
     /// someone to authorize three things while reading one.
-    public private(set) var pendingApprovals: [AgentApprovalRequest] = []
-    public private(set) var pendingUserInputs: [AgentUserInputRequest] = []
-    public private(set) var pendingSSHAuthentications: [AgentSSHAuthenticationRequest] = []
-    public private(set) var pendingSSHHostKeys: [AgentSSHHostKeyRequest] = []
+    public private(set) var pendingApprovals: [AgentApprovalRequest] = [] {
+        didSet { publishNotificationInteraction() }
+    }
+    public private(set) var pendingUserInputs: [AgentUserInputRequest] = [] {
+        didSet { publishNotificationInteraction() }
+    }
+    public private(set) var pendingSSHAuthentications: [AgentSSHAuthenticationRequest] = [] {
+        didSet { publishNotificationInteraction() }
+    }
+    public private(set) var pendingSSHHostKeys: [AgentSSHHostKeyRequest] = [] {
+        didSet { publishNotificationInteraction() }
+    }
     /// What the user typed at a busy agent, oldest first, none of it delivered
     /// yet. See `submitSteeringDraft`.
     public private(set) var pendingSteering: [PendingSteeringMessage] = []
@@ -998,6 +1006,25 @@ public final class ConversationModel: Identifiable {
     /// `nil` — not "", which is what an unset stored row decodes to — is what
     /// makes `derivedTitle` fall back rather than show an empty row.
     public var title: String?
+
+    /// Independent app notification events, separate from title and Memory callbacks.
+    @ObservationIgnored public var notificationEvent: ((AssistantNotificationEvent) -> Void)?
+    @ObservationIgnored private var lastNotificationInteraction: AssistantNotificationInteraction?
+    private var unreadNotificationIDs = Set<String>()
+    public var unreadNotificationCount: Int { unreadNotificationIDs.count }
+    public func markNotificationsRead() { unreadNotificationIDs.removeAll() }
+    public func markNotificationsUnread() {
+        if unreadNotificationIDs.isEmpty { unreadNotificationIDs.insert("manual") }
+    }
+    func markNotificationUnread(_ id: String) { unreadNotificationIDs.insert(id) }
+    func removeUnreadNotification(_ id: String) { unreadNotificationIDs.remove(id) }
+
+    private func publishNotificationInteraction() {
+        let current = notificationInteraction
+        guard current != lastNotificationInteraction else { return }
+        lastNotificationInteraction = current
+        notificationEvent?(.interactionChanged(current))
+    }
 
     /// Fired when a run reaches a terminal state, so `AppModel` can title the
     /// conversation without the conversation knowing what a title costs.
@@ -2201,6 +2228,7 @@ public final class ConversationModel: Identifiable {
         runSummaries[snapshot.id] = summary
         reportedRunState = .failed
         updatedAt = snapshot.finishedAt ?? .now
+        notificationEvent?(.finished(runID: snapshot.id, kind: .failed))
         runDidFinish?()
     }
 
@@ -2857,6 +2885,9 @@ public final class ConversationModel: Identifiable {
             }
             finishedMemoryTools.removeValue(forKey: run.id)
             memoryRunFinished?(run, userIDs, tools, transcript)
+            if run.state == .completed || run.state == .failed {
+                notificationEvent?(.finished(runID: run.id, kind: run.state == .completed ? .completed : .failed))
+            }
             if activeRunID == run.id { activeRunID = nil }
         case .turnStarted:
             if let activeRunID, let finished = finishedMemoryTools.removeValue(forKey: activeRunID),

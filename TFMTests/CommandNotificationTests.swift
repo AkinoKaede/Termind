@@ -9,6 +9,22 @@ import Testing
 
 @Suite @MainActor
 struct CommandNotificationTests {
+    @Test func manuallyUnreadWorkspacesCountOnceWithoutRequiringATerminal() {
+        let app = AppModel(hosts: HostLibraryModel())
+        let window = WindowModel()
+        app.registerWindow(window)
+        let workspace = Workspace(pane: Pane(.empty))
+        window.open(workspace, select: false)
+        workspace.markCommandsUnread()
+        workspace.markCommandsUnread()
+        #expect(workspace.hasUnreadCommandCompletion)
+        #expect(window.unreadCompletionCount == 1)
+        #expect(app.unreadNotificationCount == 1)
+        workspace.markCommandsRead()
+        #expect(app.unreadNotificationCount == 0)
+        #expect(!Workspace(pane: Pane(.empty)).hasUnreadCommandCompletion)
+    }
+
     @Test func appOwnsCommandNotificationsWithoutChangingThemeOrFontPrecedence() {
         let state = TerminalViewState(configSource: .none)
         let preferences = TerminalPreferences(
@@ -23,9 +39,10 @@ struct CommandNotificationTests {
     @Test func ghosttyPublishesEveryCompletionAndPairsItsExitCode() async {
         let state = TerminalViewState(configSource: .none)
         let monitor = TerminalCommandMonitor()
-        var preferences = CommandNotificationPreferences()
-        preferences.mode = .always
-        preferences.after = 0
+        var preferences = NotificationPreferences()
+        preferences.isEnabled = true
+        preferences.terminalMode = .always
+        preferences.terminalMinimumSeconds = 0
         monitor.preferences = { preferences }
         var received: [TerminalCommandCompletion] = []
         monitor.alert = { completion, _ in received.append(completion) }
@@ -68,10 +85,14 @@ struct CommandNotificationTests {
         monitor.beginConnection()
         monitor.receiveOSC133(exitCode: 0, durationNanos: 0)
         #expect(workspace.hasUnreadCommandCompletion)
+        #expect(window.unreadCompletionCount == 1)
+        #expect(other.unreadCompletionCount == 0)
         let moved = try #require(window.takePaneForMove(first.id))
         other.open(moved)
         #expect(!workspace.hasUnreadCommandCompletion)
         #expect(moved.hasUnreadCommandCompletion)
+        #expect(window.unreadCompletionCount == 0)
+        #expect(other.unreadCompletionCount == 1)
         #expect(app.commandNotificationTarget(firstID)?.0 === other)
         other.selectVault()
         #expect(app.selectCommandNotificationTarget(firstID) === other)
@@ -79,12 +100,54 @@ struct CommandNotificationTests {
         #expect(moved.focusedPane === first)
         moved.markCommandsRead()
         #expect(!moved.hasUnreadCommandCompletion)
+        #expect(other.unreadCompletionCount == 0)
         other.close(moved.id)
         #expect(app.commandNotificationTarget(firstID) == nil)
         #expect(app.selectCommandNotificationTarget(firstID) == nil)
         other.reopenLastClosed()
         #expect(app.commandNotificationTarget(firstID) == nil)
         #expect(first.commandSessionID != firstID)
+    }
+
+    @Test func assistantFocusIncludesVisibleSidebarAndNotificationTargetsReuseTheConversation() throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let window = WindowModel()
+        let other = WindowModel()
+        app.registerWindow(window)
+        app.registerWindow(other)
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Test"
+        _ = try #require(window.assistantLibrary.startConversation(conversation))
+        window.openAssistantFullScreen(conversation.id)
+        #expect(app.isAssistantNotificationFocused(conversation.id))
+        #expect(app.isAssistantNotificationFocused(UUID()))
+        window.open(Workspace(pane: Pane(.empty)))
+        window.sidebarMode = .assistant
+        window.showsSidebar = true
+        #expect(window.isShowingAssistant(conversation.id))
+        window.showsSidebar = false
+        #expect(!window.isShowingAssistant(conversation.id))
+        #expect(!app.isAssistantNotificationFocused(conversation.id))
+        other.openAssistantFullScreen(conversation.id)
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === other)
+        #expect(other.assistantLibrary.selectedConversation === conversation)
+        let peer = ConversationModel()
+        peer.composer.draft = "Second conversation"
+        _ = try #require(window.assistantLibrary.startConversation(peer))
+        window.openAssistantInSidebar(peer.id)
+        window.showsSidebar = true
+        other.open(Workspace(pane: Pane(.empty)))
+        other.sidebarMode = .assistant
+        other.showsSidebar = true
+        #expect(app.isAssistantNotificationFocused(peer.id))
+        #expect(app.isAssistantNotificationFocused(conversation.id))
+        #expect(!app.isAssistantNotificationFocused(UUID()))
+        #expect(other.assistantLibrary.conversation(id: peer.id) === peer)
+        other.isAssistantArchivePresented = true
+        #expect(!other.isShowingAssistant(conversation.id))
+        let target = try #require(app.selectAssistantNotificationTarget(UUID()))
+        #expect(target.selectedDestination == .assistant)
+        #expect(target.assistantLibrary.selectedConversation == nil)
     }
 
     @Test func ghosttyValuesAlreadyPublishedAreNotReplayedWhenObserving() async {
