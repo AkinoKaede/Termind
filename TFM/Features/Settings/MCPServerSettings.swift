@@ -36,6 +36,7 @@ struct MCPServerSettings: View {
                         set: { server.setPort($0) }
                     ), format: .number.grouping(.never)
                 ).lineLimit(1)
+                    .labelsHidden()
                     .frame(width: 100)
                     .multilineTextAlignment(.trailing)
             }
@@ -47,7 +48,9 @@ struct MCPServerSettings: View {
         }
 
         Section(AppStrings.Settings.bearerToken.swiftUIKey) {
-            LabeledContent(AppStrings.Settings.token.swiftUIKey) {
+            HStack(alignment: .center) {
+                Text(AppStrings.Settings.token)
+                Spacer()
                 HStack {
                     Text(showsToken ? displayToken : String(repeating: "•", count: 24))
                         .font(.system(.body, design: .monospaced))
