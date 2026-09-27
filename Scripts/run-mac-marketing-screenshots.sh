@@ -100,7 +100,7 @@ capture() {
     local_test_pid=$!
     local ready_payload=""
 
-    for _ in {1..600}; do
+    for _ in {1..2400}; do
         ready_payload="$(
             rg -o 'TERMIND_MAC_MARKETING_READY .*' "$test_log" \
                 | tail -n 1 \

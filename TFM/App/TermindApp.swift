@@ -37,6 +37,9 @@ struct TermindApp: App {
     private let modelContainer: ModelContainer
     @State private var app: AppModel
     private let launchLanguage: AppLanguage
+    #if DEBUG
+        @State private var screenshotWindow: WindowModel?
+    #endif
 
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
@@ -58,13 +61,14 @@ struct TermindApp: App {
             modelContainer = container
             #if DEBUG
                 if let screenshotDemo {
-                    let hosts = HostLibraryModel.demo(language: screenshotDemo.language)
+                    let hosts = screenshotDemo.makeHostLibrary()
                     let app = AppModel(
                         hosts: hosts, ai: .demo(), proAccess: .unrestrictedForTesting(),
                         onboarding: OnboardingController(automaticPresentationEnabled: false),
                         serverMetrics: screenshotDemo.makeMetricsModel(hosts: hosts)
                     )
                     _app = State(initialValue: app)
+                    _screenshotWindow = State(initialValue: screenshotDemo.makeWindow(hosts: hosts))
                     return
                 }
             #endif
@@ -205,8 +209,8 @@ struct TermindApp: App {
 
     private func makeWindow(requestID: UUID?) -> WindowModel {
         #if DEBUG
-            if requestID == nil, let demo = ScreenshotDemoConfiguration.active {
-                return demo.makeWindow(hosts: app.hostLibrary)
+            if requestID == nil, let screenshotWindow {
+                return screenshotWindow
             }
         #endif
         let window = WindowModel()

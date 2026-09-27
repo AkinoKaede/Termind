@@ -9,7 +9,7 @@ import struct TermindDomain.Host
 extension HostLibraryModel {
     /// Seed data for P0, so the sidebar and workspace list can be exercised before any
     /// persistence or networking exists.
-    static func demo(language: AppLanguage = .english) -> HostLibraryModel {
+    static func demo(language: AppLanguage = .english, includesConnectionActivity: Bool = true) -> HostLibraryModel {
         func text(_ en: String, _ zhHans: String, _ zhHant: String) -> String {
             switch language {
             case .simplifiedChinese: zhHans
@@ -233,9 +233,11 @@ extension HostLibraryModel {
             snippets: snippets,
             snippetPackages: [diagnostics, webOperations],
             portForwardings: portForwardings,
-            sftpTransfers: sftpTransfers,
+            sftpTransfers: includesConnectionActivity ? sftpTransfers : [],
             knownHosts: knownHosts
         )
+
+        guard includesConnectionActivity else { return store }
 
         // A spread of connection states so Vault and Welcome Host cards can be
         // checked against every dot color without a server.

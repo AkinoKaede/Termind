@@ -1,3 +1,4 @@
+import Foundation
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
@@ -86,12 +87,48 @@ import TermindRemoteInfrastructure
             let configuration = ScreenshotDemoConfiguration(
                 scene: .hosts, language: .english
             )
-            let window = configuration.makeWindow(hosts: .demo())
+            let window = configuration.makeWindow(hosts: configuration.makeHostLibrary())
 
             #expect(window.selectedDestination == .vault)
             #expect(window.vaultDestination == .hosts)
             #expect(window.showsSidebar)
             #expect(window.sidebarMode == .navigation)
+        }
+
+        @Test
+        func vaultCaptureStatusesMatchItsTwoWorkspacesInEveryLanguage() throws {
+            for language in [AppLanguage.english, .simplifiedChinese, .traditionalChinese] {
+                let configuration = ScreenshotDemoConfiguration(scene: .hosts, language: language)
+                let hosts = configuration.makeHostLibrary()
+                let window = configuration.makeWindow(hosts: hosts)
+
+                #expect(window.workspaces.count == 2)
+                #expect(hosts.sftpTransfers.isEmpty)
+                #expect(!hosts.hosts.isEmpty)
+                var connectedHostIDs: Set<UUID> = []
+                for workspace in window.workspaces {
+                    #expect(workspace.panes.count == 1)
+                    let session = try #require(workspace.panes.first?.sshSession)
+                    #expect(session.status == .connected)
+                    connectedHostIDs.insert(session.hostID)
+                }
+                #expect(connectedHostIDs.count == 2)
+                for host in hosts.hosts {
+                    let expectedStatus: ConnectionStatus =
+                        connectedHostIDs.contains(host.id) ? .connected : .disconnected
+                    #expect(hosts.status(of: host.id) == expectedStatus)
+                }
+            }
+        }
+
+        @Test
+        func otherCaptureScenesKeepTheirConnectionActivity() {
+            for scene in ScreenshotDemoConfiguration.Scene.allCases where scene != .hosts {
+                let hosts = ScreenshotDemoConfiguration(scene: scene, language: .english).makeHostLibrary()
+                #expect(!hosts.sftpTransfers.isEmpty)
+                #expect(hosts.hosts.contains { hosts.status(of: $0.id) == .connected })
+                #expect(hosts.hosts.contains { hosts.status(of: $0.id) == .connecting })
+            }
         }
 
         @Test

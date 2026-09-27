@@ -32,13 +32,27 @@ import Testing
                 window.makeFirstResponder(nil)
             }
 
-            for _ in 0..<100 {
+            // Keep real pointer hover out of every capture without changing production row styling.
+            let originalPointer = NSEvent.mouseLocation
+            let desktopTop = try #require(NSScreen.screens.first).frame.maxY
+            func movePointer(to point: NSPoint) {
+                let location = CGPoint(x: point.x, y: desktopTop - point.y)
+                CGWarpMouseCursorPosition(location)
+                CGEvent(
+                    mouseEventSource: nil, mouseType: .mouseMoved,
+                    mouseCursorPosition: location, mouseButton: .left
+                )?.post(tap: .cghidEventTap)
+            }
+            defer { movePointer(to: originalPointer) }
+
+            for _ in 0..<3600 {
                 NSRunningApplication.current.activate(options: [.activateAllWindows])
                 NSApp.activate(ignoringOtherApps: true)
                 window.orderFrontRegardless()
                 window.makeMain()
                 window.makeKey()
                 if NSApp.isActive, window.isKeyWindow {
+                    movePointer(to: NSPoint(x: window.frame.midX, y: window.frame.maxY + 16))
                     // Activation can be transient while test hosts launch and exit.
                     // Require the focused appearance to stay active through rendering.
                     try await Task.sleep(for: .milliseconds(300))
@@ -47,11 +61,25 @@ import Testing
                 try await Task.sleep(for: .milliseconds(50))
             }
             guard NSApp.isActive, window.isKeyWindow else {
-                Issue.record("Marketing window could not become the focused key window")
+                let frontmost = NSWorkspace.shared.frontmostApplication
+                let diagnostic =
+                    "Marketing window could not become the focused key window: "
+                    + "active=\(NSApp.isActive), key=\(window.isKeyWindow), "
+                    + "frontmost=\(frontmost?.localizedName ?? "none") "
+                    + "pid=\(frontmost?.processIdentifier ?? -1)"
+                Issue.record("\(diagnostic)")
                 return
             }
             try #require(NSApp.isActive && window.isKeyWindow)
             try #require(window.backingScaleFactor == 2)
+            let pointer = NSEvent.mouseLocation
+            let contentFrame = window.convertToScreen(window.contentLayoutRect)
+            try #require(!contentFrame.contains(pointer), "Pointer must be outside the content before capture")
+            // Once hover has cleared, prevent pointer movement during the capture interval
+            // from highlighting a card or file row. Restore normal input after the test.
+            let ignoredMouseEvents = window.ignoresMouseEvents
+            window.ignoresMouseEvents = true
+            defer { window.ignoresMouseEvents = ignoredMouseEvents }
 
             let token = UUID().uuidString
             let scene = configuration.scene.rawValue
@@ -67,6 +95,7 @@ import Testing
             // acknowledging files inside another app's container.
             try await Task.sleep(for: .seconds(5))
             #expect(NSApp.isActive && window.isKeyWindow, "Capture window lost focus before the capture interval ended")
+            #expect(window.ignoresMouseEvents, "Capture window must not accept hover events")
         }
     }
 #endif

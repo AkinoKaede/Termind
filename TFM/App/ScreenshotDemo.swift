@@ -97,6 +97,18 @@ import TermindApplication
             }
         }
 
+        func makeHostLibrary() -> HostLibraryModel {
+            let hosts = HostLibraryModel.demo(language: language, includesConnectionActivity: scene != .hosts)
+            if scene == .hosts {
+                // Seed once at app launch, matching the two workspaces below. Window construction
+                // runs inside SwiftUI rendering and must not mutate the observed host library.
+                for host in hosts.hosts.prefix(2) {
+                    hosts.setStatus(.connected, for: host.id)
+                }
+            }
+            return hosts
+        }
+
         func makeWindow(hosts: HostLibraryModel) -> WindowModel {
             switch scene {
             case .workspace:
@@ -106,7 +118,7 @@ import TermindApplication
             case .agent:
                 return agentWindow(hosts: hosts)
             case .hosts:
-                return hostsWindow()
+                return hostsWindow(hosts: hosts)
             case .appSettings:
                 let window = WindowModel()
                 window.selectedDestination = .settings
@@ -122,8 +134,15 @@ import TermindApplication
             }
         }
 
-        private func hostsWindow() -> WindowModel {
-            let window = WindowModel(vaultDestination: .hosts)
+        private func hostsWindow(hosts: HostLibraryModel) -> WindowModel {
+            let workspaces = hosts.hosts.prefix(2).map { host in
+                let session = SSHSessionModel.demo(host: host)
+                let workspace = Workspace(pane: Pane(.sshSession(session)))
+                workspace.customTitle = host.name
+                return workspace
+            }
+            let window = WindowModel(workspaces: workspaces, vaultDestination: .hosts)
+            window.selectedDestination = .vault
             window.showsSidebar = true
             window.sidebarMode = .navigation
             return window
