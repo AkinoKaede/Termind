@@ -207,7 +207,7 @@ struct MobileAssistantComposer: View {
 
             ZStack {
                 if showsTranscriptionControls {
-                    recordingControls
+                    transcriptionControls(phase: model.speech.phase)
                         .transition(.opacity)
                 } else {
                     standardControls
@@ -257,10 +257,10 @@ struct MobileAssistantComposer: View {
     }
 
     @ViewBuilder
-    private var recordingControls: some View {
-        switch model.speech.phase {
+    func transcriptionControls(phase: SpeechTranscriptionCoordinator.Phase) -> some View {
+        switch phase {
         case .recording:
-            speechControls {
+            speechControls(phase: phase) {
                 SpeechWaveformView(
                     samples: model.speech.levelSamples,
                     reduceMotion: reduceMotion
@@ -269,36 +269,47 @@ struct MobileAssistantComposer: View {
                 .accessibilityLabel(Text(AppStrings.Assistant.recording))
             }
         case .transcribing:
-            speechControls {
-                ProgressView()
+            speechControls(phase: phase) {
+                Text(AppStrings.Assistant.transcribing)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
-                    .accessibilityLabel(Text(AppStrings.Assistant.transcribing))
             }
         case .idle:
             EmptyView()
         }
     }
 
-    private func speechControls<Status: View>(@ViewBuilder status: () -> Status) -> some View {
+    private func speechControls<Status: View>(
+        phase: SpeechTranscriptionCoordinator.Phase, @ViewBuilder status: () -> Status
+    ) -> some View {
         HStack(alignment: .center, spacing: 8) {
             Button {
                 composer.draft = speechDraft
                 model.speech.cancel(ownerID: conversation.id)
                 activeFocus.wrappedValue = true
             } label: {
-                Label(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark").labelStyle(.iconOnly)
+                Label(AppStrings.Assistant.cancelTranscription.swiftUIKey, systemImage: "xmark").labelStyle(.iconOnly)
                     .mobileComposerControlIcon()
             }
             .buttonStyle(.plain)
             status()
-            Button {
-                model.speech.stop(ownerID: conversation.id)
-            } label: {
-                Label(AppStrings.Common.done.swiftUIKey, systemImage: "stop.fill").labelStyle(.iconOnly)
-                    .mobileComposerControlIcon()
+            if phase == .recording {
+                Button {
+                    model.speech.stop(ownerID: conversation.id)
+                } label: {
+                    Label(AppStrings.Assistant.stopRecording.swiftUIKey, systemImage: "stop.fill").labelStyle(.iconOnly)
+                        .mobileComposerControlIcon()
+                }
+                .buttonStyle(.plain)
+            } else {
+                ProgressView()
+                    .frame(width: 48, height: 48)
+                    .accessibilityLabel(Text(AppStrings.Assistant.transcribing))
             }
-            .buttonStyle(.plain)
-            .disabled(model.speech.phase != .recording)
+            sendButton(enabled: phase == .recording) {
+                model.speech.stop(ownerID: conversation.id, sendAfterTranscription: true)
+            }
         }
         .frame(minHeight: 48)
     }
@@ -385,12 +396,16 @@ struct MobileAssistantComposer: View {
                     .frame(width: 48, height: 48).contentShape(.circle)
             }
         } else {
-            Button(action: send) {
-                Label(AppStrings.Assistant.send.swiftUIKey, systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly)
-                    .font(.system(size: 34, weight: .semibold)).frame(width: 48, height: 48).contentShape(.circle)
-            }
-            .disabled(!canSend)
+            sendButton(enabled: canSend, action: send)
         }
+    }
+
+    private func sendButton(enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(AppStrings.Assistant.send.swiftUIKey, systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly)
+                .font(.system(size: 34, weight: .semibold)).frame(width: 48, height: 48).contentShape(.circle)
+        }
+        .disabled(!enabled)
     }
 
     private var contextDetailsSheet: some View {
@@ -672,11 +687,13 @@ struct MobileAssistantComposer: View {
         speechDraft = composer.draft
         activeFocus.wrappedValue = false
         Task {
-            await model.speech.start(ownerID: conversation.id) { text, _ in
-                guard model.conversation.id == conversation.id else { return }
-                _ = conversation.applyTranscription(text, sendAfterTranscription: false, send: {})
-            }
+            await model.speech.start(ownerID: conversation.id, completion: applySpeechTranscript)
         }
+    }
+
+    func applySpeechTranscript(_ text: String, sendAfterTranscription: Bool) {
+        guard model.conversation.id == conversation.id else { return }
+        _ = conversation.applyTranscription(text, sendAfterTranscription: sendAfterTranscription, send: send)
     }
 
     private func openCamera() {
