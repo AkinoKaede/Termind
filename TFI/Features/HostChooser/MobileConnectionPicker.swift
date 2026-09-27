@@ -73,7 +73,6 @@ struct MobileConnectionProtocolPicker: View {
 }
 
 struct MobileHostPickerRow<Accessory: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
 
     let host: Host
     let loginAddress: String
@@ -87,8 +86,7 @@ struct MobileHostPickerRow<Accessory: View>: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            HostSystemIcon(asset: distributionEntry?.asset, size: 36)
-                .tint(tint)
+            HostDistributionIcon(host: host)
             VStack(alignment: .leading, spacing: 2) {
                 Text(host.name).foregroundStyle(.primary).lineLimit(1)
                 Text(loginAddress)
@@ -102,18 +100,6 @@ struct MobileHostPickerRow<Accessory: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
-    }
-
-    private var distributionEntry: LinuxDistributionIconEntry? {
-        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-    }
-
-    private var tint: Color {
-        host.colorTag.color
-            ?? distributionEntry.flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? .accentColor
     }
 }
 

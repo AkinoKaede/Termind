@@ -494,7 +494,10 @@ private struct HostCard: View {
 
     private var header: some View {
         HStack(spacing: Metrics.Space.m) {
-            HostDistributionIcon(host: host)
+            HostConnectionIcon(
+                host: host, size: Metrics.Card.icon, artworkStyle: .desktopCard,
+                status: status, badgeStyle: .card(background: TermindColor.contentSurface)
+            )
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(host.name)
@@ -508,8 +511,6 @@ private struct HostCard: View {
             }
 
             Spacer(minLength: Metrics.Space.xs)
-
-            StatusDot(status: status)
         }
     }
 
@@ -543,7 +544,7 @@ private struct HostGhostCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             HStack(spacing: Metrics.Space.m) {
-                HostDistributionIcon(host: host)
+                HostDistributionIcon(host: host, size: Metrics.Card.icon, artworkStyle: .desktopCard)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(host.name)
                         .font(.headline)
@@ -571,24 +572,5 @@ private struct HostGhostCard: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
-    }
-}
-
-private struct HostDistributionIcon: View {
-    let host: Host
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        let entry = LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-        let brand = entry.flatMap {
-            LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-        }
-        let tint = host.colorTag.color ?? brand ?? TermindColor.accent
-        if let entry {
-            CardIcon(asset: entry.asset, tint: tint)
-        } else {
-            CardIcon(symbol: "server.rack", tint: tint)
-        }
     }
 }

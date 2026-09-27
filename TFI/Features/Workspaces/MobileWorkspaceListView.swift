@@ -18,10 +18,10 @@ enum MobileWorkspaceConnectionIndicator: Equatable {
         return nil
     }
 
-    var tint: Color {
+    var status: ConnectionStatus {
         switch self {
-        case .connected: .green
-        case .busy: .orange
+        case .connected: .connected
+        case .busy: .connecting
         }
     }
 }
@@ -30,7 +30,6 @@ enum MobileWorkspaceConnectionIndicator: Equatable {
 struct MobileWorkspaceListView: View {
     let app: MobileAppModel
     @Bindable var scene: MobileSceneModel
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
     @State private var clearingRecentHost: Host?
 
@@ -136,21 +135,15 @@ struct MobileWorkspaceListView: View {
                 scene.selectWorkspace(item.id)
             } label: {
                 HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
-                    ZStack(alignment: .bottomTrailing) {
-                        hostIcon(item.host)
-                        if let workspace = item.workspace,
-                            let indicator = MobileWorkspaceConnectionIndicator.resolve(
-                                connected: workspace.connected,
-                                busy: workspace.busy,
-                                reconnecting: workspace.reconnectState != nil
-                            )
-                        {
-                            Circle()
-                                .fill(indicator.tint)
-                                .frame(width: 8, height: 8)
-                                .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
-                        }
-                    }
+                    HostConnectionIcon(
+                        host: item.host, size: MobileWorkspaceListMetrics.leadingIconSize,
+                        status: item.workspace.flatMap {
+                            MobileWorkspaceConnectionIndicator.resolve(
+                                connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
+                            )?.status
+                        },
+                        badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false)
+                    )
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.descriptor.title).foregroundStyle(.primary).lineLimit(1)
                         HStack(alignment: .center, spacing: 12) {
@@ -290,15 +283,7 @@ struct MobileWorkspaceListView: View {
     }
 
     private func hostIcon(_ host: Host?) -> some View {
-        let distribution = host.flatMap { LinuxDistributionIconCatalog.entry(for: $0.detectedDistribution) }
-        let tint =
-            host?.colorTag.color
-            ?? distribution.flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? .accentColor
-        return HostSystemIcon(asset: distribution?.asset, size: MobileWorkspaceListMetrics.leadingIconSize)
-            .tint(tint)
+        HostDistributionIcon(host: host, size: MobileWorkspaceListMetrics.leadingIconSize)
     }
 
     private func protocolLabel(_ kind: ConnectionHistoryEntry.Kind) -> some View {
@@ -321,7 +306,7 @@ struct MobileWorkspaceListView: View {
 
     private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
         switch kind {
-        case .ssh: .blue
+        case .ssh: .accentColor
         case .telnet: .purple
         case .sftp: .orange
         }

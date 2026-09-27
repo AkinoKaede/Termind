@@ -464,23 +464,19 @@ private struct WorkspaceNavigatorRow: View {
 
     private var row: some View {
         HStack(spacing: Metrics.Space.s) {
-            Image(systemName: workspace.symbol)
-                .foregroundStyle(
-                    SidebarSelectionStyle.iconForeground(
-                        isSelected: isSelected,
-                        controlActiveState: controlActiveState
+            ConnectionStatusIcon(status: workspace.status, hasUnread: workspace.hasUnreadOutput, style: .sidebar) {
+                Image(systemName: workspace.symbol)
+                    .foregroundStyle(
+                        SidebarSelectionStyle.iconForeground(
+                            isSelected: isSelected,
+                            controlActiveState: controlActiveState
+                        )
                     )
-                )
-                .frame(width: Metrics.Sidebar.rowIcon)
-                .overlay(alignment: .bottomTrailing) {
-                    if workspace.status != .disconnected || workspace.hasUnreadOutput {
-                        StatusDot(status: workspace.status, hasUnread: workspace.hasUnreadOutput, size: 6)
-                            .offset(x: 3, y: 3)
-                    }
-                }
-                .accessibilityValue(
-                    workspace.hasUnreadCommandCompletion
-                        ? String(localized: AppStrings.CommandNotifications.unread) : "")
+                    .frame(width: Metrics.Sidebar.rowIcon)
+            }
+            .accessibilityValue(
+                workspace.hasUnreadCommandCompletion
+                    ? String(localized: AppStrings.CommandNotifications.unread) : "")
 
             if isRenaming {
                 SidebarInlineRenameField(

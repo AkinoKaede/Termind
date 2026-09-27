@@ -1299,38 +1299,13 @@ private struct WelcomeHostIcon: View {
     let host: Host
     let status: ConnectionStatus
 
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        HostSystemIcon(
-            asset: distributionEntry?.asset,
-            size: Metrics.Welcome.leadingIconSize
+        HostConnectionIcon(
+            host: host, size: Metrics.Welcome.leadingIconSize, status: status,
+            badgeStyle: .welcome(
+                background: TermindColor.windowSurface, border: TermindColor.separator.opacity(0.8)
+            )
         )
-        .tint(iconTint)
-        .overlay(alignment: .bottomTrailing) {
-            if status != .disconnected {
-                StatusDot(status: status, size: Metrics.Sidebar.statusDot)
-                    .padding(2)
-                    .background(TermindColor.windowSurface, in: .circle)
-                    .overlay {
-                        Circle()
-                            .strokeBorder(TermindColor.separator.opacity(0.8), lineWidth: 0.5)
-                    }
-                    .offset(x: 2, y: 2)
-            }
-        }
-    }
-
-    private var distributionEntry: LinuxDistributionIconEntry? {
-        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-    }
-
-    private var iconTint: Color {
-        host.colorTag.color
-            ?? distributionEntry.flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? TermindColor.accent
     }
 }
 

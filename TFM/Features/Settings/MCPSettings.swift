@@ -60,7 +60,7 @@ private struct MCPServerRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            StatusDot(status: app.aiConfiguration.mcpStatus(of: server.id))
+            ConnectionStatusDot(status: app.aiConfiguration.mcpStatus(of: server.id))
                 .frame(width: Metrics.Sidebar.rowIcon)
 
             VStack(alignment: .leading, spacing: 1) {

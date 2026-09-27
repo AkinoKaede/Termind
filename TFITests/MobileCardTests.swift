@@ -33,6 +33,12 @@ struct MobileCardTests {
                 connected: false, busy: false, reconnecting: true
             ) == .busy
         )
+        #expect(
+            MobileWorkspaceConnectionIndicator.resolve(
+                connected: true, busy: true, reconnecting: true
+            )?.status == .connected
+        )
+        #expect(MobileWorkspaceConnectionIndicator.busy.status == .connecting)
     }
 
     @Test func cardColumnsFollowContainerWidthOnEveryDevice() {

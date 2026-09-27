@@ -191,7 +191,7 @@ struct MobileConnectionHistoryView: View {
 
     private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
         switch kind {
-        case .ssh: .blue
+        case .ssh: .accentColor
         case .telnet: .purple
         case .sftp: .orange
         }
@@ -281,7 +281,6 @@ struct MobileVaultView: View {
         let destination: SearchDestination
     }
 
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
@@ -774,32 +773,20 @@ struct MobileVaultView: View {
     }
 
     private func row(_ host: Host) -> some View {
-        let entry = LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-        let brand = entry.flatMap {
-            LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-        }
-        let tint = host.colorTag.color ?? brand ?? .accentColor
-        return MobileActionCard {
+        MobileActionCard {
             activateHost(host.id)
         } content: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
-                    ZStack(alignment: .bottomTrailing) {
-                        HostSystemIcon(asset: entry?.asset, size: 36)
-                            .tint(tint)
-                        if let workspace = reviewScene?.workspaceActivatedByHostRow(for: host),
-                            let indicator = MobileWorkspaceConnectionIndicator.resolve(
-                                connected: workspace.connected,
-                                busy: workspace.busy,
-                                reconnecting: workspace.reconnectState != nil
-                            )
-                        {
-                            Circle()
-                                .fill(indicator.tint)
-                                .frame(width: 8, height: 8)
-                                .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
-                        }
-                    }
+                    HostConnectionIcon(
+                        host: host,
+                        status: reviewScene?.workspaceActivatedByHostRow(for: host).flatMap {
+                            MobileWorkspaceConnectionIndicator.resolve(
+                                connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
+                            )?.status
+                        },
+                        badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false)
+                    )
                     VStack(alignment: .leading, spacing: 4) {
                         Text(host.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
                         Text(app.library.preferredTerminalLoginAddress(for: host)).font(.caption.monospaced())

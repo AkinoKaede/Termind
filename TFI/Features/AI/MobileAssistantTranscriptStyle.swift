@@ -26,8 +26,8 @@ struct MobileAssistantMarkdown: View {
         let color = (secondary ? UIColor.secondaryLabel : .label).resolvedColor(with: traits)
         value.colors.body = color
         value.colors.code = color
-        value.colors.highlight = UIColor(named: "AccentColor") ?? .systemBlue
-        value.colors.emphasis = UIColor(named: "AccentColor") ?? .systemBlue
+        value.colors.highlight = UIColor(Color.accentColor).resolvedColor(with: traits)
+        value.colors.emphasis = UIColor(Color.accentColor).resolvedColor(with: traits)
         value.colors.codeBackground = UIColor.secondaryLabel.resolvedColor(with: traits).withAlphaComponent(0.15)
         value.spacings.paragraph = AssistantTranscriptStyle.blockSpacing
         value.spacings.headingBefore = 4

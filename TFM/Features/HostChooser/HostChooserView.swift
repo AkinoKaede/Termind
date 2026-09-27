@@ -807,12 +807,10 @@ struct HostChooserRow: View {
     var connectionProtocol: HostConnectionProtocol = .terminal
 
     @Environment(AppModel.self) private var app
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            HostSystemIcon(asset: distributionEntry?.asset, size: 36)
-                .tint(iconTint)
+            HostDistributionIcon(host: host)
 
             VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                 Text(host.name)
@@ -845,18 +843,6 @@ struct HostChooserRow: View {
         // In batch mode "selected" has to mean ticked, not where the cursor sits
         // — the tick is what Connect acts on, so it is what VoiceOver must read.
         .accessibilityAddTraits((isChecked ?? isCursor) ? .isSelected : [])
-    }
-
-    private var distributionEntry: LinuxDistributionIconEntry? {
-        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
-    }
-
-    private var iconTint: Color {
-        host.colorTag.color
-            ?? distributionEntry.flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? .accentColor
     }
 }
 

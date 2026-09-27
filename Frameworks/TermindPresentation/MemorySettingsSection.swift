@@ -79,7 +79,7 @@ public struct MemorySettingsSection: View {
                         }
                         .disabled(memory.isBusy)
                         #if os(iOS)
-                            .tint(.blue)
+                            .tint(.accentColor)
                         #endif
                     }
                 }
