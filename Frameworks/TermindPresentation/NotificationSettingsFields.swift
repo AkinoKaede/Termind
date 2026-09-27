@@ -62,20 +62,13 @@ public struct NotificationSettingsFields: View {
         } header: {
             Text(AppStrings.Settings.terminal)
         } footer: {
-            VStack(alignment: .leading) {
-                Text(AppStrings.CommandNotifications.explanation).fixedSize(horizontal: false, vertical: true)
-                #if os(iOS)
-                    Text(AppStrings.CommandNotifications.mobileExplanation).fixedSize(horizontal: false, vertical: true)
-                #endif
-            }
+            Text(AppStrings.CommandNotifications.explanation).fixedSize(horizontal: false, vertical: true)
         }
         .disabled(!model.preferences.isEnabled)
         Section {
             modePicker(\.sftpMode)
         } header: {
             Text(AppStrings.SFTP.sftp)
-        } footer: {
-            Text(AppStrings.Notifications.sftpExplanation)
         }
         .disabled(!model.preferences.isEnabled)
         .task { authorization = await service.authorization(request: false) }

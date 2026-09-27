@@ -13,9 +13,6 @@ extension AppStrings {
         public static var unfocused: LocalizedStringResource { "Unfocused" }
         public static var markRead: LocalizedStringResource { "Mark as Read" }
         public static var markUnread: LocalizedStringResource { "Mark as Unread" }
-        public static var sftpExplanation: LocalizedStringResource {
-            "Notify when all transfers finish, excluding paused transfers. Unfocused means no app window is in the foreground."
-        }
         public static func transfersCompleted(succeeded: Int, failed: Int) -> LocalizedStringResource {
             if failed == 0 {
                 return succeeded == 1 ? "The transfer is complete." : "All \(succeeded) transfers are complete."

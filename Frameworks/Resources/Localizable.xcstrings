@@ -6171,19 +6171,53 @@
         }
       }
     },
-    "Command completed" : {
+    "Command completed successfully in %@." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "命令已完成"
+            "value" : "命令执行成功，用时%@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "指令已完成"
+            "value" : "指令執行成功，用時%@。"
+          }
+        }
+      }
+    },
+    "Command failed with exit code %lld after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令执行失败，退出码为%lld，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指令執行失敗，結束代碼為%lld，用時%@。"
+          }
+        }
+      }
+    },
+    "Command finished after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令执行结束，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指令執行結束，用時%@。"
           }
         }
       }
@@ -6343,29 +6377,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已傳輸大小"
-          }
-        }
-      }
-    },
-    "Completed successfully in %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completed successfully in %@."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行成功，用时%@。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行成功，用時%@。"
           }
         }
       }
@@ -11542,29 +11553,6 @@
         }
       }
     },
-    "Failed with exit code %lld after %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed with exit code %lld after %@."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行失败，退出码为%lld，用时%@。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行失敗，結束代碼為%lld，用時%@。"
-          }
-        }
-      }
-    },
     "Family Shared" : {
       "comment" : "A label for a family-shared subscription.",
       "extractionState" : "manual",
@@ -11924,29 +11912,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請補全引號或跳脫參數。"
-          }
-        }
-      }
-    },
-    "Finished after %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finished after %@."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行结束，用时%@。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行結束，用時%@。"
           }
         }
       }
@@ -17981,23 +17946,6 @@
         }
       }
     },
-    "Notifications can be delayed while iOS suspends Termind." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iOS挂起Termind时，通知可能延迟。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iOS暫停Termind時，通知可能延遲。"
-          }
-        }
-      }
-    },
     "Notify When" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18011,29 +17959,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通知時機"
-          }
-        }
-      }
-    },
-    "Notify when all transfers finish, excluding paused transfers. Unfocused means no app window is in the foreground." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notify when all transfers finish, excluding paused transfers. Unfocused means no app window is in the foreground."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有传输结束时通知，暂停的传输不计入。未聚焦表示应用没有处于前台的窗口。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有傳輸結束時通知，暫停的傳輸不計入。未聚焦表示應用程式沒有處於前景的視窗。"
           }
         }
       }
@@ -22331,19 +22256,19 @@
         }
       }
     },
-    "Requires shell integration or OSC 133. Workspace dots also mark shorter commands." : {
+    "Requires shell integration or OSC 133." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要Shell集成或OSC 133。工作区未读标记也会显示较短的命令。"
+            "value" : "需要Shell集成或OSC 133。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要Shell整合或OSC 133。工作區未讀標記也會顯示較短的指令。"
+            "value" : "需要Shell整合或OSC 133。"
           }
         }
       }
@@ -34802,6 +34727,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "~"
+          }
+        }
+      }
+    },
+    "“%@” completed successfully in %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”执行成功，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」執行成功，用時%@。"
+          }
+        }
+      }
+    },
+    "“%@” failed with exit code %lld after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”执行失败，退出码为%lld，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」執行失敗，結束代碼為%lld，用時%@。"
+          }
+        }
+      }
+    },
+    "“%@” finished after %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”执行结束，用时%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」執行結束，用時%@。"
           }
         }
       }

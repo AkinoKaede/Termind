@@ -14,20 +14,19 @@ extension AppStrings {
         public static var denied: LocalizedStringResource { "Notifications are disabled in system settings." }
         public static var unread: LocalizedStringResource { "Unread command completion" }
         public static var explanation: LocalizedStringResource {
-            "Requires shell integration or OSC 133. Workspace dots also mark shorter commands."
+            "Requires shell integration or OSC 133."
         }
-        public static var mobileExplanation: LocalizedStringResource {
-            "Notifications can be delayed while iOS suspends Termind."
+        public static func succeeded(_ command: String?, _ duration: String) -> LocalizedStringResource {
+            if let command { return "“\(command)” completed successfully in \(duration)." }
+            return "Command completed successfully in \(duration)."
         }
-        public static var completed: LocalizedStringResource { "Command completed" }
-        public static func succeeded(_ duration: String) -> LocalizedStringResource {
-            "Completed successfully in \(duration)."
+        public static func failed(_ command: String?, _ code: Int, _ duration: String) -> LocalizedStringResource {
+            if let command { return "“\(command)” failed with exit code \(code) after \(duration)." }
+            return "Command failed with exit code \(code) after \(duration)."
         }
-        public static func failed(_ code: Int, _ duration: String) -> LocalizedStringResource {
-            "Failed with exit code \(code) after \(duration)."
-        }
-        public static func finished(_ duration: String) -> LocalizedStringResource {
-            "Finished after \(duration)."
+        public static func finished(_ command: String?, _ duration: String) -> LocalizedStringResource {
+            if let command { return "“\(command)” finished after \(duration)." }
+            return "Command finished after \(duration)."
         }
     }
 }
