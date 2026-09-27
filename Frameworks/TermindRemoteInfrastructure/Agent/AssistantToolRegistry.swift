@@ -11,7 +11,8 @@ public enum AssistantToolRegistry {
         skills skillCatalog: AgentSkillCatalog, channel: AgentEventChannel,
         ai: AIConfigurationModel, hosts: AgentHostResolver,
         metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
-        authentication: AgentSSHAuthenticationRegistry, background: AgentBackgroundCommands
+        authentication: AgentSSHAuthenticationRegistry, background: AgentBackgroundCommands,
+        panes: AgentPaneAccess? = nil
     ) -> AgentToolRegistry {
         let native =
             ai.webSearch.isEnabled && ai.webSearch.prefersBuiltIn && provider.supportsNativeWebSearch(model: model)
@@ -59,7 +60,7 @@ public enum AssistantToolRegistry {
                         hosts: hosts, metrics: metrics, connections: connections,
                         authentication: authentication,
                         background: background,
-                        workspace: scratch
+                        workspace: scratch, panes: panes
                     ))
             )
         }

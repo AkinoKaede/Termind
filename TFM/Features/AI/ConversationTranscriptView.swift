@@ -338,7 +338,7 @@ private struct ConversationTranscriptSurface: View {
                     guard app.proAccess.require(.assistant) else { return }
                     app.sendPlanImplementation(
                         card, in: conversation, context: sessionContext,
-                        terminalSuggestionsAvailable: showsTerminalActions)
+                        terminalSuggestionsAvailable: showsTerminalActions, window: window)
                 },
                 canDeliverCommand: {
                     guard let workspace = window.selectedWorkspace else { return false }

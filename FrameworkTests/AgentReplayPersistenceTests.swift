@@ -224,7 +224,7 @@ struct AgentReplayPersistenceTests {
         let controller = AssistantExecutionController(
             ai: AIConfigurationModel(), skills: SkillLibraryModel(), repository: repository,
             authorize: { true },
-            makeRegistry: { _, _, _, _, _ in AgentToolRegistry([]) },
+            makeRegistry: { _, _, _, _, _, _ in AgentToolRegistry([]) },
             title: { _ in "Title" }
         )
         let operations = AssistantConversationOperations(repository: repository)

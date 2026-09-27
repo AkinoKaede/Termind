@@ -2222,6 +2222,23 @@
         }
       }
     },
+    "Active in window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此窗口已激活"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此視窗已啟用"
+          }
+        }
+      }
+    },
     "Actual destination" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7571,6 +7588,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前"
+          }
+        }
+      }
+    },
+    "Current in Assistant window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前助理窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前助理視窗"
           }
         }
       }
@@ -14694,6 +14728,23 @@
         }
       }
     },
+    "List terminals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出终端"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出終端"
+          }
+        }
+      }
+    },
     "Listening on localhost:%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17079,6 +17130,23 @@
         }
       }
     },
+    "No open terminals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有已打开的终端"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有已開啟的終端"
+          }
+        }
+      }
+    },
     "No output" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18617,6 +18685,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上翻頁"
+          }
+        }
+      }
+    },
+    "Pane ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pane ID"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pane ID"
           }
         }
       }
@@ -20436,6 +20521,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "讀取序列連接埠設定"
+          }
+        }
+      }
+    },
+    "Read terminal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取终端"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讀取終端"
+          }
+        }
+      }
+    },
+    "Read terminal %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取终端“%@”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讀取終端「%@」"
           }
         }
       }
@@ -25940,6 +26059,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "終端輸入"
+          }
+        }
+      }
+    },
+    "Terminal name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端名称"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終端名稱"
           }
         }
       }

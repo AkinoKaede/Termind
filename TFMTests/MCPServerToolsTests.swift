@@ -122,7 +122,8 @@ struct MCPServerToolsTests {
         let runtimeNames: Set<String> = ["request_user_secret"]
         let sharedNames = MCPServerTools.exportedNames.subtracting(transferNames).subtracting(runtimeNames)
         let excludedNames: Set<String> = [
-            "terminal_suggest", "scratch_pull", "scratch_push", "scratch_list", "scratch_read",
+            "terminal_suggest", "list_panes", "read_pane", "scratch_pull", "scratch_push", "scratch_list",
+            "scratch_read",
             "scratch_write", "scratch_edit", "scratch_diff", "scratch_delete", "fetch", "web_search",
             "skill_read_file", "skill_install", "skill_manage", "present_plan", "manage_tasks",
         ]

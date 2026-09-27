@@ -41,6 +41,8 @@ final class MobileSceneModel {
         workspaceSession = app.workspaceSession(for: sessionID)
         self.app = app
         assistant = app.assistant.makeSceneModel()
+        assistant.paneAccess = app.paneAccess(for: self)
+        app.registerPaneScene(self)
     }
 
     var activeWorkspace: MobileWorkspace? {

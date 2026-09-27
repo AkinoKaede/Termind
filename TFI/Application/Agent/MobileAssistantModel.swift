@@ -69,11 +69,12 @@ final class MobileAssistantModel {
             ai: configuration, skills: skills, repository: repository, memory: memory,
             modelSelections: modelSelections,
             authorize: authorize,
-            makeRegistry: { conversation, model, provider, catalog, channel in
+            makeRegistry: { conversation, model, provider, catalog, channel, panes in
                 AssistantToolRegistry.make(
                     conversation: conversation, model: model, provider: provider,
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
-                    connections: connections, authentication: authentication, background: background)
+                    connections: connections, authentication: authentication, background: background,
+                    panes: panes)
             }, title: { try await titles.summarize($0) }, logger: logger)
         execution.reportModelSelectionError = { [weak self] message in self?.error = message }
     }
@@ -119,7 +120,7 @@ final class MobileAssistantModel {
         configure(library.draftConversation)
     }
 
-    fileprivate func send(in library: AssistantLibraryModel) {
+    fileprivate func send(in library: AssistantLibraryModel, panes: AgentPaneAccess?) {
         let conversation = library.selectedConversation ?? library.draftConversation
         guard !isSuspending, !conversation.isArchived, !conversation.isHistoryChanging,
             !conversation.isCompacting, conversation.composer.pendingAttachments.isEmpty, authorize()
@@ -134,12 +135,12 @@ final class MobileAssistantModel {
             guard
                 execution.sendDraftConversation(
                     in: library,
-                    terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable) != nil
+                    terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable, panes: panes) != nil
             else { return }
             configure(library.draftConversation)
         } else {
             execution.sendAgentDraft(
-                conversation, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
+                conversation, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable, panes: panes)
         }
     }
 
@@ -235,12 +236,12 @@ final class MobileAssistantModel {
         }
     }
 
-    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) {
+    func edit(_ conversation: ConversationModel, messageID: UUID, text: String, panes: AgentPaneAccess?) {
         guard !isSuspending else { return }
         guard
             let prepared = execution.prepareAgentEdit(
                 conversation, messageID: messageID, text: text,
-                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable, panes: panes)
         else { return }
         Task {
             await perform {
@@ -256,13 +257,14 @@ final class MobileAssistantModel {
     }
 
     fileprivate func implement(
-        _ card: AgentPlanCard, in conversation: ConversationModel, library: AssistantLibraryModel
+        _ card: AgentPlanCard, in conversation: ConversationModel, library: AssistantLibraryModel,
+        panes: AgentPaneAccess?
     ) {
         guard !isSuspending else { return }
         guard
             execution.sendPlanImplementation(
                 card, in: conversation,
-                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable, panes: panes)
         else { return }
         select(conversation, in: library)
     }
@@ -282,6 +284,7 @@ final class MobileAssistantModel {
 final class MobileAssistantSceneModel {
     private let runtime: MobileAssistantModel
     let library: AssistantLibraryModel
+    var paneAccess: AgentPaneAccess?
 
     init(runtime: MobileAssistantModel, library: AssistantLibraryModel? = nil) {
         self.runtime = runtime
@@ -302,7 +305,7 @@ final class MobileAssistantSceneModel {
     func load() async { await runtime.load() }
     func select(_ conversation: ConversationModel) { runtime.select(conversation, in: library) }
     func newConversation() { runtime.newConversation(in: library) }
-    func send() { runtime.send(in: library) }
+    func send() { runtime.send(in: library, panes: paneAccess) }
     @discardableResult
     func selectModel(_ value: AIModelRef) -> Bool { runtime.selectModel(value, for: conversation) }
 
@@ -327,7 +330,7 @@ final class MobileAssistantSceneModel {
     }
 
     func edit(_ conversation: ConversationModel, messageID: UUID, text: String) {
-        runtime.edit(conversation, messageID: messageID, text: text)
+        runtime.edit(conversation, messageID: messageID, text: text, panes: paneAccess)
     }
 
     func compact(_ conversation: ConversationModel, instructions: String = "") async {
@@ -335,6 +338,6 @@ final class MobileAssistantSceneModel {
     }
 
     func implement(_ card: AgentPlanCard, in conversation: ConversationModel) {
-        runtime.implement(card, in: conversation, library: library)
+        runtime.implement(card, in: conversation, library: library, panes: paneAccess)
     }
 }

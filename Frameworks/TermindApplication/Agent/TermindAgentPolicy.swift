@@ -33,6 +33,9 @@ nonisolated public enum TermindAgentPolicy {
         terminal_suggest when the user wants a command card or must interact with a PTY themselves.
         It creates a card only; it does not execute the command or return execution output. Use ssh_exec
         when the user asks you to run a command. Never claim a tool ran unless its result is present.
+        Use list_panes to discover currently readable terminal panes on this device, and read_pane to inspect
+        a pane's visible text. An omitted pane_id means the current pane in this run's originating window
+        at tool-call time; if there is no current pane, list panes and pass the intended pane_id.
         The tools supplied with this request define the tool catalog. A "Surface tool availability"
         context block lists only surface-specific overrides, not the complete catalog. Unlisted tools
         retain their supplied definitions and policies. terminal_suggest availability does not restrict

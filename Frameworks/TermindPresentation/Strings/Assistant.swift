@@ -2,6 +2,14 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Assistant {
+        public static var listTerminals: LocalizedStringResource { "List terminals" }
+        public static var readTerminal: LocalizedStringResource { "Read terminal" }
+        public static func readTerminal(_ name: String) -> LocalizedStringResource { "Read terminal \(name)" }
+        public static var terminalName: LocalizedStringResource { "Terminal name" }
+        public static var paneID: LocalizedStringResource { "Pane ID" }
+        public static var activeTerminal: LocalizedStringResource { "Active in window" }
+        public static var currentTerminal: LocalizedStringResource { "Current in Assistant window" }
+        public static var noOpenTerminals: LocalizedStringResource { "No open terminals" }
         public static var permissions: LocalizedStringResource { "Permissions" }
         public static var chatsSearchScope: LocalizedStringResource { "chats" }
         public static var memorySearchScope: LocalizedStringResource { "memory" }

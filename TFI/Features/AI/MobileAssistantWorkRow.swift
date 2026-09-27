@@ -143,7 +143,7 @@ struct MobileAssistantToolRow: View {
                         }
                     }
                 }
-                if card.result?.isTruncated == true {
+                if AgentToolPresentation.showsOutputTruncatedNotice(for: card) {
                     Text(AppStrings.Assistant.outputTruncated).font(.caption2).foregroundStyle(.orange)
                 }
             }

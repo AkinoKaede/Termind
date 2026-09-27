@@ -24,6 +24,14 @@ nonisolated public enum AgentToolPresentation {
         return kind != .legacySkill
     }
 
+    public static func showsOutputTruncatedNotice(for card: AgentToolCard) -> Bool {
+        card.result?.isTruncated == true && !isLocalPaneTool(card.descriptor, named: "read_pane")
+    }
+
+    private static func isLocalPaneTool(_ descriptor: AgentToolDescriptor, named name: String) -> Bool {
+        descriptor.target == .local && descriptor.name == name
+    }
+
     public static func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
@@ -162,6 +170,16 @@ nonisolated public enum AgentToolPresentation {
         hostName: String? = nil,
         locale: Locale = .current
     ) -> String {
+        if isLocalPaneTool(card.descriptor, named: "list_panes") {
+            return AppLocalization.resolve(AppStrings.Assistant.listTerminals, locale: locale)
+        }
+        if isLocalPaneTool(card.descriptor, named: "read_pane") {
+            let name = paneResult(for: card)?["title"]?.stringValue
+            if let name, !name.isEmpty {
+                return AppLocalization.resolve(AppStrings.Assistant.readTerminal(name), locale: locale)
+            }
+            return AppLocalization.resolve(AppStrings.Assistant.readTerminal, locale: locale)
+        }
         if let summary = AgentKnowledgeToolPresentation.scopedSearchSummary(for: card, locale: locale) {
             return summary
         }
@@ -236,6 +254,12 @@ nonisolated public enum AgentToolPresentation {
     public static func batchSummary(
         for cards: [AgentToolCard], locale: Locale = .current
     ) -> String {
+        if cards.count == 1, let card = cards.first,
+            isLocalPaneTool(card.descriptor, named: "list_panes")
+                || isLocalPaneTool(card.descriptor, named: "read_pane")
+        {
+            return summary(for: card, locale: locale)
+        }
         struct Key: Hashable {
             let name: String
             let state: AgentToolCard.State
@@ -291,6 +315,57 @@ nonisolated public enum AgentToolPresentation {
     ) -> AgentToolDetail? {
         guard let result = card.result else { return nil }
 
+        // Terminal output belongs to the model result, never the visible card.
+        // Handle these names before every raw/error/generic JSON fallback so a
+        // restored card obeys the same boundary as a live one.
+        if isLocalPaneTool(card.descriptor, named: "read_pane") {
+            let object = paneResult(for: card) ?? [:]
+            let name = object["title"]?.stringValue
+            let id =
+                object["pane_id"]?.stringValue
+                ?? card.invocation.call.arguments.objectValue?["pane_id"]?.stringValue
+            var items: [AgentToolDetail.Item] = []
+            if let name {
+                items.append(
+                    .field(
+                        .init(
+                            label: AppLocalization.resolve(AppStrings.Assistant.terminalName, locale: locale),
+                            value: name)))
+            }
+            if let id {
+                items.append(
+                    .field(
+                        .init(
+                            label: AppLocalization.resolve(AppStrings.Assistant.paneID, locale: locale),
+                            value: id, isMonospaced: true)))
+            }
+            return AgentToolDetail(items: items)
+        }
+        if isLocalPaneTool(card.descriptor, named: "list_panes") {
+            let panes = paneResult(for: card)?["panes"]?.arrayValue ?? []
+            let rows = panes.compactMap { value -> AgentToolDetail.ListRow? in
+                guard let pane = value.objectValue,
+                    let title = pane["title"]?.stringValue,
+                    let id = pane["pane_id"]?.stringValue
+                else { return nil }
+                var badges: [String] = []
+                if pane["is_active"]?.boolValue == true {
+                    badges.append(AppLocalization.resolve(AppStrings.Assistant.activeTerminal, locale: locale))
+                }
+                if pane["is_current"]?.boolValue == true {
+                    badges.append(AppLocalization.resolve(AppStrings.Assistant.currentTerminal, locale: locale))
+                }
+                return .init(title: title, subtitle: id, badges: badges, symbol: "terminal")
+            }
+            return AgentToolDetail(items: [
+                .list(
+                    .init(
+                        rows: rows,
+                        emptyMessage: AppLocalization.resolve(AppStrings.Assistant.noOpenTerminals, locale: locale)
+                    ))
+            ])
+        }
+
         // MCP output is remote-defined and intentionally keeps the established
         // JSON presentation. Built-ins below never fall back to JSON syntax.
         if card.descriptor.target == .mcp {
@@ -341,6 +416,12 @@ nonisolated public enum AgentToolPresentation {
                     arguments: card.invocation.call.arguments.objectValue ?? [:],
                     locale: locale
                 )))
+    }
+
+    private static func paneResult(for card: AgentToolCard) -> [String: AgentJSONValue]? {
+        guard let result = card.result else { return nil }
+        let raw = result.untrustedPayload ?? result.content
+        return (try? AgentJSONValue.decode(Data(raw.utf8)))?.objectValue
     }
 
     /// A bounded rendering projection. The full transformed output stays beside

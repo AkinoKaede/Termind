@@ -22,6 +22,7 @@ protocol WindowRemoteTitleSink: AnyObject {
 /// `FocusedValues.window`.
 @Observable
 final class WindowModel {
+    let id = UUID()
     private(set) var isClosed = false
     let workspaceDeck: WorkspaceDeckModel
     var workspaces: [Workspace] {

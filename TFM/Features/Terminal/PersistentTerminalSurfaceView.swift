@@ -246,6 +246,10 @@
             backend.receive(data)
         }
 
+        nonisolated func readViewportText() -> String? {
+            backend.readViewportText()
+        }
+
         func appendNotice(_ message: String) {
             receive(Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8))
         }

@@ -43,7 +43,61 @@ final class MobileAppModel {
     let sftpEdits: SFTPEditService
     let transfers: SFTPTransferCoordinator
     private var workspaceSessions: [MobileWorkspaceSessionModel] = []
+    private var paneScenes: [UUID: WeakPaneScene] = [:]
     var workspaces: [MobileWorkspace] { workspaceSessions.flatMap(\.workspaces) }
+
+    private final class WeakPaneScene {
+        weak var value: MobileSceneModel?
+        init(_ value: MobileSceneModel) { self.value = value }
+    }
+
+    func registerPaneScene(_ scene: MobileSceneModel) {
+        paneScenes = paneScenes.filter { $0.value.value != nil }
+        paneScenes[scene.id] = WeakPaneScene(scene)
+    }
+
+    func paneAccess(for source: MobileSceneModel) -> AgentPaneAccess {
+        AgentPaneAccess(
+            list: { [weak self, weak source] in
+                self?.openTerminalPanes(source: source)
+                    .filter { $0.workspace.connected && $0.workspace.readViewportText() != nil }
+                    .map(\.metadata) ?? []
+            },
+            read: { [weak self, weak source] id in
+                guard let match = self?.openTerminalPanes(source: source).first(where: { $0.metadata.id == id })
+                else { return .closed }
+                guard match.workspace.connected else { return .notConnected }
+                guard let text = match.workspace.readViewportText() else { return .noSurface }
+                return .text(match.metadata, text)
+            })
+    }
+
+    private func openTerminalPanes(source: MobileSceneModel?)
+        -> [(metadata: AgentPaneAccess.Pane, workspace: MobileWorkspace)]
+    {
+        workspaceSessions.flatMap { session in
+            session.workspaces.compactMap { workspace in
+                guard workspace.descriptor.kind == .ssh || workspace.descriptor.kind == .telnet else {
+                    return nil
+                }
+                let owner = paneScenes.values.compactMap(\.value).first {
+                    $0.workspaceSession === session
+                }
+                let isActive = owner?.activeWorkspace?.id == workspace.id
+                let isCurrent = source?.workspaceSession === session && source?.activeWorkspace?.id == workspace.id
+                let metadata = AgentPaneAccess.Pane(
+                    id: workspace.id,
+                    title: workspace.descriptor.title,
+                    hostID: workspace.descriptor.hostID,
+                    workspace: workspace.descriptor.title,
+                    window: session.id,
+                    isActive: isActive,
+                    isCurrent: isCurrent
+                )
+                return (metadata, workspace)
+            }
+        }
+    }
     var error: String?
     let terminalSettings: TerminalSettingsModel
     let sshSettings: SSHSettingsModel
@@ -533,6 +587,7 @@ final class MobileAppModel {
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = nil
         sceneSessionIDs[id] = nil
+        paneScenes[id] = nil
         if allScenesAreBackgrounded && !wasBackground { enterBackground() }
         reconcileSync()
     }

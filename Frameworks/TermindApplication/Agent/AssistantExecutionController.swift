@@ -7,7 +7,8 @@ import TermindDomain
 @MainActor
 public final class AssistantExecutionController {
     public typealias RegistryFactory =
-        @MainActor (ConversationModel, AIModel, ModelProvider, AgentSkillCatalog, AgentEventChannel) ->
+        @MainActor (ConversationModel, AIModel, ModelProvider, AgentSkillCatalog, AgentEventChannel, AgentPaneAccess?)
+        ->
         AgentToolRegistry
     private let ai: AIConfigurationModel
     private let skills: SkillLibraryModel
@@ -122,12 +123,13 @@ public final class AssistantExecutionController {
     public func sendAgentDraft(
         _ conversation: ConversationModel,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> Bool {
         guard
             let capture = captureDraft(
                 conversation, context: context,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: panes)
         else { return false }
         startPreparation(capture, for: conversation, compactBeforeRun: true)
         return true
@@ -137,12 +139,13 @@ public final class AssistantExecutionController {
     public func sendNewConversation(
         _ conversation: ConversationModel, in library: AssistantLibraryModel,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> ConversationModel? {
         guard library.canPromote(conversation),
             let capture = captureDraft(
                 conversation, context: context,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: panes)
         else { return nil }
         guard library.promoteCapturedConversation(conversation) else {
             cancelCapturedTurn(capture, in: conversation)
@@ -156,13 +159,14 @@ public final class AssistantExecutionController {
     public func sendDraftConversation(
         in library: AssistantLibraryModel,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> ConversationModel? {
         let conversation = library.draftConversation
         guard library.canPromote(conversation),
             let capture = captureDraft(
                 conversation, context: context,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: panes)
         else { return nil }
         guard library.promoteCapturedDraftConversation(conversation) else {
             cancelCapturedTurn(capture, in: conversation)
@@ -176,7 +180,8 @@ public final class AssistantExecutionController {
     public func sendAgentText(
         _ text: String, in conversation: ConversationModel,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> Bool {
         guard authorize(), canSubmit(to: conversation),
             !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -189,7 +194,7 @@ public final class AssistantExecutionController {
         guard
             let capture = captureRun(
                 conversation, prompt: prompt, contextSnapshot: snapshot,
-                beginPreparation: true)
+                beginPreparation: true, panes: panes)
         else { return false }
         let submittedPrompt = conversation.appendUserTurnContent(
             capture.prompt, contextSnapshot: capture.contextSnapshot)
@@ -203,7 +208,8 @@ public final class AssistantExecutionController {
     public func sendPlanImplementation(
         _ card: AgentPlanCard, in conversation: ConversationModel,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> Bool {
         guard authorize(), canSubmit(to: conversation),
             conversation.composer.pendingAttachments.isEmpty,
@@ -220,7 +226,7 @@ public final class AssistantExecutionController {
         guard
             let capture = captureRun(
                 conversation, prompt: prompt, contextSnapshot: snapshot,
-                beginPreparation: true)
+                beginPreparation: true, panes: panes)
         else { return false }
         let submittedPrompt = conversation.appendUserTurnContent(
             capture.prompt, contextSnapshot: capture.contextSnapshot)
@@ -234,7 +240,8 @@ public final class AssistantExecutionController {
     public func prepareAgentEdit(
         _ conversation: ConversationModel, messageID: UUID, text: String,
         context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> PreparedAgentEdit? {
         guard authorize(), !conversation.isStreaming, !conversation.isArchived,
             !conversation.isCompacting, !conversation.isHistoryChanging,
@@ -251,7 +258,7 @@ public final class AssistantExecutionController {
         guard
             let capture = captureRun(
                 conversation, prompt: prompt, contextSnapshot: snapshot,
-                beginPreparation: true, supersedePreparation: true)
+                beginPreparation: true, supersedePreparation: true, panes: panes)
         else { return nil }
         return PreparedAgentEdit(capture: capture, replacement: replacement, messageID: messageID)
     }
@@ -301,7 +308,7 @@ public final class AssistantExecutionController {
 
     private func captureDraft(
         _ conversation: ConversationModel, context: SessionContext,
-        terminalSuggestionsAvailable: Bool
+        terminalSuggestionsAvailable: Bool, panes: AgentPaneAccess?
     ) -> RunCapture? {
         guard authorize(), canSubmit(to: conversation), conversation.canSendDraft,
             conversation.composer.pendingAttachments.isEmpty
@@ -314,7 +321,7 @@ public final class AssistantExecutionController {
         guard
             var capture = captureRun(
                 conversation, prompt: preview, contextSnapshot: snapshot,
-                beginPreparation: true)
+                beginPreparation: true, panes: panes)
         else { return nil }
         capture.prompt = conversation.appendUserTurnContent(preview, contextSnapshot: snapshot)
         conversation.composer.draft = ""
@@ -329,7 +336,8 @@ public final class AssistantExecutionController {
         promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
         context: SessionContext? = nil,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) {
         guard authorize(), canSubmit(to: conversation) else { return }
         let lastUserTurn = conversation.transcript.last(where: { $0.role == .user })
@@ -349,7 +357,7 @@ public final class AssistantExecutionController {
         guard
             let capture = captureRun(
                 conversation, prompt: resolvedPrompt, contextSnapshot: snapshot,
-                beginPreparation: true)
+                beginPreparation: true, panes: panes)
         else { return }
         startPreparation(capture, for: conversation, compactBeforeRun: false)
     }
@@ -534,7 +542,8 @@ public final class AssistantExecutionController {
         prompt: ConversationModel.ComposedUserTurn,
         contextSnapshot: AgentTurnContextSnapshot,
         beginPreparation: Bool,
-        supersedePreparation: Bool = false
+        supersedePreparation: Bool = false,
+        panes: AgentPaneAccess? = nil
     ) -> RunCapture? {
         do {
             try modelSelections?.prepareForSend(conversation)
@@ -558,7 +567,7 @@ public final class AssistantExecutionController {
         let channel = chat != nil && secret != nil ? AgentEventChannel(repository: agentRunRepository) : nil
         let baseRegistry = channel.flatMap { channel in
             chat.map {
-                makeRegistry(conversation, $0.model, $0.provider, skillCatalog, channel)
+                makeRegistry(conversation, $0.model, $0.provider, skillCatalog, channel, panes)
             }
         }
         let guardian: GuardianCapture? = {

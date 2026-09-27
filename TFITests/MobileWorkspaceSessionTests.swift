@@ -13,6 +13,26 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func paneAccessExcludesDormantAndDisconnectedWorkspacesAcrossScenes() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "pane-a")
+        let second = MobileSceneModel(app: app, sessionID: "pane-b")
+        first.open(hostID: fixture.host.id, kind: .ssh)
+        second.open(try #require(URL(string: "telnet://test.invalid")))
+        first.activatePendingWorkspace()
+        second.activatePendingWorkspace()
+        let firstID = try #require(first.activeWorkspace?.id)
+        let secondID = try #require(second.activeWorkspace?.id)
+        let access = try #require(first.assistant.paneAccess)
+        #expect(access.list().isEmpty)
+        #expect(access.read(firstID) == .notConnected)
+        #expect(access.read(secondID) == .notConnected)
+        second.closeWorkspace(secondID)
+        #expect(access.read(secondID) == .closed)
+    }
+
     @Test func windowsOwnIndependentSessionsAndLifecycleActions() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

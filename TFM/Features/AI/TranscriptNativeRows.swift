@@ -839,7 +839,7 @@ private enum NativeTranscriptFactory {
                     }
                 }
             }
-            if card.result?.isTruncated == true {
+            if AgentToolPresentation.showsOutputTruncatedNotice(for: card) {
                 detail.addArrangedSubview(
                     NativeLabel(
                         String(localized: AppStrings.Assistant.outputTruncated),

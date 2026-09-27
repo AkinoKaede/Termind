@@ -19,7 +19,7 @@ struct AssistantExecutionControllerTests {
         let registryCapture = RegistryCapture()
         let controller = makeController(
             ai: ai, skills: skills, repository: repository, memory: memory,
-            makeRegistry: { _, model, provider, catalog, _ in
+            makeRegistry: { _, model, provider, catalog, _, _ in
                 registryCapture.record(model: model, provider: provider, catalog: catalog)
                 return AgentToolRegistry([])
             })
@@ -752,7 +752,7 @@ struct AssistantExecutionControllerTests {
         repository: any AgentRunPersisting = RecordingAgentRunRepository(),
         memory: MemoryModel? = nil,
         authorize: @escaping @MainActor () -> Bool = { true },
-        makeRegistry: @escaping AssistantExecutionController.RegistryFactory = { _, _, _, _, _ in
+        makeRegistry: @escaping AssistantExecutionController.RegistryFactory = { _, _, _, _, _, _ in
             AgentToolRegistry([])
         }
     ) -> AssistantExecutionController {

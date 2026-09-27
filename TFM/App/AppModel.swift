@@ -434,13 +434,13 @@ final class AppModel {
             guard let self, !self.isTerminating else { return false }
             return self.proAccess.require(.assistant)
         },
-        makeRegistry: { [weak self] conversation, model, provider, skills, channel in
+        makeRegistry: { [weak self] conversation, model, provider, skills, channel, panes in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
             return AssistantToolRegistry.make(
                 conversation: conversation, model: model, provider: provider,
                 skills: skills, channel: channel, ai: ai, hosts: agentHosts, metrics: serverMetrics,
                 connections: agentConnections, authentication: agentAuthentication,
-                background: agentBackgroundCommands)
+                background: agentBackgroundCommands, panes: panes)
         },
         title: { [weak self] context in
             guard let self else { throw CancellationError() }
@@ -450,63 +450,115 @@ final class AppModel {
 
     func sendAgentDraft(
         _ conversation: ConversationModel, context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false, window: WindowModel? = nil
     ) {
         assistantExecution.sendAgentDraft(
-            conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable,
+            panes: paneAccess(for: window))
     }
 
     @discardableResult
     func sendNewAgentConversation(
         _ conversation: ConversationModel, in library: AssistantLibraryModel,
-        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false,
+        window: WindowModel? = nil
     ) -> ConversationModel? {
         assistantExecution.sendNewConversation(
             conversation, in: library, context: context,
-            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: paneAccess(for: window))
     }
 
     @discardableResult
     func sendNewAgentDraft(
         in library: AssistantLibraryModel, context: SessionContext = .none,
-        terminalSuggestionsAvailable: Bool = false
+        terminalSuggestionsAvailable: Bool = false, window: WindowModel? = nil
     ) -> ConversationModel? {
         assistantExecution.sendDraftConversation(
             in: library, context: context,
-            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: paneAccess(for: window))
     }
 
     @discardableResult
     func sendAgentText(
         _ text: String, in conversation: ConversationModel,
-        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false,
+        window: WindowModel? = nil
     ) -> Bool {
         assistantExecution.sendAgentText(
             text, in: conversation, context: context,
-            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: paneAccess(for: window))
     }
 
     @discardableResult
     func sendPlanImplementation(
         _ card: AgentPlanCard, in conversation: ConversationModel,
-        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false,
+        window: WindowModel? = nil
     ) -> Bool {
         assistantExecution.sendPlanImplementation(
             card, in: conversation, context: context,
-            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable, panes: paneAccess(for: window))
     }
 
     func startAgentRun(
         _ conversation: ConversationModel, promptID: UUID? = nil, prompt: String? = nil,
         authoredPrompt: String? = nil, promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext? = nil, terminalSuggestionsAvailable: Bool = false
+        context: SessionContext? = nil, terminalSuggestionsAvailable: Bool = false,
+        window: WindowModel? = nil
     ) {
         assistantExecution.startAgentRun(
             conversation, promptID: promptID, prompt: prompt,
             authoredPrompt: authoredPrompt, promptImages: promptImages,
             promptContextAttachments: promptContextAttachments,
-            context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+            context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable,
+            panes: paneAccess(for: window))
+    }
+
+    func paneAccess(for source: WindowModel?) -> AgentPaneAccess {
+        AgentPaneAccess(
+            list: { [weak self, weak source] in
+                self?.openTerminalPanes(source: source)
+                    .filter { $0.pane.status == .connected && $0.pane.readViewportText() != nil }
+                    .map(\.metadata) ?? []
+            },
+            read: { [weak self, weak source] id in
+                guard let match = self?.openTerminalPanes(source: source).first(where: { $0.metadata.id == id })
+                else { return .closed }
+                guard match.pane.status == .connected else { return .notConnected }
+                let owner: PersistentTerminalViewOwner?
+                switch match.pane.content {
+                case .sshSession(let session): owner = session.terminalViewOwner
+                case .telnetSession(let session): owner = session.terminalViewOwner
+                case .serialSession(let session): owner = session.terminalViewOwner
+                case .sftpChannel, .empty: return .closed
+                }
+                guard let text = owner?.readViewportText() else { return .noSurface }
+                return .text(match.metadata, text)
+            })
+    }
+
+    private func openTerminalPanes(source: WindowModel?) -> [(metadata: AgentPaneAccess.Pane, pane: Pane)] {
+        windows.values.compactMap(\.value).filter { !$0.isClosed }.flatMap { window in
+            window.workspaces.flatMap { workspace in
+                workspace.panes.compactMap { pane in
+                    guard pane.sshSession != nil || pane.telnetSession != nil || pane.serialSession != nil
+                    else { return nil }
+                    let isSelected = window.selectedWorkspace === workspace && workspace.focusedPaneID == pane.id
+                    let isCurrent = window === source && isSelected
+                    let metadata = AgentPaneAccess.Pane(
+                        id: pane.id,
+                        title: workspace.isSplit ? pane.title(in: hosts) : workspace.title(in: hosts),
+                        hostID: pane.hostID,
+                        workspace: workspace.title(in: hosts),
+                        window: window.id.uuidString,
+                        isActive: isSelected,
+                        isCurrent: isCurrent
+                    )
+                    return (metadata, pane)
+                }
+            }
+        }
     }
 
     @discardableResult
@@ -682,7 +734,8 @@ final class AppModel {
         guard
             let prepared = assistantExecution.prepareAgentEdit(
                 conversation, messageID: messageID, text: value, context: context,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable,
+                panes: paneAccess(for: window))
         else { return }
         Task { [weak window] in
             do {

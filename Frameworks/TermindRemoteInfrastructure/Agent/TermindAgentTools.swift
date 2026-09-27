@@ -20,6 +20,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
     /// are the two ends that touch a host, and they must stage into the same
     /// directory `scratch_replace` reads.
     public var workspace: AgentScratchWorkspace?
+    public var panes: AgentPaneAccess?
 
     public init(
         hosts: AgentHostResolver,
@@ -27,7 +28,8 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         connections: AgentConnectionPool,
         authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
-        workspace: AgentScratchWorkspace? = nil
+        workspace: AgentScratchWorkspace? = nil,
+        panes: AgentPaneAccess? = nil
     ) {
         self.metrics = metrics
         self.hosts = hosts
@@ -36,6 +38,7 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
             suppliedAuthentication ?? AgentSSHAuthenticationRegistry(resolver: hosts)
         self.background = background
         self.workspace = workspace
+        self.panes = panes
     }
 }
 
@@ -85,6 +88,8 @@ nonisolated public enum TermindAgentTools {
         .init(ListHostsTool.self) {
             ListHostsTool(hosts: $0.hosts)
         },
+        .init(ListPanesTool.self) { $0.panes.map(ListPanesTool.init) },
+        .init(ReadPaneTool.self) { $0.panes.map(ReadPaneTool.init) },
         .init(SSHExecTool.self, availableIn: [.acting]) {
             SSHExecTool(
                 authentication: $0.authentication, pool: $0.connections,

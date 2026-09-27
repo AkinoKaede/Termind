@@ -265,7 +265,7 @@ struct AssistantPanelView: View {
                     if let conversation = app.sendNewAgentConversation(
                         window.sidebar.assistantDraft, in: window.assistantLibrary,
                         context: window.sidebar.sessionContext,
-                        terminalSuggestionsAvailable: true)
+                        terminalSuggestionsAvailable: true, window: window)
                     {
                         window.assistantSidebarConversationDidStart(conversation)
                     }
@@ -1434,6 +1434,6 @@ struct AssistantView: View {
     }
 
     private func sendNewConversation() {
-        _ = app.sendNewAgentDraft(in: window.assistantLibrary)
+        _ = app.sendNewAgentDraft(in: window.assistantLibrary, window: window)
     }
 }

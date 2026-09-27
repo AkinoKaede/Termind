@@ -145,6 +145,10 @@ final class MobileWorkspace: Identifiable {
     var uploadTerminalView: UIView? { descriptor.kind == .ssh ? surfaceOwner.view : nil }
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
+
+    func readViewportText() -> String? {
+        backend.readViewportText()
+    }
     private var ssh: SSHPTYChannel?
     private var telnet: TelnetConnection?
     private var sftp: (any SFTPClientProtocol)?

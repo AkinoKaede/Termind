@@ -1005,7 +1005,7 @@ struct ComposerView: View {
         } else {
             app.sendAgentDraft(
                 conversation, context: sessionContext,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable, window: window
             )
         }
     }

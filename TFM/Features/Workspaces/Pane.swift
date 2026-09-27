@@ -244,6 +244,15 @@ final class Pane: Identifiable {
         }
     }
 
+    func readViewportText() -> String? {
+        switch content {
+        case .sshSession(let session): session.terminalViewOwner.readViewportText()
+        case .telnetSession(let session): session.terminalViewOwner.readViewportText()
+        case .serialSession(let session): session.terminalViewOwner.readViewportText()
+        case .sftpChannel, .empty: nil
+        }
+    }
+
     var hasUnreadOutput: Bool {
         switch content {
         case .sshSession(let sshSession): sshSession.hasUnreadOutput
