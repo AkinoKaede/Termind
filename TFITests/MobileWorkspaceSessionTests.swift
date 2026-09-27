@@ -13,6 +13,76 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test(arguments: [true, false])
+    func assistantNotificationPrefersActiveThenStableOrderWithinMatchingScenes(_ visible: Bool) throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scenes = [
+            MobileSceneModel(app: app, sessionID: "matching-a"),
+            MobileSceneModel(app: app, sessionID: "matching-b"),
+        ].sorted { $0.id.uuidString < $1.id.uuidString }
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Target"
+        _ = try #require(scenes[0].assistant.library.startConversation(conversation))
+        for scene in scenes {
+            scene.openAssistantNotification(conversation.id)
+            if !visible { scene.selectedDestination = .vault }
+        }
+        app.sceneChanged(scenes[0].id, phase: .inactive)
+        app.sceneChanged(scenes[1].id, phase: .active)
+
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[1])
+        if !visible { scenes[1].selectedDestination = .vault }
+        app.sceneChanged(scenes[0].id, phase: .active)
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[0])
+
+        app.removeScene(scenes[0].id)
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === scenes[1])
+    }
+
+    @Test(arguments: [true, false])
+    func assistantNotificationReusesHiddenSelectionBeforeAnUnrelatedActiveScene(_ libraryPresented: Bool) async throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let owner = MobileSceneModel(app: app, sessionID: "hidden-owner")
+        let other = MobileSceneModel(app: app, sessionID: "active-other")
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Target"
+        _ = try #require(owner.assistant.library.startConversation(conversation))
+        owner.openAssistantNotification(conversation.id)
+        if libraryPresented {
+            owner.assistantLibraryRoute = .conversations
+        } else {
+            owner.selectedDestination = .vault
+        }
+        app.sceneChanged(other.id, phase: .active)
+        app.sceneChanged(owner.id, phase: .background)
+        #expect(!app.isAssistantNotificationFocused(conversation.id))
+        let activations = AsyncStream<String>.makeStream()
+        var activationCount = 0
+        let router = MobileNotificationRouter(app: app) {
+            activationCount += 1
+            activations.continuation.yield($0)
+        }
+        router.open(.assistant(conversation.id))
+        var iterator = activations.stream.makeAsyncIterator()
+        #expect(await iterator.next() == owner.workspaceSession.id)
+        #expect(owner.isShowingAssistant(conversation.id))
+        #expect(other.assistant.library.selectedConversationID == nil)
+        router.resume()
+        #expect(activationCount == 1)
+        router.stop()
+
+        owner.selectedDestination = .vault
+        other.openAssistantNotification(conversation.id)
+        app.sceneChanged(owner.id, phase: .active)
+        app.sceneChanged(other.id, phase: .background)
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === other)
+        #expect(owner.selectedDestination == .vault)
+    }
+
     @Test func notificationRouterWaitsForASceneAndConsumesTheTransferClickOnce() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

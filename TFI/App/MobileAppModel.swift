@@ -785,6 +785,10 @@ final class MobileAppModel {
         guard
             let scene = available.first(where: { scenePhases[$0.id] == .active && $0.isShowingAssistant(id) })
                 ?? available.first(where: { $0.isShowingAssistant(id) })
+                ?? available.first(where: {
+                    scenePhases[$0.id] == .active && $0.assistant.library.selectedConversationID == id
+                })
+                ?? available.first(where: { $0.assistant.library.selectedConversationID == id })
                 ?? available.first(where: { scenePhases[$0.id] == .active }) ?? available.first
         else { return nil }
         scene.openAssistantNotification(id)

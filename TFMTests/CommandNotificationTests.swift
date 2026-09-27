@@ -9,6 +9,94 @@ import Testing
 
 @Suite @MainActor
 struct CommandNotificationTests {
+    @Test(arguments: ["hidden", "navigation", "snippets", "history", "peer", "archive", "visible"])
+    func assistantNotificationOpensSidebarWithoutReplacingWorkspace(_ state: String) throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let window = WindowModel()
+        app.registerWindow(window)
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Target"
+        _ = try #require(window.assistantLibrary.startConversation(conversation))
+        let workspace = Workspace(pane: Pane(.empty))
+        workspace.splitFocusedPane(axis: .horizontal, with: Pane(.empty))
+        window.open(workspace)
+        let focusedPane = workspace.focusedPane
+        window.showAssistant()
+        switch state {
+        case "hidden": window.showsSidebar = false
+        case "navigation": window.sidebarMode = .navigation
+        case "snippets": window.sidebarMode = .snippets
+        case "history": window.sidebarMode = .history
+        case "peer":
+            let peer = ConversationModel()
+            peer.composer.draft = "Other conversation"
+            _ = try #require(window.assistantLibrary.startConversation(peer))
+        case "archive": window.showAssistantArchiveInSidebar()
+        default: break
+        }
+        #expect(window.isShowingAssistant(conversation.id) == (state == "visible"))
+        #expect(app.isAssistantNotificationFocused(conversation.id) == (state == "visible"))
+        window.isQuickOpenPresented = true
+
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === window)
+
+        #expect(window.selectedWorkspace === workspace)
+        #expect(workspace.focusedPane === focusedPane)
+        #expect(window.showsSidebar && window.sidebarMode == .assistant)
+        #expect(window.isShowingAssistant(conversation.id))
+        #expect(!window.isAssistantArchivePresented)
+        #expect(!window.isQuickOpenPresented && !window.isToolbarFindFocused)
+    }
+
+    @Test(arguments: [true, false])
+    func assistantNotificationPrefersFocusThenStableOrderWithinMatchingWindows(_ visible: Bool) throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let windows = [WindowModel(), WindowModel()].sorted { $0.id.uuidString < $1.id.uuidString }
+        for window in windows { app.registerWindow(window) }
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Target"
+        _ = try #require(windows[0].assistantLibrary.startConversation(conversation))
+        for window in windows {
+            window.openAssistantFullScreen(conversation.id)
+            if !visible { window.selectVault() }
+        }
+
+        #expect(
+            app.selectAssistantNotificationTarget(conversation.id, windowIsFocused: { $0 === windows[1] })
+                === windows[1])
+        if !visible { windows[1].selectVault() }
+        #expect(app.selectAssistantNotificationTarget(conversation.id, windowIsFocused: { _ in false }) === windows[0])
+
+        windows[0].closeForWindow()
+        #expect(app.selectAssistantNotificationTarget(conversation.id) === windows[1])
+    }
+
+    @Test func assistantNotificationReusesHiddenSelectionBeforeAnUnrelatedFocusedWindow() throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let owner = WindowModel()
+        let other = WindowModel()
+        app.registerWindow(owner)
+        app.registerWindow(other)
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Target"
+        _ = try #require(owner.assistantLibrary.startConversation(conversation))
+        owner.openAssistantFullScreen(conversation.id)
+        let workspace = Workspace(pane: Pane(.empty))
+        owner.open(workspace)
+        owner.showsSidebar = false
+        #expect(!app.isAssistantNotificationFocused(conversation.id))
+
+        #expect(app.selectAssistantNotificationTarget(conversation.id, windowIsFocused: { $0 === other }) === owner)
+        #expect(owner.selectedWorkspace === workspace)
+        #expect(owner.isShowingAssistant(conversation.id))
+        #expect(other.assistantLibrary.selectedConversationID == nil)
+
+        other.openAssistantFullScreen(conversation.id)
+        owner.showsSidebar = false
+        #expect(app.selectAssistantNotificationTarget(conversation.id, windowIsFocused: { $0 === owner }) === other)
+        #expect(!owner.showsSidebar)
+    }
+
     @Test func notificationRouterUsesTheLatestClickAndConsumesItOnce() async throws {
         let app = AppModel(hosts: HostLibraryModel())
         let window = WindowModel()

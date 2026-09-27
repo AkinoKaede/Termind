@@ -1184,17 +1184,30 @@ final class AppModel {
     }
 
     @discardableResult
-    func selectAssistantNotificationTarget(_ id: UUID) -> WindowModel? {
+    func selectAssistantNotificationTarget(
+        _ id: UUID, windowIsFocused: ((WindowModel) -> Bool)? = nil
+    ) -> WindowModel? {
+        let isFocused = windowIsFocused ?? mainWindows.isFocused
         let available = windows.values.compactMap(\.value).filter { !$0.isClosed }
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+        // A hidden Assistant route still belongs to its window. Reuse it before
+        // falling back to a window that has no selection for this conversation.
         guard
-            let window = available.first(where: { $0.isShowingAssistant(id) && mainWindows.isFocused($0) })
+            let window = available.first(where: { $0.isShowingAssistant(id) && isFocused($0) })
                 ?? available.first(where: { $0.isShowingAssistant(id) })
+                ?? available.first(where: { $0.assistantLibrary.selectedConversationID == id && isFocused($0) })
+                ?? available.first(where: { $0.assistantLibrary.selectedConversationID == id })
                 ?? mainWindows.mostRecentWindow ?? available.first
         else { return nil }
         window.isToolbarFindFocused = false
         window.isQuickOpenPresented = false
         if conversation(id) != nil {
-            if !window.isShowingAssistant(id) { window.openAssistantFullScreen(id) }
+            if window.selectedWorkspace != nil {
+                window.showAssistant()
+                window.openAssistantInSidebar(id)
+            } else if !window.isShowingAssistant(id) {
+                window.openAssistantFullScreen(id)
+            }
         } else {
             window.openAssistantFullScreen()
         }
