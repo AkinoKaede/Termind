@@ -94,12 +94,26 @@ public final class SystemNotifications: NSObject, NotificationSending, UNUserNot
     }
 
     public nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
-    ) async {
-        await receiveResponse(
+        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
+    ) {
+        receiveResponse(
             action: response.actionIdentifier,
             identifier: response.notification.request.identifier,
-            target: Self.target(response.notification.request.content))
+            target: Self.target(response.notification.request.content),
+            completionHandler: completionHandler)
+    }
+
+    nonisolated func receiveResponse(
+        action: String, identifier: String, target: NotificationTarget?,
+        completionHandler: @escaping @Sendable () -> Void
+    ) {
+        // The async delegate bridge can invoke UIKit's completion on a cooperative thread after the actor hop.
+        // UIKit may update the scene snapshot there, so complete explicitly on MainActor after routing the click.
+        Task { @MainActor in
+            receiveResponse(action: action, identifier: identifier, target: target)
+            completionHandler()
+        }
     }
 
     func receiveResponse(action: String, identifier: String, target: NotificationTarget?) {

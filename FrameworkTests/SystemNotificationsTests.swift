@@ -99,6 +99,56 @@ struct SystemNotificationsTests {
         #expect(center.maximumConcurrentBadgeWrites == 1)
     }
 
+    @Test(arguments: [
+        (UNNotificationDefaultActionIdentifier, true),
+        (UNNotificationDismissActionIdentifier, true),
+        (UNNotificationDefaultActionIdentifier, false),
+    ])
+    func backgroundResponseCompletesOnMainThreadAfterRouting(action: String, hasTarget: Bool) async {
+        let center = Center()
+        let service = SystemNotifications(center: center)
+        let target = NotificationTarget.assistant(UUID())
+        var opened: [NotificationTarget] = []
+        service.onOpen = {
+            #expect(Thread.isMainThread)
+            opened.append($0)
+        }
+
+        let completedOnMainThread = await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                #expect(!Thread.isMainThread)
+                service.receiveResponse(action: action, identifier: "clicked", target: hasTarget ? target : nil) {
+                    continuation.resume(returning: Thread.isMainThread)
+                }
+            }
+        }
+
+        #expect(completedOnMainThread)
+        let shouldOpen = action == UNNotificationDefaultActionIdentifier && hasTarget
+        #expect(opened == (shouldOpen ? [target] : []))
+        #expect(center.removedPending == (shouldOpen ? ["clicked"] : []))
+        #expect(center.removedDelivered == (shouldOpen ? ["clicked"] : []))
+    }
+
+    @Test func backgroundResponseBeforeRouterIsReadyCompletesAndRetainsTheTarget() async {
+        let service = SystemNotifications(center: Center())
+        let target = NotificationTarget.terminal(UUID())
+        let completedOnMainThread = await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                service.receiveResponse(
+                    action: UNNotificationDefaultActionIdentifier, identifier: "early", target: target
+                ) {
+                    continuation.resume(returning: Thread.isMainThread)
+                }
+            }
+        }
+        #expect(completedOnMainThread)
+        var opened: [NotificationTarget] = []
+        service.onOpen = { opened.append($0) }
+        service.onOpen = { opened.append($0) }
+        #expect(opened == [target])
+    }
+
     private func notification() -> AppNotification {
         AppNotification(target: .assistant(UUID()), title: "Title", body: "Body")
     }
