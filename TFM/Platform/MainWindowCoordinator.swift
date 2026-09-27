@@ -76,6 +76,17 @@ final class MainWindowCoordinator {
     init(app: AppModel, sizes: MainWindowSizeStore) {
         self.app = app
         self.sizes = sizes
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    for entry in self.entries where entry.window?.isKeyWindow == true {
+                        entry.model?.selectedWorkspace?.markCommandsRead()
+                    }
+                }
+            })
         for name in [
             NSWindow.willCloseNotification, NSWindow.didBecomeKeyNotification,
             NSWindow.didResizeNotification, NSWindow.didEndLiveResizeNotification,
@@ -293,6 +304,7 @@ final class MainWindowCoordinator {
         // A restored scene has no pending request. Its system-restored frame
         // must not be replaced with another window's shared fallback.
         entry.isReady = true
+        if isFocused(model) { model.selectedWorkspace?.markCommandsRead() }
         recordSize(entry)
         if let width = model.sidebar.measuredWidth { recordSidebarWidth(width, for: model) }
         synchronizePaywall()
@@ -382,6 +394,9 @@ final class MainWindowCoordinator {
     }
 
     private func becameKey(_ native: NSWindow) {
+        if NSApp.isActive {
+            entries.first(where: { $0.window === native })?.model?.selectedWorkspace?.markCommandsRead()
+        }
         guard let index = entries.firstIndex(where: { $0.window === native }) else { return }
         entries.append(entries.remove(at: index))
         if let entry = entries.last {
@@ -390,6 +405,18 @@ final class MainWindowCoordinator {
             activatePendingFullScreen(entry)
         }
         synchronizePaywall()
+    }
+
+    func isFocused(_ model: WindowModel) -> Bool {
+        NSApp.isActive && entries.contains { $0.model === model && $0.window?.isKeyWindow == true }
+    }
+
+    func activate(_ model: WindowModel) {
+        guard let native = entries.first(where: { $0.model === model })?.window else { return }
+        native.deminiaturize(nil)
+        native.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        model.selectedWorkspace?.markCommandsRead()
     }
 
     @discardableResult

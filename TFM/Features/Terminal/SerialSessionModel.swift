@@ -3,6 +3,7 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 @MainActor
@@ -26,7 +27,11 @@ nonisolated private final class WeakSerialSessionReference: @unchecked Sendable 
 final class SerialSessionModel: Identifiable {
     let id = UUID()
     private(set) var configuration: SerialConnectionConfiguration
-    var status: ConnectionStatus = .disconnected
+    var status: ConnectionStatus = .disconnected {
+        didSet { if !status.isLive, status != .connecting { commandMonitor.endConnection() } }
+    }
+    let commandMonitor = TerminalCommandMonitor()
+    private var commandObservation: TerminalCommandObservation?
     var hasUnreadOutput = false
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in self?.performFind($0) },
@@ -67,6 +72,7 @@ final class SerialSessionModel: Identifiable {
             resize: { _ in }
         )
         relay.owner = self
+        commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         // Present the shared Journey before SwiftUI mounts the pane, preventing
         // a one-frame flash of the empty Ghostty surface before `onAppear`
         // starts the actual open attempt.
@@ -89,6 +95,7 @@ final class SerialSessionModel: Identifiable {
         let previousConnection = connection
         connection = nil
         status = .connecting
+        commandMonitor.beginConnection()
         connectionJourney.beginSerial(name: title, address: devicePath)
         let service = service
         let configuration = configuration

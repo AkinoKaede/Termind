@@ -3074,6 +3074,23 @@
         }
       }
     },
+    "Always" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总是"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一律"
+          }
+        }
+      }
+    },
     "Always Ask" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5847,6 +5864,23 @@
         }
       }
     },
+    "Command Completion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令完成"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指令完成"
+          }
+        }
+      }
+    },
     "Command Generator" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5979,6 +6013,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "指令分析超出了支援的複雜度限制。"
+          }
+        }
+      }
+    },
+    "Command completed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令已完成"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指令已完成"
           }
         }
       }
@@ -6155,6 +6206,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已完成，無輸出"
+          }
+        }
+      }
+    },
+    "Completed · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成·%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成·%@"
           }
         }
       }
@@ -10881,6 +10949,23 @@
         }
       }
     },
+    "Exit code %lld · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出码%lld·%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結束代碼%lld·%@"
+          }
+        }
+      }
+    },
     "Expand" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15408,6 +15493,23 @@
         }
       }
     },
+    "Minimum Duration (seconds)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最短运行时间（秒）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最短執行時間（秒）"
+          }
+        }
+      }
+    },
     "Mode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17542,6 +17644,57 @@
         }
       }
     },
+    "Notifications are disabled in system settings." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统设置中已关闭通知。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統設定中已關閉通知。"
+          }
+        }
+      }
+    },
+    "Notifications can be delayed while iOS suspends Termind." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS挂起Termind时，通知可能延迟。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS暫停Termind時，通知可能延遲。"
+          }
+        }
+      }
+    },
+    "Notify When" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知时机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知時機"
+          }
+        }
+      }
+    },
     "OK" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17953,6 +18106,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟「登入項」設定"
+          }
+        }
+      }
+    },
+    "Open Notification Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开通知设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開通知設定"
           }
         }
       }
@@ -21699,6 +21869,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此連線需要"
+          }
+        }
+      }
+    },
+    "Requires shell integration or OSC 133. Workspace dots also mark shorter commands." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要Shell集成或OSC 133。工作区红点也会标记较短的命令。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要Shell整合或OSC 133。工作區紅點也會標記較短的指令。"
           }
         }
       }
@@ -25579,6 +25766,23 @@
         }
       }
     },
+    "Succeeded · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成功·%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成功·%@"
+          }
+        }
+      }
+    },
     "Suggested Command" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25798,6 +26002,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "系統"
+          }
+        }
+      }
+    },
+    "System Notification" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統通知"
           }
         }
       }
@@ -26042,6 +26263,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "終端"
+          }
+        }
+      }
+    },
+    "Terminal Bell" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端铃声"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終端機鈴聲"
           }
         }
       }
@@ -30450,6 +30688,23 @@
         }
       }
     },
+    "Unread command completion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有未读的命令完成消息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有未讀的指令完成訊息"
+          }
+        }
+      }
+    },
     "Unrecognized additional host key" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31889,6 +32144,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作區%lld"
+          }
+        }
+      }
+    },
+    "Workspace Is Unfocused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区未聚焦时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作區未聚焦時"
           }
         }
       }

@@ -19,8 +19,13 @@ final class TelnetSessionModel: Identifiable {
     let hostID: Host.ID
     var title: String
     var status: ConnectionStatus = .disconnected {
-        didSet { statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID) }
+        didSet {
+            if !status.isLive, status != .connecting { commandMonitor.endConnection() }
+            statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
+        }
     }
+    let commandMonitor = TerminalCommandMonitor()
+    private var commandObservation: TerminalCommandObservation?
     var hasUnreadOutput = false
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in self?.performFind($0) },
@@ -86,6 +91,7 @@ final class TelnetSessionModel: Identifiable {
             }
         )
         relay.owner = self
+        commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         connectionJourney.beginTelnet(
             host: host, username: usernameHint, mode: .connection)
     }
@@ -124,6 +130,7 @@ final class TelnetSessionModel: Identifiable {
             mode: connectionController.hasConnectedOnce ? .reconnection : .connection)
         status = connectionController.hasConnectedOnce ? .reconnecting : .connecting
 
+        commandMonitor.beginConnection()
         let terminalSurface = terminalSurface
         let token = UUID()
         let connection = TelnetConnection(

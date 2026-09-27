@@ -6,6 +6,11 @@ import TermindDomain
 extension TerminalPreferences {
     public nonisolated init(defaults: UserDefaults) {
         self.init()
+        if let data = defaults.data(forKey: SettingsKey.commandNotifications),
+            let value = try? JSONDecoder().decode(CommandNotificationPreferences.self, from: data)
+        {
+            commandNotifications = value
+        }
         darkTheme = defaults.string(forKey: SettingsKey.terminalThemeDark) ?? darkTheme
         lightTheme = defaults.string(forKey: SettingsKey.terminalThemeLight) ?? lightTheme
         darkCustomEnabled =
@@ -23,6 +28,7 @@ extension TerminalPreferences {
     }
 
     public nonisolated func mirror(to defaults: UserDefaults) {
+        defaults.set(try? JSONEncoder().encode(commandNotifications), forKey: SettingsKey.commandNotifications)
         defaults.set(darkTheme, forKey: SettingsKey.terminalThemeDark)
         defaults.set(lightTheme, forKey: SettingsKey.terminalThemeLight)
         defaults.set(darkCustomEnabled, forKey: SettingsKey.terminalCustomConfigurationDarkEnabled)

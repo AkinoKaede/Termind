@@ -32,6 +32,7 @@ public nonisolated enum SettingsKey {
     public static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
     public static let settingsSyncEnabled = "settings.sync.enabled"
     public static let settingsSyncEnvironment = "settings.sync.environment"
+    public static let commandNotifications = "terminal.commandNotifications"
     public static let shellIntegration = "terminal.shellIntegration"
     public static let sshMaxSessions = "ssh.maxSessions"
     public static let defaultSSHMaxSessions = SSHPreferences.defaultMaxSessions

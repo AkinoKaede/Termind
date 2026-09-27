@@ -96,6 +96,9 @@ nonisolated enum PaneKind: Hashable, Sendable {
 @Observable
 final class Pane: Identifiable {
     let id = UUID()
+    // Reopening can reuse Telnet/serial models. Old notifications must still
+    // refer to the closed session, while moving a pane keeps this identity.
+    private var commandNotificationID = UUID()
     var content: PaneContent
     private var connectionHistoryEntryID: ConnectionHistoryEntry.ID?
     private var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
@@ -217,6 +220,8 @@ final class Pane: Identifiable {
     /// `disconnectConnection`. Keep the Pane itself so its name, duplicate
     /// index, focus identity, and place in the split tree all survive.
     func prepareForReopen() {
+        commandNotificationID = UUID()
+        commandMonitor?.markRead()
         switch content {
         case .sshSession(let sshSession):
             sshSession.inputRouter = nil
@@ -251,6 +256,14 @@ final class Pane: Identifiable {
         case .serialSession(let session): session.terminalViewOwner.readViewportText()
         case .sftpChannel, .empty: nil
         }
+    }
+
+    var commandSessionID: UUID? {
+        commandMonitor == nil ? nil : commandNotificationID
+    }
+
+    var commandMonitor: TerminalCommandMonitor? {
+        sshSession?.commandMonitor ?? telnetSession?.commandMonitor ?? serialSession?.commandMonitor
     }
 
     var hasUnreadOutput: Bool {

@@ -472,6 +472,12 @@ private struct WorkspaceNavigatorRow: View {
                     )
                 )
                 .frame(width: Metrics.Sidebar.rowIcon)
+                .overlay(alignment: .topTrailing) {
+                    if workspace.hasUnreadCommandCompletion { WorkspaceCommandBadge().offset(x: 3, y: -3) }
+                }
+                .accessibilityValue(
+                    workspace.hasUnreadCommandCompletion
+                        ? String(localized: AppStrings.CommandNotifications.unread) : "")
 
             if isRenaming {
                 SidebarInlineRenameField(

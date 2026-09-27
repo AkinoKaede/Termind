@@ -30,7 +30,8 @@ nonisolated extension TerminalCustomConfiguration {
         -> GhosttyTerminal.TerminalConfiguration
     {
         GhosttyTerminal.TerminalConfiguration(startingFrom: base) { builder in
-            for entry in entries {
+            // Command alerts are owned by the app's shared settings and dispatcher.
+            for entry in entries where entry.key != "notify-on-command-finish" {
                 builder.withCustom(entry.key, entry.value)
             }
         }
@@ -127,6 +128,7 @@ extension TerminalViewState {
         setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
         setTerminalConfiguration(
             GhosttyTerminal.TerminalConfiguration { builder in
+                builder.withCustom("notify-on-command-finish", "never")
                 builder.withWindowPaddingX(8)
                 builder.withWindowPaddingY(8)
             })

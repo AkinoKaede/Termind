@@ -42,6 +42,7 @@ final class MobileAppModel {
     let forwardings: PortForwardingController
     let sftpEdits: SFTPEditService
     let transfers: SFTPTransferCoordinator
+    let commandNotifications = SystemCommandNotifications()
     private var workspaceSessions: [MobileWorkspaceSessionModel] = []
     private var paneScenes: [UUID: WeakPaneScene] = [:]
     var workspaces: [MobileWorkspace] { workspaceSessions.flatMap(\.workspaces) }
@@ -54,6 +55,7 @@ final class MobileAppModel {
     func registerPaneScene(_ scene: MobileSceneModel) {
         paneScenes = paneScenes.filter { $0.value.value != nil }
         paneScenes[scene.id] = WeakPaneScene(scene)
+        commandNotifications.onOpenSession = { [weak self] id in self?.openCommandNotification(id) }
     }
 
     func paneAccess(for source: MobileSceneModel) -> AgentPaneAccess {
@@ -509,6 +511,7 @@ final class MobileAppModel {
         if let workspaceSessionID { sceneSessionIDs[id] = workspaceSessionID }
         let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = phase
+        refreshCommandFocus()
         let isBackground = allScenesAreBackgrounded
         if isBackground && !wasBackground {
             enterBackground()
@@ -704,7 +707,45 @@ final class MobileAppModel {
         }
     }
 
+    func isCommandWorkspaceFocused(_ id: UUID) -> Bool {
+        paneScenes.values.compactMap(\.value).contains {
+            scenePhases[$0.id] == .active && $0.activeWorkspace?.id == id
+        }
+    }
+
+    func refreshCommandFocus() {
+        for scene in paneScenes.values.compactMap(\.value) where scenePhases[scene.id] == .active {
+            scene.activeWorkspace?.commandMonitor.markRead()
+        }
+    }
+
+    private func openCommandNotification(_ id: UUID) {
+        guard workspaces.contains(where: { $0.id == id }), let owner = workspaceOwner(id) else { return }
+        if let scene = paneScenes.values.compactMap(\.value).first(where: { $0.workspaceSession.id == owner }) {
+            scene.selectWorkspace(id)
+        }
+        MobileWorkspaceSceneRouting.activate(sessionID: owner, workspaceID: id, unavailable: {})
+    }
+
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {
+        workspace.commandMonitor.preferences = { [weak self] in
+            self?.terminalSettings.preferences.commandNotifications ?? .init()
+        }
+        workspace.commandMonitor.isWorkspaceFocused = { [weak self, weak workspace] in
+            guard let self, let workspace else { return false }
+            return self.isCommandWorkspaceFocused(workspace.id)
+        }
+        workspace.commandMonitor.alert = { [weak self, weak workspace] completion, settings in
+            guard let self, let workspace else { return }
+            if settings.bell { TerminalNotificationPlatform.ringBell() }
+            if settings.notify {
+                let title = workspace.descriptor.title
+                let body = CommandNotificationContent.body(completion)
+                let id = workspace.id
+                Task { await self.commandNotifications.send(sessionID: id, title: title, body: body) }
+            }
+        }
+
         observeActivityState(of: workspace)
         workspace.didRequestClose = close
         startConnectionHistory(for: workspace)

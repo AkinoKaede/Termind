@@ -136,6 +136,14 @@ struct MobileWorkspaceListView: View {
                 HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
                     ZStack(alignment: .bottomTrailing) {
                         hostIcon(item.host)
+                            .overlay(alignment: .topTrailing) {
+                                if item.workspace?.commandMonitor.hasUnreadCompletion == true {
+                                    WorkspaceCommandBadge()
+                                }
+                            }
+                            .accessibilityValue(
+                                item.workspace?.commandMonitor.hasUnreadCompletion == true
+                                    ? String(localized: AppStrings.CommandNotifications.unread) : "")
                         if let workspace = item.workspace,
                             let indicator = MobileWorkspaceConnectionIndicator.resolve(
                                 connected: workspace.connected,

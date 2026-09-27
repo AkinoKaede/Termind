@@ -24,7 +24,7 @@ struct MobileSettingsView: View {
                     Label(AppStrings.Settings.app.swiftUIKey, systemImage: "app.badge")
                 }
                 NavigationLink {
-                    MobileTerminalSettingsView(model: app.terminalSettings)
+                    MobileTerminalSettingsView(model: app.terminalSettings, notifications: app.commandNotifications)
                 } label: {
                     Label(AppStrings.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }

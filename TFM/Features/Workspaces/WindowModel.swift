@@ -40,6 +40,7 @@ final class WindowModel {
                 assistantReturnDestination = selectedDestination
             }
             reconcileSidebarMode()
+            commandFocusChanged?()
         }
     }
     @ObservationIgnored weak var remoteWindowTitleSink: (any WindowRemoteTitleSink)?
@@ -303,6 +304,9 @@ final class WindowModel {
         get { workspaceDeck.reopenStack }
         set { workspaceDeck.reopenStack = newValue }
     }
+
+    var commandFocusChanged: (() -> Void)?
+    var configureCommandNotifications: ((Pane) -> Void)?
 
     var recordConnectionHistory: ((Host.ID, ConnectionHistoryEntry.Kind) -> ConnectionHistoryEntry.ID?)?
     var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
@@ -1020,6 +1024,7 @@ final class WindowModel {
     }
 
     private func configureConnectionHistory(_ pane: Pane) {
+        configureCommandNotifications?(pane)
         guard !pane.hasActiveConnectionHistory, let hostID = pane.hostID else { return }
         let kind: ConnectionHistoryEntry.Kind
         switch pane.kind {
@@ -1562,6 +1567,7 @@ extension WindowModel: WorkspaceLifecycleRouting {
     }
 
     func workspaceContextDidChange(_ workspace: Workspace) {
+        commandFocusChanged?()
         guard selectedWorkspace === workspace else { return }
         refreshSessionContext()
         reconcileSidebarMode()

@@ -620,6 +620,9 @@ private struct TerminalSettings: View {
                     }
                 }
             }
+            TerminalCommandNotificationFields(
+                model: app.terminalSettings, service: app.commandNotifications,
+                openSettings: TerminalNotificationPlatform.openSettings)
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {

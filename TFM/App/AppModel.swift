@@ -71,6 +71,8 @@ final class AppModel {
     let serverMetrics: ServerMetricsModel
     let windowSizeStore: MainWindowSizeStore
     let logging: any ApplicationLogManaging
+    let commandNotifications = SystemCommandNotifications()
+
     @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self, sizes: windowSizeStore)
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
@@ -1097,7 +1099,73 @@ final class AppModel {
         if let first = opened.first { window.select(first.id) }
     }
 
+    func commandNotificationTarget(_ id: UUID) -> (WindowModel, Workspace, Pane)? {
+        for window in windows.values.compactMap(\.value) where !window.isClosed {
+            for workspace in window.workspaces {
+                if let pane = workspace.panes.first(where: { $0.commandSessionID == id }) {
+                    return (window, workspace, pane)
+                }
+            }
+        }
+        return nil
+    }
+
+    func isCommandWorkspaceFocused(_ id: UUID, windowIsFocused: (WindowModel) -> Bool) -> Bool {
+        guard let (window, workspace, _) = commandNotificationTarget(id) else { return false }
+        return window.selectedWorkspace === workspace && windowIsFocused(window)
+    }
+
+    private func configureCommandMonitor(_ pane: Pane) {
+        guard let monitor = pane.commandMonitor, let id = pane.commandSessionID else { return }
+        monitor.preferences = { [weak self] in self?.terminalSettings.preferences.commandNotifications ?? .init() }
+        monitor.isWorkspaceFocused = { [weak self] in
+            guard let self else { return false }
+            return self.isCommandWorkspaceFocused(id, windowIsFocused: self.mainWindows.isFocused)
+        }
+        monitor.alert = { [weak self] completion, settings in
+            guard let self, let (_, workspace, _) = self.commandNotificationTarget(id) else { return }
+            if settings.bell { TerminalNotificationPlatform.ringBell() }
+            if settings.notify {
+                let title = workspace.title(in: self.hostLibrary, locale: .current)
+                let body = CommandNotificationContent.body(completion)
+                Task { await self.commandNotifications.send(sessionID: id, title: title, body: body) }
+            }
+        }
+    }
+
+    @discardableResult
+    func selectCommandNotificationTarget(_ id: UUID) -> WindowModel? {
+        guard let (window, workspace, pane) = commandNotificationTarget(id) else { return nil }
+        window.isToolbarFindFocused = false
+        window.isQuickOpenPresented = false
+        window.select(workspace.id)
+        workspace.focusedPaneID = pane.id
+        return window
+    }
+
+    private func openCommandNotification(_ id: UUID) {
+        guard let window = selectCommandNotificationTarget(id) else {
+            _ = mainWindows.openExisting()
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        mainWindows.activate(window)
+        if let pane = commandNotificationTarget(id)?.2 {
+            pane.sshSession?.requestTerminalFocus()
+            pane.telnetSession?.requestTerminalFocus()
+            pane.serialSession?.requestTerminalFocus()
+        }
+    }
+
     private func configureConnectionHistory(in window: WindowModel) {
+        commandNotifications.onOpenSession = { [weak self] id in self?.openCommandNotification(id) }
+        window.configureCommandNotifications = { [weak self] pane in self?.configureCommandMonitor(pane) }
+        window.commandFocusChanged = { [weak self, weak window] in
+            guard let self, let window, self.mainWindows.isFocused(window) else { return }
+            window.selectedWorkspace?.markCommandsRead()
+        }
+        window.workspaces.flatMap(\.panes).forEach(configureCommandMonitor)
+
         window.hostStore = hosts
         window.workspacePreferences = { [weak self] in
             self?.workspaceSettings.preferences ?? WorkspacePreferences()

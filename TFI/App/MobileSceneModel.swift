@@ -19,9 +19,10 @@ final class MobileSceneModel {
     var selectedDestination: MobileDestination? = .vault {
         didSet {
             if selectedDestination != .workspaces { pendingWorkspaceID = nil }
+            app.refreshCommandFocus()
         }
     }
-    var workspaceID: MobileWorkspace.ID?
+    var workspaceID: MobileWorkspace.ID? { didSet { app.refreshCommandFocus() } }
     var isConnectionPickerPresented = false
     var isBatchStartupPresented = false
     var isWorkspaceUnavailable = false

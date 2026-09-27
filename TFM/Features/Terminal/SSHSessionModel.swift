@@ -38,6 +38,7 @@ final class SSHSessionModel: Identifiable {
     var title: String
     var status: ConnectionStatus = .disconnected {
         didSet {
+            if !status.isLive, status != .connecting { commandMonitor.endConnection() }
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
             if status.isLive != oldValue.isLive {
                 inputRouter?.sshSessionDidChangeRemoteWindowTitle(self)
@@ -62,6 +63,8 @@ final class SSHSessionModel: Identifiable {
     func displayPath(_ path: String) -> String {
         RemotePath.displayed(path, home: homeResolution)
     }
+    let commandMonitor = TerminalCommandMonitor()
+    private var commandObservation: TerminalCommandObservation?
     var hasUnreadOutput: Bool = false
     /// History for an unsaved Quick Connect destination. Saved Hosts use the
     /// app-wide CommandHistoryModel instead so every window sees the same list.
@@ -258,6 +261,7 @@ final class SSHSessionModel: Identifiable {
         )
         terminalSurface = surface
         relay.owner = self
+        commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         observeWorkingDirectory(from: surface.state, through: relay)
         observeRemoteWindowTitle(from: surface.state, through: relay)
     }
@@ -359,6 +363,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func startConnection(using store: any RemoteSessionHostStore) {
+        commandMonitor.endConnection()
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
         homeResolution = .unavailable
@@ -757,6 +762,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        commandMonitor.endConnection()
         startsOnMount = false
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
@@ -812,6 +818,7 @@ final class SSHSessionModel: Identifiable {
             authenticationReference: authenticationReference
         )
         let terminalSurface = terminalSurface
+        commandMonitor.beginConnection()
         let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
             output: { data in terminalSurface.receive(data) },
             exit: { [weak self] result in
@@ -1121,6 +1128,7 @@ final class SSHSessionModel: Identifiable {
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         guard isShellIntegrationEnabled else { return }
+        commandMonitor.receiveShellEvent(event)
         switch event {
         case .available(let shell, let systemInfo, let homeDirectory):
             if let homeDirectory, homeDirectory.hasPrefix("/") {

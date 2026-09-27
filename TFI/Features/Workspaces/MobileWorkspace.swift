@@ -58,6 +58,7 @@ final class MobileWorkspace: Identifiable {
     private(set) var status = String(localized: AppStrings.Connections.disconnected)
     private(set) var connected = false {
         didSet {
+            if !connected { commandMonitor.endConnection() }
             guard activitySession.connected != connected else { return }
             activitySession.connected = connected
             didChangeState?(activitySession)
@@ -104,6 +105,8 @@ final class MobileWorkspace: Identifiable {
         perform: { [weak self] in _ = self?.terminal.performBindingAction($0) },
         focus: { [weak self] in self?.terminal.requestFocus() }
     )
+    let commandMonitor = TerminalCommandMonitor()
+    private var commandObservation: TerminalCommandObservation?
     private var activeHistoryID: UUID?
     /// Resolved once at the beginning of each connection attempt.
     private(set) var isShellIntegrationEnabled = true
@@ -302,6 +305,7 @@ final class MobileWorkspace: Identifiable {
                 relay?.owner?.receiveWorkingDirectory(path)
             }
         }
+        commandObservation = TerminalCommandObservation(state: terminal, monitor: commandMonitor)
         surfaceOwner.bindFind(find)
     }
 
@@ -553,6 +557,7 @@ final class MobileWorkspace: Identifiable {
             resetCommandGeneratorShellState()
             return
         }
+        commandMonitor.receiveShellEvent(event)
         switch event {
         case .available(let shell, let systemInfo, _):
             integratedShell = shell
@@ -617,6 +622,7 @@ final class MobileWorkspace: Identifiable {
         let reconnecting = connection.isRecovering
         let token = UUID()
         generation = token
+        commandMonitor.beginConnection()
         activeHistoryID = nil
         resetCommandGeneratorShellState()
         operationError = nil
@@ -1189,6 +1195,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func disconnect() {
+        commandMonitor.endConnection()
         cancelPendingUpload()
         stopSSHEventConsumer()
         resetCommandGeneratorShellState()

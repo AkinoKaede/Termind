@@ -13,6 +13,39 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func commandCompletionDotsUseVisibleWorkspaceInItsOwningScene() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "command-a")
+        let second = MobileSceneModel(app: app, sessionID: "command-b")
+        first.open(hostID: fixture.host.id, kind: .ssh)
+        second.open(hostID: fixture.host.id, kind: .ssh)
+        first.activatePendingWorkspace()
+        second.activatePendingWorkspace()
+        let workspace = try #require(first.activeWorkspace)
+        app.sceneChanged(second.id, phase: .active)
+        app.sceneChanged(first.id, phase: .background)
+        workspace.commandMonitor.beginConnection()
+        workspace.commandMonitor.receiveOSC133(exitCode: 1, durationNanos: 1)
+        #expect(workspace.commandMonitor.hasUnreadCompletion)
+        #expect(!app.isCommandWorkspaceFocused(workspace.id))
+        #expect(!second.activeWorkspace!.commandMonitor.hasUnreadCompletion)
+        app.sceneChanged(first.id, phase: .active)
+        #expect(app.isCommandWorkspaceFocused(workspace.id))
+        #expect(!workspace.commandMonitor.hasUnreadCompletion)
+        workspace.commandMonitor.receiveOSC133(exitCode: 0, durationNanos: 1)
+        #expect(!workspace.commandMonitor.hasUnreadCompletion)
+        first.workspaceID = nil
+        workspace.commandMonitor.receiveOSC133(exitCode: nil, durationNanos: 0)
+        #expect(workspace.commandMonitor.hasUnreadCompletion)
+        first.selectWorkspace(workspace.id)
+        #expect(!workspace.commandMonitor.hasUnreadCompletion)
+        first.closeWorkspace(workspace.id)
+        workspace.commandMonitor.receiveOSC133(exitCode: 0, durationNanos: 1)
+        #expect(!workspace.commandMonitor.hasUnreadCompletion)
+    }
+
     @Test func paneAccessExcludesDormantAndDisconnectedWorkspacesAcrossScenes() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
