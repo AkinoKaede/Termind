@@ -36,11 +36,14 @@ struct AgentOriginRenderingTests {
                 $0.identifier?.rawValue == "Transcript.AgentOrigin"
             })
         #expect(liveMarker.isEnabled)
+        #expect(liveMarker.title.isEmpty)
+        #expect(liveMarker.imagePosition == .imageOnly)
         #expect(
             liveMarker.toolTip
                 == AppLocalization.resolve(
                     AppStrings.Assistant.agentFrom("Live source"),
                     locale: Locale(identifier: "en")))
+        #expect(liveMarker.image != nil)
         expectVisibleAncestors(from: liveMarker, through: row)
         #expect(buttons.contains { $0.toolTip == String(localized: AppStrings.Common.copy) })
         #expect(!buttons.contains { $0.toolTip == String(localized: AppStrings.Common.edit) })
@@ -54,6 +57,8 @@ struct AgentOriginRenderingTests {
                 $0.identifier?.rawValue == "Transcript.AgentOrigin"
             })
         #expect(!deletedMarker.isEnabled)
+        #expect(deletedMarker.title.isEmpty)
+        #expect(deletedMarker.imagePosition == .imageOnly)
         #expect(
             deletedMarker.toolTip
                 == AppLocalization.resolve(

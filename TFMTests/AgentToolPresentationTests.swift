@@ -356,12 +356,19 @@ struct AgentToolPresentationTests {
     @Test
     func chatCompactPreviewAndFullCopyContainOnlyProjectedBoundedFields() throws {
         let secret = "body-that-must-never-render"
+        let creatorSecrets = (0..<12).map { "creator-that-must-never-render-\($0)" }
+        let creatorIDs = (0..<12).map { _ in UUID().uuidString }
         let chats = (0..<12).map { index in
             AgentJSONValue.object([
                 "chat_id": .string(UUID().uuidString),
                 "title": .string("Chat \(index)"),
                 "status": .string("completed"),
                 "message": .string("\(secret)-\(index)"),
+                "creator": .object([
+                    "kind": .string("agent"),
+                    "chat_id": .string(creatorIDs[index]),
+                    "title": .string(creatorSecrets[index]),
+                ]),
             ])
         }
         var card = makeCard(
@@ -384,10 +391,14 @@ struct AgentToolPresentationTests {
         #expect(preview.isShortened)
         #expect(preview.fullText.contains("Chat 11"))
         #expect(!preview.fullText.contains(secret))
+        #expect(creatorSecrets.allSatisfy { !preview.fullText.contains($0) })
+        #expect(creatorIDs.allSatisfy { !preview.fullText.contains($0) })
         let displayed = AgentToolDetailPreview(
             AgentToolDetail(items: preview.items)
         ).fullText
         #expect(!displayed.contains(secret))
+        #expect(creatorSecrets.allSatisfy { !displayed.contains($0) })
+        #expect(creatorIDs.allSatisfy { !displayed.contains($0) })
         guard case .list(let list) = try #require(preview.items.first) else {
             Issue.record("Expected compact chat list")
             return

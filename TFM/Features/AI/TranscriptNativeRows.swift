@@ -736,9 +736,6 @@ private enum NativeTranscriptFactory {
             context.registerHoverView(hoverActions)
         }
         if let origin = message.origin {
-            let agent = NativeButton(title: String(localized: AppStrings.Assistant.agent))
-            agent.identifier = NSUserInterfaceItemIdentifier("Transcript.AgentOrigin")
-            agent.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
             let sourceTitle =
                 context.configuration.chatDestinations[origin.sourceConversationID]
                 ?? origin.sourceTitle
@@ -751,7 +748,8 @@ private enum NativeTranscriptFactory {
                 ?? AppLocalization.resolve(
                     AppStrings.Assistant.agent,
                     locale: context.configuration.locale)
-            agent.toolTip = label
+            let agent = NativeButton(symbol: "sparkles", help: label)
+            agent.identifier = NSUserInterfaceItemIdentifier("Transcript.AgentOrigin")
             agent.setAccessibilityLabel(label)
             agent.isEnabled = context.configuration.chatDestinations[origin.sourceConversationID] != nil
             agent.handler = { context.actions.navigateChat(origin.sourceConversationID) }

@@ -214,6 +214,32 @@ struct MobileAssistantAgentOriginPresentation: Equatable {
     }
 }
 
+struct MobileAssistantAgentOriginButton: View {
+    static let systemImage = "sparkles"
+
+    let presentation: MobileAssistantAgentOriginPresentation
+    let navigate: () -> Void
+
+    var body: some View {
+        Button(action: navigate) {
+            Label(
+                AppStrings.Assistant.agent.swiftUIKey,
+                systemImage: Self.systemImage
+            )
+            .labelStyle(.iconOnly)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
+        }
+        .font(.caption.weight(.medium))
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .disabled(!presentation.canNavigate)
+        .accessibilityLabel(Text(presentation.label))
+        .help(presentation.label)
+        .accessibilityIdentifier("AssistantMessage.AgentOrigin")
+    }
+}
+
 struct MobileAssistantUserBubble: View {
     let text: String
 
@@ -944,17 +970,10 @@ struct MobileAssistantConversation: View {
                     origin: origin,
                     source: model.library.conversation(id: origin.sourceConversationID),
                     locale: locale)
-                Button(AppStrings.Assistant.agent.swiftUIKey) {
+                MobileAssistantAgentOriginButton(presentation: presentation) {
                     guard let target = model.library.conversation(id: origin.sourceConversationID) else { return }
                     model.select(target)
                 }
-                .font(.caption.weight(.medium))
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .disabled(!presentation.canNavigate)
-                .accessibilityLabel(Text(presentation.label))
-                .help(presentation.label)
-                .accessibilityIdentifier("AssistantMessage.AgentOrigin")
             }
 
             if conversation.canForkAssistantMessage(message.id) {

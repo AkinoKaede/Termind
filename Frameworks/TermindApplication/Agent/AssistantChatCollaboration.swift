@@ -62,6 +62,9 @@ nonisolated public struct AssistantChatDeliveryReceipt: Identifiable, Hashable, 
     ) throws
     func receipts(targetConversationID: UUID) throws -> [AssistantChatDeliveryReceipt]
     func save(_ relation: AssistantChatCreationRelation) throws
+    func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation]
     func deleteRelation(conversationID: UUID) throws
 }
 
@@ -115,6 +118,12 @@ public final class InMemoryAssistantChatCollaborationStore: AssistantChatCollabo
 
     public func save(_ relation: AssistantChatCreationRelation) throws {
         if relations[relation.conversationID] == nil { relations[relation.conversationID] = relation }
+    }
+
+    public func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation] {
+        relations.filter { conversationIDs.contains($0.key) }
     }
 
     public func deleteRelation(conversationID: UUID) throws {
@@ -261,8 +270,15 @@ public final class AssistantChatCoordinator: AgentChatModelCatalog, AgentChatCoo
             throw AgentToolError.invalidArguments("The chat cursor is invalid.")
         }
         let page = Array(candidates.dropFirst(offset).prefix(20))
+        let relations = try collaborationStore.creationRelations(
+            conversationIDs: Set(page.map(\.id)))
         var result: [String: AgentJSONValue] = [
-            "chats": .array(page.map { chatJSON($0) }),
+            "chats": .array(
+                page.map { conversation in
+                    listChatJSON(
+                        conversation,
+                        relation: relations[conversation.id])
+                }),
             "count": .number(Double(page.count)),
         ]
         let next = offset + page.count
@@ -477,6 +493,35 @@ public final class AssistantChatCoordinator: AgentChatModelCatalog, AgentChatCoo
         if let status { object["status"] = .string(status) }
         if let receiptID { object["receipt_id"] = .string(receiptID.uuidString) }
         return .object(object)
+    }
+
+    private func listChatJSON(
+        _ conversation: ConversationModel,
+        relation: AssistantChatCreationRelation?
+    ) -> AgentJSONValue {
+        var object = chatObject(conversation)
+        object["creator"] = creatorJSON(for: conversation, relation: relation)
+        return .object(object)
+    }
+
+    private func creatorJSON(
+        for conversation: ConversationModel,
+        relation: AssistantChatCreationRelation?
+    ) -> AgentJSONValue {
+        guard let relation else {
+            return .object(["kind": .string("user")])
+        }
+        let savedTitle = conversation.messages.lazy.compactMap(\.origin).first { origin in
+            origin.sourceConversationID == relation.sourceConversationID
+                && origin.sourceRunID == relation.sourceRunID
+                && origin.sourceToolCallID == relation.sourceToolCallID
+        }?.sourceTitle
+        let title = conversations.conversation(id: relation.sourceConversationID)?.derivedTitle ?? savedTitle
+        return .object([
+            "kind": .string("agent"),
+            "chat_id": .string(relation.sourceConversationID.uuidString),
+            "title": title.map(AgentJSONValue.string) ?? .null,
+        ])
     }
 
     private func chatObject(_ conversation: ConversationModel) -> [String: AgentJSONValue] {

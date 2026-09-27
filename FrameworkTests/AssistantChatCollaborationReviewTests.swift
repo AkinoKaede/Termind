@@ -231,6 +231,195 @@ struct AssistantChatCollaborationReviewTests {
         #expect(text.count == 8_000)
     }
 
+    @Test func listingBatchesMixedCreatorRelationsOncePerPage() async throws {
+        let collaborationStore = CountingChatReviewStore()
+        let fixture = ChatReviewFixture(receipts: collaborationStore)
+        fixture.source.updatedAt = Date(timeIntervalSince1970: 0)
+        var targets: [ConversationModel] = []
+        for index in 0..<21 {
+            let target = fixture.addTarget()
+            target.customTitle = "Target \(index)"
+            target.updatedAt = Date(timeIntervalSince1970: Double(10_000 - index))
+            targets.append(target)
+        }
+        let firstRelation = AssistantChatCreationRelation(
+            conversationID: targets[0].id,
+            sourceConversationID: fixture.source.id,
+            sourceRunID: UUID(),
+            sourceToolCallID: "first-page")
+        let secondRelation = AssistantChatCreationRelation(
+            conversationID: targets[20].id,
+            sourceConversationID: fixture.source.id,
+            sourceRunID: UUID(),
+            sourceToolCallID: "second-page")
+        try collaborationStore.save(firstRelation)
+        try collaborationStore.save(secondRelation)
+        let firstPageIDs = Set(targets.prefix(20).map(\.id))
+        let secondPageIDs = Set([targets[20].id, fixture.source.id])
+
+        let first = try await fixture.coordinator.listChats(cursor: nil, includeArchived: false)
+        let firstRows = try #require(first.objectValue?["chats"]?.arrayValue)
+        #expect(collaborationStore.relationReads == [firstPageIDs])
+        #expect(try creator(in: firstRows, conversationID: targets[0].id)["kind"] == .string("agent"))
+        #expect(try creator(in: firstRows, conversationID: targets[1].id) == ["kind": .string("user")])
+
+        let cursor = try #require(first.objectValue?["next_cursor"]?.stringValue)
+        let second = try await fixture.coordinator.listChats(cursor: cursor, includeArchived: false)
+        let secondRows = try #require(second.objectValue?["chats"]?.arrayValue)
+        #expect(collaborationStore.relationReads == [firstPageIDs, secondPageIDs])
+        let secondCreator = try creator(in: secondRows, conversationID: targets[20].id)
+        #expect(secondCreator["kind"] == .string("agent"))
+        #expect(secondCreator["chat_id"] == .string(fixture.source.id.uuidString))
+        #expect(secondCreator["title"] == .string("Source"))
+        #expect(try creator(in: secondRows, conversationID: fixture.source.id) == ["kind": .string("user")])
+    }
+
+    @Test func creatorKeepsCreationAuthorityThroughLaterDeliveryRenameAndSourceDeletion() async throws {
+        let fixture = ChatReviewFixture()
+        let creationRunID = UUID()
+        let created = try await fixture.coordinator.createChat(
+            prompt: "Created task", model: nil, title: "Created target",
+            source: fixture.sourceContext(), sourceRunID: creationRunID,
+            sourceToolCallID: "create-target")
+        #expect(created.objectValue?["creator"] == nil)
+        let target = try fixture.target(from: created)
+        try await waitUntil { !target.isPreparingAgentRun }
+
+        let laterSourceID = UUID()
+        let later = try await fixture.coordinator.sendToChat(
+            id: target.id, message: "Later agent message",
+            source: AgentChatSourceContext(
+                conversationID: laterSourceID,
+                title: "Later source",
+                modelReference: AssistantChatCoordinator.reference(fixture.sourceModel),
+                permissionMode: .askForApproval,
+                mode: .acting),
+            sourceRunID: UUID(), sourceToolCallID: "later-send")
+        #expect(later.objectValue?["creator"] == nil)
+        try await waitUntil { !target.isPreparingAgentRun }
+        #expect(target.messages.compactMap(\.origin).count == 2)
+
+        var rows = try await listRows(fixture)
+        var creatorInfo = try creator(in: rows, conversationID: target.id)
+        #expect(creatorInfo["chat_id"] == .string(fixture.source.id.uuidString))
+        #expect(creatorInfo["title"] == .string("Source"))
+
+        fixture.source.customTitle = "Renamed source"
+        rows = try await listRows(fixture)
+        creatorInfo = try creator(in: rows, conversationID: target.id)
+        #expect(creatorInfo["title"] == .string("Renamed source"))
+
+        fixture.store.remove(fixture.source.id)
+        rows = try await listRows(fixture)
+        creatorInfo = try creator(in: rows, conversationID: target.id)
+        #expect(creatorInfo["chat_id"] == .string(fixture.source.id.uuidString))
+        #expect(creatorInfo["title"] == .string("Source"))
+    }
+
+    @Test func creatorUsesNullWithoutAnExactSavedTitleAndManualForkRemainsUserCreated() async throws {
+        let fixture = ChatReviewFixture()
+        let missingSourceID = UUID()
+        let creationRunID = UUID()
+        let target = fixture.addTarget()
+        target.messages = [
+            ChatMessage(
+                role: .user,
+                text: "Wrong run",
+                origin: AgentMessageOrigin(
+                    sourceConversationID: missingSourceID,
+                    sourceRunID: UUID(),
+                    sourceToolCallID: "create-without-title",
+                    sourceTitle: "Wrong run title")),
+            ChatMessage(
+                role: .user,
+                text: "Wrong tool call",
+                origin: AgentMessageOrigin(
+                    sourceConversationID: missingSourceID,
+                    sourceRunID: creationRunID,
+                    sourceToolCallID: "wrong-tool-call",
+                    sourceTitle: "Wrong tool title")),
+            ChatMessage(
+                role: .user,
+                text: "Created without a saved title",
+                origin: AgentMessageOrigin(
+                    sourceConversationID: missingSourceID,
+                    sourceRunID: creationRunID,
+                    sourceToolCallID: "create-without-title")),
+        ]
+        try fixture.receipts.save(
+            AssistantChatCreationRelation(
+                conversationID: target.id,
+                sourceConversationID: missingSourceID,
+                sourceRunID: creationRunID,
+                sourceToolCallID: "create-without-title"))
+
+        let compactedSourceID = UUID()
+        let compactedRunID = UUID()
+        let displayOnlyTarget = fixture.addTarget()
+        displayOnlyTarget.messages = [
+            ChatMessage(
+                role: .user,
+                text: "Created before compaction",
+                origin: AgentMessageOrigin(
+                    sourceConversationID: compactedSourceID,
+                    sourceRunID: compactedRunID,
+                    sourceToolCallID: "compacted-creation",
+                    sourceTitle: "Compacted source"))
+        ]
+        #expect(displayOnlyTarget.transcript.isEmpty)
+        try fixture.receipts.save(
+            AssistantChatCreationRelation(
+                conversationID: displayOnlyTarget.id,
+                sourceConversationID: compactedSourceID,
+                sourceRunID: compactedRunID,
+                sourceToolCallID: "compacted-creation"))
+
+        let copiedOrigin = AgentMessageOrigin(
+            sourceConversationID: UUID(), sourceRunID: UUID(),
+            sourceToolCallID: "copied", sourceTitle: "Copied source")
+        let manualSource = ConversationModel()
+        let incoming = manualSource.composeIncomingAgentTurn("Copied task", origin: copiedOrigin)
+        _ = manualSource.appendIncomingAgentTurnContent(incoming)
+        let answer = AgentTranscriptMessage(role: .assistant, text: "Answer")
+        manualSource.handle(.messageFinished(answer))
+        let fork = try #require(manualSource.forked(throughAssistantMessage: answer.id))
+        fixture.store.insert(fork)
+
+        let rows = try await listRows(fixture)
+        let targetCreator = try creator(in: rows, conversationID: target.id)
+        #expect(targetCreator["kind"] == .string("agent"))
+        #expect(targetCreator["chat_id"] == .string(missingSourceID.uuidString))
+        #expect(targetCreator["title"] == .null)
+        #expect(
+            try creator(in: rows, conversationID: displayOnlyTarget.id)["title"]
+                == .string("Compacted source"))
+        #expect(try creator(in: rows, conversationID: fork.id) == ["kind": .string("user")])
+        #expect(fork.messages.first?.origin == copiedOrigin)
+    }
+
+    @Test func relationReadFailurePropagatesFromListChats() async {
+        let fixture = ChatReviewFixture(receipts: RejectingChatReviewRelationReads())
+
+        await #expect(throws: ChatReviewReadFailure.self) {
+            try await fixture.coordinator.listChats(cursor: nil, includeArchived: false)
+        }
+    }
+
+    private func listRows(_ fixture: ChatReviewFixture) async throws -> [AgentJSONValue] {
+        let result = try await fixture.coordinator.listChats(
+            cursor: nil,
+            includeArchived: false)
+        return try #require(result.objectValue?["chats"]?.arrayValue)
+    }
+
+    private func creator(
+        in rows: [AgentJSONValue], conversationID: UUID
+    ) throws -> [String: AgentJSONValue] {
+        let row = try #require(
+            rows.first { $0.objectValue?["chat_id"] == .string(conversationID.uuidString) })
+        return try #require(row.objectValue?["creator"]?.objectValue)
+    }
+
     private func waitUntil(_ condition: @escaping @MainActor () -> Bool) async throws {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(2))
@@ -323,7 +512,51 @@ private struct SuspendedChatReviewModel: AgentModelStreaming {
 }
 
 private struct ChatReviewWriteFailure: Error {}
+private struct ChatReviewReadFailure: Error {}
 private struct ChatReviewTimeout: Error {}
+
+@MainActor
+private final class CountingChatReviewStore: AssistantChatCollaborationStoring {
+    private let base = InMemoryAssistantChatCollaborationStore()
+    private(set) var relationReads: [Set<UUID>] = []
+
+    var confirmsDeliveryDuringMessagePersistence: Bool {
+        base.confirmsDeliveryDuringMessagePersistence
+    }
+
+    func receipt(sourceRunID: UUID, sourceToolCallID: String) throws -> AssistantChatDeliveryReceipt? {
+        try base.receipt(sourceRunID: sourceRunID, sourceToolCallID: sourceToolCallID)
+    }
+
+    func save(_ receipt: AssistantChatDeliveryReceipt) throws {
+        try base.save(receipt)
+    }
+
+    func updateReceipt(
+        messageID: UUID, state: AgentMessageDeliveryState, failure: String?
+    ) throws {
+        try base.updateReceipt(messageID: messageID, state: state, failure: failure)
+    }
+
+    func receipts(targetConversationID: UUID) throws -> [AssistantChatDeliveryReceipt] {
+        try base.receipts(targetConversationID: targetConversationID)
+    }
+
+    func save(_ relation: AssistantChatCreationRelation) throws {
+        try base.save(relation)
+    }
+
+    func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation] {
+        relationReads.append(conversationIDs)
+        return try base.creationRelations(conversationIDs: conversationIDs)
+    }
+
+    func deleteRelation(conversationID: UUID) throws {
+        try base.deleteRelation(conversationID: conversationID)
+    }
+}
 
 @MainActor
 private struct RejectingChatReviewReceipts: AssistantChatCollaborationStoring {
@@ -333,5 +566,22 @@ private struct RejectingChatReviewReceipts: AssistantChatCollaborationStoring {
     func updateReceipt(messageID: UUID, state: AgentMessageDeliveryState, failure: String?) throws {}
     func receipts(targetConversationID: UUID) throws -> [AssistantChatDeliveryReceipt] { [] }
     func save(_ relation: AssistantChatCreationRelation) throws { throw ChatReviewWriteFailure() }
+    func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation] { [:] }
+    func deleteRelation(conversationID: UUID) throws {}
+}
+
+@MainActor
+private struct RejectingChatReviewRelationReads: AssistantChatCollaborationStoring {
+    let confirmsDeliveryDuringMessagePersistence = false
+    func receipt(sourceRunID: UUID, sourceToolCallID: String) throws -> AssistantChatDeliveryReceipt? { nil }
+    func save(_ receipt: AssistantChatDeliveryReceipt) throws {}
+    func updateReceipt(messageID: UUID, state: AgentMessageDeliveryState, failure: String?) throws {}
+    func receipts(targetConversationID: UUID) throws -> [AssistantChatDeliveryReceipt] { [] }
+    func save(_ relation: AssistantChatCreationRelation) throws {}
+    func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation] { throw ChatReviewReadFailure() }
     func deleteRelation(conversationID: UUID) throws {}
 }

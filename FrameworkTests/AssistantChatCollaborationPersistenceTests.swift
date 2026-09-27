@@ -73,4 +73,34 @@ struct AssistantChatCollaborationPersistenceTests {
         #expect(final.state == .delivered)
         #expect(final.failure == nil)
     }
+
+    @Test
+    func creationRelationsSurviveAStoreReopenAndRemainScopedToRequestedChats() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Termind.store")
+        let requested = AssistantChatCreationRelation(
+            conversationID: UUID(), sourceConversationID: UUID(),
+            sourceRunID: UUID(), sourceToolCallID: "requested")
+        let unrelated = AssistantChatCreationRelation(
+            conversationID: UUID(), sourceConversationID: UUID(),
+            sourceRunID: UUID(), sourceToolCallID: "unrelated")
+
+        do {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let store = SwiftDataAssistantChatCollaborationStore(
+                context: ModelContext(container))
+            try store.save(requested)
+            try store.save(unrelated)
+        }
+
+        let reopened = try TermindPersistence.makeContainer(url: url)
+        let restored = SwiftDataAssistantChatCollaborationStore(
+            context: ModelContext(reopened))
+        let relations = try restored.creationRelations(
+            conversationIDs: [requested.conversationID, UUID()])
+
+        #expect(relations == [requested.conversationID: requested])
+    }
 }

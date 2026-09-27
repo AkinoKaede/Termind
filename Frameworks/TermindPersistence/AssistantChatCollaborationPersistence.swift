@@ -40,6 +40,14 @@ public final class PersistentAgentConversationOrigin {
         sourceRunID = value.sourceRunID
         sourceToolCallID = value.sourceToolCallID
     }
+
+    public var value: AssistantChatCreationRelation {
+        AssistantChatCreationRelation(
+            conversationID: conversationID,
+            sourceConversationID: sourceConversationID,
+            sourceRunID: sourceRunID,
+            sourceToolCallID: sourceToolCallID)
+    }
 }
 
 @Model
@@ -165,6 +173,20 @@ public final class SwiftDataAssistantChatCollaborationStore: AssistantChatCollab
         else { return }
         context.insert(PersistentAgentConversationOrigin(relation))
         try context.savePendingChanges()
+    }
+
+    public func creationRelations(
+        conversationIDs: Set<UUID>
+    ) throws -> [UUID: AssistantChatCreationRelation] {
+        guard !conversationIDs.isEmpty else { return [:] }
+        let context = ModelContext(container)
+        let ids = conversationIDs
+        return Dictionary(
+            uniqueKeysWithValues: try context.fetch(
+                FetchDescriptor<PersistentAgentConversationOrigin>(
+                    predicate: #Predicate { ids.contains($0.conversationID) })
+            ).map { ($0.conversationID, $0.value) }
+        )
     }
 
     public func deleteRelation(conversationID: UUID) throws {
