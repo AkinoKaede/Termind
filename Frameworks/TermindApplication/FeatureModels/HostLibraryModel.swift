@@ -1864,9 +1864,21 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// POSIX-shell quoting for a single argument. Common SSH punctuation stays
     /// readable; everything else uses single quotes without losing apostrophes.
     private static func shellQuoted(_ value: String) -> String {
-        let safe = CharacterSet(
-            charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_@%+=:,./-")
-        if !value.isEmpty, value.unicodeScalars.allSatisfy(safe.contains) { return value }
+        // Keep this an explicit byte loop: the Release build has miscompiled
+        // the CharacterSet.contains method reference passed to allSatisfy.
+        var requiresQuoting = value.isEmpty
+        for byte in value.utf8 {
+            switch byte {
+            case 0x30...0x39, 0x41...0x5A, 0x61...0x7A:  // 0-9, A-Z, a-z
+                continue
+            case 0x5F, 0x40, 0x25, 0x2B, 0x3D, 0x3A, 0x2C, 0x2E, 0x2F, 0x2D:  // _@%+=:,./-
+                continue
+            default:
+                requiresQuoting = true
+            }
+            break
+        }
+        if !requiresQuoting { return value }
         return "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
     }
 

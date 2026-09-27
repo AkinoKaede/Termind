@@ -200,9 +200,10 @@ struct PortForwardingFeatureTests {
             hosts: [jump, destination], identities: [identity, destinationIdentity]
         )
         let command = store.sshCommand(for: rule)
-        #expect(command?.contains("-J deploy@jump.example") == true)
-        #expect(command?.contains("-p 2222") == true)
-        #expect(command?.contains("-L 127.0.0.1:15432:db.internal:5432") == true)
+        #expect(
+            command
+                == "ssh -N -L 127.0.0.1:15432:db.internal:5432 -J deploy@jump.example -p 2222 root@destination.example"
+        )
 
         jump.proxy = HostProxy(kind: .http, hostname: "proxy.example", port: 8080)
         let proxiedStore = HostLibraryModel(
@@ -228,32 +229,74 @@ struct PortForwardingFeatureTests {
         )
 
         let command = store.sshCommand(for: destination)
-        #expect(command?.contains("-J 'deploy@[2001:db8::10]:2200'") == true)
-        #expect(command?.contains("-p 2222") == true)
-        #expect(command?.hasSuffix("'root@destination host'") == true)
+        #expect(command == "ssh -J 'deploy@[2001:db8::10]:2200' -p 2222 'root@destination host'")
 
         let dynamic = PortForwardingRule(
             hostID: destination.id, kind: .dynamic,
             bindHost: "::1", bindPort: 1080
         )
         #expect(
-            store.sshCommand(for: dynamic)?.contains("-D '[::1]:1080'") == true
+            store.sshCommand(for: dynamic)
+                == "ssh -N -D '[::1]:1080' -J 'deploy@[2001:db8::10]:2200' -p 2222 'root@destination host'"
         )
     }
 
-    @Test
-    func sshCommandDoesNotQuoteExecutableOrOrdinaryLoginAddress() {
-        let identity = Identity(name: "Deploy", username: "deploy-user")
+    @Test(arguments: [
+        ("root", "192.236.229.190", 22, "ssh root@192.236.229.190"),
+        ("deploy-user", "192.0.2.10", 22, "ssh deploy-user@192.0.2.10"),
+        ("deploy-user", "server.example", 2222, "ssh -p 2222 deploy-user@server.example"),
+        ("root", "2001:db8::10", 22, "ssh root@2001:db8::10"),
+        ("", "server.example", 22, "ssh server.example"),
+        ("USER_1%+=:,./-", "server.example", 22, "ssh USER_1%+=:,./-@server.example"),
+    ])
+    func sshCommandDoesNotQuoteExecutableOrOrdinaryLoginAddress(
+        username: String, address: String, port: Int, expected: String
+    ) {
+        let identity = Identity(name: "Login", username: username)
         let host = Host(
-            name: "Documentation Server", host: "192.0.2.10",
+            name: "Server", host: address, port: port,
             identityID: identity.id
         )
         let store = HostLibraryModel(hosts: [host], identities: [identity])
 
-        #expect(
-            store.sshCommand(for: host)
-                == "ssh deploy-user@192.0.2.10"
+        #expect(store.sshCommand(for: host) == expected)
+    }
+
+    @Test(arguments: [
+        ("root", "server host", "ssh 'root@server host'"),
+        ("o'brien", "server.example", "ssh 'o'\"'\"'brien@server.example'"),
+        ("root", "$HOME", "ssh 'root@$HOME'"),
+        ("root", "server;whoami", "ssh 'root@server;whoami'"),
+        ("root", "[2001:db8::10]", "ssh 'root@[2001:db8::10]'"),
+        ("用户", "server.example", "ssh '用户@server.example'"),
+        ("", ";", "ssh ';'"),
+        ("", "$", "ssh '$'"),
+        ("", "*", "ssh '*'"),
+        ("", "'", "ssh ''\"'\"''"),
+        ("", "", "ssh ''"),
+    ])
+    func sshCommandPreservesShellQuoting(username: String, address: String, expected: String) {
+        let identity = Identity(name: "Login", username: username)
+        let host = Host(name: "Server", host: address, identityID: identity.id)
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
+
+        #expect(store.sshCommand(for: host) == expected)
+    }
+
+    @Test(arguments: [
+        ("operator", "console.example", "telnet -l operator console.example 2323"),
+        ("o'brien", "console host", "telnet -l 'o'\"'\"'brien' 'console host' 2323"),
+        ("$", ";", "telnet -l '$' ';' 2323"),
+    ])
+    func telnetCommandUsesTheSameShellQuoting(username: String, address: String, expected: String) {
+        let identity = Identity(name: "Login", username: username)
+        let host = Host(
+            name: "Console", host: address, sshEnabled: false, telnetEnabled: true,
+            telnetPort: 2323, telnetIdentityID: identity.id
         )
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
+
+        #expect(store.telnetCommand(for: host) == expected)
     }
 
     @Test
