@@ -2,6 +2,54 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum MCP {
+        public static var importServers: LocalizedStringResource {
+            "Import Servers"
+        }
+
+        public static var importUnreadableFile: LocalizedStringResource {
+            "Choose a readable MCP JSON file no larger than 1 MB."
+        }
+
+        public static var importInvalidDocument: LocalizedStringResource {
+            "The JSON file must contain an mcpServers object."
+        }
+
+        public static var importInvalidEntry: LocalizedStringResource {
+            "The server configuration is invalid."
+        }
+
+        public static var importUnsupportedTransport: LocalizedStringResource {
+            "Only remote HTTP and SSE servers can be imported."
+        }
+
+        public static var importUnresolvedVariable: LocalizedStringResource {
+            "Replace variable references with values before importing."
+        }
+
+        public static var importUnsupportedAuthentication: LocalizedStringResource {
+            "This authentication configuration cannot be imported. Use a Bearer Authorization header and non-secret custom headers."
+        }
+
+        public static var importSaveFailed: LocalizedStringResource {
+            "The server could not be saved."
+        }
+
+        public static var importSecretFailed: LocalizedStringResource {
+            "The server credential could not be saved."
+        }
+
+        public static var importSecretCleanupFailed: LocalizedStringResource {
+            "The server was not imported, and its new credential could not be removed."
+        }
+
+        public static func importedServers(_ count: Int) -> LocalizedStringResource {
+            "Imported MCP servers: \(count)"
+        }
+
+        public static func importEntryProblem(_ index: Int, _ reason: String) -> LocalizedStringResource {
+            "Entry \(index) skipped: \(reason)"
+        }
+
         public static var secondsSuffix: LocalizedStringResource { "s" }
 
         public static var destination: LocalizedStringResource {

@@ -64,7 +64,7 @@ struct MCPServerEditorPage: View {
                     headersSection(server)
                     toolsSection(server)
                     Section {
-                        Button(AppStrings.Settings.deleteServer.swiftUIKey, role: .destructive) {
+                        Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                             app.aiConfiguration.delete(serverID: serverID)
                             deleted()
                         }

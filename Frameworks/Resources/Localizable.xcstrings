@@ -5243,6 +5243,29 @@
         }
       }
     },
+    "Choose a readable MCP JSON file no larger than 1 MB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a readable MCP JSON file no larger than 1 MB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择可读取且不超过1 MB的MCP JSON文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇可讀取且不超過1 MB的MCP JSON檔案。"
+          }
+        }
+      }
+    },
     "Choose a valid Google service account JSON file smaller than 1 MiB." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10933,6 +10956,29 @@
         }
       }
     },
+    "Entry %lld skipped: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry %lld skipped: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已跳过第%lld项：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已略過第%lld項：%@"
+          }
+        }
+      }
+    },
     "Environment Variables" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13736,6 +13782,29 @@
         }
       }
     },
+    "Import Servers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Servers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入服务器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入伺服器"
+          }
+        }
+      }
+    },
     "Import Skill" : {
       "comment" : "A button that imports a skill.",
       "extractionState" : "manual",
@@ -13872,6 +13941,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "匯入自"
+          }
+        }
+      }
+    },
+    "Imported MCP servers: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported MCP servers: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已导入的MCP服务器：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已匯入的MCP伺服器：%lld"
           }
         }
       }
@@ -18223,6 +18315,29 @@
         }
       }
     },
+    "Only remote HTTP and SSE servers can be imported." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only remote HTTP and SSE servers can be imported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅支持导入远程HTTP和SSE服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅支援匯入遠端HTTP和SSE伺服器。"
+          }
+        }
+      }
+    },
     "Open" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22065,6 +22180,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取代權杖"
+          }
+        }
+      }
+    },
+    "Replace variable references with values before importing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace variable references with values before importing."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先将变量引用替换为实际值，再导入。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先將變數參照替換為實際值，再匯入。"
           }
         }
       }
@@ -26964,6 +27102,29 @@
         }
       }
     },
+    "The JSON file must contain an mcpServers object." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The JSON file must contain an mcpServers object."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON文件必须包含mcpServers对象。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON檔案必須包含mcpServers物件。"
+          }
+        }
+      }
+    },
     "The Jump Host route is invalid or exceeds eight hosts." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28769,6 +28930,75 @@
         }
       }
     },
+    "The server configuration is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server configuration is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器配置无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器設定無效。"
+          }
+        }
+      }
+    },
+    "The server could not be saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server could not be saved."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法儲存伺服器。"
+          }
+        }
+      }
+    },
+    "The server credential could not be saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server credential could not be saved."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存服务器凭据。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法儲存伺服器憑證。"
+          }
+        }
+      }
+    },
     "The server listens only on 127.0.0.1 and ::1. When enabled, client tool calls run without per-call approval." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28816,6 +29046,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伺服器傳送了無效的SSH標識。"
+          }
+        }
+      }
+    },
+    "The server was not imported, and its new credential could not be removed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server was not imported, and its new credential could not be removed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器未导入，且无法移除其新建凭据。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器未匯入，且無法移除其新建憑證。"
           }
         }
       }
@@ -29267,6 +29520,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此位址已有不同的受信任指紋，請確認新增此金鑰。"
+          }
+        }
+      }
+    },
+    "This authentication configuration cannot be imported. Use a Bearer Authorization header and non-secret custom headers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This authentication configuration cannot be imported. Use a Bearer Authorization header and non-secret custom headers."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法导入此认证配置。请使用Bearer Authorization请求头及不含机密信息的自定义请求头。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法匯入此驗證設定。請使用Bearer Authorization標頭及不含機密資訊的自訂標頭。"
           }
         }
       }

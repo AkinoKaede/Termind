@@ -3,11 +3,15 @@ import SwiftUI
 import TermindApplication
 import TermindInfrastructure
 import TermindPresentation
+import UniformTypeIdentifiers
 
 struct MobileMCPSettings: View {
     let ai: AIConfigurationModel
     let pro: ProAccessController
     @State private var adding: MCPServer?
+    @State private var importing = false
+    @State private var importReport: MCPImportReport?
+    @State private var importProblem: MCPImportProblem?
 
     var body: some View {
         List {
@@ -42,6 +46,7 @@ struct MobileMCPSettings: View {
             } footer: {
                 Text(AppStrings.Settings.connectToRemoteMcpServersOverHttp)
             }
+            MCPImportFeedback(report: importReport, problem: importProblem)
         }
         .navigationTitle(AppStrings.Settings.mcp.swiftUIKey)
         .toolbar {
@@ -50,6 +55,27 @@ struct MobileMCPSettings: View {
                     if pro.require(.remoteMCP) { adding = MCPServer(name: "", namespaceID: "") }
                 }
                 .labelStyle(.iconOnly)
+            }
+            MobileToolbarOverflow {
+                Button(AppStrings.MCP.importServers.swiftUIKey, systemImage: "square.and.arrow.down") {
+                    if pro.require(.remoteMCP) { importing = true }
+                }
+            }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            if case .failure(let error) = result,
+                (error as NSError).domain == NSCocoaErrorDomain,
+                (error as NSError).code == CocoaError.userCancelled.rawValue
+            {
+                return
+            }
+            guard pro.require(.remoteMCP) else { return }
+            importReport = nil
+            importProblem = nil
+            do {
+                importReport = ai.importMCP(try MCPImporter.read(result.get()))
+            } catch {
+                importProblem = error as? MCPImportProblem ?? .unreadableFile
             }
         }
         .navigationDestination(item: $adding) { MobileMCPEditor(ai: ai, pro: pro, server: $0) }

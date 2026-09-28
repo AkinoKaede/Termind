@@ -1,6 +1,9 @@
 import AgentKit
 import SwiftUI
+import TermindApplication
+import TermindInfrastructure
 import TermindPresentation
+import UniformTypeIdentifiers
 
 /// The "MCP" section: servers whose tools the assistant may call.
 ///
@@ -12,6 +15,9 @@ struct MCPSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (MCPServer.ID, Bool) -> Void
     let openServer: () -> Void
+
+    @State private var importReport: MCPImportReport?
+    @State private var importProblem: MCPImportProblem?
 
     var body: some View {
         Section {
@@ -33,6 +39,9 @@ struct MCPSettings: View {
                 edit(server.id, true)
             }
 
+            Button(AppStrings.MCP.importServers.swiftUIKey) { importMCP() }
+            MCPImportFeedback(report: importReport, problem: importProblem)
+
             Text(AppStrings.Settings.termindConnectsDirectlyFromThisMacOverHttp)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -50,6 +59,24 @@ struct MCPSettings: View {
             Text(AppStrings.Settings.mcp)
         }
     }
+
+    private func importMCP() {
+        guard app.proAccess.require(.remoteMCP) else { return }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard app.proAccess.require(.remoteMCP) else { return }
+        importReport = nil
+        importProblem = nil
+        do {
+            importReport = app.aiConfiguration.importMCP(try MCPImporter.read(url))
+        } catch {
+            importProblem = error as? MCPImportProblem ?? .unreadableFile
+        }
+    }
+
 }
 
 private struct MCPServerRow: View {

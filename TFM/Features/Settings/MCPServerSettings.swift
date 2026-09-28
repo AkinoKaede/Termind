@@ -141,7 +141,7 @@ struct MCPServerSettings: View {
                 ForEach(rows.prefix(200)) { row in ExternalToolCallRow(row: row) }
             }
             HStack {
-                Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) { confirmsHistoryClear = true }
+                Button(AppStrings.Common.clearAll.swiftUIKey, role: .destructive) { confirmsHistoryClear = true }
                 Spacer()
                 Text(AppStrings.Settings.toolAuditStorageExplanation)
                     .font(.caption)
@@ -152,7 +152,7 @@ struct MCPServerSettings: View {
             AppStrings.Settings.clearCallHistoryConfirmation, isPresented: $confirmsHistoryClear,
             titleVisibility: .visible
         ) {
-            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) { app.toolAudit.clear() }
+            Button(AppStrings.Common.clearAll.swiftUIKey, role: .destructive) { app.toolAudit.clear() }
             Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
             Text(AppStrings.Settings.thisPermanentlyRemovesAllSavedMcpCallRecords)
