@@ -827,8 +827,8 @@ private struct AgentUserInputCard: View {
 
             switch question.kind {
             case .secret:
-                RevealableSecretField(AppStrings.Keychain.secret, text: $conversation.secretInputDraft)
-                    .textFieldStyle(.roundedBorder)
+                RevealableSecretField(
+                    AppStrings.Keychain.secret, text: $conversation.secretInputDraft, appearance: .roundedBorder)
             case .choice(let choice):
                 choiceList(choice, in: question.id)
             case .text:

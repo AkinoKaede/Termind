@@ -274,8 +274,7 @@ private struct ExternalSecretRequestForm: View {
             if !request.purpose.isEmpty {
                 LabeledContent(AppStrings.MCP.purpose.swiftUIKey, value: request.purpose)
             }
-            RevealableSecretField(AppStrings.Keychain.secret, text: $secret)
-                .textFieldStyle(.roundedBorder)
+            RevealableSecretField(AppStrings.Keychain.secret, text: $secret, appearance: .roundedBorder)
                 .focused($isFocused)
             Text(
                 AppStrings.MCP.secretHandleExplanation

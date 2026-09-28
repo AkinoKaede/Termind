@@ -77,7 +77,7 @@ public struct SSHKeyboardInteractiveForm: View {
                         if challenge.prompts[index].echo {
                             TextField("", text: $answers[index])
                         } else {
-                            RevealableSecretField("", text: $answers[index])
+                            RevealableSecretField("", text: $answers[index], appearance: .roundedBorder)
                         }
                     }
                     .focused($focus, equals: index)

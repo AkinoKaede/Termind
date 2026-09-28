@@ -148,8 +148,10 @@ public struct SSHAuthenticationForm: View {
                 if needsPassphrase {
                     GridRow {
                         Text(AppStrings.Keychain.passphrase).foregroundStyle(.secondary)
-                        RevealableSecretField("Required for this connection", text: $passphrase)
-                            .focused($focusedField, equals: .passphrase)
+                        RevealableSecretField(
+                            "Required for this connection", text: $passphrase, appearance: .roundedBorder
+                        )
+                        .focused($focusedField, equals: .passphrase)
                     }
                 } else {
                     GridRow {
@@ -188,7 +190,7 @@ public struct SSHAuthenticationForm: View {
                         Text(AppStrings.Vault.password).foregroundStyle(.secondary)
                         RevealableSecretField(
                             prompt.isProxy ? AppStrings.Vault.required : AppStrings.Common.optional,
-                            text: passwordInput
+                            text: passwordInput, appearance: .roundedBorder
                         )
                         .focused($focusedField, equals: .password)
                         .disabled(selectedIdentityPasswordIsUnavailable)
