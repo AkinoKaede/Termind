@@ -138,8 +138,9 @@ struct MetricsKeyboardInteractiveTests {
         try await wait { server.keyboardAuthentication.current != nil }
         // A transport may cancel its responder independently of the monitor's worker.
         await fixture.sampler.cancelResponder()
-        try await wait { server.keyboardAuthentication.pending.isEmpty && !server.needsAttention }
-        #expect(server.journey.phase != .waiting)
+        try await wait { server.keyboardAuthentication.pending.isEmpty && server.journey.phase != .waiting }
+        #expect(server.needsAttention)
+        #expect(server.journey.phase == .failed(server.status))
     }
 
     enum Retirement: CaseIterable { case pause, remove, retry, configuration, suspend, shutdown }

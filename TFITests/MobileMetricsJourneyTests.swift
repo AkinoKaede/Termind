@@ -113,7 +113,6 @@ struct MobileMetricsJourneyTests {
         controller.traitOverrides.horizontalSizeClass = width >= 600 ? .regular : .compact
         controller.view.frame = frame
         controller.view.setNeedsLayout()
-        controller.view.layoutIfNeeded()
     }
 
     private func descendants<T: UIView>(_ type: T.Type, in view: UIView) -> [T] {
