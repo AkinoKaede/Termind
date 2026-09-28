@@ -3,9 +3,6 @@ type: implementation workflow
 title: "Port Forwarding: Multi-Connection Pool and Flow Dispatch"
 description: "Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
 sources:
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
@@ -17,6 +14,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
+  - id: openwiki-source-db40aa993661b07f1a9aff6d
+    resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-dc9295278cc250ed20567540
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -25,7 +24,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # Port Forwarding: Multi-Connection Pool and Flow Dispatch
@@ -140,7 +142,7 @@ Auxiliary retry delays are **1, 2, 5, 10, 30 seconds**, capped at 30. A publishe
 
 Whole-context recovery is a separate path. The controller only recovers after a rule has made the context ready (`markConnected`) and a reusable snapshot exists. It closes the old transport, hides the Journey, marks remaining intent reconnecting, and delegates delay handling to `SessionReconnectController`. It waits for prior Host cleanup before opening the replacement and reinstalls the still-active rules. A listener-local failure can fail that rule without erasing peers' recovery intent.
 
-The first connect may ask for host trust/credentials. Recovery and auxiliary opens use `SSHAdditionalConnectionSnapshot` and requests with interaction forbidden. The controller captures the snapshot after successful interactive connection, removes one-shot submissions and temporary host keys, and supplies a resolver for later physical opens. “Continue once” trust, temporary passwords and key passphrases are not reusable recovery authority; needing them ends silent recovery/degrades the pool instead of reopening a form. An explicit Retry is the new interactive boundary. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md).
+The first connect may ask for host trust/credentials or Security Key signing. Recovery and auxiliary opens use `SSHAdditionalConnectionSnapshot` and requests with interaction forbidden. The controller captures the snapshot after successful interactive connection, removes one-shot submissions and temporary host keys, and supplies a resolver for later physical opens. “Continue once” trust, temporary passwords, key passphrases, and Security Key presence are not reusable recovery authority; needing them ends silent recovery/degrades the pool instead of reopening a form. An explicit Retry is the new interactive boundary. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) and [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md).
 
 ## Teardown ordering and stale-result guards
 

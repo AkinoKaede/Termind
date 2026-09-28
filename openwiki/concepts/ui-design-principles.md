@@ -3,9 +3,6 @@ type: design guide
 title: UI Design and Shared Presentation
 description: Source-backed guide to native desktop and mobile navigation, reusable localized presentation, accessible controls, and continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -149,7 +146,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # UI Design and Shared Presentation

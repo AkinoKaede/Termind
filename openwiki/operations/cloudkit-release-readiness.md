@@ -3,9 +3,6 @@ type: release-readiness
 title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -45,6 +42,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV28HostModels.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
+  - id: openwiki-source-a153678761b3ebd758e34634
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV44HostModels.swift
+  - id: openwiki-source-33f99816db979bf169f1eab5
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-d785833dd230253fdc4946d7
@@ -75,7 +76,10 @@ sources:
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # CloudKit Release Readiness
@@ -160,12 +164,12 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared **V42** schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared **V45** schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["V28 to V30 to V31 to V34 to V42"]
+    Factory --> Local["V28 to V30 to V31 to V34 to V45"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -176,7 +180,7 @@ The checked-in `V28.store` was generated against the historical Persistence buil
 
 ## First-stage mixed-version safety
 
-V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. A V40 notification-preference upgrade and a V41→V42 disk upgrade are separate checks from the V28 fixture: the latter retains existing Host groups and begins with empty collaboration sidecars. These local migrations are separate from deploying CloudKit record types, including `NotificationPreferencesItem`.
+V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model. A V40 notification-preference upgrade and a V41→V42 disk upgrade are separate checks from the V28 fixture: the latter retains existing Host groups and begins with empty collaboration sidecars. These local migrations are separate from deploying CloudKit record types, including `NotificationPreferencesItem`.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
 

@@ -3,14 +3,15 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-db40aa993661b07f1a9aff6d
+    resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -49,7 +50,12 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+  - id: openwiki-source-402244fee941f965f41388e4
+    resource: repo://TFMTests/WebAuthnSSHTests.swift
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # Termind Engineering Quickstart
@@ -68,6 +74,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connection/routing changes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI changes. |
 | Shared UI conventions, fields, tokens, accessibility | [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md); check platform renderings and `ArchitectureBoundaryTests`. |
 | SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
+| SSH Security Key registration, FIDO2/WebAuthn signing, Vault metadata, or forwarding limits | [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md); use `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, and `SSHInteractionPolicyTests` for the changed boundary. |
 | Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. |
 | SFTP browsing, transfer scheduling, external edit | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md); select the transfer, conflict, or edit suite. |
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](/openwiki/concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools, or memory tests. |
@@ -86,7 +93,7 @@ In Debug XCTest runs, the **real desktop app** still launches. By default it sup
 
 Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback. Use [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
 
-AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.16.0` or later within the next major version; `Package.resolved` pins **`0.16.0` at revision `f78416b2b8523d09950872b96f0de841e2d704e8`**. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
+AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 
 ## Focused validation
 

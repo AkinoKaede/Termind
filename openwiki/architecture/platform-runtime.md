@@ -3,9 +3,6 @@ type: architecture
 title: Platform Composition and Lifetimes
 description: How macOS and iOS compose shared persistence and runtime services, separate app-wide from window and scene state, and handle sync, backgrounding, startup failure, and shutdown.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -89,7 +86,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # Platform Composition and Lifetimes

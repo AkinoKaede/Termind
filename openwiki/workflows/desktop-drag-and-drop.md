@@ -55,7 +55,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
 ---
 
 # TFM Drag and Drop

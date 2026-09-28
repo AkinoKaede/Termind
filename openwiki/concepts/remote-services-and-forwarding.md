@@ -3,9 +3,6 @@ type: Remote service ownership
 title: Remote Services and Forwarding
 description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and forwarding, including saved intent versus live connections and authentication.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
     resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
@@ -69,11 +66,14 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 
-SSH is a shared transport substrate, not a single shared runtime. Terminal sessions, Metrics, port forwarding, SFTP, and Agent work can all use SSH, but each feature owns its own intent, connection lifetime, interaction surface, and recovery policy. Saved Hosts, forwarding rules, and Metrics selections describe intent; live sampler connections, authentication prompts, and forwarding listeners are not restored as connected runtimes. Explicitly saved identities or remembered host keys can be used on a later connection, unlike a one-time approval or an unpersisted submission. See [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for the general connection journey and [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for Agent-specific transport ownership.
+SSH is a shared transport substrate, not a single shared runtime. Terminal sessions, Metrics, port forwarding, SFTP, and Agent work can all use SSH, but each feature owns its own intent, connection lifetime, interaction surface, and recovery policy. Saved Hosts, forwarding rules, and Metrics selections describe intent; live sampler connections, authentication prompts, and forwarding listeners are not restored as connected runtimes. Explicitly saved identities or remembered host keys can be used on a later connection, unlike a one-time approval or an unpersisted submission. See [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for the general connection journey and [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for Agent-specific transport ownership. For hardware-backed SSH credentials and their interaction boundary, see [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md).
 
 ## Implementation deep dives
 

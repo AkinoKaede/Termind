@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:80ab32ca1d122ef9302e39e1dcbc49e577b2fe0ec108fc2ab6429a6e0b6099e6",
+  "pageVersion": "sha256:575a00b94e7e62c8683fe1d1849d59d6addd6ccf4bda64743e30b9b87ddba035",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -26,7 +26,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:12bef704f9ce9425690b05c6ba3dde2d636cfce17fb0c1d44f661881bdb256be"
+          "version": "repo-file-v1:sha256:a9131cb60a8e10611ab2075cd25b5cc501ccd15ad6a7d211092c321d6e32d3a2"
         }
       ]
     },
@@ -132,33 +132,37 @@
     },
     {
       "id": "claim_963e67af43b241f1aa2a7613820c344d",
-      "statement": "SSH interaction-policy tests require forbidden requests to fail rather than show host-key or keyboard-interactive UI; additional connection snapshots retain references instead of credential material, and clearing a connection configuration consumes secret values shared by copies.",
+      "statement": "SSH interaction-policy tests require forbidden requests, including Security Key authentication, to fail without showing host-key or keyboard-interactive UI; additional connection snapshots retain references instead of credential material, and clearing a configuration consumes secret values shared by copies.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L189-L245",
-          "version": "repo-lines-v1:sha256:7560898a835debb386dd98996192ebafa3389f3d48f2cd0b5a267cc86462601d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiNTQ3M2I0ZTBlYmEyN2Q2ZjAwMzFjMDIzMmFlOTZlNzcyNTkwMTA1MmY1ZGE2MGY3NmNjOWIwYzY4NjMzOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjZWViYzViMDE1M2Q4MGZiNGU0MjFhN2EzMWE4MzQ3OWQ0Yjg0NzVlZTYyOWI2NmZlZGIzNzc2MjY3NDVlNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L231-L266",
+          "version": "repo-lines-v1:sha256:a5b636151cfb2665ab9614e23a23f9c9e6f7c26b348f5d4d08644270f0391676:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxZTY4ZGZhMzEyZmNiOWU2ODMxOTAzN2Q0YzA1YTBmOTJhYzk0OWJiMDdjNTVhMmYyM2RmNjRmOWU4NGM1YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         },
         {
-          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L38-L71",
-          "version": "repo-lines-v1:sha256:05cb17904112816b584ad40075ff219adebb2bf83efc9e83a8d0fde061ad8413:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlZTFiYmIzYjViOTY4OTgxM2EwYzMwOGQxZjcxZjQ0NTU3YzI4MjM5NjdhMzVkYzcwNzAzYjNmOGEyNWE0YmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMDZlODhkZWJhNDhkYjBjNDA1YWQyZWZmODEzZGE4N2MzOTY4N2QwZjczNzQxY2U0NGQyODBhNGQyNmYyNDAifQ"
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L65-L91",
+          "version": "repo-lines-v1:sha256:6459e6bac951480fd8e8246440a1d49d8fe7ff20b9c133ad4bee55aae0175741:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNmMxNDI2NTNkMDJjZGI1ODU5NDU1NTVmNjgxYTU1OWI4ZTY0MzQ5ZjVlMmZmMjAxNjBlNWUyZTU3MDIxZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmNDZhNTRmNWU4YzdhNjdmNWFmNTRiZTczYzJhOGVmMDkwOTkzNGJjNjg5ZGM2MzAyZmU1MzBhNGMyYzE1MWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1NzcyOWNiMzY0MWNmYmZhOGNjYzI4ZDc1Yzk1YTQ2YTA2ZTA3ZjUzZGQzOGJmM2RkMWViOTcyNzMwNDc0ZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmOGRiOGFkODYyNGJlNDU4MjFjMzUxNDAxZGRkYzQ0NTQxZTJlNWJmMThmOWM1ZGJhNDdmMDQ3ZjI2YjBiYjMifQ"
         },
         {
-          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L8-L36",
-          "version": "repo-lines-v1:sha256:1adf4e9a2b0623e9514f4c2d05cdf676c9b57fa07e5442e4c85324de3346383b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkNjFkNmE5MGI4ZTQzMWQyODM5MjFhZWY5ZTk5ODdlZjI5ZThmNWFkZmMwM2I0YjkzZjI5YWUzMjBiM2JmZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3M2I2N2JlNzFjZGFhMTVmNGY2MDZlOWIzNjAzZmNjMTkzZGU3ZWIzNzhmNWY1OWJhNjQ5ZDY0NGEyYWY4NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlMDVlZjQ5Yjg1NTY2ZGIwM2JjNTNlMTM2MDljZTM2MDYyOTk0NTc5OTAyYWUwNTUwYzJhZTEwNGEzNDY4MGEifQ"
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L8-L62",
+          "version": "repo-lines-v1:sha256:b127de5178824e95cee873d64984aecdb76e38e622cb3e018e9f500ec7de3d80:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5YTllMGNkZTFmOWY0ZmQ1NzZlOTgyZWNjOTdlMDZiYjQ4ODAxNzAwMjczYTRmY2U0NTQ3ZjI3YmRlOTdhNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwZDhiNTMwNjI4YjhjN2QzZjAzMTI2YmFiNmQyMjU0YzAwOGNmYzI1ODk4NjUwYTA5MDgwMzM3ZjI5OTEzNmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3M2I2N2JlNzFjZGFhMTVmNGY2MDZlOWIzNjAzZmNjMTkzZGU3ZWIzNzhmNWY1OWJhNjQ5ZDY0NGEyYWY4NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExNDAyNjFjZTU5NWM5OTNhNDNjODgzZjNhZmU0NDljOWVkNzljZDI4NWU4MzRjNzViNDZmZTNjMTZjMGQ0MTQifQ"
         }
       ]
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credential references, environment order, snippets, Known Hosts, history and installation-ID backfill; V1/V14, V25/V26/V27/V30/V31 and V35 historical stores are also covered, while the migration plan now ends at V42 and omits V29/V32/V33.",
+      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credential references, environment order, snippets, Known Hosts, history and installation-ID backfill; V1/V14, V25/V26/V27/V30/V31 and V35 stores are also covered, while the migration plan now ends at V45 and omits V29/V32/V33.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
           "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L903-L918",
+          "version": "repo-lines-v1:sha256:1f612aa0c1f2dd63aceb36ed869f493c27e951db332a58f00b304dab2122afd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNzk1MjlmZjBiMjRmN2MwNTM4MTExYmNlNjU4YjgwNTljOWFiN2VmNDkzZDc5OGU4NzFkNGNlZDc1ODJiZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L7-L21",
+          "version": "repo-lines-v1:sha256:d12fa7880ad3621b71b756c1358f151043e0a01324a507561a26c7dc95409315:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZTU1YzFlYWFlZWYyY2MxOGQ3ZGY4OTgwYzEyZTdiODJhZWM4ZTk4YWVlNDExZDA3YzQ4N2JmNmZiODM0MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjNTIxZDM3YTVmNjdlYjQ4N2U2MmQ2MzEzM2E5YzNiZTc5Y2FjNzhjOTI1NGQ2ZTlhNmExOGYwNjYzZjFhM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
     },
@@ -206,7 +210,7 @@
     },
     {
       "id": "claim_eb35f30233ca461cb7de961bbe793326",
-      "statement": "Disk-backed safety tests migrate synthetic V30 and V39 stores into the V42 schema via V40 retirement of per-category quarantine tables, retaining groups and current scoped quarantine and cloud-presence state; interrupted fetches reopen with original quarantined bytes, recovery fencing and pending local intent while a compatible peer remains eligible. Lifecycle tests cover persistence/lookup failures, retired engines, overlapping callbacks and recovery gating without claiming live CloudKit delivery; the migration fixtures do not assert import of retired per-category quarantine payloads into scoped quarantine.",
+      "statement": "Disk-backed safety tests migrate synthetic V30 and V39 stores into the current V45 schema via V40 retirement of per-category quarantine tables, retaining groups and current scoped quarantine and cloud-presence state; interrupted fetches reopen with quarantined bytes, recovery fencing and pending intent while a compatible peer remains eligible. Lifecycle tests cover persistence failures, retired engines, overlapping callbacks and recovery gating without claiming live CloudKit delivery.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
@@ -214,11 +218,11 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:ca11db5c596551b5627e8c258d0d684528386f4d7f2488cb46e5b2c9ea44065a"
+          "version": "repo-file-v1:sha256:8fbc93232daeebb755f824827f96a5e2f72f51170f94d51e0a0475b72b911c4a"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L903-L918",
+          "version": "repo-lines-v1:sha256:1f612aa0c1f2dd63aceb36ed869f493c27e951db332a58f00b304dab2122afd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNzk1MjlmZjBiMjRmN2MwNTM4MTExYmNlNjU4YjgwNTljOWFiN2VmNDkzZDc5OGU4NzFkNGNlZDc1ODJiZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
         }
       ]
     },
@@ -306,7 +310,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:a81448d72c5af34edadf02165ead1e1a1d45aca0c6f11675befbe6305a2eaa02"
+          "version": "repo-file-v1:sha256:8b5ea9761103492b55e8d0af2bc31dac93a73b40ff7b930168a790bfac345444"
         }
       ]
     },
@@ -536,7 +540,7 @@
         },
         {
           "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift#L9-L98",
-          "version": "repo-lines-v1:sha256:13652e2793f61f529c8ae77d79802473aa770f337cafb69d1030f141d74bd186:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczZDk5ZjE3NjMwMDA2YWQzZDdmNTdiOWMwODUwM2M5N2Y5ZmJmY2I2YzU3YWQ4NGVlNzJiYzI1N2E5Nzc4ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzMjFhMGQ0YjZjMjJhZjE1YmUyNmMyMzc3MDZmOWYyOTJmZWNiY2VkODcxZGM5MzFhOGQ5Y2I4NzhkNDRiZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "version": "repo-lines-v1:sha256:d75eb2a095e9e30d8eabdcd91e0f4584e66517d701fae4b1a7af02940de9b2fa:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczZDk5ZjE3NjMwMDA2YWQzZDdmNTdiOWMwODUwM2M5N2Y5ZmJmY2I2YzU3YWQ4NGVlNzJiYzI1N2E5Nzc4ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzMjFhMGQ0YjZjMjJhZjE1YmUyNmMyMzc3MDZmOWYyOTJmZWNiY2VkODcxZGM5MzFhOGQ5Y2I4NzhkNDRiZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     },
@@ -610,7 +614,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
+          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -656,7 +660,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:c9455a4625143327d67e3497bb959fa6b55c4a1f5d778adc23ec347b75054d2d"
+          "version": "repo-file-v1:sha256:b38e4443ead4eeb77b019f9e30c9988cdcbb0847ae5afe79b73d90d16a614e81"
         }
       ]
     },
@@ -686,7 +690,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:ca11db5c596551b5627e8c258d0d684528386f4d7f2488cb46e5b2c9ea44065a"
+          "version": "repo-file-v1:sha256:8fbc93232daeebb755f824827f96a5e2f72f51170f94d51e0a0475b72b911c4a"
         }
       ]
     },
@@ -696,17 +700,17 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
+          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
-          "version": "repo-file-v1:sha256:214281899d17158f45c67314a1f30f0676b67a18830f3942d7602e7f3be92b63"
+          "version": "repo-file-v1:sha256:7b75ad28d49a22e0e27dce5fdbb3815c1b5d0436d73a94ef3cfccc6f3cecd91c"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-27T22:47:06.500Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }

@@ -50,8 +50,8 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
 generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
 verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T17:55:27.475Z
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 ## Scope and operating model

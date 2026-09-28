@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c08b165bce717919b7ccaaa69d29d493e23656774500e69990c2c790e10b57d9",
+  "pageVersion": "sha256:59455b689c50beb4fd2c610a5a258b4721610f5fac11ba24eb8be0d2ffe14c72",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -308,7 +308,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L3-L53",
-          "version": "repo-lines-v1:sha256:7ff8dd87f88bcb729e58ad4a7d8ee8d659c0f328fe2516fe662bf8154df72f65:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmNDVkYWRlNWNlN2MzYjQ5NzQxYjc4NmY5OTdkMmI0NzMxOGQ5MTc2Y2IzNWM0Njk2NDYwYTBiZTA4NTM0MWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzODQxYjZlNTliZDU4M2MxY2YyMzMyOThhZDUyMTEwYjhiNzJjMDBmNzhiYjc3ZTVjYjdjM2E3MjY5ZDViNTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "version": "repo-lines-v1:sha256:735076cdb3e2302a57a1573903e1724dc2b64d30af2d191ee6f762fe0c842167:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmNDVkYWRlNWNlN2MzYjQ5NzQxYjc4NmY5OTdkMmI0NzMxOGQ5MTc2Y2IzNWM0Njk2NDYwYTBiZTA4NTM0MWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzODQxYjZlNTliZDU4M2MxY2YyMzMyOThhZDUyMTEwYjhiNzJjMDBmNzhiYjc3ZTVjYjdjM2E3MjY5ZDViNTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L480-L496",
@@ -408,15 +408,11 @@
     },
     {
       "id": "claim_16ad59a234184f1e803b341427176e24",
-      "statement": "Local Host schema migration is independent of cloud format; VaultWireV1 freezes legacy Host SSH keys/defaults behind domain adapters and shipped Vault, History and Device writers remain V1.",
+      "statement": "Local Host schema migration is independent of cloud format; VaultWireV1 freezes legacy Host SSH keys and defaults, VaultWireV2 adds Host forwarding and SSH Key hardware references, and native History and Device writers remain V1.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237",
-          "version": "repo-lines-v1:sha256:4b2ac98abba920faf06cef79f740c5b6864c856575246aaf15367da8938b210b:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkZmY4ZDRjNGJlMTRmZDZjZjc4YmQ1ZmI2N2JkNTNkNGVjZWI0MTljNjVhMzFhNWQ2OTQ3NzA2OWE2Y2ExMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZjBmY2E5ODUzMjVjMDQ5ZTY0ZWE5ZmE2MTE3ZjI4NjY0YTcxNzlkMGY2NWEyNjRiNTcyOGNiMTg5NTA4MTIifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
-          "version": "repo-file-v1:sha256:cbb90c38d2a457e28e69f23a57ce8d4d1ff96aabcba14342e65119ebb9c18e7b"
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L43-L52",
+          "version": "repo-lines-v1:sha256:cc6c15c9d7245e49edf83b0635784009482842ce5c2d0fe1db28cd10a2d02a36:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MzM0MzJjYzY5MDA4N2VkYmUxYjFhNzI3NWQxZjliMGJmM2FhZmI0YmY1MTBiMDQzZDZkYTQxYTRkNjhiNmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2NTRkZjUyMTEyMzAwZGIxOTZkNDMyODdlMWZkMTk2YTZkYzgxNjk5NGJhNjI4ZDBjZGUxOWQ5YTUwMzU1ZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjNWM4NzM5YTdjYjllNjFiZmMxOTk0OGVhNWMzOWNmMTg1NmM4ZmIyMmRkM2FhODMwNzkzODkxMzIwNjE4NWQifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
@@ -425,6 +421,10 @@
         {
           "resource": "repo://Frameworks/TermindPersistence/VaultWireV1.swift",
           "version": "repo-file-v1:sha256:5621a5ebc506c3bcb6c6883799663554568229f7a918b37db507566850a98978"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L4-L20",
+          "version": "repo-lines-v1:sha256:7e7f239e2d23e253c9dc1ffd902e8de49a3082709f22d2542ebf386a761656a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3M2NjYTk5MjdmMmZiYjE5OWQ2YjQ5ZTU0ZmU0NDcyYWJiYWE2YjZjMjFhOTEyYTljZDBhY2YwNGE4YzMyMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwN2RjNjUyNzA3NTIxNmQ2ZWRjM2M5ZGQ4ZDgzYzFlNGIxN2IzYjU5Nzc1ODk5NjI2NGQ2ZGQ0ZTc5ZjI0M2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljZmI5MTRhNGNkZDQ1ZmQxMzhhNjIwOWM3OTZlZDFjNTk4MTEyNmE5Yjc5ZjYyNzRlY2ZlNjI4YzcwOGVlN2YifQ"
         }
       ]
     },
@@ -440,19 +440,23 @@
     },
     {
       "id": "claim_15bcc75226d24342a84b69235ca1944a",
-      "statement": "SyncRecordFormats declares per-kind read/write versions, with frozen Vault V1 DTOs and native History V1 fields; test-only Host V2 proves independent evolution. Record identity prefixes do not follow format upgrades, and encoding failures throw.",
+      "statement": "SyncRecordFormats declares per-kind read/write versions: current Vault Host and SSH Key writers use V2 with V1 readers, other Vault kinds and native History/Device remain V1, and a test-only Host V3 proves independent evolution. Record identity prefixes do not follow format upgrades, and encoding failures throw.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift",
-          "version": "repo-file-v1:sha256:ff69b127ab37112b5a84ed954a5b271de828d28ea1370c1f53e423c6ff7b74cb"
+          "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift#L26-L99",
+          "version": "repo-lines-v1:sha256:3961fe1421ca0090d7515439da5dc8bcbd4d9ecbef13750e918ad1a98f74ef45:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5YjBiNjUzODA4ZmE2NjU2ZDQ5MTg3MGJmZmUzODQ0M2I0YzhhNmFlMjE1ZTZiMGVjMjY0NDc0MGY3MjlmZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
-          "version": "repo-file-v1:sha256:cbb90c38d2a457e28e69f23a57ce8d4d1ff96aabcba14342e65119ebb9c18e7b"
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L3-L52",
+          "version": "repo-lines-v1:sha256:38c5acb5bf963272cc296319816fcfc4227ffb022fbb3ae98d4dacf70395c2d4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmNDVkYWRlNWNlN2MzYjQ5NzQxYjc4NmY5OTdkMmI0NzMxOGQ5MTc2Y2IzNWM0Njk2NDYwYTBiZTA4NTM0MWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MzM0MzJjYzY5MDA4N2VkYmUxYjFhNzI3NWQxZjliMGJmM2FhZmI0YmY1MTBiMDQzZDZkYTQxYTRkNjhiNmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjNWM4NzM5YTdjYjllNjFiZmMxOTk0OGVhNWMzOWNmMTg1NmM4ZmIyMmRkM2FhODMwNzkzODkxMzIwNjE4NWQifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
           "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L165-L198",
+          "version": "repo-lines-v1:sha256:d3c54ab01900122469cc655c84ea2a651dd8b039a400190182cac0f6043c7d9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NjIxM2IwNTc1MjY4MDE1MGEwYjBiNTRmMmZkMzkyYjgxZTI1M2I4Zjk2ZjMwZTNlYzAzOGQzMmExYTY2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MTQ2ZDg2MDlhZDA4ODZkM2ViOWI4OGIwNmQyMTE5YmE2MDJjYzQxMGMwYjUzMDJjZTBiZTU2ZTVmMmI2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
     },
@@ -640,7 +644,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-27T22:47:06.500Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }

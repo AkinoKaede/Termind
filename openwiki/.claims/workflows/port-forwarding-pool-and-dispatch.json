@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9244f1bae4c911019a9394307c4876a9e5b71ccc4a6ffc9d289d7fdd6eca9e42",
+  "pageVersion": "sha256:1b8cb579112536089a3db68bc8bdabb01c681f19d37937f991663cffa98b3a2c",
   "claims": [
     {
       "id": "claim_a66f64ff267243989e5b4bbc103576dd",
@@ -102,19 +102,23 @@
     },
     {
       "id": "claim_efa9fe77322e415cb33d13e3d063049d",
-      "statement": "Whole-context forwarding recovery requires prior readiness and a reusable snapshot, waits for old cleanup, restores surviving rule intent silently, and ends automatic recovery on interaction/trust/authentication requirements.",
+      "statement": "Whole-context forwarding recovery requires prior readiness and a reusable snapshot, waits for old cleanup, restores surviving rule intent silently, and ends automatic recovery on interaction, trust, or authentication requirements.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L419-L497",
-          "version": "repo-lines-v1:sha256:5160ac502b9efb0eb2529c6182590ceee555f618bbf35b2d9f2aae716c6f19ed:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzYTdlMGU5NDg5YzFkMTU2YjI3YWNkYzNiYjM5YWY1ZDY4NmE2ZjQ4NzdiMDVhZjg1MDNhODFmNzRkMDYwODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyODM3NTllNTM5NmZkMGM3ZmQ2Yzc1Yjg2ODgzYWExZWQ5Y2M0NTk3M2U4Zjc4YTdhNTVkNGUyYzIxZTRlNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmMDhjNWRjY2E2YmU3YTc5ZWIyYWY1MjI0N2QwNWJkMjMyMTA2ZjA2MmRmZDI5MTBlMjA0NTVmMDk4YWRiY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZThkMTM3ZmE0NGFjNjY0OGIzYTRhNmY1NmY1MGJhYmE2NzczNDE0NWQwNDc0YTRlNTU1Njk3ZmQyNmJlYzgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L424-L500",
+          "version": "repo-lines-v1:sha256:1aea645705aa31c2f5758c83a3baf487b822d43e202cb4fdf81d60732dc23dc8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZDY5M2Y2YTc5Y2JlOWUyNGYyMDExOTU5YTQ4NGZlMDA1ZGNiODk1NDQ4OTI1NzA4NWJiZDI4YjBlYzIxYTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjYjA4NDBmYjRkMDE3ZjcyYWM0OGY1ZjZiNDM5YzEwY2M0YjgwMjAzYjRjN2RkM2Y3ZGUyZGQxN2QyNzBkYzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyYTc5MDA1ZTY3NmI0YWEyYTBhYTRmMGQzZjk5MDU2N2U1M2NkN2Q4ZGM4OTg3ODZjMGVmMjJiNDViMDNiZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5OTQyNTRlYzYwYzlkZWQ3OTgxNmQ4ODcwNWZjODlhYWI2YzJiMjA5NDU2MzY2YmY5ZTQ5YzJlYjI1ZDQxZmQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L570-L687",
-          "version": "repo-lines-v1:sha256:622f9bfdcebe8935be7616d6686e66682ccb351b750eeaab6705dfba8932cb0a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYzc2MzZkMTFkOTA0MjI2NzlmZDUzOTI4ZGUyZGZmNWRkNjdjODE0M2E4ZWE3NDcxYTdjOGJhMzlmNWMyYzgyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMDc3ODFiZWI1Yjc2Nzc1YTE0OWNkYWMxYjYwOWJjNDAyM2NmZWQ5NWNjMDE3NDQzNjgwMTZmZmYzZjQ2Zjg0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L599-L630",
+          "version": "repo-lines-v1:sha256:5ab814ecee02921a6092258e63325aaf6295750b86e3c96f8eedd1b531a17d28:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmNTU0NjljZTFmZmMxMDZkZGIxYzBkZTI4MzE2ZjJlMTMxMjNjYzUwZWFmZmIxZTZiODYzMjNhNTI3ZmI1Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDJkZDJlOTg0YjkwNzU5MDYzOGEyZjQ2MmE0YzlmZTFiYzNkMDk0ZDBiMDEwZDZlYTMwZDc5NDMxYTAwN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwMWEzZDA5MDQzMGMyZDA1ZTYyZGEzZjQwMzhmZTZlZjViYjY4NzI3YjY5YjJkY2MzZDliZTM3YWQ3YzY5MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3OGMxYTVjNmRhOTljYjM0NDU4NDk4YzcyYWY2ODhmOGI2MzcwYmEzY2ZiNDFjNGZjZGRlZDQyZGNhMTUzN2MifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L654-L692",
+          "version": "repo-lines-v1:sha256:a362da54f925bbabafb5def5d0cd52cfe595e5612a04b77720a56e49987826a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyZDg0YjM2ZmVlNzZkMDA2M2IwODRlZjEwNzk0OGQzNjZjNGNhNDBmOTlmYWE3ZTc2OThjZjFhMTg5ZWQ4NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczNzBjZmI1M2E5N2QxMjk0ZTllMTZiOTE5OTg0OTMwZDRkMjdkMjk5YjM3NTE2MDY2MDQ2YWQzZDFkODYwYzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYyOGZlZGQ4MjY4YTZmYzcwZDc1MjFlMThkZTFjNmRhMWQ1ZWFkN2UwN2FlODY5ZGE1MTY3MDM5N2MyZjM0NzUifQ"
         },
         {
           "resource": "repo://TFMTests/PortForwardingReconnectTests.swift#L149-L202",
-          "version": "repo-lines-v1:sha256:7b93533f2176e723a712eba3ac44e31bbdd034ecbef3f6a472f70ecf5f7d71e4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkNDg3MDEzMWM4YWI2YWIwNGNiNWMyNzE5MThlZTUwMTBkYTJkM2IzMGNmM2UxODY4N2FjODE0ZTAxMmY4N2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlZjg4NTUyZmE5YjUzZDI2ZDY4NDE4MmZmNDEwODg4NTAxNzVhM2EzMTcyYmY5Mjg3ZDY0Y2UxMWZmNzkzYjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMTJjMTE3NGJjYmVkNDQ1OGNiNDE5NmQyZDJkMmUyZWVkNjI5ZjFlMTE5NjgwMWM2Mjg1NjNmZTI5YzAyOWEifQ"
+          "version": "repo-lines-v1:sha256:c42bc7723a5084d531c9da9e73940807dbeddca9d5e40323ab0f53ecd285b013:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzZjBlMDllYzg0MDhiOTRkY2RlYzYzOWNlMGQyZjk1ODljNjUxYWU5YWQwMzNjNzM2NTk5MzY0Nzk4NDAzYjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYWZmOGUzZmQxZThkNDVjNzYyMjA0MGYyODJmM2E0NzlkMGY4MDkxN2RjNjNkNjhkMTk3MGY5Y2JmOGQ4NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1ZDQ5ODZhYTUyNWIzYTVkN2YwYWMwZTRhODhjNWVjODEzNzcyNjllYmFiMjdiZjU3OTUyNWQwMzQ4MDY1N2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4YmIzYWVjNTE0YmM2OGE3YWFmNGU2OTVkNzdkMDRjM2E5MDk2MTBjNjJmMmI4NmQwYTEwMmUwYmVhODA5ZDQifQ"
         }
       ]
     },
@@ -149,10 +153,24 @@
           "version": "repo-lines-v1:sha256:8fa6331a9486590c778a5ceb26be0a6df02c0c0e280ccf83a6d68df7a219298f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1OGM1NzZkMmQxY2I1ZGU0MmE2MGQ1ZjJhMTczNDA3YzgyNDgyOWE3MWRjYjUwNDVmNGJhZGNmOWI2YmJjMmYyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyMjRjNjk1ZTE3Yzk2YjdlODIyZWIwMjEwMDA3MGU5MWQ4M2Y5ZDc5OTdmOGFiNmFkNGIzYjk5NThjZTQ3NTdiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwYjQzMzIwOGM3NmE3N2VhMzJkNjg3ZDc1YjQyZGExYmE0MDk3MWNiY2RlZWFkZTMxMjBmNjI1YjNmNmVjNzhhIn0"
         }
       ]
+    },
+    {
+      "id": "claim_18a8460ba98f4696a7bc8cb47056fe35",
+      "statement": "Port-forwarding's interactive first connection can supply Security Key signing, while silent recovery uses an interaction-forbidden request that cannot prompt for Security Key presence.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L8-L27",
+          "version": "repo-lines-v1:sha256:be72543f3a9274f8f8338bf624af7db3ef980c06c8304e5b0545cb4b8ad612e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5YTllMGNkZTFmOWY0ZmQ1NzZlOTgyZWNjOTdlMDZiYjQ4ODAxNzAwMjczYTRmY2U0NTQ3ZjI3YmRlOTdhNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3M2I2N2JlNzFjZGFhMTVmNGY2MDZlOWIzNjAzZmNjMTkzZGU3ZWIzNzhmNWY1OWJhNjQ5ZDY0NGEyYWY4NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4Mjk5MTA3NTAxZjRhNWFiYTVlMzhkZTBiYmNlNmU0ZTEzZDZkMjAyNWZhOGQ2M2JmOTVkYjNlZGE2NDFlN2UifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L429-L468",
+          "version": "repo-lines-v1:sha256:128b8505cc548ce40773ab54d0c9e296e10819803c09f10d2286e3b675af070a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlNGEzZGE3MGQ2ODM0OGFlZjg0ZjI0MTc5ZjgwNzQ5NTNmNGEwZTkzZDUwY2NmMmE4YTQyZjgwZWVjNDhmZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3YjRlMWYxY2FjOWJmZDZmZDBiMzUwODY0ZjY1Yjc5ZTcxZmQ5M2YwZWEyMWUwOTFkNDdkNjNhMTg5MGU1NjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmNDhlYTUzY2VhMjIyMDIyYTllZjM5ODQ5NTBlODYxODkxNTI5ZDliOTMwMDYwM2I1ZmYxYjlhNDQ4ZGVhNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyYzIzYjM1ZGQxNzQyZDQ3Mzk0ODM5OTYyMGE2Yzg1NDlmMTU1MWFkNzYxODRiOWEwODFjNmFjMzhmZmYwMzkifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }

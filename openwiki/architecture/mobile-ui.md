@@ -3,9 +3,6 @@ type: architecture guide
 title: iOS and iPadOS UI and Scene Ownership
 description: "How iOS and iPadOS scene-local navigation and workspace sessions share app services, recover window ownership, and adapt presentation without replacing native state."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -89,7 +86,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # iOS and iPadOS UI and Scene Ownership

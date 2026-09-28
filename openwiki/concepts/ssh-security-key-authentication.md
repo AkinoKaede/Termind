@@ -1,0 +1,108 @@
+---
+type: authentication concept
+title: SSH Security Key Authentication
+description: How Termind registers an RP-bound FIDO2/WebAuthn Security Key, stores its public reference, and turns a local authenticator assertion into an OpenSSH SSH signature across macOS and iOS.
+tags: [ssh, security-key, fido2, webauthn, authentication, vault]
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
+sources:
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-477244191fc04156682be406
+    resource: repo://Frameworks/TermindApplication/SecurityKeyCredential.swift
+  - id: openwiki-source-4434a42582d047b8579fbfd0
+    resource: repo://Frameworks/TermindApplication/SecurityKeySigningSession.swift
+  - id: openwiki-source-4f78037bc69b6dfc293aca3d
+    resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
+  - id: openwiki-source-5438b382c3c3a59c35dc0ace
+    resource: repo://Frameworks/TermindDomain/Credentials/SecurityKeyCredential.swift
+  - id: openwiki-source-33f99816db979bf169f1eab5
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
+  - id: openwiki-source-65af64561fcb561a30da16fa
+    resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
+  - id: openwiki-source-5a6536c30ad78ac55f3ec629
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift
+  - id: openwiki-source-a815be001e9eea337ea895b0
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift
+  - id: openwiki-source-87a3a38f6388c572528dc8c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
+  - id: openwiki-source-8c4abf5c09db535e2818e3c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-b3ff2edaa14925d2360e5532
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/VaultSSHAgent.swift
+  - id: openwiki-source-4b0d0e341e84f717f3781eda
+    resource: repo://FrameworkTests/SecurityKeySigningCoordinatorTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
+  - id: openwiki-source-73513c8a8a607659d94a1fbb
+    resource: repo://TFI/Platform/Authentication/SecurityKeyPresenter.swift
+  - id: openwiki-source-25a2df896b93f410289e8512
+    resource: repo://TFI/TFI.entitlements
+  - id: openwiki-source-55e53f54f4f096a01edb5f7a
+    resource: repo://TFM/Platform/Authentication/SecurityKeyPresenter.swift
+  - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
+    resource: repo://TFM/TFM.entitlements
+  - id: openwiki-source-5b475195d16865a02f7144ee
+    resource: repo://TFMTests/SecurityKeySSHWireTests.swift
+  - id: openwiki-source-402244fee941f965f41388e4
+    resource: repo://TFMTests/WebAuthnSSHTests.swift
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+---
+
+# SSH Security Key Authentication
+
+Termind supports hardware-backed SSH authentication through Apple's Security Key WebAuthn API on macOS and iOS/iPadOS. The supported SSH public-key algorithm is **`sk-ecdsa-sha2-nistp256@openssh.com`** (WebAuthn ES256 / P-256). The authenticator owns the private key; Termind keeps an RP-bound credential ID, public key, verification preference, and presence requirement. It does not implement `sk-ssh-ed25519@openssh.com` or import an OpenSSH private-key file as a Security Key reference.
+
+This page covers the hardware credential path. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for route/trust/session ownership, [Persistent Data and Secrets](/openwiki/concepts/persistence-and-secrets.md) for the Vault boundary, and [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) for other SSH connection owners.
+
+## Set up and use a key
+
+1. In Vault's key creation flow, choose **Security Key**, name it, and choose **User Verification** (`Preferred` by default, or `Required`/`Discouraged`). Both native apps call `ASAuthorizationSecurityKeyPublicKeyCredentialProvider` with a random 32-byte registration challenge, ES256, and a discouraged resident-key preference. The OS prompt must have a presentation anchor; canceling the editor cancels the authorization request.
+2. Copy the generated SSH **public key** from the key editor and add it to the intended server user's `authorized_keys`. Select the saved key through the Host's identity. The public-key offer can be rejected by the server before any authenticator prompt; the connection then reports that the username or key should be checked.
+3. Connect. The SSH attempt offers the public blob, requests a WebAuthn assertion only when the server proceeds to signing, and shows the native Security Key prompt. Touch or verify as requested by the authenticator. An interactive signing card is bound to the current connection, metrics monitor, Agent interaction, or external authentication window rather than to a global reusable approval.
+
+Registration and assertion both use the fixed relying party **`termind.akinokaede.com`**. Both app entitlements declare `webcredentials:termind.akinokaede.com`, and the website publishes its webcredentials association. The key is therefore a Termind RP credential, not a generic SSH Security Key handle that another app can claim through its own RP.
+
+## What is saved and portable
+
+`SecurityKeyCredential` contains the credential ID, uncompressed P-256 public key, verification policy, and a user-presence flag; it contains no private key. `WebAuthnSSH.keyReference` derives the OpenSSH public blob and fingerprint from that metadata. `HostLibraryModel` stores a Security Key as `.thisDevice` Vault metadata with an empty `credentialRef`, no passphrase or certificate, and no Keychain private-key lookup. The V45 SwiftData SSH-key model and V2 Vault sync record encode the reference fields, so the record can be synced while the physical authenticator remains necessary for every new signature.
+
+The editor displays a **Termind reference** of the form `termind-fido2-v1:` followed by Base64-encoded credential metadata. Export/import accepts only that validated RP-bound format; it rejects an OpenSSH private-key header and malformed or oversized input. File import reads a regular UTF-8 file of at most 1 MiB and validates its contents before saving. This reference is sufficient to identify the authenticator credential and regenerate the public key, but it cannot sign without the hardware key and an allowed local system prompt. Treat it as account metadata when sharing it; it is not a backup of private key material.
+
+## Signing and validation path
+
+```mermaid
+sequenceDiagram
+    participant SSH as SSH worker
+    participant Bridge as Signing exchange
+    participant UI as Native authorization
+    participant Key as Security Key
+    SSH->>SSH: Offer sk-ecdsa public blob
+    SSH->>Bridge: libssh2 callback with SSH challenge
+    Bridge->>UI: Publish host-bound signing request
+    UI->>Key: WebAuthn assertion for Termind RP
+    Key-->>UI: Credential ID, authenticator data, clientDataJSON, ECDSA signature
+    UI-->>Bridge: Assertion
+    Bridge->>Bridge: Validate and encode OpenSSH WebAuthn signature
+    Bridge-->>SSH: Signed SSH response
+```
+
+The libssh2 callback cannot suspend. `SSHKeyboardInteractiveExchange` waits on the connection's dedicated transport queue while the injected asynchronous signing handler drives the platform presenter; cancellation wakes the wait and rejects late results. The presenter allows only the selected credential ID, passes the stored verification preference to AuthenticationServices, and refuses requests whose interaction policy is forbidden or whose presentation anchor is unavailable. The coordinator permits one pending signing request for that owner and clears it on cancellation. The signing card responds exactly once, including on disappearance or system cancellation.
+
+`WebAuthnSSH` validates registration and assertions before returning SSH wire bytes. It checks the WebAuthn `type` and challenge, exact `https://termind.akinokaede.com` origin, no cross-origin use, the authenticator RP hash, credential ID, required presence/verification flags, P-256 COSE key and ECDSA signature. Assertion conversion preserves the **original signed `clientDataJSON` bytes**; reserializing JSON would invalidate the signature. OpenSSH compatibility also requires the canonical leading JSON fields used by its `webauthn-sk-ecdsa-sha2-nistp256@openssh.com` signature. Malformed CBOR, unsupported key formats, unexpected extension bytes, mismatched signatures, and incompatible WebAuthn JSON fail closed.
+
+## Connection owners and interaction policy
+
+The same credential can be resolved for a destination Host and a jump Host without Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses `SSHInteractionPolicy.forbidden`, which replaces a Security Key credential with `interactionRequired` rather than presenting a hardware prompt unexpectedly.
+
+When SSH agent forwarding is enabled, `VaultSSHAgent` can advertise the Vault public key and sign a matching forwarded request. It requires an allowed interaction policy and an active interaction surface, then rechecks key-library revision and availability after the assertion before releasing the SSH signature. A forwarded request with unsupported flags or a nonmatching public blob is rejected. Forwarding never exports the authenticator private key.
+
+Failures are reported at the appropriate stage: invalid reference, unverifiable response, incompatible SSH response, canceled interaction, and server rejection are distinct outcomes. The SSH path logs stage and error codes; a rejected public-key offer is logged before the signing stage. Avoid logging credential IDs, assertion contents, or challenge bytes when extending diagnostics.
+
+## Focused verification
+
+- `TFMTests/WebAuthnSSHTests.swift` covers registration parsing, public/reference round trips, exact SSH signature fields, tampering, verification and presence flags, malformed extensions, and unsupported formats.
+- `FrameworkTests/WebAuthnVaultMetadataTests.swift` covers destination/jump resolution without Keychain, V45 persistence and Vault sync round trips, and rollback on failed metadata writes/deletes. `FrameworkTests/SecurityKeySigningCoordinatorTests.swift` covers silent requests, cancellation and exactly-once responses.
+- `TFMTests/SecurityKeySSHWireTests.swift` exercises OpenSSH direct, jump, SFTP and forwarded-agent authentication with a local fixture. It is **opt-in** behind `TERMIND_SECURITY_KEY_FIXTURE`; its software P-256 fixture verifies wire compatibility, not a physical key or the native system prompt.
+- Platform editor and authentication-presentation tests should be paired with a manual hardware-key run when changing OS authorization, associated domains, or user-visible signing behavior.

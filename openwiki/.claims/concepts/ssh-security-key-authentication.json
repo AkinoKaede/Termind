@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:cb3d0edd230561b84367426e5875120eaccd7818f2519a2f336526116c6d8ea8",
+  "claims": [
+    {
+      "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
+      "statement": "Termind supports Security Key SSH authentication using the sk-ecdsa-sha2-nistp256@openssh.com public-key algorithm and WebAuthn ES256/P-256, with the authenticator retaining the private key.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Credentials/SecurityKeyCredential.swift",
+          "version": "repo-file-v1:sha256:4860b0a5321e1d744732f01e50dea76b5c6e3e925a4c4ada24a2af637f08e750"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift",
+          "version": "repo-file-v1:sha256:1a4395f64e23a64aab302149a60eba8d86649e9827f8cc150b99f4b62bc8f210"
+        },
+        {
+          "resource": "repo://TFM/Platform/Authentication/SecurityKeyPresenter.swift",
+          "version": "repo-file-v1:sha256:6946101497b9940bf42424f031d3bbdc6b96799e22296978b3226313eb871243"
+        }
+      ]
+    },
+    {
+      "id": "claim_0750349ae5794908b9b3afae2390172d",
+      "statement": "Both native presenters register and assert credentials for the fixed termind.akinokaede.com relying party, request ES256 nonresident registration with a fresh challenge, and use the stored user-verification preference.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/Authentication/SecurityKeyPresenter.swift",
+          "version": "repo-file-v1:sha256:e1e8b73f219f16b445483bb8e53115311cafcf06e15c7c7d9ccacf0107efa6c6"
+        },
+        {
+          "resource": "repo://TFI/TFI.entitlements",
+          "version": "repo-file-v1:sha256:627aa95bfbf21cca83244648698c3f49c40c37da6446b577931e8d88715c980e"
+        },
+        {
+          "resource": "repo://TFM/Platform/Authentication/SecurityKeyPresenter.swift",
+          "version": "repo-file-v1:sha256:6946101497b9940bf42424f031d3bbdc6b96799e22296978b3226313eb871243"
+        },
+        {
+          "resource": "repo://TFM/TFM.entitlements",
+          "version": "repo-file-v1:sha256:164a7405fd59a24ea38bdc06270f1289c0f89c2dc4bd8809496cf59d67c71f47"
+        }
+      ]
+    },
+    {
+      "id": "claim_29fc2e6f0fd84c53b6d9c7ca6a603aff",
+      "statement": "A Security Key Vault record contains RP-bound credential metadata with no private key or Keychain credential reference; V45 SwiftData and Vault V2 records can preserve and sync it, while connection preparation resolves destination and jump credentials without Keychain.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift",
+          "version": "repo-file-v1:sha256:3ee34f0be5d60946e2c957ac8e8a672baca41c8d46ce3899c69a48f59849978f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift",
+          "version": "repo-file-v1:sha256:41cadaeade238d40a13cea379340bb4b1cc36e0861562388819cdfe28bba2269"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift",
+          "version": "repo-file-v1:sha256:21376dfb903dc12fbce9aec5e21566afaf55cc064d09ffb180719275bc128d08"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift",
+          "version": "repo-file-v1:sha256:5dd22d8e7537035ea499c148d6b6c56ea0c15998e1cfeaaa037f769176152604"
+        }
+      ]
+    },
+    {
+      "id": "claim_4cdaf4466e4c4709afc964ee0c7903a0",
+      "statement": "Termind exports and imports only its termind-fido2-v1 metadata reference for Security Keys, rejecting OpenSSH private-key input and malformed or oversized references; file imports validate regular UTF-8 files before saving.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift",
+          "version": "repo-file-v1:sha256:1a4395f64e23a64aab302149a60eba8d86649e9827f8cc150b99f4b62bc8f210"
+        },
+        {
+          "resource": "repo://TFMTests/WebAuthnSSHTests.swift",
+          "version": "repo-file-v1:sha256:a2e7a4ed3270dcdd81eed43bfab4c149e725e3accb473eb68d58b59b1afc461b"
+        }
+      ]
+    },
+    {
+      "id": "claim_10d4494edd1f40148ccb80aeb908b643",
+      "statement": "The SSH Security Key libssh2 callback offers the public blob, obtains an asynchronous native WebAuthn assertion through a connection-owned signing exchange, and returns an OpenSSH WebAuthn signature; server rejection at the public-key offer stage does not invoke signing.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift",
+          "version": "repo-file-v1:sha256:87ad4022f98e050ccdcb3eb132babc3d4916bd6e374141f027abecf25c2091d6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:418fd158b9d1068f211253ddca6442f4f167435bae49c95186968f76ae52e862"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift",
+          "version": "repo-file-v1:sha256:81027a6dd2901faac8443159ed0f0e508cb8360875811cbb67aaafa330349ab2"
+        },
+        {
+          "resource": "repo://TFMTests/SecurityKeySSHWireTests.swift",
+          "version": "repo-file-v1:sha256:0a02c731fb4bdb4db2c461d835ab3fafa3d4d2dd0621a3a58746c648a180d3be"
+        }
+      ]
+    },
+    {
+      "id": "claim_35d3e82372834726ba1ec10525883e2f",
+      "statement": "WebAuthnSSH validates RP hash, challenge, origin, credential ID, presence and required verification, supported P-256 COSE key and ECDSA signature, and preserves original signed clientDataJSON bytes when encoding the SSH signature.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift",
+          "version": "repo-file-v1:sha256:1a4395f64e23a64aab302149a60eba8d86649e9827f8cc150b99f4b62bc8f210"
+        },
+        {
+          "resource": "repo://TFMTests/WebAuthnSSHTests.swift",
+          "version": "repo-file-v1:sha256:a2e7a4ed3270dcdd81eed43bfab4c149e725e3accb473eb68d58b59b1afc461b"
+        }
+      ]
+    },
+    {
+      "id": "claim_153da0232f7b4479979c0076dc22c3a7",
+      "statement": "Security Key signing requires allowed user interaction; forbidden auxiliary requests map a Security Key credential to interactionRequired, while coordinators and signing sessions cancel and respond exactly once without accepting late results.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SecurityKeySigningCoordinatorTests.swift",
+          "version": "repo-file-v1:sha256:01bbf82d09ea15243c4ef8bf8f5d00394412ee4897c78d5fbb7d23390361e466"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SSHConnectionTypes.swift",
+          "version": "repo-file-v1:sha256:aae8866b4b1a173403ed088e1a5464944eb0872e483a0f63e8b30bdd5055f68f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SecurityKeyCredential.swift",
+          "version": "repo-file-v1:sha256:a202838ca751912c5c549f7c073c8bf66ef0acad10f3e1109573a117eacc32ed"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SecurityKeySigningSession.swift",
+          "version": "repo-file-v1:sha256:bfc1d7332b979791e2b62d41819f42b535ebec152db4310072f13dfb17c2236b"
+        }
+      ]
+    },
+    {
+      "id": "claim_10c07092254948738bd21820ef2789fc",
+      "statement": "VaultSSHAgent forwards a matching Security Key public key only with permitted interaction, validates the resulting assertion, and rechecks key revision and availability before returning a signature; it never exposes private key material.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/VaultSSHAgent.swift",
+          "version": "repo-file-v1:sha256:f830e03bfb4e002aa7bc091a67fadc8a988092f9a5f9824ac65ab826d410cf54"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift",
+          "version": "repo-file-v1:sha256:1a4395f64e23a64aab302149a60eba8d86649e9827f8cc150b99f4b62bc8f210"
+        }
+      ]
+    },
+    {
+      "id": "claim_705eeab9bf2d4d1e98e8649f9cb22bff",
+      "statement": "The OpenSSH wire fixture suite is opt-in through TERMIND_SECURITY_KEY_FIXTURE and covers direct, jump, SFTP and forwarded-agent paths using a software P-256 fixture, so it does not verify physical-key or native-prompt behavior.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/SecurityKeySSHWireTests.swift",
+          "version": "repo-file-v1:sha256:0a02c731fb4bdb4db2c461d835ab3fafa3d4d2dd0621a3a58746c648a180d3be"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
+  }
+}

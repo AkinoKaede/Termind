@@ -3,9 +3,6 @@ type: synchronization workflow
 title: Settings, Vault, Metrics, History, Device, and Cloud Sync
 description: Per-category CloudKit replication, durable journals, compatibility fences, fetch-before-send authorization, account and environment transitions, and recovery for Termind configuration and activity data.
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
@@ -61,6 +58,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-79f3c5a13bfe4aea8f4f02b6
     resource: repo://Frameworks/TermindPersistence/VaultWireV1.swift
+  - id: openwiki-source-65af64561fcb561a30da16fa
+    resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -83,7 +82,10 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
@@ -186,13 +188,13 @@ History retains the 250 newest events and journals tombstones for overflow and c
 
 ## Compatibility and upload fence
 
-`SyncRecordFormats` versions records per family and kind; `VaultVersion` is a modification clock, **not** a wire version. Before decoding a payload or choosing historical defaults, readers check supported kind/version and field types. Frozen `VaultWireV1` DTOs preserve shipped Host SSH keys/defaults; new fields an older writer would silently drop need a breaking per-kind version and adapter. The shipped Vault and native History/Device writers remain V1; test-only Host V2 exercises independent evolution. Local V28 Host → V30 SSH/Telnet migration is separate from cloud format: the V28 reopen fixture verifies local SSH settings, default-disabled Telnet, associated state and workspace defaults, **not** CloudKit replica compatibility. [SyncRecordFormats](repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift), [VaultWireV1](repo://Frameworks/TermindPersistence/VaultWireV1.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237).
+`SyncRecordFormats` versions records per family and kind; `VaultVersion` is a modification clock, **not** a wire version. Before decoding a payload or choosing historical defaults, readers check supported kind/version and field types. Frozen `VaultWireV1` DTOs preserve shipped Host SSH keys/defaults. Vault V2 now writes Host agent-forwarding settings and SSH Key hardware references through a separate adapter, while retaining V1 readers. Other Vault kinds and native History/Device writers remain V1; a test-only Host V3 exercises further independent evolution. New fields an older writer would silently drop need a breaking per-kind version and adapter. Local V28 Host → V30 SSH/Telnet migration is separate from cloud format: the V28 reopen fixture verifies local SSH settings, default-disabled Telnet, associated state and workspace defaults, **not** CloudKit replica compatibility. [SyncRecordFormats](repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift), [VaultWireV1](repo://Frameworks/TermindPersistence/VaultWireV1.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237).
 
 Unsupported versions/kinds, malformed payloads, invalid native fields and known-ID conflicts are quarantined with reason, received bytes (full secure `CKRecord` archive for native fields) and system fields in the container/environment/account/zone/**consumer** scope. Valid remote records, including `serverRecordChanged` replies, merge in a transaction with system-field updates and quarantine removal; failed persistence rolls back the unblock. Future unknown record types in an ordinary fetch may be ignored, but an unexpected type on a conflicting known ID cannot bypass validation. Scoped restrictions persist across pause, retry, relaunch and normal account/environment/zone resets, retain local pending intent, and do not block unrelated records. History and Device restrictions cannot leak into each other. [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L49-L90), [CloudSyncSafetyStore](repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift).
 
 Three checks protect outgoing changes: the replica sidecar omits blocked IDs when it enumerates journal mutations; reconciliation removes obsolete/blocked restored engine entries; and the synchronous batch checks current engine, fetch readiness, mutation operation and restriction again in each record provider. Each batch admits **at most 250 materialized changes in total (saves plus deletes)**, not 250 saves plus deletes; invalid/blocked entries do not consume that limit. A deletion cannot leave before its causal handoff is saved, and sent-record or delete acknowledgement cannot clear a newer pending incarnation. An unreadable safety/journal state fails closed rather than being read as an empty set. [CloudSyncRecordStateStore](repo://Frameworks/TermindPersistence/CloudSyncRecordStateStore.swift#L122-L148), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L523-L600), [CloudSyncLifecycleTests](repo://FrameworkTests/CloudSyncLifecycleTests.swift#L11-L30).
 
-A changed decoder capability ID in **Vault, Settings and each native History/Device consumer** forces a scoped refetch and checkpoints capability only after a successful fetch/merge; Settings computes its ID from participating record kinds at V1, while Metrics uses its safety/recovery gate without a capability ID. No current fence can retrofit a previously shipped unsafe binary; adding silently ignored V1 fields without raising the breaking version remains unsafe. [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L65), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L78-L95), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift#L61-L98), [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L91-L105), [MetricsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L81-L94).
+A changed decoder capability ID in **Vault, Settings and each native History/Device consumer** forces a scoped refetch and checkpoints capability only after a successful fetch/merge; Settings computes its ID from participating record kinds at V1, while Metrics uses its safety/recovery gate without a capability ID. No current fence can retrofit a previously shipped unsafe binary; adding silently ignored fields in an existing version without raising the breaking version remains unsafe. [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L65), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L78-L95), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift#L61-L98), [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L91-L105), [MetricsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L81-L94).
 
 ## Settings secrets and operations
 

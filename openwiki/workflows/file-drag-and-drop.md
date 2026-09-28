@@ -3,9 +3,6 @@ type: interaction workflow
 title: File Drag and Drop Across TFM and TFI
 description: File drag event routing, payload selection, Assistant attachment import, SSH and SFTP upload lifetimes, desktop remote-file copying and Key import, with a brief guide to the shared Overlay UI.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-26T22:20:04.073Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
@@ -19,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/DropTargetOverlay.swift
   - id: openwiki-source-faefd83262ffa05c2f2f6067
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift
+  - id: openwiki-source-5a6536c30ad78ac55f3ec629
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift
   - id: openwiki-source-cc90954475bbeee75514baf8
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift
   - id: openwiki-source-af958b0e71cef7f5910893cc
@@ -59,7 +58,10 @@ sources:
     resource: repo://TFMTests/FileURLDropTargetTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-26T22:20:04.073Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # File Drag and Drop Across TFM and TFI
@@ -78,7 +80,7 @@ This page follows those events and ownership transitions. [TFM Drag and Drop](/o
 | Files → Telnet terminal | No pane file receiver. | Workspace reports that Telnet does not support file upload. | No upload destination. Desktop Serial and empty panes also have no file receiver. |
 | SFTP entries → SSH terminal or another SFTP pane | Private remote-item payload. | The mobile upload receiver does not consume this private payload. | Remote copy to the SSH working directory or SFTP browser directory. |
 | SFTP file → Finder / external file consumer | Lazy promised file. | No corresponding drag exporter in the mobile SFTP browser. | Download when the consumer requests the file representation. |
-| Key file → software Key editor | Native file receiver. | No matching Key drag receiver. | Populate private-key/certificate fields; Save performs validation and persistence. |
+| Key file → Key editor | Native file receiver. | No matching Key drag receiver. | Software mode populates private-key/certificate fields; Security Key mode reads a validated FIDO2 reference. Save persists the chosen key type. |
 
 “Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is gated by `.terminalFileUpload` Pro access on both platforms; SFTP browser upload uses its own path without that gate.
 
@@ -190,11 +192,11 @@ Evidence: [local receive and remote decoding](../../TFM/Features/SFTP/SFTPBrowse
 
 ## TFM Key import: drop edits a buffer, Save validates
 
-The software Key editor mounts a `.files` native receiver only while private-key editing is permitted and the form is neither loading nor saving. `receive(urls:)` calls shared `SoftwareKeyFileImporter.read` and applies the returned private key, certificate, and optional inferred name to form state. A private key can infer the complete filename only when the current name is blank; a certificate does not infer a name. Multiple private-key files resolve to the final one in the supplied order.
+The Key editor mounts a `.files` native receiver only while private-key editing is permitted and the form is neither loading nor saving. In software mode, `receive(urls:)` calls shared `SoftwareKeyFileImporter.read` and applies the returned private key, certificate, and optional inferred name to form state. A private key can infer the complete filename only when the current name is blank; a certificate does not infer a name. Multiple private-key files resolve to the final one in the supplied order. In Security Key mode, the first dropped file is read as a `termind-fido2-v1:` reference; the reader requires a regular UTF-8 file of at most 1 MiB and validates the decoded credential before filling the reference field.
 
 The importer reads security-scoped UTF-8 regular files up to 8 MiB, recognizing private-key text and OpenSSH user certificates. If any supplied file fails, the view receives an error before applying the result. This initial classification is not cryptographic validation or a save: background inspection derives public material, and explicit Save inspects changed key material, validates certificate matching, and calls the existing persistence path.
 
-Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L634-L653), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L912-L928), [importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L749-L790).
+Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swift#L678-L686), [drop handler](../../TFM/Features/Keychain/KeychainPageView.swift#L1006-L1025), [software importer](../../Frameworks/TermindRemoteInfrastructure/Security/SoftwareKeyFileImporter.swift#L14-L65), [Security Key reference reader](../../Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L86-L109), [save validation](../../TFM/Features/Keychain/KeychainPageView.swift#L805-L830).
 
 ## Shared Overlay UI
 

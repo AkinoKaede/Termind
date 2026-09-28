@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:458e249e29e002a2351fce092ee6227aa465769ed2f5c0d393177cc6e0243daa",
+  "pageVersion": "sha256:936a44b4be960044dd2f6f3043f579e3b1904d7654c415c0504a80393905ad16",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:12bef704f9ce9425690b05c6ba3dde2d636cfce17fb0c1d44f661881bdb256be"
+          "version": "repo-file-v1:sha256:a9131cb60a8e10611ab2075cd25b5cc501ccd15ad6a7d211092c321d6e32d3a2"
         }
       ]
     },
@@ -98,11 +98,11 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
+          "version": "repo-file-v1:sha256:81e46460dec8d2d8a8ea0ac1efe408584e3f7db552b4c71690e86acb99f2f0d3"
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:c63339709cfddf1b532caa7f74e114d9226cc882735ff33731f280784f9b3f52"
+          "version": "repo-file-v1:sha256:f8d7c4cf5925fb6dbd38b5c3e3efbe7e06671c1bde38f4dfa23a9034e7d6d2b9"
         }
       ]
     },
@@ -310,11 +310,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift",
-          "version": "repo-file-v1:sha256:092eb59970f25228ce8929dee3957dd899184913dc61125a5e4a2af006a9edf5"
+          "version": "repo-file-v1:sha256:cbbb5de93c8b96d4142366c8d8916bd82411f07dbf57dcc7084084279658551a"
         },
         {
           "resource": "repo://TFM/Features/Ports/PortForwardingView.swift",
-          "version": "repo-file-v1:sha256:e069579860a7ea40107da24f406bca0382807030e4d53dac3ff8391a35da339a"
+          "version": "repo-file-v1:sha256:266a7640d691d8fd89358a1a64d8772d933aad92c39061ac9873ce8ee9abf9e4"
         }
       ]
     },
@@ -346,7 +346,7 @@
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:c457249cfdd4c61cb7aaf2f4ed4403548096c31b3ff3de5f4e17b8ce0ee08217"
+          "version": "repo-file-v1:sha256:edb291d436f787e4495f7407b2187e9882ce617b854f8effda4752736d694ea7"
         }
       ]
     },
@@ -374,7 +374,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:56eefb59be85598efcec855716cb19872ad363f6ba364f988865777a5b79a2fc"
+          "version": "repo-file-v1:sha256:c8fea820c35e867efd15727fde11095b4cea1c6e16d4c2822c9475f65ef60bba"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -424,7 +424,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
+          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -498,7 +498,7 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
+          "version": "repo-file-v1:sha256:81e46460dec8d2d8a8ea0ac1efe408584e3f7db552b4c71690e86acb99f2f0d3"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
@@ -516,11 +516,11 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
+          "version": "repo-file-v1:sha256:81e46460dec8d2d8a8ea0ac1efe408584e3f7db552b4c71690e86acb99f2f0d3"
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:c63339709cfddf1b532caa7f74e114d9226cc882735ff33731f280784f9b3f52"
+          "version": "repo-file-v1:sha256:f8d7c4cf5925fb6dbd38b5c3e3efbe7e06671c1bde38f4dfa23a9034e7d6d2b9"
         }
       ]
     },
@@ -534,7 +534,7 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
+          "version": "repo-file-v1:sha256:81e46460dec8d2d8a8ea0ac1efe408584e3f7db552b4c71690e86acb99f2f0d3"
         }
       ]
     },
@@ -742,7 +742,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:56eefb59be85598efcec855716cb19872ad363f6ba364f988865777a5b79a2fc"
+          "version": "repo-file-v1:sha256:c8fea820c35e867efd15727fde11095b4cea1c6e16d4c2822c9475f65ef60bba"
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileSettingsView.swift",
@@ -774,7 +774,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:45128c41ef3504e343e2f174299eda8b4859de9756e94321f75a8db1f6c75298"
+          "version": "repo-file-v1:sha256:41f7b1b5c797dffabf9e388fc1bf0fea2b147006d79123c496ec3e5f8270056c"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -792,7 +792,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:31e7ec4a0b49571d28d632d7bd47fd69cd6253d153233bd4a4517366cd37af66"
+          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -830,7 +830,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-27T22:47:06.500Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }

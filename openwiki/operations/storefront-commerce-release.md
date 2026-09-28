@@ -43,6 +43,9 @@ sources:
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # Storefront Commerce Release Checks

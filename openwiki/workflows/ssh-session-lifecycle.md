@@ -3,9 +3,6 @@ type: workflow
 title: SSH, Telnet, Trust, and Workspace Session Lifecycle
 description: Traces how Termind prepares SSH and Telnet connections, routes them through proxies and jump hosts, authorizes server identity, consumes credentials, and retires or restores live workspace sessions.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -41,6 +38,10 @@ sources:
     resource: repo://FrameworkTests/SSHConnectionWorkerLifecycleTests.swift
   - id: openwiki-source-2635e6aecc48e14adbb07b91
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
+  - id: openwiki-source-db40aa993661b07f1a9aff6d
+    resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c1f5a86747a33d4e8472672c
@@ -75,7 +76,10 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-27T22:47:06.500Z" }
+generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-09-26T04:29:20.893Z
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -178,7 +182,7 @@ flowchart TD
 
 A configuration carries credentials only for one physical connection attempt. Its `SSHSecret` values are shared mutable secret owners, so copies of the configuration can be invalidated together. `SSHConnectionConfiguration.clearSecrets()` clears target credentials, proxy password, and every jump credential. Public entrypoints defer that cleanup on both success and failure, and the authenticated opener also clears at its own transport boundary. Retrying resolves saved material again; a temporary password or key passphrase is not a reusable connection snapshot.
 
-Credentials may be a password, software private key and optional passphrase, Secure Enclave key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits keyboard-interactive only when there are no prompts. This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI.
+Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key signing uses a user-interactive callback during the SSH public-key challenge, including when that challenge is on a jump. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits keyboard-interactive only when there are no prompts. This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
 
@@ -309,5 +313,6 @@ When changing connection code, preserve these boundaries:
 - [Platform runtime and lifetime ownership](/openwiki/architecture/platform-runtime.md)
 - [Agent runtime and Assistant](/openwiki/concepts/agent-runtime-and-assistant.md)
 - [Persistence and secrets](/openwiki/concepts/persistence-and-secrets.md)
+- [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md)
 - [Remote services and forwarding](/openwiki/concepts/remote-services-and-forwarding.md)
 - [SFTP transfer and external edit workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md)

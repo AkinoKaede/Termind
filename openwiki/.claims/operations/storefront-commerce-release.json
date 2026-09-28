@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f13e80e3c4a93478a918a110b939618930dbd32bc55a827ca1f47e1a2e987b2c",
+  "pageVersion": "sha256:e3604420d5e0bbc44b7bbfaf50356a7bd351197c68e40e88d5d2aa2cef1c3e8f",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -198,15 +198,15 @@
       "evidence": [
         {
           "resource": "repo://Marketing/AppStore/en/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:4bb52a843824a43e8d19a4930c59a3ec37fae381e806bd4c02b0aed614a980ff"
+          "version": "repo-file-v1:sha256:13e83a3a7f3b9fef1272650441ddfbc1e2822e71266da202c0ee99fa25e035d9"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg",
-          "version": "repo-file-v1:sha256:01b2ec95f0e134c358c73b6f121c8e5856e78c0c9362831fed6e2d2591a35700"
+          "version": "repo-file-v1:sha256:1cc72d2b8bdd17543a1459adbac42251f3e7dd4f063dcb2832d1b71885d27827"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg",
-          "version": "repo-file-v1:sha256:536ccf9e8449b92ea3ff55b30280d51cfcc7415ffacc36b26ea545110fa9c15a"
+          "version": "repo-file-v1:sha256:5e137b09d7376bbaf4e11224b7192befafd45cf4b257d3e76052ee687af27c8f"
         },
         {
           "resource": "repo://Marketing/README.md#L3-L13",
@@ -278,7 +278,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-25T12:50:34.482Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3c92451659ada3c0bf7b787ff1003077f4f204735ee2f78c3d3af48b45e28307",
+  "pageVersion": "sha256:4c5be66ddc53c2a5d8fbcaf8e6bb4a43944e574f0579424b02479e92337fcfa8",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1083-L1180",
-          "version": "repo-lines-v1:sha256:2164423f1b9aa82653b53f87f67999e98520b9ba40af2835513b1225728d6091:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxY2FjMTgzYzIwODNjMmJlMDJlZDRkN2I0NTJlMDg5NDMyOGMxN2NjZjM3NTIwMGE5OThmNjNiZDVkN2VjOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4ZTAyYmQzMjRlZmJkNTI3ODdkMjU5YWU0MDJhYmJhZDUwOTA1MTI0NjdkMjc4OTVjNmFjMDkyYTdjYmVlZGYifQ"
+          "version": "repo-lines-v1:sha256:badcddee68ad5f16f59d5a4042eb42eb19027af3537873f616c5d066d3b3af79:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3MWNhYzE4M2MyMDgzYzJiZTAyZWQ0ZDdiNDUyZTA4OTQzMjhjMTdjY2YzNzUyMDBhOTk4ZjYzYmQ1ZDdlYzlmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhOGUwMmJkMzI0ZWZiZDUyNzg3ZDI1OWFlNDAyYWJiYWQ1MDkwNTEyNDY3ZDI3ODk1YzZhYzA5MmE3Y2JlZWRmIn0"
         }
       ]
     },
@@ -141,16 +141,16 @@
       "statement": "Desktop shell callbacks are attempt-guarded, mobile consumes exit and shell events in one generation-guarded AsyncStream, and PTY closure clears shell state while preserving the underlying transport if sibling SFTP channels remain.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1673-L1699",
-          "version": "repo-lines-v1:sha256:3d327810de155d8668a4285111fb9dd6fbe29b51346a25664492171bfce0b324:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYzgzNGEzYWJjM2YyMTI2NWMwYzNjZTFlYWZlMzMwNjJlOThlMTM5ZDMwNTE1Yjc5Mjc2OWVlZjY2ZDc2YzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiNDU2YjFlZDgyZGNkMGQ4ZmQzYjUxYWQ3MzE0ZjZjMThiZmU3YjNiYjFhMDI1ZGU5NDU0NGRlYjVjODFkY2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NTk5Y2ZkODFkNGUxYWYyMTMzNjIwY2UyOWUzOGZlMjVmZjYwYTdlM2ZmMzdiYjQzZDdlZjMzZjQyOTVhMTYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:418fd158b9d1068f211253ddca6442f4f167435bae49c95186968f76ae52e862"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1231-L1262",
-          "version": "repo-lines-v1:sha256:2c2040591a2e139ddff1472edfdd06e425158a841d6259fea8c29c9d4da40c48:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlOWU5OGIzNTQ0ZjI3YzY3ZDhlNmU2YTc4NTM1NWNmMWI4ZmY2ZmVjOTFmYmNmZjAyN2E3ZWUyMDFhZDk4NGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0MmE3Njc1NWI1NDcxYjk2MzRmMjE0ZWRlYzRhNTZkNTU4Y2IyZmQzZjNjNDI5OWNhODRkMWVjZTc3ZGJkYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhOWYwYzJmMzE3Mjg5ZWZmYjJmZTRhNTIwYWJlNGY1Njk5ZDIyMDY2MTk0NWNlNmY2ZWUxYmVkNjNiMWIzMGUifQ"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1260-L1295",
+          "version": "repo-lines-v1:sha256:bb75913b83f6e4abd38227bc4d58bc000fe80c50e4c5358d8fb2a8dc5d155aa2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMDIyZjljOWE3NTNkYmFkMWJjMmIxYWExMDNhZDcyMmYyODZjMzdjN2JkY2NlNjc3OTJhMjUxZjJlOTA4NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0N2UxYjRmODc2MDY4MmU2NjZjNDQzZTE2NmEzZjU5MDdkYTdhOGE3OGI5ZTU2ZGYyNmFlNzg2YmMwOWNjNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxNjI5MjA1YjhhMzE1N2MxYWNhOTRiOTExYjRlMWRkM2IwN2NiOWI3Y2Q1NDY3OThiNzc2ZGJjYjhkMmJiZDAifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L826-L831",
-          "version": "repo-lines-v1:sha256:52d47a062877d79081bd70483a65e58330e9eb7d6c24da4edd0c1d1c3bc7f9b6:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQwOTQ0ZmE4OTNhMGM5N2ZhODNhZmRiNjYxMDEwNmMzZDcwOWNhMzc2ZmE5NDFlNWRhOTlmODU0NzFhNDY5NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTUyMmM0MmNkMTljNmQwM2Q4MDhjNDUyNzIwNTUyODI1YjdlYTFjNWI0OTFiMjE4NTExY2FjNzQxNWNmOWQ5YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhkY2E2MGVmOWY4NTBmNGQyOThkNGNmZTQzOTZkYzBjNmNkM2M4NzQ4NGY4ZjczYzE1YmNhMWVjYzkxNmEwOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODkxMzBhZmY4ZGI2NTMyODFiMmFkZDA1YmQ3ZDg2MmI2NTM1Nzk4YmE4Y2FmNzc5MGExYjk4YmM0OTU3MzQ5NyJ9"
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
+          "version": "repo-file-v1:sha256:dff28a2ef5b398a9f3de35b049855af9fffb535dce51684d479cc893b146376e"
         }
       ]
     },
@@ -214,7 +214,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:d107fbe196c9df5e7b49acb4301fe0a5f819fc5b411815083966f073b491f237"
+          "version": "repo-file-v1:sha256:418fd158b9d1068f211253ddca6442f4f167435bae49c95186968f76ae52e862"
         }
       ]
     },
@@ -356,7 +356,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-27T22:47:06.500Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-09-26T04:29:20.893Z"
   }
 }
