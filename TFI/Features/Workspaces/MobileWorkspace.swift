@@ -724,7 +724,7 @@ final class MobileWorkspace: Identifiable {
                     trustPolicy: .allowChallenge
                 )
                 guard generation == token, !Task.isCancelled else { return }
-                let request = SSHConnectionRequest(
+                var request = SSHConnectionRequest(
                     configuration: config,
                     authorizeHostKey: { [weak self] challenge in
                         guard let self else { throw CancellationError() }
@@ -737,6 +737,7 @@ final class MobileWorkspace: Identifiable {
                     hostKeyConstraints: connectionOrigin.hostKeyConstraints
                 )
 
+                request.agentForwardingContextID = id
                 var externalFile: RemoteFile?
                 if descriptor.kind == .ssh {
                     let backend = backend

@@ -2,6 +2,10 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Connections {
+        public static var agentForwarding: LocalizedStringResource { "Agent Forwarding" }
+        public static var agentForwardingDescription: LocalizedStringResource {
+            "Allow this host to request signatures using all keys in Termind. Private keys stay on this device."
+        }
 
         public static var authenticationRequest: LocalizedStringResource {
             "Authentication Request"

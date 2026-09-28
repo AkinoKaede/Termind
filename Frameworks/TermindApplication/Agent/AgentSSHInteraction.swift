@@ -161,6 +161,7 @@ nonisolated public struct AgentSSHInteraction: Sendable {
     public typealias HostKeyConfirming =
         @Sendable (AgentSSHHostKeyRequest) async -> AgentSSHHostKeyResponse
 
+    public var presentationContextID: UUID?
     public var authenticate: Authenticating
     public var confirmHostKey: HostKeyConfirming
 
@@ -186,7 +187,11 @@ nonisolated public struct AgentSSHInteraction: Sendable {
         return answers
     }
 
-    public init(authenticate: @escaping Authenticating, confirmHostKey: @escaping HostKeyConfirming) {
+    public init(
+        presentationContextID: UUID? = nil, authenticate: @escaping Authenticating,
+        confirmHostKey: @escaping HostKeyConfirming
+    ) {
+        self.presentationContextID = presentationContextID
         self.authenticate = authenticate
         self.confirmHostKey = confirmHostKey
     }

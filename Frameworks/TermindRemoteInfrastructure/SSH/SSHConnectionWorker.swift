@@ -27,8 +27,11 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         deinit { pointer.deallocate() }
     }
 
+    private var agentForwardingRequested = false
+    private var agentRequestOwner: UUID?
+
     private final class SSHExecChannel: @unchecked Sendable {
-        enum Phase { case opening, starting, running, closing, freeing }
+        enum Phase { case opening, forwarding, starting, running, closing, freeing }
 
         let id = UUID()
         let command: StableCString
@@ -167,12 +170,20 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             let opened = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request, timeout: 20, progress: progress, logger: logger)
             let channelBudget = maxSessionsPolicy.makeBudget()
-            try await queue.perform {
+            try await queue.perform { [self] in
                 try Task.checkCancellation()
                 self.connection = opened
                 self.hostID = hostID
                 self.charset = request.configuration.charset
                 self.buffer = opened.installBuffer()
+                if let provider = request.agentForwarding {
+                    self.buffer?.agentChannels = SSHAgentChannels(provider: provider, queue: self.queue) {
+                        [weak self] in self?.wakeAll()
+                    }
+                    libssh2_session_callback_set2(
+                        opened.libssh2Session, LIBSSH2_CALLBACK_AUTHAGENT,
+                        unsafeBitCast(SSHAgentChannels.callback, to: (@convention(c) () -> Void).self))
+                }
                 self.channelBudget = channelBudget
                 self.connectionFailure = connectionFailure
                 self.didReportConnectionFailure = false
@@ -327,13 +338,21 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             return
         }
         controlDirections = 0
-        var progressed = advanceOpen(session)
+        var progressed =
+            buffer.agentChannels?.advance(
+                deadline: min(
+                    deadline, DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds / 2),
+                permitsIO: { !buffer.isBackpressured }) ?? false
+        if advanceOpen(session) { progressed = true }
         while !buffer.isBackpressured,
             DispatchTime.now().uptimeNanoseconds < deadline,
             let id = ready.pop()
         {
             guard let command = commands[id] else { continue }
             if advance(command, session: session, deadline: deadline) { progressed = true }
+        }
+        if buffer.agentChannels?.advance(deadline: deadline, permitsIO: { !buffer.isBackpressured }) == true {
+            progressed = true
         }
         if advanceOpen(session) { progressed = true }
         if keepaliveDue {
@@ -405,13 +424,19 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         }
         opening = nil
         command.execChannel = execChannel
-        command.phase = .starting
+        command.phase = buffer?.agentChannels == nil ? .starting : .forwarding
         ready.insert(command.id)
         return true
     }
 
     private func advance(_ command: SSHExecChannel, session: OpaquePointer, deadline: UInt64) -> Bool {
         if let cancellation = cancellationError(for: command), command.terminalError == nil {
+            if agentRequestOwner == command.id {
+                // A cancelled, unanswered connection-wide request cannot safely
+                // be repeated on another channel: the peer may already have accepted it.
+                failConnection(session, error: cancellation)
+                return false
+            }
             command.terminalError = cancellation
             if command.execChannel == nil {
                 finish(command, throwing: cancellation)
@@ -423,6 +448,30 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         switch command.phase {
         case .opening:
             return false
+        case .forwarding:
+            if agentForwardingRequested {
+                command.phase = .starting
+                ready.insert(command.id)
+                return true
+            }
+            guard agentRequestOwner == nil || agentRequestOwner == command.id else { return false }
+            agentRequestOwner = command.id
+            let result = libssh2_channel_request_auth_agent(execChannel)
+            if result == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+                return false
+            }
+            agentRequestOwner = nil
+            if result != 0 {
+                command.terminalError = SSHCommandExecutionError.channelUnavailable(
+                    SSHConnectionOpener.connectionError(session, prefix: "Agent Forwarding request failed"))
+                command.phase = .closing
+            } else {
+                agentForwardingRequested = true
+                command.phase = .starting
+            }
+            ready.insert(command.id)
+            return true
         case .starting:
             let result = libssh2_channel_process_startup(
                 execChannel, "exec", 4, command.command.pointer, UInt32(command.command.count))
@@ -657,6 +706,9 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     }
 
     private func cleanup(error: any Error) {
+        buffer?.agentChannels?.shutdown()
+        agentForwardingRequested = false
+        agentRequestOwner = nil
         generation += 1
         scheduled = false
         timer?.cancel()

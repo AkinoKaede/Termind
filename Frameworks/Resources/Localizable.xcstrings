@@ -2870,6 +2870,52 @@
         }
       }
     },
+    "Agent Forwarding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent Forwarding"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent转发"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent轉送"
+          }
+        }
+      }
+    },
+    "Agent Forwarding request failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent Forwarding request failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent转发请求失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent轉送要求失敗"
+          }
+        }
+      }
+    },
     "Agent error" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3150,6 +3196,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請在設定中允許相機存取以拍攝照片。"
+          }
+        }
+      }
+    },
+    "Allow this host to request signatures using all keys in Termind. Private keys stay on this device." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow this host to request signatures using all keys in Termind. Private keys stay on this device."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许此主机请求使用Termind中的全部密钥签名。私钥保留在此设备上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許此主機要求使用Termind中的所有金鑰簽署。私密金鑰保留在此裝置上。"
           }
         }
       }

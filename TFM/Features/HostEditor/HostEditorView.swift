@@ -286,6 +286,7 @@ struct HostEditorView: View {
                     charset: $draft.sshCharset,
                     sftpInitialPath: $draft.sftpChannelInitialPath,
                     startupSnippetID: startupSnippetChoice,
+                    agentForwardingEnabled: $draft.agentForwardingEnabled,
                     environmentVariables: $draft.environmentVariables,
                     snippets: app.hostLibrary.snippets,
                     snippetPackagePath: app.hostLibrary.snippetPackagePath,

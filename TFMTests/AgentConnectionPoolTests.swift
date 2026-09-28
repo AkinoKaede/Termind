@@ -13,6 +13,44 @@ import Testing
 
 @Suite
 struct AgentConnectionPoolTests {
+    @Test func forwardedCommandsExecuteOnSeparateConnectionsAndReleaseThem() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend, forwardingEnabled: true)
+        let host = UUID()
+        for _ in 0..<2 {
+            let result = try await pool.execute(
+                "true", workingDirectory: nil, stdin: nil,
+                timeout: 5, outputLimit: 1024, hostID: host)
+            #expect(result.exitCode == 0)
+        }
+        #expect(await backend.execOpens == 2)
+        #expect(await backend.execDisconnects == 2)
+    }
+
+    @Test func closeAllDiscardsALateForwardingConnection() async throws {
+        let backend = StubBackend()
+        let gate = Gate()
+        let pool = makePool(backend, openerGate: gate, forwardingEnabled: true)
+        let opening = Task { try await pool.connection(hostID: UUID()) }
+        while await gate.arrivals == 0 { await Task.yield() }
+        await pool.closeAll()
+        await gate.open()
+        await #expect(throws: CancellationError.self) { try await opening.value }
+        #expect(await backend.execDisconnects == 1)
+    }
+
+    @Test func forwardingConnectionsAreIsolatedAndClosedWithThePool() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend, forwardingEnabled: true)
+        let host = UUID()
+        let first = try await pool.connection(hostID: host)
+        let second = try await pool.connection(hostID: host)
+        #expect(first !== second)
+        #expect(await backend.execOpens == 2)
+        await pool.closeAll()
+        #expect(await backend.execDisconnects == 2)
+    }
+
     @Test
     func exclusiveConnectionAdapterAdmitsOnlyOneOperationAtATime() async throws {
         let firstGate = Gate()
@@ -365,7 +403,7 @@ private func serial(_ connection: any SSHConnectionProtocol) throws -> Int {
 /// `sweepInterval: nil` keeps the background sweeper out of the tests; every
 /// case here drives `sweepIdle` itself with a synthetic instant.
 private func makePool(
-    _ backend: StubBackend, openerGate: Gate? = nil
+    _ backend: StubBackend, openerGate: Gate? = nil, forwardingEnabled: Bool = false
 ) -> AgentConnectionPool {
     AgentConnectionPool(
         configuration: { hostID in
@@ -375,6 +413,7 @@ private func makePool(
             )
         },
         routeFingerprint: { try await backend.fingerprint(for: $0) },
+        forwardingEnabled: { _ in forwardingEnabled },
         openConnection: { _ in
             if let openerGate { await openerGate.wait() }
             return await backend.openConnection()

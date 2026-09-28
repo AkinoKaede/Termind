@@ -490,6 +490,8 @@ public final class AgentHostResolver: Sendable {
         )
     }
 
+    public func agentForwardingEnabled(for id: UUID) -> Bool { store.host(id)?.agentForwardingEnabled == true }
+
     /// A stable description of *which machine, reached how, and as whom* — the
     /// only question a pooled connection has to keep answering the same way.
     ///
@@ -794,7 +796,8 @@ public actor AgentSSHAuthenticationContext {
                         challenge, invocationID: self.invocationID)
                     guard await self.currentGeneration == generation else { throw CancellationError() }
                     return answers
-                }
+                },
+                agentForwardingContextID: interaction.presentationContextID
             ),
             generation: generation
         )
@@ -1065,7 +1068,7 @@ public actor AgentSSHAuthenticationRegistry {
         open: @Sendable (AgentSSHAuthenticationContext.Attempt?) async throws -> Client
     ) async throws -> Client {
         var attempt: AgentSSHAuthenticationContext.Attempt?
-        if await pool.isConnected(hostID: hostID) {
+        if await pool.isConnected(hostID: hostID), !(await resolver.agentForwardingEnabled(for: hostID)) {
             attempt = nil
         } else if await authentication.canResolveTarget() {
             attempt = try await authentication.configurationAttempt()
@@ -1099,6 +1102,11 @@ public actor AgentSSHAuthenticationRegistry {
         interaction: AgentSSHInteraction,
         operation: @Sendable (AgentSSHAuthenticationContext) async throws -> Value
     ) async throws -> Value {
+        if await resolver.agentForwardingEnabled(for: hostID) {
+            return try await operation(
+                AgentSSHAuthenticationContext(
+                    resolver: resolver, hostID: hostID, invocationID: invocationID, interaction: interaction))
+        }
         let token: UUID
         let context: AgentSSHAuthenticationContext
         if var entry = entries[hostID] {
@@ -1179,6 +1187,13 @@ public actor AgentConnectionPool {
     }
 
     private let configuration: ConfigurationResolving
+    private final class ForwardedConnection: @unchecked Sendable {
+        weak var value: (any SSHConnectionProtocol)?
+        init(_ value: any SSHConnectionProtocol) { self.value = value }
+    }
+    private var forwardedConnections: [UUID: [ForwardedConnection]] = [:]
+    private var forwardedOpenings: [UUID: [UUID: Task<any SSHConnectionProtocol, any Error>]] = [:]
+    private let forwardingEnabled: @Sendable (UUID) async -> Bool
     private let routeFingerprint: FingerprintResolving
     private let openConnection: ConnectionOpening
     private let openSFTP: SFTPOpening
@@ -1390,6 +1405,7 @@ public actor AgentConnectionPool {
     public init(
         configuration: @escaping ConfigurationResolving,
         routeFingerprint: @escaping FingerprintResolving,
+        forwardingEnabled: @escaping @Sendable (UUID) async -> Bool = { _ in false },
         openConnection: @escaping ConnectionOpening,
         openSFTP: @escaping SFTPOpening,
         sftpConcurrencyScheduler: SFTPConcurrencyScheduler = SFTPConcurrencyScheduler(),
@@ -1398,6 +1414,7 @@ public actor AgentConnectionPool {
     ) {
         self.configuration = configuration
         self.routeFingerprint = routeFingerprint
+        self.forwardingEnabled = forwardingEnabled
         self.openConnection = openConnection
         self.openSFTP = openSFTP
         self.sftpConcurrencyScheduler = sftpConcurrencyScheduler
@@ -1439,6 +1456,20 @@ public actor AgentConnectionPool {
         hostID: UUID, connection: any SSHConnectionProtocol,
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
+        if forwardedConnections[hostID]?.contains(where: { $0.value === connection }) == true {
+            defer {
+                forwardedConnections[hostID]?.removeAll { $0.value == nil || $0.value === connection }
+                if forwardedConnections[hostID]?.isEmpty == true { forwardedConnections[hostID] = nil }
+            }
+            do {
+                let result = try await operation()
+                await connection.disconnect()
+                return result
+            } catch {
+                await connection.disconnect()
+                throw error
+            }
+        }
         guard let pooled = entries[hostID]?.connection, pooled === connection else {
             throw SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected)
         }
@@ -1457,7 +1488,40 @@ public actor AgentConnectionPool {
     public func connection(
         hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SSHConnectionProtocol {
-        try await resolve(hostID: hostID, configuration: override)
+        if await forwardingEnabled(hostID) {
+            var request: SSHConnectionRequest
+            if let override {
+                request = try await override(hostID)
+            } else {
+                request = SSHConnectionRequest(
+                    configuration: try await configuration(hostID), interactionPolicy: .forbidden)
+            }
+            let openingID = UUID()
+            let isolated = request
+            let task = Task { [openConnection] in try await openConnection(isolated) }
+            forwardedOpenings[hostID, default: [:]][openingID] = task
+            do {
+                let connection = try await withTaskCancellationHandler {
+                    try await task.value
+                } onCancel: {
+                    task.cancel()
+                }
+                guard forwardedOpenings[hostID]?[openingID] != nil, !Task.isCancelled else {
+                    await connection.disconnect()
+                    throw CancellationError()
+                }
+                forwardedOpenings[hostID]?[openingID] = nil
+                if forwardedOpenings[hostID]?.isEmpty == true { forwardedOpenings[hostID] = nil }
+                forwardedConnections[hostID] = (forwardedConnections[hostID] ?? []).filter { $0.value != nil }
+                forwardedConnections[hostID, default: []].append(ForwardedConnection(connection))
+                return connection
+            } catch {
+                forwardedOpenings[hostID]?[openingID] = nil
+                if forwardedOpenings[hostID]?.isEmpty == true { forwardedOpenings[hostID] = nil }
+                throw error
+            }
+        }
+        return try await resolve(hostID: hostID, configuration: override)
     }
 
     public func sftpChannel(
@@ -1472,7 +1536,7 @@ public actor AgentConnectionPool {
             return primary.channel
         }
         if sftpStates[hostID] != nil { await disconnect(hostID: hostID) }
-        let connection = try await connection(hostID: hostID, configuration: override)
+        let connection = try await resolve(hostID: hostID, configuration: override)
         let opening: SFTPPrimaryOpen
         let ownsOpening: Bool
         if let existing = sftpPrimaryOpens[hostID], existing.fingerprint == fingerprint,
@@ -1546,16 +1610,22 @@ public actor AgentConnectionPool {
     @discardableResult
     public func disconnect(hostID: UUID) async -> Bool {
         cancelConnectionOpenings(hostID: hostID)
+        let opening = forwardedOpenings.removeValue(forKey: hostID) ?? [:]
+        for task in opening.values { task.cancel() }
+        let forwarded = forwardedConnections.removeValue(forKey: hostID) ?? []
+        for connection in forwarded { await connection.value?.disconnect() }
         let stateClosed = await disconnectSFTPState(hostID: hostID)
         activeExecLeases[hostID] = nil
         let entry = entries.removeValue(forKey: hostID)
         stopSweepingIfEmpty()
         await entry?.connection.disconnect()
-        return stateClosed || entry != nil
+        return stateClosed || entry != nil || !forwarded.isEmpty
     }
 
     public func closeAll() async {
         let hostIDs = Set(entries.keys)
+            .union(forwardedConnections.keys)
+            .union(forwardedOpenings.keys)
             .union(sftpStates.keys)
             .union(pending.keys.map(\.hostID))
             .union(sftpPrimaryOpens.keys)
@@ -1647,7 +1717,7 @@ public actor AgentConnectionPool {
         }
         let id = UUID()
         let task = Task { [configuration, openConnection] () async throws -> any SSHConnectionProtocol in
-            let request: SSHConnectionRequest
+            var request: SSHConnectionRequest
             if let override {
                 request = try await override(hostID)
             } else {
@@ -1655,6 +1725,7 @@ public actor AgentConnectionPool {
                     configuration: try await configuration(hostID)
                 )
             }
+            request.permitsAgentForwarding = false
             return try await openConnection(request)
         }
         pending[key] = InFlight(id: id, task: task, waiters: [:])

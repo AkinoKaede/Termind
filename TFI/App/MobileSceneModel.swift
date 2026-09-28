@@ -14,6 +14,7 @@ import struct TermindDomain.Host
 @Observable
 final class MobileSceneModel {
     let id = UUID()
+    let agentForwarding = MobileAgentForwardingInteraction()
     let workspaceSession: MobileWorkspaceSessionModel
     let assistant: MobileAssistantSceneModel
     var selectedDestination: MobileDestination? = .vault {
@@ -45,6 +46,7 @@ final class MobileSceneModel {
         assistant = app.assistant.makeSceneModel()
         assistant.paneAccess = app.paneAccess(for: self)
         app.registerPaneScene(self)
+        app.agentForwardingRouter.register(self)
     }
 
     var activeWorkspace: MobileWorkspace? {

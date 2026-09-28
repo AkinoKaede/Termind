@@ -119,6 +119,7 @@ final class MobileAppModel {
     }
     var error: String?
     let terminalSettings: TerminalSettingsModel
+    let agentForwardingRouter = MobileAgentForwardingRouter()
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
     let workspaceSettings: WorkspaceSettingsModel
@@ -298,6 +299,10 @@ final class MobileAppModel {
             persistence: persistence, secrets: secrets,
             localDefaults: memoryOnly ? nil : settingsDefaults
         )
+        let forwardingRouter = agentForwardingRouter
+        connectionCoordinator.updateAgentForwarding(
+            VaultSSHAgent.factory(
+                library: library, interactionContext: { forwardingRouter.context(for: $0) }))
         if !memoryOnly { try? library.migrateCustomPasswordsToICloud() }
         vaultSync?.beforeSend = { [weak library] in try library?.migrateCustomPasswordsToICloud() }
         metrics = MobileMetricsModel(

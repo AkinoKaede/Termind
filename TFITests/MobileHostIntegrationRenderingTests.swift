@@ -74,6 +74,44 @@ struct MobileHostIntegrationRenderingTests {
             to: FileManager.default.temporaryDirectory.appending(path: "host-integration-mobile-\(language).png"))
     }
 
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func agentForwardingFollowsStartupSnippet(language: String) async throws {
+        let controller = UIHostingController(
+            rootView: Form {
+                HostSessionSection(
+                    charset: .constant(.utf8), sftpInitialPath: .constant(""),
+                    agentForwardingEnabled: .constant(true))
+            }.environment(\.locale, Locale(identifier: language)))
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 375, height: 650)
+        window.rootViewController = controller
+        window.windowLevel = .alert + 1
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKey()
+        }
+        try await Task.sleep(for: .milliseconds(400))
+        controller.view.layoutIfNeeded()
+        let toggle = try #require(descendants(controller.view).compactMap { $0 as? UISwitch }.first)
+        #expect(toggle.isOn)
+        let pickers = descendants(controller.view).compactMap { $0 as? UIButton }.filter { $0.showsMenuAsPrimaryAction }
+        let startup = try #require(pickers.last)
+        #expect(
+            toggle.convert(toggle.bounds, to: controller.view).midY
+                > startup.convert(startup.bounds, to: controller.view).midY)
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            #expect(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let data = try #require(image.pngData())
+        Attachment.record(data, named: "agent-forwarding-mobile-\(language).png")
+        try data.write(
+            to: FileManager.default.temporaryDirectory.appending(path: "agent-forwarding-mobile-\(language).png"))
+    }
+
     private func descendants(_ view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap(descendants)
     }

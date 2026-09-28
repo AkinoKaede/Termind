@@ -10,9 +10,26 @@ import struct TermindDomain.Host
 /// types for the views. Previews can still construct an in-memory store directly.
 @Observable
 public final class HostLibraryModel: RemoteSessionHostStore {
-    public private(set) var hosts: [Host] = []
+    public private(set) var hosts: [Host] = [] {
+        didSet {
+            for old in oldValue where old.agentForwardingEnabled {
+                if !hosts.contains(where: { $0.id == old.id && $0.agentForwardingEnabled }) {
+                    agentForwardingRevisions[old.id, default: 0] += 1
+                }
+            }
+        }
+    }
+    @ObservationIgnored private var agentForwardingRevisions: [UUID: UInt64] = [:]
+    public func agentForwardingRevision(for hostID: UUID) -> UInt64 {
+        agentForwardingRevisions[hostID, default: 0]
+    }
+    public var agentForwardingSecrets: any SSHRuntimeSecretResolving { keychain }
+
     public private(set) var groups: [HostGroup] = []
-    public private(set) var keys: [SSHKeyRef] = []
+    public private(set) var keys: [SSHKeyRef] = [] {
+        didSet { if oldValue != keys { keyCredentialRevision &+= 1 } }
+    }
+    public var agentForwardingKeyRevision: Int { keyCredentialRevision }
     public private(set) var identities: [Identity] = []
     public private(set) var snippets: [Snippet] = []
     public private(set) var snippetPackages: [SnippetPackage] = []

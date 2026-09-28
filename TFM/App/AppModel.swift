@@ -205,6 +205,7 @@ final class AppModel {
         self.externalAuthentication = externalAuthentication
         let connectionCoordinator = dependencies.connectionCoordinator.withKeyboardInteractive(
             externalAuthentication.keyboardInteractive)
+        connectionCoordinator.updateAgentForwarding(VaultSSHAgent.factory(library: hosts))
         connectionCoordinator.updateSSHPreferences(sshSettings.preferences)
         self.serverMetrics =
             suppliedMetrics

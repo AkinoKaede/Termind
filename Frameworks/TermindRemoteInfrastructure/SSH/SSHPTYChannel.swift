@@ -647,6 +647,7 @@ public actor SSHPTYChannel {
 
     private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    private let agentForwardingFactory: SSHAgentForwardingFactory?
     private var environmentVariables: [HostEnvironmentVariable] = []
     private var environmentRejection: EnvironmentRejectionHandler = { _ in }
 
@@ -654,10 +655,12 @@ public actor SSHPTYChannel {
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
         shellIntegration: @escaping ShellIntegrationHandler = { _ in },
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        agentForwardingFactory: SSHAgentForwardingFactory? = nil,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
+        self.agentForwardingFactory = agentForwardingFactory
         worker = SSHPTYChannelWorker(
             output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
@@ -732,8 +735,10 @@ public actor SSHPTYChannel {
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
         defer { request.configuration.clearSecrets() }
+        var request = request.withKeyboardInteractiveFallback(keyboardInteractive)
+        request.agentForwarding = try await agentForwardingFactory?(request)
         try await worker.connect(
-            using: request.withKeyboardInteractiveFallback(keyboardInteractive),
+            using: request,
             environmentVariables: environmentVariables,
             environmentRejection: environmentRejection,
             shellIntegrationEnabled: shellIntegrationEnabled,
@@ -1127,6 +1132,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     throw Self.connectionError(created, prefix: "Unable to open SSH PTY Channel")
                 }
                 ptyChannel = openedChannel
+                if let provider = request.agentForwarding {
+                    let transport = openedConnection.installBuffer(deferIO: true)
+                    transport.agentChannels = SSHAgentChannels(provider: provider, queue: queue) { [weak self] in
+                        self?.pump()
+                    }
+                    libssh2_session_callback_set2(
+                        created, LIBSSH2_CALLBACK_AUTHAGENT,
+                        unsafeBitCast(SSHAgentChannels.callback, to: (@convention(c) () -> Void).self))
+                    guard libssh2_channel_request_auth_agent(openedChannel) == 0 else {
+                        throw Self.connectionError(created, prefix: "Agent Forwarding request failed")
+                    }
+                }
                 let pty = libssh2_channel_request_pty_ex(
                     openedChannel, "xterm-256color", 14, nil, 0,
                     Int32(size.columns), Int32(size.rows),
@@ -1439,6 +1456,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             socketEvents?.update(read: false, write: true)
             return
         }
+        var agentProgress =
+            buffer.agentChannels?.advance(
+                deadline: min(
+                    deadline, DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds / 2),
+                permitsIO: { !buffer.isBackpressured }) ?? false
         if let ptyChannel {
             let resizeResult = ptyResize.flush { size in
                 libssh2_channel_request_pty_size_ex(
@@ -1493,6 +1515,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             }
         }
 
+        agentProgress =
+            (buffer.agentChannels?.advance(deadline: deadline, permitsIO: { !buffer.isBackpressured }) ?? false)
+            || agentProgress
+        if agentProgress { queue.async { [weak self] in self?.pump() } }
         var next = Int32(0)
         let keepalive = libssh2_keepalive_send(session, &next)
         if keepalive < 0, keepalive != LIBSSH2_ERROR_EAGAIN {
@@ -1618,6 +1644,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func closeTerminalSession() {
+        buffer?.agentChannels?.shutdown()
         finishCharsetOutput()
         pendingWrites.removeAll()
         ptyResize.reset()
@@ -1640,6 +1667,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func cleanup() {
+        buffer?.agentChannels?.shutdown()
         pumpTimer?.cancel()
         pumpTimer = nil
         let connection = connection

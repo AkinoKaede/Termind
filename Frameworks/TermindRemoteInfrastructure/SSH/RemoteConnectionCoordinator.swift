@@ -7,6 +7,21 @@ import TermindDomain
 /// SSH/SFTP transports. Features receive this service instead of constructing
 /// infrastructure clients in views.
 public nonisolated final class RemoteConnectionCoordinator: Sendable {
+    private final class AgentConfiguration: @unchecked Sendable {
+        let lock = NSLock()
+        var factory: SSHAgentForwardingFactory?
+        func resolve(_ request: SSHConnectionRequest) async throws -> (any SSHAgentForwarding)? {
+            let factory = lock.withLock { self.factory }
+            return try await factory?(request)
+        }
+    }
+    private let agentConfiguration = AgentConfiguration()
+    public func updateAgentForwarding(_ factory: SSHAgentForwardingFactory?) {
+        agentConfiguration.lock.withLock { agentConfiguration.factory = factory }
+    }
+    private var agentFactory: SSHAgentForwardingFactory {
+        { [agentConfiguration] request in try await agentConfiguration.resolve(request) }
+    }
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
     let logger: Logger
@@ -39,6 +54,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     ) -> SSHPTYChannel {
         SSHPTYChannel(
             output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive,
+            agentForwardingFactory: agentFactory,
             logger: logger, maxSessionsPolicy: maxSessionsPolicy
         )
     }
@@ -51,7 +67,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
 
     public func makeConnection() -> any SSHConnectionProtocol {
         SSHConnection(
-            keyboardInteractive: keyboardInteractive, logger: logger,
+            keyboardInteractive: keyboardInteractive, agentForwardingFactory: agentFactory, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
 

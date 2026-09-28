@@ -22,6 +22,7 @@ public struct HostIntegrationSection: View {
 public struct HostSessionSection: View {
     @Binding private var charset: RemoteCharset
     @Binding private var sftpInitialPath: String
+    @Binding private var agentForwardingEnabled: Bool
     @Binding private var startupSnippetID: Snippet.ID?
     @Binding private var environmentVariables: [HostEnvironmentVariable]
     private let snippets: [Snippet]
@@ -32,6 +33,7 @@ public struct HostSessionSection: View {
         charset: Binding<RemoteCharset>,
         sftpInitialPath: Binding<String>,
         startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
+        agentForwardingEnabled: Binding<Bool> = .constant(false),
         environmentVariables: Binding<[HostEnvironmentVariable]> = .constant([]),
         snippets: [Snippet] = [],
         snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil },
@@ -40,6 +42,7 @@ public struct HostSessionSection: View {
         _charset = charset
         _sftpInitialPath = sftpInitialPath
         _startupSnippetID = startupSnippetID
+        _agentForwardingEnabled = agentForwardingEnabled
         _environmentVariables = environmentVariables
         self.snippets = snippets
         self.snippetPackagePath = snippetPackagePath
@@ -66,6 +69,11 @@ public struct HostSessionSection: View {
             }
             .pickerStyle(.menu)
             .menuOrder(.fixed)
+            Toggle(isOn: $agentForwardingEnabled) {
+                Text(AppStrings.Connections.agentForwarding)
+                Text(AppStrings.Connections.agentForwardingDescription)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             LabeledContent("SFTP Initial Path") {
                 TextField("SFTP Initial Path", text: $sftpInitialPath.singleLineText, prompt: Text("~"))
                     .singleLinePaste()

@@ -3449,6 +3449,7 @@ public final class WeakAgentUserInteraction {
     /// `AgentSSHInteraction`. Weak for the same reason `request` is.
     public var sshInteraction: AgentSSHInteraction {
         AgentSSHInteraction(
+            presentationContextID: conversation?.id,
             authenticate: { [weak conversation] request in
                 guard let conversation else { return .cancelled }
                 return await conversation.requestSSHAuthentication(request)

@@ -200,6 +200,7 @@ struct MobileHostEditor: View {
                         charset: $draft.sshCharset,
                         sftpInitialPath: $draft.sftpChannelInitialPath,
                         startupSnippetID: startupSnippetChoice,
+                        agentForwardingEnabled: $draft.agentForwardingEnabled,
                         environmentVariables: $draft.environmentVariables,
                         snippets: library.snippets,
                         snippetPackagePath: library.snippetPackagePath,

@@ -8,6 +8,7 @@ import Foundation
 /// calls instead. The receive callback also stops packet processing at the
 /// watermark, bounding replies generated while libssh2 drains input.
 nonisolated final class SSHConnectionBuffer {
+    var agentChannels: SSHAgentChannels?
     private let output = SSHByteQueue()
     private var disposed = false
     private let tuning: SSHForwardingTuning
@@ -31,11 +32,15 @@ nonisolated final class SSHConnectionBuffer {
     var isBackpressured: Bool { output.count >= tuning.highWater }
     var wantsWrite: Bool { !output.isEmpty }
 
-    init(libssh2Session: OpaquePointer, tuning: SSHForwardingTuning = .current) {
+    init(libssh2Session: OpaquePointer, tuning: SSHForwardingTuning = .current, deferIO: Bool = false) {
         self.tuning = tuning
         readAllowance = tuning.readBudget
         writeAllowance = tuning.quantum
         libssh2_session_abstract(libssh2Session)?.pointee = Unmanaged.passUnretained(self).toOpaque()
+        if !deferIO { installIO(libssh2Session) }
+    }
+
+    func installIO(_ libssh2Session: OpaquePointer) {
         libssh2_session_callback_set2(
             libssh2Session, LIBSSH2_CALLBACK_SEND,
             unsafeBitCast(Self.send, to: (@convention(c) () -> Void).self))
@@ -70,6 +75,8 @@ nonisolated final class SSHConnectionBuffer {
     /// Teardown cannot wait on a peer. Discard final protocol writes and return
     /// EOF to reads, so libssh2 can release channels/listeners without EAGAIN.
     func dispose(libssh2Session: OpaquePointer) {
+        agentChannels?.shutdown()
+        agentChannels = nil
         disposed = true
         let result = libssh2_session_free(libssh2Session)
         assert(result == 0, "SSH session disposal must finish without socket I/O")

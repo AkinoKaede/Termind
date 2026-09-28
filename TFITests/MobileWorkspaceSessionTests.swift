@@ -13,6 +13,41 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func agentForwardingStaysWithTheConversationScene() async throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let owner = MobileSceneModel(app: app, sessionID: "agent-owner")
+        let other = MobileSceneModel(app: app, sessionID: "agent-other")
+        owner.agentForwarding.isActive = true
+        other.agentForwarding.isActive = true
+        let conversation = ConversationModel()
+        conversation.composer.draft = "Agent forwarding"
+        _ = try #require(owner.assistant.library.startConversation(conversation))
+        owner.openAssistantNotification(conversation.id)
+        let hostID = UUID()
+        let request = SSHConnectionRequest(
+            configuration: .init(
+                hostID: hostID, host: "fixture", port: 22, username: "user", credentials: [], expectedHostKeys: []),
+            agentForwardingContextID: conversation.id)
+        let context = app.agentForwardingRouter.context(for: request)
+        #expect(context.canInteract())
+        let handler = try #require(context.unlock)
+        let pending = Task {
+            try await handler(
+                .init(
+                    connectionID: UUID(), hostID: hostID,
+                    hostname: "fixture", port: 22, username: "user", round: 0, name: "Agent Forwarding",
+                    instruction: "Fixture", prompts: [.init(text: "Passphrase", echo: false)]))
+        }
+        for _ in 0..<100 where owner.agentForwarding.current == nil { await Task.yield() }
+        #expect(owner.agentForwarding.current != nil)
+        #expect(other.agentForwarding.current == nil)
+        owner.agentForwarding.isActive = false
+        #expect(!context.canInteract())
+        await #expect(throws: CancellationError.self) { try await pending.value }
+    }
+
     @Test(arguments: [true, false])
     func assistantNotificationPrefersActiveThenStableOrderWithinMatchingScenes(_ visible: Bool) throws {
         let fixture = try Fixture()

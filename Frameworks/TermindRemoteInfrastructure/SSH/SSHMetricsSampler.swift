@@ -31,12 +31,14 @@ public actor SSHMetricsSampler: MetricsSampling {
         self.logger = logger
     }
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
-        hostID = configuration.hostID
-        try await adapter.withConnection { try await $0.connect(using: configuration) }
+        try await connect(SSHConnectionRequest(configuration: configuration))
     }
     public func connect(_ request: SSHConnectionRequest) async throws {
+        var request = request
+        request.permitsAgentForwarding = false
         hostID = request.configuration.hostID
-        try await adapter.withConnection { try await $0.connect(using: request) }
+        let isolated = request
+        try await adapter.withConnection { try await $0.connect(using: isolated) }
     }
     public func disconnect() async { await adapter.disconnect() }
 

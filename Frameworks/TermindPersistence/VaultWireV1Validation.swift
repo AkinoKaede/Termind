@@ -23,6 +23,7 @@ nonisolated extension VaultWireV1 {
         }
         switch payload {
         case .host(let value):
+            guard !value.agentForwardingEnabled else { throw CocoaError(.coderInvalidValue) }
             try require(RemoteCharset(rawValue: value.sshCharset.rawValue))
             try require(RemoteCharset(rawValue: value.telnetCharset.rawValue))
             try require(TagColor(rawValue: value.colorTag.rawValue))

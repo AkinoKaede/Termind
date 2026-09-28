@@ -60,17 +60,22 @@ public nonisolated enum VaultSyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
+        if envelope.key.kind == .host, envelope.formatVersion == 2 {
+            return try encoder.encode(VaultWireV2.Envelope(envelope))
+        }
         return try encoder.encode(VaultWireV1.Envelope(envelope))
     }
 
-    private static let decoder = VersionedRecordDecoder<VaultEnvelope>(
-        Dictionary(
-            uniqueKeysWithValues: VaultRecordKind.allCases.map { kind in
-                (
-                    kind.rawValue,
-                    [1: { data in try JSONDecoder().decode(VaultWireV1.Envelope.self, from: data).domainValue }]
-                )
-            }))
+    private static let decoder: VersionedRecordDecoder<VaultEnvelope> = {
+        var decoders: [String: [Int: @Sendable (Data) throws -> VaultEnvelope]] = [:]
+        for kind in VaultRecordKind.allCases {
+            decoders[kind.rawValue] = [1: { try JSONDecoder().decode(VaultWireV1.Envelope.self, from: $0).domainValue }]
+        }
+        decoders[VaultRecordKind.host.rawValue]?[2] = {
+            try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
+        }
+        return VersionedRecordDecoder(decoders)
+    }()
 
     public static func decode(_ data: Data) throws -> VaultEnvelope {
         let envelope = try decoder.decode(data)

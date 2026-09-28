@@ -104,14 +104,17 @@ public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
 public actor SSHConnection: SSHConnectionProtocol {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    private let agentForwardingFactory: SSHAgentForwardingFactory?
     private nonisolated let worker: SSHConnectionWorker
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        agentForwardingFactory: SSHAgentForwardingFactory? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.ssh-connection"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
+        self.agentForwardingFactory = agentForwardingFactory
         worker = SSHConnectionWorker(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
     }
 
@@ -129,8 +132,10 @@ public actor SSHConnection: SSHConnectionProtocol {
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
         defer { request.configuration.clearSecrets() }
+        var request = request.withKeyboardInteractiveFallback(keyboardInteractive)
+        request.agentForwarding = try await agentForwardingFactory?(request)
         try await worker.connect(
-            using: request.withKeyboardInteractiveFallback(keyboardInteractive),
+            using: request,
             progress: progress, connectionFailure: connectionFailure)
     }
 

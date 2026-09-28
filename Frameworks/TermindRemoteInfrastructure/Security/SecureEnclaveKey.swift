@@ -63,9 +63,12 @@ public nonisolated enum SecureEnclaveKey {
 
     /// Returns the SSH ECDSA signature payload: two length-prefixed mpints (r, s).
     /// libssh2 adds the outer algorithm and signature strings around this value.
-    public static func sign(_ data: Data, credential: SecureEnclaveKeyCredential) throws -> Data {
+    public static func sign(_ data: Data, credential: SecureEnclaveKeyCredential, allowInteraction: Bool = true) throws
+        -> Data
+    {
         guard isAvailable else { throw SecureEnclaveKeyError.unavailable }
         let context = LAContext()
+        context.interactionNotAllowed = !allowInteraction
         context.localizedReason = String(localized: "Use your Secure Enclave SSH key")
         let privateKey = try SecureEnclave.P256.Signing.PrivateKey(
             dataRepresentation: credential.dataRepresentation,

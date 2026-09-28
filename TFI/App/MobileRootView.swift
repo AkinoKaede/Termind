@@ -51,7 +51,20 @@ struct MobileRootView: View {
                 scene.workspaceSession.renameWorkspace(descriptor.id, to: title)
             }
         }
+        .sheet(
+            isPresented: Binding(
+                get: { scene.agentForwarding.current != nil },
+                set: { if !$0 { scene.agentForwarding.cancelAll() } }
+            )
+        ) {
+            if let challenge = scene.agentForwarding.current {
+                MobileAgentForwardingSheet(interaction: scene.agentForwarding, challenge: challenge)
+                    .id(challenge.id)
+            }
+        }
+        .onDisappear { scene.agentForwarding.isActive = false }
         .onChange(of: scenePhase, initial: true) { _, phase in
+            scene.agentForwarding.isActive = phase != .background
             app.sceneChanged(scene.id, phase: phase, workspaceSessionID: scene.workspaceSession.id)
             MobileHomeScreenQuickActions.refresh(app: app)
         }

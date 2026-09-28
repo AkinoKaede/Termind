@@ -25,10 +25,10 @@ struct SyncRecordEvolutionTests {
         #expect(try VaultSyncJournal(context: container.mainContext).pendingEnvelopes().isEmpty)
     }
 
-    @Test func versionTwoHostDecoderLeavesOtherKindsOnVersionOne() throws {
+    @Test func versionThreeHostDecoderLeavesOtherKindsOnVersionOne() throws {
         // A test-only future protocol adds a field that an old writer would lose.
-        // The historical decoder upgrades in memory; only explicit editing writes V2.
-        nonisolated struct HostV2: Codable, Sendable {
+        // The historical decoder upgrades in memory; only explicit editing writes V3.
+        nonisolated struct HostV3: Codable, Sendable {
             var formatVersion: Int
             var key: SyncRecordKey
             var name: String
@@ -38,20 +38,20 @@ struct SyncRecordEvolutionTests {
             var kind: String
             var id: UUID
         }
-        let decoder = VersionedRecordDecoder<HostV2>([
+        let decoder = VersionedRecordDecoder<HostV3>([
             "host": [
                 1: { data in
                     let old = try VaultSyncCodec.decode(data)
                     guard case .host(let host) = old.payload else { throw CocoaError(.coderReadCorrupt) }
-                    return HostV2(
-                        formatVersion: 2, key: SyncRecordKey(kind: "host", id: old.key.id), name: host.name,
+                    return HostV3(
+                        formatVersion: 3, key: SyncRecordKey(kind: "host", id: old.key.id), name: host.name,
                         futureValue: "inherited")
                 },
-                2: { try JSONDecoder().decode(HostV2.self, from: $0) },
+                3: { try JSONDecoder().decode(HostV3.self, from: $0) },
             ]
         ])
         let formats = SyncRecordFormats([
-            "host": .init(readingVersions: [1, 2], writingVersion: 2),
+            "host": .init(readingVersions: [1, 3], writingVersion: 3),
             "snippet": .init(readingVersions: [1], writingVersion: 1),
         ])
         var upgraded = try decoder.decode(Self.hostV1)

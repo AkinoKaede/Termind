@@ -20,11 +20,14 @@ public nonisolated final class SSHAuthenticatedConnection: @unchecked Sendable {
         self.libssh2Session = libssh2Session
     }
 
-    func installBuffer(tuning: SSHForwardingTuning = .current) -> SSHConnectionBuffer {
+    func installBuffer(tuning: SSHForwardingTuning = .current, deferIO: Bool = false) -> SSHConnectionBuffer {
         lock.withLock {
             precondition(!isClosed, "Cannot configure I/O for a closed SSH connection")
-            if let buffer { return buffer }
-            let installed = SSHConnectionBuffer(libssh2Session: libssh2Session, tuning: tuning)
+            if let buffer {
+                if !deferIO { buffer.installIO(libssh2Session) }
+                return buffer
+            }
+            let installed = SSHConnectionBuffer(libssh2Session: libssh2Session, tuning: tuning, deferIO: deferIO)
             buffer = installed
             return installed
         }

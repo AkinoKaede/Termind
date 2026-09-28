@@ -121,6 +121,9 @@ public nonisolated struct SSHInteractionRequired: LocalizedError, Sendable {
 /// the connection must already contain a matching expected key.
 public nonisolated struct SSHConnectionRequest: Sendable {
     public var configuration: SSHConnectionConfiguration
+    public var agentForwarding: (any SSHAgentForwarding)?
+    public var permitsAgentForwarding = true
+    public var agentForwardingContextID: UUID?
     public var authorizeHostKey: SSHHostKeyAuthorizer?
     public var keyboardInteractive: SSHKeyboardInteractiveHandler?
     public var interactionPolicy: SSHInteractionPolicy
@@ -131,13 +134,15 @@ public nonisolated struct SSHConnectionRequest: Sendable {
         authorizeHostKey: SSHHostKeyAuthorizer? = nil,
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
         interactionPolicy: SSHInteractionPolicy = .allowed,
-        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:]
+        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:],
+        agentForwardingContextID: UUID? = nil
     ) {
         self.configuration = configuration
         self.authorizeHostKey = authorizeHostKey
         self.keyboardInteractive = keyboardInteractive
         self.interactionPolicy = interactionPolicy
         self.hostKeyConstraints = hostKeyConstraints
+        self.agentForwardingContextID = agentForwardingContextID
     }
 
     public func withKeyboardInteractiveFallback(_ handler: SSHKeyboardInteractiveHandler?) -> Self {
