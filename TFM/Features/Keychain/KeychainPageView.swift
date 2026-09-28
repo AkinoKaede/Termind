@@ -1735,19 +1735,18 @@ struct KeyObjectActions: View {
     let export: () -> Void
 
     var body: some View {
-        // Copy Fingerprint repeats Copy Public Key's verb, so the glyph stays on
-        // the first of the pair.
-        Button(AppStrings.Keychain.copyPublicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
-            copyToPasteboard(key.publicKey)
-        }
-        .disabled(key.publicKey.isEmpty)
-        Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey) {
-            copyToPasteboard(key.fingerprint)
-        }
-        Divider()
         Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
             .disabled(key.publicKey.isEmpty)
         Divider()
+        Menu(AppStrings.Common.copy.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.Keychain.copyPublicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
+                copyToPasteboard(key.publicKey)
+            }
+            .disabled(key.publicKey.isEmpty)
+            Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: MenuSymbol.copy) {
+                copyToPasteboard(key.fingerprint)
+            }
+        }
         Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
     }
 }
@@ -1862,8 +1861,8 @@ private struct KeyCard: View {
             } else if actionIdentities.isEmpty {
                 Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
                     .disabled(actionKeys.isEmpty || actionKeys.contains { $0.publicKey.isEmpty })
-                Divider()
             }
+            Divider()
             DestructiveMenuButton(AppStrings.Common.delete, action: delete)
         }
         .help(Text(key.fingerprint))
@@ -1952,6 +1951,7 @@ private struct IdentityCard: View {
             if actionKeys.isEmpty, actionIdentities.count == 1 {
                 IdentityObjectActions(edit: edit)
             }
+            Divider()
             DestructiveMenuButton(AppStrings.Common.delete, action: delete)
         }
         .help(Text(identity.notes.isEmpty ? identity.username : identity.notes))

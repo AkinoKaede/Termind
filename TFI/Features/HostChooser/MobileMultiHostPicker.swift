@@ -5,7 +5,7 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
-struct MobileMultiHostPicker<Header: View>: View {
+struct MobileMultiHostPicker<Header: View, RowDetail: View>: View {
     let title: LocalizedStringResource
     let actionTitle: LocalizedStringResource
     let emptyDescription: LocalizedStringResource
@@ -13,6 +13,12 @@ struct MobileMultiHostPicker<Header: View>: View {
     let save: ([Host.ID]) -> Void
     let useCase: HostUseCase
     let header: Header
+    let interaction: MobileMultiHostPickerInteraction
+    let displayedHosts: [Host]?
+    let rowDetail: (Host) -> RowDetail
+    let selectionChanged: (Set<Host.ID>) -> Void
+
+    private var hosts: [Host] { displayedHosts ?? model.hosts }
     @Environment(\.dismiss) private var dismiss
     @State private var model: MobileMultiHostPickerModel
 
@@ -21,8 +27,13 @@ struct MobileMultiHostPicker<Header: View>: View {
         title: LocalizedStringResource, actionTitle: LocalizedStringResource,
         emptyDescription: LocalizedStringResource, requiresSelection: Bool,
         isEligible: @escaping (Host) -> Bool = { _ in true },
+        isSelectable: @escaping (Host) -> Bool = { _ in true },
+        interaction: MobileMultiHostPickerInteraction = .standard,
+        displayedHosts: [Host]? = nil,
+        selectionChanged: @escaping (Set<Host.ID>) -> Void = { _ in },
         save: @escaping ([Host.ID]) -> Void,
-        @ViewBuilder header: () -> Header
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder rowDetail: @escaping (Host) -> RowDetail
     ) {
         self.title = title
         self.actionTitle = actionTitle
@@ -31,9 +42,14 @@ struct MobileMultiHostPicker<Header: View>: View {
         self.save = save
         self.useCase = useCase
         self.header = header()
+        self.interaction = interaction
+        self.displayedHosts = displayedHosts
+        self.rowDetail = rowDetail
+        self.selectionChanged = selectionChanged
         _model = State(
             initialValue: MobileMultiHostPickerModel(
-                library: library, useCase: useCase, selected: selected, isEligible: isEligible))
+                library: library, useCase: useCase, selected: selected, isEligible: isEligible,
+                isSelectable: isSelectable))
     }
 
     var body: some View {
@@ -41,40 +57,47 @@ struct MobileMultiHostPicker<Header: View>: View {
             List {
                 header
 
-                if model.isLibraryEmpty {
+                if model.isLibraryEmpty, displayedHosts == nil {
                     ContentUnavailableView(
                         AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
                         description: Text(emptyDescription)
                     )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                } else if model.hosts.isEmpty {
+                } else if hosts.isEmpty {
                     ContentUnavailableView.search(text: model.query)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 } else {
-                    Section {
-                        Button(
-                            model.allResultsSelected ? AppStrings.Common.deselectAll : AppStrings.Common.selectAll,
-                            action: model.toggleAllResults
-                        )
-                        .accessibilityIdentifier("host-picker.select-all")
+                    if interaction.allowsSelection {
+                        Section {
+                            Button(
+                                model.allResultsSelected ? AppStrings.Common.deselectAll : AppStrings.Common.selectAll,
+                                action: model.toggleAllResults
+                            )
+                            .disabled(model.selectableHosts.isEmpty)
+                            .accessibilityIdentifier("host-picker.select-all")
+                        }
                     }
                     Section {
-                        ForEach(model.hosts) { host in
+                        ForEach(hosts) { host in
                             Button {
                                 model.toggle(host.id)
                             } label: {
-                                MobileHostPickerRow(host: host, loginAddress: model.loginAddress(for: host)) {
-                                    if model.selected.contains(host.id) {
-                                        Image(systemName: "checkmark")
-                                            .font(.body.weight(.semibold))
-                                            .foregroundStyle(.tint)
-                                            .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    MobileHostPickerRow(host: host, loginAddress: model.loginAddress(for: host)) {
+                                        if model.selected.contains(host.id) {
+                                            Image(systemName: "checkmark")
+                                                .font(.body.weight(.semibold))
+                                                .foregroundStyle(.tint)
+                                                .accessibilityHidden(true)
+                                        }
                                     }
+                                    rowDetail(host)
                                 }
                             }
                             .buttonStyle(.plain)
+                            .disabled(!interaction.allowsSelection || !model.isSelectable(host))
                             .accessibilityIdentifier("host-picker.host.\(host.id)")
                             .accessibilityAddTraits(model.selected.contains(host.id) ? [.isSelected] : [])
                         }
@@ -88,26 +111,30 @@ struct MobileMultiHostPicker<Header: View>: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }
                         .labelStyle(.iconOnly)
+                        .disabled(!interaction.allowsDismissal)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(actionTitle, systemImage: "checkmark") {
                         model.updateUseCase(useCase)
                         save(model.orderedSelection)
-                        dismiss()
+                        if interaction.dismissesOnSave { dismiss() }
                     }
                     .labelStyle(.iconOnly)
                     .foregroundStyle(.tint)
-                    .disabled(requiresSelection && model.orderedSelection.isEmpty)
+                    .disabled(!interaction.allowsConfirmation || (requiresSelection && model.orderedSelection.isEmpty))
+                    .accessibilityIdentifier("host-picker.confirm")
                 }
             }
             .onChange(of: model.availableHostIDs, initial: true) { model.reconcileSelection() }
             .onChange(of: useCase) { model.updateUseCase(useCase) }
+            .onChange(of: model.selected, initial: true) { selectionChanged(model.selected) }
         }
+        .interactiveDismissDisabled(!interaction.allowsDismissal)
         .mobileSheetPresentation(compact: true)
     }
 }
 
-extension MobileMultiHostPicker where Header == EmptyView {
+extension MobileMultiHostPicker where Header == EmptyView, RowDetail == EmptyView {
     init(
         library: HostLibraryModel, useCase: HostUseCase, selected: Set<Host.ID>,
         title: LocalizedStringResource, actionTitle: LocalizedStringResource,
@@ -118,6 +145,22 @@ extension MobileMultiHostPicker where Header == EmptyView {
         self.init(
             library: library, useCase: useCase, selected: selected, title: title, actionTitle: actionTitle,
             emptyDescription: emptyDescription, requiresSelection: requiresSelection,
-            isEligible: isEligible, save: save, header: { EmptyView() })
+            isEligible: isEligible, save: save, header: { EmptyView() }, rowDetail: { _ in EmptyView() })
+    }
+}
+
+extension MobileMultiHostPicker where RowDetail == EmptyView {
+    init(
+        library: HostLibraryModel, useCase: HostUseCase, selected: Set<Host.ID>,
+        title: LocalizedStringResource, actionTitle: LocalizedStringResource,
+        emptyDescription: LocalizedStringResource, requiresSelection: Bool,
+        isEligible: @escaping (Host) -> Bool = { _ in true },
+        save: @escaping ([Host.ID]) -> Void,
+        @ViewBuilder header: () -> Header
+    ) {
+        self.init(
+            library: library, useCase: useCase, selected: selected, title: title, actionTitle: actionTitle,
+            emptyDescription: emptyDescription, requiresSelection: requiresSelection,
+            isEligible: isEligible, save: save, header: header, rowDetail: { _ in EmptyView() })
     }
 }

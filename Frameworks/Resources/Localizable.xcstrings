@@ -11425,13 +11425,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出为主机"
+            "value" : "导出到主机"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匯出為主機"
+            "value" : "匯出到主機"
           }
         }
       }

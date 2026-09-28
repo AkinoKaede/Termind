@@ -7,6 +7,7 @@ struct MobileCredentialsView: View {
     let app: MobileAppModel
     @State private var editing: Identity?
     @State private var keyEditor: MobileKeyEditorModel?
+    @State private var exportingKey: SSHKeyRef?
     @State private var deletingKey: SSHKeyRef?
     @State private var deletingIdentity: Identity?
     @State private var error: String?
@@ -33,10 +34,26 @@ struct MobileCredentialsView: View {
                     MobileCardGrid {
                         ForEach(keys) { key in
                             MobileActionCard {
-                                keyEditor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+                                if !key.publicKey.isEmpty { exportingKey = key }
                             } content: {
                                 MobileKeyCredentialCard(key: key, credentials: app.credentials)
                             } actions: {
+                                Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: "square.and.arrow.up")
+                                {
+                                    exportingKey = key
+                                }
+                                .disabled(key.publicKey.isEmpty)
+                                Divider()
+                                Menu(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                                    Button(AppStrings.Keychain.copyPublicKey.swiftUIKey, systemImage: "doc.on.doc") {
+                                        UIPasteboard.general.string = key.publicKey
+                                    }
+                                    .disabled(key.publicKey.isEmpty)
+                                    Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: "doc.on.doc")
+                                    {
+                                        UIPasteboard.general.string = key.fingerprint
+                                    }
+                                }
                                 Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
                                     keyEditor = MobileKeyEditorModel(
                                         mode: .edit, credentials: app.credentials, key: key)
@@ -100,6 +117,11 @@ struct MobileCredentialsView: View {
         }
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
         .sheet(item: $keyEditor) { MobileKeyEditor(model: $0) }
+        .sheet(item: $exportingKey) { key in
+            MobileKeyExportSheet(
+                library: app.library, credentials: app.credentials,
+                model: MobileKeyExportModel(key: key, credentials: app.credentials, services: app.keyExportServices))
+        }
         .confirmationDialog(
             AppStrings.Keychain.deleteIdentityConfirmation,
             isPresented: Binding(get: { deletingIdentity != nil }, set: { if !$0 { deletingIdentity = nil } }),
