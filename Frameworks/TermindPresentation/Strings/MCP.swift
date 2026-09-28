@@ -8,7 +8,7 @@ extension AppStrings {
         public static var oauthSignedOut: LocalizedStringResource { "Not signed in on this device" }
         public static var oauthSignIn: LocalizedStringResource { "Sign In" }
         public static var oauthSignOut: LocalizedStringResource { "Sign Out" }
-        public static var oauthReauthorize: LocalizedStringResource { "Authorize Again" }
+        public static var oauthReauthorize: LocalizedStringResource { "Reauthenticate" }
         public static var oauthAuthorizeContinue: LocalizedStringResource { "Authorize and Continue" }
         public static var oauthAdvanced: LocalizedStringResource { "OAuth Settings" }
         public static var oauthIssuer: LocalizedStringResource { "Authorization Server" }

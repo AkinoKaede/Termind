@@ -4005,29 +4005,6 @@
         }
       }
     },
-    "Authorize Again" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authorize Again"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新授权"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新授權"
-          }
-        }
-      }
-    },
     "Authorize File" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21535,6 +21512,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推理中…"
+          }
+        }
+      }
+    },
+    "Reauthenticate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reauthenticate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新认证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新認證"
           }
         }
       }
