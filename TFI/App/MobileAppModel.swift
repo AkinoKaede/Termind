@@ -280,7 +280,12 @@ final class MobileAppModel {
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
             permissionDefaults: settingsDefaults, aiSecrets: aiSecrets,
-            webSearchPersistence: settingsPersistence)
+            webSearchPersistence: settingsPersistence,
+            mcpSecrets: memoryOnly
+                ? InMemoryMCPAuthorizationStore()
+                : MCPKeychainCredentialStore(
+                    accessGroup: Bundle.main.object(forInfoDictionaryKey: "TermindKeychainAccessGroup") as? String
+                        ?? "F6SUNDBBN9.com.akinokaede.termind"))
         commandGenerator = CommandGeneratorController(ai: ai)
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         memory = MemoryModel(

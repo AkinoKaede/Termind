@@ -57,7 +57,7 @@ struct MobileMCPSettings: View {
                 .labelStyle(.iconOnly)
             }
             MobileToolbarOverflow {
-                Button(AppStrings.MCP.importServers.swiftUIKey, systemImage: "square.and.arrow.down") {
+                Button(AppStrings.Common.import.swiftUIKey, systemImage: "square.and.arrow.down") {
                     if pro.require(.remoteMCP) { importing = true }
                 }
             }
@@ -200,6 +200,7 @@ struct MobileMCPEditor: View {
     let ai: AIConfigurationModel
     let pro: ProAccessController
     @State private var model: MobileMCPEditorModel
+    @State private var browser = MCPWebAuthenticationPresenter()
     @State private var editingHeader: MCPHeader?
     @State private var alert: EditorAlert?
     @Environment(\.dismiss) private var dismiss
@@ -255,6 +256,7 @@ struct MobileMCPEditor: View {
                 if let connection = model.connection { Text(connection).font(.caption).textSelection(.enabled) }
             }
             MobileSecretFields(key: model.key, isToken: true)
+            oauthSection
             Section {
                 ForEach(model.draft.headers) { header in
                     NavigationLink {
@@ -300,7 +302,7 @@ struct MobileMCPEditor: View {
         .toolbar {
             MobileToolbarOverflow {
                 Button(AppStrings.Common.connect.swiftUIKey, systemImage: "bolt") {
-                    if pro.require(.remoteMCP) { model.connect() }
+                    if pro.require(.remoteMCP) { model.connect(interaction: browser.interaction) }
                 }
                 .disabled(!model.canSave || model.running)
                 if ai.mcpServer(model.original.id) != nil {
@@ -331,7 +333,15 @@ struct MobileMCPEditor: View {
         .onChange(of: model.key.action) { _, _ in model.invalidateConnection() }
         .onChange(of: ai.mcpServer(model.original.id)) { _, _ in model.cancel() }
         .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
-        .onDisappear { model.cancel() }
+        .background(MCPAuthorizationAnchor(presenter: browser).frame(width: 0, height: 0))
+        .onChange(of: model.draft.oauth) { _, _ in
+            model.invalidateConnection()
+            browser.cancel()
+        }
+        .onDisappear {
+            model.cancel()
+            browser.cancel()
+        }
         .alert(
             alert?.title ?? AppStrings.Common.unableToSave,
             isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
@@ -340,6 +350,55 @@ struct MobileMCPEditor: View {
         } message: {
             Text(alert?.message ?? "")
         }
+    }
+
+    private var oauthSection: some View {
+        Section {
+            Label(
+                (model.oauthSignedIn ? AppStrings.MCP.oauthSignedIn : AppStrings.MCP.oauthSignedOut).swiftUIKey,
+                systemImage: model.oauthSignedIn ? "checkmark.circle" : "person.crop.circle")
+            Button((model.oauthSignedIn ? AppStrings.MCP.oauthReauthorize : AppStrings.MCP.oauthSignIn).swiftUIKey) {
+                guard pro.require(.remoteMCP) else { return }
+                model.reauthorize(interaction: browser.interaction)
+            }
+            .disabled(
+                !model.canSave || model.running || model.hasManualAuthorization)
+            if model.oauthSignedIn {
+                Button(AppStrings.MCP.oauthSignOut.swiftUIKey) {
+                    browser.cancel()
+                    Task { await model.signOut() }
+                }
+            }
+            DisclosureGroup(AppStrings.MCP.oauthAdvanced.swiftUIKey) {
+                TextField(
+                    AppStrings.MCP.oauthIssuer.swiftUIKey, text: oauthBinding(\.issuer),
+                    prompt: Text(AppStrings.MCP.oauthAutomatic)
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                TextField(
+                    AppStrings.MCP.oauthClientID.swiftUIKey, text: oauthBinding(\.clientID),
+                    prompt: Text(AppStrings.Common.optional)
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                RevealableSecretField(
+                    AppStrings.MCP.oauthClientSecret, text: $model.oauthClientSecret,
+                    prompt: Text(AppStrings.Common.optional))
+            }
+        } header: {
+            Text(AppStrings.MCP.oauth)
+        } footer: {
+            Text(AppStrings.MCP.oauthDeviceOnly)
+        }
+    }
+
+    private func oauthBinding(_ path: WritableKeyPath<MCPOAuthConfiguration, String>) -> Binding<String> {
+        Binding(
+            get: { model.draft.oauth?[keyPath: path] ?? "" },
+            set: { value in
+                var config = model.draft.oauth ?? .init()
+                config[keyPath: path] = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                model.draft.oauth = config.issuer.isEmpty && config.clientID.isEmpty ? nil : config
+            })
     }
 
     private func delete() {

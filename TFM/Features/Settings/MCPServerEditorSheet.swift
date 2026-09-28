@@ -13,6 +13,9 @@ final class MCPServerEditorSession {
     }
 
     var token = ""
+    var clientSecret = ""
+    var task: Task<Void, Never>?
+    var generation = UUID()
     var connection: ConnectionState = .idle
     private var didBegin = false
 
@@ -20,6 +23,16 @@ final class MCPServerEditorSession {
         guard !didBegin else { return }
         didBegin = true
         token = store.secret(for: server.credentialRef) ?? ""
+        do { clientSecret = try store.mcpAuthorization.clientSecret(for: server) } catch {
+            connection = .failed(error.localizedDescription)
+        }
+    }
+
+    func cancel() {
+        generation = UUID()
+        task?.cancel()
+        task = nil
+        connection = .idle
     }
 }
 
@@ -41,6 +54,7 @@ struct MCPServerEditorPage: View {
     @Environment(AppModel.self) private var app
 
     @State private var session = MCPServerEditorSession()
+    @State private var browser = MCPWebAuthenticationPresenter()
 
     private var server: MCPServer? { app.aiConfiguration.mcpServer(serverID) }
 
@@ -61,6 +75,7 @@ struct MCPServerEditorPage: View {
                 Form {
                     connectionSection(server)
                     credentialSection
+                    oauthSection(server)
                     headersSection(server)
                     toolsSection(server)
                     Section {
@@ -75,6 +90,29 @@ struct MCPServerEditorPage: View {
             } else {
                 ContentUnavailableView(AppStrings.Settings.serverDeleted.swiftUIKey, systemImage: "trash")
             }
+        }
+        .background(MCPAuthorizationAnchor(presenter: browser).frame(width: 0, height: 0))
+        .onDisappear {
+            session.cancel()
+            browser.cancel()
+        }
+        .onChange(of: server?.url) { _, _ in
+            session.cancel()
+            browser.cancel()
+            session.clientSecret = ""
+        }
+        .onChange(of: server?.transport) { _, _ in
+            session.cancel()
+            browser.cancel()
+        }
+        .onChange(of: server?.headers) { _, _ in
+            session.cancel()
+            browser.cancel()
+        }
+        .onChange(of: server?.oauth) { _, _ in
+            session.cancel()
+            browser.cancel()
+            session.clientSecret = ""
         }
         .onAppear {
             guard let server else { return }
@@ -202,6 +240,75 @@ struct MCPServerEditorPage: View {
     }
 
     @ViewBuilder
+    private func oauthSection(_ server: MCPServer) -> some View {
+        Section {
+            let signedIn = app.aiConfiguration.mcpAuthorization.isSignedIn(server)
+            Label(
+                (signedIn ? AppStrings.MCP.oauthSignedIn : AppStrings.MCP.oauthSignedOut).swiftUIKey,
+                systemImage: signedIn ? "checkmark.circle" : "person.crop.circle")
+            HStack {
+                Button((signedIn ? AppStrings.MCP.oauthReauthorize : AppStrings.MCP.oauthSignIn).swiftUIKey) {
+                    session.task = Task {
+                        if signedIn { await app.aiConfiguration.mcpAuthorization.prepareReauthorization(server) }
+                        guard !Task.isCancelled else { return }
+                        connect(server)
+                    }
+                }
+                .disabled(!server.isReachable || session.connection == .running || hasManualAuthorization(server))
+                if signedIn {
+                    Button(AppStrings.MCP.oauthSignOut.swiftUIKey) {
+                        session.cancel()
+                        browser.cancel()
+                        Task { await app.aiConfiguration.mcpAuthorization.signOut(server) }
+                    }
+                }
+            }
+            Text(AppStrings.MCP.oauthDeviceOnly).font(.caption).foregroundStyle(.secondary)
+            DisclosureGroup(AppStrings.MCP.oauthAdvanced.swiftUIKey) {
+                TextField(
+                    AppStrings.MCP.oauthIssuer.swiftUIKey, text: oauthBinding(\.issuer),
+                    prompt: Text(AppStrings.MCP.oauthAutomatic))
+                TextField(
+                    AppStrings.MCP.oauthClientID.swiftUIKey, text: oauthBinding(\.clientID),
+                    prompt: Text(AppStrings.Common.optional))
+                RevealableSecretField(
+                    AppStrings.MCP.oauthClientSecret, text: $session.clientSecret,
+                    prompt: Text(AppStrings.Common.optional)
+                )
+                .onChange(of: session.clientSecret) { _, value in
+                    session.cancel()
+                    browser.cancel()
+                    do { try app.aiConfiguration.mcpAuthorization.setClientSecret(value, for: server) } catch {
+                        session.connection = .failed(error.localizedDescription)
+                    }
+                }
+            }
+            if let error = app.aiConfiguration.mcpAuthorization.error {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            }
+        } header: {
+            Text(AppStrings.MCP.oauth)
+        }
+    }
+
+    private func hasManualAuthorization(_ server: MCPServer) -> Bool {
+        !session.token.isEmpty || !server.credentialRef.isEmpty
+            || server.headers.contains { $0.isComplete && $0.name.lowercased() == "authorization" }
+    }
+
+    private func oauthBinding(_ path: WritableKeyPath<MCPOAuthConfiguration, String>) -> Binding<String> {
+        Binding(
+            get: { server?.oauth?[keyPath: path] ?? "" },
+            set: { value in
+                guard var server else { return }
+                var configuration = server.oauth ?? .init()
+                configuration[keyPath: path] = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                server.oauth = configuration.issuer.isEmpty && configuration.clientID.isEmpty ? nil : configuration
+                app.aiConfiguration.upsert(server)
+            })
+    }
+
+    @ViewBuilder
     private func headersSection(_ server: MCPServer) -> some View {
         Section {
             ForEach(server.headers) { header in
@@ -262,17 +369,22 @@ struct MCPServerEditorPage: View {
 
     // MARK: - Actions
 
-    private func connect(_ server: MCPServer) {
+    private func connect(_ target: MCPServer) {
         guard !namespaceID.isEmpty, !hasNamespaceConflict else { return }
-        guard app.aiConfiguration.lockMCPNamespace(for: serverID) else { return }
+        guard app.aiConfiguration.lockMCPNamespace(for: serverID), let server else { return }
+        session.cancel()
+        let generation = session.generation
         session.connection = .running
         app.aiConfiguration.setMCPStatus(.connecting, for: serverID)
         let bearer = session.token.isEmpty ? nil : session.token
 
-        Task {
+        session.task = Task {
             do {
-                let discovery = try await MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
-                    .discover(server, bearerToken: bearer)
+                let discovery = try await app.aiConfiguration.mcpAuthorization.client
+                    .discover(server, bearerToken: bearer, interaction: browser.interaction)
+                guard !Task.isCancelled, generation == session.generation,
+                    app.aiConfiguration.mcpServer(serverID) == server
+                else { return }
                 app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
                 app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(
@@ -281,6 +393,12 @@ struct MCPServerEditorPage: View {
                             server: discovery.serverName, count: discovery.tools.count))
                 )
             } catch {
+                guard !Task.isCancelled, generation == session.generation else { return }
+                if error is CancellationError {
+                    app.aiConfiguration.setMCPStatus(.disconnected, for: serverID)
+                    session.connection = .idle
+                    return
+                }
                 app.aiConfiguration.setMCPStatus(.failed(error.localizedDescription), for: serverID)
                 session.connection = .failed(error.localizedDescription)
             }
@@ -288,6 +406,8 @@ struct MCPServerEditorPage: View {
     }
 
     private func store(token value: String) {
+        session.cancel()
+        browser.cancel()
         guard var server else { return }
         if value.isEmpty {
             app.aiConfiguration.setSecret(nil, for: server.credentialRef)

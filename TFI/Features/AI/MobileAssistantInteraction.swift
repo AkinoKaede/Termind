@@ -27,6 +27,10 @@ struct MobileAssistantInteraction: View {
                 .mobileAssistantInteractionSurface()
         } else if let interaction = conversation.pendingUserInteraction {
             switch interaction {
+            case .mcpAuthorization(let prompt):
+                MCPAuthorizationCard(prompt: prompt, conversation: conversation)
+                    .id(prompt.id)
+                    .mobileAssistantInteractionSurface()
             case .sshAuthentication(let request):
                 MobileAssistantAdaptiveHeight {
                     VStack(alignment: .leading, spacing: 8) {

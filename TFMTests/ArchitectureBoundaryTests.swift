@@ -91,7 +91,7 @@ struct ArchitectureBoundaryTests {
         try assertNoImports(
             in: "Application",
             forbidden: [
-                "SwiftUI", "AppKit", "UIKit", "SwiftData", "GRDB", "Security", "Network",
+                "SwiftUI", "AppKit", "UIKit", "AuthenticationServices", "SwiftData", "GRDB", "Security", "Network",
                 "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme",
             ]
         )
@@ -145,7 +145,8 @@ struct ArchitectureBoundaryTests {
             "AgentToolCatalog", "AgentToolRegistry", "AgentEventChannel", "AgentContextPipeline",
             "AgentSecretLifecycle", "AgentApprovalBroker", "SecretBroker", "AgentProviderClient",
             "AgentModelRetryPolicy", "AgentModelRetryProgress",
-            "MCPClient", "MCPServer", "ModelProvider", "AIModel", "AgentSkill",
+            "MCPClient", "MCPServer", "MCPOAuthCoordinator", "MCPOAuthCredential", "ModelProvider", "AIModel",
+            "AgentSkill",
         ]
         let declaration = try Regex(
             #"(?m)^\s*(?:public |internal |private |fileprivate |nonisolated |final |indirect )*"#

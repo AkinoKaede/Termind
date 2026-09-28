@@ -2,7 +2,7 @@ import Foundation
 import TermindDomain
 
 public nonisolated enum AssistantNotificationKind: Hashable, Sendable {
-    case completed, failed, questions, secret, approval, authentication, passphrase, hostKey
+    case completed, failed, questions, secret, approval, authentication, passphrase, hostKey, mcpAuthorization
 }
 
 public nonisolated struct AssistantNotificationInteraction: Equatable, Sendable {
@@ -27,6 +27,8 @@ extension ConversationModel {
         guard !runState.isTerminal, !isArchived else { return nil }
         if let interaction = pendingUserInteraction {
             switch interaction {
+            case .mcpAuthorization(let prompt):
+                return .init(id: prompt.id, kind: .mcpAuthorization)
             case .questions(let request):
                 let secret = request.questions.contains { if case .secret = $0.kind { true } else { false } }
                 return .init(id: request.id, kind: secret ? .secret : .questions)

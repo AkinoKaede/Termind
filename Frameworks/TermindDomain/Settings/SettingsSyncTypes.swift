@@ -125,6 +125,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
     public var headers: [MCPHeader]
     public var tools: [MCPTool]
     public var sortIndex: Int
+    public var oauth: MCPOAuthConfiguration?
 
     public init(_ server: MCPServer, sortIndex: Int) {
         id = server.id
@@ -134,6 +135,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
         url = server.url
         isEnabled = server.isEnabled
         credentialRef = server.credentialRef
+        oauth = server.oauth
         headers = server.headers
         tools = server.tools
         self.sortIndex = sortIndex
@@ -142,7 +144,7 @@ public nonisolated struct SyncedMCPServer: Codable, Hashable, Sendable {
     public var value: MCPServer {
         MCPServer(
             id: id, name: name, namespaceID: namespaceID, transport: transport,
-            url: url, isEnabled: isEnabled, credentialRef: credentialRef, headers: headers, tools: tools)
+            url: url, isEnabled: isEnabled, credentialRef: credentialRef, headers: headers, tools: tools, oauth: oauth)
     }
 }
 

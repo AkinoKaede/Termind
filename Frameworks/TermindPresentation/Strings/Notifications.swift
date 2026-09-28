@@ -26,6 +26,7 @@ extension AppStrings {
 
         public static func body(_ kind: AssistantNotificationKind) -> LocalizedStringResource {
             switch kind {
+            case .mcpAuthorization: "Please authorize the MCP connection to continue."
             case .completed: "The task is complete."
             case .failed: "The task failed. Open the conversation for details."
             case .questions: "Please provide some information to continue."

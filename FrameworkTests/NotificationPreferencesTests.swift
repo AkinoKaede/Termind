@@ -145,7 +145,7 @@ struct NotificationPreferencesTests {
         let envelope = SettingsEnvelope(
             key: payload.key, version: .next(after: nil, writerID: UUID()), payload: payload)
         #expect(!envelope.isValid)
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV42.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV43.versionIdentifier)
         #expect(TermindSchemaV41.models.contains { $0 == PersistentNotificationPreferences.self })
         #expect(!TermindSchemaV40.models.contains { $0 == PersistentNotificationPreferences.self })
     }

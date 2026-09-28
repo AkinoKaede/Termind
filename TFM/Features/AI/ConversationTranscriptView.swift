@@ -221,6 +221,8 @@ struct ConversationView: View {
         -> some View
     {
         switch interaction {
+        case .mcpAuthorization(let prompt):
+            MCPAuthorizationCard(prompt: prompt, conversation: conversation).id(prompt.id)
         case .questions(let input):
             AgentUserInputCard(
                 request: input, conversation: conversation, isCompact: isCompact

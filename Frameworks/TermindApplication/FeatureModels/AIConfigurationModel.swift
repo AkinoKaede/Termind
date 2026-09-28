@@ -28,6 +28,7 @@ public final class AIConfigurationModel {
     private var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
 
     public private(set) var mcpServers: [MCPServer] = []
+    public let mcpAuthorization: MCPAuthorizationModel
 
     /// Explicit role assignments. Absent means "work it out" — see `resolve`.
     public private(set) var roles: [AIRole: AIModelRef] = [:]
@@ -79,8 +80,10 @@ public final class AIConfigurationModel {
         persistsSecrets: Bool = true,
         permissionDefaults: UserDefaults? = nil,
         aiSecrets: (any AISecretStoring)? = nil,
-        webSearchPersistence: (any AIWebSearchPersisting)? = nil
+        webSearchPersistence: (any AIWebSearchPersisting)? = nil,
+        mcpSecrets: (any MCPAuthorizationStoring)? = nil
     ) {
+        self.mcpAuthorization = MCPAuthorizationModel(storage: mcpSecrets ?? InMemoryMCPAuthorizationStore())
         self.aiSecrets = aiSecrets
         self.webSearchPersistence = webSearchPersistence
         self.modelProviders = modelProviders
@@ -97,6 +100,7 @@ public final class AIConfigurationModel {
         self.keychain = secretStore
         self.persistsSecrets = persistsSecrets
         self.permissionDefaults = permissionDefaults
+        defer { mcpAuthorization.synchronize(self.mcpServers) }
         if let webSearchPersistence {
             do { webSearch = try webSearchPersistence.loadWebSearch() } catch {
                 storageError = error.localizedDescription
@@ -362,6 +366,7 @@ public final class AIConfigurationModel {
         roles = snapshot.roles
         lastSelectedModel = localSelection.flatMap { lookup($0) == nil ? nil : $0 }
         mcpServers = snapshot.mcpServers
+        mcpAuthorization.synchronize(mcpServers)
         mcpStatuses = mcpStatuses.filter { id, _ in
             previousServers[id] == mcpServers.first { $0.id == id }
         }
@@ -631,11 +636,13 @@ public final class AIConfigurationModel {
         let previous = persistedSnapshot
         mutation()
         guard let persistence else {
+            mcpAuthorization.synchronize(mcpServers)
             didChange?()
             return true
         }
         do {
             try persistence.save(persistedSnapshot)
+            mcpAuthorization.synchronize(mcpServers)
             storageError = nil
             didChange?()
             return true

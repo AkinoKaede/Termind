@@ -875,6 +875,14 @@ public enum TermindSchemaV42: VersionedSchema {
     }
 }
 
+/// V43 adds public MCP OAuth settings without changing existing model shapes.
+public enum TermindSchemaV43: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(43, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV42.models + [PersistentMCPOAuthConfiguration.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -889,7 +897,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
-            TermindSchemaV42.self,
+            TermindSchemaV42.self, TermindSchemaV43.self,
         ]
     }
 
@@ -991,6 +999,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV39.self, toVersion: TermindSchemaV40.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV40.self, toVersion: TermindSchemaV41.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV41.self, toVersion: TermindSchemaV42.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV42.self, toVersion: TermindSchemaV43.self),
         ]
     }
 }

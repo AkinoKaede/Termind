@@ -504,6 +504,7 @@ public final class AssistantExecutionController {
         let interaction = WeakAgentUserInteraction(conversation)
         let services = AgentToolServices()
             .setting(interaction.sshInteraction, for: .sshInteraction)
+            .setting(interaction.mcpAuthorization, for: .mcpAuthorization)
         let guardianServices = AgentToolServices()
             .setting(AgentSSHInteraction.unavailable, for: .sshInteraction)
         let reviewer: (any GuardianReviewing)? = {

@@ -15,7 +15,7 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct MCPServerSessionTests {
-    @Test(arguments: ["2025-11-25", "2025-06-18", "2026-07-28"], [false, true])
+    @Test(arguments: ["2025-11-25", "2025-06-18", "2025-03-26", "2026-07-28"], [false, true])
     func realHTTPTransportSupportsInspectorRequests(_ version: String, closeConnection: Bool) async throws {
         let http = LoopbackHTTPServer()
         let server = MCPServerProtocol(tools: makeMCPServerTools())
@@ -236,7 +236,7 @@ struct MCPServerSessionTests {
         #expect(discover.headers["Mcp-Session-Id"] == nil)
         let result = try #require(try responseObject(discover)["result"]?.objectValue)
         #expect(result["resultType"] == .string("complete"))
-        #expect(result["supportedVersions"]?.arrayValue?.count == 4)
+        #expect(result["supportedVersions"]?.arrayValue?.count == 5)
         let listed = await server.handle(request("tools/list"))
         #expect(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
         let mismatch = await server.handle(request("tools/list", mirrored: "tools/call"))
@@ -245,7 +245,7 @@ struct MCPServerSessionTests {
         await server.stop()
     }
 
-    @Test(arguments: ["2024-11-05", "2025-06-18", "2025-11-25"])
+    @Test(arguments: ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"])
     func initializePreservesEachSupportedLegacyVersion(_ version: String) async throws {
         let server = MCPServerProtocol(tools: makeMCPServerTools())
         let response = await server.handle(
@@ -256,6 +256,55 @@ struct MCPServerSessionTests {
         #expect(response.status == 200)
         #expect(try responseObject(response)["result"]?.objectValue?["protocolVersion"] == .string(version))
         #expect(response.headers["Mcp-Session-Id"] != nil)
+        await server.stop()
+    }
+
+    @Test(arguments: ["2025-03-26", "2025-06-18"])
+    func marchBatchesAndOptionalVersionHeaderAreVersionScoped(_ version: String) async throws {
+        let server = MCPServerProtocol(tools: makeMCPServerTools())
+        let initialized = await server.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"\(version)","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}
+                """))
+        let id = try #require(initialized.headers["Mcp-Session-Id"])
+        let notification = #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#
+        let notified = await server.handle(jsonRequest(notification, sessionID: id))
+        #expect(notified.status == (version == "2025-03-26" ? 202 : 400))
+        if version != "2025-03-26" {
+            _ = await server.handle(jsonRequest(notification, sessionID: id, version: version))
+        }
+        let batch =
+            #"[{"jsonrpc":"2.0","id":"list","method":"tools/list"},{"jsonrpc":"2.0","method":"notifications/initialized"},{"jsonrpc":"2.0","id":7,"method":"ping"},false]"#
+        let result = await server.handle(jsonRequest(batch, sessionID: id, version: version))
+        if version == "2025-03-26" {
+            #expect(result.status == 200)
+            guard case .data(let data) = result.body else { throw MCPProtocolTestFailure.streamingResponse }
+            let responses = try #require(try AgentJSONValue.decode(data).arrayValue)
+            #expect(responses.count == 3)
+            #expect(responses[0].objectValue?["id"] == .string("list"))
+            #expect(responses[0].objectValue?["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+            #expect(responses[1].objectValue?["id"] == .number(7))
+            #expect(responses[2].objectValue?["error"]?.objectValue?["code"] == .number(-32600))
+            let notifications = await server.handle(jsonRequest("[" + notification + "]", sessionID: id))
+            #expect(notifications.status == 202)
+            let invalid = await server.handle(jsonRequest("[]", sessionID: id))
+            #expect(invalid.status == 400)
+            let wrongVersion = await server.handle(jsonRequest(batch, sessionID: id, version: "2025-06-18"))
+            #expect(wrongVersion.status == 400)
+        } else {
+            #expect(result.status == 400)
+        }
+        let deleted = await server.handle(
+            HTTPRequest(
+                method: "DELETE", target: "/mcp", version: "HTTP/1.1",
+                headers: ["mcp-session-id": id], body: Data()))
+        #expect(deleted.status == 200)
+        let expired = await server.handle(
+            jsonRequest(
+                #"{"jsonrpc":"2.0","id":9,"method":"ping"}"#,
+                sessionID: id, version: version))
+        #expect(expired.status == 404)
         await server.stop()
     }
 

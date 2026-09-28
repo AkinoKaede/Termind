@@ -6,7 +6,7 @@ actor MCPServerProtocol {
     static let versionHeader = "mcp-protocol-version"
     static let maximumSessions = 64
     static let idleTimeout = Duration.seconds(30 * 60)
-    static let supportedInitializationVersions = ["2025-11-25", "2025-06-18", "2024-11-05"]
+    static let supportedInitializationVersions = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
     static let modernVersion = "2026-07-28"
 
     private let tools: MCPServerTools
@@ -61,6 +61,9 @@ actor MCPServerProtocol {
         guard request.header("content-type")?.lowercased().contains("application/json") == true else {
             return .text(415, "MCP requests must use application/json.")
         }
+        if let batch = try? AgentJSONValue.decode(request.body).arrayValue {
+            return await marchBatch(batch, request: request)
+        }
         let message: RPCMessage
         do { message = try RPCMessage(request.body) } catch {
             return Self.jsonResponse(.error(id: .null, code: -32700, message: "Parse error"), status: 400)
@@ -93,7 +96,8 @@ actor MCPServerProtocol {
         guard var session = sessions[sessionID], !session.isLegacy, !session.isModern else {
             return .text(404, "The MCP session is unknown or expired.")
         }
-        guard let version = request.header(Self.versionHeader), version == session.protocolVersion else {
+        let version = request.header(Self.versionHeader)
+        guard version == session.protocolVersion || (version == nil && session.protocolVersion == "2025-03-26") else {
             return .text(400, "MCP-Protocol-Version must match the initialized session.")
         }
         session.lastUsedAt = .now
@@ -101,6 +105,35 @@ actor MCPServerProtocol {
         let response = await dispatch(message, sessionID: sessionID)
         guard let response else { return HTTPResponse(status: 202) }
         return Self.jsonResponse(response)
+    }
+
+    /// Batching belongs to the March 2025 wire protocol only; initialize must always stand alone.
+    private func marchBatch(_ batch: [AgentJSONValue], request: HTTPRequest) async -> HTTPResponse {
+        guard !batch.isEmpty, batch.count <= 64,
+            !batch.contains(where: { $0.objectValue?["method"]?.stringValue == "initialize" })
+        else {
+            return Self.jsonResponse(.error(id: .null, code: -32600, message: "Invalid JSON-RPC batch"), status: 400)
+        }
+        guard let sessionID = request.header(Self.sessionHeader), var session = sessions[sessionID],
+            !session.isLegacy, !session.isModern, session.protocolVersion == "2025-03-26",
+            request.header(Self.versionHeader).map({ $0 == session.protocolVersion }) ?? true
+        else {
+            return .text(400, "Batching requires an initialized MCP 2025-03-26 session.")
+        }
+        session.lastUsedAt = .now
+        sessions[sessionID] = session
+        var responses: [AgentJSONValue] = []
+        for value in batch {
+            guard let message = try? RPCMessage(value.encodedData) else {
+                responses.append(RPCResponse.error(id: .null, code: -32600, message: "Invalid Request").value)
+                continue
+            }
+            if let response = await dispatch(message, sessionID: sessionID) { responses.append(response.value) }
+        }
+        if responses.isEmpty { return HTTPResponse(status: 202) }
+        return HTTPResponse(
+            status: 200, headers: ["Content-Type": "application/json"],
+            body: AgentJSONValue.array(responses).encodedData)
     }
 
     private func modernPOST(_ request: HTTPRequest, message: RPCMessage) async -> HTTPResponse {

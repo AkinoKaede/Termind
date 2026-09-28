@@ -475,6 +475,60 @@ struct MobileAISettingsTests {
         #expect(ai.mcpServer(server.id)?.headers.isEmpty == true)
     }
 
+    @Test func mcpOAuthDraftSecretChangesStayLocalUntilSave() throws {
+        var server = MCPServer(name: "OAuth", url: "https://resource.example/mcp")
+        server.oauth = .init(issuer: "https://issuer.example", clientID: "client")
+        let secrets = InMemoryMCPAuthorizationStore()
+        secrets.setClientSecret("original", for: server)
+        let ai = AIConfigurationModel(mcpServers: [server], persistsSecrets: false, mcpSecrets: secrets)
+        let editor = MobileMCPEditorModel(ai: ai, server: server)
+        #expect(editor.oauthClientSecret == "original")
+        editor.oauthClientSecret = "draft"
+        #expect(secrets.clientSecret(for: server) == "original")
+        try editor.save()
+        #expect(secrets.clientSecret(for: server) == "draft")
+        editor.draft.oauth?.issuer = "https://another.example"
+        editor.invalidateConnection()
+        #expect(editor.oauthClientSecret.isEmpty)
+        #expect(secrets.clientSecret(for: server) == "draft")
+    }
+
+    @Test func clearingManualTokenPermitsOAuthWithoutSendingOldReference() async throws {
+        let server = MCPServer(name: "OAuth", url: "https://resource.example/mcp", credentialRef: "manual")
+        let ai = AIConfigurationModel(mcpServers: [server], persistsSecrets: false)
+        let editor = MobileMCPEditorModel(
+            ai: ai, server: server,
+            discover: { request, token in
+                #expect(request.credentialRef.isEmpty)
+                #expect(token == nil)
+                return MCPDiscovery(protocolVersion: "2025-03-26", serverName: "OAuth", tools: [])
+            })
+        #expect(editor.hasManualAuthorization)
+        editor.key.action = .clear
+        #expect(!editor.hasManualAuthorization)
+        editor.connect()
+        while editor.running { await Task.yield() }
+        #expect(editor.draft.negotiatedVersion == "2025-03-26")
+    }
+
+    @Test(arguments: [true, false])
+    func mcpCancellationIsQuietWhileSystemAuthorizationFailureRemainsVisible(_ cancelled: Bool) async {
+        let server = MCPServer(name: "OAuth", url: "https://resource.example/mcp")
+        let ai = AIConfigurationModel(mcpServers: [server], persistsSecrets: false)
+        let editor = MobileMCPEditorModel(
+            ai: ai, server: server,
+            discover: { _, _ in
+                if cancelled { throw CancellationError() }
+                throw MCPWebAuthenticationError.sessionUnavailable
+            })
+        editor.connect()
+        while editor.running { await Task.yield() }
+        #expect(
+            editor.connection == (cancelled ? nil : MCPWebAuthenticationError.sessionUnavailable.localizedDescription))
+        #expect(!editor.oauthSignedIn)
+        #expect(editor.draft.negotiatedVersion.isEmpty)
+    }
+
     @Test func mcpNamespaceCollisionPreventsSaving() {
         let ai = AIConfigurationModel()
         ai.upsert(MCPServer(name: "Test", url: "https://example.invalid/mcp"))

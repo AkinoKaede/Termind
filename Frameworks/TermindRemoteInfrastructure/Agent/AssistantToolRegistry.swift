@@ -57,7 +57,7 @@ public enum AssistantToolRegistry {
                     skills: skillCatalog,
                     chatModels: chatModels, chats: chats, chatSource: chatSource,
                     mcpServers: servers,
-                    mcpClient: MCPClient(clientInfo: TermindAgentPolicy.mcpClientInfo)
+                    mcpClient: ai.mcpAuthorization.client
                 ),
                 additional: TermindAgentTools.tools(
                     in: TermindAgentToolEnvironment(

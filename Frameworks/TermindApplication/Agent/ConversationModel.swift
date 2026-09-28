@@ -702,7 +702,7 @@ public final class ConversationModel: Identifiable {
         if reportedRunState.isTerminal || reportedRunState == .idle {
             reportedRunState
         } else if !pendingUserInputs.isEmpty || !pendingSSHAuthentications.isEmpty
-            || !pendingSSHHostKeys.isEmpty
+            || !pendingSSHHostKeys.isEmpty || !pendingMCPAuthorizations.isEmpty
         {
             .waitingForUser
         } else if !pendingApprovals.isEmpty {
@@ -766,13 +766,20 @@ public final class ConversationModel: Identifiable {
         pendingSSHAuthentications.first
     }
     public var pendingSSHHostKey: AgentSSHHostKeyRequest? { pendingSSHHostKeys.first }
+    public private(set) var pendingMCPAuthorizations: [MCPAuthorizationPrompt] = [] {
+        didSet { publishNotificationInteraction() }
+    }
+    private var mcpAuthorizationWaiters: [UUID: CheckedContinuation<URL, any Error>] = [:]
+
     public enum PendingUserInteraction {
+        case mcpAuthorization(MCPAuthorizationPrompt)
         case questions(AgentUserInputRequest)
         case sshAuthentication(AgentSSHAuthenticationRequest)
         case sshHostKey(AgentSSHHostKeyRequest)
 
         public var createdAt: Date {
             switch self {
+            case .mcpAuthorization(let request): request.createdAt
             case .questions(let request): request.createdAt
             case .sshAuthentication(let request): request.createdAt
             case .sshHostKey(let request): request.createdAt
@@ -781,6 +788,7 @@ public final class ConversationModel: Identifiable {
     }
     public var pendingUserInteraction: PendingUserInteraction? {
         [
+            pendingMCPAuthorizations.first.map(PendingUserInteraction.mcpAuthorization),
             pendingUserInput.map(PendingUserInteraction.questions),
             pendingSSHAuthentication.map(PendingUserInteraction.sshAuthentication),
             pendingSSHHostKey.map(PendingUserInteraction.sshHostKey),
@@ -2411,6 +2419,9 @@ public final class ConversationModel: Identifiable {
     }
 
     private func stopPresentation(owner: AgentRunOwner?) {
+        for prompt in pendingMCPAuthorizations {
+            respondToMCPAuthorization(prompt.id, result: .failure(CancellationError()))
+        }
         let stoppedRunID = activeRunID
         if let owner, activeRunOwner === owner { activeRunOwner = nil }
         settleStreamingPresentation(for: activeRunID)
@@ -2624,6 +2635,31 @@ public final class ConversationModel: Identifiable {
                 self?.cancelUserInput(request.id)
             }
         }
+    }
+
+    public func requestMCPAuthorization(_ request: MCPAuthorizationRequest) async throws -> URL {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                mcpAuthorizationWaiters[request.id] = continuation
+                pendingMCPAuthorizations.append(MCPAuthorizationPrompt(request: request))
+                if let id = request.invocationID { setToolState(id, .waitingForUser) }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.respondToMCPAuthorization(request.id, result: .failure(CancellationError()))
+            }
+        }
+    }
+
+    public func respondToMCPAuthorization(_ id: UUID, result: Result<URL, any Error>) {
+        guard let index = pendingMCPAuthorizations.firstIndex(where: { $0.id == id }) else { return }
+        let prompt = pendingMCPAuthorizations.remove(at: index)
+        if let invocationID = prompt.request.invocationID { setToolState(invocationID, .running) }
+        mcpAuthorizationWaiters.removeValue(forKey: id)?.resume(with: result)
     }
 
     public func requestSSHAuthentication(
@@ -3400,6 +3436,13 @@ public final class WeakAgentUserInteraction {
     public func request(_ request: AgentUserInputRequest) async -> AgentUserInputResponse {
         guard let conversation else { return .cancelled }
         return await conversation.request(request)
+    }
+
+    public var mcpAuthorization: MCPAuthorizationInteraction {
+        MCPAuthorizationInteraction { [weak conversation] request in
+            guard let conversation else { throw CancellationError() }
+            return try await conversation.requestMCPAuthorization(request)
+        }
     }
 
     /// The SSH checkpoints, in the shape the tools take them — see

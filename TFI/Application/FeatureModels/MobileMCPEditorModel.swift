@@ -14,26 +14,39 @@ final class MobileMCPEditorModel {
     private(set) var connection: String?
     private let ai: AIConfigurationModel
     private let wasPersisted: Bool
-    private let discover: Discover
+    private let discover: Discover?
+    private let oauthDraft: MCPAuthorizationDraft?
+    private var oauthLoadError: String?
+    var oauthClientSecret: String {
+        get { oauthDraft?.secret ?? "" }
+        set {
+            oauthDraft?.secret = newValue
+            invalidateConnection()
+        }
+    }
+    var oauthSignedIn: Bool { oauthDraft?.isSignedIn ?? false }
+    var hasManualAuthorization: Bool {
+        (key.action != .clear && (!draft.credentialRef.isEmpty || !key.text.isEmpty))
+            || draft.headers.contains { $0.name.trimmingCharacters(in: .whitespaces).lowercased() == "authorization" }
+    }
     private var task: Task<Void, Never>?
     private var generation = UUID()
     private var policies: [String: AgentToolDescriptor.ApprovalPolicy] = [:]
 
     init(
         ai: AIConfigurationModel, server: MCPServer,
-        discover: @escaping Discover = {
-            try await MCPClient(
-                clientInfo: .init(
-                    name: "Termind",
-                    version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0")
-            ).discover($0, bearerToken: $1)
-        }
+        discover: Discover? = nil
     ) {
         self.ai = ai
         original = server
         draft = server
         wasPersisted = ai.mcpServer(server.id) != nil
         self.discover = discover
+        do { oauthDraft = try ai.mcpAuthorization.draft(for: server) } catch {
+            oauthDraft = nil
+            oauthLoadError = error.localizedDescription
+            connection = error.localizedDescription
+        }
         key.begin(in: ai, reference: server.credentialRef)
     }
     var hasValidURL: Bool {
@@ -45,9 +58,9 @@ final class MobileMCPEditorModel {
     var canSave: Bool {
         !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !draft.effectiveNamespaceID.isEmpty
             && !ai.hasMCPNamespaceConflict(draft.effectiveNamespaceID, excluding: draft.id)
-            && hasValidURL && key.isValid
+            && hasValidURL && key.isValid && oauthLoadError == nil
     }
-    func connect() {
+    func connect(interaction: MCPAuthorizationInteraction? = nil) {
         cancel()
         guard canSave, !wasPersisted || ai.mcpServer(original.id) != nil else { return }
         let secret: String
@@ -59,7 +72,9 @@ final class MobileMCPEditorModel {
             return
         }
         for tool in original.tools + draft.tools { policies[tool.id] = tool.accessPolicy }
-        let server = draft
+        var server = draft
+        if key.action == .clear { server.credentialRef = "" }
+        oauthDraft?.update(server)
         let persisted = ai.mcpServer(original.id)
         let keyAction = key.action
         let keyText = key.text
@@ -68,10 +83,22 @@ final class MobileMCPEditorModel {
         task = Task { [weak self, discover] in
             defer { if self?.generation == token { self?.running = false } }
             do {
-                let outcome = try await discover(server, secret.isEmpty ? nil : secret)
+                let outcome: MCPDiscovery
+                if let discover {
+                    outcome = try await discover(server, secret.isEmpty ? nil : secret)
+                } else {
+                    guard let self, let oauthDraft else { throw CancellationError() }
+                    outcome = try await MCPClient(
+                        clientInfo: .init(
+                            name: "Termind",
+                            version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"),
+                        authorization: oauthDraft
+                    ).discover(server, bearerToken: secret.isEmpty ? nil : secret, interaction: interaction)
+                }
                 guard let self, generation == token, !Task.isCancelled,
                     ai.mcpServer(original.id) == persisted, draft.name == server.name,
                     draft.url == server.url, draft.transport == server.transport, draft.headers == server.headers,
+                    draft.oauth == server.oauth,
                     key.action == keyAction, key.text == keyText
                 else { return }
                 for tool in draft.tools { policies[tool.id] = tool.accessPolicy }
@@ -90,9 +117,10 @@ final class MobileMCPEditorModel {
                 guard let self, generation == token, !Task.isCancelled,
                     ai.mcpServer(original.id) == persisted, draft.name == server.name,
                     draft.url == server.url, draft.transport == server.transport, draft.headers == server.headers,
+                    draft.oauth == server.oauth,
                     key.action == keyAction, key.text == keyText
                 else { return }
-                connection = error.localizedDescription
+                connection = error is CancellationError ? nil : error.localizedDescription
             }
         }
     }
@@ -105,10 +133,33 @@ final class MobileMCPEditorModel {
     }
     func invalidateConnection() {
         cancel()
+        oauthDraft?.update(draft)
         for tool in draft.tools { policies[tool.id] = tool.accessPolicy }
         draft.tools = []
         draft.negotiatedVersion = ""
         draft.lastConnectedAt = nil
+    }
+
+    func signOut() async {
+        cancel()
+        if MCPAuthorizationGrantStore.sameBinding(original, draft), wasPersisted {
+            await ai.mcpAuthorization.signOut(original)
+            oauthDraft?.resetAfterSignOut()
+        } else {
+            try? await oauthDraft?.coordinator.signOut(serverID: draft.id)
+        }
+        connection = nil
+    }
+
+    func reauthorize(interaction: MCPAuthorizationInteraction) {
+        cancel()
+        oauthDraft?.requireAuthorization()
+        connect(interaction: interaction)
+    }
+
+    deinit {
+        let draft = oauthDraft
+        Task { @MainActor in draft?.discard() }
     }
 
     func upsertHeader(_ header: MCPHeader) {
@@ -139,6 +190,7 @@ final class MobileMCPEditorModel {
             try fields.merge(\.transport)
             try fields.merge(\.url)
             try fields.merge(\.isEnabled)
+            try fields.merge(\.oauth)
             value = fields.result
             value.headers = try SettingsDraftMerge.collection(original.headers, draft.headers, current.headers) {
                 old, local, remote in
@@ -167,10 +219,13 @@ final class MobileMCPEditorModel {
         guard !ai.hasMCPNamespaceConflict(value.effectiveNamespaceID, excluding: value.id) else {
             throw MobileEditorError.message(String(localized: AppStrings.Settings.anotherMcpServerAlreadyUsesThisId))
         }
-        try key.commit(in: ai, reference: value.credentialRef, kind: "mcp") { reference in
-            value.credentialRef = reference
-            ai.upsert(value)
-            return ai.storageError == nil
+        guard let oauthDraft else { throw CancellationError() }
+        try oauthDraft.commit(server: value) {
+            try key.commit(in: ai, reference: value.credentialRef, kind: "mcp") { reference in
+                value.credentialRef = reference
+                ai.upsert(value)
+                return ai.storageError == nil
+            }
         }
     }
 }

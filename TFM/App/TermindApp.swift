@@ -147,7 +147,10 @@ struct TermindApp: App {
                     hosts: hosts,
                     ai: AIConfigurationModel(
                         persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
-                        permissionDefaults: .standard, aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence
+                        permissionDefaults: .standard, aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence,
+                        mcpSecrets: isRunningTests
+                            ? InMemoryMCPAuthorizationStore()
+                            : MCPKeychainCredentialStore(accessGroup: ApplicationIdentity.keychainAccessGroup)
                     ),
                     skills: SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence)),
                     memory: isRunningTests

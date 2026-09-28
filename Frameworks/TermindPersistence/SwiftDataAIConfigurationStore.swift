@@ -66,10 +66,14 @@ public final class AIPersistence {
         let mcpRows = try context.fetch(
             FetchDescriptor<PersistentMCPServer>(sortBy: [SortDescriptor(\.sortIndex)])
         )
+        let oauthRows = try context.fetch(FetchDescriptor<PersistentMCPOAuthConfiguration>())
+        let oauth = Dictionary(oauthRows.map { ($0.serverID, $0.value) }, uniquingKeysWith: { first, _ in first })
         var seenMCPServers: Set<UUID> = []
         let mcpServers = mcpRows.compactMap { row -> MCPServer? in
             guard seenMCPServers.insert(row.id).inserted else { return nil }
-            return row.value
+            var server = row.value
+            server.oauth = oauth[row.id]
+            return server
         }
 
         return AIConfigurationSnapshot(
@@ -93,6 +97,7 @@ public final class AIPersistence {
         try context.delete(model: PersistentAIRoleAssignment.self)
         try context.delete(model: PersistentAISelection.self)
         try context.delete(model: PersistentMCPServer.self)
+        try context.delete(model: PersistentMCPOAuthConfiguration.self)
 
         for (providerIndex, provider) in snapshot.providers.enumerated() {
             // A provider with no recorded endpoint is read back as
@@ -117,6 +122,9 @@ public final class AIPersistence {
         context.insert(PersistentAISelection(snapshot.lastSelectedModel))
         for (serverIndex, server) in snapshot.mcpServers.enumerated() {
             context.insert(PersistentMCPServer(server, sortIndex: serverIndex))
+            if let configuration = server.oauth {
+                context.insert(PersistentMCPOAuthConfiguration(serverID: server.id, configuration: configuration))
+            }
         }
     }
 }

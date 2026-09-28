@@ -2,6 +2,27 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum MCP {
+        public static var oauth: LocalizedStringResource { "OAuth" }
+        public static var oauthAuthorization: LocalizedStringResource { "OAuth Authorization" }
+        public static var oauthSignedIn: LocalizedStringResource { "Signed in on this device" }
+        public static var oauthSignedOut: LocalizedStringResource { "Not signed in on this device" }
+        public static var oauthSignIn: LocalizedStringResource { "Sign In" }
+        public static var oauthSignOut: LocalizedStringResource { "Sign Out" }
+        public static var oauthReauthorize: LocalizedStringResource { "Authorize Again" }
+        public static var oauthAuthorizeContinue: LocalizedStringResource { "Authorize and Continue" }
+        public static var oauthAdvanced: LocalizedStringResource { "OAuth Settings" }
+        public static var oauthIssuer: LocalizedStringResource { "Authorization Server" }
+        public static var oauthClientID: LocalizedStringResource { "Client ID" }
+        public static var oauthClientSecret: LocalizedStringResource { "Client Secret" }
+        public static var oauthAutomatic: LocalizedStringResource { "Automatically discovered" }
+        public static var oauthPermissions: LocalizedStringResource { "Requested Permissions" }
+        public static var oauthSessionUnavailable: LocalizedStringResource {
+            "Unable to start the system authorization session."
+        }
+        public static var oauthDeviceOnly: LocalizedStringResource {
+            "OAuth sign-in is stored on this device. Other devices sign in separately."
+        }
+
         public static var importServers: LocalizedStringResource {
             "Import Servers"
         }
