@@ -74,7 +74,7 @@ struct MobileSkillSettings: View {
             }
             .mobileProminentAction()
             MobileToolbarOverflow {
-                Button(AppStrings.Settings.importSkill.swiftUIKey, systemImage: "square.and.arrow.down") {
+                Button(AppStrings.Common.import.swiftUIKey, systemImage: "square.and.arrow.down") {
                     importing = true
                 }
             }
