@@ -1,4 +1,3 @@
-// Copyright (C) 2026 Kaede Akino
 import AuthenticationServices
 import Foundation
 import SwiftUI
