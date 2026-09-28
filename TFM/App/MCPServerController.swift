@@ -125,6 +125,9 @@ final class MCPServerController {
             disabledTools, hosts: hosts, metrics: metrics, connections: connections,
             authentication: authentication, background: background
         )
+        if !enabled {
+            Task { [protocolServer] in await protocolServer.revokeModernOperations() }
+        }
     }
 
     func rotateToken() {

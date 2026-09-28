@@ -6,7 +6,8 @@ actor MCPServerProtocol {
     static let versionHeader = "mcp-protocol-version"
     static let maximumSessions = 64
     static let idleTimeout = Duration.seconds(30 * 60)
-    static let supportedStreamableVersions = [MCPClient.preferredVersion]
+    static let supportedInitializationVersions = ["2025-11-25", "2025-06-18", "2024-11-05"]
+    static let modernVersion = "2026-07-28"
 
     typealias ClientCountHandler = @Sendable (Int) -> Void
 
@@ -64,6 +65,11 @@ actor MCPServerProtocol {
         clientCountChanged(0)
     }
 
+    func revokeModernOperations() async {
+        let ids = sessions.filter { $0.value.isModern }.map(\.key)
+        for id in ids { await removeSession(id) }
+    }
+
     private func streamablePOST(_ request: HTTPRequest) async -> HTTPResponse {
         guard request.header("content-type")?.lowercased().contains("application/json") == true else {
             return .text(415, "MCP requests must use application/json.")
@@ -71,6 +77,13 @@ actor MCPServerProtocol {
         let message: RPCMessage
         do { message = try RPCMessage(request.body) } catch {
             return Self.jsonResponse(.error(id: .null, code: -32700, message: "Parse error"), status: 400)
+        }
+
+        if message.method == "server/discover"
+            || message.params?["_meta"]?.objectValue?["io.modelcontextprotocol/protocolVersion"] != nil
+            || request.header(Self.versionHeader) == Self.modernVersion
+        {
+            return await modernPOST(request, message: message)
         }
 
         if message.method == "initialize" {
@@ -91,7 +104,7 @@ actor MCPServerProtocol {
         guard let sessionID = request.header(Self.sessionHeader) else {
             return .text(400, "Mcp-Session-Id is required after initialize.")
         }
-        guard var session = sessions[sessionID], !session.isLegacy else {
+        guard var session = sessions[sessionID], !session.isLegacy, !session.isModern else {
             return .text(404, "The MCP session is unknown or expired.")
         }
         guard let version = request.header(Self.versionHeader), version == session.protocolVersion else {
@@ -104,11 +117,152 @@ actor MCPServerProtocol {
         return Self.jsonResponse(response)
     }
 
+    private func modernPOST(_ request: HTTPRequest, message: RPCMessage) async -> HTTPResponse {
+        let meta = message.params?["_meta"]?.objectValue
+        let version = meta?["io.modelcontextprotocol/protocolVersion"]?.stringValue
+        guard request.header(Self.versionHeader) == version, version != nil,
+            request.header("mcp-method") == message.method,
+            message.method != "tools/call"
+                || Self.decodeHeader(request.header("mcp-name")) == message.params?["name"]?.stringValue
+        else {
+            return Self.jsonResponse(
+                .error(id: message.id ?? .null, code: -32020, message: "Header mismatch"), status: 400)
+        }
+        guard version == Self.modernVersion else {
+            return Self.jsonResponse(
+                .error(
+                    id: message.id ?? .null, code: -32022,
+                    message: "Unsupported protocol version",
+                    data: .object([
+                        "supported": .array(
+                            ([Self.modernVersion] + Self.supportedInitializationVersions).map(AgentJSONValue.string)),
+                        "requested": .string(version ?? ""),
+                    ])), status: 400)
+        }
+        let info = meta?["io.modelcontextprotocol/clientInfo"]?.objectValue ?? [:]
+        guard meta?["io.modelcontextprotocol/clientCapabilities"]?.objectValue != nil,
+            meta?["io.modelcontextprotocol/clientInfo"] == nil
+                || (info["name"]?.stringValue != nil && info["version"]?.stringValue != nil),
+            let id = message.id
+        else {
+            return Self.jsonResponse(
+                .error(id: message.id ?? .null, code: -32602, message: "Missing request metadata"), status: 400)
+        }
+        let serverMeta: AgentJSONValue = .object([
+            "io.modelcontextprotocol/serverInfo": .object([
+                "name": .string("termind"), "version": .string(Bundle.termindDisplayVersion),
+            ])
+        ])
+        if message.method == "server/discover" {
+            return Self.jsonResponse(
+                .success(
+                    id: id,
+                    result: .object([
+                        "resultType": .string("complete"),
+                        "supportedVersions": .array(
+                            ([Self.modernVersion] + Self.supportedInitializationVersions).map(AgentJSONValue.string)),
+                        "capabilities": .object(["tools": .object([:])]), "_meta": serverMeta,
+                        "instructions": .string(
+                            "For related tool calls, pass the returned operation_handle. Treat this opaque handle as a capability; it expires with the operation or server lifetime."
+                        ),
+                    ])))
+        }
+        if message.method == "tools/list" {
+            let descriptors = await tools.descriptors
+            return Self.jsonResponse(
+                .success(
+                    id: id,
+                    result: .object([
+                        "resultType": .string("complete"), "_meta": serverMeta,
+                        "tools": .array(
+                            descriptors.map { descriptor in
+                                var tool = Self.toolJSON(descriptor).objectValue ?? [:]
+                                var schema = descriptor.inputSchema.objectValue ?? [:]
+                                var properties = schema["properties"]?.objectValue ?? [:]
+                                properties["operation_handle"] = .object([
+                                    "type": .string("string"),
+                                    "description": .string(
+                                        "Opaque capability returned by an earlier related tool call. Required when using its secret handle, command, or transfer ticket."
+                                    ),
+                                ])
+                                schema["properties"] = .object(properties)
+                                tool["inputSchema"] = .object(schema)
+                                tool["description"] = .string(
+                                    descriptor.summary
+                                        .replacingOccurrences(
+                                            of: "same live MCP session", with: "same live operation_handle"
+                                        )
+                                        .replacingOccurrences(
+                                            of: "ticket/session/process", with: "ticket/operation/process"))
+                                return .object(tool)
+                            }),
+                    ])))
+        }
+        guard message.method == "tools/call" else {
+            return Self.jsonResponse(.error(id: id, code: -32601, message: "Method not found"), status: 404)
+        }
+        guard message.params?["arguments"] == nil || message.params?["arguments"]?.objectValue != nil else {
+            return Self.jsonResponse(.error(id: id, code: -32602, message: "Arguments must be an object"))
+        }
+        var arguments = message.params?["arguments"]?.objectValue ?? [:]
+        let suppliedHandle = arguments.removeValue(forKey: "operation_handle")
+        let operationID: String
+        if let suppliedHandle {
+            guard let handle = suppliedHandle.stringValue, sessions[handle]?.isModern == true else {
+                return Self.jsonResponse(
+                    .error(id: id, code: -32602, message: "Operation handle is unknown or expired"))
+            }
+            operationID = handle
+        } else {
+            guard sessions.count < Self.maximumSessions else { return .text(503, "Too many active operations") }
+            operationID = UUID().uuidString + UUID().uuidString
+            sessions[operationID] = MCPServerSession(
+                id: operationID, runID: UUID(), secretBroker: SecretBroker(), protocolVersion: Self.modernVersion,
+                clientName: info["name"]?.stringValue ?? "MCP client", isModern: true, initialized: true,
+                isLegacy: false)
+        }
+        var call = message
+        call.params?["arguments"] = .object(arguments)
+        guard let response = await dispatch(call, sessionID: operationID) else { return HTTPResponse(status: 202) }
+        let successful = response.value.objectValue?["result"]?.objectValue?["isError"] == .bool(false)
+        let retainsState =
+            suppliedHandle != nil
+            || (successful
+                && ["request_user_secret", "sftp_upload", "sftp_download"].contains(
+                    message.params?["name"]?.stringValue ?? ""))
+        if !retainsState { await removeSession(operationID) }
+        var envelope = response.value.objectValue ?? [:]
+        if var result = envelope["result"]?.objectValue {
+            result["resultType"] = .string("complete")
+            if retainsState {
+                var structured = result["structuredContent"]?.objectValue ?? [:]
+                structured["operation_handle"] = .string(operationID)
+                result["structuredContent"] = .object(structured)
+                var content = result["content"]?.arrayValue ?? []
+                content.append(.object(["type": .string("text"), "text": .string("operation_handle: " + operationID)]))
+                result["content"] = .array(content)
+            }
+            envelope["result"] = .object(result)
+        }
+        return Self.jsonResponse(RPCResponse(value: .object(envelope)))
+    }
+
+    private static func decodeHeader(_ value: String?) -> String? {
+        guard let value, value.utf8.allSatisfy({ $0 == 9 || (32...126).contains($0) }),
+            value == value.trimmingCharacters(in: .whitespacesAndNewlines)
+        else { return nil }
+        if value.hasPrefix("=?base64?"), value.hasSuffix("?=") {
+            guard let data = Data(base64Encoded: String(value.dropFirst(9).dropLast(2))) else { return nil }
+            return String(data: data, encoding: .utf8)
+        }
+        return value
+    }
+
     private func deleteSession(_ request: HTTPRequest) async -> HTTPResponse {
         guard let id = request.header(Self.sessionHeader) else {
             return .text(400, "Mcp-Session-Id is required.")
         }
-        guard let removed = sessions.removeValue(forKey: id) else {
+        guard let existing = sessions[id], !existing.isModern, let removed = sessions.removeValue(forKey: id) else {
             return .text(404, "The MCP session is unknown or expired.")
         }
         removed.legacyContinuation?.finish()
@@ -328,7 +482,7 @@ actor MCPServerProtocol {
         return MCPServerSession(
             id: id, runID: UUID(), secretBroker: SecretBroker(),
             protocolVersion: legacy
-                ? MCPClient.legacyVersion : MCPClient.preferredVersion,
+                ? MCPClient.legacyVersion : "2025-11-25",
             clientName: message.clientName ?? "MCP client", isLegacy: legacy
         )
     }
@@ -370,8 +524,8 @@ actor MCPServerProtocol {
     private func sessionCountDidChange() { clientCountChanged(sessions.count) }
 
     static func negotiatedStreamableVersion(_ requested: String?) -> String {
-        guard let requested, supportedStreamableVersions.contains(requested) else {
-            return MCPClient.preferredVersion
+        guard let requested, supportedInitializationVersions.contains(requested) else {
+            return "2025-11-25"
         }
         return requested
     }
@@ -471,12 +625,12 @@ private nonisolated struct RPCResponse: Sendable {
         Self(value: .object(["jsonrpc": .string("2.0"), "id": id, "result": result]))
     }
 
-    static func error(id: AgentJSONValue, code: Int, message: String) -> Self {
+    static func error(id: AgentJSONValue, code: Int, message: String, data: AgentJSONValue = .null) -> Self {
         Self(
             value: .object([
                 "jsonrpc": .string("2.0"), "id": id,
                 "error": .object([
-                    "code": .number(Double(code)), "message": .string(message),
+                    "code": .number(Double(code)), "message": .string(message), "data": data,
                 ]),
             ]))
     }

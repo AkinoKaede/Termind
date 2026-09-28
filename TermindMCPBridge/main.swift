@@ -29,8 +29,19 @@ struct TermindMCPBridge {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
             request.setValue("Bearer \(configuration.token)", forHTTPHeaderField: "Authorization")
-            if let sessionID { request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id") }
-            if let protocolVersion {
+            let params = object["params"] as? [String: Any]
+            let meta = params?["_meta"] as? [String: Any]
+            let modernVersion = meta?["io.modelcontextprotocol/protocolVersion"] as? String
+            if let modernVersion {
+                request.setValue(modernVersion, forHTTPHeaderField: "MCP-Protocol-Version")
+                request.setValue(method, forHTTPHeaderField: "Mcp-Method")
+                if let name = (params?["name"] ?? params?["uri"]) as? String {
+                    request.setValue(headerValue(name), forHTTPHeaderField: "Mcp-Name")
+                }
+            } else if let sessionID {
+                request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id")
+            }
+            if modernVersion == nil, let protocolVersion {
                 request.setValue(protocolVersion, forHTTPHeaderField: "MCP-Protocol-Version")
             }
 
@@ -39,12 +50,18 @@ struct TermindMCPBridge {
                 guard let response = rawResponse as? HTTPURLResponse else {
                     throw BridgeError.notHTTP
                 }
-                if let assigned = response.value(forHTTPHeaderField: "Mcp-Session-Id"),
+                if modernVersion == nil, let assigned = response.value(forHTTPHeaderField: "Mcp-Session-Id"),
                     !assigned.isEmpty
                 {
                     sessionID = assigned
                 }
                 guard (200..<300).contains(response.statusCode) else {
+                    if let envelope = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                        envelope["jsonrpc"] as? String == "2.0", envelope["error"] is [String: Any]
+                    {
+                        write(data)
+                        continue
+                    }
                     if id != nil {
                         write(errorResponse(id: id, message: "Termind HTTP server returned \(response.statusCode)."))
                     } else {
@@ -86,6 +103,16 @@ struct TermindMCPBridge {
             }
             _ = try? await session.data(for: request)
         }
+    }
+
+    private static func headerValue(_ value: String) -> String {
+        if value.utf8.allSatisfy({ $0 == 9 || (32...126).contains($0) }),
+            value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+            !(value.hasPrefix("=?base64?") && value.hasSuffix("?="))
+        {
+            return value
+        }
+        return "=?base64?" + Data(value.utf8).base64EncodedString() + "?="
     }
 
     private static func errorResponse(id: Any?, message: String) -> Data {

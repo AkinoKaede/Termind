@@ -16,6 +16,112 @@ import struct TermindDomain.Host
 @MainActor
 struct MCPServerSessionTests {
     @Test
+    func modernUploadHandleSupportsCrossRequestStatusAndIsRevokedOnStop() async throws {
+        let host = Host(name: "Upload", host: "upload.example")
+        let tools = makeMCPServerTools(hosts: [host])
+        tools.uploads.configure(port: 7391)
+        let server = MCPServerProtocol(tools: tools)
+        func call(_ name: String, _ arguments: [String: AgentJSONValue]) async -> HTTPResponse {
+            let body: AgentJSONValue = .object([
+                "jsonrpc": .string("2.0"), "id": .number(1), "method": .string("tools/call"),
+                "params": .object([
+                    "name": .string(name), "arguments": .object(arguments),
+                    "_meta": .object([
+                        "io.modelcontextprotocol/protocolVersion": .string("2026-07-28"),
+                        "io.modelcontextprotocol/clientInfo": .object([
+                            "name": .string("same-name"), "version": .string("1"),
+                        ]),
+                        "io.modelcontextprotocol/clientCapabilities": .object([:]),
+                    ]),
+                ]),
+            ])
+            return await server.handle(
+                HTTPRequest(
+                    method: "POST", target: "/mcp", version: "HTTP/1.1",
+                    headers: [
+                        "content-type": "application/json", "mcp-protocol-version": "2026-07-28",
+                        "mcp-method": "tools/call", "mcp-name": name,
+                    ], body: body.encodedData))
+        }
+        // Invalid stateful calls must not exhaust the 64-operation capacity.
+        for _ in 0..<70 {
+            let failed = await call("sftp_upload", [:])
+            #expect(failed.status == 200)
+            #expect(try responseObject(failed)["result"]?.objectValue?["isError"] == .bool(true))
+        }
+        let ordinary = await call("list_hosts", [:])
+        #expect(try responseObject(ordinary)["result"]?.objectValue?["isError"] == .bool(false))
+        let created = await call(
+            "sftp_upload",
+            [
+                "host_id": .string(host.id.uuidString), "remote_path": .string("/tmp/test"),
+                "byte_count": .number(0), "sha256": .string(String(repeating: "0", count: 64)),
+            ])
+        let result = try #require(try responseObject(created)["result"]?.objectValue)
+        #expect(result["isError"] == .bool(false))
+        let payload = try #require(result["structuredContent"]?.objectValue)
+        let handle = try #require(payload["operation_handle"])
+        let uploadID = try #require(payload["upload_id"])
+        let isolated = await call("sftp_upload_status", ["upload_id": uploadID])
+        #expect(try responseObject(isolated)["result"]?.objectValue?["isError"] == .bool(true))
+        let failedRelated = await call("sftp_upload", ["operation_handle": handle])
+        #expect(try responseObject(failedRelated)["result"]?.objectValue?["isError"] == .bool(true))
+        let status = await call("sftp_upload_status", ["upload_id": uploadID, "operation_handle": handle])
+        #expect(try responseObject(status)["result"]?.objectValue?["isError"] == .bool(false))
+        await server.stop()
+        let revoked = await call("sftp_upload_status", ["upload_id": uploadID, "operation_handle": handle])
+        #expect(try responseObject(revoked)["error"]?.objectValue?["code"] == .number(-32602))
+    }
+
+    @Test
+    func modernRequestsAreIndependentAndValidateMirroredHeaders() async throws {
+        let server = MCPServerProtocol(tools: makeMCPServerTools())
+        func request(_ method: String, mirrored: String? = nil) -> HTTPRequest {
+            let body: AgentJSONValue = .object([
+                "jsonrpc": .string("2.0"), "id": .number(1), "method": .string(method),
+                "params": .object([
+                    "_meta": .object([
+                        "io.modelcontextprotocol/protocolVersion": .string("2026-07-28"),
+                        "io.modelcontextprotocol/clientCapabilities": .object([:]),
+                    ])
+                ]),
+            ])
+            return HTTPRequest(
+                method: "POST", target: "/mcp", version: "HTTP/1.1",
+                headers: [
+                    "content-type": "application/json", "mcp-protocol-version": "2026-07-28",
+                    "mcp-method": mirrored ?? method,
+                ], body: body.encodedData)
+        }
+        let discover = await server.handle(request("server/discover"))
+        #expect(discover.status == 200)
+        #expect(discover.headers["Mcp-Session-Id"] == nil)
+        let result = try #require(try responseObject(discover)["result"]?.objectValue)
+        #expect(result["resultType"] == .string("complete"))
+        #expect(result["supportedVersions"]?.arrayValue?.count == 4)
+        let listed = await server.handle(request("tools/list"))
+        #expect(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+        let mismatch = await server.handle(request("tools/list", mirrored: "tools/call"))
+        #expect(mismatch.status == 400)
+        #expect(try responseObject(mismatch)["error"]?.objectValue?["code"] == .number(-32020))
+        await server.stop()
+    }
+
+    @Test(arguments: ["2024-11-05", "2025-06-18", "2025-11-25"])
+    func initializePreservesEachSupportedLegacyVersion(_ version: String) async throws {
+        let server = MCPServerProtocol(tools: makeMCPServerTools())
+        let response = await server.handle(
+            jsonRequest(
+                """
+                {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"\(version)","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}
+                """))
+        #expect(response.status == 200)
+        #expect(try responseObject(response)["result"]?.objectValue?["protocolVersion"] == .string(version))
+        #expect(response.headers["Mcp-Session-Id"] != nil)
+        await server.stop()
+    }
+
+    @Test
     func streamableHandshakeMintsASessionAndPreservesStringIDs() async throws {
         let protocolServer = MCPServerProtocol(tools: makeMCPServerTools())
         let initialize = await protocolServer.handle(
@@ -32,7 +138,7 @@ struct MCPServerSessionTests {
         #expect(initialized["id"]?.stringValue == "request-001")
         #expect(
             initialized["result"]?.objectValue?["protocolVersion"]?.stringValue
-                == MCPClient.preferredVersion
+                == "2025-11-25"
         )
         let instructions = try #require(
             initialized["result"]?.objectValue?["instructions"]?.stringValue
@@ -46,14 +152,14 @@ struct MCPServerSessionTests {
         let notification = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-11-25"
             ))
         #expect(notification.status == 202)
 
         let listed = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-11-25"
             ))
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
@@ -101,13 +207,13 @@ struct MCPServerSessionTests {
         let initialized = await server.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-06-18"
             ))
         #expect(initialized.status == 202)
         let listed = await server.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion))
+                sessionID: sessionID, version: "2025-06-18"))
         let tools = try #require(try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue)
         let descriptor = try #require(tools.first { $0.objectValue?["name"]?.stringValue == "get_metrics" })
         #expect(descriptor.objectValue?["annotations"]?.objectValue?["readOnlyHint"] == .bool(true))
@@ -115,7 +221,7 @@ struct MCPServerSessionTests {
             jsonRequest(
                 """
                 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_metrics","arguments":{"host_id":"\(host.id.uuidString)","include":["gpu"]}}}
-                """, sessionID: sessionID, version: MCPClient.preferredVersion))
+                """, sessionID: sessionID, version: "2025-06-18"))
         let result = try #require(try responseObject(response)["result"]?.objectValue)
         #expect(result["isError"] == .bool(false))
         let data = try #require(result["structuredContent"]?.objectValue)
@@ -167,13 +273,13 @@ struct MCPServerSessionTests {
         _ = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-06-18"
             ))
 
         let response = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"missing","arguments":{}}}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-06-18"
             ))
         let code = try responseObject(response)["error"]?.objectValue?["code"]?.integerValue
         #expect(code == -32602)
@@ -227,7 +333,7 @@ struct MCPServerSessionTests {
         _ = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-06-18"
             ))
         let hostID = UUID()
         let call = Task {
@@ -240,7 +346,7 @@ struct MCPServerSessionTests {
                         "consumer_tool":"ssh_exec","purpose":"sudo password"
                       }
                     }}
-                    """, sessionID: sessionID, version: MCPClient.preferredVersion))
+                    """, sessionID: sessionID, version: "2025-06-18"))
         }
         try await waitForProtocolCondition {
             if case .secret? = authentication.current?.request { return true }
@@ -264,7 +370,7 @@ struct MCPServerSessionTests {
         let afterCancellation = await protocolServer.handle(
             jsonRequest(
                 #"{"jsonrpc":"2.0","id":3,"method":"ping"}"#,
-                sessionID: sessionID, version: MCPClient.preferredVersion
+                sessionID: sessionID, version: "2025-06-18"
             ))
         #expect(afterCancellation.status == 404)
     }

@@ -7,6 +7,7 @@ nonisolated struct MCPServerSession: Sendable {
     var secretBroker: SecretBroker
     var protocolVersion: String
     var clientName: String
+    var isModern = false
     var initialized = false
     var isLegacy: Bool
     var legacyContinuation: AsyncStream<Data>.Continuation?
