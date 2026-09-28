@@ -124,14 +124,14 @@ public struct ConnectionJourneyStatus: View {
 
     private var text: String {
         switch journey.phase {
-        case .connecting: String(localized: "Establishing connection…")
-        case .waiting: String(localized: "Waiting for you…")
+        case .connecting: String(localized: AppStrings.Connections.establishingConnection)
+        case .waiting: String(localized: AppStrings.Connections.waitingForYou)
         case .succeeded:
             switch journey.purpose {
-            case .sshSession, .telnetSession, .serialSession: String(localized: "Terminal ready")
-            case .sftpChannel: String(localized: "File browser ready")
-            case .metrics: String(localized: "Metrics ready")
-            case .portForwarding: String(localized: "Forwarding ready")
+            case .sshSession, .telnetSession, .serialSession: String(localized: AppStrings.Connections.terminalReady)
+            case .sftpChannel: String(localized: AppStrings.Connections.fileBrowserReady)
+            case .metrics: String(localized: AppStrings.Connections.metricsReady)
+            case .portForwarding: String(localized: AppStrings.Connections.forwardingReady)
             }
         case .failed(let message): message
         case .hidden: ""
@@ -219,7 +219,7 @@ public struct ConnectionJourneyReconnectStatus: View {
 
     private func statusText(at date: Date) -> String {
         let seconds = max(0, Int(ceil(state.nextRetry.timeIntervalSince(date))))
-        if seconds == 0 { return String(localized: "Reconnect attempt \(state.attempt)…") }
-        return String(localized: "Reconnect attempt \(state.attempt) · retrying in \(seconds)s")
+        if seconds == 0 { return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt)) }
+        return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt, retryingIn: seconds))
     }
 }

@@ -23,6 +23,38 @@ extension AppStrings {
             "Connection lost; reconnecting…"
         }
 
+        public static var establishingConnection: LocalizedStringResource {
+            "Establishing Connection…"
+        }
+
+        public static var waitingForYou: LocalizedStringResource {
+            "Waiting for You…"
+        }
+
+        public static var terminalReady: LocalizedStringResource {
+            "Terminal Ready"
+        }
+
+        public static var fileBrowserReady: LocalizedStringResource {
+            "File Browser Ready"
+        }
+
+        public static var metricsReady: LocalizedStringResource {
+            "Metrics Ready"
+        }
+
+        public static var forwardingReady: LocalizedStringResource {
+            "Forwarding Ready"
+        }
+
+        public static func reconnectAttempt(_ attempt: Int) -> LocalizedStringResource {
+            "Reconnect Attempt \(attempt)…"
+        }
+
+        public static func reconnectAttempt(_ attempt: Int, retryingIn seconds: Int) -> LocalizedStringResource {
+            "Reconnect Attempt \(attempt) · Retrying in \(seconds)s"
+        }
+
         public static var enterATelnetDestination: LocalizedStringResource {
             "Enter a Telnet destination."
         }

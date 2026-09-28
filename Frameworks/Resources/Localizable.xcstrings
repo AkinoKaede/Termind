@@ -11254,7 +11254,7 @@
         }
       }
     },
-    "Establishing connection…" : {
+    "Establishing Connection…" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
@@ -11893,7 +11893,7 @@
         }
       }
     },
-    "File browser ready" : {
+    "File Browser Ready" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
@@ -12449,7 +12449,7 @@
         }
       }
     },
-    "Forwarding ready" : {
+    "Forwarding Ready" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
@@ -15964,6 +15964,23 @@
         }
       }
     },
+    "Metrics Ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监控已就绪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "監控已就緒"
+          }
+        }
+      }
+    },
     "Metrics collection failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15977,23 +15994,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "指標收集失敗"
-          }
-        }
-      }
-    },
-    "Metrics ready" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "监控已就绪"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "監控已就緒"
           }
         }
       }
@@ -21859,13 +21859,13 @@
         }
       }
     },
-    "Reconnect attempt %lld · retrying in %llds" : {
+    "Reconnect Attempt %lld · Retrying in %llds" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Reconnect attempt %1$lld·retrying in %2$llds"
+            "state" : "translated",
+            "value" : "Reconnect Attempt %1$lld · Retrying in %2$llds"
           }
         },
         "zh-Hans" : {
@@ -21882,7 +21882,7 @@
         }
       }
     },
-    "Reconnect attempt %lld…" : {
+    "Reconnect Attempt %lld…" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
@@ -27414,6 +27414,23 @@
         }
       }
     },
+    "Terminal Ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端就绪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終端就緒"
+          }
+        }
+      }
+    },
     "Terminal name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27427,23 +27444,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "終端名稱"
-          }
-        }
-      }
-    },
-    "Terminal ready" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "终端就绪"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "終端就緒"
           }
         }
       }
@@ -33212,6 +33212,23 @@
         }
       }
     },
+    "Waiting for You…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待你的操作…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待你的操作…"
+          }
+        }
+      }
+    },
     "Waiting for a Passphrase" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33395,23 +33412,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在等待使用者名稱提示"
-          }
-        }
-      }
-    },
-    "Waiting for you…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待你的操作…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待你的操作…"
           }
         }
       }
