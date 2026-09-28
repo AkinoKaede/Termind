@@ -371,18 +371,15 @@ struct MobileMCPEditor: View {
             }
             DisclosureGroup(AppStrings.MCP.oauthAdvanced.swiftUIKey) {
                 TextField(
-                    AppStrings.MCP.oauthIssuer.swiftUIKey, text: oauthBinding(\.issuer),
-                    prompt: Text(AppStrings.MCP.oauthAutomatic)
+                    AppStrings.MCP.oauthIssuer.swiftUIKey, text: oauthBinding(\.issuer)
                 )
                 .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                 TextField(
-                    AppStrings.MCP.oauthClientID.swiftUIKey, text: oauthBinding(\.clientID),
-                    prompt: Text(AppStrings.Common.optional)
+                    AppStrings.MCP.oauthClientID.swiftUIKey, text: oauthBinding(\.clientID)
                 )
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 RevealableSecretField(
-                    AppStrings.MCP.oauthClientSecret, text: $model.oauthClientSecret,
-                    prompt: Text(AppStrings.Common.optional))
+                    AppStrings.MCP.oauthClientSecret, text: $model.oauthClientSecret)
             }
         } header: {
             Text(AppStrings.MCP.oauth)
