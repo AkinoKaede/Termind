@@ -1,5 +1,5 @@
 {
-  "originHash" : "ee63e885e99fad8400a5812a9ce6a3be2f42ec1459b35c5f6ee570219c53cc45",
+  "originHash" : "ea2353e26e14490b696f9bc5c68235bf92924ce177756bb5217c4cc234874a31",
   "pins" : [
     {
       "identity" : "agentkit",
@@ -62,6 +62,15 @@
       "state" : {
         "revision" : "b7f888e3baf8585ea9d590ab1a45b49475e00d1c",
         "version" : "1.6.20260922"
+      }
+    },
+    {
+      "identity" : "libssh2-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AkinoKaede/libssh2-spm.git",
+      "state" : {
+        "revision" : "c2df1cacae38d3bd8dcdd5bd9290f668b88f4257",
+        "version" : "2.0.3-termind-1"
       }
     },
     {
