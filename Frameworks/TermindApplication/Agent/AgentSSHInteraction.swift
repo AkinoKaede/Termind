@@ -10,6 +10,7 @@ import struct TermindDomain.Host
 /// into the view.
 nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendable {
     public nonisolated enum Mode: Hashable, Sendable {
+        case securityKey(SecurityKeySigningRequest)
         case identity
         case proxy(ownerHostID: Host.ID)
         case keyboardInteractive(SSHKeyboardInteractiveChallenge)
@@ -30,6 +31,10 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
 
     public var requiresPassphrase: Bool {
         if case .passphrase = mode { true } else { false }
+    }
+
+    public var securityKey: SecurityKeySigningRequest? {
+        if case .securityKey(let request) = mode { request } else { nil }
     }
 
     public var keyboardInteractive: SSHKeyboardInteractiveChallenge? {
@@ -99,6 +104,8 @@ nonisolated public struct AgentSSHAuthenticationAnswer: Hashable, Sendable {
 }
 
 nonisolated public enum AgentSSHAuthenticationResponse: Hashable, Sendable {
+    case securityKey(SecurityKeyAssertion)
+    case securityKeyFailed(String)
     case submit(AgentSSHAuthenticationAnswer)
     case keyboardInteractive([String])
     case cancelled
@@ -161,6 +168,7 @@ nonisolated public struct AgentSSHInteraction: Sendable {
     public typealias HostKeyConfirming =
         @Sendable (AgentSSHHostKeyRequest) async -> AgentSSHHostKeyResponse
 
+    public var allowsUserInteraction: Bool
     public var presentationContextID: UUID?
     public var authenticate: Authenticating
     public var confirmHostKey: HostKeyConfirming
@@ -168,8 +176,25 @@ nonisolated public struct AgentSSHInteraction: Sendable {
     /// What a run that cannot ask anybody does: refuse, rather than connect with
     /// whatever is lying around.
     public static let unavailable = AgentSSHInteraction(
-        authenticate: { _ in .cancelled }, confirmHostKey: { _ in .deny }
+        allowsUserInteraction: false, authenticate: { _ in .cancelled }, confirmHostKey: { _ in .deny }
     )
+
+    public func signSecurityKey(
+        _ request: SecurityKeySigningRequest, invocationID: AgentToolInvocation.ID
+    ) async throws -> SecurityKeyAssertion {
+        guard allowsUserInteraction, request.allowsUserInteraction else { throw SSHInteractionRequired() }
+        try Task.checkCancellation()
+        let response = await authenticate(
+            AgentSSHAuthenticationRequest(
+                id: request.id, invocationID: invocationID, hostID: request.hostID,
+                displayName: request.hostname, address: request.hostname, mode: .securityKey(request), username: ""))
+        try Task.checkCancellation()
+        switch response {
+        case .securityKey(let assertion): return assertion
+        case .securityKeyFailed(let message): throw SecurityKeySigningFailure(message: message)
+        default: throw CancellationError()
+        }
+    }
 
     public func respondToChallenge(
         _ challenge: SSHKeyboardInteractiveChallenge, invocationID: AgentToolInvocation.ID
@@ -188,9 +213,10 @@ nonisolated public struct AgentSSHInteraction: Sendable {
     }
 
     public init(
-        presentationContextID: UUID? = nil, authenticate: @escaping Authenticating,
+        presentationContextID: UUID? = nil, allowsUserInteraction: Bool = true, authenticate: @escaping Authenticating,
         confirmHostKey: @escaping HostKeyConfirming
     ) {
+        self.allowsUserInteraction = allowsUserInteraction
         self.presentationContextID = presentationContextID
         self.authenticate = authenticate
         self.confirmHostKey = confirmHostKey
@@ -212,4 +238,9 @@ nonisolated extension AgentToolExecutionContext {
     public var sshInteraction: AgentSSHInteraction {
         services[.sshInteraction] ?? .unavailable
     }
+}
+
+private nonisolated struct SecurityKeySigningFailure: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
 }

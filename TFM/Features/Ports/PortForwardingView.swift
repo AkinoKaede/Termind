@@ -345,6 +345,7 @@ struct PortForwardingDetailView: View {
                     for: draft.id, requestID: hostKeyRequestID, observation: $0, remember: true)
             },
             denyHostKey: cancel, retry: { app.forwarding.retry(draft.id) }, cancel: cancel,
+            securityKeySigning: context.connection.securityKeySigning,
             keyboardAuthentication: context.connection.keyboardAuthentication, cancelKeyboardAuthentication: cancel,
             isEmbedded: true)
     }

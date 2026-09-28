@@ -21,9 +21,14 @@ public typealias SSHAgentForwardingFactory = @Sendable (SSHConnectionRequest) as
 
 public struct SSHAgentInteractionContext: Sendable {
     public let unlock: SSHKeyboardInteractiveHandler?
+    public let securityKeySigning: SecurityKeySigningHandler?
     public let canInteract: @MainActor @Sendable () -> Bool
-    public init(unlock: SSHKeyboardInteractiveHandler? = nil, canInteract: @escaping @MainActor @Sendable () -> Bool) {
+    public init(
+        unlock: SSHKeyboardInteractiveHandler? = nil, securityKeySigning: SecurityKeySigningHandler? = nil,
+        canInteract: @escaping @MainActor @Sendable () -> Bool
+    ) {
         self.unlock = unlock
+        self.securityKeySigning = securityKeySigning
         self.canInteract = canInteract
     }
 }

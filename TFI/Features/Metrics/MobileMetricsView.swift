@@ -122,6 +122,7 @@ struct MobileMetricsDetailView: View {
                     }, retry: { app.metrics.core.retry(server) },
                     retryReconnectNow: {}, stopReconnecting: {},
                     cancel: cancelAuthentication,
+                    securityKeySigning: server.securityKeySigning,
                     keyboardAuthentication: server.keyboardAuthentication,
                     cancelKeyboardAuthentication: cancelAuthentication)
             } else {

@@ -274,7 +274,7 @@ public final class AgentHostResolver: Sendable {
                     selectedIdentityID: selectedIdentity?.id,
                     username: existing?.username ?? proxy.username, failureMessage: failure)
                 switch await interaction.authenticate(request) {
-                case .cancelled, .keyboardInteractive:
+                case .cancelled, .keyboardInteractive, .securityKey, .securityKeyFailed:
                     throw AgentToolError.cancelled
                 case .submit(let answer):
                     let submission = SSHProxyAuthenticationSubmission(
@@ -308,7 +308,7 @@ public final class AgentHostResolver: Sendable {
                     failureMessage: failure
                 )
                 switch await interaction.authenticate(request) {
-                case .cancelled, .keyboardInteractive:
+                case .cancelled, .keyboardInteractive, .securityKey, .securityKeyFailed:
                     throw AgentToolError.cancelled
                 case .submit(let answer):
                     if case .passphrase = requirement.mode {
@@ -796,6 +796,12 @@ public actor AgentSSHAuthenticationContext {
                         challenge, invocationID: self.invocationID)
                     guard await self.currentGeneration == generation else { throw CancellationError() }
                     return answers
+                },
+                securityKeySigning: { [weak self] request in
+                    guard let self, await self.currentGeneration == generation else { throw CancellationError() }
+                    let assertion = try await self.interaction.signSecurityKey(request, invocationID: self.invocationID)
+                    guard await self.currentGeneration == generation else { throw CancellationError() }
+                    return assertion
                 },
                 agentForwardingContextID: interaction.presentationContextID
             ),

@@ -18,6 +18,14 @@ public nonisolated protocol SSHRuntimeSecretResolving: Sendable {
     ) throws -> SSHResolvedKeyCredential?
 }
 
+nonisolated extension SSHRuntimeSecretResolving {
+    /// Hardware references are Vault metadata and must never be looked up in Keychain.
+    public func sshKeyCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
+        if key.algorithm == .securityKey { return key.securityKey.map(SSHResolvedKeyCredential.securityKey) }
+        return try sshKeyCredential(for: key.credentialRef, storage: key.storage)
+    }
+}
+
 public nonisolated protocol SecretStoring: SSHRuntimeSecretResolving {
     func string(for account: String, storage: PasswordStorage) throws -> String?
     func containsString(for account: String, storage: PasswordStorage) throws -> Bool
@@ -65,6 +73,8 @@ nonisolated extension SecretStoring {
     ) throws {
         defer { credential.clearSecrets() }
         switch credential {
+        case .securityKey:
+            throw CocoaError(.coderInvalidValue)
         case .software(let key, let passphrase):
             let text = try key.withUnsafeCStringAndConsume { bytes, count in
                 String(decoding: UnsafeRawBufferPointer(start: bytes, count: count), as: UTF8.self)

@@ -757,7 +757,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         publicKey: key.publicKey, certificate: key.certificate,
                         passphraseOverride: submission.passphraseForConnection(),
                         requiresPassphrase: key.requiresPassphraseEntry,
-                        requiresUserPresence: key.requiresUserPresence
+                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
                     )
                 )
             }
@@ -829,7 +829,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
                                     requiresPassphrase: key.requiresPassphraseEntry,
-                                    requiresUserPresence: key.requiresUserPresence
+                                    requiresUserPresence: key.requiresUserPresence, keyName: key.label
                                 )
                             )
                         } else {
@@ -1460,6 +1460,32 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         var key = key
         key.label = SavedName.resolve(key.label, default: key.defaultName)
         let previousKey = self.key(key.id)
+        if key.algorithm == .securityKey {
+            guard credential == nil, let reference = key.securityKey,
+                !reference.credentialID.isEmpty, reference.publicKeyX963.count == 65,
+                key.certificate.isEmpty, key.storage != .secureEnclave,
+                previousKey == nil || previousKey?.algorithm == .securityKey
+            else { throw CocoaError(.coderInvalidValue) }
+            key.credentialRef = ""
+            key.storage = .thisDevice
+            key.hasPassphrase = false
+            key.requiresUserPresence = reference.requiresUserPresence
+            let snapshot = keys
+            if let index = keys.firstIndex(where: { $0.id == key.id }) {
+                key.sortIndex = keys[index].sortIndex
+                keys[index] = key
+            } else {
+                key.sortIndex = (keys.map(\.sortIndex).max() ?? -1) + 1
+                keys.append(key)
+            }
+            guard persistCore() else {
+                keys = snapshot
+                throw TermindSSHError.library(storageError ?? String(localized: "The key could not be saved."))
+            }
+            keyCredentialRevision &+= 1
+            return
+        }
+        guard key.securityKey == nil else { throw CocoaError(.coderInvalidValue) }
         if previousKey?.storage == .iCloud, key.storage == .thisDevice {
             throw TermindSSHError.library(
                 String(localized: "iCloud credentials cannot be moved to This Device.")
@@ -1571,7 +1597,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
-        try keychain.keyCredential(for: key.credentialRef, storage: key.storage)
+        guard key.algorithm != .securityKey else { return nil }
+        return try keychain.keyCredential(for: key.credentialRef, storage: key.storage)
     }
 
     public func saveKeyPassphrase(_ passphrase: String, for keyID: SSHKeyRef.ID) throws {
@@ -1586,10 +1613,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
         _ = keyCredentialRevision
-        return try keychain.sshKeyCredential(for: key.credentialRef, storage: key.storage)
+        return try keychain.sshKeyCredential(for: key)
     }
 
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
+        if key.algorithm == .securityKey { return key.securityKey == nil ? .missing : .available }
         do {
             return try keychain.containsKeyCredential(
                 for: key.credentialRef, storage: key.storage
@@ -1603,7 +1631,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard let key = key(keyID) else { return }
         let credential = try keySecretCredential(for: key)
         defer { credential?.clearSecrets() }
-        try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
+        if key.algorithm != .securityKey {
+            try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
+        }
         let keySnapshot = keys
         let identitySnapshot = identities
         keys.removeAll { $0.id == keyID }
@@ -1613,7 +1643,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard persistCore() else {
             keys = keySnapshot
             identities = identitySnapshot
-            if let credential {
+            if key.algorithm != .securityKey, let credential {
                 try keychain.setResolvedKeyCredential(
                     credential, for: key.credentialRef, storage: key.storage
                 )

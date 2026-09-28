@@ -15,6 +15,7 @@ struct MobileConnectionJourneyView: View {
     let retryReconnectNow: () -> Void
     let stopReconnecting: () -> Void
     let cancel: () -> Void
+    var securityKeySigning: SecurityKeySigningCoordinator? = nil
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
 
@@ -49,6 +50,9 @@ struct MobileConnectionJourneyView: View {
     private var content: some View {
         if journey.showsLogs {
             logs
+        } else if let coordinator = securityKeySigning, let request = coordinator.pending {
+            SecurityKeySigningCard(request: request, coordinator: coordinator).id(request.id)
+                .connectionFormChrome(isEnabled: true)
         } else if let queue = keyboardAuthentication, let challenge = queue.current {
             SSHKeyboardInteractiveForm(
                 challenge: challenge, submit: { queue.respond(challenge.id, answers: $0) },

@@ -5,6 +5,27 @@ import Testing
 
 @Suite @MainActor
 struct SSHInteractionPolicyTests {
+    @Test func allSecurityKeysRequireInteractionRegardlessOfUPIncludingJumps() {
+        let silent = SecurityKeyCredential(credentialID: Data([1]), publicKeyX963: Data(), requiresUserPresence: false)
+        let touching = SecurityKeyCredential(credentialID: Data([2]), publicKeyX963: Data(), requiresUserPresence: true)
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "fixture.invalid", port: 22, username: "user",
+            credentials: [.securityKey(silent), .securityKey(touching)], expectedHostKeys: [],
+            jumps: [
+                .init(
+                    id: UUID(), name: "Jump", host: "jump.invalid", port: 22, username: "user",
+                    credentials: [.securityKey(silent), .securityKey(touching)], expectedHostKeys: [])
+            ])
+        let request = SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
+            .enforcingInteractionPolicy()
+        for credentials in [request.configuration.credentials, request.configuration.jumps[0].credentials] {
+            guard case .interactionRequired = credentials[0], case .interactionRequired = credentials[1] else {
+                Issue.record("Every security key must be blocked during silent authentication")
+                return
+            }
+        }
+    }
+
     @Test func forbiddenPolicyCannotInvokeExplicitOrFallbackForms() async throws {
         let queue = SSHKeyboardInteractiveQueue()
         let configuration = SSHConnectionConfiguration(
@@ -240,7 +261,7 @@ struct SSHInteractionPolicyTests {
                 case .password(let value): value.isConsumed
                 case .privateKey(let value, _, let phrase, _):
                     value.isConsumed && phrase?.isConsumed == true
-                case .secureEnclave, .interactionRequired: true
+                case .securityKey, .secureEnclave, .interactionRequired: true
                 }
             })
     }

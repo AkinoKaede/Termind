@@ -9,7 +9,7 @@ public protocol ConnectionFormKeyboardAdapting {
 
 extension View {
     @ViewBuilder
-    func connectionFormChrome(isEnabled: Bool) -> some View {
+    public func connectionFormChrome(isEnabled: Bool) -> some View {
         if isEnabled {
             padding(18).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.quaternary) }

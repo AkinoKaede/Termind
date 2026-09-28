@@ -58,7 +58,7 @@ struct MobileRootView: View {
             )
         ) {
             if let challenge = scene.agentForwarding.current {
-                MobileAgentForwardingSheet(interaction: scene.agentForwarding, challenge: challenge)
+                MobileAgentForwardingSheet(interaction: scene.agentForwarding, request: challenge)
                     .id(challenge.id)
             }
         }

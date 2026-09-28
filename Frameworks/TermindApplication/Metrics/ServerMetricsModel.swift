@@ -23,12 +23,14 @@ public final class ServerMetric: Identifiable {
     public var hostKey: SSHHostKeyObservation? { hostKeyAuthorization.pending?.prompt.observation }
     public var needsAttention = false
     public let journey = ConnectionJourney()
+    public let securityKeySigning = SecurityKeySigningCoordinator()
     public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
     public var authenticationPrompt: SSHAuthenticationPrompt?
     public var hostKeyPrompt: SSHHostKeyPrompt? { hostKeyAuthorization.pending?.prompt }
     public var hostKeyHostID: UUID? { hostKeyAuthorization.pending?.hostID }
     public var requiresAuthentication: Bool {
         hostKey != nil || authenticationPrompt != nil || keyboardAuthentication.current != nil
+            || securityKeySigning.pending != nil
     }
     public var showsConnectionJourney: Bool { requiresAuthentication || journey.isPresented }
     public var processes: [MetricsProcess] = []
@@ -538,6 +540,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             }
             if hadHostKeyAuthorization || authentication != nil { server.needsAttention = false }
             server.keyboardAuthentication.cancelAll()
+            server.securityKeySigning.cancel()
         }
         if let sampler = samplers.removeValue(forKey: id) {
             Task { await sampler.disconnect() }
@@ -631,6 +634,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                             guard let self else { throw CancellationError() }
                             return try await self.answerKeyboardInteractiveFromWorker(
                                 serverID, challenge: challenge, token: token)
+                        },
+                        securityKeySigning: { [weak self] request in
+                            guard let self else { throw CancellationError() }
+                            return try await self.signWithSecurityKey(serverID, request: request, token: token)
                         }
                     )
                 )
@@ -853,8 +860,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private func handleRunFailure(_ error: any Error, serverID: UUID, token: UUID) -> Bool {
         guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
         server.isConnecting = false
-        server.status = error.localizedDescription
+        server.status =
+            error is CancellationError
+            ? String(localized: "Authentication was cancelled. Retry to continue connecting.")
+            : error.localizedDescription
         server.collectionState = .failed
+        if error is CancellationError { server.needsAttention = true }
         if let ssh = error as? TermindSSHError {
             let targetID = ssh.routeHostID ?? serverID
             if ssh.isLocalAuthenticationRequirement || ssh.shouldRequestAuthentication {
@@ -862,7 +873,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             }
         }
         if case MetricsReadError.unsupported = error { server.needsAttention = true }
-        if !server.requiresAuthentication { server.journey.fail(error.localizedDescription) }
+        if !server.requiresAuthentication { server.journey.fail(server.status) }
         return true
     }
 
@@ -898,6 +909,38 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             return answers
         } catch {
             _ = await finishKeyboardAuthentication(serverID, requestID: challenge.id, token: token)
+            throw error
+        }
+    }
+
+    private func signWithSecurityKey(_ serverID: UUID, request: SecurityKeySigningRequest, token: UUID) async throws
+        -> SecurityKeyAssertion
+    {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else {
+            throw CancellationError()
+        }
+        server.needsAttention = true
+        server.isConnecting = false
+        server.collectionState = .awaitingAuthentication
+        server.journey.waitForAuthentication(at: request.hostID)
+        do {
+            let assertion = try await server.securityKeySigning.sign(request)
+            guard current(serverID, token) else { throw CancellationError() }
+            try Task.checkCancellation()
+            server.needsAttention = false
+            server.isConnecting = true
+            server.collectionState = .connecting
+            server.journey.resume()
+            return assertion
+        } catch {
+            if current(serverID, token) {
+                server.needsAttention = false
+                server.journey.fail(
+                    error is CancellationError
+                        ? String(localized: "Authentication was cancelled. Retry to continue connecting.")
+                        : error.localizedDescription,
+                    at: request.hostID)
+            }
             throw error
         }
     }

@@ -151,7 +151,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         if let key = node.key {
             let stored: SSHResolvedKeyCredential?
             do {
-                stored = try secrets.sshKeyCredential(for: key.credentialRef, storage: key.storage)
+                stored = try secrets.sshKeyCredential(for: key)
             } catch {
                 stored = nil
                 retrievalFailure = error
@@ -166,7 +166,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                         publicKey: key.publicKey, certificate: key.certificate,
                         passphraseOverride: node.submission?.passphraseForConnection(),
                         requiresPassphrase: key.requiresPassphraseEntry,
-                        requiresUserPresence: key.requiresUserPresence
+                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
                     ))
             }
         }

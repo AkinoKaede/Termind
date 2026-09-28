@@ -6,14 +6,21 @@ import UniformTypeIdentifiers
 
 struct MobileKeyEditor: View {
     @Bindable var model: MobileKeyEditorModel
+    @State private var presenter = SecurityKeyPresenter()
     @State private var choosingFile = false
     @State private var choosingCertificate = false
     @State private var fileError: String?
+    @State private var referenceIsTargeted = false
+    @State private var referenceDropTask: Task<Void, Never>?
 
     var body: some View {
         MobileEditorSheet(
             title: title, isDirty: model.isDirty, canSave: model.canSave,
-            save: { try await model.save() },
+            save: {
+                try await model.save { name, verification in
+                    try await presenter.register(name: name, userVerification: verification)
+                }
+            },
             content: {
                 Section {
                     VaultNameField(text: $model.label, prompt: Text(model.defaultName))
@@ -21,11 +28,13 @@ struct MobileKeyEditor: View {
                 }
                 if model.mode == .generate {
                     Section(
-                        model.storage == .secureEnclave
+                        !model.usesWebAuthn && model.storage == .secureEnclave
                             ? AppStrings.Keychain.secureEnclave.swiftUIKey : AppStrings.Keychain.privateKey.swiftUIKey
                     ) {
                         storagePicker
-                        if model.storage == .secureEnclave {
+                        if model.usesWebAuthn {
+                            WebAuthnVerificationPicker(selection: $model.verification)
+                        } else if model.storage == .secureEnclave {
                             Toggle(
                                 AppStrings.Keychain.requireUserPresence.swiftUIKey, isOn: $model.requiresUserPresence)
                         } else {
@@ -71,6 +80,33 @@ struct MobileKeyEditor: View {
                             }
                         }
                     }
+                } else if model.usesWebAuthn {
+                    Section(AppStrings.SecurityKey.reference.swiftUIKey) {
+                        storagePicker
+                        WebAuthnVerificationPicker(selection: $model.verification)
+                        Button(AppStrings.Keychain.chooseFile.swiftUIKey, systemImage: "folder") {
+                            choosingFile = true
+                        }
+                        TextEditor(text: $model.securityKeyReference)
+                            .font(.body.monospaced()).frame(minHeight: 150)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .accessibilityLabel(AppStrings.SecurityKey.reference.swiftUIKey)
+                            .onDrop(
+                                of: [.fileURL, .data, .plainText], isTargeted: $referenceIsTargeted,
+                                perform: receiveReference
+                            )
+                            .overlay {
+                                if referenceIsTargeted {
+                                    DropTargetOverlay(
+                                        presentation: DropTargetPresentation(
+                                            title: String(localized: AppStrings.Common.dragToImport),
+                                            detail: String(localized: AppStrings.SecurityKey.reference),
+                                            systemImage: "key.radiowaves.forward.fill")
+                                    )
+                                    .allowsHitTesting(false)
+                                }
+                            }
+                    }
                 } else if model.storage != .secureEnclave {
                     Section(AppStrings.Keychain.privateKey.swiftUIKey) {
                         storagePicker
@@ -114,12 +150,12 @@ struct MobileKeyEditor: View {
                     }
                 } else {
                     Section(AppStrings.Keychain.secureEnclave.swiftUIKey) {
-                        LabeledContent(
-                            AppStrings.Keychain.storeIn.swiftUIKey,
-                            value: String(localized: AppStrings.Keychain.secureEnclave))
+                        LabeledContent(AppStrings.Keychain.storeIn.swiftUIKey) {
+                            Label(AppStrings.Keychain.secureEnclave.swiftUIKey, systemImage: "checkmark.shield.fill")
+                        }
                     }
                 }
-                if model.mode != .generate && model.storage != .secureEnclave {
+                if !model.usesWebAuthn && model.mode != .generate && model.storage != .secureEnclave {
                     Section(AppStrings.Keychain.sshCertificate.swiftUIKey) {
                         Button(AppStrings.Keychain.chooseFile.swiftUIKey, systemImage: "folder") {
                             choosingCertificate = true
@@ -130,13 +166,15 @@ struct MobileKeyEditor: View {
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }
                 }
-                if let warning = model.certificateWarning { Text(warning).font(.caption).foregroundStyle(.orange) }
-                if let publicKey = model.publicKey {
+                if !model.usesWebAuthn, let warning = model.certificateWarning {
+                    Text(warning).font(.caption).foregroundStyle(.orange)
+                }
+                if !model.usesWebAuthn, let publicKey = model.publicKey {
                     Section(AppStrings.Keychain.publicKey.swiftUIKey) {
                         Text(publicKey).font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
-                if let fingerprint = model.fingerprint {
+                if !model.usesWebAuthn, let fingerprint = model.fingerprint {
                     Section(AppStrings.KnownHosts.fingerprint.swiftUIKey) {
                         Text(fingerprint).font(.caption.monospaced()).textSelection(.enabled)
                     }
@@ -163,9 +201,30 @@ struct MobileKeyEditor: View {
         } message: {
             Text(fileError ?? "")
         }
-        .onDisappear { model.clearSensitiveDrafts() }
+        .background(SecurityKeyAnchor(presenter: presenter).frame(width: 0, height: 0))
+        .onDisappear {
+            referenceDropTask?.cancel()
+            presenter.cancel()
+            model.clearSensitiveDrafts()
+        }
         .task { await model.loadPrivateKey() }
         .task(id: model.validationToken) { await model.derivePublicMaterial() }
+    }
+
+    private func receiveReference(_ providers: [NSItemProvider]) -> Bool {
+        guard model.usesWebAuthn, let provider = providers.first else { return false }
+        referenceDropTask?.cancel()
+        referenceDropTask = Task {
+            do {
+                let text = try await ReferenceDropLoader.load(provider)
+                _ = try WebAuthnSSH.importReference(text)
+                try Task.checkCancellation()
+                guard model.usesWebAuthn else { return }
+                model.securityKeyReference = text
+            } catch is CancellationError {
+            } catch { fileError = error.localizedDescription }
+        }
+        return true
     }
 
     private var title: String {
@@ -177,14 +236,12 @@ struct MobileKeyEditor: View {
     }
 
     private var storagePicker: some View {
-        Picker(AppStrings.Keychain.storeIn.swiftUIKey, selection: $model.storage) {
-            Label(AppStrings.Keychain.thisDevice.swiftUIKey, systemImage: "ipad.and.iphone").tag(KeyStorage.thisDevice)
-            Label(AppStrings.Keychain.iCloud.swiftUIKey, systemImage: "icloud.fill").tag(KeyStorage.iCloud)
-            if model.mode == .generate && model.canUseEnclave {
-                Label(AppStrings.Keychain.secureEnclave.swiftUIKey, systemImage: "checkmark.shield.fill").tag(
-                    KeyStorage.secureEnclave)
-            }
-        }
+        KeyCreationStoragePicker(
+            storage: $model.storage, usesWebAuthn: $model.usesWebAuthn,
+            allowsWebAuthn: model.mode != .edit,
+            allowsSecureEnclave: model.mode == .generate && model.canUseEnclave,
+            secureEnclaveAvailable: model.canUseEnclave
+        )
         .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)
     }
 }

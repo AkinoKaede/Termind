@@ -238,7 +238,7 @@ public nonisolated struct SSHKeyMaterial: Sendable {
     ) -> Int? {
         switch algorithm {
         case .ed25519: 256
-        case .ecdsa256: 256
+        case .securityKey, .ecdsa256: 256
         case .ecdsa384: 384
         case .ecdsa521: 521
         case .rsa: rsaKeySize(publicBlob)

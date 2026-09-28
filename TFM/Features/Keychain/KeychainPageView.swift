@@ -431,6 +431,12 @@ struct KeychainImportDetail: View {
             title: AppStrings.Keychain.importKey, symbol: "square.and.arrow.down",
             close: window.closeVaultWork,
             defaultStorage: app.newVaultKeyStorage,
+            saveSecurityKey: { name, color, credential in
+                var key = try WebAuthnSSH.keyReference(credential, label: name)
+                key.colorTag = color
+                try app.credentials.upsert(key)
+                window.selectVaultItem(.key(key.id), on: .keychain)
+            },
             save: save
         )
     }
@@ -464,6 +470,11 @@ private struct SoftwareKeyEditor: View {
         case certificate
     }
 
+    let saveSecurityKey: ((String, TagColor, SecurityKeyCredential) throws -> Void)?
+    @State private var usesWebAuthn = false
+    @State private var verification: SecurityKeyCredential.UserVerification = .preferred
+    @State private var reference = ""
+    @State private var referenceDropTask: Task<Void, Never>?
     let existing: SSHKeyRef?
     let title: LocalizedStringResource
     let symbol: String
@@ -505,6 +516,7 @@ private struct SoftwareKeyEditor: View {
         existing: SSHKeyRef? = nil, title: LocalizedStringResource,
         symbol: String, close: @escaping () -> Void,
         defaultStorage: KeyStorage = .iCloud,
+        saveSecurityKey: ((String, TagColor, SecurityKeyCredential) throws -> Void)? = nil,
         loadPrivateKey: (() throws -> SSHPrivateKeySecret)? = nil,
         saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
         delete: (() throws -> Void)? = nil,
@@ -513,6 +525,7 @@ private struct SoftwareKeyEditor: View {
                 String, TagColor, KeyStorage, String, String?, Bool, String, SSHKeyMaterial
             ) async throws -> SSHKeyRef
     ) {
+        self.saveSecurityKey = saveSecurityKey
         self.existing = existing
         self.title = title
         self.symbol = symbol
@@ -554,62 +567,74 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section {
-                        Picker(AppStrings.Keychain.storeIn.swiftUIKey, selection: $storage) {
-                            Label(AppStrings.Keychain.iCloud.swiftUIKey, systemImage: "icloud.fill").tag(
-                                KeyStorage.iCloud)
-                            Label(AppStrings.Keychain.thisMac.swiftUIKey, systemImage: "lock.laptopcomputer")
-                                .tag(KeyStorage.thisDevice)
-                        }
+                        KeyCreationStoragePicker(
+                            storage: $storage, usesWebAuthn: $usesWebAuthn,
+                            allowsWebAuthn: existing == nil && saveSecurityKey != nil
+                        )
                         .disabled(!canEditPrivateKey || existing?.storage == .iCloud)
-                        keyTextEditor(
-                            text: $privateKey, minHeight: 150,
-                            placeholder: AppStrings.Keychain.pasteAPrivateKeyOrDragOneIn
-                        )
-                        .accessibilityLabel(AppStrings.Keychain.privateKey.swiftUIKey)
-                        .disabled(!canEditPrivateKey)
-                        if let existing, let material,
-                            material.publicKey != existing.publicKey
-                        {
-                            Label(
-                                AppStrings.Keychain.replacePrivateKeyWarning.swiftUIKey,
-                                systemImage: "arrow.triangle.2.circlepath"
+                        if usesWebAuthn {
+                            WebAuthnVerificationPicker(selection: $verification)
+                            keyTextEditor(
+                                text: $reference, minHeight: 150, placeholder: AppStrings.SecurityKey.importHelp
                             )
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                            .accessibilityLabel(AppStrings.SecurityKey.reference.swiftUIKey)
+                            .onDrop(of: [.plainText], isTargeted: nil, perform: receiveReferenceText)
+                        } else {
+                            keyTextEditor(
+                                text: $privateKey, minHeight: 150,
+                                placeholder: AppStrings.Keychain.pasteAPrivateKeyOrDragOneIn
+                            )
+                            .accessibilityLabel(AppStrings.Keychain.privateKey.swiftUIKey)
+                            .disabled(!canEditPrivateKey)
+                            if let existing, let material,
+                                material.publicKey != existing.publicKey
+                            {
+                                Label(
+                                    AppStrings.Keychain.replacePrivateKeyWarning.swiftUIKey,
+                                    systemImage: "arrow.triangle.2.circlepath"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                            }
+                            RevealableSecretField(
+                                AppStrings.Keychain.passphrase, text: $passphrase,
+                                prompt: Text(AppStrings.Common.optional)
+                            )
+                            .disabled(!canEditPrivateKey)
+                            Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
+                                .disabled(!canEditPrivateKey || passphrase.isEmpty)
                         }
-                        RevealableSecretField(
-                            AppStrings.Keychain.passphrase, text: $passphrase,
-                            prompt: Text(AppStrings.Common.optional)
-                        )
-                        .disabled(!canEditPrivateKey)
-                        Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
-                            .disabled(!canEditPrivateKey || passphrase.isEmpty)
                     } header: {
-                        fileSectionHeader(AppStrings.Keychain.privateKey, canChoose: canEditPrivateKey) {
+                        fileSectionHeader(
+                            usesWebAuthn ? AppStrings.SecurityKey.reference : AppStrings.Keychain.privateKey,
+                            canChoose: canEditPrivateKey
+                        ) {
                             chooseFile(for: .privateKey)
                         }
                     }
 
-                    Section(AppStrings.Keychain.publicKey.swiftUIKey) {
-                        Text(publicKeyDisplay)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(material == nil ? .secondary : .primary)
-                            .textSelection(.enabled)
-                    }
-
-                    Section {
-                        keyTextEditor(
-                            text: $certificate, minHeight: 110,
-                            placeholder: AppStrings.Keychain.certificateOptional
-                        )
-                        .accessibilityLabel(AppStrings.Keychain.certificate.swiftUIKey)
-                        if let warning = certificateWarning {
-                            Label(warning, systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
+                    if !usesWebAuthn {
+                        Section(AppStrings.Keychain.publicKey.swiftUIKey) {
+                            Text(publicKeyDisplay)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(material == nil ? .secondary : .primary)
+                                .textSelection(.enabled)
                         }
-                    } header: {
-                        fileSectionHeader(AppStrings.Keychain.certificate) { chooseFile(for: .certificate) }
+
+                        Section {
+                            keyTextEditor(
+                                text: $certificate, minHeight: 110,
+                                placeholder: AppStrings.Keychain.certificateOptional
+                            )
+                            .accessibilityLabel(AppStrings.Keychain.certificate.swiftUIKey)
+                            if let warning = certificateWarning {
+                                Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        } header: {
+                            fileSectionHeader(AppStrings.Keychain.certificate) { chooseFile(for: .certificate) }
+                        }
                     }
                 }
                 .formStyle(.grouped)
@@ -632,7 +657,13 @@ private struct SoftwareKeyEditor: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(isWorking || isLoading || (canEditPrivateKey && privateKey.isEmpty))
+                .disabled(
+                    isWorking || isLoading
+                        || (canEditPrivateKey
+                            && (usesWebAuthn
+                                ? reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                : privateKey.isEmpty))
+                )
             }
             .padding()
         }
@@ -666,12 +697,18 @@ private struct SoftwareKeyEditor: View {
                 await commitChanges()
             }
         }
+        .onChange(of: reference) { _, value in
+            if let credential = try? WebAuthnSSH.importReference(value) {
+                verification = credential.userVerification
+            }
+        }
         .onChange(of: privateKey) { old, value in
             if value != originalPrivateKey, old == originalPrivateKey, !originalPassphrase.isEmpty {
                 passphrase = ""
             }
         }
         .onDisappear {
+            referenceDropTask?.cancel()
             privateKey = ""
             originalPrivateKey = ""
             passphrase = ""
@@ -769,6 +806,14 @@ private struct SoftwareKeyEditor: View {
         isWorking = true
         errorMessage = nil
         do {
+            if usesWebAuthn, let saveSecurityKey {
+                var credential = try WebAuthnSSH.importReference(reference)
+                credential.userVerification = verification
+                try WebAuthnSSH.validate(credential)
+                try saveSecurityKey(name, colorTag, credential)
+                isWorking = false
+                return true
+            }
             let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
             if !canEditPrivateKey, let existing, let saveMetadata {
                 if !normalizedCertificate.isEmpty {
@@ -827,6 +872,7 @@ private struct SoftwareKeyEditor: View {
     private var validationToken: String { privateKey + "\u{0}" + passphrase }
 
     private var defaultName: String {
+        if usesWebAuthn { return String(localized: AppStrings.SecurityKey.title) }
         let algorithm =
             material?.privateKey == privateKey
             ? material?.algorithm : privateKey == originalPrivateKey ? existing?.algorithm : nil
@@ -839,7 +885,9 @@ private struct SoftwareKeyEditor: View {
             title: existing == nil
                 ? String(localized: AppStrings.Common.dragToImport)
                 : String(localized: AppStrings.Keychain.dragToReplace),
-            detail: String(localized: AppStrings.Keychain.privateKeyOrCertificate),
+            detail: String(
+                localized: usesWebAuthn ? AppStrings.SecurityKey.reference : AppStrings.Keychain.privateKeyOrCertificate
+            ),
             systemImage: "key.fill"
         )
     }
@@ -900,9 +948,31 @@ private struct SoftwareKeyEditor: View {
         }
     }
 
+    private func receiveReferenceText(_ providers: [NSItemProvider]) -> Bool {
+        guard usesWebAuthn, !isWorking, let provider = providers.first else { return false }
+        referenceDropTask?.cancel()
+        referenceDropTask = Task {
+            do {
+                let text = try await ReferenceDropLoader.load(provider)
+                _ = try WebAuthnSSH.importReference(text)
+                try Task.checkCancellation()
+                guard usesWebAuthn, !isWorking else { return }
+                reference = text
+                errorMessage = nil
+            } catch is CancellationError {
+            } catch { errorMessage = error.localizedDescription }
+        }
+        return true
+    }
+
     private func receiveFiles(_ result: Result<[URL], any Error>) {
         do {
             guard let url = try result.get().first else { return }
+            if usesWebAuthn {
+                reference = try WebAuthnSSH.readReferenceFile(url)
+                errorMessage = nil
+                return
+            }
             let imported = try SoftwareKeyFileImporter.read(
                 urls: [url],
                 infersName: fileChoice == .privateKey
@@ -936,6 +1006,11 @@ private struct SoftwareKeyEditor: View {
     private func receive(urls: [URL]) -> Bool {
         do {
             guard !urls.isEmpty else { return false }
+            if usesWebAuthn, let url = urls.first {
+                reference = try WebAuthnSSH.readReferenceFile(url)
+                errorMessage = nil
+                return true
+            }
             let result = try SoftwareKeyFileImporter.read(
                 urls: urls,
                 infersName: SoftwareKeyFileImporter.shouldInferName(from: name)
@@ -958,8 +1033,10 @@ struct KeychainGenerateDetail: View {
 
     var body: some View {
         GenerateKeySheet(
+            credentials: app.credentials,
             defaultStorage: app.newVaultKeyStorage,
             generate: generate,
+            selectKey: { window.selectVaultItem(.key($0.id), on: .keychain) },
             close: window.closeVaultWork)
     }
 
@@ -1021,6 +1098,12 @@ private struct GenerateKeySheet: View {
         var id: String { rawValue }
     }
 
+    let credentials: CredentialLibraryModel
+    let selectKey: (SSHKeyRef) -> Void
+    @State private var usesWebAuthn = false
+    @State private var verification: SecurityKeyCredential.UserVerification = .preferred
+    @State private var presenter = SecurityKeyPresenter()
+    @State private var generationTask: Task<Void, Never>?
     let generate:
         (
             String, TagColor, SSHKeyMaterial.Generation, String?, Bool, SSHKeyMaterial.Cipher, Int,
@@ -1043,21 +1126,19 @@ private struct GenerateKeySheet: View {
     @State private var isWorking = false
     @State private var errorMessage: String?
 
-    private let availableStorage: [KeyStorage] = [
-        .thisDevice,
-        .iCloud,
-        .secureEnclave,
-    ]
-
     init(
+        credentials: CredentialLibraryModel,
         defaultStorage: KeyStorage = .iCloud,
         generate:
             @escaping (
                 String, TagColor, SSHKeyMaterial.Generation, String?, Bool, SSHKeyMaterial.Cipher, Int,
                 KeyStorage, Bool
             ) async throws -> SSHKeyRef,
+        selectKey: @escaping (SSHKeyRef) -> Void,
         close: @escaping () -> Void
     ) {
+        self.credentials = credentials
+        self.selectKey = selectKey
         self.generate = generate
         self.close = close
         _storage = State(initialValue: defaultStorage)
@@ -1084,17 +1165,16 @@ private struct GenerateKeySheet: View {
                     VaultColorField(selection: $colorTag)
                 }
                 Section(
-                    storage == .secureEnclave
+                    !usesWebAuthn && storage == .secureEnclave
                         ? AppStrings.Keychain.secureEnclave.swiftUIKey : AppStrings.Keychain.privateKey.swiftUIKey
                 ) {
-                    Picker(AppStrings.Keychain.storeIn.swiftUIKey, selection: $storage) {
-                        ForEach(availableStorage) { location in
-                            Label(location.displayName, systemImage: location.symbol)
-                                .tag(location)
-                                .disabled(location == .secureEnclave && !SecureEnclaveKey.isAvailable)
-                        }
-                    }
-                    if storage == .secureEnclave {
+                    KeyCreationStoragePicker(
+                        storage: $storage, usesWebAuthn: $usesWebAuthn,
+                        allowsSecureEnclave: true, secureEnclaveAvailable: SecureEnclaveKey.isAvailable
+                    )
+                    if usesWebAuthn {
+                        WebAuthnVerificationPicker(selection: $verification)
+                    } else if storage == .secureEnclave {
                         LabeledContent(AppStrings.Keychain.algorithm.swiftUIKey, value: "ECDSA")
                         LabeledContent(
                             AppStrings.Keychain.ellipticCurve.swiftUIKey,
@@ -1146,24 +1226,29 @@ private struct GenerateKeySheet: View {
                 }
             }
             .formStyle(.grouped)
+            .disabled(isWorking)
         } footer: {
             HStack {
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
                 Button(AppStrings.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
                 Button(AppStrings.Keychain.generate.swiftUIKey) {
-                    Task { await commit() }
+                    generationTask = Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(
                     isWorking
-                        || (storage != .secureEnclave && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
-                        || (storage == .secureEnclave && !SecureEnclaveKey.isAvailable)
+                        || (!usesWebAuthn && storage != .secureEnclave
+                            && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
+                        || (!usesWebAuthn && storage == .secureEnclave && !SecureEnclaveKey.isAvailable)
                 )
             }
             .padding()
         }
+        .background(SecurityKeyAnchor(presenter: presenter).frame(width: 0, height: 0))
         .onDisappear {
+            generationTask?.cancel()
+            presenter.cancel()
             passphrase = ""
             confirmation = ""
         }
@@ -1174,12 +1259,24 @@ private struct GenerateKeySheet: View {
         isWorking = true
         errorMessage = nil
         do {
-            _ = try await generate(
-                label.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, generation,
-                storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
-                savePassphrase, cipher, rounds, storage,
-                storage == .secureEnclave && requiresUserPresence
-            )
+            if usesWebAuthn {
+                let credential = try await presenter.register(
+                    name: label.isEmpty ? "Termind" : label, userVerification: verification)
+                try WebAuthnSSH.validate(credential)
+                try Task.checkCancellation()
+                var key = try WebAuthnSSH.keyReference(
+                    credential, label: label)
+                key.colorTag = colorTag
+                try credentials.upsert(key)
+                selectKey(key)
+            } else {
+                _ = try await generate(
+                    label.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, generation,
+                    storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
+                    savePassphrase, cipher, rounds, storage,
+                    storage == .secureEnclave && requiresUserPresence
+                )
+            }
             passphrase = ""
             confirmation = ""
             close()
@@ -1190,6 +1287,7 @@ private struct GenerateKeySheet: View {
     }
 
     private var defaultName: String {
+        if usesWebAuthn { return String(localized: AppStrings.SecurityKey.title) }
         let algorithm: SSHKeyAlgorithm =
             switch kind {
             case .ed25519: .ed25519
@@ -1209,7 +1307,9 @@ struct KeychainEditDetail: View {
     @ViewBuilder
     var body: some View {
         if let key = app.credentials.key(keyID) {
-            if key.storage == .secureEnclave {
+            if key.algorithm == .securityKey {
+                SecurityKeyEditor(credentials: app.credentials, existing: key, close: window.closeVaultWork)
+            } else if key.storage == .secureEnclave {
                 SecureEnclaveKeyEditor(
                     key: key, close: window.closeVaultWork,
                     delete: { try delete(key) },
@@ -1342,7 +1442,9 @@ private struct SecureEnclaveKeyEditor: View {
                     VaultColorField(selection: $colorTag)
                 }
                 Section(AppStrings.Keychain.secureEnclave.swiftUIKey) {
-                    LabeledContent(AppStrings.Keychain.storeIn.swiftUIKey, value: key.storage.displayName)
+                    LabeledContent(AppStrings.Keychain.storeIn.swiftUIKey) {
+                        Label(key.storage.displayName, systemImage: key.storage.symbol)
+                    }
                     LabeledContent(AppStrings.Keychain.algorithm.swiftUIKey, value: key.algorithm.displayName)
                     LabeledContent(AppStrings.KnownHosts.fingerprint.swiftUIKey) {
                         Text(key.fingerprint).font(.caption.monospaced()).textSelection(.enabled)
@@ -1861,8 +1963,9 @@ private struct KeyCard: View {
                         )
                     }
                     CardChip(
-                        text: key.storage.displayName,
-                        symbol: key.storage.symbol
+                        text: key.algorithm == .securityKey
+                            ? String(localized: AppStrings.SecurityKey.title) : key.storage.displayName,
+                        symbol: key.algorithm == .securityKey ? "key.radiowaves.forward.fill" : key.storage.symbol
                     )
                     switch app.credentials.keyAvailability(for: key) {
                     case .missing:

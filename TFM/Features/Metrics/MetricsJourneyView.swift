@@ -25,6 +25,7 @@ struct MetricsJourneyView: View {
             denyHostKey: cancel,
             retry: { model.retry(server) },
             cancel: cancel,
+            securityKeySigning: server.securityKeySigning,
             keyboardAuthentication: server.keyboardAuthentication,
             cancelKeyboardAuthentication: cancel
         )

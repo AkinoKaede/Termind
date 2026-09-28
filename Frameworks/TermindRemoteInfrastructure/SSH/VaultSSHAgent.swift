@@ -15,12 +15,14 @@ public final class VaultSSHAgent: SSHAgentForwarding {
     private let username: String
     private let interactionPolicy: SSHInteractionPolicy
     private let unlock: SSHKeyboardInteractiveHandler?
+    private let securityKeySigning: SecurityKeySigningHandler?
     private let canInteract: @MainActor @Sendable () -> Bool
     private var closed = false
 
     public static func factory(
         library: HostLibraryModel,
         unlock: SSHKeyboardInteractiveHandler? = nil,
+        securityKeySigning: SecurityKeySigningHandler? = nil,
         canInteract: @escaping @MainActor @Sendable () -> Bool = { true },
         interactionContext: (@MainActor @Sendable (SSHConnectionRequest) -> SSHAgentInteractionContext)? = nil
     ) -> SSHAgentForwardingFactory {
@@ -32,14 +34,17 @@ public final class VaultSSHAgent: SSHAgentForwarding {
                 let context = interactionContext?(request)
                 return VaultSSHAgent(
                     library: library, request: request,
-                    unlock: context?.unlock ?? unlock, canInteract: context?.canInteract ?? canInteract)
+                    unlock: context?.unlock ?? unlock,
+                    securityKeySigning: context?.securityKeySigning ?? securityKeySigning,
+                    canInteract: context?.canInteract ?? canInteract)
             }
         }
     }
 
     private init(
         library: HostLibraryModel, request: SSHConnectionRequest,
-        unlock: SSHKeyboardInteractiveHandler?, canInteract: @escaping @MainActor @Sendable () -> Bool
+        unlock: SSHKeyboardInteractiveHandler?, securityKeySigning: SecurityKeySigningHandler?,
+        canInteract: @escaping @MainActor @Sendable () -> Bool
     ) {
         self.library = library
         hostID = request.configuration.hostID
@@ -49,6 +54,7 @@ public final class VaultSSHAgent: SSHAgentForwarding {
         username = request.configuration.username
         interactionPolicy = request.interactionPolicy
         self.unlock = unlock ?? request.keyboardInteractive
+        self.securityKeySigning = securityKeySigning ?? request.securityKeySigning
         self.canInteract = canInteract
     }
 
@@ -64,7 +70,9 @@ public final class VaultSSHAgent: SSHAgentForwarding {
         var result: [SSHAgentIdentity] = []
         var seen = Set<Data>()
         for key in library.keys {
-            guard library.keyAvailability(for: key) == .available, let blob = Self.blob(key.publicKey) else { continue }
+            guard library.keyAvailability(for: key) == .available,
+                let blob = Self.blob(key.publicKey)
+            else { continue }
             if let certificate = Self.blob(key.certificate), seen.insert(certificate).inserted {
                 result.append(SSHAgentIdentity(blob: certificate, comment: key.label))
             }
@@ -82,6 +90,22 @@ public final class VaultSSHAgent: SSHAgentForwarding {
             })
         else { throw SSHAgentProtocol.Failure.unavailable }
         let keyRevision = library.agentForwardingKeyRevision
+        if key.algorithm == .securityKey {
+            guard flags == 0, Self.blob(key.publicKey) == blob, let credential = key.securityKey else {
+                throw SSHAgentProtocol.Failure.invalid
+            }
+            guard interactionPolicy == .allowed, canInteract(), let securityKeySigning else {
+                throw SSHInteractionRequired()
+            }
+            let request = SecurityKeySigningRequest(
+                hostID: hostID, hostname: hostname, credential: credential, challenge: data, keyName: key.label)
+            let assertion = try await securityKeySigning(request)
+            try check()
+            guard library.agentForwardingKeyRevision == keyRevision, library.keys.contains(key), canInteract() else {
+                throw SSHAgentProtocol.Failure.unavailable
+            }
+            return try WebAuthnSSH.signature(assertion, for: request)
+        }
         let secrets = library.agentForwardingSecrets
         let resolution = Task.detached { try secrets.sshKeyCredential(for: key.credentialRef, storage: key.storage) }
         guard let credential = try await resolution.value else { throw SSHAgentProtocol.Failure.unavailable }

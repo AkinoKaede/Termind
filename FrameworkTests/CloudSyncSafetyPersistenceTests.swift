@@ -263,7 +263,7 @@ struct CloudSyncSafetyPersistenceTests {
         #expect(!TermindSchemaV40.models.contains { $0 == PersistentVaultSyncQuarantine.self })
         #expect(!TermindSchemaV40.models.contains { $0 == PersistentAIConfigurationSyncQuarantine.self })
         #expect(!TermindSchemaV40.models.contains { $0 == PersistentMetricsSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV44.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV45.versionIdentifier)
     }
 
     @Test

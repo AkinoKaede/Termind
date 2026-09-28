@@ -56,22 +56,24 @@ public nonisolated enum SSHConnectionOpener {
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials], libssh2Session: OpaquePointer,
-        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
+        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1,
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> String {
         try SSHPTYChannelWorker.authenticate(
             username: username, credentials: credentials, session: libssh2Session,
-            keyboardInteractive: keyboardInteractive, socket: socket)
+            keyboardInteractive: keyboardInteractive, socket: socket, logger: logger)
     }
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials], libssh2Session: OpaquePointer,
         afterHostKeyApproval: Bool,
-        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
+        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1,
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> String {
         try SSHPTYChannelWorker.authenticate(
             username: username, credentials: credentials, session: libssh2Session,
             afterHostKeyApproval: afterHostKeyApproval,
-            keyboardInteractive: keyboardInteractive, socket: socket)
+            keyboardInteractive: keyboardInteractive, socket: socket, logger: logger)
     }
 
     public static func observation(

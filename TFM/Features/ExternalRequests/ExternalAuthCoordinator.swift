@@ -91,6 +91,20 @@ final class ExternalAuthCoordinator {
         }
     }
 
+    nonisolated var securityKeySigning: SecurityKeySigningHandler {
+        { [weak self] request in
+            guard let self else { throw CancellationError() }
+            return try await self.signAppSecurityKey(request)
+        }
+    }
+
+    private func signAppSecurityKey(_ request: SecurityKeySigningRequest) async throws -> SecurityKeyAssertion {
+        appAuthenticationRuns.insert(request.id)
+        defer { appAuthenticationRuns.remove(request.id) }
+        return try await handler(clientName: "Termind", runID: request.id)
+            .sshInteraction.signSecurityKey(request, invocationID: request.id)
+    }
+
     private func answerAppChallenge(_ challenge: SSHKeyboardInteractiveChallenge) async throws -> [String] {
         appAuthenticationRuns.insert(challenge.connectionID)
         defer { appAuthenticationRuns.remove(challenge.connectionID) }
@@ -312,7 +326,8 @@ final class ExternalAuthCoordinator {
     private static func sshOutcome(_ response: AgentSSHAuthenticationResponse) -> String {
         switch response {
         case .submit: "submitted"
-        case .keyboardInteractive: "submitted"
+        case .keyboardInteractive, .securityKey: "submitted"
+        case .securityKeyFailed: "failed"
         case .cancelled: "cancelled"
         }
     }

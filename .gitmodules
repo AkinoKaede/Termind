@@ -1,3 +1,6 @@
 [submodule "AgentKit"]
 	path = AgentKit
 	url = https://github.com/AkinoKaede/AgentKit.git
+[submodule "libssh2-spm"]
+	path = libssh2-spm
+	url = https://github.com/AkinoKaede/libssh2-spm.git

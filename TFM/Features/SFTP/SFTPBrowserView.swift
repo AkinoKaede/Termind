@@ -324,6 +324,7 @@ struct SFTPBrowserView: View {
                     reconnectState: sftpChannel.reconnectState,
                     retryReconnectNow: sftpChannel.retryReconnectNow,
                     stopReconnecting: sftpChannel.stopReconnecting,
+                    securityKeySigning: sftpChannel.connection.securityKeySigning,
                     keyboardAuthentication: sftpChannel.connection.keyboardAuthentication
                 )
                 .zIndex(10)

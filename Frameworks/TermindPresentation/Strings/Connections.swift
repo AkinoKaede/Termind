@@ -2,6 +2,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Connections {
+        public static var authenticationCancelled: LocalizedStringResource {
+            "Authentication was cancelled. Retry to continue connecting."
+        }
         public static var agentForwarding: LocalizedStringResource { "Agent Forwarding" }
 
         public static var authenticationRequest: LocalizedStringResource {

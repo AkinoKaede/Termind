@@ -5,6 +5,7 @@ import TermindPresentation
 
 struct MobileCredentialsView: View {
     let app: MobileAppModel
+    @State private var editingSecurityKey: SSHKeyRef?
     @State private var editing: Identity?
     @State private var keyEditor: MobileKeyEditorModel?
     @State private var exportingKey: SSHKeyRef?
@@ -55,8 +56,12 @@ struct MobileCredentialsView: View {
                                     }
                                 }
                                 Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
-                                    keyEditor = MobileKeyEditorModel(
-                                        mode: .edit, credentials: app.credentials, key: key)
+                                    if key.algorithm == .securityKey {
+                                        editingSecurityKey = key
+                                    } else {
+                                        keyEditor = MobileKeyEditorModel(
+                                            mode: .edit, credentials: app.credentials, key: key)
+                                    }
                                 }
                                 Divider()
                                 Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
@@ -115,6 +120,7 @@ struct MobileCredentialsView: View {
                 Label(AppStrings.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
             }
         }
+        .sheet(item: $editingSecurityKey) { key in SecurityKeyEditor(credentials: app.credentials, existing: key) }
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
         .sheet(item: $keyEditor) { MobileKeyEditor(model: $0) }
         .sheet(item: $exportingKey) { key in
@@ -201,7 +207,10 @@ private struct MobileKeyCredentialCard: View {
     }
 
     @ViewBuilder private var secondaryChips: some View {
-        MobileCardChip(text: key.storage.mobileDisplayName, symbol: key.storage.mobileSymbol)
+        MobileCardChip(
+            text: key.algorithm == .securityKey
+                ? String(localized: AppStrings.SecurityKey.title) : key.storage.mobileDisplayName,
+            symbol: key.algorithm == .securityKey ? "key.radiowaves.forward.fill" : key.storage.mobileSymbol)
         switch credentials.keyAvailability(for: key) {
         case .missing:
             MobileCardChip(

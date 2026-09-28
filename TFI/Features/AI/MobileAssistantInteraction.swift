@@ -36,7 +36,14 @@ struct MobileAssistantInteraction: View {
                     VStack(alignment: .leading, spacing: 8) {
                         MobileAssistantQueueDepthLabel(remaining: conversation.pendingSSHAuthentications.count)
                             .frame(maxWidth: .infinity, alignment: .trailing)
-                        MobileAssistantAuthenticationForm(request: request, conversation: conversation, hosts: hosts)
+                        if let signing = request.securityKey {
+                            AgentSecurityKeySigningCard(request: signing) {
+                                conversation.respondToSSHAuthentication($0, requestID: request.id)
+                            }
+                        } else {
+                            MobileAssistantAuthenticationForm(
+                                request: request, conversation: conversation, hosts: hosts)
+                        }
                     }
                 }
                 .mobileAssistantInteractionSurface()

@@ -4028,6 +4028,29 @@
         }
       }
     },
+    "Authentication was cancelled. Retry to continue connecting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication was cancelled. Retry to continue connecting."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消身份验证。重试即可继续连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消身分驗證。重試即可繼續連線。"
+          }
+        }
+      }
+    },
     "Authorization Server" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9755,6 +9778,29 @@
         }
       }
     },
+    "Discouraged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discouraged"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不主动要求验证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不主動要求驗證"
+          }
+        }
+      }
+    },
     "Disk Read" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12240,6 +12286,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟隨主題"
+          }
+        }
+      }
+    },
+    "Follow the system prompt to complete security key authentication." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow the system prompt to complete security key authentication."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按照系统提示完成安全密钥认证。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按照系統提示完成安全金鑰驗證。"
           }
         }
       }
@@ -19791,6 +19860,29 @@
         }
       }
     },
+    "Paste a security key credential reference." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste a security key credential reference."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴安全密钥凭据引用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼上安全金鑰憑證參照。"
+          }
+        }
+      }
+    },
     "Paste on Right-Click" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20469,6 +20561,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "首選內建網頁搜尋"
+          }
+        }
+      }
+    },
+    "Preferred" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferred"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偏好"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偏好"
           }
         }
       }
@@ -21990,6 +22105,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "紅色"
+          }
+        }
+      }
+    },
+    "Reference" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reference"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "參照"
           }
         }
       }
@@ -24504,6 +24642,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安全隔區傳回了無效的P-256簽名。"
+          }
+        }
+      }
+    },
+    "Security Key" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security Key"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全金鑰"
           }
         }
       }
@@ -29157,6 +29318,75 @@
         }
       }
     },
+    "The security key reference is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The security key reference is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全密钥引用无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全金鑰參照無效。"
+          }
+        }
+      }
+    },
+    "The security key response could not be verified." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The security key response could not be verified."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证安全密钥响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法驗證安全金鑰回應。"
+          }
+        }
+      }
+    },
+    "The security key response is not compatible with SSH." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The security key response is not compatible with SSH."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全密钥响应与SSH不兼容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全金鑰回應與SSH不相容。"
+          }
+        }
+      }
+    },
     "The selected Identity cannot be updated on this device." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29460,6 +29690,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伺服器僅監聽127.0.0.1和::1。啟用後，使用者端工具呼叫無需逐次核准即可執行。"
+          }
+        }
+      }
+    },
+    "The server rejected the username or public key. Check the login user and the key in authorized_keys." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server rejected the username or public key. Check the login user and the key in authorized_keys."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器拒绝了用户名或公钥，请检查登录用户及其authorized_keys中的公钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器拒絕了使用者名稱或公鑰，請檢查登入使用者及其authorized_keys中的公鑰。"
           }
         }
       }
@@ -32559,6 +32812,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用者資料"
+          }
+        }
+      }
+    },
+    "User Verification" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User Verification"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户验证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用者驗證"
           }
         }
       }

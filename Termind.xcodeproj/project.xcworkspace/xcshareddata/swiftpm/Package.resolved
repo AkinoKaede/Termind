@@ -1,5 +1,5 @@
 {
-  "originHash" : "9e654d63a287d65c2696333fb86794057596d2796ccf325235594f6f4c28d6b8",
+  "originHash" : "ee63e885e99fad8400a5812a9ce6a3be2f42ec1459b35c5f6ee570219c53cc45",
   "pins" : [
     {
       "identity" : "agentkit",
@@ -62,15 +62,6 @@
       "state" : {
         "revision" : "b7f888e3baf8585ea9d590ab1a45b49475e00d1c",
         "version" : "1.6.20260922"
-      }
-    },
-    {
-      "identity" : "libssh2-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Lakr233/libssh2-spm.git",
-      "state" : {
-        "revision" : "d211fdf8587532cd952927d9f9f3f5167ce6a77f",
-        "version" : "2.0.3"
       }
     },
     {

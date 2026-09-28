@@ -60,7 +60,7 @@ public nonisolated enum VaultSyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        if envelope.key.kind == .host, envelope.formatVersion == 2 {
+        if envelope.formatVersion == 2 {
             return try encoder.encode(VaultWireV2.Envelope(envelope))
         }
         return try encoder.encode(VaultWireV1.Envelope(envelope))
@@ -70,6 +70,9 @@ public nonisolated enum VaultSyncCodec {
         var decoders: [String: [Int: @Sendable (Data) throws -> VaultEnvelope]] = [:]
         for kind in VaultRecordKind.allCases {
             decoders[kind.rawValue] = [1: { try JSONDecoder().decode(VaultWireV1.Envelope.self, from: $0).domainValue }]
+        }
+        decoders[VaultRecordKind.sshKey.rawValue]?[2] = {
+            try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
         }
         decoders[VaultRecordKind.host.rawValue]?[2] = {
             try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue

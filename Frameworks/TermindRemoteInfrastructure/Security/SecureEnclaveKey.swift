@@ -70,14 +70,40 @@ public nonisolated enum SecureEnclaveKey {
         let context = LAContext()
         context.interactionNotAllowed = !allowInteraction
         context.localizedReason = String(localized: "Use your Secure Enclave SSH key")
-        let privateKey = try SecureEnclave.P256.Signing.PrivateKey(
-            dataRepresentation: credential.dataRepresentation,
-            authenticationContext: context
-        )
-        let rawSignature = try privateKey.signature(for: data).rawRepresentation
-        guard rawSignature.count == 64 else { throw SecureEnclaveKeyError.invalidSignature }
-        return sshField(mpint(rawSignature.prefix(32)))
-            + sshField(mpint(rawSignature.suffix(32)))
+        defer { context.invalidate() }
+        do {
+            try Task.checkCancellation()
+            let privateKey = try SecureEnclave.P256.Signing.PrivateKey(
+                dataRepresentation: credential.dataRepresentation,
+                authenticationContext: context
+            )
+            let rawSignature = try privateKey.signature(for: data).rawRepresentation
+            try Task.checkCancellation()
+            guard rawSignature.count == 64 else { throw SecureEnclaveKeyError.invalidSignature }
+            return sshField(mpint(rawSignature.prefix(32)))
+                + sshField(mpint(rawSignature.suffix(32)))
+        } catch {
+            throw signingError(error)
+        }
+    }
+
+    static func signingError(_ error: any Error) -> any Error {
+        if error is CancellationError { return error }
+        var current = error as NSError
+        for _ in 0..<8 {
+            if current.domain == NSOSStatusErrorDomain, current.code == Int(errSecUserCanceled) {
+                return CancellationError()
+            }
+            if current.domain == LAError.errorDomain,
+                [LAError.userCancel.rawValue, LAError.appCancel.rawValue, LAError.systemCancel.rawValue].contains(
+                    current.code)
+            {
+                return CancellationError()
+            }
+            guard let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError else { break }
+            current = underlying
+        }
+        return error
     }
 
     public static func publicBlob(from authorizedKey: String) -> Data? {

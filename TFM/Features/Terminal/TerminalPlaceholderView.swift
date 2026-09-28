@@ -208,6 +208,7 @@ struct TerminalPlaceholderView: View {
                 reconnectState: sshSession.reconnectState,
                 retryReconnectNow: sshSession.retryReconnectNow,
                 stopReconnecting: sshSession.stopReconnecting,
+                securityKeySigning: sshSession.connection.securityKeySigning,
                 keyboardAuthentication: sshSession.connection.keyboardAuthentication
             )
         }

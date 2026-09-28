@@ -244,6 +244,7 @@ struct MobileForwardingDetailView: View {
                 }
             },
             retry: { app.forwardings.retry(ruleID) }, retryReconnectNow: {}, stopReconnecting: {}, cancel: cancel,
+            securityKeySigning: context.connection.securityKeySigning,
             keyboardAuthentication: context.connection.keyboardAuthentication, cancelKeyboardAuthentication: cancel)
     }
     private func cancel() {

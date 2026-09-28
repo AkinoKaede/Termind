@@ -1341,7 +1341,7 @@
 				BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */,
 				TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */,
-				TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */,
+				TRMD00000000000000100021 /* XCLocalSwiftPackageReference "libssh2-spm" */,
 				TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */,
 				TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */,
 				TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */,
@@ -2780,6 +2780,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		TRMD00000000000000100021 /* XCLocalSwiftPackageReference "libssh2-spm" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "libssh2-spm";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -2803,14 +2810,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.15.1;
-			};
-		};
-		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Lakr233/libssh2-spm.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.3;
 			};
 		};
 		TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
@@ -2889,7 +2888,7 @@
 		};
 		TRMD00000000000000100011 /* CSSH2 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */;
+			package = TRMD00000000000000100021 /* XCLocalSwiftPackageReference "libssh2-spm" */;
 			productName = CSSH2;
 		};
 		TRMD00000000000000100012 /* GhosttyTerminal */ = {

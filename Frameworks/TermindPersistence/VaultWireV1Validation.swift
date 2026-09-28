@@ -35,6 +35,7 @@ nonisolated extension VaultWireV1 {
             try require(TagColor(rawValue: value.colorTag.rawValue))
             if let purpose = value.customPurpose { try require(HostCustomIdentityPurpose(rawValue: purpose.rawValue)) }
         case .sshKey(let value):
+            guard value.securityKey == nil else { throw CocoaError(.coderInvalidValue) }
             try require(SSHKeyAlgorithm(rawValue: value.algorithm.rawValue))
             try require(KeyStorage(rawValue: value.storage.rawValue))
             try require(TagColor(rawValue: value.colorTag.rawValue))

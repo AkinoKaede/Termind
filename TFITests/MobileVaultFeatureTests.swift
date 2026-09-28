@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SwiftData
 import TermindApplication
@@ -11,6 +12,64 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func webAuthnGenerationUsesOriginalEditorAndPreferredVerification() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let editor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials, defaultStorage: .thisDevice)
+        editor.label = "YubiKey"
+        editor.colorTag = .blue
+        editor.passphrase = "unused"
+        editor.confirmation = "mismatch"
+        #expect(!editor.canSave)
+        editor.usesWebAuthn = true
+        #expect(editor.canSave)
+        #expect(editor.verification == .preferred)
+        let credential = SecurityKeyCredential(
+            credentialID: Data([1, 2, 3]), publicKeyX963: P256.Signing.PrivateKey().publicKey.x963Representation)
+        try await editor.save { name, verification in
+            #expect(name == "YubiKey")
+            #expect(verification == .preferred)
+            return credential
+        }
+        let key = try #require(app.credentials.keys.first { $0.label == "YubiKey" })
+        #expect(key.algorithm == .securityKey && key.storage == .thisDevice)
+        #expect(key.colorTag == .blue && !key.hasPassphrase)
+        #expect(key.securityKey == credential)
+    }
+
+    @Test func webAuthnImportReadsReferencesAndAppliesSelectedVerification() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let editor = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials, defaultStorage: .thisDevice)
+        editor.usesWebAuthn = true
+        #expect(!editor.canSave)
+        var credential = SecurityKeyCredential(
+            credentialID: Data([4, 5, 6]), publicKeyX963: P256.Signing.PrivateKey().publicKey.x963Representation,
+            userVerification: .required)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        try WebAuthnSSH.exportReference(credential).write(to: url, atomically: true, encoding: .utf8)
+        try await editor.loadFile(url)
+        #expect(editor.verification == .required && editor.canSave)
+        editor.verification = .discouraged
+        editor.label = "Imported YubiKey"
+        try await editor.save()
+        let key = try #require(app.credentials.keys.first { $0.label == "Imported YubiKey" })
+        credential.userVerification = .discouraged
+        #expect(key.securityKey == credential)
+    }
+
+    @Test func invalidWebAuthnImportDoesNotSaveAKey() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let editor = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+        editor.usesWebAuthn = true
+        editor.securityKeyReference = "invalid"
+        let count = app.credentials.keys.count
+        await #expect(throws: (any Error).self) { try await editor.save() }
+        #expect(app.credentials.keys.count == count)
+    }
+
     @Test func appDefaultsNewCredentialsToThisDeviceWhenVaultSyncIsOff() throws {
         let domain = "MobileVaultCredentialDefaults.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))

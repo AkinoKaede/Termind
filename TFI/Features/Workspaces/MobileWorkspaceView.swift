@@ -760,6 +760,7 @@ struct MobileWorkspaceView: View {
             }, accept: { workspace.trustHostKey(remember: $0) }, retry: { workspace.connect() },
             retryReconnectNow: { workspace.retryReconnectNow() },
             stopReconnecting: { workspace.stopReconnecting() }, cancel: { closeWorkspace(workspace.id) },
+            securityKeySigning: workspace.securityKeySigning,
             keyboardAuthentication: workspace.keyboardAuthentication)
     }
 }

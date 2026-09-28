@@ -126,6 +126,7 @@ public nonisolated struct SSHConnectionRequest: Sendable {
     public var agentForwardingContextID: UUID?
     public var authorizeHostKey: SSHHostKeyAuthorizer?
     public var keyboardInteractive: SSHKeyboardInteractiveHandler?
+    public var securityKeySigning: SecurityKeySigningHandler?
     public var interactionPolicy: SSHInteractionPolicy
     public var hostKeyConstraints: [Host.ID: SSHHostKeyConstraint]
 
@@ -133,6 +134,7 @@ public nonisolated struct SSHConnectionRequest: Sendable {
         configuration: SSHConnectionConfiguration,
         authorizeHostKey: SSHHostKeyAuthorizer? = nil,
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        securityKeySigning: SecurityKeySigningHandler? = nil,
         interactionPolicy: SSHInteractionPolicy = .allowed,
         hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:],
         agentForwardingContextID: UUID? = nil
@@ -140,6 +142,7 @@ public nonisolated struct SSHConnectionRequest: Sendable {
         self.configuration = configuration
         self.authorizeHostKey = authorizeHostKey
         self.keyboardInteractive = keyboardInteractive
+        self.securityKeySigning = securityKeySigning
         self.interactionPolicy = interactionPolicy
         self.hostKeyConstraints = hostKeyConstraints
         self.agentForwardingContextID = agentForwardingContextID
@@ -174,6 +177,8 @@ public nonisolated struct SSHConnectionRequest: Sendable {
 nonisolated extension SSHCredentials {
     fileprivate var withoutInteraction: SSHCredentials {
         switch self {
+        case .securityKey:
+            return .interactionRequired
         case .privateKey(_, _, _, requiresPassphrase: true):
             clearSecrets()
             return .interactionRequired
@@ -292,6 +297,7 @@ public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
 }
 
 public nonisolated enum SSHCredentials: Sendable {
+    case securityKey(SecurityKeyCredential, name: String = "Security Key")
     case password(SSHSecret)
     case privateKey(
         privateKey: SSHSecret, publicKey: String?, passphrase: SSHSecret?,
@@ -327,13 +333,14 @@ public nonisolated enum SSHCredentials: Sendable {
         case .privateKey(let privateKey, _, let passphrase, _):
             privateKey.clear()
             passphrase?.clear()
-        case .secureEnclave, .interactionRequired:
+        case .securityKey, .secureEnclave, .interactionRequired:
             break
         }
     }
 }
 
 public nonisolated enum SSHResolvedKeyCredential: Sendable {
+    case securityKey(SecurityKeyCredential)
     case software(SSHSecret, passphrase: SSHSecret? = nil)
     case secureEnclave(SecureEnclaveKeyCredential)
 
@@ -351,9 +358,10 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
 
     public func sshCredential(
         publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
-        requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
+        requiresPassphrase: Bool = false, requiresUserPresence: Bool = false, keyName: String = "Security Key"
     ) -> SSHCredentials {
         switch self {
+        case .securityKey(let key): return .securityKey(key, name: keyName)
         case .software(let privateKey, let savedPassphrase):
             let hasSavedPassphrase = self.hasSavedPassphrase
             if let passphraseOverride, savedPassphrase !== passphraseOverride { savedPassphrase?.clear() }

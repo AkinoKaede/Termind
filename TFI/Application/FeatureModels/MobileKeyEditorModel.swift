@@ -22,6 +22,15 @@ final class MobileKeyEditorModel: Identifiable {
     private let credentials: CredentialLibraryModel
     var label: String
     var storage: KeyStorage
+    var usesWebAuthn = false
+    var verification: SecurityKeyCredential.UserVerification = .preferred
+    var securityKeyReference = "" {
+        didSet {
+            if let credential = try? WebAuthnSSH.importReference(securityKeyReference) {
+                verification = credential.userVerification
+            }
+        }
+    }
     var algorithm: Algorithm = .ed25519
     var colorTag = TagColor.none
     var curveBits = 256
@@ -86,7 +95,8 @@ final class MobileKeyEditorModel: Identifiable {
     }
 
     var isDirty: Bool {
-        label != (original?.label ?? "") || storage != (original?.storage ?? .iCloud)
+        usesWebAuthn || !securityKeyReference.isEmpty || verification != .preferred || label != (original?.label ?? "")
+            || storage != (original?.storage ?? .iCloud)
             || certificate != (original?.certificate ?? "") || privateKey != originalPrivateKey
             || passphrase != originalPassphrase
             || savePassphrase != originalSavePassphrase
@@ -94,6 +104,10 @@ final class MobileKeyEditorModel: Identifiable {
             || curveBits != 256 || rsaBits != 3072 || cipher != .aes256 || rounds != 100 || !confirmation.isEmpty
     }
     var canSave: Bool {
+        if usesWebAuthn {
+            return mode == .generate
+                || (mode == .importKey && !securityKeyReference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
         if mode == .edit, let original, original.storage != .secureEnclave, !canEditPrivateKey {
             return !isLoadingPrivateKey && storage == original.storage && privateKey.isEmpty && passphrase.isEmpty
         }
@@ -108,6 +122,7 @@ final class MobileKeyEditorModel: Identifiable {
             && (storage != .thisDevice || canSelectThisDevice)
     }
     var defaultName: String {
+        if usesWebAuthn { return String(localized: AppStrings.SecurityKey.title) }
         let selectedAlgorithm: SSHKeyAlgorithm =
             switch algorithm {
             case .ed25519: .ed25519
@@ -210,6 +225,10 @@ final class MobileKeyEditorModel: Identifiable {
 
     func loadFile(_ url: URL) async throws {
         guard canEditPrivateKey else { throw CocoaError(.fileReadNoPermission) }
+        if usesWebAuthn {
+            securityKeyReference = try WebAuthnSSH.readReferenceFile(url)
+            return
+        }
         let infersName = SoftwareKeyFileImporter.shouldInferName(from: label)
         let result = try await Task.detached { try SoftwareKeyFileImporter.read(urls: [url], infersName: infersName) }
             .value
@@ -228,8 +247,31 @@ final class MobileKeyEditorModel: Identifiable {
         self.certificate = certificate
     }
 
-    func save() async throws {
+    func save(
+        registerSecurityKey: ((String, SecurityKeyCredential.UserVerification) async throws -> SecurityKeyCredential)? =
+            nil
+    ) async throws {
         guard canSave else { throw CocoaError(.coderInvalidValue) }
+        if usesWebAuthn {
+            var credential: SecurityKeyCredential
+            if mode == .generate, let registerSecurityKey {
+                credential = try await registerSecurityKey(resolvedLabel, verification)
+            } else if mode == .importKey {
+                credential = try WebAuthnSSH.importReference(securityKeyReference)
+            } else {
+                throw CocoaError(.coderInvalidValue)
+            }
+            credential.userVerification = verification
+            try WebAuthnSSH.validate(credential)
+            try Task.checkCancellation()
+            var key = try WebAuthnSSH.keyReference(
+                credential, label: label)
+            key.colorTag = colorTag
+            key.securityKey = credential
+            try credentials.upsert(key)
+            clearSensitiveDrafts()
+            return
+        }
         if var key = original {
             if key.storage == .secureEnclave {
                 key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -331,6 +373,7 @@ final class MobileKeyEditorModel: Identifiable {
     }
 
     func clearSensitiveDrafts() {
+        securityKeyReference = ""
         didLoadPrivateKey = mode != .edit
         privateKey = ""
         originalPrivateKey = ""

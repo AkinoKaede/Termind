@@ -1,4 +1,5 @@
 import AgentKit
+import CryptoKit
 import Foundation
 import TermindApplication
 import TermindDomain
@@ -15,6 +16,100 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct AgentHostAuthenticationTests {
+    @Test func webAuthnSigningUsesTheConversationAuthenticationForm() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let host = Host(name: "Server", host: "server.example", identityID: identity.id)
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
+        let conversation = ConversationModel()
+        let invocationID = UUID()
+        let session = AgentSSHAuthenticationContext(
+            resolver: AgentHostResolver(store: store), hostID: host.id, invocationID: invocationID,
+            interaction: WeakAgentUserInteraction(conversation).sshInteraction)
+        let attempt = try await session.configurationAttempt()
+        let signing = try #require(attempt.request.securityKeySigning)
+        let request = signingRequest(hostID: host.id)
+        let task = Task { try await signing(request) }
+        defer { task.cancel() }
+        try await waitForAuthentication(in: conversation)
+        let prompt = try #require(conversation.pendingSSHAuthentication)
+        #expect(prompt.securityKey == request)
+        #expect(prompt.invocationID == invocationID)
+        let assertion = signingAssertion()
+        conversation.respondToSSHAuthentication(.securityKey(assertion), requestID: prompt.id)
+        #expect(try await task.value == assertion)
+        #expect(conversation.pendingSSHAuthentication == nil)
+        #expect(conversation.messages.isEmpty)
+    }
+
+    @Test func cancellingWebAuthnSigningClearsTheConversationForm() async throws {
+        let conversation = ConversationModel()
+        let interaction = WeakAgentUserInteraction(conversation).sshInteraction
+        let task = Task { try await interaction.signSecurityKey(signingRequest(), invocationID: UUID()) }
+        defer { task.cancel() }
+        try await waitForAuthentication(in: conversation)
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(conversation.pendingSSHAuthentication == nil)
+    }
+
+    @Test func unavailableOrSilentWebAuthnSigningNeverRequestsInteraction() async throws {
+        await #expect(throws: SSHInteractionRequired.self) {
+            try await AgentSSHInteraction.unavailable.signSecurityKey(signingRequest(), invocationID: UUID())
+        }
+        let interaction = AgentSSHInteraction(
+            authenticate: { _ in
+                Issue.record("Silent signing must not request authentication")
+                return .cancelled
+            }, confirmHostKey: { _ in .deny })
+        var request = signingRequest()
+        request.allowsUserInteraction = false
+        await #expect(throws: SSHInteractionRequired.self) {
+            try await interaction.signSecurityKey(request, invocationID: UUID())
+        }
+    }
+
+    @Test(.requiresVisibleWindow)
+    func externalMCPWebAuthnSigningUsesTheAuthenticationWindowQueue() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let runID = UUID()
+        let interaction = coordinator.handler(clientName: "MCP test", runID: runID).sshInteraction
+        let request = signingRequest()
+        let task = Task { try await interaction.signSecurityKey(request, invocationID: UUID()) }
+        defer {
+            task.cancel()
+            coordinator.cancelAll()
+        }
+        for _ in 0..<100 {
+            if coordinator.current != nil { break }
+            await Task.yield()
+        }
+        let pending = try #require(coordinator.current)
+        guard case .ssh(let prompt) = pending.request else {
+            Issue.record("Expected SSH authentication")
+            return
+        }
+        #expect(prompt.securityKey == request)
+        #expect(pending.clientName == "MCP test" && pending.runID == runID)
+        let assertion = signingAssertion()
+        coordinator.respondSSH(.securityKey(assertion), requestID: prompt.id)
+        #expect(try await task.value == assertion)
+        #expect(coordinator.current == nil)
+    }
+
+    private func signingRequest(hostID: UUID = UUID()) -> SecurityKeySigningRequest {
+        SecurityKeySigningRequest(
+            hostID: hostID, hostname: "server.example",
+            credential: SecurityKeyCredential(
+                credentialID: Data([1, 2, 3]), publicKeyX963: P256.Signing.PrivateKey().publicKey.x963Representation),
+            challenge: Data("ssh authentication challenge".utf8))
+    }
+
+    private func signingAssertion() -> SecurityKeyAssertion {
+        SecurityKeyAssertion(
+            credentialID: Data([1, 2, 3]), authenticatorData: Data([1]),
+            clientDataJSON: Data([2]), signature: Data([3]))
+    }
+
     @Test
     func proxyAuthenticationUsesTheAgentInteractionWithoutChangingItsUsername() async throws {
         let sshIdentity = Identity(name: "SSH", username: "deploy")
@@ -282,7 +377,7 @@ struct AgentHostAuthenticationTests {
                         username: "deploy", password: "fallback-password",
                         keyID: key.id, save: false
                     ))
-            case .keyboardInteractive:
+            case .keyboardInteractive, .securityKey:
                 return .cancelled
             case .proxy:
                 return .cancelled

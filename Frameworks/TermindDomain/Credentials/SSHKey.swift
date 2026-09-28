@@ -10,6 +10,7 @@ public nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIte
 }
 
 public nonisolated enum SSHKeyAlgorithm: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+    case securityKey = "sk-ecdsa-sha2-nistp256@openssh.com"
     case ed25519 = "ssh-ed25519"
     case ecdsa256 = "ecdsa-sha2-nistp256"
     case ecdsa384 = "ecdsa-sha2-nistp384"
@@ -26,6 +27,7 @@ public nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
     public var publicKey: String = ""
     public var certificate: String = ""
     public var fingerprint: String = ""
+    public var securityKey: SecurityKeyCredential?
     public var credentialRef: String = ""
     public var storage: KeyStorage = .iCloud
     public var keySize: Int?
@@ -39,7 +41,8 @@ public nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(), label: String, algorithm: SSHKeyAlgorithm = .ed25519, publicKey: String = "",
         certificate: String = "", fingerprint: String = "", credentialRef: String = "", storage: KeyStorage = .iCloud,
-        keySize: Int? = nil, hasPassphrase: Bool = false, requiresUserPresence: Bool = false,
+        securityKey: SecurityKeyCredential? = nil, keySize: Int? = nil, hasPassphrase: Bool = false,
+        requiresUserPresence: Bool = false,
         createdAt: Date = Date(timeIntervalSince1970: 0), colorTag: TagColor = .none, sortIndex: Double = 0
     ) {
         self.id = id
@@ -48,6 +51,7 @@ public nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
         self.publicKey = publicKey
         self.certificate = certificate
         self.fingerprint = fingerprint
+        self.securityKey = securityKey
         self.credentialRef = credentialRef
         self.storage = storage
         self.keySize = keySize
@@ -63,7 +67,7 @@ public nonisolated struct SSHKeyRef: Identifiable, Codable, Hashable, Sendable {
 nonisolated extension SSHKeyRef {
     private enum CodingKeys: String, CodingKey {
         case id, label, algorithm, publicKey, certificate, fingerprint
-        case credentialRef, storage, keySize, hasPassphrase, requiresUserPresence
+        case securityKey, credentialRef, storage, keySize, hasPassphrase, requiresUserPresence
         case createdAt, colorTag, sortIndex
     }
 
@@ -81,6 +85,7 @@ nonisolated extension SSHKeyRef {
             fingerprint: try container.decode(String.self, forKey: .fingerprint),
             credentialRef: try container.decode(String.self, forKey: .credentialRef),
             storage: try container.decode(KeyStorage.self, forKey: .storage),
+            securityKey: try container.decodeIfPresent(SecurityKeyCredential.self, forKey: .securityKey),
             keySize: try container.decodeIfPresent(Int.self, forKey: .keySize),
             hasPassphrase: try container.decode(Bool.self, forKey: .hasPassphrase),
             requiresUserPresence: try container.decode(Bool.self, forKey: .requiresUserPresence),

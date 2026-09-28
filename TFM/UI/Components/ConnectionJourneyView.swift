@@ -129,7 +129,7 @@ extension View {
     }
 
     @ViewBuilder
-    fileprivate func connectionFormChrome(isEnabled: Bool) -> some View {
+    fileprivate func desktopConnectionFormChrome(isEnabled: Bool) -> some View {
         if isEnabled {
             padding(18)
                 .termindGlassSurface(cornerRadius: 14)
@@ -160,6 +160,7 @@ struct ConnectionJourneyView: View {
     var failureCancelLabel: LocalizedStringResource = AppStrings.Common.cancel
     var failureRetryLabel: LocalizedStringResource = AppStrings.Common.retry
     var compactFailureActions = false
+    var securityKeySigning: SecurityKeySigningCoordinator? = nil
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
     var isEmbedded = false
@@ -208,6 +209,9 @@ struct ConnectionJourneyView: View {
     private var content: some View {
         if journey.showsLogs {
             logs
+        } else if let coordinator = securityKeySigning, let request = coordinator.pending {
+            SecurityKeySigningCard(request: request, coordinator: coordinator).id(request.id)
+                .desktopConnectionFormChrome(isEnabled: true)
         } else if let queue = keyboardAuthentication, let challenge = queue.current {
             SSHKeyboardInteractiveForm(
                 challenge: challenge,
@@ -223,7 +227,7 @@ struct ConnectionJourneyView: View {
                 keyboard: DesktopConnectionFormKeyboard()
             )
             .id(challenge.id)
-            .connectionFormChrome(isEnabled: true)
+            .desktopConnectionFormChrome(isEnabled: true)
         } else if let prompt = authenticationPrompt {
             DesktopSSHAuthenticationForm(
                 prompt: prompt,
@@ -342,7 +346,7 @@ struct DesktopSSHAuthenticationForm: View {
             library: app.hostLibrary, keyboard: DesktopConnectionFormKeyboard(),
             respondKeyboardInteractive: respondKeyboardInteractive
         )
-        .connectionFormChrome(isEnabled: usesContainerChrome)
+        .desktopConnectionFormChrome(isEnabled: usesContainerChrome)
     }
 }
 
@@ -358,7 +362,7 @@ struct DesktopSSHHostKeyConfirmationForm: View {
             prompt: prompt, displayAddress: displayAddress, proceed: proceed,
             trust: trust, deny: deny, usesContainerChrome: false, keyboard: DesktopConnectionFormKeyboard()
         )
-        .connectionFormChrome(isEnabled: usesContainerChrome)
+        .desktopConnectionFormChrome(isEnabled: usesContainerChrome)
     }
 }
 

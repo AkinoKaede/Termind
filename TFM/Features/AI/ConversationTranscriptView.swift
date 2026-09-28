@@ -654,19 +654,25 @@ private struct AgentSSHAuthenticationCard: View {
                 .padding(.bottom, Metrics.Space.s)
             }
 
-            DesktopSSHAuthenticationForm(
-                prompt: request.journeyPrompt,
-                submit: submit,
-                cancel: {
-                    conversation.respondToSSHAuthentication(.cancelled, requestID: request.id)
-                },
-                usesContainerChrome: false,
-                respondKeyboardInteractive: {
-                    conversation.respondToSSHAuthentication(.keyboardInteractive($0), requestID: request.id)
+            if let signing = request.securityKey {
+                AgentSecurityKeySigningCard(request: signing) {
+                    conversation.respondToSSHAuthentication($0, requestID: request.id)
                 }
-            )
-            // A retry or the next route node must start with fresh SecureFields.
-            .id(request.id)
+            } else {
+                DesktopSSHAuthenticationForm(
+                    prompt: request.journeyPrompt,
+                    submit: submit,
+                    cancel: {
+                        conversation.respondToSSHAuthentication(.cancelled, requestID: request.id)
+                    },
+                    usesContainerChrome: false,
+                    respondKeyboardInteractive: {
+                        conversation.respondToSSHAuthentication(.keyboardInteractive($0), requestID: request.id)
+                    }
+                )
+                // A retry or the next route node must start with fresh SecureFields.
+                .id(request.id)
+            }
         }
     }
 

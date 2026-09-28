@@ -1,6 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -26,7 +27,8 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
     public static func open(
         host: String, port: Int, proxy: SSHTransportProxy?,
         jumps: [SSHRouteHopConfiguration], timeout: TimeInterval,
-        progress: SSHRouteProgressHandler? = nil
+        progress: SSHRouteProgressHandler? = nil,
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> SSHRoutedSocket {
         guard !jumps.isEmpty else {
             return SSHRoutedSocket(
@@ -48,7 +50,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                 progress?(.connecting(hop.id))
                 let session = try connectHop(
                     hop, socket: currentSocket, level: index + 1,
-                    timeout: timeout, progress: progress
+                    timeout: timeout, progress: progress, logger: logger
                 )
                 progress?(.connected(hop.id))
                 let nextHost: String
@@ -117,14 +119,18 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         progress: SSHRouteProgressHandler? = nil,
         authorizeHostKey: SSHHostKeyAuthorizer?,
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:]
+        securityKeySigning: SecurityKeySigningHandler? = nil,
+        interactionPolicy: SSHInteractionPolicy = .allowed,
+        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:],
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) async throws -> SSHRoutedSocket {
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-opening")
         let state = SSHRouteOpeningState()
         let exchange = SSHKeyboardInteractiveExchange(
             configuration: SSHConnectionConfiguration(
                 hostID: UUID(), host: host, port: port, username: "", credentials: [], expectedHostKeys: []
-            ), handler: keyboardInteractive
+            ), handler: keyboardInteractive, securityKeySigning: securityKeySigning,
+            allowsUserInteraction: interactionPolicy == .allowed
         )
         return try await withTaskCancellationHandler {
             do {
@@ -163,7 +169,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                                 destinationProxy: proxy, jumps: jumps,
                                 index: index, timeout: timeout,
                                 afterHostKeyApproval: requiredApproval,
-                                progress: progress, keyboardInteractive: exchange
+                                progress: progress, keyboardInteractive: exchange, logger: logger
                             )
                         }
                     } catch is CancellationError {
@@ -198,7 +204,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
     private static func connectHop(
         _ hop: SSHRouteHopConfiguration, socket: Int32, level: Int,
         timeout: TimeInterval,
-        progress: SSHRouteProgressHandler?
+        progress: SSHRouteProgressHandler?, logger: Logger
     ) throws -> OpaquePointer {
         guard let session = libssh2_session_init_ex(nil, nil, nil, nil) else {
             throw TermindSSHError.route("Jump Host \(level) (\(hop.name)): unable to create SSH session.")
@@ -218,7 +224,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
             try SSHConnectionOpener.validateHostKey(observed, expected: hop.expectedHostKeys)
             progress?(.authenticating(hop.id))
             _ = try SSHConnectionOpener.authenticate(
-                username: hop.username, credentials: hop.credentials, libssh2Session: session
+                username: hop.username, credentials: hop.credentials, libssh2Session: session, logger: logger
             )
             progress?(.authenticated(hop.id))
             return session
@@ -314,16 +320,18 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         destinationProxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
         index: Int, timeout: TimeInterval,
         afterHostKeyApproval: Bool,
-        progress: SSHRouteProgressHandler?, keyboardInteractive: SSHKeyboardInteractiveExchange
+        progress: SSHRouteProgressHandler?, keyboardInteractive: SSHKeyboardInteractiveExchange, logger: Logger
     ) throws {
         keyboardInteractive.setHop(hop)
         guard let session = pendingSession else { throw TermindSSHError.disconnected }
         progress?(.authenticating(hop.id))
+        var logger = logger
+        logger[metadataKey: "host_id"] = RemoteLogging.hostID(hop.id)
         _ = try SSHConnectionOpener.authenticate(
             username: hop.username, credentials: hop.credentials,
             libssh2Session: session,
             afterHostKeyApproval: afterHostKeyApproval,
-            keyboardInteractive: keyboardInteractive, socket: currentSocket
+            keyboardInteractive: keyboardInteractive, socket: currentSocket, logger: logger
         )
         progress?(.authenticated(hop.id))
 

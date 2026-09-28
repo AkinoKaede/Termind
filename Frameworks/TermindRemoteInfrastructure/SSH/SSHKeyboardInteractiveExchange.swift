@@ -2,12 +2,16 @@ import CSSH2
 import Darwin
 import Foundation
 import TermindApplication
+import TermindDomain
 
 /// The C callback cannot suspend. Only its dedicated transport queue waits on
 /// this condition; the responder runs asynchronously and cancellation wakes it.
 public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendable {
     private let condition = NSCondition()
     private let handler: SSHKeyboardInteractiveHandler?
+    private let allowsUserInteraction: Bool
+    private let securityKeySigning: SecurityKeySigningHandler?
+    private var assertionResult: Result<SecurityKeyAssertion, any Error>?
     private var cancelled = false
     private var task: Task<Void, Never>?
     private var result: Result<[String], any Error>?
@@ -20,7 +24,12 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
     private var port: Int
     private var username: String
 
-    init(configuration: SSHConnectionConfiguration, handler: SSHKeyboardInteractiveHandler?) {
+    init(
+        configuration: SSHConnectionConfiguration, handler: SSHKeyboardInteractiveHandler?,
+        securityKeySigning: SecurityKeySigningHandler? = nil, allowsUserInteraction: Bool = true
+    ) {
+        self.securityKeySigning = securityKeySigning
+        self.allowsUserInteraction = allowsUserInteraction
         self.handler = handler
         hostID = configuration.hostID
         hostname = configuration.host
@@ -42,6 +51,7 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
         cancelled = true
         let pending = task
         result = .failure(CancellationError())
+        assertionResult = .failure(CancellationError())
         condition.broadcast()
         condition.unlock()
         pending?.cancel()
@@ -98,6 +108,43 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
         condition.lock()
         if requestID == id, !cancelled {
             self.result = result
+            condition.broadcast()
+        }
+        condition.unlock()
+    }
+
+    func sign(credential: SecurityKeyCredential, keyName: String, data: Data) throws -> Data {
+        try checkCancellation()
+        guard let securityKeySigning else { throw SSHInteractionRequired() }
+        let request = SecurityKeySigningRequest(
+            hostID: hostID, hostname: hostname, credential: credential, challenge: data,
+            allowsUserInteraction: allowsUserInteraction, keyName: keyName)
+        condition.lock()
+        guard !cancelled else {
+            condition.unlock()
+            throw CancellationError()
+        }
+        assertionResult = nil
+        requestID = request.id
+        task = Task.detached(priority: .userInitiated) { [weak self] in
+            let response: Result<SecurityKeyAssertion, any Error>
+            do { response = .success(try await securityKeySigning(request)) } catch { response = .failure(error) }
+            self?.finishSignature(request.id, result: response)
+        }
+        while assertionResult == nil { condition.wait() }
+        let answer = assertionResult!
+        assertionResult = nil
+        task = nil
+        requestID = nil
+        condition.unlock()
+        try checkCancellation()
+        return try WebAuthnSSH.signature(answer.get(), for: request)
+    }
+
+    private func finishSignature(_ id: UUID, result: Result<SecurityKeyAssertion, any Error>) {
+        condition.lock()
+        if requestID == id, !cancelled {
+            assertionResult = result
             condition.broadcast()
         }
         condition.unlock()

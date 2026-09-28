@@ -454,6 +454,10 @@ public final class PortForwardingController {
                         keyboardInteractive: { [weak self, weak context] challenge in
                             guard let self, let context else { throw CancellationError() }
                             return try await self.answer(challenge, in: context, attempt: attempt)
+                        },
+                        securityKeySigning: { [weak self, weak context] request in
+                            guard let self, let context else { throw CancellationError() }
+                            return try await self.sign(request, in: context, attempt: attempt)
                         })
                     try await forwardingConnection.connect(
                         request,
@@ -520,6 +524,17 @@ public final class PortForwardingController {
         guard isCurrent(context, attempt: attempt), !Task.isCancelled else { return .reject }
         update(context, state: .connecting)
         return decision
+    }
+
+    private func sign(_ request: SecurityKeySigningRequest, in context: PortForwardingConnection, attempt: UUID)
+        async throws -> SecurityKeyAssertion
+    {
+        guard isCurrent(context, attempt: attempt) else { throw CancellationError() }
+        update(context, state: .awaitingAuthentication)
+        let assertion = try await context.connection.signWithSecurityKey(request)
+        guard isCurrent(context, attempt: attempt) else { throw CancellationError() }
+        update(context, state: .connecting)
+        return assertion
     }
 
     private func answer(

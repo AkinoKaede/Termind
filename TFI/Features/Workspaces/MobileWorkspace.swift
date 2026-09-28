@@ -161,6 +161,7 @@ final class MobileWorkspace: Identifiable {
     private var generation = UUID()
     private let hosts: any RemoteSessionHostStore
     private let connectionServices: MobileWorkspaceConnectionServices
+    var securityKeySigning: SecurityKeySigningCoordinator { connection.securityKeySigning }
     var keyboardAuthentication: SSHKeyboardInteractiveQueue { connection.keyboardAuthentication }
     private let connection: RemoteSessionConnectionController
     private var viewport = InMemoryTerminalViewport(columns: 80, rows: 24)
@@ -734,6 +735,10 @@ final class MobileWorkspace: Identifiable {
                         guard let self, await self.generation == token else { throw CancellationError() }
                         return try await self.connection.answerKeyboardInteractive(challenge)
                     },
+                    securityKeySigning: { [weak self] request in
+                        guard let self, await self.generation == token else { throw CancellationError() }
+                        return try await self.connection.signWithSecurityKey(request)
+                    },
                     hostKeyConstraints: connectionOrigin.hostKeyConstraints
                 )
 
@@ -858,9 +863,11 @@ final class MobileWorkspace: Identifiable {
             } catch {
                 guard generation == token else { return }
                 stopSSHEventConsumer()
-                connectionFailure = error.localizedDescription
+                connectionFailure =
+                    error is CancellationError
+                    ? String(localized: AppStrings.Connections.authenticationCancelled) : error.localizedDescription
                 var requiresUserInteraction = false
-                var preventsAutomaticReconnect = false
+                var preventsAutomaticReconnect = error is CancellationError
                 if let sshError = error as? TermindSSHError {
                     switch sshError {
                     case .missingCredential, .missingUsername, .keyPassphraseRequired, .authenticationFailed:
@@ -912,7 +919,7 @@ final class MobileWorkspace: Identifiable {
                         scheduleReconnect(after: error.localizedDescription)
                     } else {
                         connection.stopRecovery()
-                        journey.fail(error.localizedDescription)
+                        journey.fail(connectionFailure ?? error.localizedDescription)
                         status = String(localized: AppStrings.Connections.disconnected)
                     }
                 }

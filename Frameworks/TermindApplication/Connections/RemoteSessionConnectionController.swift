@@ -105,6 +105,7 @@ public final class SSHHostKeyAuthorizationCoordinator {
 @Observable
 public final class RemoteSessionConnectionController {
     public let journey = ConnectionJourney()
+    public let securityKeySigning = SecurityKeySigningCoordinator()
     public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
     public let hostKeyAuthorization = SSHHostKeyAuthorizationCoordinator()
     private var keyboardAuthenticationID: UUID?
@@ -126,6 +127,7 @@ public final class RemoteSessionConnectionController {
     public func disconnect() {
         keyboardAuthenticationID = nil
         keyboardAuthentication.cancelAll()
+        securityKeySigning.cancel()
         hostKeyAuthorization.reset()
         reconnect.stop()
         hasConnectedOnce = false
@@ -191,6 +193,27 @@ public final class RemoteSessionConnectionController {
     }
 
     public func rejectHostKey() { hostKeyAuthorization.reject() }
+
+    public func signWithSecurityKey(_ request: SecurityKeySigningRequest) async throws -> SecurityKeyAssertion {
+        reconnect.pauseForUserInteraction()
+        journey.waitForAuthentication(at: request.hostID)
+        do {
+            let assertion = try await securityKeySigning.sign(request)
+            try Task.checkCancellation()
+            journey.resume()
+            return assertion
+        } catch {
+            // Cancellation is not an accepted authentication checkpoint.
+            if journey.phase == .waiting {
+                journey.fail(
+                    error is CancellationError
+                        ? String(localized: "Authentication was cancelled. Retry to continue connecting.")
+                        : error.localizedDescription,
+                    at: request.hostID)
+            }
+            throw error
+        }
+    }
 
     public func answerKeyboardInteractive(_ challenge: SSHKeyboardInteractiveChallenge) async throws -> [String] {
         try Task.checkCancellation()

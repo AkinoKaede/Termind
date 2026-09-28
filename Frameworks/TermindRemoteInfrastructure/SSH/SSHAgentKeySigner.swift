@@ -22,6 +22,7 @@ nonisolated enum SSHAgentKeySigner {
         let name: String
         let payload: Data
         switch credential {
+        case .securityKey: throw SSHInteractionRequired()
         case .secureEnclave(let key):
             guard algorithm == .ecdsa256 else { throw SSHAgentProtocol.Failure.invalid }
             name = algorithm.rawValue

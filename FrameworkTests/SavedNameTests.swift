@@ -79,9 +79,17 @@ struct SavedNameTests {
     @Test(arguments: SSHKeyAlgorithm.allCases, KeyStorage.allCases)
     func keyHintsMatchPersistedAlgorithmAndStorageDefaults(_ algorithm: SSHKeyAlgorithm, _ storage: KeyStorage) throws {
         let library = HostLibraryModel()
-        let key = SSHKeyRef(label: " \n", algorithm: algorithm, storage: storage)
+        if algorithm == .securityKey, storage == .secureEnclave { return }
+        var key = SSHKeyRef(label: " \n", algorithm: algorithm, storage: storage)
+        if algorithm == .securityKey {
+            key.securityKey = SecurityKeyCredential(
+                credentialID: Data([1]), publicKeyX963: Data([4]) + Data(repeating: 1, count: 64))
+        }
         try library.upsert(key)
         #expect(library.key(key.id)?.label == key.defaultName)
+        if algorithm == .securityKey, storage != .secureEnclave {
+            #expect(library.key(key.id)?.label == "Security Key")
+        }
         #expect(key.defaultName == (storage == .secureEnclave ? "Secure Enclave" : algorithm.typeName))
     }
 

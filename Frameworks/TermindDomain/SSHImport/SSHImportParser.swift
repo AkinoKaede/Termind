@@ -209,6 +209,10 @@ public nonisolated enum SSHImportParser {
         }
         guard let name = field(), String(data: name, encoding: .utf8) == algorithm.rawValue else { return false }
         switch algorithm {
+        case .securityKey:
+            guard field() == Data("nistp256".utf8), let point = field(), point.count == 65,
+                point.first == 4, let application = field(), !application.isEmpty
+            else { return false }
         case .ed25519:
             guard field()?.count == 32 else { return false }
         case .rsa:

@@ -395,7 +395,7 @@ final class SFTPChannelModel: Identifiable {
                                 publicKey: key.publicKey, certificate: key.certificate,
                                 passphraseOverride: suppliedAuthentication.passphraseForConnection(),
                                 requiresPassphrase: key.requiresPassphraseEntry,
-                                requiresUserPresence: key.requiresUserPresence
+                                requiresUserPresence: key.requiresUserPresence, keyName: key.label
                             ))
                     }
                     if let password = suppliedAuthentication.passwordForConnection() {
@@ -461,6 +461,12 @@ final class SFTPChannelModel: Identifiable {
                             }
                             return try await self.connection.answerKeyboardInteractive(challenge)
                         },
+                        securityKeySigning: { [weak self] request in
+                            guard let self, await self.connectionAttemptID == attemptID else {
+                                throw CancellationError()
+                            }
+                            return try await self.connection.signWithSecurityKey(request)
+                        },
                         hostKeyConstraints: connectionOrigin.hostKeyConstraints
                     ),
                     progress: progressHandler(attemptID: attemptID),
@@ -509,6 +515,8 @@ final class SFTPChannelModel: Identifiable {
                 guard self.connectionAttemptID == attemptID else { return }
                 self.status = .disconnected
                 self.homeResolution = .unavailable
+                self.connection.stopRecovery()
+                self.connectionJourney.fail(String(localized: AppStrings.Connections.authenticationCancelled))
             } catch TermindSSHError.missingCredential,
                 TermindSSHError.missingUsername,
                 TermindSSHError.keyPassphraseRequired

@@ -891,6 +891,14 @@ public enum TermindSchemaV44: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV45: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(45, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV44.models.filter { $0 != TermindSchemaV7Models.PersistentSSHKey.self }
+            + [TermindSchemaV45KeyModels.PersistentSSHKey.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -905,7 +913,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
-            TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self,
+            TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
         ]
     }
 
@@ -1009,11 +1017,12 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV41.self, toVersion: TermindSchemaV42.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV42.self, toVersion: TermindSchemaV43.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV43.self, toVersion: TermindSchemaV44.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV44.self, toVersion: TermindSchemaV45.self),
         ]
     }
 }
 
 public typealias PersistentHost = TermindSchemaV44HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV33IdentityModels.PersistentIdentity
-public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey
+public typealias PersistentSSHKey = TermindSchemaV45KeyModels.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

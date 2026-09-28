@@ -11,6 +11,13 @@ nonisolated enum RemoteLogging {
     static func errorCode(_ error: any Error) -> Logger.Metadata.Value {
         if error is CancellationError { return "cancelled" }
         if error is SSHInteractionRequired { return "interaction_required" }
+        if let failure = error as? WebAuthnSSH.Failure {
+            switch failure {
+            case .invalidCredential: return "security_key_invalid_reference"
+            case .invalidResponse: return "security_key_invalid_response"
+            case .unsupportedResponse: return "security_key_unsupported_response"
+            }
+        }
         guard let error = error as? TermindSSHError else { return "unexpected" }
         switch error {
         case .socket: return "socket"

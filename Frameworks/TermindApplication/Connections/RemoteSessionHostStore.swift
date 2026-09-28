@@ -383,7 +383,7 @@ extension RemoteSessionHostStore {
                                         publicKey: key.publicKey,
                                         certificate: key.certificate,
                                         requiresPassphrase: key.requiresPassphraseEntry,
-                                        requiresUserPresence: key.requiresUserPresence
+                                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
                                     )
                                 )
                             } else {

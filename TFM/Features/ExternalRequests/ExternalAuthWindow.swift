@@ -106,30 +106,36 @@ struct ExternalAuthWindow: View {
     private func requestView(_ pending: ExternalAuthCoordinator.Pending) -> some View {
         switch pending.request {
         case .ssh(let request):
-            DesktopSSHAuthenticationForm(
-                prompt: request.journeyPrompt,
-                submit: { identityID, username, password, passphrase, keyID, save in
-                    app.externalAuthentication.respondSSH(
-                        .submit(
-                            AgentSSHAuthenticationAnswer(
-                                identityID: identityID,
-                                identityName: identityID.flatMap {
-                                    app.hostLibrary.identity($0)?.name
-                                },
-                                username: username, password: password,
-                                passphrase: passphrase, keyID: keyID,
-                                save: request.requiresPassphrase ? false : save
-                            )
-                        ), requestID: request.id
-                    )
-                },
-                cancel: { app.externalAuthentication.respondSSH(.cancelled, requestID: request.id) },
-                usesContainerChrome: false,
-                respondKeyboardInteractive: {
-                    app.externalAuthentication.respondSSH(.keyboardInteractive($0), requestID: request.id)
+            if let signing = request.securityKey {
+                AgentSecurityKeySigningCard(request: signing) {
+                    app.externalAuthentication.respondSSH($0, requestID: request.id)
                 }
-            )
-            .id(pending.id)
+            } else {
+                DesktopSSHAuthenticationForm(
+                    prompt: request.journeyPrompt,
+                    submit: { identityID, username, password, passphrase, keyID, save in
+                        app.externalAuthentication.respondSSH(
+                            .submit(
+                                AgentSSHAuthenticationAnswer(
+                                    identityID: identityID,
+                                    identityName: identityID.flatMap {
+                                        app.hostLibrary.identity($0)?.name
+                                    },
+                                    username: username, password: password,
+                                    passphrase: passphrase, keyID: keyID,
+                                    save: request.requiresPassphrase ? false : save
+                                )
+                            ), requestID: request.id
+                        )
+                    },
+                    cancel: { app.externalAuthentication.respondSSH(.cancelled, requestID: request.id) },
+                    usesContainerChrome: false,
+                    respondKeyboardInteractive: {
+                        app.externalAuthentication.respondSSH(.keyboardInteractive($0), requestID: request.id)
+                    }
+                )
+                .id(pending.id)
+            }
         case .secret(let request):
             ExternalSecretRequestForm(
                 request: request,
