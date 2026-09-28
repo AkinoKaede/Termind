@@ -6743,23 +6743,6 @@
         }
       }
     },
-    "Connected clients" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已连接客户端"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已連線使用者端"
-          }
-        }
-      }
-    },
     "Connected — collecting metrics…" : {
       "extractionState" : "manual",
       "localizations" : {

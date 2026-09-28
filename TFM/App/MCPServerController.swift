@@ -38,7 +38,6 @@ final class MCPServerController {
     let tools: MCPServerTools
 
     private(set) var status: Status = .stopped
-    private(set) var connectedClients = 0
     private(set) var isEnabled: Bool
     private(set) var port: Int
     private(set) var disabledTools: Set<String>
@@ -81,11 +80,6 @@ final class MCPServerController {
         )
         protocolServer = MCPServerProtocol(tools: tools)
         reloadToken()
-        Task { [weak self, protocolServer] in
-            await protocolServer.setClientCountHandler { [weak self] count in
-                Task { @MainActor in self?.connectedClients = count }
-            }
-        }
         if isEnabled, canUsePro() { Task { [weak self] in await self?.start() } }
     }
 
@@ -169,7 +163,6 @@ final class MCPServerController {
         await protocolServer.stop()
         await http.stop()
         externalAuthentication.cancelExternalRequests()
-        connectedClients = 0
         status = .stopped
     }
 

@@ -15,6 +15,144 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct MCPServerSessionTests {
+    @Test(arguments: ["2025-11-25", "2025-06-18", "2026-07-28"], [false, true])
+    func realHTTPTransportSupportsInspectorRequests(_ version: String, closeConnection: Bool) async throws {
+        let http = LoopbackHTTPServer()
+        let server = MCPServerProtocol(tools: makeMCPServerTools())
+        var port: UInt16 = 0
+        for attempt in 0..<10 {
+            let (states, continuation) = AsyncStream<LoopbackHTTPServer.State>.makeStream()
+            port = UInt16.random(in: 49_152...60_000)
+            try await http.start(
+                port: port, token: "integration-test-token", stateHandler: { continuation.yield($0) },
+                handler: { await server.handle($0) }
+            )
+            var ready = false
+            for await state in states {
+                if case .ready = state {
+                    ready = true
+                    break
+                }
+                if case .failed(let message) = state {
+                    await http.stop()
+                    if attempt == 9 { throw NSError(domain: message, code: 1) }
+                    break
+                }
+            }
+            if ready { break }
+        }
+        defer {
+            Task {
+                await http.stop()
+                await server.stop()
+            }
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 3
+        configuration.httpMaximumConnectionsPerHost = 1
+        let client = URLSession(configuration: configuration)
+        defer { client.invalidateAndCancel() }
+        let url = URL(string: "http://127.0.0.1:\(port)/mcp")!
+        func post(_ method: String, id: Int?, sessionID: String? = nil) async throws -> (Data, HTTPURLResponse) {
+            var params: [String: AgentJSONValue] = [:]
+            if method == "initialize" {
+                params = [
+                    "protocolVersion": .string(version),
+                    "clientInfo": .object(["name": .string("inspector-test"), "version": .string("1")]),
+                    "capabilities": .object([:]),
+                ]
+            } else {
+                params["_meta"] = .object(["progressToken": .string("inspector-progress")])
+            }
+            if version == "2026-07-28" {
+                params["_meta"] = .object([
+                    "io.modelcontextprotocol/protocolVersion": .string(version),
+                    "io.modelcontextprotocol/clientCapabilities": .object([:]),
+                ])
+            }
+            var message: [String: AgentJSONValue] = [
+                "jsonrpc": .string("2.0"), "method": .string(method), "params": .object(params),
+            ]
+            if let id { message["id"] = .number(Double(id)) }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = AgentJSONValue.object(message).encodedData
+            if closeConnection { request.setValue("close", forHTTPHeaderField: "Connection") }
+            request.setValue("Bearer integration-test-token", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
+            request.setValue("http://localhost:6274", forHTTPHeaderField: "Origin")
+            request.setValue(version, forHTTPHeaderField: "MCP-Protocol-Version")
+            request.setValue(method, forHTTPHeaderField: "Mcp-Method")
+            if let sessionID { request.setValue(sessionID, forHTTPHeaderField: "Mcp-Session-Id") }
+            let (data, response) = try await client.data(for: request)
+            return (data, try #require(response as? HTTPURLResponse))
+        }
+        var sessionID: String?
+        if version != "2026-07-28" {
+            let (_, initialized) = try await post("initialize", id: 1)
+            #expect(initialized.statusCode == 200)
+            #expect(
+                initialized.value(forHTTPHeaderField: "Access-Control-Expose-Headers")?.contains("Mcp-Session-Id")
+                    == true)
+            let assigned: String = try #require(initialized.value(forHTTPHeaderField: "Mcp-Session-Id"))
+            sessionID = assigned
+            let (data, notified) = try await post("notifications/initialized", id: nil, sessionID: sessionID)
+            #expect(notified.statusCode == 202)
+            #expect(data.isEmpty)
+        }
+        let (listed, response) = try await post("tools/list", id: 2, sessionID: sessionID)
+        #expect(response.statusCode == 200)
+        let envelope = try AgentJSONValue.decode(listed).objectValue
+        #expect(envelope?["result"]?.objectValue?["tools"]?.arrayValue?.count == 18)
+        if version == "2026-07-28" {
+            #expect(envelope?["result"]?.objectValue?["ttlMs"] == .number(0))
+            #expect(envelope?["result"]?.objectValue?["cacheScope"] == .string("private"))
+            let (discovered, _) = try await post("server/discover", id: 3)
+            let discovery = try AgentJSONValue.decode(discovered).objectValue?["result"]?.objectValue
+            #expect(discovery?["ttlMs"] == .number(0))
+            #expect(discovery?["cacheScope"] == .string("private"))
+            if !closeConnection {
+                Attachment.record(discovered, named: "mcp-modern-discover.json")
+                Attachment.record(listed, named: "mcp-modern-tools-list.json")
+            }
+        }
+        #expect(response.value(forHTTPHeaderField: "Access-Control-Allow-Origin") == "http://localhost:6274")
+        var preflight = URLRequest(url: url)
+        preflight.httpMethod = "OPTIONS"
+        preflight.setValue("http://localhost:6274", forHTTPHeaderField: "Origin")
+        preflight.setValue("POST", forHTTPHeaderField: "Access-Control-Request-Method")
+        preflight.setValue(
+            "authorization,content-type,mcp-session-id,mcp-protocol-version,mcp-method",
+            forHTTPHeaderField: "Access-Control-Request-Headers")
+        let (_, raw) = try await client.data(for: preflight)
+        #expect((raw as? HTTPURLResponse)?.statusCode == 204)
+        #expect(
+            (raw as? HTTPURLResponse)?.value(forHTTPHeaderField: "Access-Control-Allow-Origin")
+                == "http://localhost:6274")
+        preflight.setValue("http://127.0.0.1.attacker.com", forHTTPHeaderField: "Origin")
+        let (_, rejectedOrigin) = try await client.data(for: preflight)
+        #expect((rejectedOrigin as? HTTPURLResponse)?.statusCode == 403)
+        #expect((rejectedOrigin as? HTTPURLResponse)?.value(forHTTPHeaderField: "Access-Control-Allow-Origin") == nil)
+        preflight.setValue("http://localhost:6274", forHTTPHeaderField: "Origin")
+        preflight.setValue("x-unrecognized-policy", forHTTPHeaderField: "Access-Control-Request-Headers")
+        let (_, rejectedHeader) = try await client.data(for: preflight)
+        #expect((rejectedHeader as? HTTPURLResponse)?.statusCode == 400)
+        preflight.httpMethod = "POST"
+        let (_, unauthorized) = try await client.data(for: preflight)
+        #expect((unauthorized as? HTTPURLResponse)?.statusCode == 401)
+        #expect(
+            (unauthorized as? HTTPURLResponse)?.value(forHTTPHeaderField: "Access-Control-Allow-Origin")
+                == "http://localhost:6274")
+        preflight.httpMethod = "OPTIONS"
+        preflight.url = URL(string: "http://127.0.0.1:\(port)/uploads/not-a-ticket")!
+        let (_, uploadPreflight) = try await client.data(for: preflight)
+        #expect((uploadPreflight as? HTTPURLResponse)?.statusCode != 204)
+        #expect((uploadPreflight as? HTTPURLResponse)?.value(forHTTPHeaderField: "Access-Control-Allow-Origin") == nil)
+        await http.stop()
+        await server.stop()
+    }
+
     @Test
     func modernUploadHandleSupportsCrossRequestStatusAndIsRevokedOnStop() async throws {
         let host = Host(name: "Upload", host: "upload.example")

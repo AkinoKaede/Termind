@@ -172,10 +172,6 @@ extension AppStrings {
             "Connect to see what this server offers."
         }
 
-        public static var connectedClients: LocalizedStringResource {
-            "Connected clients"
-        }
-
         public static var connection: LocalizedStringResource {
             "Connection"
         }

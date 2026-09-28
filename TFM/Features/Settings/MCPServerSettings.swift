@@ -27,7 +27,6 @@ struct MCPServerSettings: View {
                     Text(server.status.label).foregroundStyle(.secondary)
                 }
             }
-            LabeledContent(AppStrings.Settings.connectedClients.swiftUIKey, value: "\(server.connectedClients)")
             LabeledContent(AppStrings.Common.port.swiftUIKey) {
                 TextField(
                     AppStrings.Common.port.swiftUIKey,

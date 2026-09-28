@@ -9,24 +9,12 @@ actor MCPServerProtocol {
     static let supportedInitializationVersions = ["2025-11-25", "2025-06-18", "2024-11-05"]
     static let modernVersion = "2026-07-28"
 
-    typealias ClientCountHandler = @Sendable (Int) -> Void
-
     private let tools: MCPServerTools
-    private var clientCountChanged: ClientCountHandler
     private var sessions: [String: MCPServerSession] = [:]
     private var sweeper: Task<Void, Never>?
 
-    init(
-        tools: MCPServerTools,
-        clientCountChanged: @escaping ClientCountHandler = { _ in }
-    ) {
+    init(tools: MCPServerTools) {
         self.tools = tools
-        self.clientCountChanged = clientCountChanged
-    }
-
-    func setClientCountHandler(_ handler: @escaping ClientCountHandler) {
-        clientCountChanged = handler
-        handler(sessions.count)
     }
 
     deinit { sweeper?.cancel() }
@@ -62,7 +50,6 @@ actor MCPServerProtocol {
         }
         sweeper?.cancel()
         sweeper = nil
-        clientCountChanged(0)
     }
 
     func revokeModernOperations() async {
@@ -92,7 +79,6 @@ actor MCPServerProtocol {
             }
             let session = makeSession(message: message, legacy: false)
             sessions[session.id] = session
-            sessionCountDidChange()
             let response = await dispatch(message, sessionID: session.id)
             return Self.jsonResponse(
                 response
@@ -159,6 +145,7 @@ actor MCPServerProtocol {
                     id: id,
                     result: .object([
                         "resultType": .string("complete"),
+                        "ttlMs": .number(0), "cacheScope": .string("private"),
                         "supportedVersions": .array(
                             ([Self.modernVersion] + Self.supportedInitializationVersions).map(AgentJSONValue.string)),
                         "capabilities": .object(["tools": .object([:])]), "_meta": serverMeta,
@@ -174,6 +161,7 @@ actor MCPServerProtocol {
                     id: id,
                     result: .object([
                         "resultType": .string("complete"), "_meta": serverMeta,
+                        "ttlMs": .number(0), "cacheScope": .string("private"),
                         "tools": .array(
                             descriptors.map { descriptor in
                                 var tool = Self.toolJSON(descriptor).objectValue ?? [:]
@@ -267,7 +255,6 @@ actor MCPServerProtocol {
         }
         removed.legacyContinuation?.finish()
         await tools.endSession(runID: removed.runID, secretBroker: removed.secretBroker)
-        sessionCountDidChange()
         return HTTPResponse(status: 200)
     }
 
@@ -287,7 +274,6 @@ actor MCPServerProtocol {
             legacyContinuation: continuation
         )
         continuation.yield(Self.sse(event: "endpoint", data: "/messages?sessionId=\(id)"))
-        sessionCountDidChange()
         startSweeperIfNeeded()
         return HTTPResponse(
             status: 200,
@@ -490,7 +476,6 @@ actor MCPServerProtocol {
     private func removeSession(_ id: String) async {
         guard let removed = sessions.removeValue(forKey: id) else { return }
         await tools.endSession(runID: removed.runID, secretBroker: removed.secretBroker)
-        sessionCountDidChange()
     }
 
     private func startSweeperIfNeeded() {
@@ -514,14 +499,11 @@ actor MCPServerProtocol {
             sessions[id] = nil
             await tools.endSession(runID: session.runID, secretBroker: session.secretBroker)
         }
-        if !expired.isEmpty { sessionCountDidChange() }
         if sessions.isEmpty {
             sweeper?.cancel()
             sweeper = nil
         }
     }
-
-    private func sessionCountDidChange() { clientCountChanged(sessions.count) }
 
     static func negotiatedStreamableVersion(_ requested: String?) -> String {
         guard let requested, supportedInitializationVersions.contains(requested) else {

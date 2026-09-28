@@ -215,6 +215,14 @@ actor LoopbackHTTPServer {
             }
 
             let request = parsed.0
+            // Browsers cannot attach bearer credentials to CORS preflights. Only
+            // validated loopback origins may probe the MCP routes; no RPC is run.
+            if request.method == "OPTIONS", Self.isMCPRoute(request.target) {
+                var response = Self.preflightResponse(request)
+                response.headers["Connection"] = "close"
+                try? await Self.send(response, on: connection)
+                return
+            }
             if request.target.hasPrefix("/downloads/") {
                 guard let downloadHandler else {
                     try? await Self.send(.text(404, "Unknown download route."), on: connection)
@@ -303,6 +311,9 @@ actor LoopbackHTTPServer {
             // An unauthenticated body has not been consumed and cannot be treated
             // as the next request on a persistent connection.
             var outgoing = response
+            if Self.isMCPRoute(request.target) {
+                Self.addCORSHeaders(to: &outgoing, request: request)
+            }
             if response.status == 401 || response.status == 403 { outgoing.headers["Connection"] = "close" }
             do { try await Self.send(outgoing, on: connection) } catch { return }
             if response.status == 401 || response.status == 403 { return }
@@ -314,6 +325,48 @@ actor LoopbackHTTPServer {
                 ? connectionHeader != "close" : connectionHeader == "keep-alive"
             if !keepAlive { return }
         }
+    }
+
+    private static func isMCPRoute(_ target: String) -> Bool {
+        guard let path = URLComponents(string: target)?.path else { return false }
+        return ["/mcp", "/sse", "/messages"].contains(path)
+    }
+
+    private static func addCORSHeaders(to response: inout HTTPResponse, request: HTTPRequest) {
+        guard let origin = request.header("origin"), allowedOrigin(origin) else { return }
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Expose-Headers"] = "Mcp-Session-Id, MCP-Protocol-Version, WWW-Authenticate"
+        response.headers["Vary"] = "Origin"
+    }
+
+    private static func preflightResponse(_ request: HTTPRequest) -> HTTPResponse {
+        guard request.header("origin") != nil, allowedOrigin(request.header("origin")) else {
+            return .text(403, "The request Origin is not loopback.")
+        }
+        let path = URLComponents(string: request.target)?.path
+        let methods = path == "/mcp" ? ["POST", "GET", "DELETE"] : (path == "/sse" ? ["GET"] : ["POST"])
+        guard let method = request.header("access-control-request-method"), methods.contains(method) else {
+            var response = HTTPResponse.text(405, "The requested MCP method is not allowed.")
+            addCORSHeaders(to: &response, request: request)
+            return response
+        }
+        let headers = (request.header("access-control-request-headers") ?? "")
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        let allowed = Set([
+            "authorization", "content-type", "accept", "mcp-session-id", "mcp-protocol-version",
+            "mcp-method", "mcp-name", "last-event-id",
+        ])
+        guard headers.allSatisfy({ allowed.contains($0) }) else {
+            var response = HTTPResponse.text(400, "The requested MCP headers are not allowed.")
+            addCORSHeaders(to: &response, request: request)
+            return response
+        }
+        var response = HTTPResponse(status: 204)
+        addCORSHeaders(to: &response, request: request)
+        response.headers["Access-Control-Allow-Methods"] = methods.joined(separator: ", ")
+        response.headers["Access-Control-Allow-Headers"] = headers.joined(separator: ", ")
+        response.headers["Vary"] = "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+        return response
     }
 
     private static func authorized(_ request: HTTPRequest, token: String) -> Bool {
@@ -348,7 +401,11 @@ actor LoopbackHTTPServer {
             rawHost.hasPrefix("[") && rawHost.hasSuffix("]")
             ? String(rawHost.dropFirst().dropLast()) : rawHost
         if host == "localhost" || host == "::1" { return true }
-        let octets = host.split(separator: ".").compactMap { UInt8($0) }
+        let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4,
+            parts.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } })
+        else { return false }
+        let octets = parts.compactMap { UInt8($0) }
         return octets.count == 4 && octets[0] == 127
     }
 
@@ -492,6 +549,7 @@ actor LoopbackHTTPServer {
         switch status {
         case 200: "OK"
         case 202: "Accepted"
+        case 204: "No Content"
         case 206: "Partial Content"
         case 400: "Bad Request"
         case 401: "Unauthorized"

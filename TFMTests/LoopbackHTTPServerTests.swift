@@ -49,7 +49,8 @@ struct LoopbackHTTPServerTests {
         "null", "https://example.com", "http://192.168.1.2",
         "http://user@localhost", "http://localhost/path",
         "http://localhost?query", "http://localhost#fragment",
-        "file://localhost",
+        "file://localhost", "http://127.0.0.1.attacker.com", "http://127.evil.0.0.1",
+        "http://127..0.0.1", "http://127.0.0.1.", "http://127.0.0.999",
     ])
     func unsafeOrNonOriginValuesAreRejected(_ origin: String) {
         #expect(!LoopbackHTTPServer.allowedOrigin(origin))
