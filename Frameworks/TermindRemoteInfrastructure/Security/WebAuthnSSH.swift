@@ -62,18 +62,18 @@ public nonisolated enum WebAuthnSSH {
 
     public static func publicBlob(_ credential: SecurityKeyCredential) throws -> Data {
         try validate(credential)
-        return field(Data(algorithm.utf8)) + field(Data("nistp256".utf8))
-            + field(credential.publicKeyX963) + field(Data(SecurityKeyCredential.relyingParty.utf8))
+        return SSHWireEncoding.field(Data(algorithm.utf8)) + SSHWireEncoding.field(Data("nistp256".utf8))
+            + SSHWireEncoding.field(credential.publicKeyX963)
+            + SSHWireEncoding.field(Data(SecurityKeyCredential.relyingParty.utf8))
     }
 
     public static func keyReference(
         _ credential: SecurityKeyCredential, label: String, colorTag: TagColor = .none
     ) throws -> SSHKeyRef {
         let blob = try publicBlob(credential)
-        let fingerprint = Data(SHA256.hash(data: blob)).base64EncodedString().replacingOccurrences(of: "=", with: "")
         return SSHKeyRef(
             label: label, algorithm: .securityKey,
-            publicKey: "\(algorithm) \(blob.base64EncodedString())", fingerprint: "SHA256:\(fingerprint)",
+            publicKey: "\(algorithm) \(blob.base64EncodedString())", fingerprint: SSHWireEncoding.fingerprint(of: blob),
             storage: .thisDevice, securityKey: credential, keySize: 256,
             requiresUserPresence: credential.requiresUserPresence, createdAt: .now, colorTag: colorTag)
     }
@@ -137,9 +137,10 @@ public nonisolated enum WebAuthnSSH {
             throw Failure.invalidResponse
         }
         let raw = signature.rawRepresentation
-        let pair = mpint(Data(raw.prefix(32))) + mpint(Data(raw.suffix(32)))
-        return field(Data(signatureAlgorithm.utf8)) + field(pair) + Data(auth[32..<37])
-            + field(Data(origin.utf8)) + field(assertion.clientDataJSON) + field(extensions)
+        let pair = SSHWireEncoding.mpint(Data(raw.prefix(32))) + SSHWireEncoding.mpint(Data(raw.suffix(32)))
+        return SSHWireEncoding.field(Data(signatureAlgorithm.utf8)) + SSHWireEncoding.field(pair) + Data(auth[32..<37])
+            + SSHWireEncoding.field(Data(origin.utf8)) + SSHWireEncoding.field(assertion.clientDataJSON)
+            + SSHWireEncoding.field(extensions)
     }
 
     private static func validateAuthenticator(_ data: Data, requiresVerification: Bool, requiresPresence: Bool = true)
@@ -169,18 +170,6 @@ public nonisolated enum WebAuthnSSH {
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 
-    private static func field(_ data: Data) -> Data {
-        let count = UInt32(data.count)
-        return Data([
-            UInt8(count >> 24), UInt8(truncatingIfNeeded: count >> 16),
-            UInt8(truncatingIfNeeded: count >> 8), UInt8(truncatingIfNeeded: count),
-        ]) + data
-    }
-
-    private static func mpint(_ data: Data) -> Data {
-        let value = Data(data.drop(while: { $0 == 0 }))
-        return field((value.first.map { $0 & 0x80 != 0 } == true ? Data([0]) : Data()) + value)
-    }
 }
 
 /// Bounded definite-length CBOR parser for authenticator data, with duplicate-map-key rejection.

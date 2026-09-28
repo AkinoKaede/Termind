@@ -6,7 +6,7 @@ import TermindPresentation
 extension MobileMultiHostPicker where Header == MobileKeyExportHeader, RowDetail == MobileKeyExportHostDetail {
     init(
         library: HostLibraryModel, credentials: CredentialLibraryModel,
-        exporting model: MobileKeyExportModel, close: @escaping () -> Void
+        exporting model: KeyExportModel, close: @escaping () -> Void
     ) {
         self.init(
             library: library, useCase: .keyExport, selected: [],
@@ -38,11 +38,11 @@ extension MobileMultiHostPicker where Header == MobileKeyExportHeader, RowDetail
 }
 
 struct MobileKeyExportHeader: View {
-    let model: MobileKeyExportModel
+    let model: KeyExportModel
 
     var body: some View {
         Section {
-            Label(model.key.label, systemImage: "key")
+            if let key = model.keys.first { Label(key.label, systemImage: "key") }
             if model.isFinished {
                 Text(model.summary).accessibilityIdentifier("key-export.summary")
             } else {
@@ -53,7 +53,7 @@ struct MobileKeyExportHeader: View {
 }
 
 struct MobileKeyExportHostDetail: View {
-    let state: MobileKeyExportModel.ExportState?
+    let state: KeyExportModel.ExportState?
     let unavailable: String?
 
     var body: some View {

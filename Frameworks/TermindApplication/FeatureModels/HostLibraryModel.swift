@@ -754,10 +754,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             if let stored = try keySecretCredential(for: key) {
                 credentials.append(
                     stored.sshCredential(
-                        publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: submission.passphraseForConnection(),
-                        requiresPassphrase: key.requiresPassphraseEntry,
-                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                        for: key, passphraseOverride: submission.passphraseForConnection()
                     )
                 )
             }
@@ -827,9 +824,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         if let credential = try keySecretCredential(for: key) {
                             credentials.append(
                                 credential.sshCredential(
-                                    publicKey: key.publicKey, certificate: key.certificate,
-                                    requiresPassphrase: key.requiresPassphraseEntry,
-                                    requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                                    for: key
                                 )
                             )
                         } else {

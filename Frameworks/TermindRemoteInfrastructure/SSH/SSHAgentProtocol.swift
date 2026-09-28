@@ -59,11 +59,8 @@ nonisolated struct SSHAgentProtocol {
     }
 
     enum Failure: Error { case invalid, unavailable }
-    static func uint32(_ value: UInt32) -> Data {
-        var value = value.bigEndian
-        return withUnsafeBytes(of: &value) { Data($0) }
-    }
-    static func field(_ data: Data) -> Data { uint32(UInt32(data.count)) + data }
+    static func uint32(_ value: UInt32) -> Data { SSHWireEncoding.uint32(value) }
+    static func field(_ data: Data) -> Data { SSHWireEncoding.field(data) }
     static func frame(_ data: Data) -> Data { field(data) }
 
     struct Reader {

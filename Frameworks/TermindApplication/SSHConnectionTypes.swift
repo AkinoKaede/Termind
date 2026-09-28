@@ -356,6 +356,13 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
         }
     }
 
+    public func sshCredential(for key: SSHKeyRef, passphraseOverride: SSHSecret? = nil) -> SSHCredentials {
+        sshCredential(
+            publicKey: key.publicKey, certificate: key.certificate, passphraseOverride: passphraseOverride,
+            requiresPassphrase: key.requiresPassphraseEntry,
+            requiresUserPresence: key.requiresUserPresence, keyName: key.label)
+    }
+
     public func sshCredential(
         publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
         requiresPassphrase: Bool = false, requiresUserPresence: Bool = false, keyName: String = "Security Key"

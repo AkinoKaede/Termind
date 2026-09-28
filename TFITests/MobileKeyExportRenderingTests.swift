@@ -94,7 +94,7 @@ private final class KeyExportRenderingPresentation {
 
 private struct KeyExportRenderingHost: View {
     let fixture: KeyExportFixture
-    let model: MobileKeyExportModel
+    let model: KeyExportModel
     @Bindable var presentation: KeyExportRenderingPresentation
     @Environment(\.horizontalSizeClass) private var sizeClass
 

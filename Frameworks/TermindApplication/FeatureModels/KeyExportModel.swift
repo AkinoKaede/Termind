@@ -1,55 +1,51 @@
 import Foundation
 import Observation
-import TermindApplication
 import TermindDomain
-import TermindPresentation
 
 import struct TermindDomain.Host
 
-struct MobileKeyExportServices: Sendable {
-    let install: @Sendable ([SSHAuthorizedKeyInstall], SSHConnectionConfiguration) async throws -> Void
+public struct KeyExportServices: Sendable {
+    public let install: @Sendable ([SSHAuthorizedKeyInstall], SSHConnectionConfiguration) async throws -> Void
+
+    public init(
+        install: @escaping @Sendable ([SSHAuthorizedKeyInstall], SSHConnectionConfiguration) async throws -> Void
+    ) {
+        self.install = install
+    }
 }
 
 @MainActor
 @Observable
-final class MobileKeyExportModel {
-    enum ExportState: Equatable {
+public final class KeyExportModel {
+    public enum ExportState: Equatable {
         case running
         case succeeded
         case failed(String)
     }
 
-    let key: SSHKeyRef
-    private(set) var selected: Set<Host.ID> = []
-    private(set) var states: [Host.ID: ExportState] = [:]
-    private(set) var isExporting = false
-    private(set) var isFinished = false
-    private(set) var targets: [Host] = []
+    public let keys: [SSHKeyRef]
+    public private(set) var selected: Set<Host.ID> = []
+    public private(set) var states: [Host.ID: ExportState] = [:]
+    public private(set) var isExporting = false
+    public private(set) var isFinished = false
+    public private(set) var targets: [Host] = []
     private let credentials: CredentialLibraryModel
-    private let services: MobileKeyExportServices
+    private let services: KeyExportServices
 
-    init(key: SSHKeyRef, credentials: CredentialLibraryModel, services: MobileKeyExportServices) {
-        self.key = key
+    public init(keys: [SSHKeyRef], credentials: CredentialLibraryModel, services: KeyExportServices) {
+        self.keys = keys
         self.credentials = credentials
         self.services = services
     }
 
-    var summary: LocalizedStringResource {
-        let failures = states.values.filter { if case .failed = $0 { true } else { false } }.count
-        if failures > 0 {
-            return AppStrings.Keychain.exportedFailed(count1: states.count - failures, failures: failures)
-        }
-        return states.count == 1
-            ? AppStrings.Keychain.exportedTo1Host : AppStrings.Keychain.exportedToHosts(states.count)
-    }
-
-    func updateSelection(_ ids: Set<Host.ID>) {
+    public func updateSelection(_ ids: Set<Host.ID>) {
         guard !isExporting, !isFinished else { return }
         selected = ids
     }
 
-    func export(to hostIDs: [Host.ID]) async {
-        guard !key.publicKey.isEmpty, !hostIDs.isEmpty, !isExporting, !isFinished else { return }
+    public func export(to hostIDs: [Host.ID]) async {
+        guard !keys.isEmpty, keys.allSatisfy({ !$0.publicKey.isEmpty }), !hostIDs.isEmpty, !isExporting, !isFinished
+        else { return }
         selected = Set(hostIDs)
         // Re-read saved destinations before preparing any credentials. Removed hosts
         // are never contacted, and newly unavailable hosts receive an explicit failure.
@@ -70,14 +66,14 @@ final class MobileKeyExportModel {
                 states[host.id] = .failed(error.localizedDescription)
             }
         }
-        let keys = [SSHAuthorizedKeyInstall(publicKey: key.publicKey, name: key.label)]
+        let exportKeys = keys.map { SSHAuthorizedKeyInstall(publicKey: $0.publicKey, name: $0.label) }
         let install = services.install
         await withTaskGroup(of: (Host.ID, String?).self) { group in
             for (id, preparation) in preparations {
                 group.addTask {
                     do {
                         let configuration = try await preparation.resolve()
-                        try await install(keys, configuration)
+                        try await install(exportKeys, configuration)
                         return (id, nil)
                     } catch {
                         return (id, error.localizedDescription)

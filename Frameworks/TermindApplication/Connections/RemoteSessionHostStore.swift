@@ -380,10 +380,7 @@ extension RemoteSessionHostStore {
                             if let stored = try connectionKeySecretCredential(for: key) {
                                 credentials.append(
                                     stored.sshCredential(
-                                        publicKey: key.publicKey,
-                                        certificate: key.certificate,
-                                        requiresPassphrase: key.requiresPassphraseEntry,
-                                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                                        for: key
                                     )
                                 )
                             } else {

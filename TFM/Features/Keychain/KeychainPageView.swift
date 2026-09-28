@@ -1528,12 +1528,6 @@ private struct SecureEnclaveKeyEditor: View {
 /// explicit authorization to change that account's `authorized_keys`; opening
 /// the sheet never inherits the Keychain card selection as a host selection.
 struct ExportKeyToHostsSheet: View {
-    private enum ExportState: Equatable {
-        case running
-        case succeeded
-        case failed(String)
-    }
-
     let keys: [SSHKeyRef]
 
     @Environment(AppModel.self) private var app
@@ -1541,7 +1535,7 @@ struct ExportKeyToHostsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var chooser = ManagedChooserState<Host.ID>(mode: .multiple)
-    @State private var states: [Host.ID: ExportState] = [:]
+    @State private var exportModel: KeyExportModel?
     @FocusState private var searchFocused: Bool
 
     private var query: String { chooser.query }
@@ -1552,8 +1546,9 @@ struct ExportKeyToHostsSheet: View {
     private var eligibleHosts: [Host] {
         hosts.filter { app.credentials.keyExportUnavailableReason(for: $0) == nil }
     }
-    private var isExporting: Bool { states.values.contains(.running) }
-    private var isFinished: Bool { !states.isEmpty && !isExporting }
+    private var states: [Host.ID: KeyExportModel.ExportState] { exportModel?.states ?? [:] }
+    private var isExporting: Bool { exportModel?.isExporting ?? false }
+    private var isFinished: Bool { exportModel?.isFinished ?? false }
 
     var body: some View {
         VaultDetailScaffold(title: AppStrings.Keychain.exportToHosts, symbol: "square.and.arrow.up", close: close) {
@@ -1811,51 +1806,21 @@ struct ExportKeyToHostsSheet: View {
     }
 
     private func export() {
-        let targets = app.credentials.searchHosts("").filter {
-            chooser.selected.contains($0.id)
+        guard !isExporting, !isFinished else { return }
+        let model: KeyExportModel
+        if let exportModel {
+            model = exportModel
+        } else {
+            let connectionCoordinator = app.connections
+            model = KeyExportModel(
+                keys: keys, credentials: app.credentials,
+                services: KeyExportServices { keys, configuration in
+                    try await connectionCoordinator.installAuthorizedKeys(keys, using: configuration)
+                })
+            exportModel = model
         }
-        guard !targets.isEmpty else { return }
-
-        var preparations: [(Host.ID, SSHConnectionPreparation)] = []
-        for host in targets {
-            if let reason = app.credentials.keyExportUnavailableReason(for: host) {
-                states[host.id] = .failed(reason)
-                continue
-            }
-            do {
-                preparations.append(
-                    (host.id, try app.credentials.prepareSSHConnection(for: host))
-                )
-                states[host.id] = .running
-            } catch {
-                states[host.id] = .failed(error.localizedDescription)
-            }
-        }
-
-        let exportKeys = keys.map {
-            SSHAuthorizedKeyInstall(publicKey: $0.publicKey, name: $0.label)
-        }
-        let connectionCoordinator = app.connections
-        Task {
-            await withTaskGroup(of: (Host.ID, String?).self) { group in
-                for (id, preparation) in preparations {
-                    group.addTask {
-                        do {
-                            let configuration = try await preparation.resolve()
-                            try await connectionCoordinator.installAuthorizedKeys(
-                                exportKeys, using: configuration
-                            )
-                            return (id, nil)
-                        } catch {
-                            return (id, error.localizedDescription)
-                        }
-                    }
-                }
-                for await (id, error) in group {
-                    states[id] = error.map(ExportState.failed) ?? .succeeded
-                }
-            }
-        }
+        let selected = Array(chooser.selected)
+        Task { await model.export(to: selected) }
     }
 }
 

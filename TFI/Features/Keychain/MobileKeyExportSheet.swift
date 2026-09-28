@@ -4,7 +4,7 @@ import TermindApplication
 struct MobileKeyExportSheet: View {
     let library: HostLibraryModel
     let credentials: CredentialLibraryModel
-    @State var model: MobileKeyExportModel
+    @State var model: KeyExportModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

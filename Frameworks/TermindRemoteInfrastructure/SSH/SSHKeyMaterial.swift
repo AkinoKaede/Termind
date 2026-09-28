@@ -1,5 +1,4 @@
 import CSSH2
-import CryptoKit
 import Foundation
 import OpenSSL
 import TermindDomain
@@ -115,7 +114,7 @@ public nonisolated struct SSHKeyMaterial: Sendable {
             + (trimmedComment.isEmpty ? "" : " \(trimmedComment)")
         return SSHKeyMaterial(
             privateKey: privateKey, publicKey: publicKey, algorithm: algorithm,
-            fingerprint: fingerprint(of: publicBlob),
+            fingerprint: SSHWireEncoding.fingerprint(of: publicBlob),
             keySize: keySize ?? inferredKeySize(for: algorithm, publicBlob: publicBlob)
         )
     }
@@ -267,12 +266,6 @@ public nonisolated struct SSHKeyMaterial: Sendable {
 
     private static func normalizedPassphrase(_ value: String?) -> String? {
         value?.isEmpty == false ? value : nil
-    }
-
-    private static func fingerprint(of blob: Data) -> String {
-        let digest = Data(SHA256.hash(data: blob)).base64EncodedString()
-            .replacingOccurrences(of: "=", with: "")
-        return "SHA256:\(digest)"
     }
 
     private static func connectionError(_ session: OpaquePointer, code: Int32) -> String {

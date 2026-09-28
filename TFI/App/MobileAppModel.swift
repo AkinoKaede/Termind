@@ -36,7 +36,7 @@ final class MobileAppModel {
     let hosts: any HostRepository
     let library: HostLibraryModel
     let credentials: CredentialLibraryModel
-    let keyExportServices: MobileKeyExportServices
+    let keyExportServices: KeyExportServices
     let snippets: SnippetLibraryModel
     let knownHosts: KnownHostsLibraryModel
     let forwardingLibrary: ForwardingLibraryModel
@@ -188,7 +188,7 @@ final class MobileAppModel {
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
-        keyExportServices = MobileKeyExportServices { keys, configuration in
+        keyExportServices = KeyExportServices { keys, configuration in
             try await connectionCoordinator.installAuthorizedKeys(keys, using: configuration)
         }
         activateWorkspaceSession = dependencies.activateWorkspaceSession

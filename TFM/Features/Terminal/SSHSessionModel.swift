@@ -459,10 +459,7 @@ final class SSHSessionModel: Identifiable {
                         if let credential = try store.connectionKeySecretCredential(for: key) {
                             credentials.append(
                                 credential.sshCredential(
-                                    publicKey: key.publicKey, certificate: key.certificate,
-                                    passphraseOverride: suppliedAuthentication.passphraseForConnection(),
-                                    requiresPassphrase: key.requiresPassphraseEntry,
-                                    requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                                    for: key, passphraseOverride: suppliedAuthentication.passphraseForConnection()
                                 )
                             )
                         } else {

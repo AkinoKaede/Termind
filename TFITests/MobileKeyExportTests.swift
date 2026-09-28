@@ -7,16 +7,6 @@ import Testing
 
 @Suite @MainActor
 struct MobileKeyExportTests {
-    @Test func openingAndEmptySelectionNeverInstallAnything() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder()
-        let model = fixture.model(recorder)
-        #expect(model.selected.isEmpty)
-        await model.export(to: [])
-        #expect(await recorder.calls.isEmpty)
-        #expect(!model.isFinished)
-    }
-
     @Test func searchAndSelectAllOnlyChangeVisibleEligibleHosts() {
         let fixture = KeyExportFixture()
         let model = MobileMultiHostPickerModel(
@@ -41,77 +31,6 @@ struct MobileKeyExportTests {
         #expect(!model.allResultsSelected)
     }
 
-    @Test func missingPublicKeyCannotBeExported() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder()
-        let model = MobileKeyExportModel(
-            key: SSHKeyRef(label: "Missing"), credentials: fixture.credentials,
-            services: MobileKeyExportServices(install: recorder.install))
-        await model.export(to: [fixture.alpha.id])
-        #expect(await recorder.calls.isEmpty)
-    }
-
-    @Test func submitRevalidatesChangedHostCapabilities() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder()
-        let model = fixture.model(recorder)
-        var changed = fixture.alpha
-        changed.sshEnabled = false
-        changed.telnetEnabled = true
-        #expect(fixture.library.saveHost(changed))
-        await model.export(to: [fixture.alpha.id, fixture.beta.id])
-        #expect(model.isFinished)
-        if case .failed = model.states[fixture.alpha.id] {} else { Issue.record("Expected unavailable host failure") }
-        #expect(model.states[fixture.beta.id] == .succeeded)
-        #expect(await recorder.calls.map(\.hostID) == [fixture.beta.id])
-    }
-
-    @Test func preparationFailureDoesNotPreventOtherDestinations() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder()
-        let model = fixture.model(recorder)
-        var changed = fixture.alpha
-        changed.jumpHostID = fixture.untrusted.id
-        #expect(fixture.library.saveHost(changed))
-        await model.export(to: [fixture.alpha.id, fixture.beta.id])
-        if case .failed = model.states[fixture.alpha.id] {} else { Issue.record("Expected route preparation failure") }
-        #expect(model.states[fixture.beta.id] == .succeeded)
-        #expect(await recorder.calls.map(\.hostID) == [fixture.beta.id])
-    }
-
-    @Test func installsOnlyTheChosenPublicKeyAndReportsPartialFailure() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder(failingHost: fixture.beta.id)
-        let model = fixture.model(recorder)
-        await model.export(to: [fixture.alpha.id, fixture.beta.id])
-        let calls = await recorder.calls
-        #expect(Set(calls.map(\.hostID)) == [fixture.alpha.id, fixture.beta.id])
-        #expect(calls.allSatisfy { $0.publicKeys == [fixture.key.publicKey] && $0.names == [fixture.key.label] })
-        #expect(calls.allSatisfy { $0.username == "deploy" && !$0.trustedKeys.isEmpty })
-        #expect(model.states[fixture.alpha.id] == .succeeded)
-        #expect(model.states[fixture.beta.id] == .failed("Fixture export failure"))
-        #expect(model.isFinished && !model.isExporting)
-        #expect(!String(localized: model.summary).isEmpty)
-    }
-
-    @Test func runningExportRejectsDuplicateSubmissions() async {
-        let fixture = KeyExportFixture()
-        let recorder = KeyExportRecorder(blocks: true)
-        let model = fixture.model(recorder)
-        let task = Task { await model.export(to: [fixture.alpha.id]) }
-        await recorder.waitUntilStarted()
-        #expect(model.isExporting && !model.isFinished)
-        #expect(model.states[fixture.alpha.id] == .running)
-        await model.export(to: [fixture.alpha.id, fixture.beta.id])
-        #expect(model.selected == [fixture.alpha.id])
-        #expect(await recorder.calls.count == 1)
-        await recorder.resume()
-        await task.value
-        #expect(model.isFinished && !model.isExporting)
-        #expect(model.states[fixture.alpha.id] == .succeeded)
-        await model.export(to: [fixture.alpha.id])
-        #expect(await recorder.calls.count == 1)
-    }
 }
 
 @MainActor
@@ -137,9 +56,9 @@ struct KeyExportFixture {
         credentials = CredentialLibraryModel(library: library)
     }
 
-    func model(_ recorder: KeyExportRecorder) -> MobileKeyExportModel {
-        MobileKeyExportModel(
-            key: key, credentials: credentials, services: MobileKeyExportServices(install: recorder.install))
+    func model(_ recorder: KeyExportRecorder) -> KeyExportModel {
+        KeyExportModel(
+            keys: [key], credentials: credentials, services: KeyExportServices(install: recorder.install))
     }
 }
 

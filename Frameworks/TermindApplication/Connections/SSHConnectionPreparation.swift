@@ -163,10 +163,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 }
                 result.append(
                     stored.sshCredential(
-                        publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: node.submission?.passphraseForConnection(),
-                        requiresPassphrase: key.requiresPassphraseEntry,
-                        requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                        for: key, passphraseOverride: node.submission?.passphraseForConnection()
                     ))
             }
         }

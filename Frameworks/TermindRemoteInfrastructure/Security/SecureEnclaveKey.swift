@@ -57,7 +57,7 @@ public nonisolated enum SecureEnclaveKey {
                 dataRepresentation: privateKey.dataRepresentation
             ),
             publicKey: publicKey,
-            fingerprint: fingerprint(of: publicBlob)
+            fingerprint: SSHWireEncoding.fingerprint(of: publicBlob)
         )
     }
 
@@ -80,8 +80,8 @@ public nonisolated enum SecureEnclaveKey {
             let rawSignature = try privateKey.signature(for: data).rawRepresentation
             try Task.checkCancellation()
             guard rawSignature.count == 64 else { throw SecureEnclaveKeyError.invalidSignature }
-            return sshField(mpint(rawSignature.prefix(32)))
-                + sshField(mpint(rawSignature.suffix(32)))
+            return SSHWireEncoding.mpint(rawSignature.prefix(32))
+                + SSHWireEncoding.mpint(rawSignature.suffix(32))
         } catch {
             throw signingError(error)
         }
@@ -113,30 +113,9 @@ public nonisolated enum SecureEnclaveKey {
     }
 
     private static func sshPublicBlob(for x963Representation: Data) -> Data {
-        sshField(Data("ecdsa-sha2-nistp256".utf8))
-            + sshField(Data("nistp256".utf8))
-            + sshField(x963Representation)
+        SSHWireEncoding.field(Data("ecdsa-sha2-nistp256".utf8))
+            + SSHWireEncoding.field(Data("nistp256".utf8))
+            + SSHWireEncoding.field(x963Representation)
     }
 
-    private static func fingerprint(of blob: Data) -> String {
-        let digest = Data(SHA256.hash(data: blob)).base64EncodedString()
-            .replacingOccurrences(of: "=", with: "")
-        return "SHA256:\(digest)"
-    }
-
-    private static func mpint<S: DataProtocol>(_ bytes: S) -> Data {
-        var value = Data(bytes).drop(while: { $0 == 0 })
-        if value.isEmpty { return Data() }
-        if value.first.map({ $0 & 0x80 != 0 }) == true {
-            value.insert(0, at: value.startIndex)
-        }
-        return Data(value)
-    }
-
-    private static func sshField(_ value: Data) -> Data {
-        var length = UInt32(value.count).bigEndian
-        var result = withUnsafeBytes(of: &length) { Data($0) }
-        result.append(value)
-        return result
-    }
 }

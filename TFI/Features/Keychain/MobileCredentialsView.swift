@@ -126,7 +126,7 @@ struct MobileCredentialsView: View {
         .sheet(item: $exportingKey) { key in
             MobileKeyExportSheet(
                 library: app.library, credentials: app.credentials,
-                model: MobileKeyExportModel(key: key, credentials: app.credentials, services: app.keyExportServices))
+                model: KeyExportModel(keys: [key], credentials: app.credentials, services: app.keyExportServices))
         }
         .confirmationDialog(
             AppStrings.Keychain.deleteIdentityConfirmation,

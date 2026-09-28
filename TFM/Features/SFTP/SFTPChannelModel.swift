@@ -392,10 +392,7 @@ final class SFTPChannelModel: Identifiable {
                     {
                         credentials.append(
                             stored.sshCredential(
-                                publicKey: key.publicKey, certificate: key.certificate,
-                                passphraseOverride: suppliedAuthentication.passphraseForConnection(),
-                                requiresPassphrase: key.requiresPassphraseEntry,
-                                requiresUserPresence: key.requiresUserPresence, keyName: key.label
+                                for: key, passphraseOverride: suppliedAuthentication.passphraseForConnection()
                             ))
                     }
                     if let password = suppliedAuthentication.passwordForConnection() {
