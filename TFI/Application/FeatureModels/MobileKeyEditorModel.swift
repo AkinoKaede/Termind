@@ -29,8 +29,17 @@ final class MobileKeyEditorModel: Identifiable {
     var cipher = SSHKeyMaterial.Cipher.aes256
     var rounds = 100
     var confirmation = ""
-    var privateKey = ""
+    var privateKey = "" {
+        didSet {
+            if privateKey != originalPrivateKey, oldValue == originalPrivateKey, !originalPassphrase.isEmpty {
+                passphrase = ""
+            }
+        }
+    }
     var passphrase = ""
+    var savePassphrase = true
+    private var originalPassphrase = ""
+    private var originalSavePassphrase = true
     var certificate: String
     var requiresUserPresence = false
     private(set) var isLoadingPrivateKey: Bool
@@ -49,6 +58,8 @@ final class MobileKeyEditorModel: Identifiable {
         self.mode = mode
         self.credentials = credentials
         original = key
+        savePassphrase = mode != .edit
+        originalSavePassphrase = mode != .edit
         label = key?.label ?? ""
         storage = key?.storage ?? defaultStorage
         certificate = key?.certificate ?? ""
@@ -76,7 +87,9 @@ final class MobileKeyEditorModel: Identifiable {
 
     var isDirty: Bool {
         label != (original?.label ?? "") || storage != (original?.storage ?? .iCloud)
-            || certificate != (original?.certificate ?? "") || privateKey != originalPrivateKey || !passphrase.isEmpty
+            || certificate != (original?.certificate ?? "") || privateKey != originalPrivateKey
+            || passphrase != originalPassphrase
+            || savePassphrase != originalSavePassphrase
             || algorithm != .ed25519 || requiresUserPresence || colorTag != (original?.colorTag ?? .none)
             || curveBits != 256 || rsaBits != 3072 || cipher != .aes256 || rounds != 100 || !confirmation.isEmpty
     }
@@ -154,6 +167,10 @@ final class MobileKeyEditorModel: Identifiable {
             }
             privateKey = secret.privateKey
             originalPrivateKey = secret.privateKey
+            passphrase = secret.passphrase ?? ""
+            originalPassphrase = passphrase
+            savePassphrase = !passphrase.isEmpty
+            originalSavePassphrase = savePassphrase
             didLoadPrivateKey = true
         } catch {
             privateKeyLoadError = error.localizedDescription
@@ -259,7 +276,9 @@ final class MobileKeyEditorModel: Identifiable {
             key.keySize = material.keySize
             key.hasPassphrase = enteredPassphrase != nil || (keepsOriginalPrivateKey && key.hasPassphrase)
             try credentials.upsert(
-                key, credential: .software(SSHPrivateKeySecret(privateKey: input))
+                key,
+                credential: .software(
+                    SSHPrivateKeySecret(privateKey: input, passphrase: savePassphrase ? enteredPassphrase : nil))
             )
             clearSensitiveDrafts()
             return
@@ -304,17 +323,20 @@ final class MobileKeyEditorModel: Identifiable {
                 certificate: normalizedCertificate, fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID())", storage: storage, keySize: material.keySize,
                 hasPassphrase: passphrase != nil, createdAt: .now, colorTag: colorTag)
-            secret = .software(SSHPrivateKeySecret(privateKey: material.privateKey))
+            secret = .software(
+                SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: savePassphrase ? passphrase : nil))
         }
         try credentials.upsert(key, credential: secret)
         clearSensitiveDrafts()
     }
 
-    private func clearSensitiveDrafts() {
+    func clearSensitiveDrafts() {
+        didLoadPrivateKey = mode != .edit
         privateKey = ""
         originalPrivateKey = ""
         passphrase = ""
         confirmation = ""
+        originalPassphrase = ""
         inspectedMaterial = nil
     }
 }

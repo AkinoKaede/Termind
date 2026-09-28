@@ -437,7 +437,7 @@ struct KeychainImportDetail: View {
 
     private func save(
         name: String, colorTag: TagColor, storage: KeyStorage, privateKey: String,
-        passphrase: String?, certificate: String, material: SSHKeyMaterial
+        passphrase: String?, savePassphrase: Bool, certificate: String, material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         let key = SSHKeyRef(
             label: name,
@@ -450,7 +450,7 @@ struct KeychainImportDetail: View {
         try app.credentials.upsert(
             key,
             credential: .software(
-                SSHPrivateKeySecret(privateKey: privateKey)
+                SSHPrivateKeySecret(privateKey: privateKey, passphrase: savePassphrase ? passphrase : nil)
             )
         )
         window.selectVaultItem(.key(key.id), on: .keychain)
@@ -468,11 +468,11 @@ private struct SoftwareKeyEditor: View {
     let title: LocalizedStringResource
     let symbol: String
     let close: () -> Void
-    let loadPrivateKey: (() throws -> String)?
+    let loadPrivateKey: (() throws -> SSHPrivateKeySecret)?
     let save:
         (
             _ name: String, _ colorTag: TagColor, _ storage: KeyStorage, _ privateKey: String,
-            _ passphrase: String?, _ certificate: String, _ material: SSHKeyMaterial
+            _ passphrase: String?, _ savePassphrase: Bool, _ certificate: String, _ material: SSHKeyMaterial
         ) async throws -> SSHKeyRef
     let saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)?
     let delete: (() throws -> Void)?
@@ -483,6 +483,9 @@ private struct SoftwareKeyEditor: View {
     @State private var privateKey = ""
     @State private var originalPrivateKey = ""
     @State private var passphrase = ""
+    @State private var originalPassphrase = ""
+    @State private var savePassphrase = true
+    @State private var originalSavePassphrase = true
     @State private var certificate: String
     @State private var material: SSHKeyMaterial?
     @State private var isLoading: Bool
@@ -502,12 +505,12 @@ private struct SoftwareKeyEditor: View {
         existing: SSHKeyRef? = nil, title: LocalizedStringResource,
         symbol: String, close: @escaping () -> Void,
         defaultStorage: KeyStorage = .iCloud,
-        loadPrivateKey: (() throws -> String)? = nil,
+        loadPrivateKey: (() throws -> SSHPrivateKeySecret)? = nil,
         saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
         delete: (() throws -> Void)? = nil,
         save:
             @escaping (
-                String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
+                String, TagColor, KeyStorage, String, String?, Bool, String, SSHKeyMaterial
             ) async throws -> SSHKeyRef
     ) {
         self.existing = existing
@@ -579,6 +582,8 @@ private struct SoftwareKeyEditor: View {
                             prompt: Text(AppStrings.Common.optional)
                         )
                         .disabled(!canEditPrivateKey)
+                        Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
+                            .disabled(!canEditPrivateKey || passphrase.isEmpty)
                     } header: {
                         fileSectionHeader(AppStrings.Keychain.privateKey, canChoose: canEditPrivateKey) {
                             chooseFile(for: .privateKey)
@@ -661,7 +666,18 @@ private struct SoftwareKeyEditor: View {
                 await commitChanges()
             }
         }
+        .onChange(of: privateKey) { old, value in
+            if value != originalPrivateKey, old == originalPrivateKey, !originalPassphrase.isEmpty {
+                passphrase = ""
+            }
+        }
         .onDisappear {
+            privateKey = ""
+            originalPrivateKey = ""
+            passphrase = ""
+            originalPassphrase = ""
+            material = nil
+            isLoading = loadPrivateKey != nil
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
@@ -735,7 +751,9 @@ private struct SoftwareKeyEditor: View {
     private var isDirty: Bool {
         guard let existing else { return !name.isEmpty || !privateKey.isEmpty || !certificate.isEmpty }
         return name != existing.label || colorTag != existing.colorTag || storage != existing.storage
-            || privateKey != originalPrivateKey || !passphrase.isEmpty || certificate != existing.certificate
+            || privateKey != originalPrivateKey || passphrase != originalPassphrase
+            || savePassphrase != originalSavePassphrase
+            || certificate != existing.certificate
     }
 
     private func cancelEditing() {
@@ -786,7 +804,7 @@ private struct SoftwareKeyEditor: View {
             }
             _ = try await save(
                 name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, storage,
-                privateKey, passphrase, normalizedCertificate, inspected
+                privateKey, passphrase, savePassphrase, normalizedCertificate, inspected
             )
             isWorking = false
             return true
@@ -845,8 +863,13 @@ private struct SoftwareKeyEditor: View {
     private func load() {
         guard isLoading else { return }
         do {
-            privateKey = try loadPrivateKey?() ?? ""
+            let secret = try loadPrivateKey?()
+            privateKey = secret?.privateKey ?? ""
             originalPrivateKey = privateKey
+            passphrase = secret?.passphrase ?? ""
+            originalPassphrase = passphrase
+            savePassphrase = !passphrase.isEmpty
+            originalSavePassphrase = savePassphrase
         } catch {
             errorMessage = error.localizedDescription
             canEditPrivateKey = false
@@ -942,6 +965,7 @@ struct KeychainGenerateDetail: View {
 
     private func generate(
         label: String, colorTag: TagColor, generation: SSHKeyMaterial.Generation, passphrase: String?,
+        savePassphrase: Bool,
         cipher: SSHKeyMaterial.Cipher, rounds: Int, storage: KeyStorage,
         requiresUserPresence: Bool
     ) async throws -> SSHKeyRef {
@@ -979,7 +1003,7 @@ struct KeychainGenerateDetail: View {
             try app.credentials.upsert(
                 key,
                 credential: .software(
-                    SSHPrivateKeySecret(privateKey: material.privateKey)
+                    SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: savePassphrase ? passphrase : nil)
                 )
             )
         }
@@ -999,7 +1023,7 @@ private struct GenerateKeySheet: View {
 
     let generate:
         (
-            String, TagColor, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
+            String, TagColor, SSHKeyMaterial.Generation, String?, Bool, SSHKeyMaterial.Cipher, Int,
             KeyStorage, Bool
         ) async throws -> SSHKeyRef
     let close: () -> Void
@@ -1011,6 +1035,7 @@ private struct GenerateKeySheet: View {
     @State private var curveBits = 256
     @State private var rsaBits = 3072
     @State private var passphrase = ""
+    @State private var savePassphrase = true
     @State private var confirmation = ""
     @State private var cipher = SSHKeyMaterial.Cipher.aes256
     @State private var rounds = 100
@@ -1028,7 +1053,7 @@ private struct GenerateKeySheet: View {
         defaultStorage: KeyStorage = .iCloud,
         generate:
             @escaping (
-                String, TagColor, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
+                String, TagColor, SSHKeyMaterial.Generation, String?, Bool, SSHKeyMaterial.Cipher, Int,
                 KeyStorage, Bool
             ) async throws -> SSHKeyRef,
         close: @escaping () -> Void
@@ -1097,6 +1122,8 @@ private struct GenerateKeySheet: View {
                             prompt: Text(AppStrings.Common.optional))
                         RevealableSecretField(AppStrings.Keychain.confirmPassphrase, text: $confirmation)
                             .disabled(passphrase.isEmpty)
+                        Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
+                            .disabled(passphrase.isEmpty)
                         if !passphrase.isEmpty {
                             Picker(AppStrings.Keychain.cipher.swiftUIKey, selection: $cipher) {
                                 ForEach(SSHKeyMaterial.Cipher.allCases) { cipher in
@@ -1136,6 +1163,10 @@ private struct GenerateKeySheet: View {
             }
             .padding()
         }
+        .onDisappear {
+            passphrase = ""
+            confirmation = ""
+        }
     }
 
     @MainActor
@@ -1146,9 +1177,11 @@ private struct GenerateKeySheet: View {
             _ = try await generate(
                 label.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, generation,
                 storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
-                cipher, rounds, storage,
+                savePassphrase, cipher, rounds, storage,
                 storage == .secureEnclave && requiresUserPresence
             )
+            passphrase = ""
+            confirmation = ""
             close()
         } catch {
             errorMessage = error.localizedDescription
@@ -1196,10 +1229,10 @@ struct KeychainEditDetail: View {
                     },
                     delete: { try delete(key) },
                     save: {
-                        name, colorTag, storage, privateKey, passphrase, certificate, material in
+                        name, colorTag, storage, privateKey, passphrase, savePassphrase, certificate, material in
                         try await saveSoftwareKey(
                             key, name: name, colorTag: colorTag, storage: storage,
-                            privateKey: privateKey, passphrase: passphrase,
+                            privateKey: privateKey, passphrase: passphrase, savePassphrase: savePassphrase,
                             certificate: certificate, material: material
                         )
                     }
@@ -1210,13 +1243,13 @@ struct KeychainEditDetail: View {
         }
     }
 
-    private func loadPrivateKey(_ key: SSHKeyRef) throws -> String {
+    private func loadPrivateKey(_ key: SSHKeyRef) throws -> SSHPrivateKeySecret {
         guard case .software(let secret)? = try app.credentials.keyCredential(for: key) else {
             throw TermindSSHError.library(
                 String(localized: AppStrings.Keychain.thePrivateKeyIsUnavailableOnThisMac)
             )
         }
-        return secret.privateKey
+        return secret
     }
 
     private func delete(_ key: SSHKeyRef) throws {
@@ -1226,7 +1259,7 @@ struct KeychainEditDetail: View {
 
     private func saveSoftwareKey(
         _ original: SSHKeyRef, name: String, colorTag: TagColor, storage: KeyStorage,
-        privateKey: String, passphrase: String?, certificate: String,
+        privateKey: String, passphrase: String?, savePassphrase: Bool, certificate: String,
         material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         var updated = original
@@ -1238,12 +1271,12 @@ struct KeychainEditDetail: View {
         updated.certificate = certificate
         updated.fingerprint = material.fingerprint
         updated.keySize = material.keySize
-        let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original))
+        let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original)).privateKey
         updated.hasPassphrase = passphrase != nil || (keepsOriginalPrivateKey && original.hasPassphrase)
         try app.credentials.upsert(
             updated,
             credential: .software(
-                SSHPrivateKeySecret(privateKey: privateKey)
+                SSHPrivateKeySecret(privateKey: privateKey, passphrase: savePassphrase ? passphrase : nil)
             )
         )
         window.selectVaultItem(.key(updated.id), on: .keychain)
@@ -1821,7 +1854,9 @@ private struct KeyCard: View {
                     CardChip(text: keyDisplayName)
                     if key.hasPassphrase {
                         CardChip(
-                            text: String(localized: AppStrings.Keychain.passphraseRequired),
+                            text: String(
+                                localized: app.credentials.hasSavedPassphrase(for: key)
+                                    ? AppStrings.Keychain.passphraseSaved : AppStrings.Keychain.passphraseRequired),
                             symbol: "lock.fill"
                         )
                     }

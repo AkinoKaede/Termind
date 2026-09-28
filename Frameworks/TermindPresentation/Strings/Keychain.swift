@@ -2,6 +2,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Keychain {
+        public static var savePassphrase: LocalizedStringResource { "Save Passphrase" }
+        public static var saveAndContinue: LocalizedStringResource { "Save and Continue" }
+
         public static var addAndConnectToAHostBeforeExportingAKeyToIt: LocalizedStringResource {
             "Add and connect to a host before exporting a key to it."
         }
@@ -205,6 +208,8 @@ extension AppStrings {
         public static var noSecret: LocalizedStringResource {
             "No secret"
         }
+
+        public static var passphraseSaved: LocalizedStringResource { "Passphrase Saved" }
 
         public static var passphraseRequired: LocalizedStringResource {
             "Passphrase Required"

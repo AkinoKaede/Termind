@@ -311,19 +311,15 @@ public final class AgentHostResolver: Sendable {
                 case .cancelled, .keyboardInteractive:
                     throw AgentToolError.cancelled
                 case .submit(let answer):
-                    if case .passphrase = requirement.mode,
-                        var retained = submissions[node.id]
-                    {
-                        // A protected key may have been chosen beside a password
-                        // in the preceding Identity step. The passphrase card only
-                        // returns the newly-entered secret, so merge it into that
-                        // staged submission instead of replacing (and silently
-                        // dropping) the password and other choices.
-                        guard let passphrase = answer.passphrase, !passphrase.isEmpty else {
-                            throw TermindSSHError.keyPassphraseRequired
+                    if case .passphrase = requirement.mode {
+                        do {
+                            submissions[node.id] = try store.passphraseSubmission(
+                                for: request.journeyPrompt, existing: submissions[node.id],
+                                passphrase: answer.passphrase, save: answer.save)
+                        } catch {
+                            failure = error.localizedDescription
+                            continue
                         }
-                        retained.passphrase = passphrase
-                        submissions[node.id] = retained
                     } else {
                         submissions[node.id] = try submission(from: answer, for: node)
                     }
@@ -414,7 +410,9 @@ public final class AgentHostResolver: Sendable {
         guard forcedHostID == nil || forcedHostID == host.id else { return nil }
         if let submission = submissions[host.id] {
             if let keyID = submission.keyID,
-                store.key(keyID)?.requiresPassphraseEntry == true,
+                store.key(keyID).map({
+                    (forcedHostID == host.id && $0.hasPassphrase) || store.requiresPassphraseEntry(for: $0)
+                }) == true,
                 submission.passphrase?.isEmpty != false
             {
                 return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
@@ -429,6 +427,9 @@ public final class AgentHostResolver: Sendable {
         }
         guard let identity = store.identity(for: host) else {
             return AuthenticationRequirement(mode: .identity)
+        }
+        if forcedHostID == host.id, let keyID = identity.keyID, store.key(keyID)?.hasPassphrase == true {
+            return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
         }
         let resolution = store.sshCredentials(for: identity)
         if let keyID = resolution.requiredPassphraseKeyID {

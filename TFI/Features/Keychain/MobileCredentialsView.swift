@@ -193,7 +193,10 @@ private struct MobileKeyCredentialCard: View {
     @ViewBuilder private var primaryChips: some View {
         MobileCardChip(text: keyDisplayName)
         if key.hasPassphrase {
-            MobileCardChip(title: AppStrings.Keychain.passphraseRequired, symbol: "lock.fill")
+            MobileCardChip(
+                title: credentials.hasSavedPassphrase(for: key)
+                    ? AppStrings.Keychain.passphraseSaved : AppStrings.Keychain.passphraseRequired,
+                symbol: "lock.fill")
         }
     }
 

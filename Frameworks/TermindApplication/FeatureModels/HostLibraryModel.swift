@@ -26,6 +26,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// The latest local persistence failure. Secret text is never included.
     public private(set) var storageError: String?
     private let vault: VaultStore
+    private var keyCredentialRevision = 0
     private let keychain: any SecretStoring
     private let defaults: UserDefaults
     private var expansionState = LibraryExpansionState()
@@ -730,7 +731,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func sshCredentials(for submission: SSHAuthenticationSubmission) throws -> [SSHCredentials] {
         var credentials: [SSHCredentials] = []
         if let keyID = submission.keyID, let key = key(keyID) {
-            if key.requiresPassphraseEntry, !submission.hasPassphrase {
+            if requiresPassphraseEntry(for: key), !submission.hasPassphrase {
                 throw TermindSSHError.keyPassphraseRequired
             }
             if let stored = try keySecretCredential(for: key) {
@@ -802,7 +803,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
         if let keyID = identity.keyID {
             if let key = key(keyID) {
-                if key.requiresPassphraseEntry {
+                if requiresPassphraseEntry(for: key) {
                     requiredPassphraseKeyID = key.id
                 } else {
                     do {
@@ -1469,11 +1470,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
         let previousCredential =
             try (credential != nil || changesLocation)
-            ? previousKey.flatMap { try keyCredential(for: $0) }
+            ? previousKey.flatMap { try keySecretCredential(for: $0) }
             : nil
-        let destinationCredential = credential ?? (changesLocation ? previousCredential : nil)
+        let destinationCredential = credential?.resolvedCredential() ?? (changesLocation ? previousCredential : nil)
+        defer {
+            previousCredential?.clearSecrets()
+            destinationCredential?.clearSecrets()
+        }
         if let destinationCredential {
-            try keychain.setKeyCredential(
+            try keychain.setResolvedKeyCredential(
                 destinationCredential, for: key.credentialRef, storage: key.storage
             )
         }
@@ -1494,7 +1499,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         key.credentialRef, storage: key.storage
                     )
                 } else if destinationCredential != nil, let previousKey, let previousCredential {
-                    try keychain.setKeyCredential(
+                    try keychain.setResolvedKeyCredential(
                         previousCredential, for: previousKey.credentialRef,
                         storage: previousKey.storage
                     )
@@ -1510,6 +1515,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The key could not be saved.")
             )
         }
+        if destinationCredential != nil { keyCredentialRevision &+= 1 }
         if changesLocation, let previousKey {
             do {
                 try keychain.removeKeyCredential(
@@ -1551,8 +1557,19 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         try keychain.keyCredential(for: key.credentialRef, storage: key.storage)
     }
 
+    public func saveKeyPassphrase(_ passphrase: String, for keyID: SSHKeyRef.ID) throws {
+        guard !passphrase.isEmpty, let key = key(keyID), key.hasPassphrase, key.storage != .secureEnclave else {
+            throw TermindSSHError.missingCredential
+        }
+        let secret = SSHSecret(passphrase)
+        defer { secret.clear() }
+        try keychain.setKeyPassphrase(secret, for: key.credentialRef, storage: key.storage)
+        keyCredentialRevision &+= 1
+    }
+
     public func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
-        try keychain.sshKeyCredential(for: key.credentialRef, storage: key.storage)
+        _ = keyCredentialRevision
+        return try keychain.sshKeyCredential(for: key.credentialRef, storage: key.storage)
     }
 
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
@@ -1567,7 +1584,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func delete(keyID: SSHKeyRef.ID) throws {
         guard let key = key(keyID) else { return }
-        let credential = try keyCredential(for: key)
+        let credential = try keySecretCredential(for: key)
+        defer { credential?.clearSecrets() }
         try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
         let keySnapshot = keys
         let identitySnapshot = identities
@@ -1579,7 +1597,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             keys = keySnapshot
             identities = identitySnapshot
             if let credential {
-                try keychain.setKeyCredential(
+                try keychain.setResolvedKeyCredential(
                     credential, for: key.credentialRef, storage: key.storage
                 )
             }

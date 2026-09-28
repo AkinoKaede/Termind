@@ -131,13 +131,14 @@ nonisolated extension Dictionary where Key == Host.ID, Value == SSHAuthenticatio
     }
 
     public func firstHostRequiringPassphrase(
-        in route: [Host], key: (SSHKeyRef.ID) -> SSHKeyRef?
+        in route: [Host], key: (SSHKeyRef.ID) -> SSHKeyRef?,
+        requiresEntry: (SSHKeyRef) -> Bool = { $0.requiresPassphraseEntry }
     ) -> Host? {
         route.first { host in
             guard let submission = self[host.id], !submission.hasPassphrase,
                 let keyID = submission.keyID
             else { return false }
-            return key(keyID)?.requiresPassphraseEntry == true
+            return key(keyID).map(requiresEntry) == true
         }
     }
 

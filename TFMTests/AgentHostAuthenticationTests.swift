@@ -255,8 +255,8 @@ struct AgentHostAuthenticationTests {
         #expect(configuration.username == "deploy")
     }
 
-    @Test
-    func passwordAndProtectedKeyPassphraseAreBothRetainedForTheConnection() async throws {
+    @Test(arguments: [false, true])
+    func passwordAndProtectedKeyPassphraseAreBothRetainedForTheConnection(save: Bool) async throws {
         let keychain = MemoryHostSecretStore()
         let reference = "termind.key.\(UUID().uuidString)"
         let key = SSHKeyRef(
@@ -291,7 +291,7 @@ struct AgentHostAuthenticationTests {
                 return .submit(
                     AgentSSHAuthenticationAnswer(
                         username: request.username, passphrase: "one-use",
-                        keyID: key.id, save: false
+                        keyID: key.id, save: save
                     ))
             }
         }
@@ -323,6 +323,10 @@ struct AgentHostAuthenticationTests {
             return
         }
         #expect(stored.privateKey == "encrypted")
+        #expect(stored.passphrase == (save ? "one-use" : nil))
+        #expect(store.requiresPassphraseEntry(for: key) == !save)
+        #expect(store.host(host.id)?.identityID == nil)
+        configuration.clearSecrets()
         #expect(store.key(key.id)?.requiresPassphraseEntry == true)
     }
 

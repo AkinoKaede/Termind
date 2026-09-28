@@ -111,8 +111,12 @@ public struct SSHAuthenticationForm: View {
             if prompt.keyboardInteractive == nil, let keyboard {
                 keyboard.bridge(
                     canSubmit: canContinue,
-                    submit: { commit(save: !needsPassphrase) }, cancel: cancel)
+                    submit: { commit(save: prompt.allowsSaving) }, cancel: cancel)
             }
+        }
+        .onDisappear {
+            password = ""
+            passphrase = ""
         }
         .onAppear {
             if identityID != nil, selectedIdentity == nil { identityID = nil }
@@ -226,43 +230,29 @@ public struct SSHAuthenticationForm: View {
 
     @ViewBuilder
     private var actions: some View {
-        if needsPassphrase {
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    cancelButton
-                    Spacer()
-                    passphraseContinueButton
-                }
-                VStack(spacing: 10) {
-                    cancelButton.frame(maxWidth: .infinity, alignment: .leading)
-                    passphraseContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                cancelButton
+                Spacer()
+                continueButton
+                if prompt.allowsSaving { saveAndContinueButton }
             }
-        } else {
-            ViewThatFits(in: .horizontal) {
+            VStack(spacing: 10) {
                 HStack {
                     cancelButton
                     Spacer()
                     continueButton
-                    if prompt.allowsSaving { saveAndContinueButton }
                 }
-                VStack(spacing: 10) {
+                #if os(iOS)
                     HStack {
-                        cancelButton
                         Spacer()
-                        continueButton
+                        if prompt.allowsSaving { saveAndContinueButton }
                     }
-                    #if os(iOS)
-                        HStack {
-                            Spacer()
-                            if prompt.allowsSaving { saveAndContinueButton }
-                        }
-                    #else
-                        if prompt.allowsSaving {
-                            saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
-                        }
-                    #endif
-                }
+                #else
+                    if prompt.allowsSaving {
+                        saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                #endif
             }
         }
     }
@@ -272,7 +262,16 @@ public struct SSHAuthenticationForm: View {
             .keyboardShortcut(.cancelAction)
     }
 
+    @ViewBuilder
     private var continueButton: some View {
+        if prompt.allowsSaving {
+            baseContinueButton
+        } else {
+            baseContinueButton.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private var baseContinueButton: some View {
         Button {
             commit(save: false)
         } label: {
@@ -281,17 +280,11 @@ public struct SSHAuthenticationForm: View {
         .disabled(!canContinue)
     }
 
-    private var passphraseContinueButton: some View {
-        continueButton
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-    }
-
     private var saveAndContinueButton: some View {
         Button {
             commit(save: true)
         } label: {
-            ConnectionActionLabel(title: "Save and Continue", symbol: "checkmark")
+            ConnectionActionLabel(title: AppStrings.Keychain.saveAndContinue, symbol: "checkmark")
         }
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(.defaultAction)
@@ -309,7 +302,8 @@ public struct SSHAuthenticationForm: View {
     }
 
     private func commit(save: Bool) {
-        let submittedPassword = save ? password : (password.isEmpty ? nil : password)
+        let save = save && prompt.allowsSaving
+        let submittedPassword = needsPassphrase ? nil : (save ? password : (password.isEmpty ? nil : password))
         let submittedPassphrase = passphrase.isEmpty ? nil : passphrase
         password = ""
         passphrase = ""

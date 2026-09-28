@@ -329,25 +329,39 @@ public nonisolated enum SSHCredentials: Sendable {
 }
 
 public nonisolated enum SSHResolvedKeyCredential: Sendable {
-    case software(SSHSecret)
+    case software(SSHSecret, passphrase: SSHSecret? = nil)
     case secureEnclave(SecureEnclaveKeyCredential)
+
+    public var hasSavedPassphrase: Bool {
+        if case .software(_, let passphrase) = self { return passphrase != nil && passphrase?.isConsumed == false }
+        return false
+    }
+
+    public func clearSecrets() {
+        if case .software(let privateKey, let passphrase) = self {
+            privateKey.clear()
+            passphrase?.clear()
+        }
+    }
 
     public func sshCredential(
         publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
         requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
     ) -> SSHCredentials {
         switch self {
-        case .software(let privateKey):
-            .privateKey(
+        case .software(let privateKey, let savedPassphrase):
+            let hasSavedPassphrase = self.hasSavedPassphrase
+            if let passphraseOverride, savedPassphrase !== passphraseOverride { savedPassphrase?.clear() }
+            return .privateKey(
                 privateKey: privateKey,
                 publicKey: certificate.isEmpty
                     ? (publicKey.isEmpty ? nil : publicKey)
                     : certificate,
-                passphrase: passphraseOverride,
-                requiresPassphrase: requiresPassphrase
+                passphrase: passphraseOverride ?? savedPassphrase,
+                requiresPassphrase: requiresPassphrase && !hasSavedPassphrase
             )
         case .secureEnclave(let credential):
-            .secureEnclave(
+            return .secureEnclave(
                 credential: credential, publicKey: publicKey,
                 requiresUserPresence: requiresUserPresence
             )
@@ -356,13 +370,23 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
 }
 
 nonisolated extension StoredSSHKeyCredential {
+    public func resolvedCredential() -> SSHResolvedKeyCredential {
+        switch self {
+        case .software(let secret):
+            .software(SSHSecret(secret.privateKey), passphrase: secret.passphrase.map(SSHSecret.init))
+        case .secureEnclave(let key): .secureEnclave(key)
+        }
+    }
+
     public func sshCredential(
         publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
         requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
     ) -> SSHCredentials {
         switch self {
         case .software(let secret):
-            SSHResolvedKeyCredential.software(SSHSecret(secret.privateKey)).sshCredential(
+            SSHResolvedKeyCredential.software(
+                SSHSecret(secret.privateKey), passphrase: secret.passphrase.map(SSHSecret.init)
+            ).sshCredential(
                 publicKey: publicKey, certificate: certificate,
                 passphraseOverride: passphraseOverride,
                 requiresPassphrase: requiresPassphrase,

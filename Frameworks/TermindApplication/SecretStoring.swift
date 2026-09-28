@@ -3,8 +3,10 @@ import TermindDomain
 
 public nonisolated struct SSHPrivateKeySecret: Codable, Hashable, Sendable {
     public var privateKey: String
-    public init(privateKey: String) {
+    public var passphrase: String?
+    public init(privateKey: String, passphrase: String? = nil) {
         self.privateKey = privateKey
+        self.passphrase = passphrase
     }
 
 }
@@ -23,10 +25,13 @@ public nonisolated protocol SecretStoring: SSHRuntimeSecretResolving {
     func keyCredential(
         for account: String, storage: KeyStorage
     ) throws -> StoredSSHKeyCredential?
+    func setKeyPassphrase(_ passphrase: SSHSecret?, for account: String, storage: KeyStorage) throws
     func containsKeyCredential(for account: String, storage: KeyStorage) throws -> Bool
     func setKeyCredential(
         _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
     ) throws
+    func setResolvedKeyCredential(_ credential: SSHResolvedKeyCredential, for account: String, storage: KeyStorage)
+        throws
     func removePassword(_ account: String, storage: PasswordStorage) throws
     func removeKeyCredential(_ account: String, storage: KeyStorage) throws
 }
@@ -40,6 +45,39 @@ nonisolated extension SecretStoring {
         try keyCredential(for: account, storage: storage) != nil
     }
 
+    /// Default for in-memory/test stores. The Keychain adapter overrides this
+    /// to update its JSON envelope entirely through wipeable byte buffers.
+    public func setKeyPassphrase(_ passphrase: SSHSecret?, for account: String, storage: KeyStorage) throws {
+        defer { passphrase?.clear() }
+        guard case .software(var secret)? = try keyCredential(for: account, storage: storage) else {
+            throw TermindSSHError.missingCredential
+        }
+        secret.passphrase = try passphrase?.withUnsafeCStringAndConsume { bytes, count in
+            String(decoding: UnsafeRawBufferPointer(start: bytes, count: count), as: UTF8.self)
+        }
+        try setKeyCredential(.software(secret), for: account, storage: storage)
+    }
+
+    /// Test/in-memory fallback; persistent adapters must write the wipeable
+    /// credential directly, without first materializing String secrets.
+    public func setResolvedKeyCredential(
+        _ credential: SSHResolvedKeyCredential, for account: String, storage: KeyStorage
+    ) throws {
+        defer { credential.clearSecrets() }
+        switch credential {
+        case .software(let key, let passphrase):
+            let text = try key.withUnsafeCStringAndConsume { bytes, count in
+                String(decoding: UnsafeRawBufferPointer(start: bytes, count: count), as: UTF8.self)
+            }
+            let phrase = try passphrase?.withUnsafeCStringAndConsume { bytes, count in
+                String(decoding: UnsafeRawBufferPointer(start: bytes, count: count), as: UTF8.self)
+            }
+            try setKeyCredential(.software(.init(privateKey: text, passphrase: phrase)), for: account, storage: storage)
+        case .secureEnclave(let key):
+            try setKeyCredential(.secureEnclave(key), for: account, storage: storage)
+        }
+    }
+
     public func sshSecret(for account: String, storage: PasswordStorage) throws -> SSHSecret? {
         try string(for: account, storage: storage).map(SSHSecret.init)
     }
@@ -48,7 +86,8 @@ nonisolated extension SecretStoring {
         for account: String, storage: KeyStorage
     ) throws -> SSHResolvedKeyCredential? {
         switch try keyCredential(for: account, storage: storage) {
-        case .software(let secret): .software(SSHSecret(secret.privateKey))
+        case .software(let secret):
+            .software(SSHSecret(secret.privateKey), passphrase: secret.passphrase.map(SSHSecret.init))
         case .secureEnclave(let credential): .secureEnclave(credential)
         case nil: nil
         }

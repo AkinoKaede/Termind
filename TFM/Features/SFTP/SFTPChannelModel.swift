@@ -353,7 +353,7 @@ final class SFTPChannelModel: Identifiable {
             return
         }
         if let passphraseHost = suppliedAuthentications.firstHostRequiringPassphrase(
-            in: route, key: store.key
+            in: route, key: store.key, requiresEntry: store.requiresPassphraseEntry
         ) {
             requestAuthentication(
                 host: passphraseHost, store: store,
@@ -732,15 +732,18 @@ final class SFTPChannelModel: Identifiable {
             return
         }
 
-        if prompt.requiresPassphrase,
-            var staged = suppliedAuthentications[host.id]
-        {
-            guard let passphrase, !passphrase.isEmpty else { return }
-            staged.passphrase = passphrase
-            suppliedAuthentications[host.id] = staged
-            pendingAuthentication = nil
-            connectionJourney.resume()
-            connect(using: store)
+        if prompt.requiresPassphrase {
+            do {
+                suppliedAuthentications[host.id] = try store.passphraseSubmission(
+                    for: prompt, existing: suppliedAuthentications[host.id], passphrase: passphrase, save: save)
+                pendingAuthentication = nil
+                connectionJourney.resume()
+                connect(using: store)
+            } catch {
+                var failed = prompt
+                failed.failureMessage = error.localizedDescription
+                pendingAuthentication = failed
+            }
             return
         }
 
@@ -1171,7 +1174,7 @@ final class SFTPChannelModel: Identifiable {
         let needsPassphrase =
             requiresPassphrase
             ?? (!username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && selectedKeyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true)
+                && selectedKeyID.flatMap { store.key($0) }.map { store.requiresPassphraseEntry(for: $0) } == true)
         pendingAuthentication = SSHAuthenticationPromptResolver.host(
             host, using: store, submission: submission, username: username,
             selectedKeyID: selectedKeyID,

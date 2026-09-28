@@ -90,11 +90,12 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
     {
         try validate(account, prefix: "termind.key.")
         guard
-            let data = try data(
+            var data = try data(
                 for: account, service: service(for: storage),
                 synchronizable: storage == .iCloud
             )
         else { return nil }
+        defer { SecretMemory.clear(&data) }
         switch storage {
         case .thisDevice, .iCloud:
             return .software(try JSONDecoder().decode(SSHPrivateKeySecret.self, from: data))
@@ -125,7 +126,7 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         defer { SecretMemory.clear(&data) }
         switch storage {
         case .thisDevice, .iCloud:
-            return .software(try Self.decodePrivateKeySecret(from: &data))
+            return try Self.decodeKeySecrets(from: &data)
         case .secureEnclave:
             guard !data.isEmpty else { throw KeychainSecretError.unexpectedValue }
             return .secureEnclave(SecureEnclaveKeyCredential(dataRepresentation: data))
@@ -159,90 +160,222 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         )
     }
 
-    /// Strictly decodes the legacy single-field JSON envelope without creating
-    /// an immutable Swift `String` containing the private key. Corrupted shapes
-    /// fail closed instead of being searched for a matching field substring.
-    static func decodePrivateKeySecret(from data: inout Data) throws -> SSHSecret {
-        defer { SecretMemory.clear(&data) }
-        var index = data.startIndex
-        func skipWhitespace() {
-            while index < data.endIndex, [0x20, 0x09, 0x0A, 0x0D].contains(data[index]) {
-                index = data.index(after: index)
-            }
+    public func setResolvedKeyCredential(
+        _ credential: SSHResolvedKeyCredential, for account: String, storage: KeyStorage
+    ) throws {
+        defer { credential.clearSecrets() }
+        try validate(account, prefix: "termind.key.")
+        var encoded: Data
+        switch (credential, storage) {
+        case (.software(let key, let passphrase), .thisDevice), (.software(let key, let passphrase), .iCloud):
+            encoded = try Self.encodeKeySecrets(privateKey: key, passphrase: passphrase)
+        case (.secureEnclave(let key), .secureEnclave): encoded = key.dataRepresentation
+        default: throw KeychainSecretError.unexpectedValue
         }
-        func consume(_ expected: UInt8) throws {
-            guard index < data.endIndex, data[index] == expected else {
-                throw KeychainSecretError.unexpectedValue
-            }
-            index = data.index(after: index)
-        }
-
-        skipWhitespace()
-        try consume(0x7B)
-        skipWhitespace()
-        for expected in Array("\"privateKey\"".utf8) {
-            try consume(expected)
-        }
-        skipWhitespace()
-        try consume(0x3A)
-        skipWhitespace()
-        try consume(0x22)
-
-        var result = Data()
-        defer { SecretMemory.clear(&result) }
-        while index < data.endIndex {
-            let byte = data[index]
-            index = data.index(after: index)
-            if byte == 0x22 {
-                skipWhitespace()
-                try consume(0x7D)
-                skipWhitespace()
-                guard index == data.endIndex else {
-                    throw KeychainSecretError.unexpectedValue
-                }
-                return SSHSecret(consumingUTF8: &result)
-            }
-            guard byte == 0x5C else {
-                guard byte >= 0x20 else { throw KeychainSecretError.unexpectedValue }
-                result.append(byte)
-                continue
-            }
-            guard index < data.endIndex else { throw KeychainSecretError.unexpectedValue }
-            let escape = data[index]
-            index = data.index(after: index)
-            switch escape {
-            case 0x22, 0x5C, 0x2F: result.append(escape)
-            case 0x62: result.append(0x08)
-            case 0x66: result.append(0x0C)
-            case 0x6E: result.append(0x0A)
-            case 0x72: result.append(0x0D)
-            case 0x74: result.append(0x09)
-            case 0x75:
-                var value: UInt32 = 0
-                for _ in 0..<4 {
-                    guard index < data.endIndex, let digit = hex(data[index]) else {
-                        throw KeychainSecretError.unexpectedValue
-                    }
-                    value = value * 16 + UInt32(digit)
-                    index = data.index(after: index)
-                }
-                guard let scalar = Unicode.Scalar(value), !(0xD800...0xDFFF).contains(value) else {
-                    throw KeychainSecretError.unexpectedValue
-                }
-                result.append(contentsOf: String(scalar).utf8)
-            default:
-                throw KeychainSecretError.unexpectedValue
-            }
-        }
-        throw KeychainSecretError.unexpectedValue
+        defer { SecretMemory.clear(&encoded) }
+        try setData(
+            encoded, for: account, service: service(for: storage), synchronizable: storage == .iCloud,
+            accessible: storage == .iCloud
+                ? kSecAttrAccessibleWhenUnlocked : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        )
     }
 
-    private static func hex(_ byte: UInt8) -> UInt8? {
-        switch byte {
-        case 0x30...0x39: byte - 0x30
-        case 0x41...0x46: byte - 0x41 + 10
-        case 0x61...0x66: byte - 0x61 + 10
-        default: nil
+    public func setKeyPassphrase(_ passphrase: SSHSecret?, for account: String, storage: KeyStorage) throws {
+        defer { passphrase?.clear() }
+        guard storage != .secureEnclave,
+            let credential = try sshKeyCredential(for: account, storage: storage),
+            case .software(let privateKey, _) = credential
+        else { throw KeychainSecretError.unexpectedValue }
+        defer { credential.clearSecrets() }
+        var encoded = try Self.encodeKeySecrets(privateKey: privateKey, passphrase: passphrase)
+        defer { SecretMemory.clear(&encoded) }
+        try setData(
+            encoded, for: account, service: service(for: storage), synchronizable: storage == .iCloud,
+            accessible: storage == .iCloud
+                ? kSecAttrAccessibleWhenUnlocked : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        )
+    }
+
+    /// The editor's legacy envelope and the runtime reader share the same wire
+    /// format. Secret values never become immutable Strings in the runtime path.
+    static func encodeKeySecrets(privateKey: SSHSecret, passphrase: SSHSecret?) throws -> Data {
+        defer {
+            privateKey.clear()
+            passphrase?.clear()
+        }
+        var output = Data()
+        var succeeded = false
+        defer { if !succeeded { SecretMemory.clear(&output) } }
+        func append(_ secret: SSHSecret) throws {
+            output.append(0x22)
+            try secret.withUnsafeCStringAndConsume { pointer, count in
+                for byte in UnsafeRawBufferPointer(start: pointer, count: count) {
+                    switch byte {
+                    case 0x22, 0x5C: output.append(contentsOf: [0x5C, byte])
+                    case 0..<0x20:
+                        let digits = Array("0123456789abcdef".utf8)
+                        output.append(contentsOf: [
+                            0x5C, 0x75, 0x30, 0x30, digits[Int(byte >> 4)], digits[Int(byte & 15)],
+                        ])
+                    default: output.append(byte)
+                    }
+                }
+            }
+            output.append(0x22)
+        }
+        // Reserve an upper bound before writing any plaintext, avoiding Data
+        // reallocation while appending escaped secret bytes.
+        output.reserveCapacity(64 + 6 * (privateKey.byteCount + (passphrase?.byteCount ?? 0)))
+        output.append(contentsOf: "{\"privateKey\":".utf8)
+        try append(privateKey)
+        if let passphrase {
+            output.append(contentsOf: ",\"passphrase\":".utf8)
+            try append(passphrase)
+        }
+        output.append(0x7D)
+        succeeded = true
+        return output
+    }
+
+    static func decodePrivateKeySecret(from data: inout Data) throws -> SSHSecret {
+        let credential = try decodeKeySecrets(from: &data)
+        guard case .software(let key, let passphrase) = credential else {
+            throw KeychainSecretError.unexpectedValue
+        }
+        passphrase?.clear()
+        return key
+    }
+
+    static func decodeKeySecrets(
+        from data: inout Data, observeSecret: ((SSHSecret) -> Void)? = nil
+    ) throws -> SSHResolvedKeyCredential {
+        defer { SecretMemory.clear(&data) }
+        var index = data.startIndex
+        var privateKey: SSHSecret?
+        var passphrase: SSHSecret?
+        var succeeded = false
+        defer {
+            if !succeeded {
+                privateKey?.clear()
+                passphrase?.clear()
+            }
+        }
+        func skipWhitespace() {
+            while index < data.endIndex, [0x20, 0x09, 0x0A, 0x0D].contains(data[index]) { index += 1 }
+        }
+        func consume(_ expected: UInt8) throws {
+            guard index < data.endIndex, data[index] == expected else { throw KeychainSecretError.unexpectedValue }
+            index += 1
+        }
+        func hexUnit() throws -> UInt32 {
+            var value: UInt32 = 0
+            for _ in 0..<4 {
+                guard index < data.endIndex else { throw KeychainSecretError.unexpectedValue }
+                let byte = data[index]
+                let digit: UInt8
+                switch byte {
+                case 0x30...0x39: digit = byte - 0x30
+                case 0x41...0x46: digit = byte - 0x41 + 10
+                case 0x61...0x66: digit = byte - 0x61 + 10
+                default: throw KeychainSecretError.unexpectedValue
+                }
+                value = value * 16 + UInt32(digit)
+                index += 1
+            }
+            return value
+        }
+        func readString() throws -> SSHSecret {
+            try consume(0x22)
+            var bytes = Data()
+            bytes.reserveCapacity(data.count)
+            defer { SecretMemory.clear(&bytes) }
+            while index < data.endIndex {
+                let byte = data[index]
+                index += 1
+                if byte == 0x22 {
+                    func validateUTF8() throws {
+                        var decoder = Unicode.UTF8()
+                        var iterator = bytes.makeIterator()
+                        while true {
+                            switch decoder.decode(&iterator) {
+                            case .scalarValue: continue
+                            case .emptyInput: return
+                            case .error: throw KeychainSecretError.unexpectedValue
+                            }
+                        }
+                    }
+                    try validateUTF8()
+                    let secret = SSHSecret(consumingUTF8: &bytes)
+                    observeSecret?(secret)
+                    return secret
+                }
+                guard byte == 0x5C else {
+                    guard byte >= 0x20 else { throw KeychainSecretError.unexpectedValue }
+                    bytes.append(byte)
+                    continue
+                }
+                guard index < data.endIndex else { throw KeychainSecretError.unexpectedValue }
+                let escape = data[index]
+                index += 1
+                switch escape {
+                case 0x22, 0x5C, 0x2F: bytes.append(escape)
+                case 0x62: bytes.append(0x08)
+                case 0x66: bytes.append(0x0C)
+                case 0x6E: bytes.append(0x0A)
+                case 0x72: bytes.append(0x0D)
+                case 0x74: bytes.append(0x09)
+                case 0x75:
+                    var scalar = try hexUnit()
+                    if (0xD800...0xDBFF).contains(scalar) {
+                        try consume(0x5C)
+                        try consume(0x75)
+                        let low = try hexUnit()
+                        guard (0xDC00...0xDFFF).contains(low) else { throw KeychainSecretError.unexpectedValue }
+                        scalar = 0x10000 + ((scalar - 0xD800) << 10) + low - 0xDC00
+                    }
+                    guard let value = Unicode.Scalar(scalar) else { throw KeychainSecretError.unexpectedValue }
+                    Unicode.UTF8.encode(value) { bytes.append($0) }
+                default: throw KeychainSecretError.unexpectedValue
+                }
+            }
+            throw KeychainSecretError.unexpectedValue
+        }
+        skipWhitespace()
+        try consume(0x7B)
+        var sawPassphrase = false
+        while true {
+            skipWhitespace()
+            let name = try readString()
+            defer { name.clear() }
+            skipWhitespace()
+            try consume(0x3A)
+            skipWhitespace()
+            if name.matches("privateKey"), privateKey == nil {
+                privateKey = try readString()
+            } else if name.matches("passphrase"), !sawPassphrase {
+                sawPassphrase = true
+                if index < data.endIndex, data[index] == 0x6E {
+                    for byte in Array("null".utf8) { try consume(byte) }
+                } else {
+                    passphrase = try readString()
+                    if passphrase?.byteCount == 0 {
+                        passphrase?.clear()
+                        passphrase = nil
+                    }
+                }
+            } else {
+                throw KeychainSecretError.unexpectedValue
+            }
+            skipWhitespace()
+            if index < data.endIndex, data[index] == 0x2C {
+                index += 1
+                continue
+            }
+            try consume(0x7D)
+            skipWhitespace()
+            guard index == data.endIndex, let privateKey else { throw KeychainSecretError.unexpectedValue }
+            succeeded = true
+            return .software(privateKey, passphrase: passphrase)
         }
     }
 

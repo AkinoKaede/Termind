@@ -68,7 +68,9 @@ public enum SSHAuthenticationPromptResolver {
         let needsPassphrase =
             requiresPassphrase
             ?? (submission?.requiresPasswordReentry != true
-                && keyID.flatMap(store.key)?.requiresPassphraseEntry == true
+                && keyID.flatMap(store.key).map {
+                    (mode == .serverChallenge && $0.hasPassphrase) || store.requiresPassphraseEntry(for: $0)
+                } == true
                 && submission?.passphrase == nil)
         return SSHAuthenticationPrompt(
             host: host, selectedIdentityID: submission?.identityID ?? identity?.id,

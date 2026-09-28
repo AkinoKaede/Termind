@@ -420,7 +420,7 @@ final class SSHSessionModel: Identifiable {
             return
         }
         if let passphraseHost = suppliedAuthentications.firstHostRequiringPassphrase(
-            in: route, key: store.key
+            in: route, key: store.key, requiresEntry: store.requiresPassphraseEntry
         ), let submission = suppliedAuthentications[passphraseHost.id] {
             requestAuthentication(
                 for: passphraseHost, username: submission.username,
@@ -645,8 +645,7 @@ final class SSHSessionModel: Identifiable {
                     let retryNeedsPassphrase =
                         submitted?.requiresPasswordReentry != true
                         && submitted?.hasPassphrase != true
-                        && authenticationKeyID.flatMap { store.key($0) }?
-                            .requiresPassphraseEntry == true
+                        && authenticationKeyID.flatMap { store.key($0) }?.hasPassphrase == true
                     let returnsToIdentity = submitted?.requiresPassphraseReentry == true
                     requestAuthentication(
                         for: authenticationHost,
@@ -703,15 +702,18 @@ final class SSHSessionModel: Identifiable {
             return
         }
 
-        if prompt.requiresPassphrase,
-            var staged = suppliedAuthentications[host.id]
-        {
-            guard let passphrase, !passphrase.isEmpty else { return }
-            staged.passphrase = passphrase
-            suppliedAuthentications[host.id] = staged
-            pendingAuthentication = nil
-            connectionJourney.resume()
-            connect(using: store)
+        if prompt.requiresPassphrase {
+            do {
+                suppliedAuthentications[host.id] = try store.passphraseSubmission(
+                    for: prompt, existing: suppliedAuthentications[host.id], passphrase: passphrase, save: save)
+                pendingAuthentication = nil
+                connectionJourney.resume()
+                connect(using: store)
+            } catch {
+                var failed = prompt
+                failed.failureMessage = error.localizedDescription
+                pendingAuthentication = failed
+            }
             return
         }
 
@@ -745,7 +747,7 @@ final class SSHSessionModel: Identifiable {
                 for: host, username: trimmedUsername,
                 selectedKeyID: submittedKeyID, failureMessage: error.localizedDescription,
                 requiresPassphrase:
-                    submittedKeyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true
+                    submittedKeyID.flatMap { store.key($0) }.map { store.requiresPassphraseEntry(for: $0) } == true
             )
             return
         }

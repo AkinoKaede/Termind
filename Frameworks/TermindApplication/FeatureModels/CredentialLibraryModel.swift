@@ -34,6 +34,9 @@ public final class CredentialLibraryModel {
     public func editablePassword(for identity: Identity) throws -> String? {
         try library.editablePassword(for: identity)
     }
+    public func hasSavedPassphrase(for key: SSHKeyRef) -> Bool {
+        key.hasPassphrase && !library.requiresPassphraseEntry(for: key)
+    }
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
         library.keyAvailability(for: key)
     }

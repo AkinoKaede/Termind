@@ -59,6 +59,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
     func passwordSecret(for identity: Identity) throws -> SSHSecret?
     func passwordAvailability(for identity: Identity) -> SecretAvailability
+    func saveKeyPassphrase(_ passphrase: String, for keyID: SSHKeyRef.ID) throws
     func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential?
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
@@ -69,6 +70,36 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func saveKeyPassphrase(_ passphrase: String, for keyID: SSHKeyRef.ID) throws {
+        throw TermindSSHError.missingCredential
+    }
+
+    public func passphraseSubmission(
+        for prompt: SSHAuthenticationPrompt, existing: SSHAuthenticationSubmission?,
+        passphrase: String?, save: Bool
+    ) throws -> SSHAuthenticationSubmission {
+        guard let passphrase, !passphrase.isEmpty else { throw TermindSSHError.keyPassphraseRequired }
+        var submission =
+            existing
+            ?? SSHAuthenticationSubmission(
+                username: prompt.username, keyID: prompt.selectedKeyID, identityID: prompt.selectedIdentityID)
+        guard let keyID = submission.keyID else { throw TermindSSHError.missingCredential }
+        if save && prompt.allowsSaving { try saveKeyPassphrase(passphrase, for: keyID) }
+        submission.passphrase = passphrase
+        return submission
+    }
+
+    /// Query the local Keychain rather than relying on synchronized metadata.
+    /// Every probe releases its private key and passphrase immediately.
+    public func requiresPassphraseEntry(for key: SSHKeyRef) -> Bool {
+        guard key.hasPassphrase else { return false }
+        do {
+            guard let credential = try keySecretCredential(for: key) else { return true }
+            defer { credential.clearSecrets() }
+            return !credential.hasSavedPassphrase
+        } catch { return true }
+    }
+
     public func snippet(_ id: Snippet.ID) -> Snippet? { nil }
     public func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? { nil }
     public var customPasswordStorage: PasswordStorage { .iCloud }
@@ -292,6 +323,15 @@ extension RemoteSessionHostStore {
     public func additionalConnectionRequest(
         from snapshot: SSHAdditionalConnectionSnapshot
     ) throws -> SSHConnectionRequest {
+        var completed = false
+        var resolvedCredentials: [SSHCredentials] = []
+        var resolvedProxies: [SSHSecret] = []
+        defer {
+            if !completed {
+                for credential in resolvedCredentials { credential.clearSecrets() }
+                for secret in resolvedProxies { secret.clear() }
+            }
+        }
         func proxy(
             _ value: SSHAdditionalConnectionSnapshot.Proxy?, ownerHostID: Host.ID
         ) throws -> SSHTransportProxy? {
@@ -307,6 +347,7 @@ extension RemoteSessionHostStore {
             }
             let password = try connectionPasswordSecret(for: identity)
             guard let password else { throw TermindSSHError.missingCredential }
+            resolvedProxies.append(password)
             return SSHTransportProxy(
                 kind: value.kind, hostname: value.hostname, port: value.port,
                 username: value.username, password: password,
@@ -332,7 +373,7 @@ extension RemoteSessionHostStore {
             let keyID = resolvedIdentity?.keyID ?? reference.fallbackKeyID
             if let keyID {
                 if let key = key(keyID) {
-                    if key.requiresPassphraseEntry || key.requiresUserPresence {
+                    if key.requiresUserPresence || requiresPassphraseEntry(for: key) {
                         credentials.append(.interactionRequired)
                     } else {
                         do {
@@ -373,6 +414,7 @@ extension RemoteSessionHostStore {
                 if reference.hasEphemeralSecret { throw SSHInteractionRequired() }
                 if !reference.permitsNone { throw failures.first ?? TermindSSHError.missingCredential }
             }
+            resolvedCredentials += credentials
             return (username, credentials)
         }
 
@@ -396,6 +438,7 @@ extension RemoteSessionHostStore {
             charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication
         )
+        completed = true
         return SSHConnectionRequest(
             configuration: configuration, interactionPolicy: .forbidden
         ).enforcingInteractionPolicy()

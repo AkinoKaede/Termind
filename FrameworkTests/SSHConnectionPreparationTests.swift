@@ -180,7 +180,7 @@ struct SSHConnectionPreparationTests {
     }
 
     @Test
-    func protectedKeyIsNotReadBeforePassphraseIsRequested() async {
+    func protectedKeyWithoutSavedPassphraseRequestsEntry() async {
         let key = SSHKeyRef(
             label: "Protected", publicKey: "ssh-ed25519 test",
             credentialRef: "key.protected", hasPassphrase: true

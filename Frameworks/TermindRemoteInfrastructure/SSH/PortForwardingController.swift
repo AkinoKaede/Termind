@@ -282,10 +282,16 @@ public final class PortForwardingController {
             }
             return
         }
-        if prompt.requiresPassphrase, var staged = context.submissions[host.id] {
-            guard let passphrase, !passphrase.isEmpty else { return }
-            staged.passphrase = passphrase
-            context.submissions[host.id] = staged
+        if prompt.requiresPassphrase {
+            do {
+                context.submissions[host.id] = try hosts.passphraseSubmission(
+                    for: prompt, existing: context.submissions[host.id], passphrase: passphrase, save: save)
+            } catch {
+                var failed = prompt
+                failed.failureMessage = error.localizedDescription
+                context.setPrompt(failed)
+                return
+            }
         } else {
             let chosenKey = identity?.keyID ?? keyID
             if save {
@@ -374,7 +380,7 @@ public final class PortForwardingController {
                 return
             }
             if let passphraseHost = context.submissions.firstHostRequiringPassphrase(
-                in: context.route, key: hosts.key
+                in: context.route, key: hosts.key, requiresEntry: hosts.requiresPassphraseEntry
             ) {
                 requestAuthentication(
                     context,
@@ -549,7 +555,7 @@ public final class PortForwardingController {
         let keyID = staged?.keyID ?? identity?.keyID
         let passphrase =
             staged?.requiresPasswordReentry != true
-            && keyID.flatMap(hosts.key)?.requiresPassphraseEntry == true
+            && keyID.flatMap(hosts.key)?.hasPassphrase == true
             && staged?.passphrase == nil
         context.setPrompt(
             SSHAuthenticationPromptResolver.host(

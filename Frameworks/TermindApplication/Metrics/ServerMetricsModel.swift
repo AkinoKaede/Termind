@@ -296,13 +296,15 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             }
             return
         }
-        if server.authenticationPrompt?.requiresPassphrase == true,
-            var staged = submissions[server.id]?[host.id]
-        {
-            guard let passphrase, !passphrase.isEmpty else { return }
-            staged.passphrase = passphrase
-            submissions[server.id]?[host.id] = staged
-            retry(server)
+        if let prompt = server.authenticationPrompt, prompt.requiresPassphrase {
+            do {
+                submissions[server.id, default: [:]][host.id] = try hosts.passphraseSubmission(
+                    for: prompt, existing: submissions[server.id]?[host.id], passphrase: passphrase, save: save)
+                retry(server)
+            } catch {
+                server.authenticationPrompt?.failureMessage = error.localizedDescription
+                server.status = error.localizedDescription
+            }
             return
         }
         let chosenKey = identity?.keyID ?? keyID
@@ -367,7 +369,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         let keyID = staged?.keyID ?? identity?.keyID
         let passphrase =
             staged?.requiresPasswordReentry != true
-            && keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
+            && keyID.flatMap { hosts.key($0) }?.hasPassphrase == true
             && staged?.passphrase == nil
         server.authenticationHost = host
         server.authenticationPrompt = SSHAuthenticationPromptResolver.host(
@@ -730,7 +732,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             )
         }
         if let passphraseHost = submissions[server.id]?.firstHostRequiringPassphrase(
-            in: route, key: hosts.key
+            in: route, key: hosts.key, requiresEntry: hosts.requiresPassphraseEntry
         ) {
             throw TermindSSHError.routeHost(
                 hostID: passphraseHost.id, authentication: true,

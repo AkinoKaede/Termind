@@ -379,6 +379,72 @@ struct MobileVaultFeatureTests {
         app.removeScene(sceneID)
     }
 
+    @Test func savedPassphraseDefaultsAndEditingPreserveOrRemoveTheSavedValue() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        #expect(generator.savePassphrase)
+        generator.passphrase = "test-only-passphrase"
+        generator.confirmation = generator.passphrase
+        try await generator.save()
+        let original = try #require(app.credentials.keys.first)
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: original)
+        await editor.loadPrivateKey()
+        #expect(editor.savePassphrase && !editor.isDirty)
+        #expect(editor.passphrase == "test-only-passphrase")
+        editor.label = "Renamed"
+        try await editor.save()
+        guard case .software(let saved)? = try app.credentials.keyCredential(for: original) else {
+            Issue.record("Expected saved key")
+            return
+        }
+        #expect(saved.passphrase == "test-only-passphrase")
+        let updated = try #require(app.credentials.key(original.id))
+        let remover = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
+        await remover.loadPrivateKey()
+        remover.savePassphrase = false
+        #expect(remover.isDirty)
+        try await remover.save()
+        guard case .software(let removed)? = try app.credentials.keyCredential(for: updated) else {
+            Issue.record("Expected saved key")
+            return
+        }
+        #expect(removed.passphrase == nil)
+        #expect(removed.privateKey == saved.privateKey)
+        #expect(app.credentials.key(original.id)?.hasPassphrase == true)
+        let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+        #expect(importer.savePassphrase)
+        importer.privateKey = saved.privateKey
+        importer.passphrase = "test-only-passphrase"
+        importer.savePassphrase = false
+        try await importer.save()
+        let imported = try #require(app.credentials.keys.first { $0.id != original.id })
+        guard case .software(let importedSecret)? = try app.credentials.keyCredential(for: imported) else {
+            Issue.record("Expected imported key")
+            return
+        }
+        #expect(importedSecret.passphrase == nil)
+    }
+
+    @Test func replacingPrivateKeyDoesNotReuseItsSavedPassphrase() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        generator.passphrase = "old-passphrase"
+        generator.confirmation = generator.passphrase
+        try await generator.save()
+        let key = try #require(app.credentials.keys.first)
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
+        await editor.loadPrivateKey()
+        editor.privateKey = try SSHKeyMaterial.generate(.ed25519, comment: "replacement", passphrase: nil).privateKey
+        #expect(editor.passphrase.isEmpty)
+        try await editor.save()
+        guard case .software(let secret)? = try app.credentials.keyCredential(for: key) else {
+            Issue.record("Expected replacement key")
+            return
+        }
+        #expect(secret.passphrase == nil)
+        #expect(app.credentials.key(key.id)?.hasPassphrase == false)
+    }
+
     @Test func encryptedKeyGenerationImportAndMetadataEditingKeepTheSecretOutOfRecords() async throws {
         let app = try MobileAppModel(inMemory: true)
         let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

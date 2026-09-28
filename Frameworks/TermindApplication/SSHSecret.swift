@@ -26,9 +26,11 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
     private struct Storage {
         var pointer: UnsafeMutableRawPointer
         var count: Int
+        var didZeroize: (@Sendable (UnsafeRawBufferPointer) -> Void)?
 
         func clearAndDeallocate() {
             _ = memset_s(pointer, count + 1, 0, count + 1)
+            didZeroize?(UnsafeRawBufferPointer(start: pointer, count: count + 1))
             pointer.deallocate()
         }
     }
@@ -62,6 +64,8 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
     }
 
     deinit { clear() }
+
+    public var byteCount: Int { lock.withLock { storage?.count ?? 0 } }
 
     public var isConsumed: Bool {
         lock.withLock { storage == nil }
@@ -99,6 +103,12 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
             })
         else { return }
         storage.clearAndDeallocate()
+    }
+
+    /// Internal test seam: observes the allocation only after memset_s and
+    /// before deallocation, never after the pointer has become invalid.
+    func observeZeroization(_ observer: @escaping @Sendable (UnsafeRawBufferPointer) -> Void) {
+        lock.withLock { storage?.didZeroize = observer }
     }
 
     private func take() throws -> Storage {

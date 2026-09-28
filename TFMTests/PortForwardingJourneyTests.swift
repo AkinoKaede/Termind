@@ -164,7 +164,8 @@ struct PortForwardingJourneyTests {
         #expect(credentials.controller.state(for: credentialRule.id) == .awaitingAuthentication)
     }
 
-    @Test func encryptedKeyPassphraseResumesPreparationInTheJourney() async throws {
+    @Test(arguments: [false, true])
+    func encryptedKeyPassphraseResumesPreparationInTheJourney(save: Bool) async throws {
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "forwarding", passphrase: "test-passphrase")
         let key = SSHKeyRef(
             label: "Encrypted", algorithm: .ed25519, publicKey: material.publicKey,
@@ -185,9 +186,10 @@ struct PortForwardingJourneyTests {
         #expect(prompt.requiresPassphrase)
         controller.submitAuthentication(
             for: rule.id, promptID: prompt.id, identityID: identity.id, username: "deploy",
-            password: nil, passphrase: "test-passphrase", keyID: key.id, save: false)
+            password: nil, passphrase: "test-passphrase", keyID: key.id, save: save)
         try await wait { controller.state(for: rule.id) == .running(activeConnections: 0) }
         #expect(!context.journey.plainTextLog.contains("test-passphrase"))
+        #expect(library.requiresPassphraseEntry(for: key) == !save)
     }
 
     @Test func savedCredentialsContinueTheExplicitOpeningWithoutStartingOtherRules() async throws {

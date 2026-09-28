@@ -149,7 +149,7 @@ struct SSHInteractionPolicyTests {
         #expect(password == "current-password")
     }
 
-    @Test func additionalResolutionSkipsPassphraseKeyAndUsesIdentityPassword() throws {
+    @Test func additionalResolutionChecksForSavedPassphraseAndUsesIdentityPassword() throws {
         let secrets = CountingSecretStore()
         let protectedKey = SSHKeyRef(
             label: "Encrypted", publicKey: "ssh-ed25519 public",
@@ -174,9 +174,9 @@ struct SSHInteractionPolicyTests {
         let request = try store.additionalConnectionRequest(
             from: SSHAdditionalConnectionSnapshot(target: node)
         )
-        #expect(secrets.keyReads == 0)
+        #expect(secrets.keyReads == 1)
         guard case .interactionRequired = request.configuration.credentials[0] else {
-            Issue.record("Passphrase key must remain unread")
+            Issue.record("A key without a saved passphrase must require interaction")
             return
         }
         guard case .password(let password) = request.configuration.credentials[1] else {

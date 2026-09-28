@@ -53,6 +53,8 @@ struct MobileKeyEditor: View {
                                 RevealableSecretField(AppStrings.Keychain.confirmPassphrase, text: $model.confirmation)
                                     .multilineTextAlignment(.trailing).disabled(model.passphrase.isEmpty)
                             }
+                            Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
+                                .disabled(model.passphrase.isEmpty)
                             if !model.passphrase.isEmpty {
                                 Picker(AppStrings.Keychain.cipher.swiftUIKey, selection: $model.cipher) {
                                     ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
@@ -106,6 +108,8 @@ struct MobileKeyEditor: View {
                             RevealableSecretField(AppStrings.Keychain.passphrase, text: $model.passphrase)
                                 .multilineTextAlignment(.leading)
                                 .disabled(!model.canEditPrivateKey)
+                            Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
+                                .disabled(!model.canEditPrivateKey || model.passphrase.isEmpty)
                         }
                     }
                 } else {
@@ -159,6 +163,7 @@ struct MobileKeyEditor: View {
         } message: {
             Text(fileError ?? "")
         }
+        .onDisappear { model.clearSensitiveDrafts() }
         .task { await model.loadPrivateKey() }
         .task(id: model.validationToken) { await model.derivePublicMaterial() }
     }

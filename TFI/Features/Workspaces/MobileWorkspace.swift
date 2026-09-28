@@ -387,10 +387,15 @@ final class MobileWorkspace: Identifiable {
             connect()
             return
         }
-        if authenticationPrompt?.requiresPassphrase == true, var staged = submissions[host.id] {
-            guard let passphrase, !passphrase.isEmpty else { return }
-            staged.passphrase = passphrase
-            submissions[host.id] = staged
+        if let prompt = authenticationPrompt, prompt.requiresPassphrase {
+            do {
+                submissions[host.id] = try hosts.passphraseSubmission(
+                    for: prompt, existing: submissions[host.id], passphrase: passphrase, save: save)
+            } catch {
+                connectionFailure = error.localizedDescription
+                authenticationPrompt?.failureMessage = error.localizedDescription
+                return
+            }
         } else {
             let chosenKey = identity?.keyID ?? keyID
             if save {
@@ -684,7 +689,7 @@ final class MobileWorkspace: Identifiable {
             return
         }
         if let passphraseHost = submissions.firstHostRequiringPassphrase(
-            in: route, key: hosts.key
+            in: route, key: hosts.key, requiresEntry: hosts.requiresPassphraseEntry
         ) {
             authenticationRequired = true
             authenticationMode = .localIdentity

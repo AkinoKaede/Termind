@@ -44,7 +44,10 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
         return try await withTaskCancellationHandler {
             let result = try await task.value
-            try Task.checkCancellation()
+            do { try Task.checkCancellation() } catch {
+                result.clearSecrets()
+                throw error
+            }
             return result
         } onCancel: {
             task.cancel()
@@ -58,10 +61,22 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
         var jumps: [SSHRouteHopConfiguration] = []
+        var completed = false
+        var resolvedCredentials: [SSHCredentials] = []
+        var resolvedProxies: [SSHSecret] = []
+        defer {
+            if !completed {
+                for credential in resolvedCredentials { credential.clearSecrets() }
+                for secret in resolvedProxies { secret.clear() }
+            }
+        }
         for (offset, node) in nodes.dropLast().enumerated() {
             do {
                 try Task.checkCancellation()
                 let material = try credentials(node)
+                resolvedCredentials += material.1
+                let resolvedProxy = try proxy(node)
+                if let password = resolvedProxy?.password { resolvedProxies.append(password) }
                 if trustPolicy == .requireKnownHost, node.trustedKeys.isEmpty {
                     throw TermindSSHError.untrustedHost
                 }
@@ -70,7 +85,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                         id: node.host.id, name: node.host.name, host: node.host.host, port: node.host.port,
                         username: material.0, credentials: material.1,
                         expectedHostKeys: node.trustedKeys,
-                        proxy: try proxy(node),
+                        proxy: resolvedProxy,
                         authenticationReference: authenticationReference(for: node)
                     ))
             } catch {
@@ -90,13 +105,17 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             discoveryOnly
             ? ("", [SSHCredentials]())
             : try credentials(target)
+        resolvedCredentials += material.1
+        let resolvedProxy = try proxy(target)
+        if let password = resolvedProxy?.password { resolvedProxies.append(password) }
         if !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty {
             throw TermindSSHError.untrustedHost
         }
+        completed = true
         return SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
-            proxy: try proxy(target), jumps: jumps,
+            proxy: resolvedProxy, jumps: jumps,
             charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
@@ -126,11 +145,10 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
         var result: [SSHCredentials] = []
+        var completed = false
+        defer { if !completed { for credential in result { credential.clearSecrets() } } }
         var retrievalFailure: (any Error)?
         if let key = node.key {
-            if key.requiresPassphraseEntry, node.submission?.hasPassphrase != true {
-                throw TermindSSHError.keyPassphraseRequired
-            }
             let stored: SSHResolvedKeyCredential?
             do {
                 stored = try secrets.sshKeyCredential(for: key.credentialRef, storage: key.storage)
@@ -139,6 +157,10 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 retrievalFailure = error
             }
             if let stored {
+                if key.hasPassphrase, !stored.hasSavedPassphrase, node.submission?.hasPassphrase != true {
+                    stored.clearSecrets()
+                    throw TermindSSHError.keyPassphraseRequired
+                }
                 result.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
@@ -169,6 +191,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         if result.isEmpty, node.key != nil || (usesIdentity && node.identity?.hasSecret == true) {
             throw TermindSSHError.missingCredential
         }
+        completed = true
         return (username, result)
     }
 
