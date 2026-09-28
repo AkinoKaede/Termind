@@ -8,6 +8,71 @@ import Testing
 
 @Suite @MainActor
 struct CloudSyncLifecycleTests {
+    @Test(arguments: ["start", "retry", "localChanges"])
+    func synchronizationDoesNotInheritDelegateTaskContext(trigger: String) async throws {
+        let fixture = LifecycleFixture()
+        defer { fixture.driver.pause() }
+        let engine = fixture.network.nextEngine
+        if trigger != "start" {
+            fixture.driver.start()
+            await fixture.driver.operation?.value
+        }
+        var fetchContexts: [Bool] = []
+        var sendContexts: [Bool] = []
+        engine.fetchBody = { fetchContexts.append(LifecycleDelegateContext.isHandlingEvent) }
+        engine.sendBody = { sendContexts.append(LifecycleDelegateContext.isHandlingEvent) }
+
+        LifecycleDelegateContext.$isHandlingEvent.withValue(true) {
+            switch trigger {
+            case "start": fixture.driver.start()
+            case "retry": fixture.driver.retry()
+            default:
+                fixture.driver.handle(
+                    .fetchedRecordZoneChanges(records: [], deletions: []), engine: engine,
+                    receiveRemoteRecords: { _, _ in
+                        fixture.journal.pending.append("host-identity-change")
+                        fixture.driver.noteLocalChanges(["host-identity-change"])
+                    }, handleSentChanges: { _ in })
+            }
+        }
+        let operation = try #require(fixture.driver.operation)
+        await operation.value
+
+        #expect(fetchContexts == (trigger == "localChanges" ? [] : [false]))
+        #expect(sendContexts == [false])
+        #expect(fixture.driver.isReadyToSend)
+        if trigger == "localChanges" {
+            #expect(engine.queued.contains("host-identity-change"))
+        }
+    }
+
+    @Test
+    func accountChangeCancelsEngineOutsideDelegateTaskContext() async {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let engine = fixture.network.nextEngine
+        let gate = LifecycleGate()
+        var cancellationContext: Bool?
+        engine.cancelBody = {
+            cancellationContext = LifecycleDelegateContext.isHandlingEvent
+            try? await gate.suspend()
+        }
+
+        LifecycleDelegateContext.$isHandlingEvent.withValue(true) {
+            fixture.driver.handle(
+                .accountChange(.signOut(previousUser: .init(recordName: "current-user"))), engine: engine,
+                receiveRemoteRecords: { _, _ in }, handleSentChanges: { _ in })
+        }
+        await gate.waitUntilEntered()
+        gate.resume()
+
+        #expect(cancellationContext == false)
+        #expect(engine.cancelCount == 1)
+        #expect(fixture.driver.engine == nil)
+        #expect(fixture.driver.status == .signInRequired)
+    }
+
     @Test
     func mixedSaveAndDeleteBatchesShareTheRequestLimitAndRejectUnjournaledDeletes() async throws {
         let fixture = LifecycleFixture()
@@ -680,6 +745,7 @@ final class LifecycleEngine: CloudSyncEngineSession {
     var cancelCount = 0
     var fetchBody: () async throws -> Void = {}
     var sendBody: () async throws -> Void = {}
+    var cancelBody: () async -> Void = {}
     func fetch(in zoneID: CKRecordZone.ID) async throws {
         fetchCount += 1
         try await fetchBody()
@@ -688,7 +754,10 @@ final class LifecycleEngine: CloudSyncEngineSession {
         sendCount += 1
         try await sendBody()
     }
-    func cancel() async { cancelCount += 1 }
+    func cancel() async {
+        cancelCount += 1
+        await cancelBody()
+    }
     func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID) {
         pendingChanges.removeAll { change in
             switch change {
@@ -732,6 +801,10 @@ final class LifecycleEngine: CloudSyncEngineSession {
             return id.recordName
         }
     }
+}
+
+private enum LifecycleDelegateContext {
+    @TaskLocal static var isHandlingEvent = false
 }
 
 @MainActor

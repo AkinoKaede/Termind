@@ -295,7 +295,10 @@ final class CloudSyncLifecycle {
         guard operation == nil else { return }
         let id = UUID()
         operationID = id
-        operation = Task { [weak self] in
+        // Delegate callbacks can schedule follow-up sync work. A regular Task inherits
+        // CloudKit's task-local callback context, making fetch/send trap even after
+        // the callback returns. Detach that context while retaining MainActor isolation.
+        operation = Task.detached { @MainActor @Sendable [weak self] in
             defer { if self?.operationID == id { self?.operation = nil } }
             do { try await body() } catch is CancellationError {} catch {
                 guard let self, self.operationID == id else { return }
@@ -681,7 +684,8 @@ extension CloudSyncLifecycle {
         inventorySeen.removeAll()
         let activeEngine = engine
         engine = nil
-        if let activeEngine { Task { await activeEngine.cancel() } }
+        // Account changes and failures can retire an engine from its delegate, too.
+        if let activeEngine { Task.detached { @MainActor @Sendable in await activeEngine.cancel() } }
     }
 
     func handleZoneDeletion() throws {
