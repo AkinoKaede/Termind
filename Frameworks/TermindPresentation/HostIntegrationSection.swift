@@ -71,8 +71,6 @@ public struct HostSessionSection: View {
             .menuOrder(.fixed)
             Toggle(isOn: $agentForwardingEnabled) {
                 Text(AppStrings.Connections.agentForwarding)
-                Text(AppStrings.Connections.agentForwardingDescription)
-                    .font(.caption).foregroundStyle(.secondary)
             }
             LabeledContent("SFTP Initial Path") {
                 TextField("SFTP Initial Path", text: $sftpInitialPath.singleLineText, prompt: Text("~"))

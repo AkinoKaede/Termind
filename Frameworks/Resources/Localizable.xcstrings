@@ -3200,29 +3200,6 @@
         }
       }
     },
-    "Allow this host to request signatures using all keys in Termind. Private keys stay on this device." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow this host to request signatures using all keys in Termind. Private keys stay on this device."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许此主机请求使用Termind中的全部密钥签名。私钥保留在此设备上。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允許此主機要求使用Termind中的所有金鑰簽署。私密金鑰保留在此裝置上。"
-          }
-        }
-      }
-    },
     "Already imported" : {
       "extractionState" : "manual",
       "localizations" : {
