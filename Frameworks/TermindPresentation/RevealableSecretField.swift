@@ -20,6 +20,24 @@ public struct RevealableSecretField: View {
     }
 
     public var body: some View {
+        Group {
+            #if os(macOS)
+                LabeledContent {
+                    input
+                } label: {
+                    Text(title)
+                }
+            #else
+                input
+            #endif
+        }
+        .onDisappear { isRevealed = false }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { isRevealed = false }
+        }
+    }
+
+    private var input: some View {
         HStack(spacing: 6) {
             Group {
                 if isRevealed {
@@ -28,6 +46,8 @@ public struct RevealableSecretField: View {
                     SecureField(title, text: $text, prompt: prompt)
                 }
             }
+            .textFieldStyle(.plain)
+            .labelsHidden()
 
             Button {
                 isRevealed.toggle()
@@ -40,9 +60,8 @@ public struct RevealableSecretField: View {
             .accessibilityLabel(
                 isRevealed ? Text(AppStrings.Settings.hideSecret) : Text(AppStrings.Settings.showSecret))
         }
-        .onDisappear { isRevealed = false }
-        .onChange(of: scenePhase) { _, phase in
-            if phase != .active { isRevealed = false }
-        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 6))
     }
 }
