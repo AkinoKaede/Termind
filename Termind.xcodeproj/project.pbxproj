@@ -2781,14 +2781,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AkinoKaede/libssh2-spm.git";
-			requirement = {
-				kind = exactVersion;
-				version = "2.0.3-termind-1";
-			};
-		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
@@ -2811,6 +2803,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.15.1;
+			};
+		};
+		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AkinoKaede/libssh2-spm.git";
+			requirement = {
+				kind = exactVersion;
+				version = "2.0.3-termind-1";
 			};
 		};
 		TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {

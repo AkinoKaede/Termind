@@ -27,15 +27,15 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSUserActivityTypes</key>
-	<array>
-		<string>com.akinokaede.termind.open-workspace</string>
-	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.akinokaede.termind.open-workspace</string>
+	</array>
 	<key>TermindCloudKitEnvironment</key>
 	<string>$(ICLOUD_CONTAINER_ENVIRONMENT)</string>
 	<key>TermindKeychainAccessGroup</key>
