@@ -32,7 +32,7 @@ struct MobileVaultFeatureTests {
             return credential
         }
         let key = try #require(app.credentials.keys.first { $0.label == "YubiKey" })
-        #expect(key.algorithm == .securityKey && key.storage == .thisDevice)
+        #expect(key.algorithm == .securityKey && key.storage == .external)
         #expect(key.colorTag == .blue && !key.hasPassphrase)
         #expect(key.securityKey == credential)
     }

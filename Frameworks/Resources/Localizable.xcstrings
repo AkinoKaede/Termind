@@ -19842,6 +19842,29 @@
         }
       }
     },
+    "Paste a WebAuthn credential reference." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste a WebAuthn credential reference."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴WebAuthn凭据引用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼上WebAuthn憑證參照。"
+          }
+        }
+      }
+    },
     "Paste a private key, or drag one in" : {
       "comment" : "The prompt shown in an empty private key editor.",
       "extractionState" : "manual",
@@ -19856,29 +19879,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "貼上私密金鑰，或將檔案拖到這裡"
-          }
-        }
-      }
-    },
-    "Paste a security key credential reference." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste a security key credential reference."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "粘贴安全密钥凭据引用。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "貼上安全金鑰憑證參照。"
           }
         }
       }
@@ -28059,6 +28059,75 @@
         }
       }
     },
+    "The WebAuthn credential reference is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The WebAuthn credential reference is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebAuthn凭据引用无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebAuthn憑證參照無效。"
+          }
+        }
+      }
+    },
+    "The WebAuthn response could not be verified." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The WebAuthn response could not be verified."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证WebAuthn响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法驗證WebAuthn回應。"
+          }
+        }
+      }
+    },
+    "The WebAuthn response is not compatible with SSH." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The WebAuthn response is not compatible with SSH."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebAuthn响应与SSH不兼容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebAuthn回應與SSH不相容。"
+          }
+        }
+      }
+    },
     "The Workspace template is invalid." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29314,75 +29383,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這台Mac上無法使用已儲存的密碼。更改儲存方式前請重新輸入。"
-          }
-        }
-      }
-    },
-    "The security key reference is invalid." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The security key reference is invalid."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全密钥引用无效。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全金鑰參照無效。"
-          }
-        }
-      }
-    },
-    "The security key response could not be verified." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The security key response could not be verified."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法验证安全密钥响应。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無法驗證安全金鑰回應。"
-          }
-        }
-      }
-    },
-    "The security key response is not compatible with SSH." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The security key response is not compatible with SSH."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全密钥响应与SSH不兼容。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全金鑰回應與SSH不相容。"
           }
         }
       }

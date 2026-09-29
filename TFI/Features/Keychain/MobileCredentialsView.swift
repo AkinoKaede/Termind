@@ -342,6 +342,7 @@ extension KeyStorage {
         case .thisDevice: String(localized: AppStrings.Keychain.thisDevice)
         case .iCloud: String(localized: AppStrings.Keychain.iCloud)
         case .secureEnclave: String(localized: AppStrings.Keychain.secureEnclave)
+        case .external: String(localized: AppStrings.SecurityKey.title)
         }
     }
 
@@ -350,6 +351,7 @@ extension KeyStorage {
         case .thisDevice: "ipad.and.iphone"
         case .iCloud: "icloud.fill"
         case .secureEnclave: "checkmark.shield.fill"
+        case .external: "key.radiowaves.forward.fill"
         }
     }
 }

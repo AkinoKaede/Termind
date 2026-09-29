@@ -6,12 +6,12 @@ extension AppStrings {
         public static var required: LocalizedStringResource { "Required" }
         public static var preferred: LocalizedStringResource { "Preferred" }
         public static var discouraged: LocalizedStringResource { "Discouraged" }
-        public static var invalidCredential: LocalizedStringResource { "The security key reference is invalid." }
+        public static var invalidCredential: LocalizedStringResource { "The WebAuthn credential reference is invalid." }
         public static var invalidResponse: LocalizedStringResource {
-            "The security key response could not be verified."
+            "The WebAuthn response could not be verified."
         }
         public static var unsupportedResponse: LocalizedStringResource {
-            "The security key response is not compatible with SSH."
+            "The WebAuthn response is not compatible with SSH."
         }
         public static var publicKeyRejected: LocalizedStringResource {
             "The server rejected the username or public key. Check the login user and the key in authorized_keys."
@@ -23,7 +23,7 @@ extension AppStrings {
         public static var verification: LocalizedStringResource { "User Verification" }
         public static var reference: LocalizedStringResource { "Reference" }
         public static var importHelp: LocalizedStringResource {
-            "Paste a security key credential reference."
+            "Paste a WebAuthn credential reference."
         }
     }
 }

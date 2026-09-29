@@ -2,7 +2,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 
-/// WebAuthn selects the authenticator without introducing another persistence storage type.
+/// Keeps the software storage selection while the user switches to an external authenticator.
 public struct KeyCreationStoragePicker: View {
     @Binding private var storage: KeyStorage
     @Binding private var usesWebAuthn: Bool
@@ -25,31 +25,31 @@ public struct KeyCreationStoragePicker: View {
         Picker(AppStrings.Keychain.storeIn.swiftUIKey, selection: selection) {
             #if os(macOS)
                 Label(AppStrings.Keychain.thisMac.swiftUIKey, systemImage: "lock.laptopcomputer")
-                    .tag(KeyStorage.thisDevice as KeyStorage?)
+                    .tag(KeyStorage.thisDevice)
             #else
                 Label(AppStrings.Keychain.thisDevice.swiftUIKey, systemImage: "ipad.and.iphone")
-                    .tag(KeyStorage.thisDevice as KeyStorage?)
+                    .tag(KeyStorage.thisDevice)
             #endif
             Label(AppStrings.Keychain.iCloud.swiftUIKey, systemImage: "icloud.fill")
-                .tag(KeyStorage.iCloud as KeyStorage?)
+                .tag(KeyStorage.iCloud)
             if allowsSecureEnclave {
                 Label(AppStrings.Keychain.secureEnclave.swiftUIKey, systemImage: "checkmark.shield.fill")
-                    .tag(KeyStorage.secureEnclave as KeyStorage?)
+                    .tag(KeyStorage.secureEnclave)
                     .disabled(!secureEnclaveAvailable)
             }
             if allowsWebAuthn {
                 Label(AppStrings.SecurityKey.title.swiftUIKey, systemImage: "key.radiowaves.forward.fill")
-                    .tag(nil as KeyStorage?)
+                    .tag(KeyStorage.external)
             }
         }
     }
 
-    private var selection: Binding<KeyStorage?> {
+    private var selection: Binding<KeyStorage> {
         Binding(
-            get: { usesWebAuthn ? nil : storage },
+            get: { usesWebAuthn ? .external : storage },
             set: { value in
-                usesWebAuthn = value == nil
-                if let value { storage = value }
+                usesWebAuthn = value == .external
+                if value != .external { storage = value }
             })
     }
 }

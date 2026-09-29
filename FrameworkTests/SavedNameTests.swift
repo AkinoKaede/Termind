@@ -80,6 +80,7 @@ struct SavedNameTests {
     func keyHintsMatchPersistedAlgorithmAndStorageDefaults(_ algorithm: SSHKeyAlgorithm, _ storage: KeyStorage) throws {
         let library = HostLibraryModel()
         if algorithm == .securityKey, storage == .secureEnclave { return }
+        if algorithm != .securityKey, storage == .external { return }
         var key = SSHKeyRef(label: " \n", algorithm: algorithm, storage: storage)
         if algorithm == .securityKey {
             key.securityKey = SecurityKeyCredential(

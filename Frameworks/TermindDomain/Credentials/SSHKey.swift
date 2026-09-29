@@ -4,6 +4,8 @@ public nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIte
     case thisDevice
     case iCloud
     case secureEnclave
+    /// Private key material is held by an authenticator outside this device, such as a USB or NFC security key.
+    case external
 
     public var id: String { rawValue }
 
@@ -93,5 +95,6 @@ nonisolated extension SSHKeyRef {
             colorTag: (try? container.decode(TagColor.self, forKey: .colorTag)) ?? .none,
             sortIndex: try container.decode(Double.self, forKey: .sortIndex)
         )
+        if algorithm == .securityKey { storage = .external }
     }
 }

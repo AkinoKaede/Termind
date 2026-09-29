@@ -133,7 +133,8 @@ nonisolated enum VaultWireV2 {
             self.certificate = value.certificate
             self.fingerprint = value.fingerprint
             self.credentialRef = value.credentialRef
-            self.storage = KeyStorage(rawValue: value.storage.rawValue)!
+            // V2 used thisDevice for external authenticators. Preserve its frozen wire vocabulary.
+            self.storage = value.storage == .external ? .thisDevice : KeyStorage(rawValue: value.storage.rawValue)!
             self.keySize = value.keySize
             self.hasPassphrase = value.hasPassphrase
             self.requiresUserPresence = value.requiresUserPresence
@@ -151,7 +152,8 @@ nonisolated enum VaultWireV2 {
             result.certificate = certificate
             result.fingerprint = fingerprint
             result.credentialRef = credentialRef
-            result.storage = TermindDomain.KeyStorage(rawValue: storage.rawValue)!
+            result.storage =
+                algorithm == .securityKey ? .external : TermindDomain.KeyStorage(rawValue: storage.rawValue)!
             result.keySize = keySize
             result.hasPassphrase = hasPassphrase
             result.requiresUserPresence = requiresUserPresence
@@ -179,6 +181,9 @@ nonisolated enum VaultWireV2 {
             if case .host(let host) = envelope.payload {
                 payload = .host(try Host(host))
             } else if case .sshKey(let key) = envelope.payload {
+                guard key.storage != .external || key.algorithm == .securityKey else {
+                    throw CocoaError(.coderInvalidValue)
+                }
                 payload = .sshKey(SSHKeyRef(key))
             } else if envelope.payload == nil {
                 payload = nil

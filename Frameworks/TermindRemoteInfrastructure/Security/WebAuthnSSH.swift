@@ -10,9 +10,9 @@ public nonisolated enum WebAuthnSSH {
 
         public var errorDescription: String? {
             switch self {
-            case .invalidCredential: String(localized: "The security key reference is invalid.")
-            case .invalidResponse: String(localized: "The security key response could not be verified.")
-            case .unsupportedResponse: String(localized: "The security key response is not compatible with SSH.")
+            case .invalidCredential: String(localized: "The WebAuthn credential reference is invalid.")
+            case .invalidResponse: String(localized: "The WebAuthn response could not be verified.")
+            case .unsupportedResponse: String(localized: "The WebAuthn response is not compatible with SSH.")
             }
         }
     }
@@ -73,7 +73,7 @@ public nonisolated enum WebAuthnSSH {
         return SSHKeyRef(
             label: label, algorithm: .securityKey,
             publicKey: "\(algorithm) \(blob.base64EncodedString())", fingerprint: SSHWireEncoding.fingerprint(of: blob),
-            storage: .thisDevice, securityKey: credential, keySize: 256,
+            storage: .external, securityKey: credential, keySize: 256,
             requiresUserPresence: credential.requiresUserPresence, createdAt: .now, colorTag: colorTag)
     }
 

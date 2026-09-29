@@ -97,6 +97,8 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         else { return nil }
         defer { SecretMemory.clear(&data) }
         switch storage {
+        case .external:
+            throw KeychainSecretError.unexpectedValue
         case .thisDevice, .iCloud:
             return .software(try JSONDecoder().decode(SSHPrivateKeySecret.self, from: data))
         case .secureEnclave:
@@ -125,6 +127,8 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         else { return nil }
         defer { SecretMemory.clear(&data) }
         switch storage {
+        case .external:
+            throw KeychainSecretError.unexpectedValue
         case .thisDevice, .iCloud:
             return try Self.decodeKeySecrets(from: &data)
         case .secureEnclave:
@@ -471,8 +475,10 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         ]
     }
 
-    private func service(for storage: KeyStorage) -> String {
+    private func service(for storage: KeyStorage) throws -> String {
         switch storage {
+        case .external:
+            throw KeychainSecretError.unexpectedValue
         case .thisDevice, .iCloud: Self.softwareKeyService
         case .secureEnclave: Self.enclaveService
         }

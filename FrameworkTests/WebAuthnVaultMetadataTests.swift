@@ -10,7 +10,7 @@ struct WebAuthnVaultMetadataTests {
     private func key() -> SSHKeyRef {
         SSHKeyRef(
             label: "", algorithm: .securityKey, publicKey: "public-key", fingerprint: "SHA256:metadata",
-            storage: .thisDevice,
+            storage: .external,
             securityKey: SecurityKeyCredential(
                 credentialID: Data([1, 2, 3]), publicKeyX963: Data([4]) + Data(repeating: 7, count: 64),
                 userVerification: .preferred), keySize: 256, requiresUserPresence: true)
@@ -46,10 +46,12 @@ struct WebAuthnVaultMetadataTests {
         try library.upsert(draft)
         let saved = try #require(library.key(draft.id))
         #expect(saved.label == "Security Key" && saved.credentialRef.isEmpty)
+        #expect(saved.storage == .external)
         #expect(library.keyAvailability(for: saved) == .available)
         #expect(try library.keyCredential(for: saved) == nil)
         let reloaded = try #require(try persistence.load().keys.first)
         #expect(reloaded.securityKey == draft.securityKey)
+        #expect(reloaded.storage == .external)
         let payload = VaultRecordPayload.sshKey(reloaded)
         let envelope = VaultEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
         #expect(envelope.formatVersion == 2)
@@ -60,6 +62,7 @@ struct WebAuthnVaultMetadataTests {
         _ = try remote.applyRemote([decoded])
         let remoteLibrary = HostLibraryModel(persistence: remote, secrets: NoKeychain())
         var synced = try #require(remoteLibrary.key(saved.id))
+        #expect(synced.storage == .external)
         guard case .securityKey(let resolved)? = try remoteLibrary.keySecretCredential(for: synced) else {
             Issue.record("Expected a Vault hardware reference")
             return
@@ -70,6 +73,49 @@ struct WebAuthnVaultMetadataTests {
         #expect(try remote.load().keys.first?.securityKey?.userVerification == .required)
         try remoteLibrary.delete(keyID: synced.id)
         #expect(try remote.load().keys.isEmpty)
+    }
+
+    @Test(arguments: [KeyStorage.thisDevice, .iCloud])
+    func legacyHardwareStorageLoadsAsExternal(_ storage: KeyStorage) throws {
+        var legacy = key()
+        legacy.storage = storage
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let row = TermindSchemaV45KeyModels.PersistentSSHKey(legacy)
+        container.mainContext.insert(row)
+        try container.mainContext.save()
+        let persistence = HostPersistence(context: container.mainContext)
+        let restored = try #require(try persistence.load().keys.first)
+        #expect(restored.storage == .external)
+        #expect(restored.securityKey == legacy.securityKey)
+        #expect(try JSONDecoder().decode(SSHKeyRef.self, from: JSONEncoder().encode(legacy)).storage == .external)
+        let library = HostLibraryModel(secrets: NoKeychain())
+        try library.upsert(legacy)
+        #expect(library.key(legacy.id)?.storage == .external)
+    }
+
+    @Test func externalHardwareRetainsCompatibleVaultWireStorage() throws {
+        let payload = VaultRecordPayload.sshKey(key())
+        let envelope = VaultEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
+        let data = try VaultSyncCodec.encode(envelope)
+        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let payloadJSON = try #require(json["payload"] as? [String: Any])
+        let keyJSON = try #require(payloadJSON["sshKey"] as? [String: Any])
+        let fields = try #require(keyJSON["_0"] as? [String: Any])
+        #expect(fields["storage"] as? String == "thisDevice")
+        #expect(try VaultSyncCodec.decode(data).payload == payload)
+    }
+
+    @Test func softwareKeysCannotUseExternalStorage() throws {
+        let software = SSHKeyRef(label: "Invalid", storage: .external)
+        let library = HostLibraryModel(secrets: NoKeychain())
+        #expect(throws: (any Error).self) { try library.upsert(software) }
+        #expect(library.keys.isEmpty)
+        let payload = VaultRecordPayload.sshKey(software)
+        for version in [1, 2] {
+            let envelope = VaultEnvelope(
+                key: payload.key, version: .baseline(writerID: UUID()), payload: payload, formatVersion: version)
+            #expect(throws: (any Error).self) { try VaultSyncCodec.encode(envelope) }
+        }
     }
 
     @Test func failedMetadataWritesAndDeletesRollBackWithoutKeychain() throws {

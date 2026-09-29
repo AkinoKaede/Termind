@@ -1462,7 +1462,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 previousKey == nil || previousKey?.algorithm == .securityKey
             else { throw CocoaError(.coderInvalidValue) }
             key.credentialRef = ""
-            key.storage = .thisDevice
+            key.storage = .external
             key.hasPassphrase = false
             key.requiresUserPresence = reference.requiresUserPresence
             let snapshot = keys
@@ -1480,7 +1480,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             keyCredentialRevision &+= 1
             return
         }
-        guard key.securityKey == nil else { throw CocoaError(.coderInvalidValue) }
+        guard key.securityKey == nil, key.storage != .external else { throw CocoaError(.coderInvalidValue) }
         if previousKey?.storage == .iCloud, key.storage == .thisDevice {
             throw TermindSSHError.library(
                 String(localized: "iCloud credentials cannot be moved to This Device.")

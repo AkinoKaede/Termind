@@ -62,7 +62,8 @@ public enum TermindSchemaV45KeyModels {
                 algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
                 publicKey: publicKey, certificate: certificate, fingerprint: fingerprint,
                 credentialRef: credentialRef,
-                storage: KeyStorage(rawValue: storage) ?? .iCloud,
+                storage: algorithm == SSHKeyAlgorithm.securityKey.rawValue
+                    ? .external : KeyStorage(rawValue: storage) ?? .iCloud,
                 securityKey: securityKey,
                 keySize: keySize, hasPassphrase: hasPassphrase,
                 requiresUserPresence: requiresUserPresence, createdAt: createdAt,

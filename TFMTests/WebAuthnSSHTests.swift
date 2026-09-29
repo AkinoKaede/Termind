@@ -98,7 +98,30 @@ struct WebAuthnSSHTests {
         #expect(throws: (any Error).self) { try WebAuthnSSH.importReference("-----BEGIN OPENSSH PRIVATE KEY-----") }
         let key = try WebAuthnSSH.keyReference(credential, label: "Fixture")
         #expect(key.algorithm == .securityKey && key.requiresUserPresence)
+        #expect(key.storage == .external)
         #expect(SSHImportParser.validPublicKey(try WebAuthnSSH.publicBlob(credential), algorithm: .securityKey))
+    }
+
+    @Test func externalStorageNeverAccessesKeychainItems() throws {
+        let store = KeychainSecretStore(accessGroup: "invalid.test.group")
+        let account = "termind.key.external-test"
+        let operations: [() throws -> Void] = [
+            { _ = try store.keyCredential(for: account, storage: .external) },
+            { _ = try store.sshKeyCredential(for: account, storage: .external) },
+            { _ = try store.containsKeyCredential(for: account, storage: .external) },
+            { try store.setKeyCredential(nil, for: account, storage: .external) },
+            { try store.removeKeyCredential(account, storage: .external) },
+        ]
+        for operation in operations {
+            do {
+                try operation()
+                Issue.record("External authenticator storage must reject Keychain access")
+            } catch KeychainSecretError.unexpectedValue {
+                // A Keychain status error would mean the storage boundary was crossed.
+            } catch {
+                Issue.record("Unexpected error: \(error)")
+            }
+        }
     }
 
     @Test func credentialEnvelopesPreserveLegacySoftwareKeys() throws {
