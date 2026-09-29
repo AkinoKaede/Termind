@@ -1343,20 +1343,10 @@ private struct ConnectionHistorySidebar: View {
             }
             .layoutPriority(1)
         }
-        .onTapGesture(count: 2) {
-            let target: HostOpenTarget =
-                switch entry.kind {
-                case .ssh: .sshSession
-                case .telnet: .telnetSession
-                case .sftp: .sftpChannel
-                }
-            app.open(
-                host,
-                as: target,
-                in: window
-            )
+        .onTapGesture {
+            selectedID = entry.id
+            reopen(entry, host: host)
         }
-        .onTapGesture { selectedID = entry.id }
         .termindSidebarRow(isSelected: selectedID == entry.id) {
             HostMenuEntries.entries(
                 for: host, app: app, window: window, includesCopySSHCommand: false
@@ -1374,6 +1364,16 @@ private struct ConnectionHistorySidebar: View {
                 ) { confirmsClear = true },
             ]
         }
+    }
+
+    private func reopen(_ entry: ConnectionHistoryEntry, host: Host) {
+        let target: HostOpenTarget =
+            switch entry.kind {
+            case .ssh: .sshSession
+            case .telnet: .telnetSession
+            case .sftp: .sftpChannel
+            }
+        app.open(host, as: target, in: window)
     }
 }
 
