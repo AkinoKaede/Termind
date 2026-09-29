@@ -14,6 +14,10 @@ public final class SecurityKeyEditorModel {
     public private(set) var isSaving = false
     public var canSave: Bool { originalCredential != nil && !isSaving }
     public let existing: SSHKeyRef
+    public var isDirty: Bool {
+        label != existing.label || colorTag != existing.colorTag
+            || verification != (originalCredential?.userVerification ?? .preferred)
+    }
 
     private var originalCredential: SecurityKeyCredential?
     private let exportReference: (SecurityKeyCredential) throws -> String
@@ -43,21 +47,26 @@ public final class SecurityKeyEditorModel {
         } catch { self.error = error.localizedDescription }
     }
 
-    public func save() async -> Bool {
-        guard !isSaving else { return false }
+    /// Throws so native editor containers can retain the draft and present save failures.
+    public func saveChanges() async throws {
+        guard !isSaving else { throw CancellationError() }
         isSaving = true
-        error = nil
         defer { isSaving = false }
+        guard var credential = originalCredential else { throw TermindSSHError.missingCredential }
+        credential.userVerification = verification
+        try validate(credential)
+        try Task.checkCancellation()
+        var key = existing
+        key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        key.colorTag = colorTag
+        key.securityKey = credential
+        try persist(key)
+    }
+
+    public func save() async -> Bool {
+        error = nil
         do {
-            guard var credential = originalCredential else { throw TermindSSHError.missingCredential }
-            credential.userVerification = verification
-            try validate(credential)
-            try Task.checkCancellation()
-            var key = existing
-            key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
-            key.colorTag = colorTag
-            key.securityKey = credential
-            try persist(key)
+            try await saveChanges()
             return true
         } catch is CancellationError {
         } catch {

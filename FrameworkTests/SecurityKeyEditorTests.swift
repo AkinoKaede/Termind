@@ -74,6 +74,46 @@ struct SecurityKeyEditorTests {
         #expect(!persisted)
     }
 
+    @Test func dirtyStateTracksEachEditableFieldAndRevertingChanges() {
+        let existing = SSHKeyRef(label: "Key", securityKey: credential)
+        let model = SecurityKeyEditorModel(
+            existing: existing, exportReference: { _ in "reference" }, validate: { _ in }, persist: { _ in })
+        model.load()
+        #expect(!model.isDirty)
+        model.label = "Renamed"
+        #expect(model.isDirty)
+        model.label = existing.label
+        #expect(!model.isDirty)
+        model.colorTag = .purple
+        #expect(model.isDirty)
+        model.colorTag = existing.colorTag
+        #expect(!model.isDirty)
+        model.verification = .required
+        #expect(model.isDirty)
+        model.verification = credential.userVerification
+        #expect(!model.isDirty)
+    }
+
+    @Test func nativeEditorReceivesSaveFailuresAndCanRetryTheSameDraft() async throws {
+        var shouldFail = true
+        var persisted: SSHKeyRef?
+        let model = SecurityKeyEditorModel(
+            existing: SSHKeyRef(label: "Key", securityKey: credential),
+            exportReference: { _ in "reference" }, validate: { _ in },
+            persist: {
+                if shouldFail { throw EditFailure() }
+                persisted = $0
+            })
+        model.load()
+        model.label = "Renamed"
+        await #expect(throws: EditFailure.self) { try await model.saveChanges() }
+        #expect(persisted == nil && model.isDirty && model.canSave)
+        #expect(model.label == "Renamed")
+        shouldFail = false
+        try await model.saveChanges()
+        #expect(persisted?.label == "Renamed")
+    }
+
     private struct EditFailure: LocalizedError {
         var errorDescription: String? { "Fixture edit failure" }
     }

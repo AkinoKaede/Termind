@@ -23,25 +23,7 @@ public struct SecurityKeyEditorForm: View {
     public var body: some View {
         VStack(spacing: 0) {
             Form {
-                Section {
-                    Label(AppStrings.SecurityKey.title.swiftUIKey, systemImage: "key.radiowaves.forward.fill").font(
-                        .headline)
-                    VaultNameField(text: $model.label, prompt: Text(AppStrings.SecurityKey.title))
-                    VaultColorField(selection: $model.colorTag)
-                }
-                Section(AppStrings.SecurityKey.reference.swiftUIKey) {
-                    LabeledContent(AppStrings.Keychain.storeIn.swiftUIKey) {
-                        Label(AppStrings.SecurityKey.title.swiftUIKey, systemImage: "key.radiowaves.forward.fill")
-                    }
-                    WebAuthnVerificationPicker(selection: $model.verification)
-                    if !model.reference.isEmpty {
-                        Text(model.reference).font(.caption.monospaced()).textSelection(.enabled)
-                    }
-                }
-                Section(AppStrings.Keychain.publicKey.swiftUIKey) {
-                    Text(model.existing.publicKey).font(.caption.monospaced()).textSelection(.enabled)
-                }
-                if let error = model.error { Text(error).foregroundStyle(.red) }
+                SecurityKeyEditorSections(model: model, showsTitle: true)
             }
             .formStyle(.grouped)
             HStack {

@@ -152,6 +152,7 @@ struct MobileKeyEditor: View {
                     Section(AppStrings.Keychain.secureEnclave.swiftUIKey) {
                         LabeledContent(AppStrings.Keychain.storeIn.swiftUIKey) {
                             Label(AppStrings.Keychain.secureEnclave.swiftUIKey, systemImage: "checkmark.shield.fill")
+                                .labelStyle(.titleAndIcon)
                         }
                     }
                 }

@@ -5,18 +5,21 @@ import TermindPresentation
 import TermindRemoteInfrastructure
 
 struct SecurityKeyEditor: View {
-    let credentials: CredentialLibraryModel
-    let existing: SSHKeyRef
-    var close: (() -> Void)? = nil
-    @Environment(\.dismiss) private var dismiss
+    @State private var model: SecurityKeyEditorModel
 
-    var body: some View {
-        SecurityKeyEditorForm(
+    init(credentials: CredentialLibraryModel, existing: SSHKeyRef) {
+        let model = SecurityKeyEditorModel(
             existing: existing, exportReference: WebAuthnSSH.exportReference, validate: WebAuthnSSH.validate,
-            persist: { try credentials.upsert($0) }, close: finish)
+            persist: { try credentials.upsert($0) })
+        model.load()
+        _model = State(initialValue: model)
     }
 
-    private func finish() {
-        if let close { close() } else { dismiss() }
+    var body: some View {
+        MobileEditorSheet(
+            title: String(localized: AppStrings.Keychain.editKey),
+            isDirty: model.isDirty, canSave: model.canSave,
+            save: { try await model.saveChanges() },
+            content: { SecurityKeyEditorSections(model: model) })
     }
 }
