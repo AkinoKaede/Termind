@@ -327,6 +327,7 @@ struct MetricsDevicePicker: View {
 struct MetricsMenuView: View {
     let model: ServerMetricsModel
     let openMetrics: () -> Void
+    let openDetails: (UUID) -> Void
 
     static func preferredSize(serverCount: Int) -> CGSize {
         CGSize(width: 380, height: serverCount == 0 ? 140 : min(520, serverCount * 118 + max(0, serverCount - 1)) + 49)
@@ -358,7 +359,16 @@ struct MetricsMenuView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(model.servers) { server in
-                            MetricsMenuRow(server: server, sleeping: model.sleeping)
+                            Button {
+                                openDetails(server.id)
+                            } label: {
+                                MetricsMenuRow(server: server, sleeping: model.sleeping)
+                                    .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain).termindInputAwareFocusEffect()
+                            .help(Text(AppStrings.Metrics.details))
+                            .accessibilityLabel(Text(server.name))
+                            .accessibilityIdentifier("metrics.menu.\(server.id)")
                             if server.id != model.servers.last?.id { Divider() }
                         }
                     }

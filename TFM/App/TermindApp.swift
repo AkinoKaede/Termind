@@ -307,6 +307,7 @@ struct TermindApp: App {
                 app.serverMetrics.start()
                 metricsActivity.start(app.serverMetrics)
                 metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
+                metricsMenu.openDetails = { [weak app] hostID in app?.mainWindows.openMetrics(hostID: hostID) }
                 metricsMenu.start(app.serverMetrics)
             }
         }

@@ -40,16 +40,18 @@ final class MainWindowCoordinator {
         weak var source: WindowModel?
         let move: Move?
         let showsMetrics: Bool
+        let metricsHostID: UUID?
         let layout: Layout
         let screenPoint: CGPoint?
 
         init(
             source: WindowModel? = nil, move: Move? = nil,
-            showsMetrics: Bool = false, layout: Layout, screenPoint: CGPoint? = nil
+            showsMetrics: Bool = false, metricsHostID: UUID? = nil, layout: Layout, screenPoint: CGPoint? = nil
         ) {
             self.source = source
             self.move = move
             self.showsMetrics = showsMetrics
+            self.metricsHostID = metricsHostID
             self.layout = layout
             self.screenPoint = screenPoint
         }
@@ -313,7 +315,7 @@ final class MainWindowCoordinator {
                 model.refreshSessionContext()
                 model.reconcileSidebarMode()
             } else if request.showsMetrics {
-                model.selectedDestination = .metrics
+                showMetrics(hostID: request.metricsHostID, in: model)
             }
             applySize(
                 request.layout.size, to: native, model: model, at: request.screenPoint,
@@ -468,8 +470,22 @@ final class MainWindowCoordinator {
         return true
     }
 
-    func openMetrics() {
-        if !openExisting(showsMetrics: true) { newWindow(showsMetrics: true) }
+    func openMetrics(hostID: UUID? = nil) {
+        if let model = mostRecentWindow {
+            showMetrics(hostID: hostID, in: model)
+            activate(model)
+        } else if request(
+            Request(showsMetrics: true, metricsHostID: hostID, layout: sourceLayout(from: nil))) != nil
+        {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    private func showMetrics(hostID: UUID?, in model: WindowModel) {
+        model.selectedDestination = .metrics
+        if let hostID {
+            model.metricsHostID = app?.serverMetrics.servers.contains(where: { $0.id == hostID }) == true ? hostID : nil
+        }
     }
 
     /// Only a cold launch without a scene factory needs SwiftUI's default reopening.

@@ -7,13 +7,17 @@ import TermindApplication
 final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
     private let defaults: UserDefaults
     private var item: NSStatusItem?
-    private let popover = NSPopover()
+    private let popover: NSPopover
     private var observer: (any NSObjectProtocol)?
     private weak var model: ServerMetricsModel?
     private var clearsInitialFocus = false
     var openMainWindow: () -> Void = {}
+    var openDetails: (UUID) -> Void = { _ in }
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    init(defaults: UserDefaults = .standard, popover: NSPopover = NSPopover()) {
+        self.defaults = defaults
+        self.popover = popover
+    }
 
     func start(_ model: ServerMetricsModel) {
         self.model = model
@@ -61,6 +65,9 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
         let view = MetricsMenuView(model: model) { [weak self] in
             self?.popover.close()
             self?.openMainWindow()
+        } openDetails: { [weak self] hostID in
+            self?.popover.close()
+            self?.openDetails(hostID)
         }
         .environment(\.locale, AppLanguage.stored().locale)
         popover.delegate = self
