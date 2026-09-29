@@ -42,7 +42,6 @@ struct TermindApp: App {
     #endif
 
     init() {
-        ContextAttachmentOpener.cleanPreviousSession()
         ScrubberWebClient.setup()
         #if DEBUG
             let screenshotDemo = ScreenshotDemoConfiguration.active
@@ -57,7 +56,9 @@ struct TermindApp: App {
             #else
                 let usesInMemoryStore = isRunningTests
             #endif
+            if !usesInMemoryStore { try DatabaseStartupGuard.checkRunningApplications() }
             let container = try TermindPersistence.makeContainer(inMemory: usesInMemoryStore)
+            ContextAttachmentOpener.cleanPreviousSession()
             modelContainer = container
             #if DEBUG
                 if let screenshotDemo {
@@ -197,6 +198,8 @@ struct TermindApp: App {
                     windowSizeStore: MainWindowSizeStore(defaults: isRunningTests ? nil : .standard)
                 )
             )
+        } catch PersistentStoreAccessError.inUse {
+            DatabaseStartupGuard.presentDatabaseInUseAndExit()
         } catch {
             fatalError("Unable to open Termind's local database: \(error.localizedDescription)")
         }

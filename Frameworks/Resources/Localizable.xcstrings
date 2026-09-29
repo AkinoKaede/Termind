@@ -3410,6 +3410,23 @@
         }
       }
     },
+    "Another instance of Termind is using this database. Quit that instance, then open Termind again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一个Termind实例正在使用此数据库。请退出该实例，然后重新打开Termind。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一個Termind實例正在使用此資料庫。請結束該實例，然後重新開啟Termind。"
+          }
+        }
+      }
+    },
     "Another skill already uses this name." : {
       "comment" : "A warning that a skill is using a name that is already in use by another skill.",
       "extractionState" : "manual",
@@ -8221,6 +8238,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "資料位"
+          }
+        }
+      }
+    },
+    "Database in Use" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据库正在使用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料庫正在使用"
           }
         }
       }

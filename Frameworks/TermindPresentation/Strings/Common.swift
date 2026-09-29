@@ -302,6 +302,14 @@ extension AppStrings {
             "The local data store could not be opened. Please restart the app."
         }
 
+        public static var databaseInUse: LocalizedStringResource {
+            "Database in Use"
+        }
+
+        public static var databaseInUseExplanation: LocalizedStringResource {
+            "Another instance of Termind is using this database. Quit that instance, then open Termind again."
+        }
+
         public static var ok: LocalizedStringResource {
             "OK"
         }
