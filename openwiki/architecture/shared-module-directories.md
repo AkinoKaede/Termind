@@ -3,6 +3,9 @@ type: architecture directory guide
 title: Shared Framework Responsibilities
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -50,6 +53,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Workspaces/WorkspaceTemplate.swift
   - id: openwiki-source-4b9f58eec58128055ac58b6f
     resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
+  - id: openwiki-source-46ff6ca103fc5aeb8793c80d
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
@@ -134,6 +139,10 @@ sources:
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
+    resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
@@ -146,17 +155,16 @@ sources:
     resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Shared Framework Responsibilities
 
-The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package, currently required at **0.18.1** or later within the next major version; Termind integrates that package rather than maintaining its internals here. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
+The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.18.1**, and `Package.resolved` currently pins **0.18.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
 
 ## TermindDomain — portable values and rules
 
@@ -220,7 +228,7 @@ Persistence has **no functional subdirectories**. Its root owns the complete Swi
 
 Root services include an in-memory host repository, Linux process/filesystem/server and NVIDIA parsers, provider service-account files, skill import and system notification delivery. `Agent` imports context attachments; host-executing tools live in Remote Infrastructure. `Commerce` implements StoreKit entitlement/purchase state, `Logging` manages launch-scoped files, and `Speech` implements Apple recognition with an injected audio-input capability, not native app capture policy.
 
-`Cloud` implements explicit CloudKit lifecycle, coding, receive validation and safety gates using Persistence's stores. Vault, History, Device, Settings and Metrics coordinators keep category-specific engines and journals; History and Device use kind-scoped records in a shared zone, excluded from Vault's receive/upload/deletion paths. `CloudSyncLifecycleSafety` consults scoped recovery, capability and quarantine state: commit the recovery fence before creating an automatically syncing engine, fetch before send, and fail closed on unsafe storage errors. A quarantined record blocks upload until supported reconciliation clears it in the same save; native-field decode failures retain the full record for later readers. Incoming records and server-record-changed replies use the same validation path. This is not automatic SwiftData mirroring.
+`Cloud` implements explicit CloudKit lifecycle, coding, receive validation and safety gates using Persistence's stores. Vault, History, Device, Settings and Metrics coordinators keep category-specific engines and journals; History and Device use kind-scoped records in a shared zone, excluded from Vault's receive/upload/deletion paths. `CloudSyncLifecycle` checks the enabled setting and account before binding a scoped account/environment, and requires confirmation rather than merging on an unexpected account switch. `CloudSyncLifecycleSafety` consults scoped recovery and capability checkpoints; an invalid serialized engine state, recovery requirement or replica upgrade triggers a fresh snapshot. The lifecycle saves its recovery fence **before** creating an automatically syncing engine, reconciles its queue against durable journal mutations, and fetches before enabling uploads and sending. A failed fetch keeps uploads fenced; persistence/callback failure retires the engine, while retryable CloudKit failures retain retryable status. A quarantined record blocks upload until supported reconciliation clears it in the same save; native-field decode failures retain the full record for later readers. Incoming records and server-record-changed replies use the same validation path. This is not automatic SwiftData mirroring.
 
 ## TermindRemoteInfrastructure — protocols and remote operations
 
@@ -260,7 +268,7 @@ Root files provide shared SwiftUI forms, transcript/tool-card presentation state
 
 `Frameworks/Resources` is a synchronized group attached to TFM, TFI, TermindWidgets and FrameworkTests, **not** to the six shared framework targets: framework code must not assume `Bundle(for:)` contains this data. It includes `Localizable.xcstrings` and `InfoPlist.xcstrings`, privacy metadata, shared accent/distribution assets, Linux icon JSON and separately stored upstream licensing, plus Pi model catalog/overrides; platform-specific icons remain app-owned. `LinuxDistributionIconCatalog` looks in `Bundle.main`, prefers exact distribution ID then like IDs and returns no result if the catalog/distribution is unavailable. AgentKit owns model capability resolution, so do not assume its model-file bundle search from this repository.
 
-Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog. Add finished `zh-Hans`/`zh-Hant` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from a pinned Simple Icons version; no runtime icon fetch is needed.
+Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog in the sibling package repository, but Xcode consumes the **resolved remote release**, not edits in that checkout. Add finished `zh-Hans`/`zh-Hant` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from a pinned Simple Icons version; no runtime icon fetch is needed.
 
 ## Change and verification seams
 
@@ -281,5 +289,5 @@ flowchart TB
 Edit, journal, synchronize and render: the dashed path keeps secret bytes out of Cloud/Vault records.
 
 - `ArchitectureBoundaryTests` guard import direction, single SwiftData ownership and shared-copy boundaries.
-- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting.
+- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories.
 - Remote/session/transfer suites cover authentication, resource admission, cancellation and recovery; native test targets cover routing and platform lifetimes. Use the [Engineering Quickstart](../quickstart.md) for build/test commands and [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) for zone-specific behavior.

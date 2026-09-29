@@ -3,6 +3,9 @@ type: assistant runtime concept
 title: Assistant and Agent Runtime
 description: How Termind captures assistant submissions, prepares and cancels AgentKit runs, persists conversations, and gates host tools, skills, and device-local memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -66,6 +69,8 @@ sources:
     resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -96,17 +101,14 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Assistant and Agent Runtime
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the host-specific integration: SSH and SFTP tools and transport pools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins the released version used by Xcode: changes to the sibling working tree do not change the built app. For a cross-boundary change, release the package first, then update the Xcode version requirement and resolved revision with the consuming Termind change; build with `-onlyUsePackageVersionsFromResolvedFile`.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release 0.18.1 and its revision for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 

@@ -18,6 +18,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
+  - id: openwiki-source-cd830b9886c3f5d3d7181662
+    resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-d5d0b5c98f2f54ae5e0beba1
@@ -28,6 +30,10 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-1ca741e9f21312b87c75fa28
+    resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
+  - id: openwiki-source-36d16adefef02f0ed0cdc428
+    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
@@ -54,6 +60,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-0e8ecbf3896cbf237a679d6a
     resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
+  - id: openwiki-source-bcf5761569fe8b5098014524
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
@@ -92,6 +100,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
+  - id: openwiki-source-e722f35e92f0823055985cb7
+    resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
@@ -112,10 +122,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 ---
 
 # Persistent Data, Migrations, and Secrets
@@ -218,6 +228,30 @@ The old Host `lastUsedAt` column is not a replacement source for this timeline. 
 
 V35 added `PersistentHistorySyncEntry`, `PersistentHistorySyncState`, `PersistentHistoryImportState`, and `PersistentSyncCapability` without changing V34 domain models. V36 removes `PersistentHistoryImportState`: **current** `HistorySyncPersistence.prepare()` bootstraps native journals from current events and devices, not retired Vault History envelopes. In particular, opening a V31 or V34 store with an old Vault History tombstone does not transfer that tombstone, the old installation ID or the old bound account into the new journal. Do not restart the retired importer when extending sync. V35-on-disk and V31/V34 reopen tests exercise this boundary; Host/history rows and V31→V34 device backfill still migrate normally. Host deletion records History tombstones; ordinary configuration edits only record Vault mutations. A History tombstone is terminal for its event ID, so a late update cannot revive a cleared event.
 
+## Notification preferences: local migration and Settings replica
+
+V41 adds `PersistentNotificationPreferences` to the local SwiftData schema through a lightweight V40→V41 stage. It stores one JSON-encoded `NotificationPreferences` value under the `default` key; an older V40 store has no such row, so `SettingsSyncPersistence` creates the default on first load rather than reading notification settings from `UserDefaults`. `prepare()` bootstraps a Settings journal envelope for the preferences, including on stores whose older Settings bootstrap already ran. On macOS and iOS, the composition root prepares `SettingsSyncPersistence` and injects it into `NotificationSettingsModel` before the feature uses preferences.
+
+The Settings replica carries the non-secret preference value as `v1/notifications/default` (`NotificationPreferencesItem` in CloudKit), independently of the local V41 schema number. Local edits validate a nonnegative terminal duration and commit both the row and journal intent before publishing the live model value. Remote envelopes are merged by journal version and materialized with the row in one commit, without calling the local mutation callback; an accepted deletion restores `NotificationPreferences()` defaults rather than deleting notification authorization state. `sftpMode` is optional when decoding older JSON and defaults to `.unfocused`, so adding that choice does not make existing values unreadable. This is a preferences record, **not** a credential channel: notification settings and references can sync, Keychain material cannot.
+
+The shared `NotificationSettingsModel` does not treat a failed load as permission to prompt from defaults. It requests initial system authorization at most once for its lifetime and only when the loaded preferences need system delivery; a disabled setting or terminal bell-only delivery with assistant/SFTP disabled needs no prompt. Tests cover invalid and failed edits leaving the live value unchanged, remote records not echoing as local writes, V40 disk migration followed by a second open retaining both the new preference row and older workspace data, and the failed-load authorization gate.
+
+```mermaid
+flowchart TD
+    Legacy["V40 disk store"] --> Migration["V41 lightweight schema stage"]
+    Migration --> Row["Notification preferences row or defaults"]
+    Row --> Prepare["Settings bootstrap creates journal envelope"]
+    Prepare --> Cloud["Settings CloudKit replica"]
+    Row --> Model["NotificationSettingsModel"]
+    Model -->|"validated local edit"| Commit["Commit row and journal"]
+    Commit --> Model
+    Cloud -->|"accepted remote envelope"| Merge["Commit journal and materialized row"]
+    Merge --> Model
+    Model -->|"system delivery needed"| Authorization["One initial authorization request"]
+```
+
+Notification data is locally migrated as SwiftData state and separately replicated as a Settings envelope; authorization is a runtime decision, not a migrated secret.
+
 ## Cloud sync restrictions are durable local state
 
 The safety and capability stores preserve these controls:
@@ -232,7 +266,7 @@ The safety and capability stores preserve these controls:
 
 A replica scope includes container, environment, account, zone, owner and an optional consumer identifier. The record name is scoped within that boundary, so a restriction in one account or environment neither blocks nor clears the same name in another. Since V40, the active schema no longer includes the retired per-category quarantine rows; migration from V30 or V39 discards those tables rather than attributing their unscoped records to a new account. Existing scoped quarantine remains active and must not be cleared simply because an old table was removed.
 
-A new scope begins with recovery required. `CloudSyncLifecycleSafety.persistent` binds the lifecycle to `CloudSyncSafetyStore` for recovery, capability and upload fences, while `CloudSyncRecordCoding.quarantine` saves either original JSON payload or a secure archive of a native record together with system fields. `CloudSyncRecordStateStore` filters pending mutations by the same quarantine boundary and retains deletion presence and causal handoff across engine resets. Its full-inventory reconciliation distinguishes a confirmed old delete from a newer explicit recreation, which must remain pending; a successful cloud delete acknowledgement clears only its matching incarnation. Cache purge work stays pending until the owned directory removal succeeds.  The coordinator clears its serialized engine state when recovery is required, but retains local journal envelopes and pending edits. It commits recovery intent before creating an automatically syncing engine and before network work; only safe completion clears it. A delegate persistence failure rolls back and retires that engine, so a later successful callback cannot reopen its upload gate.
+A new scope begins with recovery required. `CloudSyncLifecycleSafety.persistent` binds the lifecycle to `CloudSyncSafetyStore` for recovery, capability and upload fences, while `CloudSyncRecordCoding.quarantine` saves either original JSON payload or a secure archive of a native record together with system fields. `CloudSyncRecordStateStore` filters pending mutations by the same quarantine boundary and retains deletion presence and causal handoff across engine resets. Its full-inventory reconciliation distinguishes a confirmed old delete from a newer explicit recreation, which must remain pending; a successful cloud delete acknowledgement clears only its matching incarnation. Cache purge work stays pending until the owned directory removal succeeds.  The coordinator discards serialized engine cursor state when recovery or replica upgrade requires a fresh snapshot (also when serialization is invalid), but retains local journal envelopes and pending edits. It commits the scoped recovery fence **before** creating an automatically syncing engine and before network work. `beginFetch` closes the upload gate and reasserts the fence; only after all overlapping fetches have succeeded does `finishFetch` complete inventory reconciliation and decoder capability, and authorize sending. Fetch failure leaves uploads fenced until a later successful fetch; a concurrently active send keeps recovery required until it finishes. A delegate persistence failure rolls back and retires that engine, so a later successful callback cannot reopen its upload gate.
 
 Receiving a supported replacement reconciles the domain data, journal metadata and quarantine removal in one persistence commit. A failure rolls all of them back. Retry, pause, account/environment resets and relaunch are not generic quarantine-clearing operations. Physical deletion and tombstone handling preserve the same upload restriction. Native History/Device quarantine preserves a secure archive of the complete CKRecord alongside system fields; JSON-backed category records retain their payload bytes. Unsupported native records remain fenced in their own replica scope; the retired cross-zone History importer no longer supplies a new-zone target fence. These are local control records, not new cloud record types or a replacement secret store.
 

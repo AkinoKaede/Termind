@@ -3,6 +3,9 @@ type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
 description: Explains StoreKit-derived Pro access, native paywall and review ownership, localization completion rules, and the app, widget, screenshot, and marketing-site surfaces that present the product.
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -42,10 +45,22 @@ sources:
     resource: repo://LandingPage/package.json
   - id: openwiki-source-f0779f80638e6627908c8c6b
     resource: repo://LandingPage/src/components/FAQPage.astro
+  - id: openwiki-source-5baf0062039839de504579b5
+    resource: repo://LandingPage/src/components/PrivacyPolicy.astro
+  - id: openwiki-source-5ad91e277f88907c2d0f0649
+    resource: repo://LandingPage/src/components/SecurityPage.astro
+  - id: openwiki-source-d2984266929be0fa570924e0
+    resource: repo://LandingPage/src/layouts/BaseLayout.astro
   - id: openwiki-source-dde6f9f425dc38df06be00d6
     resource: repo://LandingPage/src/lib/i18n.ts
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
+  - id: openwiki-source-ac522d7166ed6cab8810aff7
+    resource: repo://LandingPage/src/pages/privacy.astro
+  - id: openwiki-source-187b04e794008a30238ae2ed
+    resource: repo://LandingPage/src/pages/security.astro
+  - id: openwiki-source-8eb8641552ec93160c79c7fb
+    resource: repo://LandingPage/src/pages/zh-hant/privacy.astro
   - id: openwiki-source-446ef49ac8edac86b5511fe5
     resource: repo://Marketing/README.md
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
@@ -72,6 +87,8 @@ sources:
     resource: repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift
   - id: openwiki-source-a053f8c3524e81f98b0b0938
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
+  - id: openwiki-source-215c24353f612bb80e412229
+    resource: repo://TFI/Features/Settings/MobileAppSettingsView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
     resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
@@ -112,10 +129,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 ## Scope and ownership
@@ -184,11 +198,11 @@ Eligibility requires at least seven days since first use, three distinct active 
 
 Define app-facing copy as semantic `LocalizedStringResource` entries in `Frameworks/TermindPresentation/Strings`, **including copy used on only one platform**. `AppStrings` groups navigation, feature and common wording for both TFM and TFI; share an entry for the same meaning and use explicit variants when the platform action or wording differs. Keep protocol values, identifiers, diagnostic codes and user-authored content with their existing owners rather than treating them as translatable UI literals. The `Strings` directory owns definitions and reusable formatting, not a shared native view or a separate resource bundle.
 
-User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. **Both app catalogs are manual:** every entry must have `extractionState: "manual"`. Extraction by one target cannot see all shared and platform-specific usages, so a `stale` marker is not evidence that an entry can be removed; search TFM, TFI and shared modules first. Add keys and finished translations explicitly. After any catalog edit run `Scripts/normalize-string-catalogs.py --write` for canonical Xcode ordering and formatting without changing translations; `Scripts/check-zh-localization.sh` runs the read-only `--check` first. Do not run `jq -S` or a generic JSON formatter on the catalogs. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO` so generated names do not compete with `AppStrings`. The normalizer defaults to these two app catalogs and does not touch the separate AgentKit runtime catalog, `../AgentKit/Localizations/Localizable.xcstrings`; rebuild AgentKit localization with `../AgentKit/Scripts/build-localizations.sh` after its changes because a plain Swift build copies those resources rather than compiling them.
+User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. **Both app catalogs are manual:** every entry must have `extractionState: "manual"`. Extraction by one target cannot see all shared and platform-specific usages, so a `stale` marker is not evidence that an entry can be removed; search TFM, TFI and shared modules first. Add keys and finished translations explicitly. After any catalog edit run `Scripts/normalize-string-catalogs.py --write` for canonical Xcode ordering and formatting without changing translations; `Scripts/check-zh-localization.sh` runs the read-only `--check` first. The normalizer also rejects duplicate JSON keys before writing a batch, so translations cannot be silently lost during normalization. Do not run `jq -S` or a generic JSON formatter on the catalogs. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO` so generated names do not compete with `AppStrings`. **AgentKit-owned runtime text is a separate package concern:** the normalizer and default app check cover only the two app catalogs, not `../AgentKit/Localizations/Localizable.xcstrings`; rebuild AgentKit localization with `../AgentKit/Scripts/build-localizations.sh` after its changes because a plain Swift build copies those resources rather than compiling them. The Astro website has a third copy owner and does not consume either catalog.
 
 `AppLanguage` stores the explicit `en`, `zh-Hans`, or `zh-Hant` choice as `AppleLanguages`, removes that override for Follow System, and migrates legacy Simplified Chinese preference tags to `zh-Hans`; unsupported stored tags follow the system rather than being silently rewritten. `AppLocalization` selects the matching main-bundle localization for explicit and system locales (including regional Traditional Chinese) so imperative presentation can use the effective language. An `AppStrings` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). Prefer passing the resource directly to APIs with a resource overload, especially `confirmationDialog`, whose UIKit-backed interpolation can otherwise expose locale metadata. For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
 
-Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers, preference migration, regional Traditional lookup, token terminology, placeholder ordering and selected plural structures. Catalog-wide completion and manual formatting are enforced by the shell check and normalizer, **not** by `AppLanguageTests`. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
+Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and, by default, checks **both app catalogs**, first rejecting noncanonical/manual-extraction drift via the normalizer, then invalid catalog JSON, missing Chinese localizations, unfinished string units, and Chinese/Latin or punctuation spacing violations for translatable entries. It accepts an explicit catalog path for a targeted check; neither mode implicitly checks AgentKit or Astro copy. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers, preference migration, regional Traditional lookup, token terminology, placeholder ordering and selected plural structures. Catalog-wide completion and manual formatting are enforced by the shell check and normalizer, **not** by `AppLanguageTests`. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
 
 `Scripts/check-appstrings.sh` runs a SwiftSyntax visitor across TFM/TFI and flags selected string literals used as first arguments or named copy arguments in UI APIs, as localized string declarations, or in localized return types. Its detection is deliberately narrower than “all app text”: it excludes macros and only recognizes specified call forms; review new copy ownership and semantic reuse even when the script passes. The script checks that `Strings/AppStrings.swift` exists. `ArchitectureBoundaryTests.presentationCopyHasOneSharedOwner` prevents an app-local `AppStrings` declaration and bans app, AppKit/UIKit, TermindInfrastructure and TermindPersistence imports in the Strings directory. Run the copy check alongside `Scripts/check-zh-localization.sh`; neither replaces language-aware rendering and behavior tests. See [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md) for the ownership map.
 
@@ -213,6 +227,12 @@ Screenshot/demo data must not modify production behavior. In DEBUG macOS builds,
 Marketing capture uses real feature views with fixture-only data: mobile tests mount real views in system windows, while macOS captures the production `WindowGroup` through `ScreenshotDemoConfiguration`. Asset source captures are organized by feature/device/locale; the sanctioned locales are `en`, `zh-hans`, and `zh-hant`. UI chrome and marketing copy are localized, while terminal command and transcript content remains English. A UI change affecting a captured scene must be recaptured in every locale rather than fabricating missing platform UI or changing product behavior for an image.
 
 The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts` directly from `Marketing/Screenshots/DeviceFrames`; the production build resizes them and emits AVIF, WebP, and JPEG variants. Do not copy source screenshots or device frames into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. When changing entitlement gates or the native paywall, check that this FAQ and the storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
+
+### Public security and privacy copy
+
+The site also serves `/security/` and `/privacy/` in all three site languages; locale-specific routes reuse their respective Astro components through the page wrappers and `BaseLayout`, rather than drawing from the app catalog. `BaseLayout` sets canonical and alternate-language links, exposes localized navigation to FAQ, Security, Privacy and Support, and keeps the visitor's selected site language in browser `localStorage` (`termind.locale`). This choice is independent of the app's `AppleLanguages` setting. The native paywall's Privacy Policy link and the iOS App Settings support section both open the site's English-root `/privacy/` URL; the site language switcher can move to the translated route. The paywall's Terms of Use link instead goes to Apple's standard EULA.
+
+`PrivacyPolicy.astro` owns the public data-handling statement: local device data and optional private iCloud/Keychain sync, StoreKit payment handling, BYOK AI/MCP and Web Search disclosures, remote connections, camera and speech, retention/deletion controls, website storage, and contact paths. In particular, its website section states that the site keeps only the language selection locally and does not use analytics cookies, advertising technology or a contact form; it does not promise that the hosting provider cannot keep standard access/security logs. Its purchase section describes Apple-signed trial eligibility and expiration, not an app-managed license server. `SecurityPage.astro` is the distinct public security explanation: credential storage and one-shot memory cleanup, Known Hosts verification before authentication, configurable Assistant approval, and the opt-in Mac-only loopback MCP server with a locally stored bearer token and exposed-tool controls. These are public-facing claims, not enforcement points; when changing sync scope, credential storage, SSH trust, agent permissions, commerce or network egress, review the corresponding site disclosure alongside the native behavior and FAQ. For site-copy changes, run `cd LandingPage && npm run build` and inspect `/security/` and `/privacy/` in all three languages, especially Traditional conversion and legal terminology; the app catalog check does not validate website copy.
 
 ## Change and verification guide
 

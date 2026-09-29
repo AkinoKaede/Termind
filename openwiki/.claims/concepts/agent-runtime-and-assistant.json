@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8409d2b56d41e900eebb3a9987c379c5af4039b3024699eb143875ab2ac6a3a0",
+  "pageVersion": "sha256:f0dc92c31191b7359259783e82c65486aa9f95537bfde9c82c68a54c28481017",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:a84b3408d31ed206fb90070bd9bffcfdc7e73da4c4c3e3268eaa66668347e214"
+          "version": "repo-file-v1:sha256:b2d48bb14a91e3c7c306e3893683a5640ce1314057c87577cae68a669d888240"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
@@ -1149,10 +1149,36 @@
           "version": "repo-lines-v1:sha256:d32d9ac479db377c5c2a9bf3bfce3f3603f66635261c3a199e66b1a84e96c1dc:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5ZDJlNGYxYzVkMzE4OTFhMjE2ZWU5Njk2ZmMxNjBkMDczNWYwZTkxMWI3YTc0MDY0ZmU4NDcxNmViZTIxNzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4ZDJlZWY2ZWNjODA5ZDNkMjQwNzc3ZWJiNjAyNzBhMzYzZTYwMTk2ZWI4ZjlkMzcwY2VmN2FjOThhMzcwZTcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_5336a71e71e14960955a9c7ced816e4c",
+      "statement": "AgentKit is independently built, tested and released from the sibling repository; Termind consumes the remote versioned package pinned at 0.18.1 in Package.resolved rather than the sibling working tree. A change spanning the package boundary requires testing and releasing AgentKit first, then committing the Termind minimum-version and resolved-revision updates with the app-side change; Termind-only host-policy, registration, persistence or UI changes do not inherently require an AgentKit release.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L29",
+          "version": "repo-lines-v1:sha256:dc7d62256b7e34a6869806a00266357a3d8480dc1555221438662dfb40cb54a9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiNmVhYjRhYzViMDZkYjI2OTZkNGQ1M2UyZTdmMGQxNzM4ZjFiNzUwMmNlMmVmNWI3MDMyM2Y4NzY3Y2E5ZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MTRiOWU4YTNkNWVhNmIwNDJlZTlhNzllNDRjNGNiM2ZjOTQ0ZDY3ZTliNmYzZWJhMzhjZGExYTlmYmYzNTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjNTY0ZmYzMDc2NjdkMGU4MzBiZGI5MWJmNTA2MGNhZTgzYTI3Njc0ZDU1OTVjYmE1NGRjMDZkMzZhNjVjM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwYTBlYTllNGU3OTQyN2FjMjc1MDk5OGU4NjNmYjhhNmQxMzQyOWI0YWZjNGZhMDk3Yjk4YWU0MzU3NTBlNzUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L574-L604",
+          "version": "repo-lines-v1:sha256:4a52bd6ba9847730f93cd98277d2ec33c10f81e43192124996bd7a49f72c7faa:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4MzNjZDg0MjZlZTc3ZDg3ZTk4YTlkYjY4YmMyNDVhYmEwYjYxYzY4NGNkZjJiZDhlNTJlY2ViYTA4YTliNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzODdlODkwYzgzZWE5ZTZkY2U1MzZhMTBhM2Q5MjBiODQzNTk3ZDMwMTQ4YjY1ZjYyYzYyMzk2OGMyM2RhYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlYzAyYjAwYTc2Mjk0MTQ4MDZkMTIyMjc2OWI4MGUwZjZiMWM1MWZmYTQwYzU5YzExMjliMmY0MThjYTNlYzYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L11",
+          "version": "repo-lines-v1:sha256:38abaee5eca81ea9102cbaf0a657d3ac5540ac81ac2919e5e0c6387a21c83678:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzY1ODNhZTFhYzY1NThhOWY0ZDQxNjJjNzFkMmMxOTg5MTc5YjYwOWNhYTQwODQ5MzNiNmVjYTlhYTNhZTVkNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2JhNDkxYjg3ZTE2MjExZmI5YTEwMmI0ZDdkYzRiYzk0YzIyMTY3NmJjYjJjOGQxMWUzOTc0YmY4OWEwMDcxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzQ2ZjhjZGQwMDQ0OTgxZmQ3MjQ3YTBjODkzMTY4MzRkM2VkYWM5ZTUxMDA1OGQ0YzA0Y2EzZGQ4NzNjMWFhNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODgzYmRjYjAwNmZkZjM2MTY1ZjhlMDM5ODQyNmY5Yjg4MWMzYjBlMWMxYTZmMTVjZWFiMWVkYzJiYjYxMWJjZSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2864-L2871",
+          "version": "repo-lines-v1:sha256:474dcf1634275a14fa012c0e0cf69986978bdde5312ee5d3d9c965607e850f06:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L3-L12",
+          "version": "repo-lines-v1:sha256:81bc472d11b18cd4b871ad9f9bcd9f5c9a0ed21ee53eb38d6cd2be09b3c0e70a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZmQ1MzQ0YWM2NzYwMjNjOGZkM2FhMmZjNWQxMThiZWYyNzNlZWNkMTYzMWY1MWEyZThlNThlNGUwYWJmMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjMmQxYzczZmUzZjI5ZmU3ODliMDgzYmU2ZjJjYjMxZmZkMmZlNDU4YzM2MDFhMjBiYWYwYmE2MjRiNTc5ZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

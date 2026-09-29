@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cb3d0edd230561b84367426e5875120eaccd7818f2519a2f336526116c6d8ea8",
+  "pageVersion": "sha256:592673f536f5d11a5b6dc1c57e039105b2bf7b7c97623ab3c57c7de6796f3d5a",
   "claims": [
     {
       "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
@@ -159,10 +159,108 @@
           "version": "repo-file-v1:sha256:0a02c731fb4bdb4db2c461d835ab3fafa3d4d2dd0621a3a58746c648a180d3be"
         }
       ]
+    },
+    {
+      "id": "claim_40cf9bdbfecf4219a5641327c5c90bae",
+      "statement": "Imported Termind Security Key references are decoded and checked for bounded credential ID and valid uncompressed P-256 public point, but import does not re-attest registration or verify that the physical key is available; mobile import can override the saved user-verification preference.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L55-L60",
+          "version": "repo-lines-v1:sha256:53e311d8d9da200e7a656d1e5a8412715379bf1c907ffae17a2f1f5697e810ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDE4YTgyMTIwZDA2NzZiYTRlYTBiZGI4YzI5NTk0OWE2ZGQ2YjUzNzNkYzFlZjJmYzA0ODc5MjAxYWRhMDNjOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2MyZmFhNDE4YTFiNmZlZGIxYWNiZWZjNDFiNzJhY2Q4N2E5ZDEzN2ZhNzM2YjUzZTMwMjE3ZWUwZmViMmNhMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDMxYjM5YjdjNTlhNWZiMDE2ZmFmODg4ZjdlNjYwNTBmMDkyMjBjZDEyYzI1YzMwNzVkODk1NzRlMDM2OTc1MCJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L80-L107",
+          "version": "repo-lines-v1:sha256:61d1d3901472dad1d1090c6cef8f53c1155a011b7dcbed1846a029a6144d714e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkOTcxOTViYmE2YjgxZTc4YTdiOTMwNGY1NDVjNzcxZjJkMzkwOGU0NzRmYjNlODQwYmVkMThhMWIzNzI1YzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmYWU5MTBmYTdhM2FhYjM4ZDY3ZWNhMjU2MTllODJkMDM2OWY1ZGZiODI5M2MwOGFmNzczN2YwMzFiYWIxYjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmMDIyOWIwNTNiMzQ2N2FmODYzODg2ZDczZjI2Njk3MzNmMmJhM2I0ZGU1YmVjNzE3ZTFiMDUyOWMwZTk1MWMifQ"
+        },
+        {
+          "resource": "repo://TFI/Application/FeatureModels/MobileKeyEditorModel.swift#L250-L273",
+          "version": "repo-lines-v1:sha256:c79cb940b750e3937d212f3e19ae3841639b222a3636fe393a9576d718434b47:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMjBiNzRlMzVmNWVjMGJlZWEzMDA3NTI4MjA1ZWM1NjA3NDQ0OTUzN2ExYmUxMDQ2YTlmNDUwYzgzMzc1MDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5ODgzZWEzMjE3NjE5ZTQwMGY5MmViNmEyODRiYmMzODhjNTRlZjNhNTRhMWM5NmY4Y2VjNjU3ZTdjMjRlNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1NTZlNDhlY2RkYzBlNmEwMzlkZmNlZWI3YmUwY2ViMzRlNTgyMmM3NWFkMGU3ZjAxNDNhY2Q5OWIzNjg0ODEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L40-L60",
+          "version": "repo-lines-v1:sha256:6baf369602a421913af20b946dc11ffc96980502bb56e681f6dfe692f905c0aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMDI1OTA5ZGUxOTFhY2RmYTRlNTI3MTFjOWQ1MDVmZDc3NjFiZmM1ZjkzM2Y0OWEwMWJlMGI3Y2ZlM2ZkMzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2M2FhODMyMDg2MTdlMDhlNjkwMzIwMzAwNTg5NzlhNTM0NjMwZTQyODYwODJkOGE3YjM1YTMzYTc3NzhiODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExMTEyNTllZGMxYTllNTIwYjcyYTMwMzVlMDFjNDA1MjlkODUzZmNlODhjYTZhODQ4NDhiNTExZmEzMzg1NjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9fefb675b0f145d9821b9c40078fb53d",
+      "statement": "Registration validates challenge, RP origin/hash, attested credential ID and ES256 P-256 public material, with bounded duplicate-key-rejecting CBOR, but extracts public material without verifying an attestation trust chain.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L174-L234",
+          "version": "repo-lines-v1:sha256:423d1f5d9060f3c85d8b048dd3fcb2250872bb6c0e6a14d08f07289a509174f7:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhYTViZGMwNjViNzI2YjVhNzQ1YWU3MjNmYzY3M2FmNWEwM2Q0Yzk1MDBiMDYzOGU0Mjc5MDA3NGNhMjY5MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L22-L53",
+          "version": "repo-lines-v1:sha256:ad7155cd46588b6965c2a77d991858978df281888c1b52b6eb84dca7a87fbb7e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ZWQ4Zjk3YmM0NzkwYTJlNmQwNTU3NzY3ODc0ODQzY2Q4NDg4MjY5ZmE1YjcwN2I4NTI3YmNlMGNkZDMwN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkOTc5MGI5YThkMjZlNTY2ODg4NGI5NjQ3ZjdkOWFiNjFmOTc3NDZiZjE3NzNkMmE4NGJiYzE0ZjI1Yzg4NGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyYjNhYWIxYWU1YWE3YWM1ZWJmMWM2N2M5MWU5ZmFjYmE2YjlkNmFjMDM1OTk2ZTI2NDAzZTI4MWFkODBmOTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e13a97575e804f68b0ed8e70d84db2ee",
+      "statement": "Assertion conversion requires the original signed clientDataJSON to start with OpenSSH's canonical type/challenge/origin JSON prefix and verifies ECDSA over authenticator data concatenated with SHA-256 of those same original bytes; it encodes the original JSON and validated extension bytes in the SSH response without reserialization.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift#L109-L143",
+          "version": "repo-lines-v1:sha256:204ae107b39cb6204c8650c53a601cd387dc49b3de8b6690655404279573e1aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5YTIwZGIwNTBhOGU5NGJkY2ViZDUzZDkxN2YxNDFmODQ5OTYxODVlMmNkZWE1NTY0NDA1YzczMjRkOGI3OTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjMmZhYTQxOGExYjZmZWRiMWFjYmVmYzQxYjcyYWNkODdhOWQxMzdmYTczNmI1M2UzMDIxN2VlMGZlYjJjYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwYmJjYmY0NmFmYzMzZDQ0YzMyYWZjMjU2NTlhNjBlYjJmM2NiYzA5NGYyMzJmNWVkYTcyODMwYjNlMDdhYTEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/WebAuthnSSHTests.swift#L36-L52",
+          "version": "repo-lines-v1:sha256:29cc947be7c9f43aca03f3689b9d4a2ced01be3eb8271e7c64f746eb73712592:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllNWQ4NmEzNGRmNmFkODQ4MTIwOGQ5YzA2MTQ2YTE2Mzg3ZmQzZDlkMmIwZGJhOTA5YTA0NjVjZjY5MmRlYTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwMjhhZTdhZDFhZTBiMWQ3MjZiZTlhYmZmYTA5NjI4NDY1MDRkNmU5NGE4MDNhYzJkZjFhMWNjYTA1YTJhZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiMDE4NDJlMTZmNDdhMzE0MjhkNWM5ODIwY2E0MjdjYmZkOWE0OGJlNzdlODY3ODI1ZjZhZTc3OWE4NjgwOTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_75c59cd0c16f4178ace89797d0217570",
+      "statement": "A forbidden SSH interaction policy replaces every Security Key credential for destination and jump authentication with interactionRequired irrespective of the stored user-presence flag, while leaving password fallback available and blocking interactive forms.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L8-L57",
+          "version": "repo-lines-v1:sha256:d1cd9c76b58adbbe173d578ece6a8a484ab1916942fec3ddae36625b6f8e0459:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5YTllMGNkZTFmOWY0ZmQ1NzZlOTgyZWNjOTdlMDZiYjQ4ODAxNzAwMjczYTRmY2U0NTQ3ZjI3YmRlOTdhNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3M2I2N2JlNzFjZGFhMTVmNGY2MDZlOWIzNjAzZmNjMTkzZGU3ZWIzNzhmNWY1OWJhNjQ5ZDY0NGEyYWY4NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlMDVlZjQ5Yjg1NTY2ZGIwM2JjNTNlMTM2MDljZTM2MDYyOTk0NTc5OTAyYWUwNTUwYzJhZTEwNGEzNDY4MGEifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L94-L126",
+          "version": "repo-lines-v1:sha256:f825b8e2c6bc166a2633aaaa83e14e4cf37f9ca812fc44fc8590d55153ad7705:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNjQzMDFkMzAyZDcxYjJkYThlOGMzNWM5MWNlOTkzMDNjNjZmYjZjNjE1NjZlZmFmZmJhM2Q5MjJiYTRhMmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmMWI1MzE1NTQzNzViMGRlYTU0OWZlNGVkMTE5OTc3N2M5NGM2MDZmNjRiNDRiMTdlMDI5MWQ4YTlkMmQ1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhNjQ4ODk4YTM5ODU5OGIyNDA0ZjRiMDVhOTNkZDIzYzIwY2E0MDg4YTQ2OTQyNzRkMjhhM2M1MjNlZjcxYmIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SSHConnectionTypes.swift#L159-L190",
+          "version": "repo-lines-v1:sha256:c7279528655418e00b3b82f819c2a084cb4244fbd2139ecdea32bdddddb8b785:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzYTZkNGMyYTg2Yjg5NzFlZWJmNzljZjcwMDEzNmQxODg5YzkyYjhmZWRjYmE4YzEzMDczMTI1NWRiNWVlNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1NmZlNWM5NTVkNTM0ZDMwMjgzODc4NjZmMmMwZmQyNzM0YjAzMjlkMmYzZmNmODJmZjNmODFiMjE1NzlhN2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyNmRjZTI3YmE2N2MxMGJlY2JkOWU3ZjJkN2FhMmEzMjRkMjIyZDNjZmIzNTZlNjljOTlhZDI4N2VlZGRmMDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1b7bcbc103054961b9e9832cc18d1db7",
+      "statement": "Both platform signing cards wait for a real window anchor before automatically starting once; their signing sessions complete once, while presenter cancellation cancels the active OS authorization controller and stale delegate callbacks are ignored.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SecurityKeySigningCoordinatorTests.swift#L44-L88",
+          "version": "repo-lines-v1:sha256:dbc94b47a4e4cb4d6aa63823e398beee2fec6a133e280b37e52ac6417751c734:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjNDNlMzEyYzhkMDc4Yjg1ODQ5MzZhOWIwNzcyNjc0NjdiNDU5NDE4ZTdjMzU4YzNlOTJmMmJhOWM1YzdmYzMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SecurityKeySigningSession.swift#L22-L55",
+          "version": "repo-lines-v1:sha256:2026e5f72a5802975584bf339e1916df98053249261459de4c0af334566e40ab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmNmRmMzZiNzFkM2YxYTdjYmNiNzU4ZGUwYmM1NDViNGVmZTJlMTFhODU0YTExNjc2NjBiNzE3ZTlkOGUzOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3NTBjMTNiZjFlOWZkNWYzN2ZjMjc4MTk0ZjQxMTk5Y2Y5MzkzMzRmZTU2MTZhNmRlYWI4YzE4ZTg4YzdjOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFI/Platform/Authentication/SecurityKeyPresenter.swift#L142-L219",
+          "version": "repo-lines-v1:sha256:0dcd828339e46c47b10ff4e9bd36f5956d4eb57c82c4a449d40d6d2d5508bdb7:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1YTcyZDZlMGE4NmJjODdmOGM4NmExY2Q2NjUzMzEwNzdlZGQyZmQ4NGU3ODBjODY3ODA5OGVmYjE2NjVkMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZWIwMTY5MzhlNGYxZjEyMmI2ZWIxYjhlMDMyNWJlYjRiMGNmMDdhZjAxNWRkNTQ0YzkwYWUzZTNiY2I4MDYifQ"
+        },
+        {
+          "resource": "repo://TFI/Platform/Authentication/SecurityKeyPresenter.swift#L66-L139",
+          "version": "repo-lines-v1:sha256:5a94b96a951902dcd7cda1cbd2425195530ee14dc1881ff139554e6e80d3af7d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzOWYyYWExYzlkYzMwNDE4ZGExOTc1NDE5MGY3MGFkNWRkNTMwM2JkNGQzNmI5ZGY0YzAxMGJjMmJiZmUyOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwNjZmZDJmMTRlMDUzMGEwNGEzN2RlZTE2MzY2YmQ4MmQwNDcxNTQ1MjNlNzA2YWI3ZWYyMjI2MmY3NzY1YzMifQ"
+        },
+        {
+          "resource": "repo://TFM/Platform/Authentication/SecurityKeyPresenter.swift#L142-L219",
+          "version": "repo-lines-v1:sha256:490fdba0c9fe4ee56880b526209fb86e5903399918d26fa60fbde43c0c688bfd:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1YTcyZDZlMGE4NmJjODdmOGM4NmExY2Q2NjUzMzEwNzdlZGQyZmQ4NGU3ODBjODY3ODA5OGVmYjE2NjVkMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZWIwMTY5MzhlNGYxZjEyMmI2ZWIxYjhlMDMyNWJlYjRiMGNmMDdhZjAxNWRkNTQ0YzkwYWUzZTNiY2I4MDYifQ"
+        },
+        {
+          "resource": "repo://TFM/Platform/Authentication/SecurityKeyPresenter.swift#L66-L139",
+          "version": "repo-lines-v1:sha256:5a94b96a951902dcd7cda1cbd2425195530ee14dc1881ff139554e6e80d3af7d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzOWYyYWExYzlkYzMwNDE4ZGExOTc1NDE5MGY3MGFkNWRkNTMwM2JkNGQzNmI5ZGY0YzAxMGJjMmJiZmUyOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwNjZmZDJmMTRlMDUzMGEwNGEzN2RlZTE2MzY2YmQ4MmQwNDcxNTQ1MjNlNzA2YWI3ZWYyMjI2MmY3NzY1YzMifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

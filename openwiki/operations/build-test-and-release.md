@@ -3,6 +3,9 @@ type: release operations
 title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -50,6 +53,8 @@ sources:
     resource: repo://TFITests/MobileForwardingRenderingTests.swift
   - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
     resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-2c7245a9a1462a5a8d09b739
+    resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-1068a19b8ad42f734f4b4bb6
     resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -64,10 +69,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Build, Test, and Release
@@ -147,10 +149,16 @@ Do not treat gated mobile integration suites as part of routine default coverage
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileEditorToolbarTests
 ```
 
-`TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the command-line opt-in; Xcode forwards it to the test host as `TERMIND_MOBILE_UI_TESTS=1`. `MobileAdaptiveLayoutTests` is a separate serialized, **ungated** suite: it mounts `MobileRootView` in a temporary key `UIWindow`, resizes size classes and widths, checks tab and navigation identity, drafts, scroll/focus/marked text, and attaches captures across English and both Chinese locales. Its fixture restores the prior key window after each run. Because it also uses process-wide UIKit state, target it narrowly with `-parallel-testing-enabled NO` when investigating adaptive behavior rather than assuming it has the suite-level opt-in:
+`TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the command-line opt-in; Xcode forwards it to the test host as `TERMIND_MOBILE_UI_TESTS=1`. Check the actual suite annotation before choosing a gate: other key-window suites (for example batch startup, workspace windows and paywall rendering) use the same opt-in, but not every test that mounts a window does. `MobileAdaptiveLayoutTests` is a separate serialized, **ungated** suite: it mounts `MobileRootView` in a temporary key `UIWindow`, resizes size classes and widths, checks tab and navigation identity, drafts, scroll/focus/marked text, and attaches captures across English and both Chinese locales. Its fixture restores the prior key window after each run. Because it also uses process-wide UIKit state, target it narrowly with `-parallel-testing-enabled NO` when investigating adaptive behavior rather than assuming it has the suite-level opt-in:
 
 ```sh
 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileAdaptiveLayoutTests
+```
+
+`MobileMetricsJourneyTests` is **also serialized and ungated**: it mounts a temporary key window with an injected metrics sampler, then hides it, restores the prior key window, and shuts down the metrics core. Its three-language journey keeps keyboard-interactive authentication in the metrics detail route across width changes and large type, checks that submitting both fields reaches the sampler only once, and records PNG attachments plus files in the system temporary `termind-metrics-journey` directory. Since this suite manipulates process-wide UIKit state and creates captures, run it deliberately with an installed simulator and nonparallel execution when changing metrics navigation or authentication; do not claim it is skipped in a default run:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileMetricsJourneyTests
 ```
 
 ### StoreKit authorization gate
@@ -184,14 +192,14 @@ The macOS script requires macOS 27.x, accepts constrained scene/locale environme
 
 Define user-facing copy as shared `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` (`AppStrings`), even for one-platform wording; the catalog compiled into each app bundle is `Frameworks/Resources/Localizable.xcstrings`, and bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. Keep identifiers and diagnostic codes with their existing owners. `STRING_CATALOG_GENERATE_SYMBOLS = NO` because `AppStrings` owns the Swift-facing API. Any new or changed English string must ship with finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions.
 
-The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit run `Scripts/normalize-string-catalogs.py --write` for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter. The normalizer leaves translations intact and does not touch AgentKit's catalog. Before committing, run both checks (the catalog check requires `jq` and optionally accepts a catalog path):
+The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit run `Scripts/normalize-string-catalogs.py --write` for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter. The normalizer leaves translations intact and does not touch AgentKit's catalog; it rejects duplicate keys or invalid JSON before writing any catalog in a batch and atomically replaces each changed file. `--check` reports drift without writing. Before committing, run both checks (the catalog check requires `jq` and optionally accepts a catalog path):
 
 ```sh
 Scripts/check-appstrings.sh
 Scripts/check-zh-localization.sh
 ```
 
-The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON and, for each Chinese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing. Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging.
+The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON and, for each Chinese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing for translatable entries (`shouldTranslate != false`). Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 
@@ -211,7 +219,7 @@ Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.18.1`; the workspace `Package.resolved` records the selected remote release and revision. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release is not present in this checkout, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.18.1`; the workspace `Package.resolved` selects AgentKit `0.18.1` at revision `e21235d8647a780e16a1c2c3b19cc00db5c82cb7`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release is not present in this checkout, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -244,7 +252,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-appstrings.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
-6. Keep visible-window, gated mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
+6. Keep visible-window, gated mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout and metrics-journey suites deliberately without parallel testing for relevant UI changes; they are not disabled by the mobile UI gate.
 7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.
 8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
 9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.

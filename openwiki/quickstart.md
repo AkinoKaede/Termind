@@ -3,11 +3,22 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-1635d0be12e44ef9134ffabc
+    resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
+  - id: openwiki-source-1d1f503a260f304a969fcee4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-131881b779429a1d1d605e52
+    resource: repo://Frameworks/TermindPresentation/ConnectionJourneyRouteView.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
@@ -28,12 +39,18 @@ sources:
     resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-707053bb7defcfbf9343584b
+    resource: repo://TFI/UI/Components/MobileConnectionJourneyView.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-5f3340557a76d700b8808d40
+    resource: repo://TFITests/MobileConnectionJourneyRenderingTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-2c7245a9a1462a5a8d09b739
+    resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -42,20 +59,23 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-dc041600497a72c229d5eef4
+    resource: repo://TFM/UI/Components/ConnectionJourneyView.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-85c3f954351f96433cb1fb4b
+    resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-c7d015a20982da4e8b0599d1
+    resource: repo://TFMTests/MetricsJourneyRenderingTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Termind Engineering Quickstart
@@ -71,16 +91,16 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Desktop Navigator, sidebar, workspaces, Vault, Assistant layout | [macOS UI and Workspace Ownership](/openwiki/architecture/desktop-ui.md); target window/navigation or layout tests. |
 | Desktop Workspace/Pane sorting, merging, drag-out new windows, or Assistant list reordering | [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md); preserve the native Workspace List source and live receiver contracts. Use `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests` or `AssistantConversationListDropTests`, plus the source/cancellation/animation suites listed in that guide. |
 | File-drop events, Assistant attachments, SSH terminal/SFTP uploads, desktop remote-file dragging or Key import | [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md); trace native routing, payload priority, provider staging and transfer lifetimes. Use `FileURLDropTargetTests`, `MobileDropTests`, upload/attachment/import suites listed there; the guide also locates the shared Overlay UI. |
-| Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connection/routing changes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI changes. |
+| Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connection/routing changes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI changes. For native metrics authentication/navigation use `MobileMetricsJourneyTests`. |
 | Shared UI conventions, fields, tokens, accessibility | [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md); check platform renderings and `ArchitectureBoundaryTests`. |
-| SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
+| SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For journey route/checkpoint changes, `ConnectionJourneyTests` covers shared state and `MobileConnectionJourneyRenderingTests` covers native mobile rendering; see [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md). For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
 | SSH Security Key registration, FIDO2/WebAuthn signing, Vault metadata, or forwarding limits | [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md); use `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, and `SSHInteractionPolicyTests` for the changed boundary. |
-| Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. |
+| Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. For metrics keyboard-auth presentation, use `MetricsJourneyRenderingTests` on desktop and `MobileMetricsJourneyTests` on mobile. |
 | SFTP browsing, transfer scheduling, external edit | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md); select the transfer, conflict, or edit suite. |
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](/openwiki/concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools, or memory tests. |
-| SwiftData, secrets, migrations, CloudKit, settings | [Persistent Data, Migrations, and Secrets](/openwiki/concepts/persistence-and-secrets.md), [Settings, Vault, Metrics, History, Device, and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](/openwiki/operations/cloudkit-release-readiness.md); select repository, migration, or sync lifecycle tests. |
+| SwiftData, secrets, migrations, CloudKit, settings | [Persistent Data, Migrations, and Secrets](/openwiki/concepts/persistence-and-secrets.md), [Settings, Vault, Metrics, History, Device, and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](/openwiki/operations/cloudkit-release-readiness.md); select repository, migration, or `CloudSyncLifecycleTests` / `CloudSyncSafetyTests` for a sync lifecycle change. |
 | MCP server, external upload/download, bridge | [MCP Server, Transfers, and Stdio Bridge](/openwiki/integrations/mcp-server-and-bridge.md); run token, server-session, transfer, or bridge tests. |
-| StoreKit, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](/openwiki/operations/storefront-commerce-release.md), [Marketing Assets and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md); use localization, app, screenshot, StoreKit, or website checks as appropriate. |
+| StoreKit, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](/openwiki/operations/storefront-commerce-release.md), [Marketing Assets and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md); use catalog normalization and bilingual validation, app/language, screenshot, StoreKit, or website checks as appropriate. |
 | Picking a deterministic test seam | [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md); run the narrow behavioral test before the affected target suite. |
 
 ## Lifetime and change boundaries
@@ -95,6 +115,10 @@ Mobile phase changes are aggregated across scenes: background work is paused whe
 
 AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 
+For CloudKit changes, follow [Settings and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) through the [release checklist](/openwiki/operations/cloudkit-release-readiness.md): `CloudSyncLifecycle` owns a separate engine and account scope per category. It commits a recovery fence before making an automatically syncing engine, fetches before authorizing uploads, and reconciles pending engine changes against the durable journal. Pausing, account changes and non-cancellation persistence failures retire the engine and cancel its operations; late callbacks must not act on a replacement engine. Recheck `CloudSyncLifecycleTests` (including retirement and delegate-context coverage), `CloudSyncSafetyTests`, and the relevant coordinator tests rather than treating a successful build as a sync migration check.
+
+For connection-journey presentation, shared `ConnectionJourney` tracks route progress and authentication/host-key checkpoints, while `ConnectionJourneyRouteView` draws the common route; each app owns its surrounding native prompts and navigation. Test shared state with `ConnectionJourneyTests`, then the affected app's rendering or metrics-journey fixture; do not treat a rendering fixture as a live SSH test.
+
 ## Focused validation
 
 Run the nearest behavioral regression first, then the relevant product suite. Always keep `-onlyUsePackageVersionsFromResolvedFile` so ordinary builds do not silently move the resolved dependency graph:
@@ -107,6 +131,6 @@ xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests T
 Scripts/check-zh-localization.sh
 ```
 
-For `TFI` tests use an installed iPhone/iPad simulator. Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` is serialized but not gated by that variable. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
+For `TFI` tests use an installed iPhone/iPad simulator. Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` and `MobileMetricsJourneyTests` are serialized but not gated by that variable; use a narrow nonparallel run when working with their process-wide UIKit window fixtures. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
 
 Before submitting, inspect the diff for secrets, generated artifacts, cross-layer imports and accidental `Package.resolved` churn; use the routed operations pages for CloudKit deployment, StoreKit release, marketing assets, and forwarding benchmark measurement semantics.

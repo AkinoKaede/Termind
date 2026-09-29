@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5fea4d10482cb740725ebd6dfe3dbcfea6438c0e2b34f2d6658f25e574d8c653",
+  "pageVersion": "sha256:2d085af48c8fc73450279acdfcfe6b5a703a99528dbf17566e3a8fd91b5a9311",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -136,11 +136,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
-          "version": "repo-file-v1:sha256:89eb1727364484f4babc8dae805f434d288b34703f7db1a76ded2b0b88171a2c"
+          "version": "repo-file-v1:sha256:b35ccc05b61079311c0a2cba61bec93664afe7adf5bcd28152d57a31e3872323"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:cdfc3b488d5c23edb6f4a447b9cf07d4bac7f1dbd1cb14f921a4ee9d5f820d62"
+          "version": "repo-file-v1:sha256:ad708095cb34a283c54c6941d1e18501f41ad1abb38dbbf92fb00d8265ad3d0b"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/ConnectionHistorySyncCoordinator.swift",
@@ -214,7 +214,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:cdfc3b488d5c23edb6f4a447b9cf07d4bac7f1dbd1cb14f921a4ee9d5f820d62"
+          "version": "repo-file-v1:sha256:ad708095cb34a283c54c6941d1e18501f41ad1abb38dbbf92fb00d8265ad3d0b"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift",
@@ -588,7 +588,7 @@
         },
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:4e83853f922b5f034b5a849d2d5b33d3c68e236ff9aaa813068252b0264a5382"
+          "version": "repo-file-v1:sha256:ceeb0e8e5a9990c4646aeddb1110fd0dad090d92295573e9fbffe7bbcb9b83c0"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
@@ -734,7 +734,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:cdfc3b488d5c23edb6f4a447b9cf07d4bac7f1dbd1cb14f921a4ee9d5f820d62"
+          "version": "repo-file-v1:sha256:ad708095cb34a283c54c6941d1e18501f41ad1abb38dbbf92fb00d8265ad3d0b"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift",
@@ -770,7 +770,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
-          "version": "repo-file-v1:sha256:89eb1727364484f4babc8dae805f434d288b34703f7db1a76ded2b0b88171a2c"
+          "version": "repo-file-v1:sha256:b35ccc05b61079311c0a2cba61bec93664afe7adf5bcd28152d57a31e3872323"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
@@ -778,7 +778,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:cdfc3b488d5c23edb6f4a447b9cf07d4bac7f1dbd1cb14f921a4ee9d5f820d62"
+          "version": "repo-file-v1:sha256:ad708095cb34a283c54c6941d1e18501f41ad1abb38dbbf92fb00d8265ad3d0b"
         }
       ]
     },
@@ -842,23 +842,27 @@
     },
     {
       "id": "claim_4024529868c44761b0f8b8208cb8d69b",
-      "statement": "NotificationPreferences is a Settings-synchronized notification record introduced in V41: independent Assistant, terminal and SFTP modes default to unfocused with system terminal delivery and a five-second threshold; edits validate and persist before publishing, remote updates do not echo, and failed loads suppress initial permission requests rather than using fallback defaults. Initial system authorization is requested at most once per model and not for bell-only delivery.",
+      "statement": "NotificationPreferences is a Settings-synchronized notification record introduced in V41: independent Assistant, terminal and SFTP modes default to unfocused with system terminal delivery and a five-second threshold; edits validate and persist before publishing, remote updates do not echo, and failed loads suppress initial permission requests rather than using fallback defaults. Initial system authorization is requested at most once per model instance, only if a category requires system delivery; selecting terminal bell avoids the request only if Assistant and SFTP system modes are also off or notifications are disabled.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift",
-          "version": "repo-file-v1:sha256:239ccd0fa2ae84e078396a08bad5ac499568b5820eb9ffd345a806004474fc6d"
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L12-L75",
+          "version": "repo-lines-v1:sha256:482b34c145e864f253953b177a78d5008d6427956096efb1b1d51170ec9560c2:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5YTc4ODhiM2VjNDgwMmYzOTA4MmJiNjE0NDY3ODQwMGQ5MTc3OWQ0ZWZiYjE4MzkwNzI5MzMyZDkzOTRiN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3NWJmODcxNWI5MTQ3ZjM2ZDhkMzdhMzc5MmQxMDM2MjRkMTJlZTFiMTJlMTZiODRkZmQ1YjhmZGVlYzg1M2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlYmI5MTdmY2Y4OGMyZDFlNDM5OTgyZmE3YWEwYWIwMWM2MTVhZDZjZTcyMjA3MTBlNTVlYWZmN2JjMDNkODMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift",
-          "version": "repo-file-v1:sha256:476d5cccb12f7728a3179441f1f6d980c0972c096ad48f7f7bf23a5f46dcefeb"
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L95-L185",
+          "version": "repo-lines-v1:sha256:de0ba657a3c7c47a90399b3d63c0abe617a45162495e3871c4dc0e64d672fb88:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NjM5ZjdjNjRjYWEwYzg0NDU4MzBmYzY0ODg3YjU5OGIzZDM3ZTZjMWMwN2VkNDBhNzU3NTJhMjc3ZTNlNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhMTkxODc3OTU1YTM0ZTdiYjY5YTUyOWQ5ZWY2ZDQyMjA3NjUxNTY1NjkwM2FlNzM5MGE2MzliNmNhNWJkZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0YjRhNGFlODFjODMyMzgxZGEzODc5NGU0YjVmZDEwZmJhYjQ0NWYyYTU2N2E4OTdiMmE4NDFiNjdjMGVkMTgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift",
-          "version": "repo-file-v1:sha256:5c28819dfdeb1b32230067a640fb4739d93e90e02ee2571bd0bb47eb0bc9f094"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L12-L47",
+          "version": "repo-lines-v1:sha256:cfd2830bbb4d17b147087212aa58328d0ba730a20e5b2712a695072f2bdcf853:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5MGFhYjI5MGIwNmFjMjNkMjJhNzczOTcyMDc3ZjQ0ODZmNDYzYjdiODU1ZDEwM2QzZTE3YjAyMDA4ZWE2ODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyNjQyNzgxNWFhZDRlNTIwM2E3ZjljZDVhNDdhNDY5N2FlY2E4YjRkOGViMDNiODFiZTJkYTYyYjU3NmMyNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift",
-          "version": "repo-file-v1:sha256:e6f3e697b80b7142d129cb383af9235f0254a5b77483fd62fe9e09c184038a42"
+          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L16-L56",
+          "version": "repo-lines-v1:sha256:890b30881cebc4c8fb2dac8073dab59b607a9aa1e8b6f8d2e05c21d0ecaf5e9c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhNWUwZmViNjdlYWY4MmMxMzJmMDg2NjQzYTJmNDY2NGYwYTMyZWM1YzBkM2YxZjc3NjczZmVhZmI0MTUwMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5OTM3MTkzODU0ZWJjMDIyODhmMmU2NjhmMjcwYjk2NmExNzAzNDM2NTVlNDUxZWFiNDhjNGJiNWRjMmQ1N2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwNjY2YzA2MTJhNWRjZThhZTQ3MzYyODA5YWQ2NDNiZGE3M2U1M2M3M2JmNDRkYjI1NzhhNDcwYjMwN2UzODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L368-L383",
+          "version": "repo-lines-v1:sha256:8a7de8ba8fc92d9401a53853bcee523b8a57710bb1b2f04092978acbad5efa46:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3NTQ2YTM0NjRiMWE2MjNmMGRkMzY2NTliYmNiOWQ4ZDE1M2UxMDRhZmM4MGFiZTRlMDliYWUwN2UyODEwYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0MzRjMzQ0ZGQ1NWZlNDVkY2Y0YTEwNTY3MDk0MDM5NjYwMDQ4ZTFmOTZkYTQ5OGVkMDQ5ZTQ5MGRmMGViZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhYTYzOTczMjk5Njk1NzQ2YjIxMmE2YmMzZTY5OTVmYTcwNWIzNmFjODFkNGUxNDRjOTE5ZTAwYWQyMjgxNjUifQ"
         }
       ]
     },
@@ -961,10 +965,60 @@
           "version": "repo-file-v1:sha256:3ae003f72e28e72f84269799b50743fea3f294ecf6c0ed91d6b164b43d4bf0cb"
         }
       ]
+    },
+    {
+      "id": "claim_fec4e1380ee54a19b96902f391e0cce7",
+      "statement": "CloudSyncLifecycle detaches scheduled synchronization operations and engine cancellation from CloudKit delegate task-local context, while retaining MainActor isolation; regression tests cover start, retry, local-change callbacks and account-change cancellation.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L11-L74",
+          "version": "repo-lines-v1:sha256:1991c5a31add06845b6bda41f4c40ac0b3ddee79b4d8b0ced9b1345901d09174:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0YjAwOGU3NmU4MTEwZGQzZjFkNjUyNDg4ZTBjZjA1MzhkNDU0OWU1ZGM3YmNmNjlkNzQxZjE4MjgyODllOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExODlhZjJmNDAwYjU2YWQyMzc3ZThkODA2MmJjM2U5ZWIxMTRlZWMxNGRmODFhNDI1ODhjMmI0ZmFiZTYzZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhNmE1MDgzOThhZDAyZjQyNGJlZTNlMzQ1ZDA0NWJjNDYxMmE1N2UzOWJlMDAzMGIwMjYyNTM2YzQ1YTJmZmQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L294-L315",
+          "version": "repo-lines-v1:sha256:9536519312d5f5389046f16e3ebc01f31ac565213ba03df5771cb2b9e6dc21a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkM2ZkMzBhMTczNWU4NTQzZjQzZTE3OTJlODliMDc2NWJlNjhmM2JlZTNlMGVlNDE5MGMzM2EyNDhiZmY3ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4OTUwYjYyZTc5ZjEwZWU4MDM4N2VjYmFiMWNlZGMwYWMxZWZmYWUxNDY3Y2NhOWQ1NjJmYWVhZTY3MzNjY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2OTgwNTAwYWRlYTg1NDAwYzEzNjNiYTY1M2QxNTEyMTI5MjE5YjFlZDg2MzE5YzliOTNiNGRlMzFmYTRkMDcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L670-L689",
+          "version": "repo-lines-v1:sha256:373f2458dac848e0f3cf87d8eee30053363423c688d9d810369486e7679fae3b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YWYyMjljNGQwMGYyYzU2ODY5ZGNmYjlmOGM0YjgzZDc5ZTkxYzQ2NDA0YjA2ZWNhZmRlY2U2MGUyOGMyMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMTk2ZmNkYjg2YjE5MWU3NWNhOTE4ODIwZTU2ODNjZGU3OTMwOGNjNzg2ZjE4MTRjMTU5MTNlNGUyOWE4ZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6b1b7ae071dd48e084a4003947435b65",
+      "statement": "CloudKit ordinary zone deletion resets and requeues scoped journal records and recreates the zone, whereas a purge or encrypted-data reset retires the engine and purges the scoped cloud cache without recreating the zone during that event; a subsequent explicit local write can start a new engine.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L153-L183",
+          "version": "repo-lines-v1:sha256:193eee484f791cce7d2bbfb9a1e2bcc91787281f430fc5c3b07457f8f272de63:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhOWNiY2E5NmRhY2IzNWNjNTU3MjVlMGM3YTczZTA4MzE3MTA3MGM4ZmQ0Yzg4N2RkZTQ3OWRmMGU5NzNjYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzYWQzYWI5NDU4ODM4YzllZjNhYjFiNGRmYWYxOWNlZGJhNGI0NWE2YTBmZTZjZTE1NzAyYjY4ODFlN2Q2ZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2ZTVlMTJjMTUwNDBlNTQ3NTY2Y2I0NTgzY2Q5NWU4MmEwYTFkOTlmNTg5MzVhZjJkNTI3NzFkZjVkNjRiMGMifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L482-L498",
+          "version": "repo-lines-v1:sha256:1a07e40e3077377610eccc76e06bce79e2ed958395cbe19da36ed901824e283f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiYWQ0NWU5ZDlmYzgwNGFkODg4NDU4MTdmOTNlYWIxNzk2NWNhMGZhMzZhNGUyMDI5NDM1NTYxYmQ5OWJmMDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L691-L715",
+          "version": "repo-lines-v1:sha256:708f1e71f993ed906dc6fc78a6ceaed6ba8cf16cd605d1acbf7f0684d2423870:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMDM3ZDYzYmRlY2IwMmJlNTY1NDhhNGE4NjdkZDczYmMzMzFkYzVmMzcyNDMzZTFlM2MwOWJhNGE4NTk3OWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM3MTk2ZGMxNmFmZWQ2ZDEzMGQ4NjViNTA1OTI2MDhkMzZlMjRlYTY1MzM0ZjY2MzdhNjAwNzdiNTA3MjFhZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2YjExZmY3NjY2Y2Q4MTE3NzlhOTk4MDUwOTNlOTBmYWNhNTM4OTA0ZGExZWU0NWI3ZDVhMTYwYTRjZDM3MGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b57f6b56c2b14a99b1ac7b9a310340ed",
+      "statement": "Within a fetched CloudKit batch, if any included representation of a record name fails decoding, that name is quarantined and even other successfully decoded representations of the same name are excluded from the applied batch.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordReceiving.swift#L3-L24",
+          "version": "repo-lines-v1:sha256:4e23ab43bc8067bea1ef6dfa420887ac9c0e3eca768692f37721ab80fe50da6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmY0MzBmMjFiODU1MTMzYWE5YmM4NzY2ODllYjJiNjc5NmExY2QwYzhmZjIyMWQwNzM0NzBmYmQzZGZmYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3YjEwNDJkNGM4MjcyOGZjNTAwMjIzY2VjMGU3YTMyZGY1NDdjZTkxNjkzNWMyNTAyNDQ4OWU4NDJmMzI1OTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L231-L269",
+          "version": "repo-lines-v1:sha256:257b85545429ab711877498254ac84ec4698807a81363fbc84b4ee278705b884:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMmM1OTg3MTFlN2I0MTllMmEwMmUyM2VmYTFkOTU0MjA3NmEyYjljZmJmMjkzNTA2OGE1N2RmNzE3NzI0ZGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliYjhmOTczOTJiMjRlYmM0NjM3ZGQwODQ0MmUyOWRiOGU0ODg5ODc1OWU5MjJiYjgwNDg3OWUwYzcxNTEwZTcifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

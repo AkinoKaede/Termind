@@ -1,11 +1,20 @@
 ---
 type: architecture guide
 title: iOS and iPadOS UI and Scene Ownership
-description: "How iOS and iPadOS scene-local navigation and workspace sessions share app services, recover window ownership, and adapt presentation without replacing native state."
+description: "How iOS and iPadOS scenes own navigation and workspace routes while shared services own connection journeys and Metrics; covers native presentation continuity and key-window test boundaries."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
+  - id: openwiki-source-ca49232858afa421bf33a03b
+    resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
+  - id: openwiki-source-131881b779429a1d1d605e52
+    resource: repo://Frameworks/TermindPresentation/ConnectionJourneyRouteView.swift
+  - id: openwiki-source-9a8e4b8df311efa27f706ca7
+    resource: repo://Frameworks/TermindPresentation/ConnectionJourneySections.swift
   - id: openwiki-source-d451c1188cbe4d9593ff2b68
     resource: repo://Frameworks/TermindPresentation/ConnectionStatusIcon.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
@@ -44,6 +53,10 @@ sources:
     resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
   - id: openwiki-source-ad662f2a7016a994d8522bf2
     resource: repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift
+  - id: openwiki-source-a053f8c3524e81f98b0b0938
+    resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
+  - id: openwiki-source-5503f969776cb509a7d69160
+    resource: repo://TFI/Features/Ports/MobileForwardingView.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
@@ -60,6 +73,8 @@ sources:
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-de285e30d853611503042782
     resource: repo://TFI/Platform/MobileWorkspaceSceneRouting.swift
+  - id: openwiki-source-707053bb7defcfbf9343584b
+    resource: repo://TFI/UI/Components/MobileConnectionJourneyView.swift
   - id: openwiki-source-3af0aeffcab26dc81096aefc
     resource: repo://TFI/UI/Components/MobileEditorSheet.swift
   - id: openwiki-source-9e1ad4464fb43a1ffe1283c7
@@ -74,10 +89,16 @@ sources:
     resource: repo://TFITests/MobileBatchStartupTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-5f3340557a76d700b8808d40
+    resource: repo://TFITests/MobileConnectionJourneyRenderingTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
   - id: openwiki-source-68ab6aaabd7a3499cfe23434
     resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
+  - id: openwiki-source-2c7245a9a1462a5a8d09b739
+    resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
     resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
@@ -86,10 +107,7 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -267,7 +285,31 @@ Production reserved-region and vertical-toolbar queries require both the `TERMIN
 - A top or vertical navigation arrangement uses an icon-based workspace/conversation switcher; the ordinary arrangement can use the navigation title menu.
 - Cards adapt to their measured container width, not a global “iPad has two columns” rule. Accessibility Dynamic Type forces one column.
 
-## Workspace UI: protocol-specific actions, retained terminal
+## Connection journeys are runtime state, not scene navigation
+
+`ConnectionJourney` belongs to the active operation (`MobileWorkspace`, a Metrics `ServerMetric`, or a port-forwarding connection), not to `MobileSceneModel`. The scene selects a feature or workspace route; the detail chooses between its journey and its normal content. Thus changing tabs, popping a Metrics detail, or resizing does not itself answer or cancel a pending authentication challenge. The shared `TermindPresentation` header, route and status sections render the purpose-specific destination and connection phase; `MobileConnectionJourneyView` supplies mobile scrolling, a bounded content width, inline forms and logs. The route visualizes endpoints/checkpoints and scrolls toward activity except under Reduce Motion; its output is a view of the journey, not a second connection state machine.
+
+```mermaid
+flowchart TD
+    Scene["Scene selects detail route"] --> Detail["Workspace, Metrics or forwarding detail"]
+    Runtime["Operation owns journey and pending prompts"] --> Detail
+    Detail --> Journey{"Journey or prompt visible?"}
+    Journey -->|yes| Shared["MobileConnectionJourneyView with shared header and route"]
+    Journey -->|no| Content["Normal detail content"]
+    Shared --> Inline["Logs, authentication, host key, failure or status"]
+    Inline --> Runtime
+```
+
+The detail routes runtime-owned prompts into an inline connection surface and forwards user decisions back to the owning operation.
+
+The mobile content priority matters: logs (when toggled) replace the form, then pending security-key signing, keyboard-interactive challenge, ordinary SSH authentication, host-key confirmation, failure with Retry/Cancel/Copy Logs, reconnect countdown/actions, and finally phase status. Challenge and authentication forms use prompt IDs as view identity; keyboard-interactive cancel checks that the challenge is still current. Logs can be copied to the pasteboard. The header compresses its log button for accessibility sizes, while the failure actions stack for large text and animation respects Reduce Motion. A refactor should not turn the journey into a modal sheet or a scene-global prompt: each caller supplies its own submit, trust, retry and cancel closures. Workspace Cancel closes its workspace; Metrics Cancel disables monitoring and dismisses detail; forwarding Cancel stops the rule and dismisses detail. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for connection-side behavior.
+
+### Metrics detail and monitoring boundary
+
+The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Failed persistence is surfaced as `app.error`, while an admission-limit failure presents the Pro paywall. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
+
+`MobileMetricsDetailView` displays the inline journey whenever `server.requiresAuthentication` or `server.journey.isPresented`, before Metrics status/process panels. It wires authentication, host-key trust and Retry to `app.metrics.core`; its cancel disables that server and dismisses the pushed detail. When the journey is shown it stops detail observation; otherwise it registers its observer, including on the transition to live data, and removes the observer on disappearance. That observer controls detail-only sampling, **not** the lifetime of the shared monitor. Normal content keeps status and process children mounted in `MobilePaneLayout`, hiding covered children from hit testing and accessibility. A usable split shows both; without a division a sufficiently wide continuous area shows two columns, otherwise a page selection shows one. The page control is absent during the journey or when both panels fit; in a vertical toolbar it becomes a menu, otherwise a segmented picker. This separation keeps a challenge in the Metrics navigation stack instead of presenting a sheet or constructing a terminal workspace.
+
 
 `MobileWorkspaceView` composes the connection/content area, search, feedback overlays, toolbar and transient sheets. Its toolbar is capability-shaped:
 
@@ -342,6 +384,8 @@ Implemented principles:
 4. **Use mobile affordances without losing desktop parity of intent.** Primary card taps, context menus, swipe actions, title menus and hardware-keyboard commands can expose the same operation differently.
 5. **Keep app work out of transient view lifetimes.** Scene routes select shared work; they do not own every connection or Agent run.
 6. **Hide covered interaction as well as pixels.** Hit testing and accessibility must follow the visible region.
+
+Native-window coverage has two different execution contracts. `MobileMetricsJourneyTests` is a serialized, **not environment-gated** UIKit-hosted integration suite: it installs a temporary high-level **key** window, restores the previous key window in `defer`, and uses an injected Metrics sampler to create a real keyboard-interactive challenge without a network connection. Across en/zh-Hans/zh-Hant, 430/600/1024-point widths and accessibility text, it checks the challenge ID and two input fields survive detail pop/push and resizing, with no segmented control or presented sheet; entering the answer leads to live Metrics with one connection attempt and no extra modal. `MobileConnectionJourneyRenderingTests` likewise mounts a key window for keyboard-interactive rendering by default, but its full failure/log/authentication/reconnection screenshot matrix runs only with `TERMIND_JOURNEY_SCREENSHOTS=1`. The forwarded-connection journey rendering suite is separately gated by `TERMIND_MOBILE_UI_TESTS=1` and asks for parallel testing to be disabled. Do not infer from the opt-in suite that every test which steals the key window is opt-in, or from the default-running Metrics test that an offscreen `UIHostingController` alone proves focus, native navigation or sheet behavior. See [Behavioral Boundaries and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md) for the broader test strategy.
 
 `MobileAdaptiveLayoutTests` mounts `MobileRootView` in a UIKit window and checks the same native `UITabBarController` with five selectable destinations over simulated 1024/600/375/320-point widths, regular/compact traits, large/accessibility Dynamic Type, and English, Simplified and Traditional Chinese locales. In compact mode it asserts all five tab labels are visible; on regular iPad widths the system bar can scroll. Other tests retain Assistant conversation/draft and Metrics navigation through resizing, check title-menu/icon switchers and Settings edit sheets, and isolate two scene models. Injected division and occlusion changes verify Metrics keeps the same native list and scroll offset and Assistant keeps its conversation, transcript `ListScrollView`, focused composer and Chinese marked text; a save-in-flight test preserves a sheet and failure feedback through width changes. These are simulated layout and injected-geometry tests, not proof of every physical device or SDK availability branch.
 

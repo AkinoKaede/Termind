@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:fa69fa140d6a84fa5343bdde90f989ae0df2921597d21e42ce7a16e8eb945f07",
+  "pageVersion": "sha256:f7ece6e82819d0b42cf79e12441006033a38461d8b695ff35c72261c44f377a2",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -160,15 +160,19 @@
     },
     {
       "id": "claim_8cb59d2af4c74383a37b91861cd0ec90",
-      "statement": "App localization is centralized in `Frameworks/Resources/Localizable.xcstrings`; every changed English string requires finished `zh-Hans` and `zh-Hant` translations, and the localization check rejects invalid catalogs, missing or unfinished translations, and Chinese spacing violations.",
+      "statement": "App-facing text is defined as semantic `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` and localized in the shared `Frameworks/Resources/Localizable.xcstrings` app catalog; `InfoPlist.xcstrings` owns bundle metadata. New or changed English app text needs finished `zh-Hans` and `zh-Hant` translations; the default Chinese check validates both app catalogs' normalization, JSON, Chinese completion and spacing, not AgentKit or website copy.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:a84b3408d31ed206fb90070bd9bffcfdc7e73da4c4c3e3268eaa66668347e214"
+          "resource": "repo://AGENTS.md#L48-L69",
+          "version": "repo-lines-v1:sha256:6c9efbc83da4073dc5b3a4125fcc4c35e2e3b8fac8d8f5ab0fdad06c6877a8ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         },
         {
-          "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:ce4b44623e39523c8443810115adad51f464ff6acb605a00699d1730ac21d925"
+          "resource": "repo://Scripts/check-zh-localization.sh#L5-L85",
+          "version": "repo-lines-v1:sha256:288f986c8d0b9091c0967182fa06d94db9e2fcab2f15ad18cd5a145211a3e56b:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiM2ZjMjU5YmQyZWU2NDYyYzExYjZkOGUxNjZkMjU4MTVlMjNjNjkzZTA0ODRjOGZiZWQ3OTRmOTJmODI3ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzOTljNGUwYTRmNDI2YjhlNDA4MzZiNzc1YmUyYWJjMmU3Njc1YTcyZWQzN2UwOTBhZjA2ZTVhYTc2ZTNhNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExOTg0ZjI4NTg4NzhjMzQwMjJjYzU0NDQ0NjVjNGY1NjczYTE0ZGVhNGE1N2E1NmRiZTdmOTA2M2E2ODQwYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L20-L24",
+          "version": "repo-lines-v1:sha256:0ecd8eb2e41daaf37fd998d466afae44f0b4e327f8cab389cb8e91136d3cd3ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzNjZjQ1NGY0ZmM0NmE2NmQwN2UwNjcyNmVmOWZmMjMyYWFiMWM3YmIyZWQzMTYzODZhZTFjMzE4MmMwNGM2MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmFmYmEwNTI3YzM5NTNjNGI2ZTBlNWI1NzM5YmE4MzYxMmY4MDUzYmNkYzk0NjY3MzAxOTNjZDFkNTkwYjQwOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzUxZmY0MWNkZDFkMjBhODRiMmUzM2JlMmUzNGM3OWFlZDE5OTgwNTUyZjYyNTdjZGJmZDgzNmNjYjY1ZTk0MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmIzMDYxOWQ0OTM1N2JhYzkwNDNjZGFhZWExM2NmZDI5NjZkMjg5M2Y4OTc5ZjY5YmFiZDhjYmMxZWYxMjkxMyJ9"
         }
       ]
     },
@@ -360,7 +364,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:4e83853f922b5f034b5a849d2d5b33d3c68e236ff9aaa813068252b0264a5382"
+          "version": "repo-file-v1:sha256:ceeb0e8e5a9990c4646aeddb1110fd0dad090d92295573e9fbffe7bbcb9b83c0"
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
@@ -749,10 +753,108 @@
           "version": "repo-lines-v1:sha256:4f2a865e16e47099ad22ef4a06f99683c799ad690a13f1569c1497d83f3dff1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4NzQzYjljZGY1NjdmODk4M2JlODU4YjA4ZmRkZmZlYWUzOGNkZDQ0OTk0NjNlZjE1Yzk2OWYwMmNmNWViZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4OTZiMTE1N2FjN2Q2OThjYjcwMmQxYTA1YmM5Y2QzZDUxYjkzZTRmM2NiNzkzNjkwY2NjNjRkODA0MzBlODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMmJiY2I4NGRkZmQxZTkxM2ExZjAyMWY5YTM3YmMzMjJmMjMxMjg5YTRhNzc5M2FhYTZhZDRiMjVjMzkxZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MDgwZDlkNDRhZDkxYTJkNmY5NjJlNjZkODFlZmY2OWMyMmFjZjEzNTQyNGQ4NTcwZjgyYjExMDJkZWRmYjEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_540a60063eb44573908e556045122744",
+      "statement": "The catalog normalizer defaults to the two shared app catalogs, marks entries manual without deleting stale translations, rejects duplicate JSON keys before any batch write, and checks or writes Xcode-compatible serialization; AgentKit's separately owned runtime catalog requires its own localization build step.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L56-L69",
+          "version": "repo-lines-v1:sha256:acc983d6635887b62c661adc7164b11a17107fa49479870cc458d1e7d762415b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNDU2ZDI2MjFhMzNhNWJmYTZiYzUwM2FmOWEyN2M3ZDJjZjE1NWFlMTFlMjlhYmQ5YmMyMjE1M2ViYmQ2NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3NzRjZjhiMmJlYWNkMGZmNjhhN2VjOThmNzhjOWVlMzgwMzUzNWI0OWUwYTJlNGJlNDI5M2JkMTViNzhmZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L1-L6",
+          "version": "repo-lines-v1:sha256:a4f7e4e8cd45a6a2e257248bc9cef3775d26f29a5f556dc4f80c9f52b74cddea:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDY4MmNiZGI0YzhiMDc1MThiZjQ4NmM1ODk5MGZjMzkxNzgzYWEyMGE5MTZiZmIyN2FkMjExZWIxZDVjMzY0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWVlYjY0YTVlNDE3MWJjNjIxOGQxYzVhMjRjOTYwYWY3YzUyOGYyYjBmMzU3NWFjNmFjN2VlYzE5M2ViNzM2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWFhZjc2MzdjYjZlN2U1ZGI4NWQ2MzQyNzQ2MDE0ZGYwNDFjY2Q1NThhOTIwYjI5ZWI2YWM3MTlkN2JhZjVjMiJ9"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L20-L55",
+          "version": "repo-lines-v1:sha256:57463e67ead7378d0a854ce1f3dbd1f3cc6a42d5f112460c18e4acc9a61cce21:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzY2Y0NTRmNGZjNDZhNjZkMDdlMDY3MjZlZjlmZjIzMmFhYjFjN2JiMmVkMzE2Mzg2YWUxYzMxODJjMDRjNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0ODNhMzBlYTFjOWE5MDRhYTM2OGU2MGZiYjdlOGJjMzgxY2Y4MjQ4NWU3N2JmYTVmNTQ4ZTVhYWRhYTFiMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1MWZmNDFjZGQxZDIwYTg0YjJlMzNiZTJlMzRjNzlhZWQxOTk4MDU1MmY2MjU3Y2RiZmQ4MzZjY2I2NWU5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllMjI0ZjU1YWJkODk4Mzg5ZWFkNmFiMTBiYmU2YmE0ZjlmOGJiOWJmNmE3YmEzZmE5YzM0ZTgyNjkxYzY1YmYifQ"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L75-L135",
+          "version": "repo-lines-v1:sha256:acafddbd3ad206083278d7098fca95c901e69f05dc302c0c6aa10a670de2f29a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NzM4ZGMyM2M2MGY0NDZjMTRkNzEzZjlkYjg2ZDVjYjVjMjk3MjkyN2I0NTFmMmYyNzlmY2FjOGVjM2QzOTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlNzU5NjJjZjg3ZGJiYjM1NjM5NGE3MTczMzkxZDM1ODAxY2U5NDc2YWIyM2U4ZDkzMGQ5Mjg2YzA2ZThhYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2YjQ2ZTE4OWVkMmVhMzgxM2ViNzk2NGY3MGIzZDEwY2Q1MWUxYTBiMmRjZGFjYTg5ODdkMTRjZjkwNzc2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlZDc4MDI1NDRlMzE5ZGRjMzE5MTBlYWI0NTBiZjVlMjU3MTZkYzQ0ZDg1YmFiOGY3ODY4MmNiZGQxNTMzN2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_808ab8be06da44ba8bd8cefd30a8ba16",
+      "statement": "The public security and privacy pages are separate Astro components routed through locale page wrappers and BaseLayout, which provides locale-aware navigation and canonical/alternate links and stores the selected website language in browser localStorage independently of native app language preferences.",
+      "evidence": [
+        {
+          "resource": "repo://LandingPage/src/layouts/BaseLayout.astro#L24-L49",
+          "version": "repo-lines-v1:sha256:b6d122140d492bc77e0dd91e991f7fec73a95d3a773548bee987fe0af73d69b6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MTg1M2YyYTYzYTVjMWQwZWU4ODUwYWU5ZGRlMzJkOWY5YTA0MWQ2NWY1ZTEyYzE0ZjkyMGZlYjBmZTA3MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczOGNiOGM5ZmVhOWQ0ODFiNWMzZGYyNjI2NTlhMzM0NDFiMGJlNmZhY2Q5NDNjZGY3Y2FjMTI1MDkwZTBlYTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNmYyOTk4NWUxZWU1MWU5ZWFmNjdiMGQ1MmQwNmZjYWQzNWQzYWYxMTM3Y2FiMzc4ZDVlNmUwZTVhYzM1OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzMzA0ZWEzMDg4MjRjM2IwZjgxYWJiODk5OTY4ODRlMzFhZTAwMThhYzYxOTM1ZDA4MTdjMjI2ZmI5NzlkYjkifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/layouts/BaseLayout.astro#L59-L139",
+          "version": "repo-lines-v1:sha256:78db4068f0733bc82532a25a58ba8e691a154ab46637159eeb0405eec69a815b:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0OThmN2I4YWUyYWY2NTVlNWY2YTE4OTY2ZjBmNTY0OTMyM2M0ODYyNGZiODI5MTA4NDAxMTc5OWFjY2JjOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ZDMxOGY4NzBhMjJmY2RmZjliYjEzYWViMmQ3MTRiNTUzYThhYmIwMjI0YWVjNTAxNGQ1OTAxODEyMzc5YjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4YTc3NjI5OTk5MGU3MDk3YzdkYTFmYTZmMmU3MTIyYWViODZlZjBjNTcxYzFjMzA2YTM4MmZhZTVkZjZjODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ZmZkMjEyMTUwNmI3OTQ1ZGNlY2Y4NTAzNTJhOWU1NWEzNTlhOWMzOTc4ZTEyMzk4ZDE1ZGNmODhlZjAzYWMifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/lib/i18n.ts#L47-L69",
+          "version": "repo-lines-v1:sha256:b629bdda52f2c0c36b28728367d913201fc27bc339cf0c6d3789a85714d2d049:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ODRkYWY0MTk3OGZiOWQyNjRmMzdiZTJlNjAzZmRhNzA5MjgyZDNiMDUzOTFlYjQ4Yzk3NDk5MjY0MGQxYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2Y2VkYjVmZWIxNDdlNjBmMmU1OTViZmExZTEzYzIyYmE1YWY2YmZlOGQwZjFkMmM2MGRlYTQ0YWY4OTZiOWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4YmZlOTdkYmEwY2M2NWZiYTI1MGJjN2UxNjM0MzAxZWM1MjIwNjkzMGVkOTkyNDVlOWI3OGVmODQ0ZDU4OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/pages/privacy.astro#L1-L17",
+          "version": "repo-lines-v1:sha256:0c5b0195df7b1f8d220775d288d7e4cd171236bfecbb368ded6e15b74f076eed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MmQ3MTExMDNkNTBhNDM3ODMwYzZmYmNkMDRmYjRiYWI0OWEwZjgyZjZkMjZkMWM3OTFjNmU4NDg4ZGQwOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3Njg5ZjFlN2RiYWE0Yjg4OTMwMTExMmE2MjVjMTYzMmU2NTczMzE0YmYxNzI1MTNjZTU3YmJhMThjN2E5NDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/pages/security.astro#L1-L17",
+          "version": "repo-lines-v1:sha256:e2e7559f46317d844f9be0a03d64a45ae78942c72ab7a228893b9cff80137739:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MmQ3MTExMDNkNTBhNDM3ODMwYzZmYmNkMDRmYjRiYWI0OWEwZjgyZjZkMjZkMWM3OTFjNmU4NDg4ZGQwOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3Njg5ZjFlN2RiYWE0Yjg4OTMwMTExMmE2MjVjMTYzMmU2NTczMzE0YmYxNzI1MTNjZTU3YmJhMThjN2E5NDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/pages/zh-hant/privacy.astro#L1-L4",
+          "version": "repo-lines-v1:sha256:188a82d8d9c4cc9c70155d179c368aa217b10481e6c20a9c3230c18549f6b110:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjUyZDcxMTEwM2Q1MGE0Mzc4MzBjNmZiY2QwNGZiNGJhYjQ5YTBmODJmNmQyNmQxYzc5MWM2ZTg0ODhkZDA5MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjkxMmUyZjc2NjUxYWUzNmUyZmI2NDQ2OTlkMzhhMDdhMjQ0YTEyOTNjZmYyY2E0ZjQ1Y2ZjYTZjZmM4ZmIyZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_22f2a70f66bb4f4e9cf3c8652b9f1f66",
+      "statement": "The native paywall links to the public privacy page and Apple's standard EULA, while iOS App Settings also links to the public privacy and support pages; those legal/support destinations are site surfaces rather than app-catalog content.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallContent.swift#L202-L209",
+          "version": "repo-lines-v1:sha256:19ea84ec950d6f1f2a91c259c7c4f5c6e6d26985c0f5312ec527528034edc03a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Y5NzNkMDUzYTc0OGU3NmMyYzA5MmRjNGRhZjE3NDBlNzAzMjVlYzc3M2MxNWZkMWM3MTQ1N2MzN2VhOTZlYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWNhMTEzOWYxNWE1YjI1YTVmMzNkOWM3MDE4MTMwMmE5ZmNmNjFjZmEwOTc4MzMzOGZjZWUyMjZkZjJhYzdmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTg3YmM3M2Y5MjU0YjMzOTA5MjIzZDdlYWM0MWI2NTU1MDNhZjhmZGQ0NGI2YWRmODlkZDYxYjRjMTFlMmMzZCJ9"
+        },
+        {
+          "resource": "repo://LandingPage/src/pages/privacy.astro#L10-L17",
+          "version": "repo-lines-v1:sha256:09ce102ef9e2ddfe33a006abc4bf1e439892c2e483c554fba6544b778278df27:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDI5MDlhNmFlNzk5NjU2OGFiZDkwYTI5MjNjOWEzNjk5NTU3YjUyYzgyN2IwYjc3OTk1M2E1MTNjM2I4MGJiYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTc2ODlmMWU3ZGJhYTRiODg5MzAxMTEyYTYyNWMxNjMyZTY1NzMzMTRiZjE3MjUxM2NlNTdiYmExOGM3YTk0NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDE4ZDU5MjZiMDI3OGYwYTc0MmI3NmZiZDk2ZWQ2ZWZjMmIzNDg4YzRjODY2OGNlNGY1MmQwODhiODdmMTcyNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/Settings/MobileAppSettingsView.swift#L48-L65",
+          "version": "repo-lines-v1:sha256:65ebc23cda92168d21fed779b7ad6180ba28ca43b45cb247d7182dd76a94ee31:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5YWVmNDFjYzgxMTBiNzMxMGEwMjQ1ZDk5YTRiN2M0ZGM3MDVjY2Y5NGMwNDQxN2QwYWUzZmU3OWJhYzc4MjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1NTc0YWIyYmYzZGM1ZDAzYjczNDIwMWQzOWUxMWIyMjA4ZWNhY2RlODI2NDk3MTExYTc1YmZkNGI4NDczMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmMmZmYjIwNmZlOTJlMzllMjNjM2RlNTVmMTU3MWQ5OTNiZTdkNjMzOGU3ZDY4NTllNzdiYzZiM2IwNGQ2MDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f69e52008c8243f0934c6832a1311bf9",
+      "statement": "The public privacy policy describes local data, private iCloud and Keychain synchronization, Apple-handled purchases and StoreKit eligibility, optional AI/Web Search and remote connection disclosures, camera/speech processing, data controls, and website data handling; it states that site language preference is local, while the host may process standard server logs.",
+      "evidence": [
+        {
+          "resource": "repo://LandingPage/src/components/PrivacyPolicy.astro#L39-L95",
+          "version": "repo-lines-v1:sha256:751fc7e61d52b985ea5fb4eda29784e27bd409c3f00dca9e0cfa8a52cbc4eba3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3MGVkODU2ODZmZThkYTVkMmVmYWE5NzNjNWVlZjI4YzllMTRlZWQ1MDBhZDU2NWQ0MTdmNGEwNTliYmQwYzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxODU2NmVjMTkzNjZlNGY4MGFhMTMxMTBiYTY1YjFmMzExYjM2ODY2Y2UyYzk2MTJkZDU0NDhjYWI3NWNmYTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkZDg1NWZlYWMxYjY3YmY2NzdiYzk4YWJmMGFiY2RjZTM0ODFjMmFiNzgzZGM5YTk1OWE5YWFmNmUyMjEzYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlMjI2NzU5Yzg5NTYyODUwZDgzZGIxNWIxNmZlZWZjOWFlMzAzNGYxNGNkZGRmNmEwZDEyYzg3ZDRhMGJkM2YifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/components/PrivacyPolicy.astro#L97-L165",
+          "version": "repo-lines-v1:sha256:8e02850893b810f9ae2fa27b3c1b9ea32e01736395598a1cc3c6fc2d0d28aa69:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5Zjk2OWYwOWQ1MDcwZTMyMmNjODkzMjBhZWM3NjY2OGU4NTU2OThlNjUyMDEyZTYzNGY5YjFhNzBhNGI1ZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzNjI0ODFhOWMwNTZmOTgzOGZlY2IyNjg3Y2YwNzJiMmIyOTNkYjA4MDliNTQ3YWJkM2Y5MDM3MzcyZjMyMjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMTE1NTEyMjc5YzUyMzdjYTU1NzhjNjkzOTU4MDI3MmZkOTI2MjMxYWI0NDBiM2VjMGI3NWY1MWFmNjg3NTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0OTExYzBlYmFlNDg5YjI3OTAzZmRlM2MzMzlhNzBmZjE3MGZiZDAxYjg1OTdiNmQyYTIzZDA4YTIzNGIwZGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fe27d63a736d4a9e83a24d494f99b6e9",
+      "statement": "The public security page explains Keychain credential storage and one-shot memory cleanup, server fingerprint verification, Assistant permissions, and an off-by-default Mac-only built-in MCP server with loopback, bearer-token, and tool-exposure boundaries; these public descriptions need review when corresponding runtime behavior changes.",
+      "evidence": [
+        {
+          "resource": "repo://LandingPage/src/components/SecurityPage.astro#L177-L226",
+          "version": "repo-lines-v1:sha256:eb17be8bc558b944eded184519ab8e2d8087ad7ccf5197b4595f390b29caeaa0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ODZjOTg2YmQwMGU2MTE2MTIwZjRjMjU1Y2ZkZmVmOGY5YzVjMDQyZDQzZWM0MzY2MTVjODhiZjUyYjM2YWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2ODliZTZkNzIzNjkyNzBiMjM1MWJjYThlOTgwMzExZmYxNDlmNWIxMmMwMTRhM2RiZmM0MDk2MjljM2E3M2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwMjI3ZGMyODY5ZTgwM2NhNjAxMjliZDY2ZDNlMjFmZWFmZjEyMGE0ODEzNjE5YzhmY2MwMjJlOTkyOWRjYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzNTJlNjAxMTE4N2JhYjFmMTYxMGZjYzM3Yzg0OTI3M2Y5NWMyN2I5NGFiYTI1ZjFlNWU4ZmQwMGFjYzEzZTAifQ"
+        },
+        {
+          "resource": "repo://LandingPage/src/components/SecurityPage.astro#L53-L173",
+          "version": "repo-lines-v1:sha256:b04e06154b62570b32c04c6667b2dc4771fe4c6edb20303f449d28cb7e11c919:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxZDZmNzcwYWYxMjBhMWVlNjM2NWU1MGRiYTNmOGExZmRlZjE1NmFlNjQzNzIzYTcyMDZiYTU4MjMzYjBkZjkwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4MmYzY2ZkMTFkYTYxNTAxOTdhY2VlZDA4NDA2YWM2NGIwNTAzNDBkZTdiYzA0MTI0YTRjYjdlZmE2NzEzNDBiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0MDIyN2RjMjg2OWU4MDNjYTYwMTI5YmQ2NmQzZTIxZmVhZmYxMjBhNDgxMzYxOWM4ZmNjMDIyZTk5MjlkY2MwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MDIyN2RjMjg2OWU4MDNjYTYwMTI5YmQ2NmQzZTIxZmVhZmYxMjBhNDgxMzYxOWM4ZmNjMDIyZTk5MjlkY2MwIn0"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

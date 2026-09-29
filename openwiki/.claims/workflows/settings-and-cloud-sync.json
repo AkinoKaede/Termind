@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:59455b689c50beb4fd2c610a5a258b4721610f5fac11ba24eb8be0d2ffe14c72",
+  "pageVersion": "sha256:9974896b5616babb9ea7487770e1d3f50f999fb7ec9f7e201afc04d85d3e467e",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -88,19 +88,31 @@
     },
     {
       "id": "claim_a927137ffab84086a81c1f94cd05caac",
-      "statement": "Lifecycle retirement invalidates its operation generation, cancels task and engine, clears send readiness and authorization and rejects old callbacks; fatal delegate persistence failure rolls back and retires the engine so a late completion cannot reopen uploads.",
+      "statement": "Pausing, account retirement and fatal delegate persistence failure invalidate the operation ID, cancel the operation, clear engine identity/scope and send/secret-upload readiness, and schedule engine cancellation in a detached MainActor task; old operations and callbacks cannot reopen uploads, while fatal delegate failure rolls back and reports failure rather than treating expected cancellation as an error.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L47-L85",
-          "version": "repo-lines-v1:sha256:23e492badf151814e433501a9317c07f9ca97eb8fd1cc4069ff01722a1d3d389:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3NzRlMTc0NzcwMjU1NzAxMjM4OTVkYjc4ZWVhMjIxNDNjZDI2NGJiZmI4ZGFkNTk3YTUyNDVkYjEzY2UzMjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhNzVkNDAwN2MyOWQ2MjVhZDU3OTRhNTRkYTRhMjE3NDBmZTI5MzM5NjA1YWVlNzNjODhkYjY2ZmQxYTAzMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1NWQ5NGZkYThlNDdkMGU3YmMzZTc0MWIxNTU3YmFmODYwODU4ODY5ZTQxNTcwNzU0MDQ2YzU1MDMyNDZlZDEifQ"
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L383-L435",
+          "version": "repo-lines-v1:sha256:5491de5f94b2ee5d3197e3f53fea2bb36a10ace1970ce605bd7f8c5aa179e46f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhNDNiNDMwY2YwZWU5OTlkYjY3ZjA4OGFkYTAzZjI1YmU0NTk2Y2ZjNzVkOTJhZTU3OGQ2MjUyNTlhM2JkZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxYjAyY2I2ODlhM2Q3ODM3M2Q4OTQzODI1OWQyMTIxYjU4YThkOGE5Mjg5MDFhMmVjNGQzNTk4ZmIyYWFjYWUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L49-L74",
+          "version": "repo-lines-v1:sha256:054372f7792beb0d2d9961d7aa8409f95c2a6d0d882f4a87334e4b9b9bff5210:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhNmE1MDgzOThhZDAyZjQyNGJlZTNlMzQ1ZDA0NWJjNDYxMmE1N2UzOWJlMDAzMGIwMjYyNTM2YzQ1YTJmZmQifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L536-L559",
+          "version": "repo-lines-v1:sha256:0c828054a9195daedb977fbb8ee6b97ce6abc4bd951d0cff1517619a8f3d4941:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhYzZjMDM3MGQ2ZGVmNWZmNWJkOWJjMTQ0NGZjYzIyZDZiODQ1NTMzZDhlNTk4Y2QyNjJjNzI3Y2U1MTk0OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlMDc0YmQwMDFkZjllNTFjOTljOGIzNTZmMjFiZWU5OTgyODljNjBkMzczODU3ZjJiMDhkODEyMmY3ZGNlZmEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift#L85-L130",
           "version": "repo-lines-v1:sha256:90f4036b993cdea6f072f1f27fce4300645c964acfa440b07d20f989412851bb:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5MWVhMjRlYTAwNDljYzZiN2EyOTdkODg5NThkMGY0OWRiN2QzODk3ODg2ZGNkNzUyNTgzNzBjZjlkNzZhYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1YzUxNjRmMjM5ODRmNDI5NDUyZDRhYmFjMDJkZTk3MjkxN2QwOGNlYmVlZTNjZmM3ZDcwNTg5N2ZmMmJlOTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L650-L693",
-          "version": "repo-lines-v1:sha256:f89a93b1492c95d94414e8631b0fb1da35ecd4d699fe2a1bc5fb300ced410e9c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiMjcxZTVkOTIwMWM1YjhiMjJjNTgyMzQxMjMyNzA0OGU1ODcxMmQ4MGUxOTkxZDE5MDE5ZTgyMDJiN2Y0NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYzIzNzgwZmYyOWQ5MGJlYWM2NGEwYjcyNDZjN2E5NTFiOGI1MTk4YjNiODg1YTJjZTBlODJiNzgyOGFjYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMTk2ZmNkYjg2YjE5MWU3NWNhOTE4ODIwZTU2ODNjZGU3OTMwOGNjNzg2ZjE4MTRjMTU5MTNlNGUyOWE4ZjMifQ"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L294-L314",
+          "version": "repo-lines-v1:sha256:e29dac2ccaaf0be7eb3b680efd2d95d343402dcfef12174a815c7c75c72ca8d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkM2ZkMzBhMTczNWU4NTQzZjQzZTE3OTJlODliMDc2NWJlNjhmM2JlZTNlMGVlNDE5MGMzM2EyNDhiZmY3ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4OTUwYjYyZTc5ZjEwZWU4MDM4N2VjYmFiMWNlZGMwYWMxZWZmYWUxNDY3Y2NhOWQ1NjJmYWVhZTY3MzNjY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkNWY5ZDZlNjY2NzNjNWNiOWViMThhYWQxMWEzNGRiZjIwYmZiOTNiMTExNjVhZTNhYzM0YzhhYWQ2MDQ1NDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L621-L689",
+          "version": "repo-lines-v1:sha256:0de63baf1c998d59d67e8007afabba0003c8ff4f9b08cea12ce1d2083c260057:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzN2IzMDhlZWM0OTJlNzU2MzNlYjIyY2VlY2Y1ZGQ0MTQ3MDdhODJiYWQ2NTg1YzlmNjI1ODMxMDY3NzhiNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMTk2ZmNkYjg2YjE5MWU3NWNhOTE4ODIwZTU2ODNjZGU3OTMwOGNjNzg2ZjE4MTRjMTU5MTNlNGUyOWE4ZjMifQ"
         }
       ]
     },
@@ -641,10 +653,160 @@
           "version": "repo-lines-v1:sha256:19121ae6c97827824a3e3c7a2c8260d7c3f24837afa2140aa1000dd46c06df34:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyOGE1MGNlOGM3MjExN2I2NzU1Y2ViZjQxZjA5MTNmNDU5Y2M5ZDdmMTI2NDkyMDk1NTY5MWYzMWQ2OTBlOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NDA1M2ZiMmYwNTdmOTdiYzEyZjNmYzE5MjJhMDJjN2FhNGFhMmNkMzU3M2JhOGQwOGZjODE2ZjI1MzBhYWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiMzk0MDc1NzhlNDAwNGJiOTNmZjU3YWVmYjdlZGNjYWMxNGQzNmQ1N2ZjMzg4OTdhNzZmZDQwMDliYzZlOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5ODJhODYxOGVhNjYyZWQyZDM0MzdmOGRjNDhiZGM4NjkyYzI0ODdiNWE2ZjU1ZGY0NDdhMThhNWJjMjk4ZmIifQ"
         }
       ]
+    },
+    {
+      "id": "claim_0c8faa29d1f94fec9b1d65b859670b0e",
+      "statement": "Cloud sync operations launched from start, retry or local-change callbacks run in detached MainActor tasks so they do not inherit CloudKit delegate task-local context when fetching or sending.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L11-L47",
+          "version": "repo-lines-v1:sha256:dee7cbf8287abd32bff10d648b51a6fd6657910b88bf6bb964339d67edb24d21:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0YjAwOGU3NmU4MTEwZGQzZjFkNjUyNDg4ZTBjZjA1MzhkNDU0OWU1ZGM3YmNmNjlkNzQxZjE4MjgyODllOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExODlhZjJmNDAwYjU2YWQyMzc3ZThkODA2MmJjM2U5ZWIxMTRlZWMxNGRmODFhNDI1ODhjMmI0ZmFiZTYzZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwNDg3MDJlNjMwMDVjMDhiNjY3MDFhYjg5YjllM2U1ZjljMmEwN2YxNjc0NjMyMTA2ZTRlM2YzYzhlYmQzZTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L218-L266",
+          "version": "repo-lines-v1:sha256:d1e589a95caa0e8f416176459b65dce5990db1ca0638a6a194742dc0e34d0d83:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyNWY5NTU5NTVhYTljMWUyMGU4ZjZlMjk4ZTQ0MzM3ZTI0ZjY2YzNhODI2ZGIwYTRlNDZkMjFmMDlkZjViZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmOTg0MTQ4ZTZiMWVhMjdhNzgwMGY1OTY1MTM5MTcyMmYwMTYyYmNmOWI4NGIzYTFmMTBmZmI4ZmVjNWVjOWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4OTUwYjYyZTc5ZjEwZWU4MDM4N2VjYmFiMWNlZGMwYWMxZWZmYWUxNDY3Y2NhOWQ1NjJmYWVhZTY3MzNjY2QifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L294-L315",
+          "version": "repo-lines-v1:sha256:9536519312d5f5389046f16e3ebc01f31ac565213ba03df5771cb2b9e6dc21a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkM2ZkMzBhMTczNWU4NTQzZjQzZTE3OTJlODliMDc2NWJlNjhmM2JlZTNlMGVlNDE5MGMzM2EyNDhiZmY3ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4OTUwYjYyZTc5ZjEwZWU4MDM4N2VjYmFiMWNlZGMwYWMxZWZmYWUxNDY3Y2NhOWQ1NjJmYWVhZTY3MzNjY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2OTgwNTAwYWRlYTg1NDAwYzEzNjNiYTY1M2QxNTEyMTI5MjE5YjFlZDg2MzE5YzliOTNiNGRlMzFmYTRkMDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bdbab49a89ce4e169940f1e3b7056028",
+      "statement": "Disabled owner selection pauses instead of starting and prevents retry or account-merge confirmation; an account sign-out retires and requires sign-in, while a different account waits for explicit merge confirmation before the new engine is created.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L437-L480",
+          "version": "repo-lines-v1:sha256:df9530e5005635895276b13cd24135651a256f7c6ab5550185885e3a41593a1e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxNTgyNzg5Y2RiMDVlNjdmYmY4ZmZjMGUyZjE4MmYzYjkyMGQxYjRlMTFmZTZkOGJjMWZiZDMxOTVhMGY5NWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1MzQyODZhNmVhODkwMGU0ZWVmM2MyNDdmNGNmNTFjOThhNWE4OTVmYzE1Mzc3YmEyM2ZiYzMwNDA0ODIyNGIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L620-L632",
+          "version": "repo-lines-v1:sha256:ffb37351c1b63404f053a424f0dd8a0ae33b0470e9d205c37068715af1d36286:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhYzZjMDM3MGQ2ZGVmNWZmNWJkOWJjMTQ0NGZjYzIyZDZiODQ1NTMzZDhlNTk4Y2QyNjJjNzI3Y2U1MTk0OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L213-L251",
+          "version": "repo-lines-v1:sha256:1c06180b7f8969da4d5b31b817790d324a2a86c5d1034ad091f3a37d4ee6ce23:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiMzk4YmYyMmYxODdkM2JhNDcxZjBlOGUwZTgzZGMzMzkwMjAxMjM5YjgwYWI5NGY3ZmQ2MDUxZTI0NzVhZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3NTIxZTFlZjBjOTMxNDA0Zjc5ODI0MDc2Y2YyNWUwMzU4YzUzNGRkYTdiYjNhOTViOWU1NGM4ZjFlYTM4ZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljYjZlOThjOTk1NjZhNjU3MWU1ZTk1NjMzZGFiYTAyMGFlYWFhMjIxYjczYzljYzE3YjBmYTU4Yjk0NmVmYjIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L278-L291",
+          "version": "repo-lines-v1:sha256:a7104068305e6f24550fdf88ef92765da85e95211849d4e6a5c4ac1f6e45c160:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmZjhiMDlhMGNlYmVkMzhlMTc5OWJjMDUyMzNjMDQ3YzM4OTFjYTI3OTM0ZDZkZDQ1N2NiNWMzODIwNjcwODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMzQ1ZGViNjg3ODQxMWU4Nzg5NDY4ZDFhZTk4MjhmY2E4MjQwMTYyODJiMmVkYTUwMTIzNWRmMTQxMzgxZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3NDA1NTYxZGU5Y2VhNThkOTEyOGNiZWE0NDlkM2RjNWFmYTA5YmQwNzM0ZTA3NDhkMDdiOGI5NmY5NmNmZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0ODE3N2EyODNjOTI2MzVhY2EyZGI0ZTA1Y2EzNjAyYzBkNmViYThiYjM5MTQ2N2JhYTNhZWYzOTMzMTJjZDYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L621-L643",
+          "version": "repo-lines-v1:sha256:e4f74fde53d4914ab7c226f5fb676ebb5079f3e0b3ab6b58713a9410d3b20734:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzN2IzMDhlZWM0OTJlNzU2MzNlYjIyY2VlY2Y1ZGQ0MTQ3MDdhODJiYWQ2NTg1YzlmNjI1ODMxMDY3NzhiNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1ODYyNjIzYjUwNDdhNjI1ODE5OGE1NzUyMWUyNDU4ZDIwMWE5NDk0YzQ1YjQyODgwYTg3YzgxYWFlNWI0NDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_12e70e55ff0347e88b598fd7fc9a2232",
+      "statement": "Notification preferences are synced Settings data with independent assistant, terminal and SFTP modes, bell versus system terminal delivery, and a nonnegative duration threshold; an older payload without an SFTP mode decodes to unfocused and system authorization is unnecessary for bell-only delivery.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L55-L75",
+          "version": "repo-lines-v1:sha256:8471bdd5c6eab060cd602afa39bf6a08276d71e6670b5406cab374ffd57f4a52:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MTI2N2UxMmU5YTc3YzljZGRmNTdjNWQxODUwNDdhMWNhZGNmN2QzZmM5ODZlYjM2Y2M0YjUyODZlM2RjMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5NmM5YTc1MTM0NmRhYmExNzAzYjMzM2JiOGZlMWViMmRjMTg1NGQ5ZTM1ZTExZDcxYTY0MzA0MWJiNmY2ZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlYmI5MTdmY2Y4OGMyZDFlNDM5OTgyZmE3YWEwYWIwMWM2MTVhZDZjZTcyMjA3MTBlNTVlYWZmN2JjMDNkODMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L3-L57",
+          "version": "repo-lines-v1:sha256:a3fd6b17a12dc636a2dc4ef2941573d557622658564a82817fc0c22be985a3d0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0YjRiZGQ5ZDk2ZWRmMDlhNzIxZjVkNzZlNTNiMDViOGIyMjNhNGJmYjMzMmE5YmM2NjkzODUyNGYyOTcxYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd5700326aaf4d5a9ee9880bbaaca799",
+      "statement": "Settings preparation bootstraps the notification singleton journal envelope for previously bootstrapped stores; local notification edits commit persistence and intent together, and winning remote records or tombstones rebuild the projection without echoing an accepted remote edit.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L95-L133",
+          "version": "repo-lines-v1:sha256:b2e1948ea0c0a7483a9371bc5c801fdf901dc58eb1b2123c48ef0d914a622796:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NjM5ZjdjNjRjYWEwYzg0NDU4MzBmYzY0ODg3YjU5OGIzZDM3ZTZjMWMwN2VkNDBhNzU3NTJhMjc3ZTNlNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhNDg4ZDhmZjM5NTQ5MjgwZWZmZDRiN2NlZTBjZDlkZjAzNTQ2Yzc0MTA2NWJmMzI3ZDc2NmRmNzU1OWU4M2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhMTkxODc3OTU1YTM0ZTdiYjY5YTUyOWQ5ZWY2ZDQyMjA3NjUxNTY1NjkwM2FlNzM5MGE2MzliNmNhNWJkZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkNGQzZGEzNDIxNjQ2YmVjZGRiMmZkZmY3M2E2NjFiNjNiZTQ4NjRkNjgyY2Q3ZDkwOWU2ZDllYmJlY2RmNjYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L161-L235",
+          "version": "repo-lines-v1:sha256:c10377237b2e3e1b59de9fe1a97f03dd03f7ca9657ac9a65ea7698f4e3919617:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNThhNWYzNzI2NDE0ZTNjMGMwZTRjNTM0MWY3Y2IyODc4OTJkOTk3ZmI2NjZkMmVmZjI5YjRmN2ZiNGU5YTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5OTIzY2FlNDI3OWI3OWM5YzE5MWEyNGE4OGU5NDI2MjA5ZDU4ZDQyODhjNWVmN2UxMDIwMTAyYWQ1M2E3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxODgxZTBmMTA5NjVkMmJlZmRhOGI1ZTViNjIzNzZmZTZmYzk3MTRjZWMxZWQzMzU2OGE1ZmRhNTMzZTI0NjEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L252-L277",
+          "version": "repo-lines-v1:sha256:60dd90b8ae98dcde5a5cb41139dc12d2492491837f15ecbbbd09f99f8a985c57:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZDZmYTQwNzM2ZWFjZDRlNGY4ZTQ1ODNlZDc4NTg1MzY1MTFiMzAyODE2ZTM0ZTMwZDZkZTgyZDc0M2E3MWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkNDU4ZjIyNDdmNGJmZGU2YmU2OTU1ZTlmYjRkMDViMDViNDM4ZmZiYTI0NzMxZDRkMDZhMGZmMmVmMmQyOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjMWEyMjdjYzZlNDQwYTFmMmUyOTE5MWY5ZWNjM2E0OTMyYjE4Y2ZiMDQ4OWFmOWFjMTQ3YmQzMWQ4M2M1OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0MTU0MmQ4NGU5NDU2YjFhZWYzYTFhOGJkYWFlZDk0ZjY0Mjg2MGUzNTg3MzhlNGUyNzQ1MDZjMGEyMTEyNjAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L368-L382",
+          "version": "repo-lines-v1:sha256:e2a64097c4ddb661f433f877bc5f595f7b5a5bbd2c3fb96ae4d59b012b208e56:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3NTQ2YTM0NjRiMWE2MjNmMGRkMzY2NTliYmNiOWQ4ZDE1M2UxMDRhZmM4MGFiZTRlMDliYWUwN2UyODEwYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0MzRjMzQ0ZGQ1NWZlNDVkY2Y0YTEwNTY3MDk0MDM5NjYwMDQ4ZTFmOTZkYTQ5OGVkMDQ5ZTQ5MGRmMGViZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2ZWIyZTAxODY3ZDNmMGY0YTQ3YTlhMzI2OWYxOTI2M2IzNTQ5ZTE0MzM3ZWIwZDhmN2E1NGNkYTBlYjZmYTcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L76-L102",
+          "version": "repo-lines-v1:sha256:35610dd349ded5d37e07be29a896c4c656f776532b008c39c7303260551eb76e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlMjc2YTdjN2VhYjlkYTE2NTVmZWJjY2JkMGEzNTYzMDRiZGY3MDgzNTU0MDg2YTRkMGQwMWQxYjRkMzJjZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3ODBhZDhhMDE0Y2FjZDIwNGNhYTRkNjhkMWFmZmE2MTZiNjFlN2M1ZjZkYzRmZTBmODE5NDBhZDVjZDYwZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxYjRhMmMxZjVhNzg1YzgzZWUxNmNhZTU0MDcyY2ViYTUzYTZjNjMwMGExODlmM2MwOGZiMDJlZDFjYzI3ODUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dbadae050154438bbbe3fa0513a101f5",
+      "statement": "NotificationPreferencesItem is a distinct type in the existing Settings CloudKit zone and its envelope kind is validated against its record type; the coordinator publishes accepted snapshots to platform app models after transactional application.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L12-L20",
+          "version": "repo-lines-v1:sha256:b4e2d1ea9f9b919d9ea9a4ca63eb7cc70f2a36ed37b15b38678ed9203190eedd:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGEwYmQ3ZGZmNDIzMTAxNTA4Zjg3Y2Q3M2YzZTlmYWM5ZWI5M2E4OGJiYTlmNTA1YWMwYTM1NjlmY2MyYjc2ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE0MmM2ZjQ3ZTA4YTgyNmIwZjgzNTM2YzViYmEyY2QyMjc2YTM1YzJmMWMzYWMzYTM2MDBkMDVmOTlmNzE2MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWZkNThiOTg1YTc5MjhjZjVlOTY2NjVhMjY4YTQyZWUyNzg1NTYxOGE5ZTA5YmE4NjcyMzQ4OWU0YzlhYTNmYSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L240-L275",
+          "version": "repo-lines-v1:sha256:ea6f746a83069a1a02a8cb74fe1060dc50c3b2214299170fc9c638b4181269bb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MjBkZDcwYmE0YmQyOGY1Njc0M2Q0NzcwMjczYWU3Mjc3NTA4NWFhNzZlY2E0OGIzNjBjOGFjNzMyOTcwOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMwMTMwODY2MmI0ODBiNzdlZWZjOTY1YmFjYjNkM2Y3NjkxNzZmMmM1OTJjMzIwZmI3ODUxNTcwNjM1NDUwNDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0MWUzYTU2OTU5YjJhM2ZlNWM0MjQxMGY4NTk5OTZlMmZlMzU5MzZkYjIwZDg3MzEwMjM0ZmJhOTMwYTFmNjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355",
+          "version": "repo-lines-v1:sha256:58e3a560f2498cb9a7440654525d20296f141e16957f408f2e4ecfe6e4cbd743:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlYTRjZDRlZGI0MDJmNDVmNThmMGJkY2UyZWI0MzVkNTgxOTZiZmYyNjU4MjdlNmE3OWE3YzZjOTZkYmI2Y2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0OTJlZjQwZjgwMDQ1Y2M2YWIzZDczMGRhYmZjNmU4YjU4OGQ4MWFkNmQxNWM5YmQ3OGI0ODA1OTc1Y2ZmZTMifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L410-L418",
+          "version": "repo-lines-v1:sha256:6ac0c01f703c3ed92717887f764499d4a353a0111ebd2ff52e8f4a35495d1600:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2JhNjM3N2RlMjExYjAzZTZmMmNiYzNiNWU4MzUzY2ZhNWFhZTNjYjY5NjU2M2Q5NGY3YThlZTYwMjg5Y2U0ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk2MGFhOTlmZDljYzVjOThlZDY2NTkxZDE0ZTRjN2U2M2RmNWY1ZjBkODNkZjc0NTc4NWEyMjMyODdhODcxZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGFiZWZhNWM3ZGIyMjBiNTJmMTVkNzkyZDhhOTY1ZDNkZDQ1OGE3OTkxMWM0ZDJkMWZhZDVhZDU4NDdjMzIyYyJ9"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L393-L401",
+          "version": "repo-lines-v1:sha256:05e9790f23899c6055381bfce7a04688217685c1e3d2cce9bc2b6afc88449702:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWY3ZWQ2NWMzMDk4MWJiOWEzMmM1NDkwN2IwNDk0ZWFmMjU2NDg2NWQ0YWNjZTBjYzcyNTVjYjk1MjI2MWUzNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjU3OWRiODI2MjY4M2M3ZGQ5MDllZmI3MGI4MjFiM2MwMDI5MGMyNDY5N2U3YWNiODNkNzcxMWE5ZDRhOWU4YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2ZjYzA5YjY2ZDUwNWNkODUzMTBiNzNhYTA5ZDE2NWJhYTBkNDFkN2VhZmMzOTkxYzJlNzZiYTgwYzlhYjAzNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTRkYmRkOTZmNWQ1OTk0Y2MwOGMzMDFmZjEzYWI4ODk4Y2I0NDZiOTE1MTYzZmI4ZTVhNTY1MTc3MDdiZWZhZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_f093c3c6e13440bb990b02af93654b6c",
+      "statement": "PersistentNotificationPreferences enters the lightweight V40-to-V41 SwiftData migration; reopening an upgraded store retains saved notifications and earlier workspace preferences.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L141-L185",
+          "version": "repo-lines-v1:sha256:61ac37a50132ca2aecb1e480303a2a87a68373b983f476d27be3a1575447da4e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkY2JmYzUyZTFkNTU3NzkyNjY4OTk4Zjg0Y2UwYmM4YjYxY2UyN2I1ZTc5NTI5Y2NmY2E0MmFmZGFkN2Q2ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0YjRhNGFlODFjODMyMzgxZGEzODc5NGU0YjVmZDEwZmJhYjQ0NWYyYTU2N2E4OTdiMmE4NDFiNjdjMGVkMTgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L1016-L1017",
+          "version": "repo-lines-v1:sha256:deeaaa82ad9c5d5d36c89e1449e78a3055f8eab419f012485570e52789814fd6:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTQ1NGY3ZWU2YWZmOTRkNWQ2MzBkYjllNDAwYzVhZjU4ZjQ3OTdlNWZkYTFiOWQxMWJhMGY3YTRmNzQyMzQ1ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWM1MTQ4ZGJmM2Y1YmMyMDhlNGExMjlhM2Y4OGYyNjM2YTgzMDVmNjhiMzQ5N2JhMGUxMzYzYTQ0OGVlODUyYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjdjN2VkOTllMWE3YWU1NjFjYTFiZjgxNmM5YTRkM2M1ZjJjMWI2MzZmZWM0ODNhMTFlNWQ2M2JlYWU3MjAyMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTQ1MzVmNDMxNWU4MDg2NDkwMjdmYmVmZGQ5YmIxYzZkMzkwOWQxZDI2NDYwY2NkMjBlYzIyNzYyMjljNjYwYSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L858-L868",
+          "version": "repo-lines-v1:sha256:817c77ebe80e58eef427446ed5c3fa66b664cf81e1bd9d907328ddd890642f00:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxMGU0OWE4OGUxNGUwOGUxYWRlNWE5Y2IzYzcxYTA0ZjM4YzE2ZjdjZTBmZDU5MTczOGNmZmZjZDIxNTk4ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyZDg2OWJhOWQ2YjI4OWM4YjRkNmRkNjRiYzViZDU5Yzg0NDcyM2IyZGU0YzkyYzkwODVlNjZkOTM1N2JlOTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5YmRkYzZlYjU0ZDhiYzliYWFmNmIxM2I5ZjcxMjY5ZGI5ZmY5NzVmNTBlMzdhNjA0M2RjMWI1NGYyNjhhZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMjFhMzBjYzA2M2Y3YzliZGNkMWFiNDMxMDM4MzZiMjMwZGU4ZDJjNzI1ZDQ1N2Q2NzYwNzRjNmNlNmFlZDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c706913e2db44fa6b3576f883b26bdd8",
+      "statement": "NotificationSettingsModel persists validated edits before updating live preferences and applies remote snapshots without saving; active-scene initial authorization is requested at most once across concurrent scenes, only when loaded preferences require system notifications and loading has not failed.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L12-L53",
+          "version": "repo-lines-v1:sha256:195174c63b68fdf52ab39cf81d04f4061152758b471ee54e7972704678839192:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5YTc4ODhiM2VjNDgwMmYzOTA4MmJiNjE0NDY3ODQwMGQ5MTc3OWQ0ZWZiYjE4MzkwNzI5MzMyZDkzOTRiN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3NWJmODcxNWI5MTQ3ZjM2ZDhkMzdhMzc5MmQxMDM2MjRkMTJlZTFiMTJlMTZiODRkZmQ1YjhmZGVlYzg1M2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3ZDZmZGJkZjkzNjBlMThkNjMwMzY0OGFlMWJmMjdhMjVmNDI3ZGYyN2Q2YTU2NDRiNDI5ZWU1MTVlMmY3M2QifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/NotificationPreferencesTests.swift#L77-L93",
+          "version": "repo-lines-v1:sha256:d617c7b1a5d5ca9944b17abf84122f3ad0ee9ddefa81e0ed27fceb8f170e35a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMzRjZDY4ZTNhZGNjNjhhNWZmOGQ1MjQyOGFiM2NhNzhjMjEyNDQ4MWMzNDY4NmU3YTU1ZTgzMDc5ODAzN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4ZTQxYmY2MGJmMTE1YjNiNDU5YjgzZTMzMTlhNzdhMmIzZjI5NGNmZTU4ODk3ZGY2ZmFkY2NlNDFmMmZkYTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzYWI0YzIyZTVhMmIyMDFjMmU4ZDhjZTI0YTI4MWU5MmY3YTc0MjE5NGI0MDA5YTc5Mjc2NmFjZDNhNjAwM2YifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L4-L47",
+          "version": "repo-lines-v1:sha256:de650debef9f28bd7a4aac38a0c2cf72a91356bf4c95ecdb6aa34047b65cc9a6:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjODllZTM0ZjI5ZWNhZDQ5YzhhMzliYTk1MjQ3MzEyMDE5ODUzNTRmM2QxNzZmMjQ4N2E3YjhmYzYzODQ2MjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift#L4-L20",
+          "version": "repo-lines-v1:sha256:82b81526a2448854d3970dfb1dc23fea4c497443f5730d1959896ed2a07cbeee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0ODU2Y2Y0YjI0ZjM3YTU0NzFiMGUyMGI5MDFmN2NhMDMyYzBmYjhlODY0NzBjZWIwZDMyNjY2Njc0NjQxODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

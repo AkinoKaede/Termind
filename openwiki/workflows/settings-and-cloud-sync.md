@@ -3,9 +3,16 @@ type: synchronization workflow
 title: Settings, Vault, Metrics, History, Device, and Cloud Sync
 description: Per-category CloudKit replication, durable journals, compatibility fences, fetch-before-send authorization, account and environment transitions, and recovery for Termind configuration and activity data.
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
+  - id: openwiki-source-cd830b9886c3f5d3d7181662
+    resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-1ca741e9f21312b87c75fa28
+    resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -62,6 +69,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
+  - id: openwiki-source-004087118989bdae6d2071e6
+    resource: repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -70,6 +79,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
     resource: repo://FrameworkTests/HistorySyncTests.swift
+  - id: openwiki-source-e722f35e92f0823055985cb7
+    resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
@@ -82,10 +93,7 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
@@ -134,7 +142,24 @@ flowchart TD
 ```
 The diagram shows one owner's fetch-before-send and scoped recovery gate; History and Device each run it over their shared zone with distinct consumer scopes. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift).
 
-`pause`, account retirement and fatal delegate persistence errors invalidate the operation ID, cancel operations, drop the engine and scope, and revoke send/secret authorization. Callbacks from an old engine are ignored. A retryable zone-fetch failure keeps the engine but does **not** reopen uploading or clear the recovery fence; the pending journal remains authoritative and a later successful fetch reauthorizes sending. Network/rate/zone-busy errors report syncing for retry, `notAuthenticated` requests sign-in, and terminal errors report failure. Recovery stays required until outstanding fetch/send work completes safely. The status can separately report uploadable and blocked counts, with an update hint only for unsupported format—not corruption. Logging emits `cloud.sync.failed` with zone, stage and NSError domain/code, not raw records, account IDs or localized descriptions; expected cancellation is not an error. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L472-L520), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L603-L693), [CloudSyncEventHandling](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift).
+A disabled master/category preference makes `start` pause the owner; disabled `retry` and account-merge confirmation do nothing. `pause` (also used by app Pro/background reconciliation), account sign-out or switch, and fatal delegate persistence failure retire an active engine: `retireEngine` changes the operation ID, cancels the operation task, clears readiness, Settings secret-upload authorization, scope and in-flight state, removes the engine synchronously, then schedules its `cancel()` in a **detached MainActor task**. This matters inside a CloudKit delegate callback: cancellation must not inherit its task-local callback context. Starting, retrying and scheduling local-change sends likewise use detached MainActor tasks. An old operation's late completion cannot change replacement status or authorize sends, and delegate events or batches for the old engine fail the identity check. A fatal delegate error rolls back, retires and reports failure; a normal cancellation (`CancellationError` or CloudKit `.operationCancelled`) is not logged or made a red failure. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L218-L314), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L621-L689), [CloudSyncEventHandling](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift#L85-L130), [CloudSyncLifecycleTests](repo://FrameworkTests/CloudSyncLifecycleTests.swift#L11-L74), [CloudSyncLifecycleTests](repo://FrameworkTests/CloudSyncLifecycleTests.swift#L383-L435).
+
+```mermaid
+flowchart TD
+    Active["Active owner"] -->|"Preference disabled or app pauses"| Paused["Retire and report paused"]
+    Active -->|"Account sign out"| SignIn["Retire and require sign in"]
+    Active -->|"Account switch"| Confirm["Retire and await merge confirmation"]
+    Active -->|"Delegate persistence failure"| Failed["Rollback and retire then report failure"]
+    Active -->|"Retryable fetch failure"| Fenced["Keep engine and recovery fence with uploads closed"]
+    Fenced -->|"Successful retry fetch"| Active
+    Active -->|"Expected cancellation"| Unchanged["Do not report failure"]
+    Paused -->|"Enabled start"| Prepare["Check account and fetch before send"]
+    Confirm -->|"Confirm while enabled"| Prepare
+    Failed -->|"Retry while enabled"| Prepare
+```
+Retirement changes engine identity immediately; asynchronous cancellation and late completions cannot reopen the retired upload gate. A retryable fetch failure, unlike retirement, keeps the same engine for retry. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L238-L251), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L390-L403), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L645-L689).
+
+A retryable zone-fetch failure keeps the engine but does **not** reopen uploading or clear the recovery fence; the pending journal remains authoritative and a later successful fetch reauthorizes sending. Network/rate/zone-busy errors report syncing for retry, `notAuthenticated` requests sign-in, and terminal errors report failure. Recovery stays required until outstanding fetch/send work completes safely. The status can separately report uploadable and blocked counts, with an update hint only for unsupported format—not corruption. Logging emits `cloud.sync.failed` with zone, stage and NSError domain/code, not raw records, account IDs or localized descriptions; expected cancellation is not an error. [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L467-L515), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L598-L669), [CloudSyncEventHandling](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift).
 
 ### Changing replicas and CloudKit deletions
 
@@ -196,6 +221,14 @@ Three checks protect outgoing changes: the replica sidecar omits blocked IDs whe
 
 A changed decoder capability ID in **Vault, Settings and each native History/Device consumer** forces a scoped refetch and checkpoints capability only after a successful fetch/merge; Settings computes its ID from participating record kinds at V1, while Metrics uses its safety/recovery gate without a capability ID. No current fence can retrofit a previously shipped unsafe binary; adding silently ignored fields in an existing version without raising the breaking version remains unsafe. [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L16-L65), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L78-L95), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift#L61-L98), [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L91-L105), [MetricsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L81-L94).
 
+## Notification preferences across Settings and app models
+
+`NotificationPreferences` is a synced Settings singleton, not a device-local authorization grant. It carries enabled state, independent assistant/terminal/SFTP delivery modes (`never`, `unfocused`, `always`), terminal system-notification versus bell delivery and a nonnegative terminal minimum duration. The defaults enable notifications, use `unfocused` for all three modes, system delivery and a five-second minimum. `usesSystemNotifications` excludes bell-only terminal delivery and disabled categories; the terminal duration threshold still applies to bell delivery. The decoder defaults a missing SFTP mode to `unfocused` for older payloads, but validates the nonnegative duration. [NotificationPreferences](repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L3-L57), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L55-L75).
+
+`SettingsSyncPersistence.prepare()` bootstraps a missing notifications envelope even for stores already bootstrapped before this preference existed. `saveNotificationPreferences` validates then commits its SwiftData singleton and changed journal envelope together; `materialize()` restores default preferences on a winning remote tombstone. Settings uses `NotificationPreferencesItem` in the existing Settings zone rather than the older `AIConfigurationItem` record type; decoding verifies the envelope kind agrees with the record type. A supported remote winner updates persistence without invoking the local-change callback, then the coordinator notifies the app after commit; both platform composition roots apply the snapshot to their shared `NotificationSettingsModel`. The V40→V41 lightweight schema step adds `PersistentNotificationPreferences`, and the migration/reopen test verifies both the saved notification row and an older workspace setting survive. [SettingsSyncPersistence](repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L76-L102), [SettingsSyncPersistence](repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L172-L235), [SettingsSyncPersistence](repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L368-L382), [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L309-L355), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L95-L185), [MobileAppModel](repo://TFI/App/MobileAppModel.swift#L410-L418), [AppModel](repo://TFM/App/AppModel.swift#L393-L401).
+
+The notification model loads persisted preferences on construction; an invalid or failed edit does not change its live value, whereas a committed remote snapshot replaces it without writing or echoing. An active scene requests initial system authorization at most once per app-level model, only when loaded settings call for system delivery and no load error occurred; disabled notifications and bell-only terminal delivery do not prompt. The shared view modifier runs on active-scene transitions, but the model's one-shot guard deduplicates concurrent scenes and reactivation. [NotificationSettingsModel](repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L4-L47), [InitialNotificationAuthorization](repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift#L4-L20), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L12-L53), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L77-L93).
+
 ## Settings secrets and operations
 
 Settings synchronizes credential **references**, not secret bytes. After accepting provider or MCP-server references, `SettingsSyncCoordinator` marks them iCloud-backed. It migrates provider, Vertex and MCP references before a send/batch only when the current Settings fetch has authorized uploads and master plus Settings switches remain enabled. An active/failed fetch or engine retirement revokes authorization; `AISecretStore` verifies an iCloud copy before removing the device copy, and saves pending-deletion markers before deleting Keychain values so delayed delivery cannot resurrect a removed secret. [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L120-L155), [SwiftDataAISecretStore](repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L472-L505).
@@ -204,7 +237,7 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 
 ## Focused verification
 
-- `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit.
+- `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit. Its delegate-context tests verify detached fetch/send and engine cancellation; late fetch/send and fatal delegate failures cannot revive a retired engine. Disabled selection prevents start, retry and account confirmation.
 - `CloudSyncSafetyTests` uses five real owner adapters with fake CloudKit transport to check winner/queue reconciliation, quarantine at each upload boundary, conflict handling, malformed native fields, rollback, and healthy-peer progress; `CloudSyncSafetyPersistenceTests` covers scoped on-disk recovery and migrations.
 - `HistorySyncTests` checks typed native fields, independent History/Device scopes and switches, terminal event tombstones and retention, no retired-source import, and error/cancellation diagnostics. `PersistenceCompatibilityTests` verifies V28 local reopen as well as dropping retired importer state on V35 reopen.
-- `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift).
+- `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. `NotificationPreferencesTests` verifies settings record round-trip without echo, invalid remote duration, V40→V41 persistence reopening, edit failure and one-shot authorization across scenes. [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift).

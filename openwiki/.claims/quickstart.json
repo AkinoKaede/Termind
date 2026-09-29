@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d3113d26659fa36f392bf1a35be4dd87cfee2df11f1254cc9b1ed9d6f9801f12",
+  "pageVersion": "sha256:9e72493e5d52f25f5a7ef489c4f46a8310c846317800a1857a31280a25388e32",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -116,7 +116,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:a84b3408d31ed206fb90070bd9bffcfdc7e73da4c4c3e3268eaa66668347e214"
+          "version": "repo-file-v1:sha256:b2d48bb14a91e3c7c306e3893683a5640ce1314057c87577cae68a669d888240"
         }
       ]
     },
@@ -212,7 +212,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:a84b3408d31ed206fb90070bd9bffcfdc7e73da4c4c3e3268eaa66668347e214"
+          "version": "repo-file-v1:sha256:b2d48bb14a91e3c7c306e3893683a5640ce1314057c87577cae68a669d888240"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -230,7 +230,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:a84b3408d31ed206fb90070bd9bffcfdc7e73da4c4c3e3268eaa66668347e214"
+          "version": "repo-file-v1:sha256:b2d48bb14a91e3c7c306e3893683a5640ce1314057c87577cae68a669d888240"
         }
       ]
     },
@@ -433,10 +433,98 @@
           "version": "repo-file-v1:sha256:a2e7a4ed3270dcdd81eed43bfab4c149e725e3accb473eb68d58b59b1afc461b"
         }
       ]
+    },
+    {
+      "id": "claim_aa99762ecb40403a9bb85dfb5a5466a3",
+      "statement": "CloudSyncLifecycle maintains a category-specific engine and account scope, persists a recovery fence before creating an automatically syncing engine, fetches before allowing uploads, and reconciles pending engine changes against the durable journal.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L148-L179",
+          "version": "repo-lines-v1:sha256:ac8cd33f780c7fa6914e7f7d9019756581fce7b37cd02514662aee84bdc32567:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmOTVhYmE2NjdhZmU0N2Y3YWM0N2QzZTY3MDI2MmNmNGIyMDkwNTg2Mzg0OGUwMDNmMDAwZjliN2JlODg2ZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyNWMzYzdmMGQyMmNhZWU2OTFkMmMxZjk2MmZkMTk2OTk4OWVhM2RhODA3ZGI5YzljNzVhZDQwM2Y1MTk5ZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyZGYxYzlmMzA0ZTJhNzE4NDY4ZmVlYjFjYzg2MjhkYmRiNWIzNDc5MDAzYWE2MTQyMzc4ODU2ODFlZDViMmYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L317-L381",
+          "version": "repo-lines-v1:sha256:3e597d21c54a0a1824923f87747ac7c02f5719189e96ba7032be8ba58c812c95:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmZjZjZDU0MzRmN2FjOTAyZTE0MmI5Y2ZiN2Y0MmQ3ZmU5YzlhYTUxZTVjNmJmMzg5ZDA1N2E5ZmJmNDc3NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2YmJmMmY1Y2E0MjMzM2ViY2U3YTU2YzJhYmMxZDQxNGQwZDdkYmI0MzkzNDZkNzdjZmI4YmZmNTQxMDUzNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmNjkwODMzZTI0MzgwMTkwNjY4MGMyMjIwZDAyZjQxMmIwYjdiYTQzNzBiMjc2MzJlMTIwNGVhNzRiMGUwMjMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L467-L500",
+          "version": "repo-lines-v1:sha256:4b212d334f4b18b395fc017f6ca65d19887ec14ea53401e1fb8b1f106b575e3b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTNkN2ViMTBmNDNhODkyYmFjYzE5NzhjMGMzNGJiNjAxMWRkOGE2OTc5ZDFjNmNlMzM4Nzk3MzJjNWM3ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMDlhNGZmODVhMGIyYWNhNmM5MzVlODcyMzcxOThiNDVjMDYzMGZiYTY5YzBhZjllOGMwMDI2MmU4ZTBkYjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L518-L528",
+          "version": "repo-lines-v1:sha256:e89d6f33c9c85f47de78dffa3bcbd433ca23122feb5bd2708f761e8bd75b7885:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4NjgyYmQ3MmRjZDA5YWUyNzgwYmJiMDZhZWYzZDAzNjMyOThkNzE0YTBmN2IxYjIzYTM0M2I5NTBjNmY2YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzM2FhMDVkNTg3NTVlZTgxNjFkMjA3NzAxYmFjZDU2NTkyMDI3MzQzMzg1ZTEwYTRiNTVlMjNmMjk5YjAxODYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5Y2IwOTk0OGZiMjBhN2Y5ODk3MzQ4N2E5NjA2YmY3MmYyNGEzODY4ZjM0NGRkZWY5MWQxYTFkYWU4NTg3ZjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4MzM3NjY3NzIzMTc3M2E1MTU0Zjg5NzBmY2MxMjM2ZDY4ZGI1ZmRlMzY2YTI0ODNkYTExNzhiZDlhMDgxYjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d49eeaf26cb24960811980c9e300733c",
+      "statement": "Cloud sync pause, account changes, and non-cancellation failures retire the current engine, fence its operations, and cancel it outside the delegate context; late completions from retired engines cannot update replacement-engine status.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L383-L435",
+          "version": "repo-lines-v1:sha256:5491de5f94b2ee5d3197e3f53fea2bb36a10ace1970ce605bd7f8c5aa179e46f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhNDNiNDMwY2YwZWU5OTlkYjY3ZjA4OGFkYTAzZjI1YmU0NTk2Y2ZjNzVkOTJhZTU3OGQ2MjUyNTlhM2JkZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxYjAyY2I2ODlhM2Q3ODM3M2Q4OTQzODI1OWQyMTIxYjU4YThkOGE5Mjg5MDFhMmVjNGQzNTk4ZmIyYWFjYWUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift#L49-L74",
+          "version": "repo-lines-v1:sha256:054372f7792beb0d2d9961d7aa8409f95c2a6d0d882f4a87334e4b9b9bff5210:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhNmE1MDgzOThhZDAyZjQyNGJlZTNlMzQ1ZDA0NWJjNDYxMmE1N2UzOWJlMDAzMGIwMjYyNTM2YzQ1YTJmZmQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L621-L655",
+          "version": "repo-lines-v1:sha256:95e71a60b99da998a16e3d5a67d05ea13691223a80d77b8c62a2435599f34735:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzN2IzMDhlZWM0OTJlNzU2MzNlYjIyY2VlY2Y1ZGQ0MTQ3MDdhODJiYWQ2NTg1YzlmNjI1ODMxMDY3NzhiNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhM2JjNWJiODY5ZDdiNTc4Yzc1NDk4MTk4ZGFhYzBjMDU0YzEzZWRmOGE3YzM5YjlkMmU0YzM0OTg4MTMwNDkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L670-L689",
+          "version": "repo-lines-v1:sha256:373f2458dac848e0f3cf87d8eee30053363423c688d9d810369486e7679fae3b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YWYyMjljNGQwMGYyYzU2ODY5ZGNmYjlmOGM0YjgzZDc5ZTkxYzQ2NDA0YjA2ZWNhZmRlY2U2MGUyOGMyMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMTk2ZmNkYjg2YjE5MWU3NWNhOTE4ODIwZTU2ODNjZGU3OTMwOGNjNzg2ZjE4MTRjMTU5MTNlNGUyOWE4ZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7b17acfbc14c4b19bfdee32e6feb4aab",
+      "statement": "ConnectionJourney owns shared connection progress and authentication/host-key checkpoint state, and shared ConnectionJourneyRouteView draws the route for desktop and mobile while app views supply native surrounding controls; state and mobile rendering can be checked separately from a live SSH connection.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift#L35-L99",
+          "version": "repo-lines-v1:sha256:a2f41bb4234fde30d8924ec58f3ed100d86136fd7afe925c23bee88bf74e7376:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyMWI3NmNjOWNjNDAwZjE1MDY4YTFiMTY0ZDBlMzRhMTZiNDJkZWU2YjFmZjgyNWQ4MDMzYmVmOGIzYjE2ZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzZTlhMDhmZTMxZGRkZDJlOTlmMTU4MGQ4MGYwYTkxMGNhNGNkMGU1YzlmZTYyMTExZWNiYzRmYTZmMTFhZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3NzIxYjE1MTMyOTUwZDdjNDBlOWZiMTZjZjM0NDdmMzcxNzkzNjQ2ZmQ0NDY5MjMyMGFjNDUwNDgxZGZmYjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5ZmUyNjBjM2Y5MjViNTBkZGU4YzFjNjM2OTkzYTJlOWI4NjAwNGJkZGQ5YzQ4ZWYyYmNlYmE2ZDA3MzU4ZWEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/ConnectionJourneyRouteView.swift#L8-L39",
+          "version": "repo-lines-v1:sha256:21bbdef14bf26c7d8cd2c0ea54b3a9d60bd70fc00d511231a8509f2e3cca00ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyYThkN2IxYTVmMzVkYzJjYjIyNmI3MzliYWRiZjk1OWMwODQxZGQzYjJjNmQ1YjM4ZDBjZjBhMDcxYmJhZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhMmRiNjZmNGE1MzI1NzVkYzUwZmJjOTFjZjRiY2E4YjE1ZDdlOGQyYmU5ZjVjYzE4ZTA2NjI2NTljMGE1ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5MGUwNDEzZDY5ZjhhZjM3ZGQ3MzFlYjZjMmQwNGE5ZTQ2ZmFlNzQ2YWYwMGViZWNlYzE0Nzk4ZjRiZTg4YTYifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileConnectionJourneyView.swift#L33-L33",
+          "version": "repo-lines-v1:sha256:c78cbcf77be076648e99443a58c1637e06d788c845724bfcf42e7b090bfaabd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzc4Y2JjZjc3YmUwNzY2NDhlOTk0NDNhNThjMTYzN2UwNmQ3ODhjODQ1NzI0YmZjZjQyZTdiMDkwYmZhYWJkNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzc4Y2JjZjc3YmUwNzY2NDhlOTk0NDNhNThjMTYzN2UwNmQ3ODhjODQ1NzI0YmZjZjQyZTdiMDkwYmZhYWJkNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNThmNDgwMmVjZjc2YzEwM2FiNjJmZWMyMTM5OTMzZDU5NmZjMTQ4OWE5ZGU3Y2VmZWIzNjRlOWFmMWZhZTE2MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDAwMGQxYmFlZWYzN2MzZDJlODE1Yjk2NjdiMjU3MThmYmExZTRkNjAzYjk3NzEwZTE3ZDgxY2M3NDE0YjU2MSJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileConnectionJourneyRenderingTests.swift#L10-L40",
+          "version": "repo-lines-v1:sha256:281f7f19d1e3aa64548f4f577380f6f9617ecb3707a99d22d332b80bf2eb8f62:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNzkwODlmNzY3Njg2M2YwMzhjMDg5ODFjM2Y3NzFlZTJjYjdhMDE2ZDIyYzY4N2VkYzU0ZjczNzE5ZThhZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4N2Q5ZTA5YWMzMjVkNTU4ODFiYWFlMzM4MDQwZjcwY2E4Y2Q0NWEwODk3NmIxMTc3MzFlNWMzMTUzOWRlNGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyZTc0ODAwOWFkMzBhNmI4ZjlkN2ExMTliZGE4Nzg4ZTg2ZDdjMWYyMzlkYTgxZDVjODgzZTJiMzM2Y2IzYzQifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/ConnectionJourneyView.swift#L197-L197",
+          "version": "repo-lines-v1:sha256:4f89cf092154ea04629b1b7b492650481290a8b9b38a7cbd6637bc3c1b738a2c:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGY4OWNmMDkyMTU0ZWEwNDYyOWIxYjdiNDkyNjUwNDgxMjkwYThiOWIzOGE3Y2JkNjYzN2JjM2MxYjczOGEyYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGY4OWNmMDkyMTU0ZWEwNDYyOWIxYjdiNDkyNjUwNDgxMjkwYThiOWIzOGE3Y2JkNjYzN2JjM2MxYjczOGEyYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTc2MWJmNGJlMWIxZmM5Mzk0MTJkN2I2OGFjZWRmZTI2M2MxY2JjMjIyMzEyMTJkZjM5MDljNzIyOWNkMTZlYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzRjMjFjODQxYzI1YjI5MDkxM2JhZWRkMDRiMDRjOWE0NDI3MjI3Mjg5NWNkNTM1YWY2MTUxMWM4NjljYmM2ZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/ConnectionJourneyTests.swift#L14-L84",
+          "version": "repo-lines-v1:sha256:e6dcf07184e87e6e99baa6415771ec3da4711187ded4a3c2dd73bca54894bc18:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhM2Q2ZGI3NWZmMTQxZTlhNTA5NTRkYzMzMDFmOWE4NzEzOWFkZjlhM2MyNjY3NDViYzg3MGQ1ZTk2Y2VjZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlYjc3ODU3MDdlOThiZmJkOWM3YTFkMDI4YjVhMmQ4MDdmZjdlOTUyMzE5ODE3NmUwZWMzODI0YmExY2QzMGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmNDQ1NmI1NjM2MmUzNTliNmVmNzMwMjViM2UyMDFiMzU5Mjk2MmVjZGYxNWY4NWM5NjBiNGNhOTExYmNhOTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_be6ca2d2627445c796cdd47aa1d9319c",
+      "statement": "Metrics journey native presentation is exercised by desktop visible-window MetricsJourneyRenderingTests and serialized mobile MobileMetricsJourneyTests, which cover keyboard authentication retained in metrics navigation; mobile metrics tests are not gated by TERMIND_MOBILE_UI_TESTS.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileMetricsJourneyTests.swift#L9-L81",
+          "version": "repo-lines-v1:sha256:9e256988d3a0c5bb5d7dc6239e98303487ed0cf6079c192ca29f1bfdcdd7777a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxNzE3YjRmNjUxZTc1NDllNTM3ZDFkODdkY2Y4M2E1ZGJiOTE4MDM2YmNkMTEwNGRhYzgzZDEyY2Q3NmU1NjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmMzdkNDJmMDZlNDRiM2Q5NTZiMmI4ZTE0ODRiNzUxMjcwMzA5MzEyYjJiZDRlY2E2ODlhNTk4NzA3OGI2N2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1ZTIxNDkwMDc3Y2ViMmYyZjM3ZjdiYzBkN2EyOWYzMGFmMjMxN2Y5ZjVlZjUzYzkwZDZmNDFjNTVkYjdiZTYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MetricsJourneyRenderingTests.swift#L11-L80",
+          "version": "repo-lines-v1:sha256:d4c4a70c459857e623ec8e7a6214c8e79981aeb939aeb87909d8352972f09cd0:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1Y2RiZGUzMzQyNDE0YzU2NjcyYTRmZjdlMDNmYjZkMmI4OTMzNjY1ODVhOGI2MGFjMTkyYjg5NDNhNjJlMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmMzdkNDJmMDZlNDRiM2Q5NTZiMmI4ZTE0ODRiNzUxMjcwMzA5MzEyYjJiZDRlY2E2ODlhNTk4NzA3OGI2N2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjMmU4MWFkOTQ2ZjRiN2NkZjAzZGRiN2VhMzQ3ZTE5YWM0YjYyNzljNTQ0ZDc4NzVkNjYzMTBlMTlmZjc3MzYifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-29T00:09:14.116Z"
   }
 }

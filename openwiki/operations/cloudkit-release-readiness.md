@@ -3,6 +3,9 @@ type: release-readiness
 title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -10,6 +13,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
+  - id: openwiki-source-46ff6ca103fc5aeb8793c80d
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncEventHandling.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
@@ -76,10 +81,7 @@ sources:
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # CloudKit Release Readiness
@@ -180,7 +182,7 @@ The checked-in `V28.store` was generated against the historical Persistence buil
 
 ## First-stage mixed-version safety
 
-V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model. A V40 notification-preference upgrade and a V41→V42 disk upgrade are separate checks from the V28 fixture: the latter retains existing Host groups and begins with empty collaboration sidecars. These local migrations are separate from deploying CloudKit record types, including `NotificationPreferencesItem`.
+V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model. The notification test creates a disk store with the V40 schema and an existing Workspace preference, opens it through the current container factory, saves a V41-introduced notification preference, then reopens the file and checks both values. It checks schema membership in V41 but not V40; the independent V41→V42 migration test retains an existing Host group and starts with empty collaboration sidecars. These checks are separate from the V28 fixture and from deploying CloudKit record types, including `NotificationPreferencesItem`; the notification test does not itself establish signed-device delivery.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
 
@@ -197,7 +199,7 @@ Include the following matrix in release validation:
 | Supported replacement arrives but its merge fails | Roll back data, metadata and unblock together. |
 | Corrupt data rather than a recognized newer format | Explain the restriction without promising that an app update will repair corruption. |
 
-Recovery ordering matters: `prepareAndSynchronize` completes pending purge cleanup, checks account identity, prepares scoped safety/replica state, invalidates a stale or undecodable engine cursor, and **commits the recovery-required fence before checking/creating the zone and constructing the automatically syncing engine**. Explicit fetches and automatic fetch events both fence uploads; only the last successful fetch completes inventory reconciliation and advances the decoder-capability checkpoint, then upload authorization resumes. A failed fetch retains the fence and disables uploads even when the engine is retryable. Overlapping sends keep recovery required until they finish; a persistence failure rolls back and retires the engine so late callbacks cannot clear the fence. On retry/relaunch an interrupted scope refetches from a fresh cursor without discarding durable pending edits. An account mismatch instead records a pending user and stops before engine creation; confirmation resets the category's old account state, binds the pending user and starts a fresh fetch. Environment changes reset the category's zone state without merging into the prior environment.
+Recovery ordering matters: `prepareAndSynchronize` completes pending purge cleanup, checks account identity, prepares scoped safety/replica state, invalidates a stale or undecodable engine cursor, and **commits the recovery-required fence before checking/creating the zone and constructing the automatically syncing engine**. Explicit fetches and automatic fetch events both fence uploads; only the last successful fetch completes inventory reconciliation and advances the decoder-capability checkpoint, then upload authorization resumes. A failed fetch retains the fence and disables uploads even when the engine is retryable. Overlapping sends keep recovery required until they finish. A delegate persistence failure rolls back and retires the engine, disabling uploads; the dispatcher rejects its late callbacks, and an interrupted scope's next startup discards the old cursor and refetches while keeping durable journal pending intent. This is distinct from cancellation during pause or account transition: retired operations may finish later, but their cancellation is ignored rather than reported as a new failure or allowed to overwrite the replacement operation's status. An account mismatch instead records a pending user and stops before engine creation; confirmation resets the category's old account state, binds the pending user and starts a fresh fetch. Environment changes reset the category's zone state without merging into the prior environment.
 
 ```mermaid
 flowchart TD

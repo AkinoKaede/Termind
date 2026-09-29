@@ -52,6 +52,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
+  - id: openwiki-source-a8fad452641063d08c718602
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordReceiving.swift
   - id: openwiki-source-e9c12faee0c7be74b1cc02af
     resource: repo://Frameworks/TermindInfrastructure/Cloud/ConnectionHistorySyncCoordinator.swift
   - id: openwiki-source-e0d1a5c458c249d9d88ff665
@@ -200,10 +202,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
 verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+  - by: openwiki/0.5.2
+    at: 2026-09-29T00:09:14.116Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -242,7 +244,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   recreate a failed store silently: macOS fails startup on store error, while iOS displays a store-open failure view.
   macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
-- `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens.
+- `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
@@ -261,7 +263,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### Notification ownership and delivery
 
-`NotificationPreferences` is shared Settings state, not a per-window toggle: the V41 `PersistentNotificationPreferences` row journals the `NotificationPreferencesItem` in Settings sync; the live V45 schema retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load prevents initial authorization using fallback defaults, and initial authorization is requested at most once per process model when any system-delivered category is enabled. Remote application updates the model without echoing another local write. Bell-only terminal delivery needs no system notification permission. See `FrameworkTests/NotificationPreferencesTests.swift` for migration, round-trip, permission and failure coverage.
+`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V45 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
 
 ```mermaid
 sequenceDiagram
@@ -777,18 +779,22 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
   `TermindConnectionHistoryV1` CloudKit zone and `HistoryRecordSyncCoordinator` implementation, **not** engine, subscription,
   journal kind, safety consumer, or enablement: History follows its optional switch and Device follows master iCloud.
   Each category owns a `CloudSyncLifecycle` with serialized generations, account consent, fetch-before-send,
-  retry/reset/status; Persistence owns journal models. Only a successful current-engine fetch authorizes uploads;
-  pause/retirement revokes readiness. Stale work cannot publish or clear replacements; injected transport enables
+  retry/reset/status; Persistence owns journal models. A successful fetch for the active engine must finish before upload
+  readiness; failed or overlapping fetches keep uploads fenced until a subsequent successful completion. Pause/retirement
+  revoke readiness; retired work cannot publish or clear replacements. Sync operations and engine cancellation detach from
+  CloudKit delegate task-local context so callbacks can request follow-up work safely; injected transport enables
   deterministic tests.
-- Unreadable supported record types are durable per-record upload restrictions, scoped by container, environment, account,
-  zone and owner. Preserve the raw payload and local pending intent. Filter the journal, prune restored engine queues and
-  recheck synchronous batches and final record providers; tombstones and physical-delete recreation cannot bypass the restriction.
-  Fetch and save-conflict replies share validation. Only successful supported-data reconciliation clears the restriction in
-  the same persistence commit; retry, pause and relaunch do not. Other records keep syncing, with separate pending/blocked
-  counts and an update hint only for a recognized newer format. Upload batches deduplicate record IDs and cap combined
-  saves/deletes at 250; a physical delete must have a journal-backed, durably recorded handoff before leaving the process.
-  An in-flight delete cannot be replaced by another mutation for the same ID until its causal result is handled; a later
-  reobservation cannot acknowledge away the new pending delete.
+- Unsupported or unreadable received records become durable per-record upload restrictions, scoped by container, environment,
+  account, zone, owner and (for Device) consumer. Quarantine retains the full archived native-field record, not only known fields,
+  and local pending intent remains. Filter the journal, prune restored engine queues and recheck synchronous batches and final
+  record providers; tombstones and physical-delete recreation cannot bypass the restriction. A rejected representation wins over
+  other readable representations of the same record name in a batch. Fetch and save-conflict replies share validation. Only
+  successful supported-data reconciliation clears the restriction in the same persistence commit; retry, pause and relaunch
+  do not. Other eligible records keep syncing, with separate pending/blocked counts and an update hint for recognized newer
+  formats. Upload batches reject unjournaled or blocked changes, deduplicate record IDs and cap combined saves/deletes at 250;
+  a physical delete needs a journal-backed, durably recorded handoff before transmission. An in-flight delete blocks another
+  mutation for its ID until its causal slot is released; if the record is reobserved, the old result cannot acknowledge away
+  the new pending delete. Retryable or ambiguous delete failures retain durable intent for a later attempt.
 ```mermaid
 sequenceDiagram
     participant Coordinator as Category coordinator
@@ -811,8 +817,11 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
 
 - Persist recovery intent before engines or network operations can advance cursors. Interrupted work leaves the recovery marker;
   delegate persistence failure also retires the engine. Restart requires a fresh fetch without dropping pending local edits. Overlapping explicit
-  operations and automatic callbacks keep recovery active until all complete. This is not generic unknown-field preservation,
-  or a retrofit for historical clients. Decoder-capability changes force scoped replay before the new checkpoint commits.
+  operations and automatic callbacks keep recovery active until all complete. Ordinary zone deletion resets and requeues local records;
+  a CloudKit purge or encrypted-data reset instead retires the engine and purges the scoped cloud cache without recreating the zone
+  in that callback. A later explicit local write may start a new engine. This is not generic unknown-field preservation,
+  or a retrofit for historical clients. Decoder-capability changes force scoped replay before the new checkpoint commits
+  following a successful fetch.
 - Frozen V13 Settings; V14 terminal, V15 Metrics journal/account/quarantine, V21 SFTP. Commit data+intent atomically, then mirror defaults; remote
   apply refreshes without echo. Separate records cover providers/models/MCP/skills/roles/search/terminal/custom text/SFTP limits. First SFTP row
   imports prior local values once, missing 15/5; future preparation uses persisted truth. `v1/sftp/default` uses `SFTPPreferencesItem` in same zone/
