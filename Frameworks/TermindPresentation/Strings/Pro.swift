@@ -51,7 +51,7 @@ extension AppStrings {
         }
 
         public static var syncFeature: LocalizedStringResource {
-            "Sync Vault, Metrics, and Settings across devices"
+            "Sync your data across devices with iCloud"
         }
 
         public static var terminalUploadFeature: LocalizedStringResource {

@@ -27068,19 +27068,19 @@
         }
       }
     },
-    "Sync Vault, Metrics, and Settings across devices" : {
+    "Sync your data across devices with iCloud" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跨设备同步保管库、监控和设置"
+            "value" : "通过iCloud跨设备同步数据"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跨裝置同步保管庫、監控和設定"
+            "value" : "透過iCloud跨裝置同步資料"
           }
         }
       }
