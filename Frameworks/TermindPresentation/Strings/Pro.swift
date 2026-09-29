@@ -18,6 +18,18 @@ extension AppStrings {
             "Connect remote MCP tools"
         }
 
+        public static var metricsFeature: LocalizedStringResource {
+            "Monitor more than 3 servers"
+        }
+
+        public static var terminalUploadFeature: LocalizedStringResource {
+            "Upload files by dropping them on a terminal"
+        }
+
+        public static var syncFeature: LocalizedStringResource {
+            "Sync your data across devices with iCloud"
+        }
+
         public static var contactingTheAppStoreProgress: LocalizedStringResource {
             "Contacting the App Store…"
         }
@@ -34,10 +46,6 @@ extension AppStrings {
             "Lifetime Access · Family Shared"
         }
 
-        public static var metricsFeature: LocalizedStringResource {
-            "Monitor more than 3 servers"
-        }
-
         public static var oneTimePurchase: LocalizedStringResource {
             "One-time purchase"
         }
@@ -48,14 +56,6 @@ extension AppStrings {
 
         public static var reloadAppStorePrices: LocalizedStringResource {
             "Reload App Store Prices"
-        }
-
-        public static var syncFeature: LocalizedStringResource {
-            "Sync your data across devices with iCloud"
-        }
-
-        public static var terminalUploadFeature: LocalizedStringResource {
-            "Upload files by dropping them on a terminal"
         }
 
         public static var termsOfUse: LocalizedStringResource {

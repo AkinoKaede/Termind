@@ -108,14 +108,14 @@ public struct ProPaywallContent: View {
         VStack(spacing: 0) {
             feature(AppStrings.Pro.assistantFeature, symbol: "sparkles")
             Divider().padding(.leading, 52)
-            feature(AppStrings.Pro.metricsFeature, symbol: "waveform.path.ecg")
-            Divider().padding(.leading, 52)
-            feature(AppStrings.Pro.terminalUploadFeature, symbol: "arrow.up.doc")
-            Divider().padding(.leading, 52)
             feature(
                 presentation.supportsMCPServer
                     ? AppStrings.Pro.connectMcpToolsAndRunTheBuiltInMcpServer : AppStrings.Pro.connectRemoteMcpTools,
                 symbol: "server.rack")
+            Divider().padding(.leading, 52)
+            feature(AppStrings.Pro.metricsFeature, symbol: "waveform.path.ecg")
+            Divider().padding(.leading, 52)
+            feature(AppStrings.Pro.terminalUploadFeature, symbol: "arrow.up.doc")
             Divider().padding(.leading, 52)
             feature(AppStrings.Pro.syncFeature, symbol: "icloud")
         }
