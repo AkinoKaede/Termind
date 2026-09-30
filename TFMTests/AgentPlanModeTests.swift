@@ -360,37 +360,6 @@ struct AgentPlanModeTests {
         #expect(await ran.didRun)
     }
 
-    /// Blocked by name rather than by approval policy: `manage_tasks` changes
-    /// nothing, so the approval gate has no reason to stop it, and it still has no business
-    /// running before anything has been agreed to.
-    @Test
-    func theTaskListIsRefusedWhilePlanningEvenThoughItIsReadOnly() async {
-        let ran = RanFlag()
-        let events = await drain(
-            tools: [
-                spyTool(
-                    "manage_tasks", approvalPolicy: .approve,
-                    availableIn: [.acting], ran: ran
-                )
-            ],
-            turns: callingTurns(["manage_tasks"]), isPlanning: true
-        )
-
-        #expect(await ran.didRun == false)
-        #expect(results(events).first?.isError == true)
-    }
-
-    @Test
-    func theTaskListRunsOutsidePlanMode() async {
-        let ran = RanFlag()
-        _ = await drain(
-            tools: [spyTool("manage_tasks", approvalPolicy: .approve, ran: ran)],
-            turns: callingTurns(["manage_tasks"]), isPlanning: false
-        )
-
-        #expect(await ran.didRun)
-    }
-
     /// A partially-blocked turn must still answer every call it was asked for.
     /// An assistant turn with an unanswered tool call is rejected outright by
     /// every provider on the next request.
@@ -511,75 +480,5 @@ struct AgentPlanModeTests {
         #expect(planned.messages[2].text == TermindAgentPolicy.planContract)
         #expect(planned.messages[2].text != AgentPlanContractInjection.contract)
         #expect(planned.messages[2].text.contains("ssh_exec"))
-    }
-
-    // MARK: - Task arguments
-
-    @Test
-    func aTaskListMustNameOneThingInProgress() throws {
-        let two = AgentToolInvocation(
-            runID: UUID(),
-            call: AgentToolCall(
-                id: "c", name: "manage_tasks",
-                arguments: .object([
-                    "tasks": .array([
-                        taskJSON("a", "Check disk", "in_progress"),
-                        taskJSON("b", "Read config", "in_progress"),
-                    ])
-                ])
-            )
-        )
-
-        #expect(throws: AgentToolError.self) {
-            try Arguments(two).agentTasks()
-        }
-    }
-
-    @Test
-    func aTaskListRejectsDuplicateIDs() throws {
-        let duplicated = AgentToolInvocation(
-            runID: UUID(),
-            call: AgentToolCall(
-                id: "c", name: "manage_tasks",
-                arguments: .object([
-                    "tasks": .array([
-                        taskJSON("a", "Check disk", "pending"),
-                        taskJSON("a", "Read config", "pending"),
-                    ])
-                ])
-            )
-        )
-
-        #expect(throws: AgentToolError.self) {
-            try Arguments(duplicated).agentTasks()
-        }
-    }
-
-    @Test
-    func aWellFormedTaskListParsesInOrder() throws {
-        let valid = AgentToolInvocation(
-            runID: UUID(),
-            call: AgentToolCall(
-                id: "c", name: "manage_tasks",
-                arguments: .object([
-                    "tasks": .array([
-                        taskJSON("a", "Check disk", "completed"),
-                        taskJSON("b", "Read config", "in_progress"),
-                        taskJSON("c", "Propose a fix", "pending"),
-                    ])
-                ])
-            )
-        )
-
-        let tasks = try Arguments(valid).agentTasks()
-
-        #expect(tasks.map(\.id) == ["a", "b", "c"])
-        #expect(tasks[1].status == .inProgress)
-    }
-
-    private func taskJSON(_ id: String, _ title: String, _ status: String) -> AgentJSONValue {
-        .object([
-            "id": .string(id), "title": .string(title), "status": .string(status),
-        ])
     }
 }

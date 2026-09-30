@@ -257,7 +257,7 @@ struct AgentBuiltInToolAvailabilityTests {
         let descriptors = AgentToolCatalog.registry(
             builtIn: .init(
                 workspace: workspace, web: web, search: web,
-                tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in }
+                plans: AgentPlanRecorder { _ in }
             ),
             additional: TermindAgentTools.tools(
                 in: .init(
@@ -289,7 +289,7 @@ struct AgentBuiltInToolAvailabilityTests {
         )
         let everything = AgentBuiltInToolConfiguration(
             workspace: workspace, web: web, search: web,
-            tasks: AgentTaskList { _ in }, plans: AgentPlanRecorder { _ in },
+            plans: AgentPlanRecorder { _ in },
             skills: AgentSkillCatalog([
                 AgentSkill(name: "deploy", summary: "Deploy the app", body: "Steps")
             ])
@@ -302,7 +302,7 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(names.contains("scratch_write"))
         #expect(names.contains("request_user_secret"))
         for absent in [
-            "fetch", "web_search", "scratch_fetch", "skill_read_file", "manage_tasks",
+            "fetch", "web_search", "scratch_fetch", "skill_read_file",
             "present_plan",
         ] {
             #expect(!names.contains(absent), "\(absent) survived group selection")

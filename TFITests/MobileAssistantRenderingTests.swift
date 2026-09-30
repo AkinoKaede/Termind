@@ -234,14 +234,6 @@ struct MobileAssistantRenderingTests {
             conversation.respondToApproval(approvalRequest.id, allow: false)
             _ = await approval.value
 
-            conversation.handle(
-                .tasksUpdated([
-                    AgentTask(
-                        id: "verify",
-                        title: text("Verify the selected approach", "验证所选方案", "驗證所選方案"),
-                        status: .inProgress
-                    )
-                ]))
             conversation.present(
                 AgentUserInputRequest(questions: [
                     AgentUserQuestion(

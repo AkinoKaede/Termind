@@ -295,10 +295,6 @@ extension AppStrings {
             "No models configured"
         }
 
-        public static func ofTasksDone(completedTaskCount: Int, count: Int) -> LocalizedStringResource {
-            "\(completedTaskCount) of \(count) tasks done"
-        }
-
         public static var onlyAskForActionsDetectedAsPotentiallyUnsafe: LocalizedStringResource {
             "Only ask for actions detected as potentially unsafe"
         }
@@ -463,10 +459,6 @@ extension AppStrings {
             "Steering"
         }
 
-        public static func step(completed: Int, total: Int) -> LocalizedStringResource {
-            "Step \(completed) / \(total)"
-        }
-
         public static var stopCurrentRun: LocalizedStringResource {
             "Stop current run — ⌘."
         }
@@ -481,14 +473,6 @@ extension AppStrings {
 
         public static var takeThisBackAndEditIt: LocalizedStringResource {
             "Take this back and edit it"
-        }
-
-        public static var tasks: LocalizedStringResource {
-            "Tasks"
-        }
-
-        public static func tasksOfDone(completed: Int, total: Int) -> LocalizedStringResource {
-            "Tasks, \(completed) of \(total) done"
         }
 
         public static var thinkingProgress: LocalizedStringResource {

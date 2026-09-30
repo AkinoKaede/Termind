@@ -243,26 +243,6 @@ nonisolated enum Metrics {
         /// in the transcript from becoming the transcript.
         static let planPreviewHeight: CGFloat = 96
 
-        /// How much of the task list is shown before it scrolls.
-        ///
-        /// Taller than the steering strip because this one is read rather than
-        /// glanced at — it is the answer to "what is left" — but still a ceiling
-        /// measured from the rows, so a three-item list is three items tall.
-        static let taskListMaxHeight: CGFloat = 160
-
-        /// How wide the hovered task list is.
-        ///
-        /// Narrow on purpose. It hangs off a capsule a few characters wide, and
-        /// a panel spanning the conversation would read as a new region rather
-        /// than as that capsule opening. Task titles are short phrases.
-        ///
-        /// Two values because an overlay is proposed its *parent's* size — the
-        /// capsule's, which is tiny — so this cannot be a `maxWidth` that adapts
-        /// on its own. The compact figure is what fits inside a 260pt sidebar
-        /// once the composer's own insets are taken off.
-        static let taskListWidth: CGFloat = 320
-        static let compactTaskListWidth: CGFloat = 232
-
     }
 
     enum TransferCenter {

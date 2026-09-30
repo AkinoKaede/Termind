@@ -35,7 +35,7 @@ public enum AssistantToolRegistry {
             // and `scratch_fetch` read the same web the same way and differ only in
             // where the page ends up.
             let web = ScrubberWebClient()
-            // Both write through the one ordered channel the rest of the run
+            // Plans write through the ordered channel the rest of the run
             // uses, rather than reaching into the conversation directly: a tool
             // that touched `@Observable` state from a task group would be
             // mutating the UI from off the main actor.
@@ -52,7 +52,6 @@ public enum AssistantToolRegistry {
                     web: web,
                     search: localSearch,
                     secretConsumerTools: [TermindAgentPolicy.sshExecToolName],
-                    tasks: AgentTaskList { channel.emit(.tasksUpdated($0)) },
                     plans: AgentPlanRecorder { channel.emit(.planPresented($0)) },
                     skills: skillCatalog,
                     chatModels: chatModels, chats: chats, chatSource: chatSource,

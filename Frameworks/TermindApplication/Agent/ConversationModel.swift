@@ -919,12 +919,6 @@ public final class ConversationModel: Identifiable {
     /// that run releases ownership.
     public var effectiveIsPlanning: Bool { activeRunOwner?.request.isPlanning ?? isPlanning }
 
-    /// The current task list, whole. Replaced rather than patched — see
-    /// `AgentTask`.
-    public private(set) var tasks: [AgentTask] = []
-
-    public var completedTaskCount: Int { tasks.filter { $0.status == .completed }.count }
-
     /// How many characters of tool schema the last run sent.
     ///
     /// Recorded when a run starts rather than derived on demand: the registry is
@@ -1363,7 +1357,6 @@ public final class ConversationModel: Identifiable {
             return removedMessageIDs.contains(boundary)
         }
         compactions = compactionRecords.map(AgentCompactionMark.init)
-        tasks.removeAll()
         usage = nil
         contextEstimateTracker.setMeasured(nil)
         publishContextEstimateImmediately()
@@ -3284,8 +3277,9 @@ public final class ConversationModel: Identifiable {
             }
         case .planPresented(let plan):
             plans.append(AgentPlanCard(plan: plan))
-        case .tasksUpdated(let updated):
-            tasks = updated
+        case .tasksUpdated:
+            // AgentKit supports task lists, but Assistant does not register that tool.
+            break
         case .failed(let reason):
             guard let activeRunID, var run = runSummaries[activeRunID] else { break }
             run.state = .failed

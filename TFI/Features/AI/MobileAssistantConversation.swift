@@ -283,148 +283,6 @@ struct MobileAssistantEditMessageTextEditor: View {
     }
 }
 
-private struct MobileAssistantTaskCapsule: View {
-    let conversation: ConversationModel
-
-    @State private var isExpanded = false
-    @State private var rowsHeight: CGFloat = 0
-    @State private var overlayHeight: CGFloat = 0
-    @State private var availableWidth: CGFloat = 320
-
-    private var isComplete: Bool {
-        conversation.completedTaskCount == conversation.tasks.count
-    }
-
-    var body: some View {
-        capsule
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .top) {
-                if isExpanded {
-                    VStack(spacing: 0) {
-                        list
-                        Color.clear.frame(height: 4)
-                    }
-                    .onGeometryChange(for: CGFloat.self) {
-                        $0.size.height
-                    } action: {
-                        overlayHeight = $0
-                    }
-                    .offset(y: -overlayHeight)
-                    .transition(.opacity)
-                }
-            }
-            .onGeometryChange(for: CGFloat.self) {
-                $0.size.width
-            } action: {
-                availableWidth = $0
-            }
-            .animation(.easeOut(duration: 0.12), value: isExpanded)
-    }
-
-    private var capsule: some View {
-        Button {
-            isExpanded.toggle()
-        } label: {
-            HStack(spacing: 4) {
-                ProgressRing(
-                    share: Double(conversation.completedTaskCount)
-                        / Double(max(conversation.tasks.count, 1)),
-                    tint: isComplete ? .green : .accentColor,
-                    diameter: 10,
-                    lineWidth: 1.7
-                )
-                Text(
-                    AppStrings.Assistant.step(
-                        completed: conversation.completedTaskCount, total: conversation.tasks.count)
-                )
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 3)
-            .background(.regularMaterial, in: Capsule())
-            .overlay {
-                Capsule().stroke(.primary.opacity(0.08), lineWidth: 1).allowsHitTesting(false)
-            }
-            .contentShape(.capsule)
-        }
-        .buttonStyle(.plain)
-        .frame(minHeight: 44)
-        .accessibilityLabel(
-            Text(
-                AppStrings.Assistant.tasksOfDone(
-                    completed: conversation.completedTaskCount, total: conversation.tasks.count))
-        )
-        .accessibilityValue(isExpanded ? Text(AppStrings.Assistant.expanded) : Text(AppStrings.Assistant.collapsed))
-    }
-
-    private var list: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(conversation.tasks) { task in
-                    row(task)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) {
-                $0.size.height
-            } action: {
-                rowsHeight = $0
-            }
-        }
-        .frame(height: min(rowsHeight, 160))
-        .scrollBounceBehavior(.basedOnSize)
-        .padding(12)
-        .frame(width: min(availableWidth, 320))
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.primary.opacity(0.08), lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(AppStrings.Assistant.tasks))
-    }
-
-    private func row(_ task: AgentTask) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: symbol(task.status))
-                .font(.caption)
-                .foregroundStyle(tint(task.status))
-                .frame(width: 20)
-            Text(task.title)
-                .font(.callout)
-                .foregroundStyle(
-                    task.status == .completed
-                        ? Color(uiColor: .secondaryLabel) : Color(uiColor: .label)
-                )
-                .strikethrough(
-                    task.status == .completed,
-                    color: Color(uiColor: .secondaryLabel)
-                )
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func symbol(_ status: AgentTask.Status) -> String {
-        switch status {
-        case .pending: "circle"
-        case .inProgress: "circle.lefthalf.filled"
-        case .completed: "checkmark.circle.fill"
-        }
-    }
-
-    private func tint(_ status: AgentTask.Status) -> Color {
-        switch status {
-        case .pending: .secondary
-        case .inProgress: .accentColor
-        case .completed: .green
-        }
-    }
-}
-
 private struct MobileAssistantSteeringQueue: View {
     let conversation: ConversationModel
 
@@ -624,7 +482,6 @@ struct MobileAssistantConversation: View {
 
     @ViewBuilder private var bottomSurface: some View {
         bottomSurfaceContent
-            .padding(.top, !conversation.tasks.isEmpty && acceptsAttachmentDrops ? 44 : 0)
             .padding(12)
             .frame(maxWidth: 840)
             .frame(maxWidth: .infinity)
@@ -648,27 +505,18 @@ struct MobileAssistantConversation: View {
     }
 
     private var regularInteractionSurface: some View {
-        ZStack(alignment: .top) {
-            VStack(spacing: 8) {
-                if !conversation.pendingSteering.isEmpty {
-                    MobileAssistantSteeringQueue(conversation: conversation)
-                }
-                MobileAssistantComposer(
-                    pro: app.pro,
-                    model: model,
-                    conversation: conversation,
-                    focus: composerFocus,
-                    focusRequest: composerFocusRequest,
-                    focusRequestHandled: composerFocusRequestHandled
-                )
+        VStack(spacing: 8) {
+            if !conversation.pendingSteering.isEmpty {
+                MobileAssistantSteeringQueue(conversation: conversation)
             }
-            .zIndex(20)
-
-            if !conversation.tasks.isEmpty {
-                MobileAssistantTaskCapsule(conversation: conversation)
-                    .offset(y: -44)
-                    .zIndex(10)
-            }
+            MobileAssistantComposer(
+                pro: app.pro,
+                model: model,
+                conversation: conversation,
+                focus: composerFocus,
+                focusRequest: composerFocusRequest,
+                focusRequestHandled: composerFocusRequestHandled
+            )
         }
     }
 

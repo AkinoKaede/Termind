@@ -461,7 +461,7 @@ struct MobileAssistantTests {
         let names = Set(mobileDescriptors.map(\.name))
         for name in [
             "ssh_exec", "ssh_wait", "sftp_read", "sftp_write", "list_hosts", "get_metrics",
-            "scratch_pull", "scratch_push", "present_plan", "manage_tasks", "request_user_input", "request_user_secret",
+            "scratch_pull", "scratch_push", "present_plan", "request_user_input", "request_user_secret",
             "terminal_suggest",
         ] {
             #expect(names.contains(name), "Missing tool: \(name)")
