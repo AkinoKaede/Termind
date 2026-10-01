@@ -9570,13 +9570,13 @@
         }
       }
     },
-    "Diagnosis" : {
+    "Diagnostics" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diagnosis"
+            "value" : "Diagnostics"
           }
         },
         "zh-Hans" : {
@@ -24925,13 +24925,13 @@
         }
       }
     },
-    "Send Diagnostic Data" : {
+    "Send Diagnostics" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Send Diagnostic Data"
+            "value" : "Send Diagnostics"
           }
         },
         "zh-Hans" : {
