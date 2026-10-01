@@ -38,11 +38,11 @@ struct TerminalThemePage: View {
         let hoverID = custom ? "__custom__" : theme.name
         let selected = custom ? options.isCustom : options.isSelected(theme.name)
         let select: () -> Void = {
-            if custom {
-                app.terminalSettings.selectCustomTheme(isDark: scheme == .dark)
-            } else {
-                app.terminalSettings.selectTheme(named: theme.name, isDark: scheme == .dark)
-            }
+            let saved =
+                custom
+                ? app.terminalSettings.selectCustomTheme(isDark: scheme == .dark)
+                : app.terminalSettings.selectTheme(named: theme.name, isDark: scheme == .dark)
+            if saved { window.navigateBackInSettings() }
         }
         return CardTile(
             isSelected: selected,

@@ -6,6 +6,7 @@ import TermindPresentation
 struct MobileTerminalThemeView: View {
     let model: TerminalSettingsModel
     let isDark: Bool
+    @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var hoveredTheme: String?
     @State private var isEditing = false
@@ -63,11 +64,11 @@ struct MobileTerminalThemeView: View {
         let hoverID = custom ? "__custom__" : theme.name
         let selected = custom ? options.isCustom : options.isSelected(theme.name)
         return MobileActionCard {
-            if custom {
-                model.selectCustomTheme(isDark: isDark)
-            } else {
-                model.selectTheme(named: theme.name, isDark: isDark)
-            }
+            let saved =
+                custom
+                ? model.selectCustomTheme(isDark: isDark)
+                : model.selectTheme(named: theme.name, isDark: isDark)
+            if saved { dismiss() }
         } content: {
             HStack(spacing: 12) {
                 TerminalThemeThumbnail(
