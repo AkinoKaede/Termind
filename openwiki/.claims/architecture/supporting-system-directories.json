@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d514a5ea7c46279a90e848d6b963dc4db3b2df3f9028137fc3048a87fffd2d85",
+  "pageVersion": "sha256:e6368d601a3353842229d43620f6b917bf87dceb288999c8111b5e38109ddce7",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:34587ba8786621161cacf4355bdbbb341f1ffe65877a6351f1b7507a831627e5"
+          "version": "repo-file-v1:sha256:363064596a7548ac2deb71f16c9704c13d63bceaa9fc13487704402d535f0e4d"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -82,7 +82,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:34587ba8786621161cacf4355bdbbb341f1ffe65877a6351f1b7507a831627e5"
+          "version": "repo-file-v1:sha256:363064596a7548ac2deb71f16c9704c13d63bceaa9fc13487704402d535f0e4d"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -208,7 +208,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:34587ba8786621161cacf4355bdbbb341f1ffe65877a6351f1b7507a831627e5"
+          "version": "repo-file-v1:sha256:363064596a7548ac2deb71f16c9704c13d63bceaa9fc13487704402d535f0e4d"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -457,10 +457,62 @@
           "version": "repo-lines-v1:sha256:86c124b99c90d342641043bab72dfaa9ace050fff58c3dd61c4a07e2be97f96d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxOTViOTUyNWFjMTJlZGY5NTVmOThhOTgwZjJjNGE3OTBiZWEzNjkxMDFlNjk1M2JmZGNmZTkyMDdjMjE5NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYTYzNTcyMmVmYzBmNzI4Y2E1ZDM1NGUwM2ZlODRiNGYxZTljODM1M2ExZWNlN2M0NzI3YmJiNzRlNmU0MWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1ZGFmN2YzOTc5NDVkYWQ3OTE1ZDhkYWI1Njc4YTViOTE4NzY4MDJlYjIwODg2ZDEwMGVkY2UyYTExYjFhYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjNhMGQ0ZWIyYzU1Zjg0OTRkN2MxZTYyN2EyMzY4NTIzY2IwNWU5YzQzMjA2YzAwZTQ3M2Q3NmE2YzQ0MjEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_9bd831a32eb94f1da2af2f7ae4c94aa7",
+      "statement": "The MCP bridge distinguishes modern metadata-driven requests, whose HTTP headers carry protocol version, method and optionally encoded name without a session ID, from legacy requests that retain an assigned session ID and negotiated protocol version for subsequent calls and EOF cleanup.",
+      "evidence": [
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L108-L116",
+          "version": "repo-lines-v1:sha256:af8b298539367ff435538e6ed40fbbfc0356556471c5693fe9873cf395907a68:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDQwNWRjNTcwNjZlMDgwNmQ1ZTZlZTFhYzU4ZTEyYzkzOGYyZDIzYzdkMzI0NWM5ZGIzMTgzZmQ1OTRmNDRhYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVmODY3NDA0YmMwMzgzMDQxYzNlNmE3MGQ2MWEwMmVjZTkyNWZkMjQ1NWZjYjJhZGY2YTMwNWUwOTU3MTM0YyJ9"
+        },
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L24-L105",
+          "version": "repo-lines-v1:sha256:8b7cdbc46689dc1ac3b8153096b7b981374424986c191d9e4d03713389e5c7db:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NGIxZmJiOTVhMzI5YTQyZWQxMzhmYzc2NTgyOWU2Njk2NmZhOWIzNDA0YTZiZGIxZTczYzNhNDkxYzdhYWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4MGJlMjQ4YjE2ZThhM2Y2OWNjNmZhNGQ0YjFlMGQ0ZmRiN2UyY2U5ZjBkZjg2OGVlMzk5NGMzN2E4ZDljMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0YzVmYWQ4MTc5NzQ3MmQ3NzE5ZmQ0NjlkZmYzZWFkOTMxOTk5YjhhYmQ0MzBkYTdhNzRjNWFhNWMxZThkNWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cc85ba6f985e499f8a1ae56689ff13df",
+      "statement": "The bridge's executable-level loopback check covers modern and legacy request headers, JSON-RPC error passthrough, and legacy session deletion.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/check-mcp-bridge.py#L11-L90",
+          "version": "repo-lines-v1:sha256:a77464507034f92bfd0b8870d2378c97a3676f5380b86190ec501588b0ea794e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2MTY0NWI2NTljYjAyZGZjN2E0OWQ3MGZjNjYxY2NiMDQ4ZjI0ZTdjNzQzODFmZDk2Yzk4ZjA3NTc2NjRlODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3NTcwMWQyOTdiOTI5MGM0N2FjNDFlYTI3ODVjMWZlOGQxZjhhNTRiNTAwOTAzZjBhODUzYzEzOTAwNzM0MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0OWNiMTE0ZTYxMmQ0OWY2ZTY1ZmZhNmQ4MDc2NGYzNjM3NTAyY2JiMzlkNThhM2I4MzQ3ZGQxNmNjYzQzYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_86bc4f46fd0b416f84aea66f47a72173",
+      "statement": "The standalone forwarding benchmark waits for its SSH connection pool before measuring forwarding workloads across local, remote, dynamic, jump-host, streaming, and mixed modes; it prints structured FORWARDING_METRIC records and disconnects after success or failure.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L128-L154",
+          "version": "repo-lines-v1:sha256:eb6d75c1b9bdd54eae17463775acd84ba4d5f4f6df13194471e1de5747518990:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiMDZmYWUxNzUxOGZiNWE0Y2I1YWQ0ZTIyMDBiZmE1ZGE3NTE1YjRhNWViNmZjM2MyNWUwNmI4YTVjYmY2NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYzdkNzM4ZDkyMDY1NTEyZmExOGY4MzAzN2FhMDVmODZkMTYyNzQ3ZWMyYmRjYWQyZTdjYjVlNDRkYzUxNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1MWI1OTkwZTM4NTllYjdjMThmZjNhZjk5NGMxZDkwMjQ2OGNiNzExMWEwNGJiMGQ1NTJlMTRlMzA0ZjM3ZDUifQ"
+        },
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L156-L245",
+          "version": "repo-lines-v1:sha256:cdbec06e0010a8cd70749db29fd0eb56a451fbb349245480cc9708e8d5faf791:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNzY5MTFhNjkzZGY4NjM1NzFmZDBlZGJhMmZkNDU3ZmIzZWRmNzkyOWUwZGZlNzY0ZGIyZmJmNTlmN2MwMTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyMWEwMTVlNTk3OTYyMTI3ZGVmY2Q5MTEwMzc4YTQwMDY3MzRjMDBhZDQ3OTczMWI3ZWYyYjk5ZDg4Y2Q2ODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyMGY4YmJmNWYzODQ1MDJkMjFhYTY4NDZkMTVjY2M3M2E2YWFjYTEyNTNlZTU5Y2FhN2FhNjQyYTU4YWQ3YTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_565564e270d74f2c90e7db04e41b24ef",
+      "statement": "The forwarding benchmark script builds the dedicated Release scheme with resolved Swift package versions, repeats runs at selected connection limits, and rejects successful executions that produce no metrics.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L33-L70",
+          "version": "repo-lines-v1:sha256:aeaae3f86bf0ae1880d4b968e944e949c6a3410d6e213179f29ed590f0a88fd8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmNhZjkyMDVhNDc5OWI1Y2RjODU0MDE0NmU0YWI0NGRjZDY2ODJhMTk1ZWUxYjg3NDRlYzg5MzUxODZlMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0NmNhYzI0ZDcyNGExMDI2MzgzZTg3MDUwNGI0Y2M5NDdiNTU5ZTZmMmI5YWM3OTViNWNlMTk2MjIzM2Q1MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExYTRmMDVmZjRkNDhiNzRkNGMzNjU1MGNkYmUwYjhjN2UzZWVkYzM3MmEyNDdmMTI1NjY2YjFmNmUzMTljYzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzY2IzYmRiNGRkNzAzYWI3NmRjNTk0OTFiOTY5ZTFlMDgwMmNjMzM2NjEyZTEwYmMyNjY0MmFmMDJkZmI3ZWEifQ"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L83-L155",
+          "version": "repo-lines-v1:sha256:3ce929750fb82eb8560cc4a0ec86d5ab87bb69755d9cba24140bec9017958e7a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZmUyNDVhZDA1MDk0MmFmOWViM2I5MDU4NzIwNmU2MTljNjA3M2Y3MmY3NjdhMTlhMGMxYzBlZGEwNDFhZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyYjgwYTNkNWMzZTQ4MTRiY2RhNjkyY2RiN2Y4N2Q2NmI4NTNmZGMxNDBhNzkyZTQzYzQ4ZjU5MTcxMmRiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

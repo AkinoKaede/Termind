@@ -5,7 +5,7 @@ description: How to capture localized Mac and mobile marketing screenshots, rege
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-d87a42cf655efbaeefd54d4d
     resource: repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
@@ -47,6 +47,8 @@ sources:
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
     resource: repo://Scripts/run-mobile-marketing-screenshots.sh
+  - id: openwiki-source-60d4159ef162d09de4f4b469
+    resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-407fd8a7c64006c458cce603
@@ -57,6 +59,8 @@ sources:
     resource: repo://TFITests/MobileMarketingScreenshotTests.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
     resource: repo://TFM/App/ScreenshotDemo.swift
+  - id: openwiki-source-e1c0d18fcc5998ccfebc8ff5
+    resource: repo://TFM/App/ScreenshotDemo%2BMetrics.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-a93c339a06b550013d027e29
@@ -67,7 +71,7 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Marketing Assets and App Icons
@@ -132,7 +136,29 @@ Recapture an affected scene in every locale and regenerate only its matching fra
 
 ## Mac capture workflow
 
-`TFMTests/MacMarketingScreenshotTests.swift` captures the production `WindowGroup` through `ScreenshotDemoConfiguration`, not a second RootView, terminal, or transcript. The debug demo launch selects an in-memory store and demo models rather than normal persisted data; the test forces a light, non-restorable, centered production window. It moves the pointer outside the content, temporarily ignores mouse events to prevent hover highlights, requires an active app and key window through the capture interval, waits 300 ms for focused rendering, and requires native 2× backing scale. The runner requires macOS 27.x and backs up replaced sources under `.build/screenshot-backups/<timestamp>/`.
+`ScreenshotDemoConfiguration` is a **DEBUG-only app launch mode**, not a replacement view or an XCTest-only fixture. `--termind-demo=<scene>:<en|zh-Hans|zh-Hant>` is parsed as one scene/language pair; missing argument means ordinary launch, while malformed, duplicate, or unsupported values abort demo launch. `Scripts/run-screenshot-demo.sh` opens a debug app for manual review; the automated runner passes the same argument into the TFM test launch. Only the runner's five supported marketing scenes are exported; `metrics-detail` and `app-settings` remain available for development review.
+
+On demo launch, `TermindApp.init()` selects the requested language and an in-memory SwiftData container even outside XCTest. It builds demo hosts, AI, unrestricted test access, frozen metrics, and one `WindowModel`, then **returns before normal persisted settings, Keychain-backed secrets, sync/coordinator and live model assembly**. No demo argument means the ordinary startup path (subject to the separate XCTest in-memory branch); screenshot data does not become a user's saved workspace. `makeWindow(requestID:)` supplies that same demo window to the real `RootView` in `WindowGroup(id: "main")` for the initial nil request; explicit new-window requests use normal window creation. In DEBUG, the main scene stays auto-launchable for the demo even under XCTest and disables restoration for tests or demos. `AppDelegate` centers and sizes the visible window, applies light appearance and emits a `TERMIND_DEMO_READY` window diagnostic. This is not the capture-ready signal: `TFMTests/MacMarketingScreenshotTests.swift` independently waits for the production window, prepares it and writes `TERMIND_MAC_MARKETING_READY` only after focused rendering.
+
+```mermaid
+sequenceDiagram
+    participant Runner as Mac runner
+    participant App as TermindApp
+    participant Window as Production window
+    participant Test as Capture test
+    Runner->>App: Launch DEBUG test with scene and language
+    App->>App: Build in-memory demo model and window
+    App->>Window: Mount RootView without restoration
+    App-->>Runner: Emit demo window diagnostic
+    Test->>Window: Center light window and establish focus
+    Test-->>Runner: Emit marketing ready marker with window number
+    Runner->>Window: System screencapture of window
+    Runner->>Runner: Wait for test and validate dimensions
+    Runner->>Runner: Back up and promote source capture
+```
+The app's demo initialization supplies data; the test proves the focused native window is ready before the runner exports it.
+
+The test moves the pointer outside content, temporarily ignores mouse events to prevent hover highlights, requires an active app and key window throughout the capture interval, waits 300 ms for focused rendering, and requires native 2× backing scale. The runner requires macOS 27.x and backs up replaced sources under `.build/screenshot-backups/<timestamp>/`.
 
 ```sh
 Scripts/run-mac-marketing-screenshots.sh

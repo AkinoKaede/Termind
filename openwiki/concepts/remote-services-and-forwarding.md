@@ -1,8 +1,11 @@
 ---
 type: Remote service ownership
 title: Remote Services and Forwarding
-description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and forwarding, including saved intent versus live connections and authentication.
+description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
     resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
@@ -38,6 +41,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-b3ff2edaa14925d2360e5532
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/VaultSSHAgent.swift
   - id: openwiki-source-b347308e8c5cc6c0b0d29b7d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
@@ -58,18 +63,19 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-9e75ae93f5450c1993472c5d
     resource: repo://TFM/Features/Metrics/MetricsView.swift
+  - id: openwiki-source-0260a25fb41739d94e23d2ea
+    resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-23ab3fe73660b171f78763a4
     resource: repo://TFMTests/AgentToolPresentationTests.swift
   - id: openwiki-source-7cc9fc3d79582cde4157ce7a
     resource: repo://TFMTests/GetMetricsToolTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
+  - id: openwiki-source-0e1711c93b46fc372d856a21
+    resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 
@@ -101,7 +107,7 @@ These controls compose rather than replace each other. For example, an SFTP file
 | Interactive terminal | `SSHPTYChannel` opens a PTY and shell on its own authenticated connection. | Its connection journey may obtain trust, credentials, and keyboard-interactive answers. | It does not make those answers durable for later physical connections. |
 | Metrics | Application-owned `ServerMetricsModel` runs one serial worker per enabled, available SSH Host selection on a dedicated sampler connection; `SSHMetricsSampler` performs bounded SSH exec requests. | Each `ServerMetric` owns its own `ConnectionJourney`, host-key authorization, and authentication queue; the mobile wrapper delegates to this same core model. | It does not start a terminal shell or use terminal environment variables/startup snippets. |
 | Port forwarding | `PortForwardingController` shares a host-scoped forwarding transport among explicitly started rules; it optionally creates an `SSHForwardingConnectionPool`. | The first open can present the forwarding Journey. Recovery and auxiliary opens forbid interaction. | It does not persist a connected transport, listener, temporary password, passphrase, or once-only trust decision. |
-| Agent SSH/SFTP | `AgentHostServices` supplies a Host resolver, authentication registry, background command owner and Host-keyed `AgentConnectionPool`; exec and primary SFTP share its multiplexed connection. | Tool invocations use the Agent's SSH interaction service, not a terminal or forwarding Journey. | It is not a forwarding pool or an interactive PTY session. |
+| Agent SSH/SFTP | `AgentHostServices` supplies a Host resolver, authentication registry, background command owner and Host-keyed `AgentConnectionPool`; ordinarily exec and primary SFTP share its multiplexed connection. Agent-forwarded exec instead uses isolated per-call connections. | Tool invocations use the Agent's SSH interaction service, not a terminal or forwarding Journey. | It is not a TCP forwarding pool or an interactive PTY session. |
 
 A `PortForwardingRule` is a portable saved description, not a listener. It identifies a Host and has `local`, `remote`, or `dynamic` (SOCKS5) kind, bind address/port, optional target address/port, label, and color. Dynamic rules deliberately erase target fields; a valid rule needs a nonblank bind host and port in `1...65_535`, while local/remote rules also require a nonblank target and valid target port. Rules remain independent of Host renames, but Host deletion removes its rules.
 
@@ -144,7 +150,7 @@ Focused tests in `FrameworkTests/SSHMetricsSamplerTests.swift` verify that frami
 
 ## Agent tools: host services, not terminal or forwarding sessions
 
-The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. Only tool-capable models get a tool registry. It composes AgentKit built-ins with Termind's `TermindAgentTools` and configured MCP tools: the runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH exec/wait, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Tool reports go through the ordered event channel; SSH secret handles are restricted to `ssh_exec` standard input, **not** SSH login.
+The macOS `AppModel` and iOS `MobileAssistantModel` supply `AssistantToolRegistry.make` with the app's `AgentHostServices` components and a `MetricsSnapshotReading` implementation. **Tool registration is not remote connection ownership:** the app constructs the live Host resolver, Agent connection pool, authentication registry, and background-command owner once for its execution surfaces; making a registry for a conversation injects those existing services, rather than making a terminal, Metrics sampler, or forwarding controller. For tool-capable models the registry composes AgentKit built-ins, Termind's `TermindAgentTools`, and configured MCP tools (with bearer tokens resolved from AI settings); models without tool-call ability get an empty registry. The runtime owns scratch, web, planning, skills, and user-interaction groups, while Termind contributes host discovery, `get_metrics`, SSH exec/wait, SFTP, pane and scratch-to-host transfer tools. The runtime and app catalogs each register executable definitions and detail presenters; `TermindAgentTools.presenter(for:)` reads persisted presenter IDs, with a closed legacy-name fallback for old cards. The scratch workspace is keyed by conversation so staged files survive follow-up runs but stay isolated from other conversations. Plans are emitted through the ordered Agent event channel; `ssh_exec` alone is configured as a secret consumer, and its one-shot handles supply command standard input, **not** SSH login.
 
 ```mermaid
 sequenceDiagram
@@ -154,7 +160,7 @@ sequenceDiagram
     participant Auth as AgentSSHAuthenticationRegistry
     participant Pool as AgentConnectionPool
     participant Reader as ServerMetricsModel
-    App->>Catalog: inject host services and metrics reader
+    App->>Catalog: inject existing host services and metrics reader
     Catalog->>Tool: register tools for tool capable model
     alt get_metrics
         Tool->>Reader: snapshot for Host ID
@@ -168,9 +174,9 @@ sequenceDiagram
 
 This shows why an Agent metrics read does not start a sampler and why Agent SSH/SFTP tools do not borrow terminal or forwarding transports.
 
-`get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. See [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) for worker internals.
+`get_metrics` resolves an SSH-capable Host and reads `snapshot(for:)` from the injected metrics model; it neither connects nor refreshes samples. Its optional detail sections can be absent or stale, and its five-minute trend is based on cached history. `ssh_exec` instead authenticates via `AgentSSHAuthenticationRegistry`, then uses a non-PTY exec session from the Host pool. The risk preflight allows parallel safe commands but serializes commands it cannot classify safe; the libssh2 worker serializes actual session calls and applies the connection's session-channel budget. SSH login prompts come from the Agent interaction service. The authentication registry shares temporary credentials only among overlapping attempts for a Host and releases them after the last lease; the pool can reuse an authenticated Host connection across calls, runs and conversations until idle retirement or route invalidation. Concurrent cold opens for the same Host and route join one pending open; if the route changes, a cached transport is retired. A lost connection may be retried once **only before an exec channel opens**; a rejected channel or a command that already started is not replayed. SFTP operations acquire exclusive Agent channels and data transfers use the shared SFTP concurrency scheduler; overlap can use silent auxiliary connections or sibling channels. Neither that pool nor the snapshot reader starts forwarding listeners. Do not confuse TCP port forwarding with the Host's **SSH agent forwarding** switch: when that switch is enabled, Agent exec opens an isolated connection per call instead of reusing the Host pool and closes it after its exec lease, so the forwarded agent capability cannot persist across commands. The authentication registry also avoids sharing the temporary context in this mode. The ordinary pooled Agent exec path explicitly disables agent forwarding, as does the Metrics sampler. The per-connection `VaultSSHAgent` capability checks that the Host still permits forwarding, resolves keys only when used, and refuses signing that needs interaction when the connection policy forbids it. See [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for run and approval policy and [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) for worker internals.
 
-When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics.
+When changing this integration, check `TFITests/MobileAssistantTests.swift` for mobile tool availability and the no-tool-call gate, `TFMTests/AgentBuiltInToolAvailabilityTests.swift` and `TFMTests/AgentToolPresentationTests.swift` for catalog/presenter composition and restored cards, and `TFMTests/GetMetricsToolTests.swift` for snapshot-only, age and trend semantics. `TFMTests/AgentConnectionPoolTests.swift` covers reuse, concurrent opens, and agent-forwarded connection isolation; `TFMTests/SSHAgentForwardingWireTests.swift` exercises the shared host-services exec path and capability revocation on a live SSH connection.
 
 ## Forwarding: explicit intent and host-scoped runtime
 
@@ -204,27 +210,7 @@ This is the controller-facing forwarding lifecycle; a shared Host context can ca
 
 ### Connection pool and dispatch
 
-On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 1). With more than one requested connection, `PortForwardingController` selects `SSHForwardingConnectionPool`; otherwise it uses one `SSHForwardingConnection`. iOS can preserve the synced Host setting but runs one forwarding connection. The pool always opens a primary connection first. Only local and dynamic rules need the fan-out pool: they register with every healthy slot but keep one pool-level local listener per rule. Accepted sockets are assigned to an eligible slot with the fewest flows for that rule, breaking ties round-robin. A remote rule stays on the primary worker, so remote forwarding remains single-worker.
-
-After the primary opens, the controller supplies an additional-connection request resolver and the pool fills missing auxiliary slots. It limits simultaneous opening/installing work to four. A new slot installs every non-remote registration before becoming eligible; if setup fails it is disconnected rather than published. Losing an auxiliary schedules retry after 1, 2, 5, 10, then 30 seconds; a slot stable for 60 seconds resets this retry progression. Interaction-required, host-trust, credential, or cancellation failures require manual action instead of an automatic auxiliary retry, leaving the pool below target. If the primary fails, the pool promotes an existing slot and recreates remote rules there when possible; with no replacement it reports failure.
-
-```mermaid
-flowchart TD
-    Start["Explicit rule start"] --> Primary["Open primary SSH connection"]
-    Primary --> Kind{"Rule kind"}
-    Kind -->|"remote"| Remote["Start remote listener on primary"]
-    Kind -->|"local or dynamic"| Register["Register rule on healthy slots"]
-    Register --> Listener["One pool local listener"]
-    Listener --> Accept["Accept TCP flow"]
-    Accept --> Choose["Choose least loaded eligible slot"]
-    Choose --> Pump["Open forwarded channel and pump flow"]
-    Register --> Fill["Open auxiliary slots up to target"]
-    Fill --> Install["Install existing shared rules"]
-    Install --> Register
-    Fill --> Retry["Retry transient loss with capped backoff"]
-```
-
-This diagram shows pool fan-out only for local and dynamic forwarding; a remote listener does not fan out.
+On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 1); a value above one selects `SSHForwardingConnectionPool` instead of a single `SSHForwardingConnection`. iOS preserves the setting but uses a single connection. In a pool, local/dynamic rules register on healthy slots behind one local listener per rule; accepted flows go to the least-loaded eligible slot with round-robin ties. Remote listeners remain on the primary connection. Auxiliary opens are limited to four at once and must install existing rules before becoming eligible. Transient slot loss retries at 1, 2, 5, 10, then 30 seconds, but a failure requiring interaction, trust, or credentials, or cancellation, does not automatically retry. These are transport availability policies, not restored listener intent; for slot promotion, socket dispatch and pumping details, use [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md).
 
 The first physical connection may use the forwarding Journey to collect host-key approval, credentials, or keyboard-interactive answers. Its recovery and every auxiliary connection are silent opens with interaction forbidden. Their reusable snapshot keeps route/network and identity references, not temporary passwords or passphrases. A remembered host key can permit recovery, but “continue once” trust cannot. If a silent open needs interaction, recovery fails/degrades rather than showing a form; an explicit Retry starts a new interactive Journey. Existing TCP streams are never migrated or replayed to a replacement worker.
 

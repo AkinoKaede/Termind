@@ -3,6 +3,9 @@ type: architecture directory guide
 title: Supporting Products and Tooling
 description: Build ownership and integration boundaries for AgentKit, the MCP bridge, Live Activities, project tests, forwarding benchmarks, the Astro website, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -34,6 +37,8 @@ sources:
     resource: repo://Marketing/README.md
   - id: openwiki-source-d32eeff4d814c0dbd05e14b8
     resource: repo://Scripts/benchmark-port-forwarding.py
+  - id: openwiki-source-790223eb6fb4a24b2cf2d359
+    resource: repo://Scripts/check-mcp-bridge.py
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-294dd6a8637abdafe40e9570
@@ -74,10 +79,7 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Supporting Products and Tooling
@@ -108,7 +110,7 @@ flowchart TB
 
 The diagram shows stdio-to-desktop requests and the separate interactive authorization boundary.
 
-The server's lifetime/controller is assembled by the desktop app. The bridge takes `TERMIND_MCP_URL` (default `http://127.0.0.1:7391/mcp`) and `TERMIND_MCP_TOKEN`, overrideable by `--url` and `--token`; it refuses a missing token or invalid URL. It skips malformed stdin objects, returns JSON-RPC errors to callers with request IDs on HTTP/transport failures, and sends a best-effort DELETE for its session at EOF. Upload/download application policy, transfer tickets, bearer-token handling, and native authentication presentation stay on their respective sides of this boundary. Details: [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+The server's lifetime/controller is assembled by the desktop app. The bridge takes `TERMIND_MCP_URL` (default `http://127.0.0.1:7391/mcp`) and `TERMIND_MCP_TOKEN`, overrideable by `--url` and `--token`; it refuses a missing token or invalid URL. It skips malformed stdin objects, returns JSON-RPC errors to callers with request IDs on HTTP/transport failures, and sends a best-effort DELETE for its session at EOF. For modern requests with `params._meta["io.modelcontextprotocol/protocolVersion"]`, it forwards version, method, and optional encoded name in headers without a session ID; for legacy initialization it stores the server's session ID and negotiated protocol version for subsequent requests and cleanup. `Scripts/check-mcp-bridge.py` exercises the built executable against a local test server for both header modes, error passthrough, and legacy DELETE; this is not a replacement for desktop server tests. Upload/download application policy, transfer tickets, bearer-token handling, and native authentication presentation stay on their respective sides of this boundary. Details: [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
 
 ## Live Activity product and shared source
 
@@ -146,7 +148,7 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | `Scripts/Tests` | Python regression tests for version bumping and forwarding-benchmark tooling. |
 | `StoreKit` | Local StoreKit product/test configuration; not the production entitlement implementation. |
 
-The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions and collects `FORWARDING_METRIC` output; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload. The `TFM` scheme tests `TFMTests` and `FrameworkTests`; use an iOS simulator for `TFITests`. Visible-window macOS, StoreKit, and mobile key-window integration suites have separate opt-in gates rather than running in routine test invocations.
+The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. Its runner exercises local, remote, and dynamic forwarding, jump hosts, duplex/mixed traffic, and idle CPU; it waits for the connection pool before recording JSON `FORWARDING_METRIC` lines and disconnects on both success and failure. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions, runs repetitions and connection limits, and fails if the executable emits no metrics; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload. The `TFM` scheme tests `TFMTests` and `FrameworkTests`; use an iOS simulator for `TFITests`. Visible-window macOS, StoreKit, and mobile key-window integration suites have separate opt-in gates rather than running in routine test invocations.
 
 The script root has multiple independent workflows:
 

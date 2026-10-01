@@ -5,7 +5,7 @@ description: Release gates for CloudKit schema deployment, historical SwiftData 
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -41,6 +41,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-79e0f2a939e874c6a6803c19
@@ -75,13 +77,17 @@ sources:
     resource: repo://FrameworkTests/SFTPSettingsTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-25a2df896b93f410289e8512
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # CloudKit Release Readiness
@@ -166,7 +172,9 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared **V45** schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. The factory creates file or in-memory `ModelConfiguration` values with the shared **V45** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD

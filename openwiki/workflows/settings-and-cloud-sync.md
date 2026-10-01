@@ -5,8 +5,10 @@ description: Per-category CloudKit replication, durable journals, compatibility 
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
+  - id: openwiki-source-4143deeb06ebc3198de62e2b
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-cd830b9886c3f5d3d7181662
     resource: repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
@@ -63,6 +65,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
   - id: openwiki-source-15e5026028d13d2202844f68
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
+  - id: openwiki-source-33f99816db979bf169f1eab5
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
+  - id: openwiki-source-3cfc52217a7a6835b4bffac1
+    resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-79f3c5a13bfe4aea8f4f02b6
     resource: repo://Frameworks/TermindPersistence/VaultWireV1.swift
   - id: openwiki-source-65af64561fcb561a30da16fa
@@ -85,6 +91,8 @@ sources:
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
     resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -93,7 +101,7 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
@@ -213,7 +221,7 @@ History retains the 250 newest events and journals tombstones for overflow and c
 
 ## Compatibility and upload fence
 
-`SyncRecordFormats` versions records per family and kind; `VaultVersion` is a modification clock, **not** a wire version. Before decoding a payload or choosing historical defaults, readers check supported kind/version and field types. Frozen `VaultWireV1` DTOs preserve shipped Host SSH keys/defaults. Vault V2 now writes Host agent-forwarding settings and SSH Key hardware references through a separate adapter, while retaining V1 readers. Other Vault kinds and native History/Device writers remain V1; a test-only Host V3 exercises further independent evolution. New fields an older writer would silently drop need a breaking per-kind version and adapter. Local V28 Host → V30 SSH/Telnet migration is separate from cloud format: the V28 reopen fixture verifies local SSH settings, default-disabled Telnet, associated state and workspace defaults, **not** CloudKit replica compatibility. [SyncRecordFormats](repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift), [VaultWireV1](repo://Frameworks/TermindPersistence/VaultWireV1.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237).
+`SyncRecordFormats` versions records per family and kind; `VaultVersion` is a modification clock, **not** a wire version. Before decoding a payload or choosing historical defaults, readers check supported kind/version and field types. Frozen `VaultWireV1` DTOs preserve shipped Host SSH keys/defaults. Vault V2 writes Host agent-forwarding settings and SSH Key hardware references through a separate adapter, while retaining V1 readers. The V2 Host decoder requires `agentForwardingEnabled` rather than silently defaulting a missing V2 field; V1 Host decoding still supplies historical defaults. V2 SSH Key encoding preserves the frozen wire storage vocabulary: a domain `.external` hardware key is written as `thisDevice` and is restored as `.external` by its security-key algorithm. A software key marked `.external` fails encoding instead of being sent with misleading storage. Other Vault kinds and native History/Device writers remain V1; a test-only Host V3 exercises further independent evolution. Record names keep their `v1/` identity prefix despite format upgrades. New fields an older writer would silently drop need a breaking per-kind version and adapter. Local V28 Host → V30 SSH/Telnet migration is separate from cloud format: the V28 reopen fixture verifies local SSH settings, default-disabled Telnet, associated state and workspace defaults, **not** CloudKit replica compatibility. [SyncRecordFormats](repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L55), [VaultWireV1](repo://Frameworks/TermindPersistence/VaultWireV1.swift), [VaultWireV2](repo://Frameworks/TermindPersistence/VaultWireV2.swift#L4-L30), [VaultWireV2](repo://Frameworks/TermindPersistence/VaultWireV2.swift#L127-L205), [VaultSyncCodec](repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L56-L87), [WebAuthnVaultMetadataTests](repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L96-L119), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift#L152-L237).
 
 Unsupported versions/kinds, malformed payloads, invalid native fields and known-ID conflicts are quarantined with reason, received bytes (full secure `CKRecord` archive for native fields) and system fields in the container/environment/account/zone/**consumer** scope. Valid remote records, including `serverRecordChanged` replies, merge in a transaction with system-field updates and quarantine removal; failed persistence rolls back the unblock. Future unknown record types in an ordinary fetch may be ignored, but an unexpected type on a conflicting known ID cannot bypass validation. Scoped restrictions persist across pause, retry, relaunch and normal account/environment/zone resets, retain local pending intent, and do not block unrelated records. History and Device restrictions cannot leak into each other. [CloudSyncLifecycleSafety](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift#L49-L90), [CloudSyncSafetyStore](repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift).
 
@@ -229,6 +237,10 @@ A changed decoder capability ID in **Vault, Settings and each native History/Dev
 
 The notification model loads persisted preferences on construction; an invalid or failed edit does not change its live value, whereas a committed remote snapshot replaces it without writing or echoing. An active scene requests initial system authorization at most once per app-level model, only when loaded settings call for system delivery and no load error occurred; disabled notifications and bell-only terminal delivery do not prompt. The shared view modifier runs on active-scene transitions, but the model's one-shot guard deduplicates concurrent scenes and reactivation. [NotificationSettingsModel](repo://Frameworks/TermindApplication/FeatureModels/NotificationSettingsModel.swift#L4-L47), [InitialNotificationAuthorization](repo://Frameworks/TermindPresentation/InitialNotificationAuthorization.swift#L4-L20), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L12-L53), [NotificationPreferencesTests](repo://FrameworkTests/NotificationPreferencesTests.swift#L77-L93).
 
+## Hardware key metadata at the Vault boundary
+
+Security-key SSH entries are Vault **metadata**, not Keychain private keys: `HostLibraryModel.upsert` validates their credential ID, 65-byte X9.63 public key and lack of certificate, normalizes storage to `.external` and clears `credentialRef`. The V45 persistent key row stores credential ID, public key and verification policy; on load a security-key algorithm normalizes older storage values to `.external`. V2 carries this reference between Vault replicas, so connection preparation can resolve both destination and jump credentials even when Keychain access fails. Availability for these entries comes from the persisted reference, whereas software-key availability still checks Keychain. Failed metadata saves or deletes restore the in-memory library; upgrading a V44 software key store still preserves its keys. This is distinct from syncing software-key private material. [HostLibraryModel](repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1454-L1481), [HostLibraryModel](repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1594-L1650), [TermindSchemaV45KeyModels](repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift#L14-L71), [WebAuthnVaultMetadataTests](repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L19-L76), [WebAuthnVaultMetadataTests](repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L121-L161).
+
 ## Settings secrets and operations
 
 Settings synchronizes credential **references**, not secret bytes. After accepting provider or MCP-server references, `SettingsSyncCoordinator` marks them iCloud-backed. It migrates provider, Vertex and MCP references before a send/batch only when the current Settings fetch has authorized uploads and master plus Settings switches remain enabled. An active/failed fetch or engine retirement revokes authorization; `AISecretStore` verifies an iCloud copy before removing the device copy, and saves pending-deletion markers before deleting Keychain values so delayed delivery cannot resurrect a removed secret. [SettingsSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L120-L155), [SwiftDataAISecretStore](repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift), [CloudSyncLifecycle](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L472-L505).
@@ -240,4 +252,4 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 - `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit. Its delegate-context tests verify detached fetch/send and engine cancellation; late fetch/send and fatal delegate failures cannot revive a retired engine. Disabled selection prevents start, retry and account confirmation.
 - `CloudSyncSafetyTests` uses five real owner adapters with fake CloudKit transport to check winner/queue reconciliation, quarantine at each upload boundary, conflict handling, malformed native fields, rollback, and healthy-peer progress; `CloudSyncSafetyPersistenceTests` covers scoped on-disk recovery and migrations.
 - `HistorySyncTests` checks typed native fields, independent History/Device scopes and switches, terminal event tombstones and retention, no retired-source import, and error/cancellation diagnostics. `PersistenceCompatibilityTests` verifies V28 local reopen as well as dropping retired importer state on V35 reopen.
-- `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. `NotificationPreferencesTests` verifies settings record round-trip without echo, invalid remote duration, V40→V41 persistence reopening, edit failure and one-shot authorization across scenes. [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift).
+- `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. `WebAuthnVaultMetadataTests` covers Keychain-free connection preparation and Vault round-trip, the frozen V2 `thisDevice` representation, invalid software external storage, metadata rollback, and V44 software-key reopen. `NotificationPreferencesTests` verifies settings record round-trip without echo, invalid remote duration, V40→V41 persistence reopening, edit failure and one-shot authorization across scenes. [HistorySyncTests](repo://FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](repo://FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](repo://FrameworkTests/PersistenceCompatibilityTests.swift).

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9974896b5616babb9ea7487770e1d3f50f999fb7ec9f7e201afc04d85d3e467e",
+  "pageVersion": "sha256:2a1a75fdb5c418afce12cefdb621bc77c7741c82322544b39d7d2c3773496b9e",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -468,7 +468,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L165-L198",
-          "version": "repo-lines-v1:sha256:d3c54ab01900122469cc655c84ea2a651dd8b039a400190182cac0f6043c7d9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NjIxM2IwNTc1MjY4MDE1MGEwYjBiNTRmMmZkMzkyYjgxZTI1M2I4Zjk2ZjMwZTNlYzAzOGQzMmExYTY2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MTQ2ZDg2MDlhZDA4ODZkM2ViOWI4OGIwNmQyMTE5YmE2MDJjYzQxMGMwYjUzMDJjZTBiZTU2ZTVmMmI2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+          "version": "repo-lines-v1:sha256:d7ca67785d85a9a9925b9b78b9fb56788f04d5e6bc1e7e94383b5d31668478fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NjIxM2IwNTc1MjY4MDE1MGEwYjBiNTRmMmZkMzkyYjgxZTI1M2I4Zjk2ZjMwZTNlYzAzOGQzMmExYTY2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MTQ2ZDg2MDlhZDA4ODZkM2ViOWI4OGIwNmQyMTE5YmE2MDJjYzQxMGMwYjUzMDJjZTBiZTU2ZTVmMmI2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
     },
@@ -803,10 +803,78 @@
           "version": "repo-lines-v1:sha256:82b81526a2448854d3970dfb1dc23fea4c497443f5730d1959896ed2a07cbeee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0ODU2Y2Y0YjI0ZjM3YTU0NzFiMGUyMGI5MDFmN2NhMDMyYzBmYjhlODY0NzBjZWIwZDMyNjY2Njc0NjQxODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_61e54421807b4a0c83ec0f6eb024c17b",
+      "statement": "Vault V2 Host decoding requires an explicit agentForwardingEnabled field, whereas V1 Host decoding retains historical defaults; VaultSyncCodec dispatches V1 and V2 by kind and format version instead of silently changing the frozen V1 DTO.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L56-L87",
+          "version": "repo-lines-v1:sha256:e00dbc35253796dd57fdc627882d58218691f13874ef8bf94f275c383e7a0939:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxZDhlMjM3ZGQzM2FiODljZTVkNmVjZTE1NmVhYjE2NzNjNzhiYTBlNGYyZmY5Nzc0MjlhZGFjYWNlYTI2NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV1.swift#L125-L158",
+          "version": "repo-lines-v1:sha256:4ae24338988c7ebe2d99a950698c160c9aedc4a967da5a2f30cd1646122d8865:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhYjM2NjVhZWFiMDRmYjQxZWQ2ZTJjZWEzYjU1ZDhhNWE3MDdlNTBiOTFiNzJiNmZlNzE1NmEzYTUxNTk4MjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiNWE2YWJiYjNjYjJjN2ZkMWNlMDc0OTUzYzlhNTc4NjZmMzBjYzhiZjBhYjRmNmNkOGQ1MDY4ODZjNjQ5YTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyMjZhZjRlN2UxZmVjZTgyZTVlMDUzY2ZkOTE2ZjNkMjE2NWI0YjI0NjIyOTEzOTJiM2U3MDgwN2I4MzgzOWIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L4-L30",
+          "version": "repo-lines-v1:sha256:b36d54224e8651379e180c4b7e0373b9532ada246cb5bac3792baf9e444fc005:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3M2NjYTk5MjdmMmZiYjE5OWQ2YjQ5ZTU0ZmU0NDcyYWJiYWE2YjZjMjFhOTEyYTljZDBhY2YwNGE4YzMyMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhN2Y4M2E5ZTA2YWZhZGMzYWE3YjE0NzFkZDRkYjI0OGNlNzk4NzlmNTU4YmMxOGE1YjczMGYzNjU2NDEyMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMmQ1OGE5OWU1ZGJjZGUwOWUyMGU4NmU3OTFiZGM4NGMxMDc3MmViMTg5MTY2ZjZlODgxMjRmOTg3NWFhOTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_09a578b7568a419297dc4aa3d451adbb",
+      "statement": "Vault V2 serializes external hardware SSH keys with the frozen wire storage value thisDevice and restores security-key algorithm entries to domain external storage; encoding a software SSH key with external storage throws instead of sending it.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L96-L119",
+          "version": "repo-lines-v1:sha256:54de3e61425a0211858dd1b0fa0dc2a927ff3860ca95657a0b2eff99d3186069:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3NmZjNmQ5MTM1YzhjMjU4ZmU5ZTFmMWMzYTQzYTE4OTZmMTFlNzRiYzEyODlkNWQ3NTJhNzIxMTBhNzQwNzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmMmI1Mzk2MTdlYmI5NmY2NDhlZDNmZTEzYzYwMTE4MGU4YTNmNzQ4N2I0ODdiMjdlMDRhN2RkNzgzYzQ0NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5ODA3ZGIyZTA1YzFhN2ZkMzJlMjk4OTA5MGE5NWNhMjFlYzkzNjFiMjcwODMyNjY1M2EzOGE0Yzg3NTg2ZjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L127-L163",
+          "version": "repo-lines-v1:sha256:210596827659e90e93beed46b6ecf696480833ea2868a0b945ea500007e07c71:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMGMwMTZiNTI0YTgwNzg5ZGVmM2YwZGI1ZWMyMzI0ZDE2NjI2MDIyNDQzYTQxM2NlMDY1YTI5OTUzZDA0MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzYmE5OWQ0ODc1ZDA1NDE0MWE2NjYxYjE5MmM4YTBiZTYxYjEwMjNkMWU1ODE1MDEyMDgyY2QwMTRjYzk1YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzZDk2YTg0MTIyNzAzNDMyYjY1Njc5NTNmYzUzMDAwM2NmMmFlODg1ZGNhMWY4ODc5OTkyM2Y5MDk3NTI5OTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3MTQ2ZDg2MDlhZDA4ODZkM2ViOWI4OGIwNmQyMTE5YmE2MDJjYzQxMGMwYjUzMDJjZTBiZTU2ZTVmMmI2NmMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L176-L192",
+          "version": "repo-lines-v1:sha256:8a36fbf3d31cba20e3c5f0f81be3b16ffd477b4a79c8c3cc85e1f977d6d6c1a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3YzQxODhjMDk2N2FiOWM3ODcyZTBiODZmNmUyMjE0ZjQzOWRhZmU3MDYzNTFmZmZjMjAwZmY5ZDEyNTRmMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkZDdmYmMyNzZiZjJkMDRhZWJjNGQ1MzU0M2U0OWNhMjRiNTQzZTc5NjFkZDQ2Njc3MjQzMzBlMjU1YmZmMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkMGMxNDZhZGVkNzcxMzFiNGIwMTFiZjg0Y2EwOGJlNWIxMjFjZjczMWU4ZWU4ZTk4MDQ1MjcwMzc5YmQwYjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_571a6510938847a28e860e2aa00b9223",
+      "statement": "Hardware SSH key entries persist their authenticator reference metadata in the Vault and V45 key row, not Keychain private-key material; the library validates and normalizes these keys to external storage, and connection preparation can resolve destination and jump keys without Keychain access.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L19-L76",
+          "version": "repo-lines-v1:sha256:9a56d9f812ab9b65da7c2138329b5698d74803843c7b444a5de3959b2cb6d536:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkZGNiOWQ4MmZmOGU5OWM3NTFkNDI1Njc1NzUzZTkyYTY3NmI5MjBiYWEzYTY4MDY4ZDUzZTAzMGZkNjRhZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkMWVmYTg5NmE5YWZlN2VmN2M1YjIxYmQ3Zjg0Njc4NmM0N2FiNGY1NDg5ZDE5NjIyMTlhODdjMDc2MWQ1Y2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzZTBlMzEwZDdjY2JhY2U3Yjc4NTYxNzI3ZWFkZjdhNTcwZDc4ZTNkMWZiOTA2MDdkYzc0MDEzMTgyN2I3MDcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1454-L1481",
+          "version": "repo-lines-v1:sha256:bb8feb4645d374040cd03f0c30bce114c01ddfea878e58bd1b7eef90e571acd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNGI2NDQ1NTEwOGFmZmVjMzA1OTNiZWJhNzQ5YTk5M2ZjMzNlMzYzMWY5NzlkYTMxMDU0Y2FlMTliYjg4NjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4MDU1NTIyN2IxNGM1ZmEwYTQ0NTA1NjhmM2U0N2RmNzAxMDg1NjFlZDU4NjM3ZTZiODlkZDc5ZmVhOGE3NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlNzFkZDcyNGFmMWNmYzgyYjM0OWU4OGQwYzFkMzEwOWIxNDQzN2NlNTU0YzQ5ZDM2NTI3ZDBlYjU2NGE4YjcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift#L14-L71",
+          "version": "repo-lines-v1:sha256:258ccbae9f0a1e85f8d5990cfb91b247b49f894dd58b14d25d13358d5b84ac23:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiM2U3NzJjMzAxMzY5ZTI4OGQxMjIxNGI5YWE2MzU4OTNhMmQ4OTg2ZmM4NDE5Y2MzNDQ5NzE3ZThhMWI4MzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkNTUzNjY2OTNlYzBmN2M1NzRlYTk0ZmVjZmE5Njc5N2RkY2RmNDY1ZDliNTU1MDQ1MzY1MzQ3MGMzNTViNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YTM2NWE5MGVjMTFlOTA0MzI3NTJjZjkzNzZlYzVlZDM2YjgwYmE1ZThlNjg1NGZjZjk4OTcwZDMwNDQ0NjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5f7f6818e8b74211ac10b1372160e65b",
+      "statement": "Hardware-key availability is determined by its saved reference rather than a Keychain lookup; failed hardware metadata updates/deletes roll back the library, and a V44 store of software keys remains readable after upgrade.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L121-L161",
+          "version": "repo-lines-v1:sha256:7b20b58f40226ffa70ad389dfe9017647477be404602a6ecca041b3427626593:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwZDA4OTZlMGUzZDBiYTgzMDQ3NzcyYTZkNmJmNjk1ZjA0OWU1N2FkNjBkOTc3YjhhYTI0ZTgyMmU3NjM5ZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmZGZhYTcxNzNmOTFjZmFlYmY3YzYwMzZjODY3NTMxNWZhYTgwN2I0ODVlODNkNmQ5ZWRhODU2NjYwZTQ5NDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L1614-L1650",
+          "version": "repo-lines-v1:sha256:728a3a42f43a5c68bc7c88e1cb84b24bf2cffd0216cecfe8e4247774fba80f1e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmNzBiZWVjODZkYzVjMGEwNGM5M2Q3ODVlMjk4ZDlhOGE5N2I1MDU5NjljZjVmZGMwMjZmZTlkYTA2MzU0NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1MGE4Y2JlZTYzMmYxNTY5NjI3YTE3ZmUzZGQ2Y2U2NjQyMmNjOWRhOTExMzFiNTg1NmYwOTUxYWNkZWY0N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlYWQ4ZmEzNTg3M2I1MTg5ZDg1ODZhNmJmNjE5MTk2ODBkM2EwNTZiMGVlOTk0ZTU4ZjY0MDMzOGRkYTViZjkifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-29T00:09:14.116Z"
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

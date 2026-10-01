@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4c721e24c6e5b8a01520de8caad1c400ab7df2b01da6cd7d2566b871da91aa97",
+  "pageVersion": "sha256:d41ceb347f29a2447742af65eafa80ce0ef25df7e31b6eafd37691ba0225180d",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -162,7 +162,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:340718e8506c1c25e5d4fae11771a22809189b8bf4725876de9f3a43ee6bf9a4"
+          "version": "repo-file-v1:sha256:940b1545fa92c87afe94aaab8538ea62b0b20201c45b7655531d8811a975b269"
         }
       ]
     },
@@ -248,7 +248,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:340718e8506c1c25e5d4fae11771a22809189b8bf4725876de9f3a43ee6bf9a4"
+          "version": "repo-file-v1:sha256:940b1545fa92c87afe94aaab8538ea62b0b20201c45b7655531d8811a975b269"
         }
       ]
     },
@@ -616,7 +616,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L8-L42",
-          "version": "repo-lines-v1:sha256:deafd0332f5ec7009f5c391618c401b41cbb2cfb7fbb74eb7047ddc0ea7027bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmYTM4MzMzZGVlZjVkN2EzNjBiZDg5MzE4MjhiMWNiNjQzZGE3OGY0NWFhMGRhZWFmN2Q3Yjk5NmViMDcwOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2ZGIyZmU3ODE2OThkN2VjNWEyNDlhNDhmYjkxNmQ0Zjc3NTUyZTRjOTgyMGY1NmE0OGE1M2RiMTgyZDI5NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2Yjg3ZGZhZWYwN2RhMzlhMmViODA1MjEwNzg5NjYyNzIyZmVhMTc2Mjc5ZTAwNGExOWVjYTI4ZGMwZmM2ZGMifQ"
+          "version": "repo-lines-v1:sha256:863ae475ef405efe6058fd91dd1d00b417e093738c892001439f2a76957d1339:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmYTM4MzMzZGVlZjVkN2EzNjBiZDg5MzE4MjhiMWNiNjQzZGE3OGY0NWFhMGRhZWFmN2Q3Yjk5NmViMDcwOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2ZGIyZmU3ODE2OThkN2VjNWEyNDlhNDhmYjkxNmQ0Zjc3NTUyZTRjOTgyMGY1NmE0OGE1M2RiMTgyZDI5NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2Yjg3ZGZhZWYwN2RhMzlhMmViODA1MjEwNzg5NjYyNzIyZmVhMTc2Mjc5ZTAwNGExOWVjYTI4ZGMwZmM2ZGMifQ"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/SSHConnectionTypes.swift#L120-L151",
@@ -627,10 +627,72 @@
           "version": "repo-lines-v1:sha256:c535a9e78c35ee8a7fe309f23ccd9048dde951aaa83eed3076b113c6ae8cac6b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlZTAwMDk1NTFkYTlhOWM2OTdmNWQzMWUyZDkzZDQ1MzQ0NDljOGZjYzhiMTJhZDUzMWY2MWJlOTA0ZTA3NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxN2ZlZDg2MmZlNmQwMzkxMzQwYjA4M2Q5NzU5MmEwZGQzZTU4N2M4OTQ0NTYwNDRjYzc1ZTJlYWI5NWQ1NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyZGI4ZjQ5MWRlM2UxNDdkMTJlZmM5NjhjOGVkOThmMzE0Y2U2YzM4ZDYxZDQ5MjRiMGZhMWU4ODZkNGU5YTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5Nzg3NGM4MGM0YTA1ZGQxZTdlNWRiNGRjYWQ5NjY5NzZiMWE2YmU0OTYzMjMyNTRmMzBiNTk4MjVmMjZhMzcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_3dc43f2b12654a52b65960fcb0614325",
+      "statement": "Cancelling detached SSHConnectionPreparation prevents a resolved configuration from escaping with live secrets, and partial route resolution clears collected credentials and proxy passwords on failure or cancellation.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L35-L121",
+          "version": "repo-lines-v1:sha256:121b69569c4ecccbeec3d935fbf3947db9a2f366463d7b929f6992cf827326d7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzY2JmNjdjYTA0ZDE2ZjllOWE3YjUxNmQ5MTlmMzgzNjJmYTQ3MjRhNDcwNmZkOGM0ZmM0MzBiNWJlZTUyMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5OGMxZDc3MTNjNmUwZTAyNGFjMTA4ZDMzZWM4NmMzMmE2Y2ExOTAyYjg3NTJiOGMxYWEzNjc2Y2JiY2Q1YzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjYzg2YzAyYTViYTdhOWJiZDIzODViNGQxODRjODIxM2NjOTkzYmI5NTkzYWQ4Y2YwOTEzMDdiMzFiNDdmYjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b273c29a57b54a0eb196a54393ae7118",
+      "statement": "Cancelling an SSH route or destination opening interrupts its socket and authentication exchange, wakes any pending keyboard-interactive or Security Key signer and discards late answers while serialized opening-state cleanup runs.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L107-L150",
+          "version": "repo-lines-v1:sha256:7742b6bee33274e017f58486954f617bd87de170d2394b82c2eea7a205592eb7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMzhlZjZlNzY2NzI4Y2Y3MTQ4MDZkMWFlYTVlMDE3MjJkMWFmNmFlNjJkZDUxOTNhNzkxYjYwM2YyNzRkOWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkMjBjNGY2NGRlZjIwMmZjYjMzYzNkZDc5NGY1YTExMmJiN2MyOGEyN2I5NDdlZmY3NjkxOTQ4ODc2MDA4MWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkNzFiOGY4ZDZiZDdkNWVlNDJhODNkNDI0OWVjYzljZTBlYzY2NGZhZDQwZGRjOWE0MWNmZmRhMWU0ZjU2ODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwY2UxNmExZDJhZjM0MWQwY2FkMGU3ZmQxOWJmODU4Y2UxYTE1NzMxZWMxOTBiMDkwYTUwY2ZiMGExOTVlNjMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L49-L65",
+          "version": "repo-lines-v1:sha256:2e14e5b59da31b8e3a7f111114840955bb74f8141221948511a1f6470e6e9bd9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZmRkN2YwOWI0YWRmYWU5YzU0YjRmY2ZhOWVhOGE2YTE4ZTE5ZTFjYzZmYzdhZGY1ODk5ZGI0OGIyZmNkMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4YTZmMzQ2YTdjMGUxZGQzMWI1MzkzZjY1MTBhZGJiNDBhMTg3YjY5MGJiYWRkYmE2YWZhYWYyZjFjNzE0ODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViZWNjYTk2Y2RlMTc0OTFlMzQ0MDkzOGI2ZWU3YzE4NGRjNDlkODU2NTM2M2YwMjYyMjVmYjgyNWE3ZGQzOWEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L937-L1009",
+          "version": "repo-lines-v1:sha256:1a2b689bf227407d4e1dc614f731fff28ae68331931d3a6a35a0e8b589a06164:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhNDczYzJlYjBlYWZmYzY3YzU1N2MzMTg5MDQ1NzZlYjhlZWIxMDkwN2FiZDRkZTcxYzA1ODI1YzY3YmExNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkNWZjYjFmMWYzZjU4NTcwMGY4ZThmYTk0MzdlMGI4ZWQ4NzM5ZDI0Y2ZiNmY1MjNjMDAwNTU2YzEzNWIwNzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzZWQ2MWE2M2ZjNGZkZDkzZjQxNjZmMjBmYjFjOWJkNzgzYzIyZjNmZDk1ZmJkZWI0NjE1OWE3MGY5ZjZmNGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHRoutedSocket.swift#L126-L193",
+          "version": "repo-lines-v1:sha256:b60e69a211733896c7178581bbd49abbfdb92ffae95af2a392621c7014c43721:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5MmQyMDJiNzNmOTc1Y2MyN2IyNGE0ODM5OGY4M2JhOGNiMDk0ZWE1MzdiZjI2Yzc3YzQwMjU0MDVhYzY1YmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzMDM4ODdhODNmMGY5M2M1NzA5MzY2OWMzOGNlMjhhNWJlMzQ0MWQyOGI2MDQyNmIyNjU0ODQ3MzE5Yzk5OTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzNjE1ODlhZjgyMjhhZDBiZjA3ODQ5NmM4MWM4ZGE5YTY0YzY0ZTMzNzc0MGU1Y2UyMjZjMzMwNjMxZWZhZjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b8fc482f803948c89bc117555c2370b4",
+      "statement": "Desktop SSH sessions give an explicit initial command precedence over the Host startup snippet; each subsequent connection resolves the current snippet body, submits it only when the shell is ready, and explicit disconnect discards both pending commands. Mobile SSH attempts also resolve startup snippets when no explicit command is pending, but restored descriptors do not replay previous one-shot commands.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L624-L662",
+          "version": "repo-lines-v1:sha256:fdde31e4c8271ad2926a4f2bd5726c9a70a163da91a32b1092fedcd9b10674e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyMzIzZmY1ZDU0NGU1NmJhMTM5NDYyYzQ1ZmI5MWQ3ZTZhZjU1ZTg5MTRiMWIzNTM3ZDVjMmZiY2M0Y2I1MTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxMDQ3NTY5OTg5MTUyZjg0ZDFmNjI3MDI5NDcwOTUyMDA0MTU0Njc3NWM4NzQ0OTVkNzY1MzRkOWQ3NTRhMTQifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileAppTests.swift#L1572-L1602",
+          "version": "repo-lines-v1:sha256:754cdffa89b31dfc93551b2e09c3b081bf022273098681e6b6e799a4b607d598:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhZTdlMWFhMzAzZGM0N2UzZjM1M2VjODFhMGQyZTMyN2Y3ZDgwOTI2NzQxYmIyMzA5OWJhY2NjYzlmZDg3YjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlNjBjMmE2YzhkMjkyMzFkYzc5OWUxYmE0YzQzNmE0ZjMzMTc5NzA0Zjc1OGI1ODMzOGMwMjM4MGNjNWMyYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiZmVkODQ4NzUzMjliMjQ4N2ZhM2ExMjgxNDc3Yzk2YTk4M2YyYWZhMzA3MDI3ODRhZDk0MmFmYjJmM2E5NWIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1179-L1204",
+          "version": "repo-lines-v1:sha256:b789b7a78bd77b0fe6f9897373c0f71f77a0c39e5649b6019102ec1e948ae37f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwMjVlODQ0YzExYjI1NjljM2ViZDlhYmNlMTMzYjk0MTcxOTRjYTBjZDZmNWJiOTYzY2ViMTM0MjAwZjI1MmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmODRlODUxNDJmMmExNTA3MmVlNGY1YzgxMDkwMzRiNjhhMTA3NzIwY2FlZWI2YmM1Nzg5MGQ5YmU2MjFkNTgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L365-L396",
+          "version": "repo-lines-v1:sha256:0a39a8446ec1f5709296ef363d1dbf7a0252504210b185ccd6808055d00efd90:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NDkyYTQxMTkyNjgxYmNlOGQ0NjcxNDBhMzRhZjJmYmMyODkwMDNkN2ViYjM5MGJhOTYwMzM0ZDNiMTBlNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2M2UyYWJiMDY1MmJmZjk0YWZhY2RiNjQ4MmE3MTc0NWI2ZWY3MmE4NTM3ZGVhNDBjZjJlZjFmMTZlOTllMzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhZTI4Zjc3NmQzNTdkODNjMGZmODk2MTliOGM2MGE3ODg5ZmUxMWRmYjFkOGNjYjI5MGRlNTBmMjhiNDFhYmQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L765-L785",
+          "version": "repo-lines-v1:sha256:d3fb130005effe6e68ff29a8e834b2a33e820945df38485d5909f7e8a56f23af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2FiODhkNDVhNzE1Njg3ODJkZTlhYTMxNTI5OWM1NzUwYmM5NmI1OGI5MWU2ZDUyMDc1MTUzMGFlYWZjZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4ZjQyZGMyZTMxOTUzNTNlODI5NGY2ZjIyZDY1MWJiYTg3ZmFlMmI5NjJjMDVjYjVhNDdmMThhYmQ0NTJhMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3NzEzNWRmNDUxYTViOGI1M2U1ZjVkZjM0MDAyNzNhMzQyNWVhMGQ1Mjk0ZDdjODZmNmM5YjZmMWQzYTk4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiYTk3Njg3NjQ4OGEyMTcwZjc2NzU3NzQ4OWE4NWNmYmI2N2RiZDE5MjgwMTdkNTlmZTk5NGU5MzEyZjU4Y2IifQ"
+        },
+        {
+          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L68-L100",
+          "version": "repo-lines-v1:sha256:1629ab1dfd7a982597b567b245ef54ce19ef3ca0d22ebeca20810429afd48262:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNzFiY2EyYWZkZTg5OGVmMmU4OTQyMzhhMTgyMjJmN2NiZTVlZmFjZGJmZDIwZjg5OTg0MjNkNDA0YjY5N2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMDgyNjQzNzM3ZGFlYTU3YzlmODRjN2MwNWEwODY4NjQ5M2NjOTY2ZmM4ZDc1Y2FiNzQ5YmUwN2U0MDc3ZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

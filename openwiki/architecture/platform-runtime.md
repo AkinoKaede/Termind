@@ -3,6 +3,9 @@ type: architecture
 title: Platform Composition and Lifetimes
 description: How macOS and iOS compose shared persistence and runtime services, separate app-wide from window and scene state, and handle sync, backgrounding, startup failure, and shutdown.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -14,10 +17,16 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-63e25c47c9c7d38b354f4123
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
+  - id: openwiki-source-7a9c6d90cba4ebd1d1398673
+    resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -60,10 +69,14 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
+    resource: repo://TFM/App/TermindCommands.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
@@ -80,16 +93,15 @@ sources:
     resource: repo://TFMTests/AppTestHostTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-e6490dc6a3e86e39aa4323fc
+    resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Platform Composition and Lifetimes
@@ -120,13 +132,21 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindApp.init()` is the desktop composition root. Before opening data it cleans previous context attachments, sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language). A normal launch constructs one on-disk SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
+`TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
+
+After the container opens, the desktop entrypoint cleans previous context attachments, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty.
 
 **Debug test and screenshot launches still run the real app entrypoint, but not the normal disk-backed runtime.** XCTest detection uses `XCTestConfigurationFilePath` in DEBUG; it selects an in-memory container, a private metrics defaults suite, disabled file logging, unrestricted test Pro access, no Vault/History/Device/Metrics/Settings cloud coordinators, no local host defaults or production memory store, and a window size store without persisted defaults. A screenshot-demo configuration also uses an in-memory container but returns early with demo hosts, AI, metrics and onboarding instead of constructing the normal production services. Neither path is a fallback for a failed production database open: construction errors still fail startup.
 
 ```mermaid
 flowchart TD
-    Launch["TermindApp init"] --> Store["TermindPersistence makeContainer"]
+    Launch["TermindApp init"] --> Guard["Disk launch checks other running instances"]
+    Guard --> Lock["Container acquires disk store lease before open"]
+    Lock --> Store["TermindPersistence makeContainer"]
+    Launch --> Memory["Test or screenshot uses memory container"]
+    Memory --> Store
+    Guard -->|"Store in use"| Alert["Alert then exit"]
+    Lock -->|"Store in use"| Alert
     Store --> Persistence["Settings and metrics persistence"]
     Store --> Hosts["HostLibraryModel and SwiftData repositories"]
     Launch --> Secrets["KeychainSecretStore"]
@@ -164,7 +184,7 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 
 A host-opening action is centralized in `AppModel`, which chooses the requested protocol, but it opens into the caller's `WindowModel`. That window assigns one connection-history event to each saved-host SSH, Telnet or SFTP pane. Closing the pane/workspace ends the event before disconnecting, while moving a live pane preserves it and reopening creates a new event. External temporary and Serial panes are not recorded; a crash may leave `endedAt` absent. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
 
-`MainWindowCoordinator` binds native `NSWindow`s to `WindowModel`s. It processes new-window and workspace-move requests, preserves system-restored frames (a restored scene has no pending move request), saves normal window size only at appropriate boundaries, and unregisters then closes a model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
+`TermindCommands` registers SwiftUI's `openWindow(id: "main", value:)` factory with `MainWindowCoordinator`. The coordinator assigns a request UUID and keeps layout and optional move information until the new native window is registered. `RootView` installs a `MainWindowRegistration` bridge in its background; its `NSView` waits for its native `NSWindow`, applies the full-size content style, then registers the native window and per-scene model. Registration injects app services, consumes the matching request and transfers a live workspace or pane only after the destination window exists. A restored scene has no pending request, so it retains its system-restored frame instead of inheriting the shared size fallback or replaying a move. The coordinator records normal window sizing at appropriate boundaries and unregisters and closes the model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
 
 ### Desktop lifecycle and termination
 
@@ -314,6 +334,7 @@ Tests exercise the lifetime contracts rather than merely constructing views:
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
 - `MobileBackgroundControllerTests` covers stale callbacks, exactly-once task retirement, synchronous expiration during lease acquisition and invalid UIKit identifiers; `MobileAppTests` covers scene removal and quick versus expired foreground returns.
 - `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
+- `DatabaseStartupGuardTests` checks that the macOS preflight permits the current process but refuses a second PID, including older versions without the lock. `PersistentStoreLockTests` checks refusal before open/migration, retention until all same-process containers close, release after forced exit without losing Vault data, and isolation of in-memory and separate stores.
 - `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.
 - `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins.
 - `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.

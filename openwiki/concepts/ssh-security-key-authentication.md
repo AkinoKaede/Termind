@@ -5,10 +5,14 @@ description: How Termind registers an RP-bound FIDO2/WebAuthn Security Key, stor
 tags: [ssh, security-key, fido2, webauthn, authentication, vault]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
+  - id: openwiki-source-5aa101e9f8e2906832f58121
+    resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-4ddcdd630c9bc1c622a037df
+    resource: repo://Frameworks/TermindApplication/SecretStoring.swift
   - id: openwiki-source-477244191fc04156682be406
     resource: repo://Frameworks/TermindApplication/SecurityKeyCredential.swift
   - id: openwiki-source-4434a42582d047b8579fbfd0
@@ -17,6 +21,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-5438b382c3c3a59c35dc0ace
     resource: repo://Frameworks/TermindDomain/Credentials/SecurityKeyCredential.swift
+  - id: openwiki-source-8a9155d791d7cc22ce3e115f
+    resource: repo://Frameworks/TermindDomain/Credentials/SSHKey.swift
   - id: openwiki-source-33f99816db979bf169f1eab5
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
   - id: openwiki-source-65af64561fcb561a30da16fa
@@ -53,7 +59,7 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # SSH Security Key Authentication
@@ -72,7 +78,7 @@ Registration and assertion both use the fixed relying party **`termind.akinokaed
 
 ## What is saved and portable
 
-`SecurityKeyCredential` contains the credential ID, uncompressed P-256 public key, verification policy, and a user-presence flag; it contains no private key. `WebAuthnSSH.keyReference` derives the OpenSSH public blob and fingerprint from that metadata. `HostLibraryModel` stores a Security Key as `.thisDevice` Vault metadata with an empty `credentialRef`, no passphrase or certificate, and no Keychain private-key lookup. The V45 SwiftData SSH-key model and V2 Vault sync record encode the reference fields, so the record can be synced while the physical authenticator remains necessary for every new signature.
+`SecurityKeyCredential` contains the credential ID, uncompressed P-256 public key, verification policy, and a user-presence flag; it contains no private key. `WebAuthnSSH.keyReference` derives the OpenSSH public blob and fingerprint from that metadata. `HostLibraryModel.upsert` saves Security Keys as **`.external`** Vault metadata with an empty `credentialRef`, no passphrase or certificate, and no Keychain credential lookup; software keys cannot use `.external`. The V45 SwiftData SSH-key model and V2 Vault sync record encode the reference fields, so metadata can sync while the physical authenticator remains necessary for every new signature. V2 retains its frozen **`thisDevice` wire spelling** for external keys; decoding V2, loading V45 rows, and decoding legacy `SSHKeyRef` JSON normalize Security Keys to `.external`. Availability means the reference is present, **not** that the physical authenticator is connected. Saving or deleting hardware metadata rolls back on persistence failure without Keychain operations.
 
 The editor displays a **Termind reference** of the form `termind-fido2-v1:` followed by Base64-encoded credential metadata. Export/import accepts only that validated RP-bound format; it rejects an OpenSSH private-key header and malformed or oversized input. File import reads a regular UTF-8 file of at most 1 MiB and validates its contents before saving. The import path checks the `termind-fido2-v1:` envelope, JSON decoding, a nonempty credential ID of at most 1023 bytes, and a valid uncompressed P-256 public point; it does **not** re-attest the original registration or discover whether the authenticator is plugged in. This reference is sufficient to identify the authenticator credential and regenerate the public key, but it cannot sign without the hardware key and an allowed local system prompt. Treat it as account metadata when sharing it; it is not a backup of private key material. On iOS the import editor can choose a different verification preference before saving; editing an existing reference updates metadata without replacing its credential ID or public key.
 
@@ -94,7 +100,7 @@ sequenceDiagram
     Bridge-->>SSH: Signed SSH response
 ```
 
-The server's public-key offer gates the native assertion and the bridge verifies it before returning SSH wire bytes.
+Signing flow: a server-accepted public-key offer leads to a local assertion, which is verified before SSH wire bytes are returned.
 
 The libssh2 callback cannot suspend. `SSHKeyboardInteractiveExchange` waits on the connection's dedicated transport queue while the injected asynchronous signing handler drives the platform presenter; cancellation wakes the wait and rejects late results. The presenter allows only the selected credential ID, passes the stored verification preference to AuthenticationServices, and refuses requests whose interaction policy is forbidden or whose presentation anchor is unavailable. Each macOS `NSViewRepresentable` or iOS `UIViewRepresentable` anchor tracks its window; when ready, its signing card automatically starts **once**, while Continue also remains available. The coordinator permits one pending signing request for that owner and clears it on cancellation. The signing session responds exactly once, including on card disappearance or system cancellation; presenter cancellation ends its current operation, cancels the OS controller, and ignores a subsequent delegate response from that controller. Cancellation is not a successful connection checkpoint.
 
@@ -104,7 +110,7 @@ For `webauthn.get`, conversion checks matching credential ID, challenge encoded 
 
 ## Connection owners and interaction policy
 
-The same credential can be resolved for a destination Host and a jump Host without Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses `SSHInteractionPolicy.forbidden`, which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
+`SSHRuntimeSecretResolving.sshKeyCredential(for:)` maps Security Key Vault metadata directly into `.securityKey` instead of resolving an account in Keychain; `SSHConnectionPreparation` then resolves the same credential for destination and jump Hosts on a detached worker before opening transport. Other credential types may still need Keychain access. PTY, exec, and SFTP connection requests carry a `SecurityKeySigningHandler`; a real prompt belongs to the requesting session or service. Agent SSH/SFTP uses its own authentication interaction, and Metrics has a monitor-local signing coordinator. A silent auxiliary or recovery connection uses `SSHInteractionPolicy.forbidden`, which replaces **every** Security Key credential for both destination and jumps with `interactionRequired` even when its metadata sets `requiresUserPresence` to false, rather than presenting a hardware prompt unexpectedly. Transport policy enforcement also blocks host-key and interactive forms; it does not remove an available password fallback.
 
 When SSH agent forwarding is enabled, `VaultSSHAgent` can advertise the Vault public key and sign a matching forwarded request. It requires an allowed interaction policy and an active interaction surface, then rechecks key-library revision and availability after the assertion before releasing the SSH signature. A forwarded request with unsupported flags or a nonmatching public blob is rejected. Forwarding never exports the authenticator private key.
 
@@ -113,6 +119,6 @@ Failures are reported at the appropriate stage: invalid reference, unverifiable 
 ## Focused verification
 
 - `TFMTests/WebAuthnSSHTests.swift` covers registration parsing and truncation, public/reference round trips, exact SSH signature fields including unmodified JSON, challenge/RP/signature tampering, verification and presence flags, and malformed or duplicate-key CBOR extensions.
-- `FrameworkTests/WebAuthnVaultMetadataTests.swift` covers destination/jump resolution without Keychain, V45 persistence and Vault sync round trips, and rollback on failed metadata writes/deletes. `FrameworkTests/SSHInteractionPolicyTests.swift` verifies that forbidden policy blocks even UP-optional Security Keys on both route nodes. `FrameworkTests/SecurityKeySigningCoordinatorTests.swift` covers silent requests, cancellation, auto-start and exactly-once responses; `TFITests/MobileVaultFeatureTests.swift` covers mobile generation/import and selectable verification metadata.
+- `FrameworkTests/WebAuthnVaultMetadataTests.swift` covers destination/jump resolution without Keychain, V45 persistence and V2 Vault sync round trips, legacy `.thisDevice`/`.iCloud` normalization to `.external` (while preserving V2's `thisDevice` wire value), rejection of software `.external` keys, rollback on failed metadata writes/deletes, and reopening a V44 software-key store. `FrameworkTests/SSHInteractionPolicyTests.swift` verifies that forbidden policy blocks even UP-optional Security Keys on both route nodes. `FrameworkTests/SecurityKeySigningCoordinatorTests.swift` covers silent requests, cancellation, auto-start and exactly-once responses; `TFITests/MobileVaultFeatureTests.swift` covers mobile generation/import and selectable verification metadata.
 - `TFMTests/SecurityKeySSHWireTests.swift` exercises OpenSSH direct, jump, SFTP and forwarded-agent authentication with a local fixture. It is **opt-in** behind `TERMIND_SECURITY_KEY_FIXTURE`; its software P-256 fixture verifies wire compatibility, not a physical key or the native system prompt.
 - Platform editor and authentication-presentation tests should be paired with a manual hardware-key run when changing OS authorization, associated domains, or user-visible signing behavior.

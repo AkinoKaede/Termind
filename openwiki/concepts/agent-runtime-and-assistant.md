@@ -5,10 +5,12 @@ description: How Termind captures assistant submissions, prepares and cancels Ag
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-c8b26c87188ce3aa11dc622b
+    resource: repo://Frameworks/TermindApplication/Agent/AgentPaneAccess.swift
   - id: openwiki-source-0dc45e296e0ec3d99731a2f2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantChatCollaboration.swift
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
@@ -39,6 +41,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-59a6dc91233502e57398e06a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentPaneTools.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
@@ -79,6 +83,8 @@ sources:
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-b360f8803ec98b554faad9bb
+    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -91,6 +97,8 @@ sources:
     resource: repo://TFMTests/AgentBuiltInToolAvailabilityTests.swift
   - id: openwiki-source-8f676dd306369e67985f3dd0
     resource: repo://TFMTests/AgentHostProtocolListingTests.swift
+  - id: openwiki-source-2ee11dbdba2a0afac50ee5c4
+    resource: repo://TFMTests/AgentPaneToolsTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-d57db929d0047db53dd73cdd
@@ -101,14 +109,16 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+  - id: openwiki-source-8d265a8732f0af93c5d4e274
+    resource: repo://TFMTests/MCPServerToolsTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Assistant and Agent Runtime
 
-Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the host-specific integration: SSH and SFTP tools and transport pools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
+Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release 0.18.1 and its revision for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release 0.18.1 and its revision for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 
@@ -123,16 +133,35 @@ The tool catalog and plan posture are captured at submission; AgentKit selects t
 Termind composes the registry in this order:
 
 1. AgentKit generic tools, including scratch, skill, memory, fetch/search, task, plan, secret, chat collaboration (`list_models`, `create_new_chat`, `list_chats`, `read_chat`, `send_to_chat`, `wait_chats`), and MCP support.
-2. Termind's host tools: host/metrics discovery, `ssh_exec`, terminal suggestions, SFTP operations, and the host-facing `scratch_pull` / `scratch_push` endpoints.
+2. Termind's device and host tools: host/metrics discovery, `ssh_exec`, terminal suggestions, SFTP operations, the host-facing `scratch_pull` / `scratch_push` endpoints, and `list_panes` / `read_pane` when live pane access is injected.
 3. Discovered MCP tools, which are additive and cannot shadow a built-in or Termind tool name.
 
 The shared `AssistantChatCoordinator` implements AgentKit's chat catalog and coordinating interfaces for both native apps; `AssistantToolRegistry` injects it and the captured source context into AgentKit's generic chat tools, rather than defining a second set of platform-specific collaboration tools. The chat model catalog reports enabled Chat models and readiness without exposing credentials. See the [cross-chat delivery lifecycle](#cross-chat-collaboration-and-delivery) for its persistence boundary.
 
 ### Catalog, run mode, and surface availability
 
-`TermindAgentTools` is the shared static registration point. Its injected environment supplies host resolution, metrics, connection/authentication pools, background commands, and an optional scratch workspace. Dependencies determine which capabilities can be constructed: `scratch_pull` and `scratch_push` need that workspace, while `AssistantToolRegistry` returns an empty registry for a model without `toolCall`. A sending-surface Boolean is not a registration input; equivalent dependencies produce the same definitions for desktop and mobile Assistant surfaces.
+`TermindAgentTools` is the shared static registration point. Its injected environment supplies host resolution, metrics, connection/authentication pools, background commands, and optional scratch workspace **and live pane access**. Dependencies determine which capabilities can be constructed: `scratch_pull` and `scratch_push` need the workspace; `list_panes` and `read_pane` need `AgentPaneAccess`. `AssistantToolRegistry` returns an empty registry for a model without `toolCall`. A sending-surface Boolean is not a registration input: desktop and mobile use the same definitions, but their run captures may inject different live capabilities. Pane access is run-scoped, not stored on the conversation: app adapters enumerate open terminal panes across windows/scenes, expose only connected panes with a readable viewport in listings, and report a closed, disconnected or missing-surface pane instead of creating a connection. `list_panes` returns metadata (including active-window and originating-window-current flags), not text. `read_pane` reads a visible viewport without typing or changing focus; without `pane_id` it resolves the originating window's current pane **at call time**, while an explicit ID can select another open pane. It refuses missing/invalid/closed/unreadable targets rather than falling back and limits the returned UTF-8 text to 65,536 bytes at a character boundary, marking source truncation. Pane text is model-facing tool output, but the tool-card detail deliberately shows only pane name and ID, not the captured text. This read-only capability does not confer SSH/SFTP execution or terminal input.
 
-AgentKit selects the executable registry for the run's mode. Planning retains discovery, metrics, SSH investigation, SFTP reads and `scratch_pull`; remote SFTP mutations and `scratch_push` are acting-only, and Termind contributes no tools to reviewing. Planning and acting share the `ssh_exec` descriptor and schema, but planning uses a preflight that denies destructive commands. Acting asks for those commands; commands proven safe can be approved and run in parallel in either mode.
+```mermaid
+flowchart TD
+    Submit["App submits turn with pane access"] --> Capture["Controller captures registry"]
+    Capture --> Capable{"Model can call tools"}
+    Capable -->|No| Empty["Empty registry"]
+    Capable -->|Yes| Injected{"Pane access injected"}
+    Injected -->|No| Other["No pane tools"]
+    Injected -->|Yes| Pane["Register list_panes and read_pane"]
+    Pane --> Call{"Tool call"}
+    Call -->|List| Metadata["List readable pane metadata"]
+    Call -->|Read| Resolve["Resolve current or explicit pane ID"]
+    Resolve --> Readable{"Open connected readable surface"}
+    Readable -->|No| Refuse["Return tool error"]
+    Readable -->|Yes| Viewport["Return bounded viewport to model"]
+    Viewport --> Card["Card shows name and ID only"]
+```
+
+Pane-tool path: registration depends on captured capability, but list/read consult the app's live pane state at execution time. The normal runtime schema and approval pipeline still applies.
+
+AgentKit selects the executable registry for the run's mode. Planning retains discovery, metrics, SSH investigation, SFTP reads, `scratch_pull`, and injected pane listing/reading; remote SFTP mutations and `scratch_push` are acting-only, and Termind contributes no tools to reviewing. Planning and acting share the `ssh_exec` descriptor and schema, but planning uses a preflight that denies destructive commands. Acting asks for those commands; commands proven safe can be approved and run in parallel in either mode.
 
 `terminalSuggestionsAvailable` is the application argument that captures the separate execution gate in `AgentTurnContextSnapshot.toolAvailability["terminal_suggest"]`. It does not remove or change the advertised tool schema:
 
@@ -141,9 +170,9 @@ AgentKit selects the executable registry for the run's mode. Planning retains di
 | TFM standalone Assistant | `false` | Shared Assistant catalog. |
 | TFM Workspace Assistant sidebar | `true` | Shared Assistant catalog. |
 | TFI standalone Assistant | `false` | Shared Assistant catalog. |
-| macOS external MCP server | Not exported | Acting host subset, `request_user_secret`, and four HTTP transfer tools. |
+| macOS external MCP server | Not exported | Acting host subset, `request_user_secret`, and four HTTP transfer tools; no pane tools. |
 
-This snapshot dictionary is a partial override: disabling terminal suggestions does not disable independent SSH/SFTP work. The MCP server explicitly selects acting definitions, then filters by its exported-name allowlist and disabled-tool settings. It excludes terminal suggestions, scratch, web, skill, plan and task tools; its four extra tools are `sftp_upload`, `sftp_upload_status`, `sftp_download` and `sftp_download_status`. The stdio bridge forwards requests to this server and registers no second tool set; TFI has no local MCP server. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external authorization and byte-transfer boundaries.
+This snapshot dictionary is a partial override: disabling terminal suggestions does not disable independent SSH/SFTP work. The MCP server explicitly selects acting definitions, then filters by its exported-name allowlist and disabled-tool settings. It excludes terminal suggestions, pane reading/listing, scratch, web, skill, plan and task tools; its four extra tools are `sftp_upload`, `sftp_upload_status`, `sftp_download` and `sftp_download_status`. The stdio bridge forwards requests to this server and registers no second tool set; TFI has no local MCP server. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external authorization and byte-transfer boundaries.
 
 ## Turn lifecycle
 
@@ -267,7 +296,7 @@ This interaction sequence describes the queue's per-head deadline, not the lifet
 
 ## Host tools and plan mode
 
-Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` creates a user-operated command card and never executes it. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
+Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` creates a user-operated command card and never executes it. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. Separately, `list_panes` and `read_pane` inspect *already open* local terminal viewports through the captured app adapter, including connected SSH, Telnet, and (on desktop) serial panes; they do not create a PTY or run a command. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
 
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 
@@ -401,11 +430,11 @@ The focused tests establish behavior that is important when changing this area:
 - `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Blocked and failing saves verify that captured failure keeps preparation owned through stop and archive/delete until save completion and only adopts staging on success. `FrameworkTests/AssistantModelSelectionTests.swift` checks draft model seeding, restored choices, unavailable-model repair, and persistence-first model selection.
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order/edit mutations, invalid edit rejection before repository calls, failed edits leaving the live prefix unchanged, and activity guards. Immediate `stopAndWait()` also verifies a persisted cancelled prestart snapshot with captured prompt and context but no provider/tool calls; a gated-save test verifies the join.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
-- `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
+- `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets **without injected pane access**, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions. `TFMTests/AgentPaneToolsTests.swift` checks conditional pane registration by mode, call-time default and explicit-ID reads, disconnected/absent-surface refusal, source-byte truncation, and cards that omit viewport text; `TFITests/MobileWorkspaceSessionTests.swift` exercises pane access across mobile scenes.
 - `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
 - `FrameworkTests/AgentUserInputTests.swift` checks timeout schema and defaults, question validation, navigation, head-only deadlines, skip/null semantics, cancellation and dedicated secret drafts. `FrameworkTests/AssistantTranscriptPresentationTests.swift` checks direct-approval/event races, denial display, structured presenter output and bounded previews; `FrameworkTests/HermesMemoryTests.swift` checks suspension/revocation, stale writes/reviews, index catch-up, destroy retry and lazy disabled storage.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
 ## Change guidance
 
-For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved AgentKit package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. For cross-chat changes, keep the AgentKit generic chat-tool interface separate from Termind's coordinator and preserve receipt atomicity, deduplication and per-target composer isolation. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register host-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.
+For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved AgentKit package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. For cross-chat changes, keep the AgentKit generic chat-tool interface separate from Termind's coordinator and preserve receipt atomicity, deduplication and per-target composer isolation. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register Termind-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. For a live-device feature such as pane inspection, inject a run-scoped capability from each app adapter rather than persisting a view or assuming SSH host access implies a readable terminal viewport. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.

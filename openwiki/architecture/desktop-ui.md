@@ -4,8 +4,8 @@ title: macOS UI and Workspace Ownership
 description: How macOS window navigation, sidebar modes, workspace sessions and Vault editing routes divide responsibility between AppModel and WindowModel.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -45,6 +45,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-9f99d64c8fdba496051cd3ce
+    resource: repo://TFM/Platform/MainWindowSizeStore.swift
   - id: openwiki-source-5e2670d68f19777e2dd312ea
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-29722107a3a9d938ca19ebb4
@@ -61,6 +63,8 @@ sources:
     resource: repo://TFMTests/CardMarqueeSelectionTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
+  - id: openwiki-source-0f45576cff16b6adfcaeefc0
+    resource: repo://TFMTests/MainWindowSizingTests.swift
   - id: openwiki-source-a22920a2a9767ac44e072c9f
     resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-98505b843db3ce6b8e4ca024
@@ -79,7 +83,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # macOS UI and Workspace Ownership
@@ -125,9 +129,9 @@ The main layers are:
 | Feature views | Render projected state, present interaction, dispatch intent to owners. | Recreating connections merely because a destination appears. |
 | Reusable renderers and native bridges | Collection interaction, layout, focus/native mounting, terminal/transcript presentation. | Resource-specific repository mutations hidden behind generic drawing code. |
 
-`TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel` (which starts at Vault/Welcome), while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. `AppModel.registerWindow` wires shared connections, histories, host and metrics services into that model and adopts the shared conversation store; its workspace list, queries, presentation routes and transcript cache remain window-local. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; in debug builds XCTest normally suppresses automatic test windows unless `TERMIND_WINDOW_TESTS=1`, and tests or screenshot mode disable main-scene restoration.
+`TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel` (which starts at Vault/Welcome), while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. `AppModel.registerWindow` wires shared connections, histories, host and metrics services into that model and adopts the shared conversation store; its workspace list, queries, presentation routes and transcript cache remain window-local. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; in debug builds XCTest normally suppresses automatic test windows unless `TERMIND_WINDOW_TESTS=1`, and tests or screenshot mode disable main-scene restoration. The device-local `MainWindowSizeStore` validates ordinary content sizes and sidebar widths before loading or saving them; without stored values it defaults to 1180×740, a 320-point sidebar and a visible sidebar. This fallback does not replace individual system-restored window frames.
 
-`MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame. The coordinator tracks normal-size and sidebar-width fallbacks from registered main windows, preferring the most recently used window; requested scenes inherit source layout, while restored windows are not forcibly resized. Full-screen requests wait until the new window is key, and main-window registration disallows native tabbing. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for app lifecycle and auxiliary windows.
+`MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame. The coordinator tracks normal-size and sidebar-width fallbacks from registered main windows, preferring the most recently used window; requested scenes inherit source layout, while restored windows are not forcibly resized. Full-screen requests carry the source's ordinary (pre-full-screen) size and wait until the new window is key before toggling; normal resizing avoids recording full-screen or transitional dimensions. Sidebar measurements only replace a requested preferred width once the native column actually reaches that width, and hiding the sidebar does not overwrite its last valid width. Main-window registration disallows native tabbing and configures full-size transparent titlebar content coordinates before measuring or applying a size. Requested frames respect minimum content dimensions and are fitted to the available screen; auxiliary windows do not participate in the saved fallback. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for app lifecycle and auxiliary windows.
 
 ```mermaid
 sequenceDiagram
@@ -146,7 +150,7 @@ sequenceDiagram
 
 Scene-request handoff: the source keeps the session until the target's native window registers.
 
-A workspace move waits for native destination registration before changing ownership. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+A workspace move waits for native destination registration before changing ownership. Repeated requests to move the same workspace or pane from the same source reuse the pending scene request. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
@@ -154,7 +158,7 @@ A workspace move waits for native destination registration before changing owner
 
 The sidebar is one column whose mode rail switches between Navigator, Assistant, Snippets and History. `WindowModel.activateSidebarMode` is an **intent operation**, not just a property assignment: choosing Navigator from the full Assistant restores its prior destination (or Vault if that workspace closed), while choosing Assistant inside a workspace opens the contextual sidebar rather than hiding the terminal. Direct mode assignment remains available for presentation/restoration without these navigation side effects. History is unavailable for focused Telnet/serial sessions; a rejected direct assignment leaves the mode unchanged, while reconciliation replaces an already-invalid History mode with Snippets.
 
-The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
+The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback that blends within the window and follows its active state. `DesignTokens.swift` centralizes fixed spacing, sidebar/card/toolbar geometry and minimum window dimensions as `Metrics`; semantic `TermindColor` roles adapt to appearance, while `Motion` and glass modifiers use system glass on macOS 26+ and native material on older systems. The split view constrains the sidebar to 260–520 points and protects a 360-point detail minimum; row selection is drawn explicitly, with key/inactive styling rather than relying on native `List(selection:)` colors. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
 
 The tool modes are projections of the **current window and focused pane**, not new destinations. Snippets searches the shared host-library snippets in its own footer, inserts into a live focused SSH/Telnet terminal on a single click, and double-click execution of a risky command asks for a second confirmation. History chooses SSH command history, SFTP browse history, or connection history from the focused pane; it uses the native `ListViewKit`-backed `SidebarNativeList` for stable card geometry and blank-area context menus. Snippet package folding is a persisted sidebar-only preference, separate from expansion on the main Snippets page. The snippet and history footer fields are not the titlebar Find field.
 
@@ -314,7 +318,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 
 | Change | Focused seams |
 | --- | --- |
-| Scene ownership, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
+| Scene ownership, sizing, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MainWindowSizingTests` (stored fallback validation, source-size inheritance, restored frames, sidebar width handshake and visible full-screen behavior), `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |

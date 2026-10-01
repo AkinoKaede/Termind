@@ -3,6 +3,9 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -36,6 +39,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
+  - id: openwiki-source-e08ad235d9d92a20cf09290b
+    resource: repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
@@ -60,6 +65,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-0e8ecbf3896cbf237a679d6a
     resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -86,8 +93,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-33f99816db979bf169f1eab5
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
+  - id: openwiki-source-3cfc52217a7a6835b4bffac1
+    resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-65af64561fcb561a30da16fa
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
+  - id: openwiki-source-6f8db123d550d9a8718c172c
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/KeychainSecretStore.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-e2abe97c93dbb91be81b63e2
@@ -104,6 +115,10 @@ sources:
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -114,6 +129,8 @@ sources:
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -122,10 +139,7 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Persistent Data, Migrations, and Secrets
@@ -136,12 +150,15 @@ This is a safety boundary, not merely a storage abstraction: plaintext credentia
 
 ```mermaid
 flowchart TD
-    App["TFM or TFI composition root"] --> Container["One process-wide SwiftData ModelContainer"]
+    Desktop["macOS composition root"] --> Lock["File store lease before open"]
+    Lock --> Container["Process-wide SwiftData ModelContainer"]
+    Mobile["iOS composition root"] --> Container
     Container --> SwiftData["Termind SwiftData store"]
     SwiftData --> Metadata["Hosts identities keys settings agent runs"]
     SwiftData --> References["Credential references and secret location metadata"]
     References --> Keychain["Keychain device or iCloud secret material"]
-    App --> GRDB["GRDB HermesMemory SQLite directory"]
+    Desktop --> GRDB["GRDB HermesMemory SQLite directory"]
+    Mobile --> GRDB
     GRDB --> Memory["Memory entries reference dates and searchable history"]
     Keychain --> Resolver["SecretStoring resolution"]
     Resolver --> Runtime["SSHSecret one-shot runtime allocation"]
@@ -152,9 +169,11 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV45` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and do not assemble a partial schema per feature or scene. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
+`TermindPersistence.makeContainer(inMemory:url:)` is the shared SwiftData entry point. It exposes the complete `TermindSchemaV45` schema, attaches `TermindMigrationPlan`, disables automatic SwiftData CloudKit integration, and rejects an in-memory store combined with a file URL. Both apps retain one container for their process and do not assemble feature-specific schemas. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
 
-The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. It supplies `KeychainSecretStore` for the normal composition and passes the same container to SwiftUI's main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before the live repository wiring; XCTest still uses the in-memory container but disables cloud coordinators. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors are not silently replaced with an empty database: the mobile initializer throws; desktop initialization catches and terminates with a fatal database-open error. Data availability is an explicit startup condition.
+**macOS file-store exclusivity:** Before `ModelContainer` can open or migrate a file-backed store, the factory creates the parent directory, canonicalizes the URL (symlinks and standardized file URL), and obtains an exclusive nonblocking `flock` on a stable adjacent `.lock` file. A different process holding the lease causes `PersistentStoreAccessError.inUse` before database or WAL access; other POSIX failures propagate. Never unlink the lock file: a process may already have the inode open. The factory weakly indexes active leases by canonical URL so multiple containers for the *same store in one process* share the lease; each container retains it until deallocation, when closing the descriptor releases the kernel lock (including after forced exit). Different stores and in-memory containers do not contend. This mechanism is macOS-only, not a cross-platform mobile file lock. [PersistentStoreLockTests](../../FrameworkTests/PersistentStoreLockTests.swift) cover blocked opens before migration, symlink aliases and last-container release, a separate process killed while holding the lock followed by intact Vault/journal reopening, and noncontending stores.
+
+The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. Before normal open, `DatabaseStartupGuard` checks for another running instance of the same bundle identifier, including older versions that do **not** use the new lock; a busy store presents an alert and exits, while other open/setup errors are fatal rather than replaced with an empty database. It supplies `KeychainSecretStore` for normal composition and passes the same container to the main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before live repository wiring; XCTest uses an in-memory container but disables cloud coordinators. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Mobile initialization throws on open failure rather than replacing the store. Data availability is an explicit startup condition.
 
 ### Repository projections and atomic mutation
 
@@ -276,7 +295,9 @@ The on-disk safety tests cover V30→current and V39→current migration through
 
 A durable identity, SSH key, AI provider, or MCP record may contain `credentialRef` plus public/configuration metadata, but not the credential plaintext. The `SecretStoring` port separates string passwords from stored SSH-key credentials and resolves them by reference plus device/iCloud storage selection. Its runtime extensions turn fetched values into `SSHSecret` or `SSHResolvedKeyCredential`; `InMemorySecretStore` exists for tests and injected configurations, while app composition supplies Keychain storage.
 
-SSH Security Key records are a deliberate exception to Keychain-backed private-key storage: the V45 SSH key model and V2 Vault wire record hold an RP-bound credential ID, P-256 public key, verification preference and presence flag, while the private key stays on the authenticator. `HostLibraryModel` requires an empty `credentialRef` for these keys and resolves them from metadata without a Keychain read. Vault sync can move this reference, but using it still requires the physical authenticator and a local WebAuthn interaction. See [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md) for registration, signing and portability limits.
+SSH Security Key records are a deliberate exception to Keychain-backed private-key storage: the V45 SSH key row stores credential ID, P-256 public key, verification preference and presence flag, while the private key stays on the authenticator. `HostLibraryModel.upsert` validates the credential ID and 65-byte public key, disallows supplied secret material and replacement of a software key with the same ID, normalizes the label, clears `credentialRef`, sets `.external`, and rolls back the in-memory projection if persistence fails. Loading even an older hardware row marked `.thisDevice` or `.iCloud` normalizes it to `.external`. The `SSHRuntimeSecretResolving` overload for `SSHKeyRef` builds `.securityKey` directly from metadata without a Keychain read; availability reflects the presence of that metadata, **not** physical authenticator availability. Editing and deleting metadata likewise avoid Keychain calls. V2 Vault wire records serialize the reference, encoding `.external` as the frozen wire spelling `thisDevice`, then recovering `.external` for a Security Key on decode; software keys with external storage are rejected. V1 remains available for older categories and records; local schema V45 and cloud wire V2 are different version axes. Vault sync can move this reference, but using it still requires the physical authenticator and a local WebAuthn interaction. [WebAuthnVaultMetadataTests](../../FrameworkTests/WebAuthnVaultMetadataTests.swift) exercise jump and destination resolution with a deliberately failing Keychain, round-trip and remote merge, legacy storage normalization, invalid external software storage, rollback, and V44 software-key migration/reopen. See [SSH Security Key Authentication](ssh-security-key-authentication.md) for registration, signing and portability limits.
+
+Live `KeychainSecretStore` separates passwords/AI strings, software SSH keys and Secure Enclave handles by service within a configured access group in the Data Protection Keychain. It validates nonempty `termind.password.` or `termind.ai.` string references and `termind.key.` key references; invalid types and Keychain status errors propagate. `.iCloud` items use synchronizable, WhenUnlocked access; device and enclave items are non-synchronizable, WhenUnlockedThisDeviceOnly. `.external` has no Keychain service and cannot be stored there. Runtime reads decode software-key JSON into wipeable `SSHSecret` values and clear temporary byte buffers, while Secure Enclave reads return a handle; the editor's legacy typed credential API is separate from this runtime byte path. This is a Keychain storage location distinction, not SwiftData CloudKit replication.
 
 AI secrets apply the same rule with an extra migration-location record. `PersistentAISecretLocation` stores only a reference, whether its secret is in iCloud, and a deletion marker. `AISecretStore` accepts only nonempty `termind.ai.` references; reads return no secret for pending deletions and otherwise ask Keychain directly. It never writes secret bytes to SwiftData.
 

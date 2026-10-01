@@ -3,6 +3,9 @@ type: workflow
 title: SSH, Telnet, Trust, and Workspace Session Lifecycle
 description: Traces how Termind prepares SSH and Telnet connections, routes them through proxies and jump hosts, authorizes server identity, consumes credentials, and retires or restores live workspace sessions.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -26,6 +29,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift
   - id: openwiki-source-ab74624bdc6b7046d91bcbac
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
+  - id: openwiki-source-87a3a38f6388c572528dc8c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-04973e11e30eed9faa5cb86b
@@ -76,10 +81,9 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+  - id: openwiki-source-d94aebde8a56adf5ef02c658
+    resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -118,7 +122,7 @@ sequenceDiagram
 
 ## Prepare the route and attribute proxies correctly
 
-`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes an unavailable secret-store error from an absent credential, permits username-only identities to reach server authentication, and avoids reading a protected key before a required passphrase has been supplied. Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
+`SSHConnectionPreparation` is a MainActor-safe value snapshot whose potentially blocking Keychain resolution happens in a detached task before socket work begins. Cancellation cancels that worker; if it has already returned a configuration, the awaiting task checks cancellation and clears its secrets before throwing. Partial resolution also clears any collected jump/target credentials and proxy passwords on failure. It requires a nonempty target route, resolves every jump before the target, and creates an `SSHRouteHopConfiguration` for each jump. A strict `.requireKnownHost` preparation fails if any route node has no expected key; `.allowChallenge` defers that decision to the live handshake. Credential lookup distinguishes an unavailable secret-store error from an absent credential, permits username-only identities to reach server authentication, and avoids reading a protected key before a required passphrase has been supplied. Desktop `SSHSessionModel.startConnection` instead checks missing proxy password, host password, protected-key passphrase, and username **before** taking one-shot submissions. It resolves selected or saved credentials, proxies, ordered jumps and expected keys from the host store, then opens a PTY with host-key and keyboard-interactive callbacks; credential errors route back to the failing host or proxy prompt rather than installing a failed transport.
 
 Each node may carry a separate proxy configuration and proxy identity/submission. The proxy password is resolved independently from SSH credentials and becomes an `SSHTransportProxy` with `ownerHostID` set to the host whose proxy it is. This preserves a key UI and retry invariant:
 
@@ -182,7 +186,7 @@ flowchart TD
 
 A configuration carries credentials only for one physical connection attempt. Its `SSHSecret` values are shared mutable secret owners, so copies of the configuration can be invalidated together. `SSHConnectionConfiguration.clearSecrets()` clears target credentials, proxy password, and every jump credential. Public entrypoints defer that cleanup on both success and failure, and the authenticated opener also clears at its own transport boundary. Retrying resolves saved material again; a temporary password or key passphrase is not a reusable connection snapshot.
 
-Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key signing uses a user-interactive callback during the SSH public-key challenge, including when that challenge is on a jump. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits keyboard-interactive only when there are no prompts. This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
+Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits keyboard-interactive only when there are no prompts. This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
 
@@ -190,7 +194,7 @@ Keyboard-interactive is available to routed hops and the target. It preserves ho
 
 An authenticated SSH connection has one serial libssh2 owner. `SSHConnection` is an actor facade over `SSHConnectionWorker`, whose private dispatch queue serializes all library calls. It can multiplex independent non-PTY exec channels and SFTP channels on the one authenticated session, while a channel budget limits SSH “session” channels. Exec commands use a private channel and an owned, zeroizing input queue, so a command's working directory or stdin does not leak into another command.
 
-The worker's generation token invalidates socket events, timers, and scheduled pumps after cleanup. Disconnect increments that generation, cancels timers, fails outstanding commands, closes multiplexed SFTP channels and the channel budget, and closes the authenticated transport. Connection-level socket failure is reported once, then uses the same cleanup path. The worker also cleans up when its last reference is released: if release happens on its own queue it cleans up inline, otherwise it synchronously enters that queue. This avoids deadlocking on queue reentry while preserving serialized transport teardown. `SSHConnectionWorkerLifecycleTests` covers both release contexts. This establishes two related invariants: libssh2 is never entered concurrently, and a retired connection cannot have a stale event revive or mutate its replacement.
+The worker's generation token invalidates socket events, timers, and scheduled pumps after cleanup. While a new connection is still opening, cancellation of its route or destination authentication also cancels the keyboard-interactive/Security Key exchange, interrupts its socket, and serializes opening-state cleanup. Disconnect increments that generation, cancels timers, fails outstanding commands, closes multiplexed SFTP channels and the channel budget, and closes the authenticated transport. Connection-level socket failure is reported once, then uses the same cleanup path. The worker also cleans up when its last reference is released: if release happens on its own queue it cleans up inline, otherwise it synchronously enters that queue. This avoids deadlocking on queue reentry while preserving serialized transport teardown. `SSHConnectionWorkerLifecycleTests` covers both release contexts. This establishes two related invariants: libssh2 is never entered concurrently, and a retired connection cannot have a stale event revive or mutate its replacement.
 
 Feature models apply the same idea at the UI boundary. `RemoteSessionConnectionController.progressHandler(attemptID:isCurrent:)` forwards route progress to `ConnectionJourney` only for the current attempt. Desktop `SSHSessionModel` checks its `connectionAttemptID` after PTY connect and in exit and integration callbacks; if post-connect installation fails it disconnects the new actor. Mobile workspaces replace their UUID generation when connecting, backgrounding, exiting, or retiring work, and guard every asynchronous completion against it. Late connection, transfer-preparation, socket, and timer callbacks therefore cannot attach an obsolete transport, clear newer state, or enqueue work after explicit close.
 
@@ -251,7 +255,9 @@ sequenceDiagram
 
 Opening a saved host on desktop goes through `AppModel.open(_:as:in:)`: it installs the window's history callbacks, optimistically sets terminal host status to connecting, and asks that window to create a new SSH, Telnet or SFTP pane/workspace (or a chosen batch layout). The pane's status then drives `HostLibraryModel`'s per-connection status projection: a connected sibling wins over connecting, reconnecting or failed siblings. A connection-history event is recorded **at pane opening**, not after authentication; only saved hosts are recorded, with kind and source device ID. Closing the pane ends that event without deleting it; moving or reparenting a pane does not end its session or history. Recents derive from latest events, deduplicated by saved Host ID, and the local-only projection filters by stable device ID (events with a missing or different device ID are not local). Clearing history leaves Host records and credentials untouched. The history model trims to a global 250 entries, including on load; a failed write reports `storageError` instead of inventing a successful history event. Desktop single-host, batch and snippet openings install the same window history callbacks, so these pane kinds follow the same opening/closing rule.
 
-A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey.
+For a desktop SSH pane, an explicit launch command takes precedence over the Host's startup snippet. When there is no pending explicit command, each new physical connection resolves the current snippet body from the Host library; it is submitted once the shell is ready (or immediately after connection when shell integration is disabled), not while trust/authentication is pending. An explicit command is consumed after its first submission; a later reconnect can run the updated Host snippet. Disconnect discards both pending commands. Mobile SSH workspaces likewise resolve the Host startup snippet for an attempt when no explicit pending command exists, but restored descriptors do not replay a prior one-shot command.
+
+A connection failure before the first successful session remains a failed journey requiring an explicit user retry. Once a session has connected, `RemoteSessionConnectionController` can schedule recovery through `SessionReconnectController`; it pauses recovery for trust or authentication interaction and resets recovery state on disconnect. Retiring a session cancels prompt queues and Security Key signing, rejects pending host-key approval, clears temporary trust, stops reconnect work, and hides the journey. Desktop explicit disconnect also invalidates the attempt, drops staged authentication and proxy submissions, cancels the connection task and disconnects its PTY. During transport opening, cancellation shuts down the route/authentication exchanges and socket and disposes of the opening state; the SSH worker's generation guard prevents stale events from reviving a closed connection.
 
 On mobile, each persistent UIKit scene session has a `MobileWorkspaceSessionModel`; `MobileAppModel` owns the collection, a single snapshot store, and history IDs. The session's `addWorkspaces` calls `workspaceWillOpen` (recording one attempt-time history entry for a saved Host), publishes the live workspace, saves eligible descriptors, and only then calls `connect()`. Transient external-link workspaces have neither persisted descriptors nor saved-host history. A history entry stays open through failure or background suspension; closing the live workspace ends it, disconnects, and removes its descriptor, while closing an unopened recent descriptor removes only the descriptor. Opening a dormant descriptor creates a live workspace and records a new event; opening an already-live descriptor returns that same object without another attempt. A failed first attempt stays visible and selecting it again does not retry; the user must explicitly retry. A normal successful SSH exit requests workspace close; a transport failure after prior success instead schedules recovery. Local recents show saved descriptors not yet live, not a replay of prior commands or SFTP paths.
 
@@ -266,7 +272,34 @@ The platform rules intentionally differ:
 
 The mobile store accepts legacy arrays and version-one snapshots but does not rewrite them on read: the first native scene binding commits migration, pruning and ownership together. If that save fails, binding is fenced for this launch and exposes a restoration error rather than claiming the same records in another window. An unreadable or invalid snapshot disables subsequent writes, preserving its original bytes even if users open or close workspaces. Scene recovery likewise saves the destination snapshot before transferring any live objects; if saving fails the source retains ownership. A native disconnect is not an explicit discard, and when no active replacement scene exists recovery waits instead of silently closing transports.
 
-Desktop termination is idempotent: `AppModel.shutdownForTermination()` marks the app terminating, cancels pending Assistant preparation and stops conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit before starting cleanup, then replies to macOS when it completes or after the three-second fallback; `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
+Desktop termination is idempotent: `AppModel.shutdownForTermination()` marks the app terminating, cancels pending Assistant preparation and stops conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit **before** starting cleanup; if quit proceeds, it saves the main-window size and replies to macOS when shutdown completes or after the three-second fallback. `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
+
+```mermaid
+sequenceDiagram
+    participant OS as macOS
+    participant Delegate as AppDelegate
+    participant App as AppModel
+    participant Windows as WindowModel
+    participant Services as Assistant MCP SFTP and Agent
+    OS->>Delegate: request quit
+    Delegate->>App: recheck external edits
+    alt user cancels pending upload warning
+        Delegate-->>OS: refuse termination
+    else quit accepted
+        Delegate->>App: shutdownForTermination
+        App->>Windows: close workspaces and transports
+        App->>Services: stop runs MCP and SFTP work
+        Services-->>App: drains complete
+        App->>Services: close background commands and pool
+        alt cleanup finishes first
+            Delegate-->>OS: reply yes
+        else three second deadline
+            Delegate-->>OS: reply yes once
+        end
+    end
+```
+
+*The native quit reply is bounded; cancelling at the pending-edits warning does not start teardown.*
 
 Telnet is intentionally a separate terminal transport rather than an SSH fallback. `TelnetConnection` opens direct TCP with `NWConnection`, or obtains a proxied socket through `TerminalSocketConnector`; its own UUID generation rejects stale Network and socket callbacks. It performs incremental IAC negotiation, NVT line conversion, terminal type and NAWS support, and applies the configured charset only to application data. Optional username/password automation responds to recognized prompts, consumes and clears the password after use, and falls back to manual interaction when the expected flow does not materialize. It has no SSH host-key verification, jump-host route, SFTP channel, or shell integration.
 
@@ -280,6 +313,7 @@ stateDiagram-v2
     waitingCredentials --> opening: submit one shot credentials
     opening --> authenticated: handshake and auth succeed
     opening --> failed: first attempt fails or trust is rejected
+    opening --> retired: explicit close cancels socket and attempt
     authenticated --> recovering: transport loss after first connect
     recovering --> opening: scheduled retry when allowed
     authenticated --> retired: explicit close or normal SSH exit
@@ -287,6 +321,7 @@ stateDiagram-v2
     opening --> suspended: mobile expiration during active flow
     suspended --> opening: foreground with resume intent
     waitingTrust --> retired: disconnect
+    waitingCredentials --> failed: cancelled signing fails current journey
     waitingCredentials --> retired: disconnect
     failed --> opening: explicit retry
     failed --> retired: explicit close
@@ -302,11 +337,11 @@ When changing connection code, preserve these boundaries:
 - Build only `SSHConnectionPreparation` snapshots from UI/store state; do not carry plaintext through retry state or reusable snapshots.
 - Keep proxy submission and SSH submission separate, and preserve the proxy `ownerHostID` so the Journey stays on the prior endpoint.
 - Do not make a URI fingerprint or temporary approval durable trust, and do not bypass authorization on a known-host mismatch.
-- Put callbacks from sockets, timers, detached preparation, and authentication behind the current attempt/generation check before touching feature state.
+- Put callbacks from sockets, timers, detached preparation, and authentication behind the current attempt/generation check before touching feature state; clear secrets if preparation is cancelled after resolving them.
 - Have the owner that opened a client retire it on every failed connect and on explicit close; do not transfer a half-open client to a workspace. Do not tie the Agent pool's life to a workspace, window, or Assistant turn.
 - When changing Agent authentication, preserve the separation between temporary per-opening secrets and reusable route-fingerprinted transports; cancel the final prompt waiter, close late opens, and never replay a command after its channel started.
 
-`SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent window ownership, legacy migration and first-binding consolidation without network activity, non-reconnecting live handoff versus explicit discard, and native-session-aware reconciliation; `MobileAppTests` checks cold-launch descriptors without command replay, at-most-once selection and history, explicit retry after first failure, pruning, unreadable snapshot protection, normal SSH exit, and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
+`SSHInteractionPolicyTests` checks silent Security Key blocking on both target and jumps, rejection of trust and prompted keyboard-interactive UI, current-identity additional-connection resolution and one-use secret invalidation. `WebAuthnVaultMetadataTests` proves hardware credentials for both target and jump resolve with a secret store that throws on Keychain access, and checks Vault metadata persistence and sync. `SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent window ownership, legacy migration and first-binding consolidation without network activity, non-reconnecting live handoff versus explicit discard, and native-session-aware reconciliation; `MobileAppTests` checks cold-launch descriptors without command replay, at-most-once selection and history, explicit retry after first failure, pruning, unreadable snapshot protection, normal SSH exit, and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
 
 ## Related pages
 

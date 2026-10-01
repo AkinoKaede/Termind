@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:fc19789afb20fd4cb1b0ae75472b37fb43888eec1ecf404bac590f464e0f13d6",
+  "pageVersion": "sha256:256baca012e1b930be531836a22707ac1fee89f2821ad3e68a365b5b23dc882a",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -352,29 +352,37 @@
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:edb291d436f787e4495f7407b2187e9882ce617b854f8effda4752736d694ea7"
+          "version": "repo-file-v1:sha256:b8c363b57821837253c03ab08778965836a874f9509b7bb89d28d6de608aee2d"
         }
       ]
     },
     {
       "id": "claim_598502d30fb9447fb9eafb18fa90335d",
-      "statement": "Vault Host sections preserve nested and empty groups and persist collapse state in the library while search still finds Hosts in collapsed groups; group deletion can either ungroup retained Hosts or delete the tree's Hosts through the app deletion path.",
+      "statement": "Vault Host sections preserve nested and empty groups; group collapse is persisted as device-local library presentation state rather than a synchronized Vault group edit, and search still finds Hosts in collapsed groups. Group deletion can ungroup retained Hosts or delete the tree's Hosts through the app deletion path.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/LibraryExpansionState.swift#L4-L49",
+          "version": "repo-lines-v1:sha256:b7f40b8b6805decc5644183e34a77fe1ccdfcc4a03bc8ec8c89ee5b9f8e53ed9:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMGY1MGU5MmFlYTU3ODEzMzAwYWU0ZGZiNDBiMDQyZjU3NDc1YTJjZjMzZDJkNDY4NzY4MTYyODZjMTYyMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4OWI4ZDY3MDI1NjRkYzNhNjg0NDk4YzQ4MDRkMmJlZmIwODE4MTA4YTVlNzgxMjkwYzEzMTQ2NGQ0YWRlMTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY1YWU0OWNjZDk1M2FjODhlMTk4YjM4NmZlZDE3MmRkMmU0YmFkOGNlZDk2ZDIzMjVhY2EzYjcyOGIwYjZhNzYifQ"
         },
         {
-          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:e1479b1e93bbcb73928a9a9dc46666eb0b8110f57213286d27343648c69f3c09"
+          "resource": "repo://TFI/App/MobileAppModel.swift#L483-L490",
+          "version": "repo-lines-v1:sha256:846f167cc88f879c3f24575b32488276b1c6993d16e5adfee0a9cedc112cce7f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQzY2Y5ZDU4Yjc4MDU3YzEwOTg5MmVjNDFjNTYzNDY5NTE4ZjE1NGEzNzM5MzBmOTJlMmRmZjlhODNmMDdjNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzJjMDFiYmMwOTgxYzlkMjJkNzM1MmU4NjIxZTg2YTg0ODg5NTQ1Mzk3YzJmMjg2NGZiZmZhYzQ5ZTc3ZTY1ZiJ9"
         },
         {
-          "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:2d7a1c3057c400c8db7111d96d6ab3be73088c6aed51aa5bd69c3eaf2a64c02a"
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L453-L528",
+          "version": "repo-lines-v1:sha256:347999420057464ce7c85be6a95537ba7fc83acc46e207ec120b95b0fcf3d096:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlZjlmZDM3NWY1ODkxYTc2YTE5Mzc2YzI0NTZiNGYyMzM4MmVjODJkNWJiNTkzMDEyZTNmOWZkZDNhY2YzYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZmUyOTY2MGQwMWI1MTk0ODgzMDkwNWE3ZDQ1ZGQ0NDUzMGNmMWMyNGE0ZTk2NWI0OGMwMDY1OGQzODBmYTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiODlkNTljMjE3MGEwZWFmOWY0NDc2YmVjMjRjOThlYjdlYTRiMWNlYTY4ZDQ5MmQ2OGNkNzAzOGZkNDE0YmQifQ"
         },
         {
-          "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:edb291d436f787e4495f7407b2187e9882ce617b854f8effda4752736d694ea7"
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L678-L769",
+          "version": "repo-lines-v1:sha256:003dfea0ee75f9181c4bb0f2a87e232515579186d40a088534fa1ddecea23a47:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZWI3OGJkZmVlNGM0NWMxNGZhYmIyNGE5ZjI4MDhjMGZjMDlmNDdiNjc2YjZhODJmMWM4MjBhYWFlNWJjZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjNzBjYWRmNjY1ZmQ0MTUwNTE4NmY2Y2FkNGExMjllM2IwNDZkNDAzMmRjYjFjM2M5NjdlOTk5ODA3YWUzODIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardTests.swift#L119-L154",
+          "version": "repo-lines-v1:sha256:780d54c2aa93b53dd841b7eaa1bf2ef298287443ecf655933e16024be9a46172:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMjBmMWIwYTE1MjBlYjU0OWM1ZTQxM2NjYmQ3ZjRkZmViYjAwOWQzNDNhZDM1MDM3ZGUwMzBhMDgzNDlmMjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2Mzc5NDVjOGNiMmZmYjI1YzEwOTc5NzEyYTYxN2FlZTIxYzU0OWU4ZDFkZWY2MTFmNWNjOWVkMmYzMjFiMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3MjBjMTRlZjEyZDI5MGRlYmExYzJlYjkyYzYwOTYzMzBjNzkzZDcyOWJmNzRjOTRhNzUwNDY4MzU4NGNmOGIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L161-L194",
+          "version": "repo-lines-v1:sha256:6768055581f07f3dec6f401580626fe226d088bd5546fcd882b3e72d40b26c20:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmZmYyODVjMjI3N2YyNTA4NWMwMGJmOTc3OGQ0OTgzMjdiZDFhMDBjM2NiOTM0NmU3YzBkZDliZTNmZDE5NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4NTc1ZWNhZWViZWYyZTk4MzQ1MTBhMjE3NmE1OTBkNWU1ZGZjZWFiZjE3NThjNzBmNzg1N2UyNTA1YTQxZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5ZjNiNTgzMTZkZmQxZDVkMDg5ZGVlM2EyY2Q5ZDEzMjFiNGJlZWJmNmEwNGJmY2E1MWQwMjViYWMyM2E4ZmIifQ"
         }
       ]
     },
@@ -462,7 +470,7 @@
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:edb291d436f787e4495f7407b2187e9882ce617b854f8effda4752736d694ea7"
+          "version": "repo-file-v1:sha256:b8c363b57821837253c03ab08778965836a874f9509b7bb89d28d6de608aee2d"
         }
       ]
     },
@@ -967,10 +975,24 @@
           "version": "repo-lines-v1:sha256:a730ab2c70e97854933aa4f4074b53bed35c47dab1567431f49bf99a109d0e9c:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDc3YmFlYWRmNGFhYWQ2ZmRkZDgyZGUxYmU3MDhjN2YxZTE1MjllNjdjYTFmYzI3ZGYzZTdkNGFmOWVhYzdkOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTNiMDA2YjMyOTgzNzE1NmMwZjYwMjQwOTNjOGNiN2RmMGUxMzQ0OGM3YWJhZjA2YzEwZDcwY2Q2MGRjMzQ1MSJ9"
         }
       ]
+    },
+    {
+      "id": "claim_6fc5a49e8ab84f5d835d965de3f03e11",
+      "statement": "Host duplication preserves non-custom identity references and the rest of the Host configuration; the current MobileVaultFeatureTests duplication fixture checks that case, but does not exercise the Host-custom identity stripping branch.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L492-L507",
+          "version": "repo-lines-v1:sha256:399d10680a09ab277a070569d1c826ae8aa9492618f312e3375441d236569a3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyZjRlZTNjMTI5MGIyZDBiYjE4YmFlZDJmNDE0ZGJjOTk1ZDExNDE3ZTYzYWFkZGNhN2MzOTFiNjMyZjA1ZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkYjQ1OWJiNzNkN2U1ZTQ2Y2YzZjg4ZmQ1NGFhNjQ2N2E5OGI0Njc5YzU4MGFhZDc5MTdmZTFlOGUxZjcwMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3NzRiNTU3ZTIwZjFhNzM4OTJjMTc2YjJhYzQwODlmY2I4Mzc1MjY1ZDgyNjQwM2Y4Nzc1ZTQxMjYzNzZhYmIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L130-L159",
+          "version": "repo-lines-v1:sha256:7f1eee07fcdb08cacdb0aee8ead03028da5d588ec619947fbd773d04a13b5e10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2OTllNGJmZDIyN2YxOTYwZWI1MWY3ZTlmMTU4NTFmMWMwOWQ4NWNjNDkzZWJjN2E1MDRmMGQxZTY2NmQ0ZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2N2IyNmY2YWVhZGY4N2Q2NWViMTgzOTUyZGY5OWRmYzcyZjc2YzI1ZDFlYzI0ZDg3OWNjNWFkNmVmOTkxMDMifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-29T00:09:14.116Z"
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

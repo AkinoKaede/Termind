@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a52258e2c078139a17536328808d85ea0dd2368f02c0a152143826d05d45d26f",
+  "pageVersion": "sha256:980001357140b3b05f82925087073427ea2454129897439c49b87ae315e34f93",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -150,19 +150,19 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credential references, environment order, snippets, Known Hosts, history and installation-ID backfill; V1/V14, V25/V26/V27/V30/V31 and V35 stores are also covered, while the migration plan now ends at V45 and omits V29/V32/V33.",
+      "statement": "Persistence compatibility tests open historical SwiftData stores through the shared container factory and verify independent full-schema in-memory containers. The fixed V28 store migrates and reopens preserving host/group, charset, credential references, environment order, snippets, Known Hosts, history and installation-ID backfill; V1/V14, V25/V26/V27/V30/V31 and V35 stores are also covered, while the migration plan ends at V45 and omits V29/V32/V33.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
           "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L903-L918",
-          "version": "repo-lines-v1:sha256:1f612aa0c1f2dd63aceb36ed869f493c27e951db332a58f00b304dab2122afd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNzk1MjlmZjBiMjRmN2MwNTM4MTExYmNlNjU4YjgwNTljOWFiN2VmNDkzZDc5OGU4NzFkNGNlZDc1ODJiZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L902-L918",
+          "version": "repo-lines-v1:sha256:74ad527aa264062f2c52c5bb38b1248089525b4fc5a717e48564fe1bab857a5f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhNmFkMmJjZWI3ZDViYTc4MmIyZmVjOGIxZWUzN2Y1MzhhNzAzZDhlZWUzMTA3NmY2YmE1NWViOTg0OGYyM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L7-L21",
-          "version": "repo-lines-v1:sha256:d12fa7880ad3621b71b756c1358f151043e0a01324a507561a26c7dc95409315:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZTU1YzFlYWFlZWYyY2MxOGQ3ZGY4OTgwYzEyZTdiODJhZWM4ZTk4YWVlNDExZDA3YzQ4N2JmNmZiODM0MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjNTIxZDM3YTVmNjdlYjQ4N2U2MmQ2MzEzM2E5YzNiZTc5Y2FjNzhjOTI1NGQ2ZTlhNmExOGYwNjYzZjFhM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L47",
+          "version": "repo-lines-v1:sha256:b6ecd5473339d39eee0bb3881e02d4b9f94582002d219f08395af0f9920819ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
         }
       ]
     },
@@ -524,7 +524,7 @@
     },
     {
       "id": "claim_3ef853671a4e41f589068095b34d4d8a",
-      "statement": "HistorySyncTests covers native CloudKit fields, independent History/Device selection in the shared zone, terminal event tombstones, ignoring retired Vault-importer state, failed-initial-fetch recovery, missing Device projection repair without journal-version changes, structured safe logging and expected cancellation; SyncRecordEvolutionTests freezes Host V1 bytes and tests per-kind test-only Host V2 evolution. These local fixtures do not prove deployed cloud delivery.",
+      "statement": "HistorySyncTests covers native CloudKit fields, independent History/Device selection in the shared zone, terminal event tombstones, ignoring retired Vault-importer state, failed-initial-fetch recovery, missing Device projection repair without journal-version changes, structured safe logging and expected cancellation; SyncRecordEvolutionTests freezes literal Host V1 bytes and tests per-kind test-only Host V3 evolution while other kinds remain V1. These local fixtures do not prove deployed cloud delivery.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/HistorySyncTests.swift#L13-L89",
@@ -793,10 +793,122 @@
           "version": "repo-lines-v1:sha256:d4c4a70c459857e623ec8e7a6214c8e79981aeb939aeb87909d8352972f09cd0:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1Y2RiZGUzMzQyNDE0YzU2NjcyYTRmZjdlMDNmYjZkMmI4OTMzNjY1ODVhOGI2MGFjMTkyYjg5NDNhNjJlMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmMzdkNDJmMDZlNDRiM2Q5NTZiMmI4ZTE0ODRiNzUxMjcwMzA5MzEyYjJiZDRlY2E2ODlhNTk4NzA3OGI2N2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjMmU4MWFkOTQ2ZjRiN2NkZjAzZGRiN2VhMzQ3ZTE5YWM0YjYyNzljNTQ0ZDc4NzVkNjYzMTBlMTlmZjc3MzYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_ac6b855414eb42ad933f8601eb3c1284",
+      "statement": "The shared Persistence container factory owns the V45 model set and migration plan, disables automatic CloudKit for the SwiftData configuration, rejects combining a URL with in-memory mode, and leaves the disk versus memory choice and container lifetime to platform entrypoints; compatibility tests use this seam for independent full-schema memory containers and disk migrations/reopen.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L114-L163",
+          "version": "repo-lines-v1:sha256:624698defa14ee86ad3cd76af9df7cd37a5e2f830d02aacd52b4456f186b137d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwY2NlMjYyMzJlNGRmZGY0MzdkMDRjNDAxN2I1MWQ5ZGY0ZGYyODVjYmFkNTI4YzcxMDY5ZTA5NGRkNjNhMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljZDY0Y2U3MWNmNThiZmMxOGRjOGNlOTc3N2RlNjVhMGU4MjcyNDc2ZDUzMDUzNDdiZDYyNmI3YjFiZTJjMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4YWNmOWMxMWUwZWVhNTkyZGNjNWM2OWMxMzIwZWQ2ZWNlZjY4ZjYzMGZjNTUwODJiNmFhMDQwYWRhMTQyMWYifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L239-L297",
+          "version": "repo-lines-v1:sha256:d6109d2ae6f60936a106ec38e3b50919db40a82147937d602240ab2cc821920e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3ODVjN2VhYjUwZDQ5YWY1NmI0NTk0ZmU4YTk3NjMwZWMzMTY1MGI4MDVmZWZkMTE2ZWU5NDA2NjUyNjBiYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5YjMxMzE4NWIyNWJkZTBlNzcyZWIyZGIwNzNlZmU3ZTI4Y2FiYjdjNWQ2OGZkY2JkMGM4YjNiY2Q0ZmY2Y2MifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L47",
+          "version": "repo-lines-v1:sha256:b6ecd5473339d39eee0bb3881e02d4b9f94582002d219f08395af0f9920819ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b76679e0562f457aa467259e4680cea4",
+      "statement": "On macOS the container factory acquires a per-store advisory file lease before SwiftData can open or migrate, reuses the same lock for canonicalized URL aliases within the process and retains it through the container lifetime; contention fails with inUse, whereas separate stores and in-memory containers do not contend.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistentStoreLockTests.swift#L118-L126",
+          "version": "repo-lines-v1:sha256:8d096c23e11628136ca695a7477c8ae80c46b9f38942fd0ce4a78a4d2144d4a6:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjNiZTY4YTRmYjdlMTI1MGEwNjk0ZTY1YzRlN2Q1NmVkYWZiNzFlMzY5MDQ3YjY4ZGQ2ZjE1MzQ4ZTFhMzk5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWY1OGMyZjE1YTk4NWZkNTYxZDE4ZDgwMzE0YzZhMTQzMzNiNzcyYWMzODFhM2M0MGI3N2FhYmExNTdkOWVjOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTE3ZWQwYTEyOWQ0NzgxY2FkZDlkYmQ4YzRkMjU0Y2Y4M2VhOWMyMTZmMjRhYjIyNzY5ZDdlYzVmN2U4MjQ1ZSJ9"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistentStoreLockTests.swift#L12-L65",
+          "version": "repo-lines-v1:sha256:0dc051a19eafd45e92948a27795c1ffdeb2818ee2912b6976755c3d448d96c32:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkMDI2OGUyY2EwMTk5MjFlZmNiNzRjMTE4M2FmMDQ2NTEwYmQ4NTc1NzViNWY4ZjhkMWRjYjQ4MWJhZjBlNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1OTg5ODUwZmJjZWU2OTkyYmUyYzJmNGRmYTNlZWJjMGExOGI0YTUyZGIwODcxMTY1ODRiM2Y1NGUwNzczNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhOTVhOTcwYTcwMjE3OTQ3ZmFhNzBjNDE3YzY4NjNjOTQwMjNmNzExN2IxMGQ3YjI5NjNkYWUwZjZiN2E1ZjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/PersistentStoreLock.swift#L9-L33",
+          "version": "repo-lines-v1:sha256:daa50537afcab17f66b6cdad60ecb331c5f98bc43f4c52b7c78eac35b80bcb57:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmODdhNWI1MjUxMGRkMDQ3MjFkYTE1ZTM2OGRjYWNhMDAzZTI5MDA3YWFiMmYwMTdlNmZmYzc5NmFjNzYxYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyYzIwYWFhMzk1MGJiMTFkNzI4MTMzNGQ2Y2VhNmFhYzBjMjY1ODQ2MjA2ZTY2MDc3MmU3YmM4NGJiYTM4NWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiMTg2M2Q4Njg3OTcxYTY0ZjViOTdkMmI1YTMzNmYyYWE0NTIzYWU3MjU2MDIxOTg2YTQ2MjdlY2ViMTUxMzEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L25-L60",
+          "version": "repo-lines-v1:sha256:bdf659fa2aaa595b4153d03f7615c61c3b00579139379545862cb033fadda48b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4YWU2MDczOTViZjM1MjFhMWUzZThmYWZlOTM5MDQzNTE0MTBiMGFkMjU1MjdkODQ3OWRlZjlmN2UxYmFlODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiOWVlODU3NGEyYzJmNTVjNmE5NjdmNmFhM2Q1NzM0NGFiZmFmNzgyZjMzZTBkMDk1YzYwNTdkZGMzNjdhOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0MzcyYWVhYmM1OTQ0YTY0YzFiYjNiZmVlM2E3NWViNDU0YWY5NTM5OGFhODI1NzExZWZhZGQ4MjY0YTAwMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8a881bc1426b4852b04e079a6684eb67",
+      "statement": "A macOS lock fixture uses an independent process to prove that an occupied store cannot open, forced process exit releases the lease without deleting the stable lock file, and a subsequent open retains Vault host/key data; its sentinel case establishes that lock denial precedes database or WAL mutation.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistentStoreLockTests.swift#L12-L25",
+          "version": "repo-lines-v1:sha256:1987da48f3585b0ee0156bd2c28f69bfcb62aca7b60e83589dbeb4fa680642b0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkMDI2OGUyY2EwMTk5MjFlZmNiNzRjMTE4M2FmMDQ2NTEwYmQ4NTc1NzViNWY4ZjhkMWRjYjQ4MWJhZjBlNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1OTg5ODUwZmJjZWU2OTkyYmUyYzJmNGRmYTNlZWJjMGExOGI0YTUyZGIwODcxMTY1ODRiM2Y1NGUwNzczNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNWZhYTVkZDE2MjlkNDViOWNmMWMzODQ4ZDNhOTNmZDU3ZTIzYjVkMmFjOWViNWU5YTkwYjJiYzc3NmYyZTYifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistentStoreLockTests.swift#L67-L116",
+          "version": "repo-lines-v1:sha256:7c71b0407d396f69183756127885fa0c0a2cc82091d4e1354b767f7dceb079b1:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjNGZkYzkxNWQ4ZWU2MTlhZjM0NzMyMTExMDE0NjM1Yjc1M2FhMmM2OWZkOTQwYTViNzBhNjQzMTQyMTUyZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4MjUyNmZlYjE1NjkyYjFlMjU0NzY3ZDBiNTIzZDIxM2ViNDY0OGIwMTgyOWIxZDI4YTgzNDIwZjQ5YzQ0OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5ODdiMDY1Y2NhYmE0ZmFmNjUwOTIzZTA5ZGVhMmRjYzhkYmU0N2U2NzVkMTlhMDFhMTExYmVkMjQ1ZjhlZTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/PersistentStoreLock.swift#L9-L33",
+          "version": "repo-lines-v1:sha256:daa50537afcab17f66b6cdad60ecb331c5f98bc43f4c52b7c78eac35b80bcb57:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmODdhNWI1MjUxMGRkMDQ3MjFkYTE1ZTM2OGRjYWNhMDAzZTI5MDA3YWFiMmYwMTdlNmZmYzc5NmFjNzYxYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyYzIwYWFhMzk1MGJiMTFkNzI4MTMzNGQ2Y2VhNmFhYzBjMjY1ODQ2MjA2ZTY2MDc3MmU3YmM4NGJiYTM4NWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiMTg2M2Q4Njg3OTcxYTY0ZjViOTdkMmI1YTMzNmYyYWE0NTIzYWU3MjU2MDIxOTg2YTQ2MjdlY2ViMTUxMzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_14db4a61694045e5b0f5f6cb714dd2de",
+      "statement": "The desktop startup guard checks running applications with the same bundle identifier before opening a real store, rejecting another process even when an older instance does not implement file locking; tests exercise the PID decision without showing an alert or launching another app.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/DatabaseStartupGuard.swift#L5-L29",
+          "version": "repo-lines-v1:sha256:0d971433b6caedd2ada2db361ad60552b28d67b4e17bae34bd932efa317bfac0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwMjZmNDdiZTMxZTQxNzllODAzNmExNzdkMDI5MTNiMDM4ZmEwNmYzZmNkMTBjYjA0YzM1NjlhMjQ0MzE4MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L53-L60",
+          "version": "repo-lines-v1:sha256:096d2cd5a16c85db7a46255c2e95d32490401651b781ff6cf4f58252a834098a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTYwYzJjZWQxNDgyNDRmMzM4MzI1N2VjMGIxOTdjZTQzYmIyYmIxOWY5NWFjMmEwNjI4OGYxMDNmZjgxZDBlYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2MxODM1YzBhNmE5ODhkMzM1NTZmZDE1OGYwZWU0MDA3MzZhNTQxOTkyNGVkNjQxYjY4ODlmYWEwMGZlMjE0MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzhiYjkzY2Q2ZDA3YTM0NDFjOThlZTAwYzEyYWU5MDZmYTllZDQyMTYxYTU5MDk4ZjVhNDQ2ZmFiNWNiMDFjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzliN2U3ZDA4MjBiYTk2OTA3MDcwNjc1Y2RjYjNmMzdjZjg0MjA0MDE5ZTQyMjFmODZlMGE3NWI2MGMxOTUwYyJ9"
+        },
+        {
+          "resource": "repo://TFMTests/DatabaseStartupGuardTests.swift#L6-L18",
+          "version": "repo-lines-v1:sha256:27bbc596821c82fc7d862af48d46f54de8b42192cbc006e94e6e3d56c90fc44b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cbbea338ef7a4397b224b918bae8b308",
+      "statement": "Shared WebAuthn Vault metadata fixtures resolve destination and jump security-key references without Keychain, round-trip and apply external-key V2 records into an independent memory store, normalize legacy hardware storage and reject external software keys; failing persistence writes/deletes leave metadata unchanged, and V44 disk software keys survive V45 migration and repeated reopening.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L164-L193",
+          "version": "repo-lines-v1:sha256:222d73b74d3e1c33f14271e08acf92193ac7075fa8f8edd7a2ffb222b6058fc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyZjg0MTBkNzliMzIxYmZkYmM2Yjk0OTkzYWU0ZWRkY2JmNDE4ZGQyYWI2MGFjNzY0MjdkMjkzMzk0OWQxNDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/WebAuthnVaultMetadataTests.swift#L19-L160",
+          "version": "repo-lines-v1:sha256:e60ffc1f913a654c47646644c140095c9589f88891e1fbf0c60b6de47b8a83ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZGRjYjlkODJmZjhlOTljNzUxZDQyNTY3NTc1M2U5MmE2NzZiOTIwYmFhM2E2ODA2OGQ1M2UwMzBmZDY0YWRlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhZWIyNDE0YzIwNjZhMTE0YzZmZDc1ZjcxZDEwMDZjNGUwY2UwYTlmMmI2ZDhmYjdkYTIwMjI5Y2QxMTlmMmY2IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhZDFlZmE4OTZhOWFmZTdlZjdjNWIyMWJkN2Y4NDY3ODZjNDdhYjRmNTQ4OWQxOTYyMjE5YTg3YzA3NjFkNWNiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_cc050c99622c4af0ad6c31d195b0da4c",
+      "statement": "MobileVaultFeatureTests uses in-memory app and editor fixtures to check WebAuthn generation/import and invalid-reference rejection, software-key private material and passphrase handling, host/group mutations and forwarding behavior without live transports or a key window; mobile hardware editor rendering is separately guarded by the mobile UI opt-in.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileHardwareKeyEditorRenderingTests.swift#L9-L19",
+          "version": "repo-lines-v1:sha256:0c054ac5fbd48f6d1e49554e2bd17c5b6f843d5985b7d05ea394e804a39a1464:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YWRkNTlhMGJlNTAwZGYwNDkyOTI4ZGM4OGMwM2M2ZWNiZTM5MTQ4MGFhOWEzNjlkODVhNTc4YjQxNmU4ZWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5ODdiM2Q2NWU1ZTU0ZDNmYzg3OTJiMjk3NDBhZmNhNGUwZGRkYzAzMDgxM2EyN2MxOWZjNWJiZDFjYzFjMjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjA0ZjM2Y2Q2MDY0OGUzNTA0ZGE5YjAyNGU5OTIzMGI3MDY4YjQwOTAxMzNjMDUyNzk5YjNjOGFlYzkxZjEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L13-L91",
+          "version": "repo-lines-v1:sha256:ab5f1318465c134b752065aa4f804d832dd79b71cc28a018d845970061e986fb:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjODI4MTNjZjZlYzQ4NTFmYzUxZTEzMGMzM2Y3ZWY4MGI3MzhhMDlmYWFiY2VkZjE1NDNhN2M4NWQ5ZTMwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNjhmOTlhZjVjMjcyNTVlZWE4NGYyMjJkNzg0ZTAwYThlNzJkYTQzYzVjNTI5ZGNlZTFkNTcxNzcxY2E0ZjIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L130-L204",
+          "version": "repo-lines-v1:sha256:35109dc1044edd14969250530283a30a59825332ed0fa2a3fc0fcbe3608f55fc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2OTllNGJmZDIyN2YxOTYwZWI1MWY3ZTlmMTU4NTFmMWMwOWQ4NWNjNDkzZWJjN2E1MDRmMGQxZTY2NmQ0ZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNThmMzRiYzdiNjFmYWU4NDVhMDA4MzViMjJhNWY0YmRmZmViNzVjMGMyYTg5ODlmYmYyOWQ4ZjM2OWNjZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzYTY4ODRiMzgxMDAzNmU1NmQ4YzU5NDQyNDMyZDEwYTRmZWJkYjM4OWI2OGEzZjQ1NDA3ZWM2ZmZkOTllNWIifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileVaultFeatureTests.swift#L420-L554",
+          "version": "repo-lines-v1:sha256:9929dccd2e23d017217599639c71bec553777bd2fa1c40f0ea6977f06c629ee6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNjU2Zjk1NzI1Nzc0MGUwNTMyMTM3ZDlkOWVmMTQ3NmE5MDNiNDUyMTM1YmRlMjk5ZjJiODQ4ODcwMzIxYzM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyZjg4ZGVhYzNiYWI3ODhkY2NlMTVkMmU0NjQwZTkyODAwNGIzMWUzNjIzODg3MWE3ODgwOTk4NzcwNDlkYTZlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1MzdiMTM3NDFjN2U0MmZhM2IyN2Y4MGY0ZmM1ODFlYTA4NWY3Yzc1MzAxZjUzOThhNWQ4NjI3YWViY2JjYjAxIn0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-29T00:09:14.116Z"
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

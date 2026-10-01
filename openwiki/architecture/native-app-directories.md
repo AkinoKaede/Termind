@@ -1,8 +1,11 @@
 ---
 type: architecture directory guide
 title: Native App Responsibilities
-description: Find macOS and iOS app owners for composition, window and scene state, native features, platform adapters, and local persistence without confusing them with shared services.
-tags: [architecture, macos, ios, directories, navigation, lifecycle]
+description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
+tags: [architecture, macos, ios, directories, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -128,16 +131,19 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-0f45576cff16b6adfcaeefc0
+    resource: repo://TFMTests/MainWindowSizingTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
+  - id: openwiki-source-fd9941ab51756d8c4518a8e6
+    resource: repo://TFMTests/MetricsMenuNavigationTests.swift
+  - id: openwiki-source-a22920a2a9767ac44e072c9f
+    resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Native App Responsibilities
@@ -150,7 +156,7 @@ verified:
 | --- | --- | --- |
 | `App` entry | `TermindApp` assembles one `AppModel` and SwiftData container, mounts a `WindowGroup` with a fresh `WindowModel` for each `RootView`, plus a separate external-authentication window and app commands. | `TermindIOSApp` creates one `MobileAppModel` for its `WindowGroup`; `MobileStartupView` binds a `MobileSceneModel` to the UIKit scene's persistent session ID; `MobileRootView` mounts a `NavigationStack` per registered tab (Vault, Metrics, Workspaces, Assistant and Settings). |
 | Shared versus local state | `AppModel` holds shared libraries and services; `WindowModel` owns workspace/pane collection, selection, sidebar, Settings route, queries and window presentation. | `MobileAppModel` owns shared libraries, sync, transfers, Assistant execution, scene-phase coordination and the registry of `MobileWorkspaceSessionModel` instances. Each native scene session owns its own live `MobileWorkspace` objects, saved descriptors and display order; `MobileSceneModel` owns destination, selected workspace, Assistant scene model and editor/connection presentations. |
-| Startup failure | Opening the local container can terminate startup with a fatal error; tests and screenshot demos use in-memory composition. | Failure to construct `MobileAppModel` presents an unavailable-data-store screen instead of mounting a normal root; test composition uses testing dependencies. |
+| Startup failure | A store already in use presents a dedicated warning and exits; other local-container or composition failures abort startup. Tests and screenshot demos use in-memory composition. | Failure to construct `MobileAppModel` presents an unavailable-data-store screen instead of mounting a normal root; test composition uses testing dependencies. |
 
 The `App` composition roots also supply the shared device directory with platform naming. `MacDeviceName` reads trimmed `kern.hostname` with `Device.current.safeDescription` fallback, refreshed on macOS application activation. Mobile uses `Device.current.safeDescription`, refreshed on active scene transition. `DeviceRecord`, directory policy and repositories remain shared, rather than becoming native-app schema types.
 
@@ -173,13 +179,15 @@ Native composition and workspace ownership by window or scene session.
 
 App-level services outlive a window or scene's navigation selection; **both desktop and mobile native windows have independently owned workspaces**, whereas mobile app-level services aggregate runtime activity across those sessions.
 
-### Desktop navigation and termination
+### Desktop navigation, native windows and termination
 
 `RootView` mounts `WindowSidebarView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers rather than destroys the deck and its session views. The window-local sidebar offers Navigator, compact Assistant, Snippets and History. History uses command history when an SSH pane is focused, SFTP browse history for an SFTP pane, and connection history otherwise. Serial/Telnet focus disables History and reconciles an invalid History selection to Snippets. Activating the Assistant mode outside a workspace also opens the full Assistant destination; activating Navigator from Assistant restores its remembered destination. Programmatically setting the sidebar mode is presentation-only.
 
+`MainWindowCoordinator` is the process-owned AppKit bridge, not a second workspace store. `RootView` registers its native `NSWindow` with its `WindowModel`; a UUID-tagged scene request carries layout and an optional workspace/pane move until the destination registers. Only then does the coordinator take the live workspace from the source and open it in the destination, preserving session identity; a restored scene without a request retains its system-restored frame. Closing a native window unregisters and closes its window model. It saves usable size/sidebar presentation from the most recently used main window as a fallback for future windows; auxiliary windows do not participate. `AppModel` retains this coordinator, and app commands, Dock reopening, toolbar actions and menu-bar Metrics can request or activate windows through it. The menu-bar status item and popover instead belong to `MetricsMenuBarController` across window lifetimes: the preference can remove them without stopping `ServerMetricsModel`, and selecting a server closes the popover before routing to the most recent main window or requesting a new Metrics window. The last-window quit decision also considers whether menu-bar Metrics is enabled or monitoring keeps running.
+
 Settings is a **window destination**, not a separate shared-service owner. `WindowModel.settingsRoute` remembers the destination it replaced, moves Back to a parent route before closing, then resets to index and returns to the old destination (or Vault if a workspace was removed). `SettingsPageView` assembles forms over app-owned settings: remote MCP editing is Pro-gated and a separate local MCP server route configures the app's server controller, not the HTTP listener. Leaving an editor discards qualifying empty provider, MCP and skill drafts; substantive skill drafts survive, and a new MCP server must lock a unique namespace. This makes a route change different from shutting down sync, transfers or the local server.
 
-`AppDelegate` handles application activation, reopening, quiet login launch and termination. On quit it rechecks pending SFTP edits, can cancel termination if the user refuses to discard them, then saves window size and begins shutdown. Its reply is sent once after cleanup or a three-second timeout. `TFMTests/SettingsNavigationTests.swift` tests route return, missing-workspace fallback and draft handling; `TFMTests/WindowSidebarTests.swift` tests window isolation and the serial-pane fallback.
+`AppDelegate` handles application activation, reopening, quiet login launch and termination. On quit it rechecks pending SFTP edits, can cancel termination if the user refuses to discard them, then saves window size and begins shutdown. Its reply is sent once after cleanup or a three-second timeout. `TFMTests/SettingsNavigationTests.swift` tests route return, missing-workspace fallback and draft handling; `TFMTests/WindowSidebarTests.swift` tests window isolation and the serial-pane fallback. `TFMTests/MultiWindowTests.swift` covers move-on-registration and cancelled moves, `MainWindowSizingTests.swift` checks requested versus restored layout, `MetricsMenuNavigationTests.swift` checks the menu-to-window handoff, and `AppTerminationTests.swift` exercises shutdown ordering.
 
 ### Mobile navigation, restoration and lifecycle
 

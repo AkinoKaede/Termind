@@ -3,6 +3,9 @@ type: architecture-contract
 title: Cross-Cutting Engineering Invariants
 description: Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, agent, localization]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -70,6 +73,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -118,6 +123,8 @@ sources:
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-3ff855d6e002a67eb54f3199
     resource: repo://FrameworkTests/SFTPNotificationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -172,6 +179,8 @@ sources:
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -192,6 +201,8 @@ sources:
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-e6490dc6a3e86e39aa4323fc
+    resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
@@ -202,10 +213,7 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -240,10 +248,17 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V45 schema/plan; one container per process serves all scenes. Never
-  recreate a failed store silently: macOS fails startup on store error, while iOS displays a store-open failure view.
-  macOS retains its `Termind` location; mobile uses Application Support/in-memory
-  tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
+  migration. `makeContainer` fixes the complete V45 schema/plan; each app composition root retains its startup container
+  for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
+  app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
+  store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
+  opens or migrates the persistent store. Containers for the same canonical URL in one process share that lease until
+  the last container is released; memory-only and separate stores do not contend. The lock file remains on disk after
+  release or forced exit. `DatabaseStartupGuard` additionally checks same-bundle running apps before opening the store,
+  covering older versions that do not acquire the lease. Tests and screenshot demos select memory-only storage before
+  opening a store; this is an intentional test configuration, not a failed-database fallback. macOS retains its `Termind`
+  location; mobile uses Application Support/in-memory tests. Both apps share the CloudKit container and bundle-derived
+  Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.

@@ -5,7 +5,7 @@ description: Native workspace and pane dragging in TFM, including live drop rout
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-27T22:47:06.500Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -55,7 +55,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # TFM Drag and Drop
@@ -182,26 +182,28 @@ sequenceDiagram
     participant Coordinator as MainWindowCoordinator
     participant Scene as Main WindowGroup
     participant Source as Source WindowModel
+    participant Bridge as MainWindowRegistration
     participant Target as Target WindowModel
-    Drag->>Coordinator: moveWorkspace or movePane, release point
-    Coordinator->>Scene: createScene(request UUID)
-    Note over Source: Live workspace and panes remain here
-    Scene->>Target: Create fresh window model
-    Target->>Coordinator: Configure sidebar before first layout
-    Target->>Coordinator: Register native window and request UUID
+    Drag->>Coordinator: moveWorkspace or movePane with release point
+    Coordinator->>Scene: createScene with request UUID
+    Note over Source: Live layout remains in source
+    Scene->>Target: Construct fresh model
+    Scene->>Coordinator: configure model with requested layout
+    Bridge->>Coordinator: register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
-    Source-->>Coordinator: Existing live workspace or pane wrapper
-    Coordinator->>Target: open, refresh context, reconcile sidebar
-    Coordinator->>Coordinator: Position and fit destination window
+    Source-->>Coordinator: Existing workspace or pane wrapped in workspace
+    Coordinator->>Target: open and reconcile sidebar
+    Coordinator->>Coordinator: Size and fit destination frame
+    Coordinator->>Target: Bump sidebar layout generation for move
 ```
 
 Request-to-registration transfer keeps the live session in its source until the destination has a native window.
 
-`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`; `TermindApp.makeWindow` applies the request's sidebar presentation and preferred width before the first `RootView` layout. `MainWindowRegistration` calls `register` only once AppKit has attached the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
+`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`; `TermindApp.makeWindow` applies the request's sidebar presentation and preferred width before the first `RootView` layout. `MainWindowRegistration` calls `register` after AppKit attaches the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
 
 Live layout ownership changes only when the requested destination window registers.
 
-The request stores a weak source, the move identity, a layout snapshot (ordinary content size, sidebar width and presentation, fullscreen state and source-screen center), and an optional release point. Repeated requests for the same source and move reuse the pending request ID; different pane requests may register in reverse order. A closed source, missing scene factory, nonexistent workspace, nonexistent or noncombinable pane cannot initiate a move. If the source or pane disappears before registration, the pending request cannot recreate it. The coordinator registers each native/model pair once and removes the request on the first successful registration; registering the same destination again cannot transfer a second copy.
+The request stores a weak source, the move identity, a layout snapshot (ordinary content size, sidebar width and presentation, fullscreen state and source-screen center), and an optional release point. Repeated requests for the same source and move reuse the pending request ID; different pane requests may register in reverse order. A closed source, missing scene factory, nonexistent workspace, nonexistent or noncombinable pane cannot initiate a move. If the source or pane disappears before registration, the pending request cannot recreate it. `register` rejects a closed destination and duplicate native/model pair, then removes the pending request when a new destination consumes its ID, **even if extraction finds no live layout**. A late scene may therefore register empty; registering the same destination again cannot transfer a second copy.
 
 Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
 
@@ -209,9 +211,9 @@ These are move operations, not close/reopen: they do not disconnect transports, 
 
 Closing the source window removes its pending requests. A pane closed before registration cannot be resurrected by a late destination; an already-created scene may remain empty. A restored scene with no pending request retains its restored geometry and does not replay the move.
 
-New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. Registration restores sidebar presentation and preferred width, then bumps the split-view layout generation after a move. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
+New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. During scene construction `configure` applies sidebar presentation and preferred width; registration reapplies them (and invalidates initial sidebar layout if they differ), sizes the native window, then bumps `sidebar.initialLayoutGeneration` for a move to rebuild the split view at the transferred width. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
 
-Evidence: [request, layout and registration](../../TFM/Platform/MainWindowCoordinator.swift#L208-L348), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L350-L420), [frame fit](../../TFM/Platform/MainWindowCoordinator.swift#L501-L508), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction](../../TFM/App/TermindApp.swift#L210-L245), [registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L511-L560), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [history guard](../../TFM/Features/Workspaces/WindowModel.swift#L1043-L1055), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
+Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L214-L265), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L291-L350), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L352-L436), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L517-L576), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction](../../TFM/App/TermindApp.swift#L216-L249), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
 
 ## Assistant conversation reordering
 

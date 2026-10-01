@@ -5,7 +5,7 @@ description: Focused regression seams for Termind's shared frameworks, desktop a
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -15,6 +15,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-a298d9034d557f1b420cb306
@@ -47,6 +49,8 @@ sources:
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-3b424584de88a1150af27f83
     resource: repo://FrameworkTests/ProOfferPresentationTests.swift
   - id: openwiki-source-925cc598397685e13fcf56c4
@@ -55,6 +59,8 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
     resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
+  - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
+    resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
@@ -87,16 +93,24 @@ sources:
     resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-aadb94da40ccad1f082ce451
+    resource: repo://TFITests/MobileHardwareKeyEditorRenderingTests.swift
   - id: openwiki-source-2c7245a9a1462a5a8d09b739
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-282855f9369e6dc0c3447dc8
     resource: repo://TFITests/MobileSettingsPortTests.swift
+  - id: openwiki-source-5636c5d112b9e5b2266c3058
+    resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-bc6023e93d60f0fac1bbea53
     resource: repo://TFITests/ProPaywallRenderingTests.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
@@ -113,6 +127,8 @@ sources:
     resource: repo://TFMTests/ChooserInteractionTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
+  - id: openwiki-source-e6490dc6a3e86e39aa4323fc
+    resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-f87ee787c830f08478c25410
     resource: repo://TFMTests/KnowledgeToolRenderingTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
@@ -125,7 +141,7 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Behavioral Tests and Fixtures
@@ -156,13 +172,36 @@ This flow selects the narrowest test target that owns the behavior, then expands
 
 Use `FrameworkTests` for behavior intended to remain identical across macOS and mobile: value/rule behavior, repository and persistence adapters, migration compatibility, settings synchronization, host-key policy, and presentation-independent controllers. These tests should normally run with deterministic in-memory state or a temporary directory and should not import an app target.
 
-Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
+Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. The seam is the public `@MainActor` container factory in Persistence: it configures the V45 schema with the migration plan and `cloudKitDatabase: .none`, taking either a disk URL or `inMemory: true` (not both). The platform entrypoint chooses the storage and retains the container; tests should create a fresh container for independent in-memory state and a temporary disk URL for reopen checks. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
 
 Checked-in `FrameworkTests/Fixtures/V1.store` and `V14.store` also check that stores created under the original app module open with their group (and V1 provider) intact. The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
 
 `version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. V25/V26 defaulting, V27, V30 and V31 migration checks remain alongside it. V35→V36 drops the retired history importer table while retaining native History on reopen; V36→V38 adds cloud-presence and delete-handoff state; V39 adds assistant model selection, V40 removes the retired per-category quarantine tables while retaining scoped quarantine, V41 adds shared notification preferences, and V42 adds agent-message and conversation provenance plus collaboration delivery receipts. V43 adds MCP OAuth configuration, V44 updates the Host model, and V45 adds SSH Security Key metadata. A V41→V42 disk migration fixture checks that existing groups survive and the new collaboration sidecars start empty; separate collaboration fixtures verify monotonic delivery receipts across SwiftData contexts and creation relations after disk reopen. V29, V32 and V33 stay absent from the migration plan.
 
+On macOS, a separate `PersistentStoreLockTests` seam checks the **lifetime around** that factory, not merely successful SwiftData open. For a disk configuration `makeContainer` acquires an advisory lock on a stable `.lock` sibling **before** `ModelContainer` can open or migrate the store; a failed lease throws `PersistentStoreAccessError.inUse` without touching even a sentinel store or creating its WAL. A canonicalized URL (including symlink aliases) shares one process-local lease across simultaneously open containers; Objective-C association keeps it alive until the last container closes. The lock file stays on disk; closing the descriptor releases the kernel lock, including after forced termination. The tests hold and release real containers, use an independent Python `flock` process to simulate contention and forced exit, reopen to verify Vault host/key records, and check that other store URLs and in-memory containers do not contend. The desktop `DatabaseStartupGuardTests` exercises the separate compatibility guard: before opening a real store, the app refuses another running instance of its bundle even if that older instance does not acquire the new lock. These tests do not simulate a true crash during migration or guarantee that other platforms implement the macOS lock.
+
+```mermaid
+sequenceDiagram
+    participant App as macOS startup
+    participant Guard as Startup guard
+    participant Factory as Container factory
+    participant Lock as Store lock
+    participant DB as SwiftData
+    App->>Guard: Check other app processes
+    Guard-->>App: No other instance
+    App->>Factory: Open disk container
+    Factory->>Lock: Acquire lease before database access
+    Lock-->>Factory: Lease acquired
+    Factory->>DB: Open or migrate V45 schema
+    DB-->>Factory: ModelContainer
+    Factory-->>App: Container retaining lease
+```
+
+The two desktop startup checks precede database access; in-memory containers bypass the file lease.
+
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider. Replay tests additionally verify that a queued cancellation adopts an edited staging turn with its authored text, images, attachments and frozen context in a fresh SwiftData context; a captured configuration failure adopts only after the failed snapshot saves. A synthetic V15 store reloads without inventing historical context or replay rows.
+
+Hardware-key compatibility belongs at both the shared and mobile seams. `WebAuthnVaultMetadataTests` uses a `NoKeychain` that throws on secret access: connection preparation resolves destination and jump security-key metadata without Keychain reads; an in-memory Vault save and V2 envelope round-trip apply into a **second** in-memory container, retaining external storage and editable verification preference. Legacy hardware storage decodes as external, while a software key cannot claim external storage. A throwing persistence port verifies failed upserts/deletes leave the prior key untouched; a synthetic V44 disk software-key store migrates to V45 and reopens twice. These tests do not exercise a physical authenticator or CloudKit delivery. `MobileVaultFeatureTests` covers the actual mobile editor and app assembly: WebAuthn generation/import, invalid reference rejection, Keychain-independent metadata versus software-key private material and saved passphrases, host duplicate/group cleanup and forwarding edit behavior. Use its in-memory app fixtures for mobile editor semantics, the shared metadata suite for wire/schema/security invariants, and `MobileHardwareKeyEditorRenderingTests` for a deliberately opted-in key-window check.
 
 ### Assistant history: compare live state, backing rows and restore
 
@@ -311,7 +350,8 @@ The **mobile** rendering fixture tests shared `ProPaywallContent` rather than pu
 | Change type | Primary regression seam | Required behavior to protect |
 | --- | --- | --- |
 | Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | Respect each module's import/construction rules; no app import from shared code, local shadow of guarded AgentKit types, or SwiftData model/repository outside Persistence. |
-| SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows. |
+| SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures; `PersistentStoreLockTests` and `DatabaseStartupGuardTests` for macOS store access | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows; another instance cannot open or migrate a locked disk store. |
+| Hardware-key metadata, Vault wire format, or mobile key editor | `WebAuthnVaultMetadataTests` plus `MobileVaultFeatureTests`; opt-in mobile hardware editor rendering only when interaction changes | External hardware metadata works without Keychain, failed writes preserve state, V44 software keys survive V45, and mobile drafts keep private material out of Vault records. |
 | Assistant message-boundary edits or replacement provenance | Agent persistence/replay, conversation operations/controller, composer and mobile Assistant fixtures | Same-run prefix and graph survive, suffix backing is removed, staging adopts once, chronology remains stable, live/restore agree, and late retired writes cannot resurrect history. |
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety, physical-deletion and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data; stale deletion acknowledgements cannot erase a new incarnation. |
 | Notification authorization or synced preferences | `NotificationPreferencesTests` and affected platform settings tests | Concurrent initial authorization is coalesced, disabled/bell-only settings avoid unwanted permission, failed load does not use defaults, remote updates do not echo, and V40 preferences survive V41 migration/reopen. |
@@ -333,7 +373,7 @@ Start with the smallest deterministic regression named in the matrix (for exampl
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test
 ```
 
-For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO` only for a narrow key-window suite such as `-only-testing:TFITests/ProPaywallRenderingTests`; the currently ungated Metrics journey and connection-journey rendering tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
+For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO` only for a narrow gated key-window suite such as `-only-testing:TFITests/ProPaywallRenderingTests`; the currently ungated picker-toolbar, Metrics journey and connection-journey rendering tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
 
 ```sh
 xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge
@@ -343,4 +383,4 @@ This page complements [System Boundaries and Dependency Ownership](../architectu
 
 ## History split and per-kind evolution
 
-`HistorySyncTests` exercises native CloudKit fields and optional-field removal, independent History/Device selection even in the shared zone, terminal tombstones, ignoring retired Vault importer state, retry after a failed initial fetch, and restoring a missing Device projection without rewriting its journal version. The V35 migration test independently verifies that the retired importer checkpoint is dropped. History sync verifies structured Logging without raw record/account data and treats expected cancellation as lifecycle control; use `CloudSyncLifecycleTests` for overlapping explicit and automatic fetch readiness. `SyncRecordEvolutionTests` freezes a literal V1 Host fixture and exercises a test-only Host V2 reader/writer while other kinds remain V1, malformed and unknown formats, throwing encoders, and aggregate status. Persistence tests additionally migrate and reopen V31/V34/V35 stores into the current V45 schema and prepare History state after the fixed V28 fixture migration. These are local protocol and transaction tests, not evidence of deployed schemas or signed-client delivery.
+`HistorySyncTests` exercises native CloudKit fields and optional-field removal, independent History/Device selection even in the shared zone, terminal tombstones, ignoring retired Vault importer state, retry after a failed initial fetch, and restoring a missing Device projection without rewriting its journal version. The V35 migration test independently verifies that the retired importer checkpoint is dropped. History sync verifies structured Logging without raw record/account data and treats expected cancellation as lifecycle control; use `CloudSyncLifecycleTests` for overlapping explicit and automatic fetch readiness. `SyncRecordEvolutionTests` freezes literal V1 Host bytes and exercises a test-only Host V3 reader/writer while other kinds remain V1, malformed and unknown formats, throwing encoders, and aggregate status. Persistence tests additionally migrate and reopen V31/V34/V35 stores into the current V45 schema and prepare History state after the fixed V28 fixture migration. These are local protocol and transaction tests, not evidence of deployed schemas or signed-client delivery.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:936a44b4be960044dd2f6f3043f579e3b1904d7654c415c0504a80393905ad16",
+  "pageVersion": "sha256:82d4241d5a5537476b50000c30512fd4fba394f2116714a797ee9976a1322e94",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -300,7 +300,7 @@
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:4ee17a2dd804f1ab81d2cab803be5dc6488a62855095afd3ec1968e415907dfd"
+          "version": "repo-file-v1:sha256:c27dd7201910ddc156220ab675590c4ee4e61e4d756fa31825493bab27bbd92b"
         }
       ]
     },
@@ -346,7 +346,7 @@
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:edb291d436f787e4495f7407b2187e9882ce617b854f8effda4752736d694ea7"
+          "version": "repo-file-v1:sha256:b8c363b57821837253c03ab08778965836a874f9509b7bb89d28d6de608aee2d"
         }
       ]
     },
@@ -827,10 +827,122 @@
           "version": "repo-lines-v1:sha256:23b6718a3963184e67868b3f49c8c4992edd1749a962b669513c295c7204e91d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjZmMzZThlMmNjM2Q4ZGU5YzQwNGI4ZjI2YThhODBiZTcwYzU1OThlNmMxMDMwMjAxMjM2ODBhNGM1MTE4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMGRkZjlhMGYwOTYyNTc0ZWEzZGQ5ZmI2NDNlOWI4MGZkZTZjNWExNWQwYWJkM2Y2NTZkZjA0NWJmYWI1MDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1NWE2YmQ5MDhjMTBjOGM0MzYyZDBkNDAyZDI0Y2JkMDY2MDgyYjNjMjQ0N2YwZTA0MjZhYjEzY2M4NDc2M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU4NmY2ZWI1MzAyNTVlMWFjZDBjN2I2MTZlZDZmMjI5NjhjMGM0ZGQwZTlmZTQ1NzA3NTU5M2VjY2M0MjkzNTkifQ"
         }
       ]
+    },
+    {
+      "id": "claim_ce9fc9d51cca44838f17e012cd7cf018",
+      "statement": "Desktop sidebar mode and visibility are window-scoped across destination changes; the mode rail reconciles destination and focused-pane changes, and a focused serial pane disables History, falling back to Snippets rather than activating it.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L14-L34",
+          "version": "repo-lines-v1:sha256:490cb037979e106654faaa69b0c94dff98f2be09c8ad2100f49165489f9818ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViYTcwZDZiMWQ2MWY3NGYwMjVmNzU1NTMzNmM4NzI2ZmIzMDFjOGQ1MDdmNzNlOGExNTZjMzM0MWNhNzBhM2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxNDk0NzA0ODY1MWRiMDNiMjAyZTRjNWExOTgwYjJjZmUyN2QxYTE0OGY1MzY5YzA0ZjFjZGM2MGVhOGI3ZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjZmIwOWM0YzM3ZTg1NzE5NTNkNDZlY2IyMGE4OThlZTMxZDc3YjUyZmE5Y2FiOTMzMDA5YTJkYzllNTJjNmMifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L66-L103",
+          "version": "repo-lines-v1:sha256:8da39a9f7761aa3529aad952654ddc91ad4e5b768a194e6a6ad2cd2f99f1b66b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4NjUxMmEwODcwNjg1YTAxZGRlOTgzZWQ4NmIyMjJlNmRkNDAzMjkyYjI4MmI0OGY5YjA1NGZiZTNkYTY3NDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmYTdjNzZmNWJhYjU2MDk3OGY2Y2Y0MGUwMTllOGMzNmEzZjI5OWNkNWMwYTc5ODlmYmViNmY2MDhhMTg4NGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0ZmNkMzA5NWFkNmRkODhlODY3Zjc4N2YzNGE4OTRlZjk4MzQwYWM4MjZiOTc5NWQ5ZTg1MjVhMzliYTE3ZWYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/WindowSidebarTests.swift#L46-L123",
+          "version": "repo-lines-v1:sha256:186a560419d62330a220de7a65fdd5e8a3fedb0bc6cc02939741ce22fc7b5107:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1YzBiZDBmN2NmNzQ1ZjZjOTg0Njg0NzY5ZDMyM2YyNjE5OGIyNjQwNTllM2YwZTgzZGNiYTAwM2NmYWZiNDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4YmZlZDBhOWM3NzUyOTQ4ZWY4ZjRlYmRhZTcxMDM3YjYxZTQ1ZDk0MDFiNGFlOWU3YmZkYzI3ZmI5OGQyZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ee8d4e47a1d945bd87eac6bcdabc3fcf",
+      "statement": "Desktop Snippets and History shelves host stable-ID SidebarListItem rows in an AppKit ListView; history rows keep identity across display changes and share a card height except for inline naming, which grows without changing ID.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L139-L221",
+          "version": "repo-lines-v1:sha256:3abda17d60766c4654f70664e5f9cba7a2a484cd34819bfe123ca26d8c45d3f4:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3ODgzNDNlYzllOTY0NmMzZWY4MmI3ZjNlNDNjMDI2MTE2Y2VmNDdmMzNiZGNjZjBkNTNjYzdhMGEwYjQ1ZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMDk1MjljMTEyNTMyYjU3ODY0YWExYjk1OTlhZjczM2QxZmM1ZDg3NTVkOTMyZDJjY2ZiZjFlZTQ3MzQ4OWQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L336-L423",
+          "version": "repo-lines-v1:sha256:48ec68765af443ef4960101f8f59513b14da55c7b062cd58745589c91a9e421c:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGMyZTg3ZDhlMTIxMDViNmQ1MWZmN2MyZDE2NTFhYWRkNzAyNjU4MjA2ZDBmZTEzM2RmMzRkMzU5ZDg4NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0ZmQ5NWZhOTFmNjVhYmY0NzNlNDE1ZGZjMmMwZGEwNDJhMzhmMTFmYzc3OGRjMWVhZTQxNjhlYWVhYzljNTcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ListViewMigrationTests.swift#L150-L225",
+          "version": "repo-lines-v1:sha256:1a48c4d1bdfd1a8eb2afbce54f6d04e42691928cc960a9079b455fe2a8654bd8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyMzljM2U5NzQ0MTUyNWFjODNjYmY4OWRjYjdiNDIzM2E2M2YwYjEwNTAzMGExZTA0Yzk3Njg2ZTkyNWY1NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjN2I0ZWQ3YTI4YTQzMDA0MmFkZjAzMTE0NmIwNWU2OTVhZDhiMjIxZDcwZDk3MzFmZGU5YTg1YWJmNzQwYzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4f67311d131249409f2bc557cac22424",
+      "statement": "The compact Snippets shelf persists expansion independently from the full Snippets page; collapsing removes rows without replacing the section header's identity, while the shelf's own footer search filters its sidebar list instead of the foreground titlebar Find query.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L224-L282",
+          "version": "repo-lines-v1:sha256:76b9b922cfec03a2fef27dcb44e80e758ee095eee0272311fe5fef4cbe41333c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczNzBhNmFmYzRjYjI5NGJlNWI4NTlhNTU3NGRhNDhkNGIyYzhmOTY3ZWI3NWNmYjE5ZjIyODYwNjA0MTdmMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOGZhNTE0NGY3YjJhNDE3MjUzZTlmMTRlZDE3OTliYzliOTA4MGJkNDExNGU3OWViMjI2YmE0NmNjYTViNTcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L302-L333",
+          "version": "repo-lines-v1:sha256:3f5ff16a9f9b5ebb3dd8a7a19c56f3cd215ce28962f4e39caa7f2721991a38ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwNDllZDhhMGNiN2ViMWEzYzdiYTM0OWY5NzE5NTc3OWNiN2Y3ODJlNWI3YTI2MTc0OGMwM2ZjNjY1YmEyYjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhYjg5OTNlZTE1MTExMjNmZDM0YTFiZTg1ZWUzNmVjMjRkNjJiMTU1M2U3Mzg4YjUxYTM4ZDRmMGFkMTU2ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzNTc0MWEzNmY1YmRmNzhhZDllOTRhNzAxNGUzY2JmMDhjYjNhZDNjZDU2NDlmNmNlNmIwNDZkZDA5NmIyYjAifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L551-L635",
+          "version": "repo-lines-v1:sha256:336297bcd2a8e06bd0ece693b5cb4b71f9af3b358385a0ef705cc4600a081307:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiYTRlYmRlY2Y2MTZmN2Q5MjI0YzhkMGQwOWRlODA4MzEyNWVhYmMyZjQwMWRkZjQwODAwOWIyZmE1MWYxOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwMjUyODQ0N2VmYmE5YTQwY2QyNzA5MDcxYzc2NzM2NzIxNmU0ZDUyODMxODY0N2E1MDE1NTJhY2U1MzE1NTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjODI4ZDE4ODA3OGNjMTZmMWIyMTM1NGZkMDVlNjFkYjNjODI0M2ZlMTA0YzEzMGU0ZjM2ZTA0ZDJmZDA5MDYifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/SidebarRow.swift#L391-L405",
+          "version": "repo-lines-v1:sha256:b3f48471d9b2ef561c4b7a7672e951af9b3a9f49c26fb7953103522032c30bad:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlNTIzMjFmNmJmMjI1OGEwNTQwNzMyZThhYWRhNTdlNjJkYzA4NDIzNTFjYmIwODQ0NTQ4MDk4NjcxNmE4YjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYjcxNTNkNzYxYzhlOGU4YzI5NzJmZGExYjU0ZjMzZjliOTk2YjlmZmZkNGI0ZTNkZGEzNDBhNTc1MjQyODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ListViewMigrationTests.swift#L227-L261",
+          "version": "repo-lines-v1:sha256:395852e83f1a1bf73b837b2794e7720f904c1598821c4d13d66990c54487a72d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkM2ZhZWIzODg2MjFmNDI0MDZkNzE1MzQ1NWEwNDI0ZjcxNWFjMzU0YmMyNTVlODIyZTY5ZjJhNmYwNDgxY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyMzlmNTJkOWE1M2MwYWQ1YmZiZTVmMTQ5NDMxZDEyMzc2YTg3MTk1OTQ0N2M3M2UwMWEyMGI0NzhkMzYyOTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2ec78e238669467b9fdf2d1e1ec179e1",
+      "statement": "Desktop sidebar native row menus and blank-area menus have separate targets, so an empty-space right click does not invoke a row action.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L336-L385",
+          "version": "repo-lines-v1:sha256:bb61aadc0a7b44f9e7e15d6130c3d9867ef3ace81aa564c7354eb2b262dcd631:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2OGMyZTg3ZDhlMTIxMDViNmQ1MWZmN2MyZDE2NTFhYWRkNzAyNjU4MjA2ZDBmZTEzM2RmMzRkMzU5ZDg4NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3YzIzNGM3ZDVkZDk1OTgxMjM5ODAzYjE5NTEyZjdlNDI3OTk0MTUzM2YzNDUxZjY1YzQ3Y2U2YWJkNjlhNWMifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L426-L450",
+          "version": "repo-lines-v1:sha256:f8763313fa8a6929da950b6f4220e63c47c045382379c5df4d5578a042f70aaf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5Y2Q4NjExMzYwYWJhOGY5ZDVjMDUwMDNmMzc0YzlhZWI2ZWRmNzg1Yzg5MzQ5MmZkMjZhZjljOWJjMjNjYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxMDY3NmFkZWJmNWFkZmE1ZmZlZjBhZDNkZDM2OGMzMGIxNDc0YWExOGNkN2YwMWQ3N2NiZGNjNzQ3NGRlMGEifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L638-L656",
+          "version": "repo-lines-v1:sha256:cf86b24ca44e2e73d6867f43f5f8db5da8256a31b49505b8c475f01c71fd45b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViMmM3NmU5ZmJjNzM0OGZjNTBhZmRlMWY5ODIwOWRiMDEwMGFlODY3ZGI5N2JjNDEyNmU1YmU5M2VkZGI4OGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MDkyZmEwODViZjNlNDI1ZjJhYTdkNTg4YWFiMzBiM2M2NTA4ZjIxOGI1MTQ0YTRjMTM5YTUyOTFhYWZlYWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2e9a8eecef0245a1b23581dcb2dc42a0",
+      "statement": "Mobile Vault groups Hosts in collapsible sections and offers native links to Keychain, Forwarding, Snippets, Known Hosts and History; search shows Host results and cross-feature links, optionally forwarding its query to the destination.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L453-L479",
+          "version": "repo-lines-v1:sha256:6a619257f5a5044c9833ca34b2c8927b8011702ab98bd8171f898ecacafc1827:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwMDJiZjA3YTYxZTc0MzhkY2RhNDBmYzViZmQ2OTdlMDVjMmMyM2Y3MGIwNTU3Nzg4MWM2ODQzNDU1MWEyOTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZmUyOTY2MGQwMWI1MTk0ODgzMDkwNWE3ZDQ1ZGQ0NDUzMGNmMWMyNGE0ZTk2NWI0OGMwMDY1OGQzODBmYTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlkYzc1NjgyM2ZiMzMyYmI1ZDJmNzAxZTQ3ZDllMTRlMjc3YTQ4YTg3ODhhZjYwNGY1MWFhMTg4MjRkYjUwOTUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L531-L675",
+          "version": "repo-lines-v1:sha256:acb6f0c494ee4694f014315c4a079e53ce6306736be514f5790f05aa2432f60f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMDIwNDMyZGM0NzRhZjdlZmNjZWJjMGU0NWQwM2MyMWJjNzk2NGVjM2VmOTQxNmY4OTZkZTA1ZTZjNDgwMzM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzN2E4OTVkMjFhNTdjNzI0NDg3ZDk1YTRkMzg2MDkxZjE3NGIwYWRhNGIwZTBmMWYxMjNiY2E4YTM1ZmUxNTQyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxMTA3YTA2NGVkYjM0ZDZhOTA1YTk2ZGI4YTM1MGQ4MmM5MDcyMzAwZmM2YjFlZDU1MWU2ZDQ5MDU4YzFkNmY0In0"
+        },
+        {
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift#L678-L769",
+          "version": "repo-lines-v1:sha256:003dfea0ee75f9181c4bb0f2a87e232515579186d40a088534fa1ddecea23a47:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZWI3OGJkZmVlNGM0NWMxNGZhYmIyNGE5ZjI4MDhjMGZjMDlmNDdiNjc2YjZhODJmMWM4MjBhYWFlNWJjZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjNzBjYWRmNjY1ZmQ0MTUwNTE4NmY2Y2FkNGExMjllM2IwNDZkNDAzMmRjYjFjM2M5NjdlOTk5ODA3YWUzODIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_809d83fb699b457fa3efc1da62c96f93",
+      "statement": "PresentationCopyTests verify resource resolution across English and both Chinese scripts, nested native menu labels, plural/interpolated deletion messages and rendered SwiftUI text equivalence between resource and swiftUIKey via ImageRenderer.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/PresentationCopyTests.swift#L10-L120",
+          "version": "repo-lines-v1:sha256:2804f5663fb6a28eea381657fd088c75c14a403bba03a626f9786919d1308fdd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTExLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3MmJiNmQ1NzgzMTJmNjJmZGQ3OWM4ODdhMGNjNmVkMDRjZDkwOTQwZjFhYWE3ZTlhNTAyMGVmNjkyOTFhOTU3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4Y2QxYTdmOTRjNDA3ZGQzZTMxY2ZiNmE3OWRmZDQzMGQzMTU3MjI5MjViZDczY2UwNGM0YjFmMjA4MTA0NjdjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjYTJiZTdiMzkwNWNkM2UxOGU4YjQ5NTJhZDUxMWI4YTc2YzIwMDRkOWQ5MWU0ZDMyYjZlMDk2NzY1Nzk4YjM5In0"
+        },
+        {
+          "resource": "repo://TFMTests/PresentationCopyTests.swift#L167-L203",
+          "version": "repo-lines-v1:sha256:9b677d6fe3dd94ae20dd6de6b233c2d8b9ae8f257f37b59e68c7ad076a033262:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0M2Q0ZjYwMWU4ZTJmZTYwNTExYTIxYWY5MGVkNWM0MzYzOTVhMjlhMTE2YWY0MjljNDE5Njc1NDQ5YTc0ODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

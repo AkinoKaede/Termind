@@ -5,7 +5,7 @@ description: Task-oriented routes to Termind's owning layer, startup and shutdow
 tags: [engineering, architecture, routing, testing, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -75,12 +75,12 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Termind Engineering Quickstart
 
-Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) products over shared frameworks; platform UI and lifecycle remain app-owned. Source and tests are authoritative. Before changing an ownership boundary, read [Cross-Cutting Engineering Invariants](/openwiki/architecture/engineering-invariants.md) and the narrowest topic page below.
+Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) app targets over shared frameworks, plus separate test, widget, and macOS MCP bridge products; platform UI and lifecycle remain app-owned. Source and tests are authoritative. Before changing an ownership boundary, read [Cross-Cutting Engineering Invariants](/openwiki/architecture/engineering-invariants.md) and the narrowest topic page below.
 
 ## Find the owner
 
@@ -94,7 +94,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](/openwiki/architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connection/routing changes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI changes. For native metrics authentication/navigation use `MobileMetricsJourneyTests`. |
 | Shared UI conventions, fields, tokens, accessibility | [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md); check platform renderings and `ArchitectureBoundaryTests`. |
 | SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For journey route/checkpoint changes, `ConnectionJourneyTests` covers shared state and `MobileConnectionJourneyRenderingTests` covers native mobile rendering; see [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md). For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
-| SSH Security Key registration, FIDO2/WebAuthn signing, Vault metadata, or forwarding limits | [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md); use `WebAuthnVaultMetadataTests`, `WebAuthnSSHTests`, and `SSHInteractionPolicyTests` for the changed boundary. |
+| SSH Security Key registration, FIDO2/WebAuthn signing, Vault metadata, or forwarding limits | [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md); use `FrameworkTests/WebAuthnVaultMetadataTests.swift` for destination/jump resolution without Keychain, V45/V2 Vault metadata, legacy storage normalization and failure rollback; `TFMTests/WebAuthnSSHTests.swift` for assertion/registration validation and SSH wire fields; and `FrameworkTests/SSHInteractionPolicyTests.swift` for silent-connection restrictions. These fixtures do not replace a hardware-key and native-prompt check. |
 | Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. For metrics keyboard-auth presentation, use `MetricsJourneyRenderingTests` on desktop and `MobileMetricsJourneyTests` on mobile. |
 | SFTP browsing, transfer scheduling, external edit | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md); select the transfer, conflict, or edit suite. |
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](/openwiki/concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools, or memory tests. |
@@ -111,7 +111,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 
 In Debug XCTest runs, the **real desktop app** still launches. By default it suppresses automatic launch of the main and external-auth scenes and disables main-scene restoration; an explicit `TERMIND_WINDOW_TESTS=1` lifts suppression, as does an active screenshot demo. This host-level safeguard complements, rather than replaces, `.requiresVisibleWindow` on any test that presents a window or takes focus. Screenshot demos also disable main-scene restoration. See [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md).
 
-Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback. Use [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
+Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback; the fallback bounds the quit reply, not completion of asynchronous cleanup. Use [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
 
 AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 

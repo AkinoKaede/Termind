@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2c52bcae5981ba4663acf9f8d206de33ba405a36ba90b009f79a2de8dd26d2d2",
+  "pageVersion": "sha256:fa3cf99d0eb78a35d5467bcdf0325ed475e437200a184818cbc214b387945516",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -524,7 +524,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:d47a7250cffefb727becbf0bd7613a688b10ea7614f27c47c3014957817b53ba"
+          "version": "repo-file-v1:sha256:0452c2c35a05d85dff2e2c9e06638e8320ad75fda91a9dcfa409ce3c2f596259"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
@@ -568,7 +568,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:d47a7250cffefb727becbf0bd7613a688b10ea7614f27c47c3014957817b53ba"
+          "version": "repo-file-v1:sha256:0452c2c35a05d85dff2e2c9e06638e8320ad75fda91a9dcfa409ce3c2f596259"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
@@ -593,10 +593,114 @@
           "version": "repo-file-v1:sha256:15d46d6e0a642e20c81a528aaba27c34f9159539622f4068e4ec3aff388fe15e"
         }
       ]
+    },
+    {
+      "id": "claim_ab3581029d4b459ebd9b633bbcd0499b",
+      "statement": "AssistantToolRegistry builds the Assistant catalog only for tool-call-capable models, admitting enabled remote MCP servers with nonconflicting namespaces and supplying each server's manual Bearer credential and OAuth-capable MCPClient; its conversation-keyed scratch workspace persists across runs without being shared across conversations.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift#L336-L350",
+          "version": "repo-lines-v1:sha256:377d66b8a94482c787253823819a2b6e6d1de6ec2927a4a3d99610d364aa9418:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjA0MmU3MjY1NTJkODdjZGQ5NjI3ODFlN2Q0ZDgxMTU1NTY5YzFhNTc2ZmM0OWExYjNjYmRlNTQ4N2VjMzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzZDZlYjBhZjBlMzI2MTU1OTg3ZDk5MjkzY2I2ZGI1NjYyYjc5YTY1MzQ3NzMzY2M3MzUzOGJhMTZhZGY3M2QifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L101-L106",
+          "version": "repo-lines-v1:sha256:e2b42d42d1e86be02f8a86c702f51a84379407f81632469d825bad08a1127602:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGJlMTRkY2QwMGIwMjA4MzNkNzQ1YzkxYmQzMmRkNzM0YjA1MzlhMmUxYTM0Mzc4ZmI1OWE0MzRlMWJkNzRmNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWIzN2U1MjVjNmIxMDJlNzY3MWMyNDQ2MzUyY2EzM2ZmMDE4YWZkNGFhMGFlZjJlZGExZWI3YWI0MjZiZDk1MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDdiM2RiMTQxMTI4YmFhMjdhOGIwY2UyNzRjMDVjZGIzZWMxM2MwZjlhNTAwNDcxOTdjNmVmY2YzMjQxY2QzMSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L20-L69",
+          "version": "repo-lines-v1:sha256:ddfb338e098c968f210e5fdc81a414de0be3bcad41a62f54af4172ee8f2c4988:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZjA3MmQwY2RhNGQ5MzE0YzEwMjk2MmQ5YjU2ZDg3YzBkM2I2MThmZTU2MzIyZjE4OTJkY2M2NGEyMDE3NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyZjE2MmRjYjdkOWY1ODVkMzFlYmJiYTljOGJmMTYyM2RjMTQ2Yzk3YzY3ZjAxNmJhYzA1ODczYjRjODhjZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYyNjg3ZWVjNDdjMDhjYTllNWRhZmJiNGE3ZTEwNGMyZmJiMGU1MmYzNmMxY2ZkOGJjMzhlZjE4OTE5OWQzMWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_96b198aff22d4c539af4fc760da26c9a",
+      "statement": "The Assistant catalog registers AgentKit built-ins before Termind host definitions and discovered remote MCP definitions join afterward, preventing a Termind or remote tool name from shadowing a built-in.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L45-L68",
+          "version": "repo-lines-v1:sha256:aa28af12a7acfe686c968a4e0fd15260f17716da952fa3ff775e7f834e9d7dfa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YjBhZGQ3NDg1ZGY0OTA5MTkwNzI5ZGEzYTVkZWY5MjVkZmFkMTQ2YTJkMTA1MDk5YmFjZTJiYmJhM2ViMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzQ4ZTU4YzVlMTBhZWJkMDdkOGQ5OTljOWJhYjg0MDBlNWRlMDA3NzE4YWQwNzA5OTkxOGRjOGMxMDg3ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3ZDBiNzVhMTA5MTU2ZGZmZjE3NTljNTBiMTY4M2Y5NDBiNzQ2Y2QxZWE2NjA0MWRhMTAzYjUxNzAzMTI4NDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e642fdddd0e34373ad3af2e84385dd14",
+      "statement": "Outbound remote MCP OAuth grants and client secrets are separated by server in a nonsynchronizing this-device Keychain service, rather than synced AI settings; the synchronized server configuration does not serialize grant tokens or client secrets.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L149-L163",
+          "version": "repo-lines-v1:sha256:e80b1e1801d915b92c0a7fb5fdd0fba57f0f2af6e8e2c5f8db2e16feee81ad86:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxOTc0ZDM5N2U0YjE2OTIxMmJiZDcyOGQwODdiYWQwOGJjMGQwN2Q3NDA4YzQwNzk0NWNlOTBjMzA4NTBlNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1NWExZDJkM2Q1NTFlY2Y5YjE5YzEzODljOThiMzY4NjgyNDMyNjM2YmFkNGUxODMxNDRhNDQ1MzA3MmViMjAifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L197-L214",
+          "version": "repo-lines-v1:sha256:a5a3a0dbe2e0582c714f55c8a13270ca9934933b6bdddb92db159fdc6c8aa883:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzMTE1OGNhOWNjZTQ3ZWUyMTI5MjNjZmE0NjVkM2JiYjZmMGVhMzAyNDQwNTEzY2I5YTZlZTY4YzJjYzU5MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZTRmNjA5MmY1ODUyZTMzN2Y2OWYxMjI0NWEzNzM0OWM5Y2UwZWJlMWQ1MjU3NzZkY2RhOWJmZWFkMWU5NDcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/MCPKeychainCredentialStore.swift#L64-L75",
+          "version": "repo-lines-v1:sha256:c5cf5c2d41a58b6f483db3fe864a3061dbc5d44b03238bdce26c033b10a2dc2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxZjBmNTk4YTE3YmQ4NWEzYjBjYjIzNmViMDc0MmIzZDAzOGI2Y2Y1YjExZTg3NDRkYjRlZTFhZjVlMjI0NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5ZGNhODU3ZTFiNmRkNjNmZWIzNTZiMjNlYjcyMzQ5ODMzYjlkOTU1N2IxZDZkNWIxMTMwNjYwN2FkYmFiMjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhNzI4NzYyYWViMWEyYTZkMTQyMWVmYzBhMzcxM2Y0MzY3MGU1MGQzMjkzNjdmODhjODgzMWIwMzRiNjI2OWYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/MCPKeychainCredentialStore.swift#L7-L21",
+          "version": "repo-lines-v1:sha256:716987612e41d23ba2b20d06b57987588d53c004f59ae4383ea4c9ca265c046c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjZGUyZjc4Y2ZmMmFmMTQyNTBlYjEyMGEyZTAxNmZjZTUwOTQ3ZDczOTJkNmIyYmFiZWU4Zjk0MjEzNTIyN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkZTdjYWE4YzMyNjZhNTUxNWIyMTM5NGJjNjQ1NzI1YzkwMTU1NmJhMDA2MTA4NmJjZWIyNjQ1M2ZmODljMDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2N2U5MTBhNTAzYjlkMTNhYzZlNmZiMzZlZTAzNGU5MDMxYWJhZjU5YTU0ZGIzNjY5NjY0YWZlYzI2ODVlNjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_930cba372c124d0d9b583077cf4d4b4e",
+      "statement": "The outbound MCP editor stages newly authorized OAuth grants in a draft that is discarded on cancel; committing saves credentials with configuration and rolls back credentials on configuration failure, while refresh rotations for previously saved grants persist before draft save.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L22-L44",
+          "version": "repo-lines-v1:sha256:43021d82093016140b5bb83ed53cc001c83b708fe2bfd8512fc4f6ea3b81644d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYzk3Yzk3OWNjZTNhNjllMDc2NDVhNWQyMTQwYjkwOWZjYmUzODk0Y2ZhYzQ0NTc1ZTk4OWJkZGIxM2Q4YTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhYjAzMTljOTI2OTQ2NDBmNDhmNmQ0YzM3YWQyM2NjZDhmZjdkNGE3ZDhiZDk4MTliZTEzM2MxNzkxOTE5MjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxN2NlNzY4ZmM2YTEzMjliMzcwNjU1YTNiMzliYTcyM2M2NTM0ZDg4NzIwMzFiNzExZDk2MTEyZGEwMWNjOWIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L81-L93",
+          "version": "repo-lines-v1:sha256:73e054f24cb188aef3a8a2c4b2694d6cab80c1c781ea32068cc8944023fd421c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxOGU1MTJlMTMzNzY2ODU5Yzg5NmM0M2E1NmRhYzVlYjk0OTliOGU3N2YwMTU2M2JlZDgxNGVkNTE1NWUxMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyOGUxYWMyYjU1MDU3N2ZiMmI2NDc5ZTQwYWE0ODU0NjNlZGQ2NDE1ZDVmZTJmNmI0NzlhZmZjZGJiNDZhYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMWI2OTc4MTQzYTI2NjU2YzljNmRhODM1NDc3NWJiNjk5ZGEyN2FiYTM4ZTRjOGQ0YjZiZjdlMjZlMmRkMDYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L242-L265",
+          "version": "repo-lines-v1:sha256:2f28e40f859b46762fc328b06832b52346041d2ff1647e6f0fa3d07b64ac6b40:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNjUyMzc4NTgyMjhkYjJlNmM5ZThiNTU5MTBmYjNjMzEyODdiNDUzZjZlYWVlNWUwMzM0MzI3M2E3NTQyZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3MjljOGUzYTVmMTUwM2RkYWRmNWQ3ZGFiMTg1YjcwODlkZjBhNDFiNDQzNTc3YmU1Yzc5NWRiODkwYmM3MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhYTBlNzc0OGE3ZTFiYjkzNDFiNDU0Zjg2MzRlMWFhYzg4YzJjMjY1Mzc4MTBmYTk5M2M5ZmRjNTU2NWIwMWYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L280-L325",
+          "version": "repo-lines-v1:sha256:822143e87d912d4504c350faa3c2a0c22a4939e41bffcb31b9f91da583dc9732:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwNTZiNGE2MGIzZTYzMzVhYzBiYWZmYWYxMzlmMmZmMGViMmJjNjRhMjJmMmIzMThjNmFlNmJlM2NhNGYyZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlZWI2OTRlYzhhMTNiNjJmZmVkY2VmMzE5YzAxNTg3MDg1ODhkZTYzMTBlZDJhNmEyMjQyNTAxMDU5YTkxMmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjMjE1MjI5ZDdkY2IwYjk2N2Q2ZDgzMjJmMjRiMDA1ZDIyNzMwZTBjOTMyZmI0YjllY2ZjMmFmOTAyNTlmNDAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L342-L350",
+          "version": "repo-lines-v1:sha256:4e39645701f0d9ee6a1f717552a125becb538548cf19cd34f69e892724cf41c1:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTg5NzBhOTQ1OTBhMmU0ZjY2NGI3ZjE5ODdmNTc4MjIyZTI3ZjZmY2NjNjYyM2IzNzdiZTVmNDlhNTJiMTU1NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3d4b11a39b724ac89d0a54c9fc35eb56",
+      "statement": "Changing or deleting a configured outbound MCP server's authorization binding clears old device grants and cancels in-flight OAuth work; runtime token requests check the current binding before and after authorization, preventing retired configurations from initiating or completing another login.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L118-L147",
+          "version": "repo-lines-v1:sha256:03b78ba51c4d799a0838956b10599ba449d5fe5aaa50bb78a236560a7facf332:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiYTVlZWQ5OTc3NmNkMTMxNzhiY2U4ZDI1ODU1N2VhYzljYmNjZjExODBmNzAyNWUxN2Y4M2VjZTJjNjUzNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFjNzNhMzlkNzk5OGFlZTVlNmFlOWUwY2Y2ZjcwYzQ3NjlkNTk5YjA5YTllMTc3ZGYxY2NmZDYyYzc2MmE4MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxZGMxMjcyYzAxMTAxOGE4YzE4ZTcxODM3NjAxYjA1YjJjYjhjYzgyZjQzMzljNmU0ODUxYTJlZmNlZDIyZGYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L108-L140",
+          "version": "repo-lines-v1:sha256:5eea5f432bcb1cc1b55fc9270a65b733be62575535ba0f6d3c6384b90ea3d822:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NmUwYzk2YzM4MjBlMmJjZGFiM2E3Mzk4MWJjZjI5OGE1Yzk2Y2U3MmQ2MDhlMDc5MWZmMGI1YTQ1YTIxZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2Y2FjMjFjODQ5ODc2YzI2N2ZlMjgwY2U3OTYwMzYwNjY4ODdiZmE5MmE5NGIzZGYzY2VjNTNlYTAyMDI4ODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3MTU1NzY3MGZhODI0OWM5ODEwNTVjZDVlNWUxYTRlYTk1MzIyZmQ0Mzg0ZDRjNzlmYmY1MTdkM2VkODI3YTYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/MCPAuthorization.swift#L66-L80",
+          "version": "repo-lines-v1:sha256:63b51f621fe91426a23a1c276d53f2c15c645b8609b113bd0256b3553c1011ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlODJkNzViZjRjZDIzYjc1ZTU0NzBmYWNiODFlYWNhYTk1YjM0MDE0ZWRlMTRmZmQxNDMwZGY1OWNjMjQ4OGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViODVjM2I1NGY1ZGI4YzljOWNiNjJlM2E2ZmYzYWQzYTYxNDExMjYxZjVhYmM2NGExNzBmOWIxZWMzODJmN2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljZDk3YTRlOTBmZDdkYjk2Njg2MjFlMmRhMDU0YzViMjgyYzg5MTczZDNiOTUwYjJjYmUzZTdlYjk4YTRhNjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1295d0a6da9c438eb5bbaa2dc111606a",
+      "statement": "Conversation-mediated outbound MCP OAuth browser requests transition a running conversation to waiting for user input and are cancelable on request cancellation or conversation stop; late callbacks do not create transcript or message content.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/MCPAuthorizationTests.swift#L216-L249",
+          "version": "repo-lines-v1:sha256:d78d46c2d6e3d0c12c2a67c456ea5995056503dbf91e51484b57ad8304443032:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5YWMwZGQ5YzE0YmY5MmUzMGRmOTBiNDMyYjg2MGJjYzVmZmY3ZTNkMzE3YzAwODZkOTM1NGYzYWUyYTE0MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4ZjYwYWI4YTYwNjkxMWQ4ZjI2MWI4ODViNDY5MTRiMzNhZGJhNGNjMTQzYTI5MjZhN2ZjNmUzZjI2ZWQzMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzYmI2YTJkYWEwNmUzN2Q5ZmZmMzAxOTYxYjQwMmQ0MTc1YjlmODM0MzdmZTA3N2RjYzc2NTBhNjVkNjcxNTAifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-30T23:24:42.368Z"
   }
 }

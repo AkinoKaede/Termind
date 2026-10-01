@@ -3,13 +3,24 @@ type: integration guide
 title: MCP Server, Transfers, and Stdio Bridge
 description: How the macOS loopback MCP server and stdio bridge expose host tools and scoped SFTP byte transfers, including session authorization, ticket lifecycle, and failure recovery. Distinguishes desktop inbound serving from the embedded Assistant's outbound AgentKit MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
+  - id: openwiki-source-3118dfa7dfade14baaccd202
+    resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
+  - id: openwiki-source-130fa30d2edc07154f39ee38
+    resource: repo://Frameworks/TermindApplication/MCPAuthorization.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-bc74a29e9a2eb4499ea67a50
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Security/MCPKeychainCredentialStore.swift
+  - id: openwiki-source-8c210a15efeca25100f18978
+    resource: repo://FrameworkTests/MCPAuthorizationTests.swift
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -56,17 +67,32 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # MCP Server, Transfers, and Stdio Bridge
 
 Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, configure a manual Bearer credential or OAuth, set per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
-The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. macOS also constructs a separate ordinary `SFTPTransferCoordinator` for its own file-transfer UI; the MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not either app's ordinary transfer coordinator. The mobile MCP editor performs outbound discovery with `MCPClient` and preserves per-tool policies across rediscovery; mobile MCP settings gate adding/editing remote servers with `.remoteMCP`. Discovery uses the configured manual Bearer token or device-local OAuth authorization, with a user-driven browser interaction when authorization is needed. Both platforms' Assistant can instead construct an **embedded AgentKit MCP client**: `AssistantToolRegistry.make` adds configured usable remote servers and their credentials to the AgentKit tool catalog, with a conversation-scoped scratch workspace and other Assistant tools. That client calls *out* to configured servers; it is not `MCPServerController`, and the desktop inbound registry does not inherit its remote tools, scratch files, or permissions.
+The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. macOS also constructs a separate ordinary `SFTPTransferCoordinator` for its own file-transfer UI; the MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not either app's ordinary transfer coordinator. The mobile MCP editor performs outbound discovery with `MCPClient` and preserves per-tool policies across rediscovery; mobile MCP settings gate adding/editing remote servers with `.remoteMCP`. Discovery uses the configured manual Bearer token or device-local OAuth authorization, with a user-driven browser interaction when authorization is needed. OAuth grants and client secrets are stored per server in this-device Keychain, not in synced AI settings. Editor authorization is staged in an in-memory draft: cancelling discards newly acquired grants, while committing saves credentials alongside the configuration change and restores the previous credentials if that change fails; refreshes of already-saved grants persist immediately. Changing a saved server's endpoint or authorization binding, or deleting it, clears its old grants and cancels in-flight authorization. Runtime token requests recheck that binding before and after authorization, so a retired tool configuration cannot start or finish a new login.
+
+Both platforms' Assistant can instead construct an **embedded AgentKit MCP client**: when the selected model supports tool calls, `AssistantToolRegistry.make` builds a catalog from AgentKit built-in groups, Termind host tools, and enabled remote MCP servers without conflicting namespace IDs, passing each server's configured Bearer secret (if present) and the device's OAuth-capable `MCPClient`. It also supplies a workspace keyed by conversation, not run, so scratch files survive follow-up turns without crossing conversations. The catalog registers local built-ins before Termind definitions and joins discovered remote definitions in the resolved registry afterward; built-in names cannot be shadowed by Termind or remote names (see the registration comment in `AssistantToolRegistry`). That client calls *out* to configured servers; it is not `MCPServerController`, and the desktop inbound registry does not inherit its remote tools, scratch files, or permissions.
+
+```mermaid
+flowchart TD
+    Config["AI configuration and device credentials"] --> Assistant["AssistantToolRegistry.make"]
+    Assistant --> Catalog["AgentKit catalog with built-ins and Termind tools"]
+    Catalog --> Outbound["Outbound MCPClient to enabled remote servers"]
+    Desktop["macOS MCPServerController"] --> Listener["LoopbackHTTPServer with server Bearer token"]
+    Bridge["termind-mcp stdio bridge"] --> Listener
+    Direct["Direct HTTP MCP client"] --> Listener
+    Listener --> Inbound["MCPServerProtocol and restricted acting registry"]
+    Inbound --> Host["SSH and SFTP host services"]
+    Inbound --> Tickets["Run-bound upload and download tickets"]
+    Tickets --> Byte["Separate ticket-authorized HTTP byte routes"]
+```
+
+Assistant outbound discovery and desktop inbound serving are separate catalogs and authorization paths; the bridge is only a transport adapter to the inbound listener.
 
 The desktop app explicitly revokes MCP tickets when a host is deleted (including host-deletion outbox handling and remotely applied vault removals), alongside cancelling ordinary SFTP work and SSH connections. On app termination, it stops MCP and waits for ordinary SFTP cancellation before closing shared agent background commands and connections. Mobile host-deletion handling instead cancels its ordinary SFTP transfers; there are no inbound MCP sessions to revoke there.
 
@@ -271,7 +297,7 @@ Missing token disables all generated commands; a missing bundled bridge disables
 * Enable the server in macOS settings only after Pro access is available, generate or rotate a token, then copy a client registration command. Treat that token like a local credential and update every client after rotation, port change, or moving the app when using the bridge.
 * Use the server status and connected-client count to distinguish stopped, starting, ready, and failed listener state. Listener failures stop transfers; invalid port/token storage disables activation rather than exposing a partially configured server.
 * To immediately cut off an external client, disable the server or rotate its token. To reduce surface area, disable individual tools; disabling either transfer tool revokes its tickets.
-* Test changes at the correct seam: `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
+* Test changes at the correct seam: `MCPAuthorizationTests` checks device-local grant separation, draft rollback and saved-token refresh, endpoint rebinding and retirement, and cancellation of browser authorization callbacks without adding a transcript message. `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
 
 ## Related pages
 

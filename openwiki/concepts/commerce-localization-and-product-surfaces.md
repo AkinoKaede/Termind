@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -49,12 +49,16 @@ sources:
     resource: repo://LandingPage/src/components/PrivacyPolicy.astro
   - id: openwiki-source-5ad91e277f88907c2d0f0649
     resource: repo://LandingPage/src/components/SecurityPage.astro
+  - id: openwiki-source-b724e68ad26b53dbd855ad75
+    resource: repo://LandingPage/src/components/TelegramOffer.astro
   - id: openwiki-source-d2984266929be0fa570924e0
     resource: repo://LandingPage/src/layouts/BaseLayout.astro
   - id: openwiki-source-dde6f9f425dc38df06be00d6
     resource: repo://LandingPage/src/lib/i18n.ts
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
+  - id: openwiki-source-b2ebcc8a950d710d84cc72db
+    resource: repo://LandingPage/src/pages/index.astro
   - id: openwiki-source-ac522d7166ed6cab8810aff7
     resource: repo://LandingPage/src/pages/privacy.astro
   - id: openwiki-source-187b04e794008a30238ae2ed
@@ -107,6 +111,8 @@ sources:
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-b8fca76c89564e16eccfbb53
+    resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
@@ -117,6 +123,8 @@ sources:
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-bf08592e56aa88a7189a7fb5
     resource: repo://TFM/Features/KnownHosts/KnownHostsPageView.swift
+  - id: openwiki-source-a0f4f642e37695357bc9150d
+    resource: repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -129,7 +137,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 ## Scope and ownership
@@ -226,13 +234,13 @@ Screenshot/demo data must not modify production behavior. In DEBUG macOS builds,
 
 Marketing capture uses real feature views with fixture-only data: mobile tests mount real views in system windows, while macOS captures the production `WindowGroup` through `ScreenshotDemoConfiguration`. Asset source captures are organized by feature/device/locale; the sanctioned locales are `en`, `zh-hans`, and `zh-hant`. UI chrome and marketing copy are localized, while terminal command and transcript content remains English. A UI change affecting a captured scene must be recaptured in every locale rather than fabricating missing platform UI or changing product behavior for an image.
 
-The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts` directly from `Marketing/Screenshots/DeviceFrames`; the production build resizes them and emits AVIF, WebP, and JPEG variants. Do not copy source screenshots or device frames into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. When changing entitlement gates or the native paywall, check that this FAQ and the storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
+The public site is a separate Astro app in `LandingPage/`, with strict TypeScript and `npm run build` running `astro check && astro build`. It imports an explicit allowlist of framed marketing images through `src/lib/marketingImages.ts` directly from `Marketing/Screenshots/DeviceFrames`; the production build resizes them and emits AVIF, WebP, and JPEG variants. Do not copy source screenshots or device frames into `LandingPage/public`. Its formal routes are English `/`, Simplified Chinese `/zh-hans/`, and Traditional Chinese `/zh-hant/`; compatibility `/zh/` redirects to Simplified Chinese. Website text does **not** come from the native `.xcstrings` catalog: `LandingPage/src/lib/i18n.ts` selects English or Simplified Chinese copy and converts Chinese to Taiwan Traditional with term overrides. `FAQPage.astro` owns the public free/Pro matrix, BYOK and third-party AI billing explanation, Family Sharing and device-specific MCP disclosure. The homepage also embeds `TelegramOffer.astro`: it describes a separate Thursday Telegram draw for a chance to win a Pro redemption code, linking to the channel, group and entry bot. It says entry is not a guaranteed win and Apple determines redemption eligibility and validity; this campaign is website copy, not an additional StoreKit plan or a guaranteed free trial. When changing entitlement gates, redemption messaging or the native paywall, check that the homepage, FAQ and storefront copy still describe the same offer, then validate the production build and visually check English plus Chinese routes. App Store screenshots and storefront metadata remain release artifacts, not runtime app configuration.
 
 ### Public security and privacy copy
 
 The site also serves `/security/` and `/privacy/` in all three site languages; locale-specific routes reuse their respective Astro components through the page wrappers and `BaseLayout`, rather than drawing from the app catalog. `BaseLayout` sets canonical and alternate-language links, exposes localized navigation to FAQ, Security, Privacy and Support, and keeps the visitor's selected site language in browser `localStorage` (`termind.locale`). This choice is independent of the app's `AppleLanguages` setting. The native paywall's Privacy Policy link and the iOS App Settings support section both open the site's English-root `/privacy/` URL; the site language switcher can move to the translated route. The paywall's Terms of Use link instead goes to Apple's standard EULA.
 
-`PrivacyPolicy.astro` owns the public data-handling statement: local device data and optional private iCloud/Keychain sync, StoreKit payment handling, BYOK AI/MCP and Web Search disclosures, remote connections, camera and speech, retention/deletion controls, website storage, and contact paths. In particular, its website section states that the site keeps only the language selection locally and does not use analytics cookies, advertising technology or a contact form; it does not promise that the hosting provider cannot keep standard access/security logs. Its purchase section describes Apple-signed trial eligibility and expiration, not an app-managed license server. `SecurityPage.astro` is the distinct public security explanation: credential storage and one-shot memory cleanup, Known Hosts verification before authentication, configurable Assistant approval, and the opt-in Mac-only loopback MCP server with a locally stored bearer token and exposed-tool controls. These are public-facing claims, not enforcement points; when changing sync scope, credential storage, SSH trust, agent permissions, commerce or network egress, review the corresponding site disclosure alongside the native behavior and FAQ. For site-copy changes, run `cd LandingPage && npm run build` and inspect `/security/` and `/privacy/` in all three languages, especially Traditional conversion and legal terminology; the app catalog check does not validate website copy.
+`PrivacyPolicy.astro` owns the public data-handling statement: local device data and optional private iCloud/Keychain sync, StoreKit payment handling, BYOK AI/MCP and Web Search disclosures, remote connections, camera and speech, retention/deletion controls, website storage, and contact paths. In particular, its website section states that the site keeps only the language selection locally and does not use analytics cookies, advertising technology or a contact form; it does not promise that the hosting provider cannot keep standard access/security logs. Its purchase section describes Apple-signed trial eligibility and expiration, not an app-managed license server. `SecurityPage.astro` separately **describes** Apple Keychain credential storage, one-shot clearing of software secret buffers even on failed authentication, first-use and changed-key Known Hosts checks, configurable Assistant permissions, and an opt-in Mac-only loopback MCP server with a local bearer token and exposed-tool switches. The page also warns that an authenticated MCP client can invoke exposed tools without confirmation on every call. This site copy is a disclosure, **not proof of an end-to-end security guarantee**: changes to secret-handling, SSH trust, approval or server transport must be checked against their runtime implementation and tests before strengthening the wording. For example, the desktop `MCPServerController` reads a persisted enable preference, gates startup on Pro, stores its token locally and updates disabled-tool policy; the site itself cannot enforce any of those boundaries. When changing sync scope, credential storage, SSH trust, agent permissions, commerce or network egress, review the corresponding site disclosure alongside the native behavior and FAQ. For site-copy changes, run `cd LandingPage && npm run build` and inspect `/security/` and `/privacy/` in all three languages, especially Traditional conversion and legal terminology; the app catalog check does not validate website copy.
 
 ## Change and verification guide
 

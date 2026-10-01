@@ -3,6 +3,9 @@ type: storefront-release-operations
 title: Storefront Commerce Release Checks
 description: Cross-platform checks for Termind Pro annual trials, lifetime purchases, localized paywalls, App Store metadata, and storefront imagery before release.
 tags: [app-store, storekit, commerce, subscriptions, localization, release]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -18,6 +21,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/ProPaywallContent.swift
   - id: openwiki-source-f9f51dced2f50e794fadc9ab
     resource: repo://Frameworks/TermindPresentation/ProPaywallPresentation.swift
+  - id: openwiki-source-72f073226911e9b09fefdc68
+    resource: repo://Frameworks/TermindPresentation/Strings/Pro.swift
   - id: openwiki-source-3b424584de88a1150af27f83
     resource: repo://FrameworkTests/ProOfferPresentationTests.swift
   - id: openwiki-source-925cc598397685e13fcf56c4
@@ -32,20 +37,29 @@ sources:
     resource: repo://Marketing/README.md
   - id: openwiki-source-9fc915d39c61b81a60426eb3
     resource: repo://StoreKit/Termind.storekit
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
+  - id: openwiki-source-4bb1006b8fba7cd74268940b
+    resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
+  - id: openwiki-source-25a2df896b93f410289e8512
+    resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-bc6023e93d60f0fac1bbea53
     resource: repo://TFITests/ProPaywallRenderingTests.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
+  - id: openwiki-source-883d6a1cb850ad090f77e1e2
+    resource: repo://TFM/Features/Settings/MCPServerSettings.swift
+  - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
+    resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-0da64bbb5811b467bbf89b7f
     resource: repo://TFMTests/ProAccessTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-25T12:50:34.482Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Storefront Commerce Release Checks
@@ -66,6 +80,10 @@ App Store Connect is the production authority for products, offers, localized me
 | Traditional Chinese description | 按年使用AI、MCP與iCloud同步功能。 | 永久使用AI、MCP與iCloud同步功能。 |
 
 The fixture marks both products Family Shareable; annual is in the `Termind Pro` subscription group with a one-year renewal and **one two-week free introductory period**. Verify the actual offer and eligibility with a fresh Sandbox account: prior use of an introductory offer can make the badge disappear without changing the configured offer. Billing Grace Period is controlled in App Store Connect, not represented by this fixture: confirm the intended 16-day, paid-to-paid-only production policy and exercise the actual grace state before relying on it. Do not treat fixture prices as a universal storefront price.
+
+### Signing and capability boundary
+
+Check the actual signed app targets as well as StoreKit: the Xcode project uses `TFI/TFI.entitlements` for mobile and `TFM/TFM.entitlements` for Mac. Both declare the `iCloud.com.akinokaede.termind` CloudKit container, associated web credentials domain, environment-dependent push/iCloud settings, and a bundle-derived keychain access group. Mac additionally enables App Sandbox, audio input, serial devices, outgoing and listening network access, and user-selected file read/write; mobile does not carry those Mac sandbox permissions. These files are **app signing/capability declarations, not StoreKit product or trial definitions**. Validate capabilities, provisioning and the correct production iCloud/push environment on the signed release builds, and validate commerce products, offers and Family Sharing in App Store Connect separately. Do not infer a Pro entitlement from the CloudKit capability or a local `.storekit` file.
 
 ## Shared paywall contract
 
@@ -91,7 +109,9 @@ The diagram shows the release-facing boundary: platform adapters supply live com
 
 `ProOfferPresentation` formats the annual trial badge and the selected-plan detail in the effective locale. StoreKit's `weekOfYear` introductory period is converted to days before formatting, so the local two-week offer displays its full **14 days**, not a guessed duration. Eligible annual offers use **Start Free Trial** and “free, then [StoreKit price] per [billing unit]. Auto-renews until canceled.” Ineligible/no-offer annual purchases use **Subscribe Annually** and the price/renewal disclosure without a free claim. Lifetime uses **Buy Lifetime Access** and “One payment. No subscription or automatic renewal.” Missing annual price or billing period suppresses the annual detail; missing trial duration suppresses its badge, not the eligibility-based button title. `Frameworks/Resources/Localizable.xcstrings` contains the Simplified and Traditional Chinese offer strings; inspect the native resolved text rather than deriving it from the StoreKit product description. Do not hard-code fixture prices or the two-week duration into UI or access rules.
 
-The shared view presents access state and dates, plan cards, feature disclosure, restore, legal links, and recovery controls. Plan cards and purchase buttons are disabled when that plan is unavailable or a purchase is processing; a missing price offers **Reload App Store Prices**. Restore remains available even with existing access; manage subscription is offered only for an account-owned subscription, not Family Shared or lifetime access. Purchase actions stay visible for progress or errors but cannot initiate another purchase when access already exists. At accessibility text sizes, purchase controls move into the scroll content and plan cards stack vertically instead of relying on a cramped bottom inset. Verify the feature list and free/Pro boundary against [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md): free Workspace composition is not a Pro benefit; paid gates include assistant, file upload, Metrics limits, remote MCP, Mac-only MCP server, and Vault iCloud sync.
+The shared view presents access state and dates, plan cards, feature disclosure, restore, legal links, and recovery controls. Its **five visible feature rows** say AI Assistant, MCP tools, monitoring more than three servers, terminal file upload, and iCloud sync. The MCP row is selected by `supportsMCPServer`: Mac's adapter passes `true` and displays “Connect MCP tools and run the built-in MCP Server”; iPhone/iPad pass `false` and display “Connect remote MCP tools.” The first, third, fourth and fifth rows are common to both. Review the native English, zh-Hans and zh-Hant labels from `AppStrings.Pro` and `Localizable.xcstrings` for **each** platform: the fixture's generic “AI, MCP & iCloud” product description is not the paywall feature list. The Mac-only built-in server is actually gated through `.mcpServer` in the Mac model/settings, while mobile's remote connection actions use `.remoteMCP`; neither the shared Pro gate vocabulary nor product metadata alone makes the local MCP server available on iOS. If Metrics triggered the paywall, an additional message explains the free three-card limit. See [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for the broader gate map: free Workspace composition is not a Pro benefit.
+
+Plan cards and purchase buttons are disabled when that plan is unavailable or a purchase is processing; a missing price offers **Reload App Store Prices**. Restore remains available even with existing access; manage subscription is offered only for an account-owned subscription, not Family Shared or lifetime access. Purchase actions stay visible for progress or errors but cannot initiate another purchase when access already exists. At accessibility text sizes, purchase controls move into the scroll content and plan cards stack vertically instead of relying on a cramped bottom inset.
 
 ## Entitlement and failure checks
 
@@ -103,6 +123,6 @@ The shared view presents access state and dates, plan cards, feature disclosure,
 ## Localized storefront and release gate
 
 1. Reconcile the product matrix, trial, Family Sharing, and intended grace settings in **App Store Connect** for English, Simplified Chinese, and Traditional Chinese; compare the actual Sandbox display prices and subscription group, not only `StoreKit/Termind.storekit`. Verify new-account trial eligibility and used-offer ineligibility; trial-to-paid renewal, cancellation-through-expiry **while the app remains open**, billing retry/grace, refund/revocation, restore, Ask to Buy, and lifetime precedence on Mac, iPhone, and iPad. Verify the same Apple account across devices and Family Sharing with a separate family account.
-2. Inspect both native paywalls with live StoreKit metadata: annual and lifetime selection, 14-day fixture trial disclosure when eligible, renewal/no-renewal language, status/date, restore/manage links, localized legal/disclosure text, disabled/missing-product and retry states, and readable layouts at accessibility sizes. Run `FrameworkTests/ProOfferPresentationTests.swift` and `FrameworkTests/ProPaywallPresentationTests.swift` for localized weekly duration, eligibility, missing metadata, entitlement labels/dates, disabled purchase and recovery behavior. **There is no `TFMTests/ProPaywallRenderingTests.swift` in the current suite.** Check the Mac paywall visually in the app; do not cite a nonexistent Mac screenshot test as evidence. `TFITests/ProPaywallRenderingTests.swift` alone exercises shared content in a temporary UIKit key window with injected free and subscribed states, fixed sample prices, English, zh-Hans and zh-Hant, phone- and tablet-sized frames, and regular/accessibility dynamic type. It checks scroll width and records PNG attachments and temporary previews, but does **not** contact StoreKit, mount the full `MobileProView`, or establish live pricing or actual entitlement. Opt in to this serialized key-window suite with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and `-only-testing:TFITests/ProPaywallRenderingTests` (or set `TERMIND_MOBILE_UI_TESTS=1` in Xcode's test environment). Offscreen layout and logic tests can run by default; key-window tests need their own opt-in. Separately authorize `TFMTests/StoreKitTrialTests.swift` with `TERMIND_STOREKIT_TESTS=1` and `-only-testing:TFMTests/StoreKitTrialTests`: its serialized `SKTestSession` uses the local configuration for trial purchase/restore, lifetime precedence, cancellation/metadata failure, pending approval, unverified transactions, missing intro offer, invalid annual catalog, and empty restore. It is **not** an offscreen render suite, does not test the scheduled entitlement-expiration refresh or post-expiry StoreKit status, and cannot verify production authorization or subscription/grace policy. See [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the general test invocation playbook.
+2. Inspect both native paywalls with live StoreKit metadata: annual and lifetime selection, 14-day fixture trial disclosure when eligible, renewal/no-renewal language, status/date, restore/manage links, localized legal/disclosure text, disabled/missing-product and retry states, and readable layouts at accessibility sizes. Check the **Mac MCP-tools-plus-built-in-server row** against the **iPhone/iPad remote-MCP-only row** in every app language; do not approve mobile storefront copy or screenshots that promise the built-in server. Run `FrameworkTests/ProOfferPresentationTests.swift` and `FrameworkTests/ProPaywallPresentationTests.swift` for localized weekly duration, eligibility, missing metadata, entitlement labels/dates, disabled purchase and recovery behavior. **There is no `TFMTests/ProPaywallRenderingTests.swift` in the current suite.** Check the Mac paywall visually in the app; do not cite a nonexistent Mac screenshot test as evidence. `TFITests/ProPaywallRenderingTests.swift` alone exercises shared content in a temporary UIKit key window with injected free and subscribed states, fixed sample prices, English, zh-Hans and zh-Hant, phone- and tablet-sized frames, and regular/accessibility dynamic type. It checks scroll width and records PNG attachments and temporary previews, but does **not** contact StoreKit, mount the full `MobileProView`, or establish live pricing or actual entitlement. Opt in to this serialized key-window suite with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and `-only-testing:TFITests/ProPaywallRenderingTests` (or set `TERMIND_MOBILE_UI_TESTS=1` in Xcode's test environment). Offscreen layout and logic tests can run by default; key-window tests need their own opt-in. Separately authorize `TFMTests/StoreKitTrialTests.swift` with `TERMIND_STOREKIT_TESTS=1` and `-only-testing:TFMTests/StoreKitTrialTests`: its serialized `SKTestSession` uses the local configuration for trial purchase/restore, lifetime precedence, cancellation/metadata failure, pending approval, unverified transactions, missing intro offer, invalid annual catalog, and empty restore. It is **not** an offscreen render suite, does not test the scheduled entitlement-expiration refresh or post-expiry StoreKit status, and cannot verify production authorization or subscription/grace policy. See [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the general test invocation playbook.
 3. Confirm the final localized **storefront imagery**, separately from paywall screenshots: `Marketing/AppStore/en`, `Marketing/AppStore/zh-hans`, and `Marketing/AppStore/zh-hant` each have Mac, iPhone 6.5-inch, and iPad 13-inch sets of six JPG boards. Review language, device/platform sizing, readable native chrome, and offer/product messaging against the current storefront metadata before uploading to App Store Connect. These are final boards, not the capture or device-frame inputs used by the website. For the generation and review workflow see [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md).
 4. Record App Store Connect/Sandbox checks independently of local tests and artwork export checks. Local rendering and `SKTestSession` cannot establish production metadata, approval behavior, cross-device delivery, or Family Sharing. Coordinate any changes to marketing and free-Workspace copy without silently changing the product IDs, offer terms, group, or grace policy.

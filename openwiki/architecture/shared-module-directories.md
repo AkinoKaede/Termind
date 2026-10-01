@@ -5,7 +5,7 @@ description: Ownership and public seams of Termind's six shared frameworks and p
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -81,6 +81,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-303e34b5782a7a14e28cc9f8
+    resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-99652f47d49074a45ef09dd7
@@ -145,6 +147,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-256e2b134a8446ea63b15585
     resource: repo://FrameworkTests/HermesMemoryTests.swift
+  - id: openwiki-source-ad1a1eea0aea739f2004d93a
+    resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
@@ -157,9 +161,13 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # Shared Framework Responsibilities
@@ -220,6 +228,8 @@ Submission and failure ordering: a rejected selection write stops before capture
 
 Persistence has **no functional subdirectories**. Its root owns the complete SwiftData model set, frozen historical schemas, migration plan, `TermindPersistence.makeContainer`, Vault and History journals, device-directory and settings adapters, provider/skill records, secret *metadata*, agent replay, collaboration provenance and receipts, and a separate GRDB memory store. Platform entrypoints choose the container URL/lifetime. The factory uses **V45** and explicitly disables SwiftData's automatic CloudKit storage; Infrastructure's coordinators synchronize records using journals instead. V31→V34 replaces host/history/identity shapes and backfills device attribution; V35 adds History journal and capability checkpoints; V36 removes an obsolete import checkpoint; V37 adds scoped record/replica state; V38 adds deletion handoff and asset cleanup; V39 adds conversation model selection; V40 removes retired per-category quarantine while preserving scoped quarantine; V41 adds notification preferences; V42 adds agent-message provenance, created-chat relations and durable delivery receipts; V43 adds public MCP OAuth configuration; V44 replaces the Host model; V45 replaces the SSH key model with Security Key reference metadata. These are **local** schema versions, not CloudKit record-format versions. No other module should introduce a competing `@Model` owner.
 
+On macOS, file-backed `makeContainer` acquires a per-store nonblocking advisory lock **before** SwiftData opens or migrates the database. Containers in the same process share a lease for canonicalized URLs until the last container closes; another process gets `PersistentStoreAccessError.inUse` instead of opening the store. The stable `.lock` file is not unlinked on release. In-memory containers do not acquire this lock; passing both `inMemory: true` and a URL violates a precondition. Keep container creation through this factory so journals and migration stay under the same store lifetime.
+
 `SwiftDataAgentRunRepository` deduplicates snapshots by message ID across runs and saves frozen replay/context and attachment backing separately from ordinary transcript messages (compaction has its own rows). Restore orders by run and sequence, projects compaction and recovers persisted tool results missing from the last transcript snapshot. Construction marks unfinished runs interrupted. Editing truncates a suffix and stages a replacement user run for adoption by the real run without duplication; conversation deletion removes run/tool/message/replay backing and device-local model selection, and tombstones reject late saves. V42 also stores message origins; inserting an originated message advances a queued delivery receipt in the **same save**. Title writes redact model-influenced text. Application decides when to run, compact or display errors; Persistence decides what survives restart.
 
 `GRDBMemoryStore` is an actor with a separate lazily opened `memory.sqlite` and its own migrations for full-text message search, learning activity and memory-reference dates. Constructing disabled memory creates no database files. See [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-secrets.md).
@@ -240,7 +250,7 @@ Root services include an in-memory host repository, Linux process/filesystem/ser
 | `SSHImport`, `Security`, `Telnet` | Concrete config/key-file import, Keychain/Secure Enclave and software-key mechanisms, and a separate Telnet transport. |
 | `Transfers` | SFTP admission, session contexts, streaming, conflict/resume/copy plans and external-edit file/upload lifecycle. |
 
-`TermindAgentTools` registers executable definitions and presenters, including a closed legacy-name presenter fallback for cards predating persisted presenter IDs. Acting-only SSH/SFTP writes and scratch push differ from read/planning tools. `AssistantToolRegistry.make` assembles these with AgentKit's built-ins and MCP definitions only for tool-capable models; its scratch workspace is scoped per conversation across runs, not shared across chats. Physical connections, SSH session-channel leases and logical file-operation permits are distinct resources. `RemoteCharsetStreamConverter` strictly encodes outgoing command, PTY and SFTP text so unrepresentable input fails; streaming decoding buffers incomplete multibyte bytes and passes malformed received bytes through. SSH/Telnet apply it at protocol edges; the SSH OSC 7 filter rewrites working-directory paths to percent-encoded UTF-8 for Ghostty while bounding incomplete frames. Keep interactive trust/authentication with the initiating feature, not a background pool. See [SSH Lifecycle](../workflows/ssh-session-lifecycle.md), [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md) and [Assistant Runtime](../concepts/agent-runtime-and-assistant.md).
+`TermindAgentTools` registers executable definitions and presenters, including a closed legacy-name presenter fallback for cards predating persisted presenter IDs. Acting-only SSH/SFTP writes and scratch push differ from read/planning tools. `AssistantToolRegistry.make` assembles these with AgentKit's built-ins and MCP definitions only for tool-capable models; its scratch workspace is scoped per conversation across runs, not shared across chats. The remote framework imports both `AgentKit` and `AgentKitScrubber` and receives Application-level model, AI settings, event channel and host/connection collaborators from the app's execution-controller registry closure; it does not own the conversation or the agent loop. It selects native versus local web search from provider capabilities and configured preference, forwards usable MCP servers with their resolved bearer tokens, and registers built-ins before host tools and discovered MCP definitions so later catalogs cannot shadow a built-in. Physical connections, SSH session-channel leases and logical file-operation permits are distinct resources. `RemoteCharsetStreamConverter` strictly encodes outgoing command, PTY and SFTP text so unrepresentable input fails; streaming decoding buffers incomplete multibyte bytes and passes malformed received bytes through. SSH/Telnet apply it at protocol edges; the SSH OSC 7 filter rewrites working-directory paths to percent-encoded UTF-8 for Ghostty while bounding incomplete frames. Keep interactive trust/authentication with the initiating feature, not a background pool. See [SSH Lifecycle](../workflows/ssh-session-lifecycle.md), [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md) and [Assistant Runtime](../concepts/agent-runtime-and-assistant.md).
 
 ```mermaid
 flowchart TB
@@ -289,5 +299,5 @@ flowchart TB
 Edit, journal, synchronize and render: the dashed path keeps secret bytes out of Cloud/Vault records.
 
 - `ArchitectureBoundaryTests` guard import direction, single SwiftData ownership and shared-copy boundaries.
-- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories.
+- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `PersistentStoreLockTests` check refusal before opening or migration, same-process shared leases, crash release and independent/in-memory stores. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories.
 - Remote/session/transfer suites cover authentication, resource admission, cancellation and recovery; native test targets cover routing and platform lifetimes. Use the [Engineering Quickstart](../quickstart.md) for build/test commands and [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) for zone-specific behavior.

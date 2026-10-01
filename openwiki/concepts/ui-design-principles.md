@@ -3,6 +3,9 @@ type: design guide
 title: UI Design and Shared Presentation
 description: Source-backed guide to native desktop and mobile navigation, reusable localized presentation, accessible controls, and continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -130,6 +133,8 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-f73abfc9c1839decd235710e
+    resource: repo://TFMTests/ListViewMigrationTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
@@ -140,16 +145,15 @@ sources:
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
+  - id: openwiki-source-ea148dc5de8cabfc00dc07ae
+    resource: repo://TFMTests/WindowSidebarTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-1c583949c6f00d5acc015c90
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
 ---
 
 # UI Design and Shared Presentation
@@ -197,7 +201,9 @@ Desktop Back traverses the route hierarchy before restoring the previous destina
 
 TFM's `Metrics` provides a 2/4/6/8/12/16/24-point spacing rhythm, 260 minimum / 320 ideal / 520 maximum sidebar widths subject to window size, 44-point Navigator rows, a one-point divider with an eight-point hit band, 240–380-width cards with an 80-point minimum height, and an 840-point full-Assistant reading-column maximum. `TermindColor` uses semantic AppKit-backed surfaces, separators and status roles; host-authored colors and terminal palettes are exceptions. Resolve native conversions for the owning appearance. Generic `Highlight` retains an accent wash, but Sidebar selection uses neutral primary fill (10% key-window, 6% inactive), primary selected key-window text, accent leading icons and secondary inactive foregrounds, including readable inline renaming. Native context-menu outline stays accent-colored.
 
-Explicit TFM glass controls use system glass on macOS 26 and native material fallbacks earlier. The Sidebar column itself relies on `NavigationSplitView` material on 26+, adding a legacy `NSVisualEffectView` background only before 26: do not stack a second whole-column glass layer. Its mode rail is one glass capsule with animated neutral selection, selected accessibility traits, Reduce Motion handling and key-window-only focus outline. The Assistant footer groups interactive New Chat/Archive controls in a glass container on 26+, with neutral Archive selection and a primary-colored, semibold selected glyph. These are implemented choices, not a universal accent rule.
+Explicit TFM glass controls use system glass on macOS 26 and native material fallbacks earlier. The Sidebar column itself relies on `NavigationSplitView` material on 26+, adding a legacy `NSVisualEffectView` background only before 26: do not stack a second whole-column glass layer. Its mode rail is one glass capsule with animated neutral selection, selected accessibility traits, Reduce Motion handling and key-window-only focus outline. The mode and visibility belong to the window: the rail reconciles on destination or focused-pane changes, and History is disabled for a focused serial pane (falling back to Snippets rather than silently activating unavailable History). The Assistant footer groups interactive New Chat/Archive controls in a glass container on 26+, with neutral Archive selection and a primary-colored, semibold selected glyph. These are implemented choices, not a universal accent rule.
+
+The compact Snippets and History shelves use `SidebarListItem` with stable record IDs and AppKit `ListView` hosting, not a shared mobile list. History card heights are uniform except while naming a command; presentation changes such as a renamed address do not change its row ID. Snippets shelf expansion is stored separately from the full Snippets page and collapsing a section removes rows without replacing its header identity. Native blank-area menus have their own container target, distinct from row menus; the shelf's local search footer filters the sidebar, whereas titlebar Find targets foreground content.
 
 Mobile card columns follow available width and accessibility text sizes force one column; cards use a 106-point minimum height and show at most two tags. System glass, when available, sits over nearly opaque grouped backing under dense text; Reduce Transparency or increased contrast selects opaque backing and contrast strengthens the border. Clipping, interaction and context-menu preview shapes agree. Reuse a surface's semantic role and check contrast, hit area and large-text legibility rather than copying another platform's geometry.
 
@@ -216,7 +222,7 @@ flowchart LR
 
 Cards offer intents; the feature or application owner performs the operation.
 
-A mobile Vault Host card taps into scene-owned host activation. Its context menu offers SSH/SFTP only when `sshEnabled` and Telnet only when `telnetEnabled`, separated from Edit/Duplicate and destructive Delete; a Host with no enabled protocol still has edit and delete. `MobileVaultView` passes connections through its `open` callback, edits through an item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication creates a new ID, clears Host-custom SSH, Telnet and proxy identity references and clears the proxy username when its custom identity is removed. TFM's `HostContextMenu` instead has Quick Connect, Connect submenu and Copy SSH Command, retaining desktop-owned editing/deletion.
+A mobile Vault Host card taps into scene-owned host activation. Its context menu offers SSH/SFTP only when `sshEnabled` and Telnet only when `telnetEnabled`, separated from Edit/Duplicate and destructive Delete; a Host with no enabled protocol still has edit and delete. The Vault also renders grouped, collapsible Host sections and native links to Keychain, Forwarding, Snippets, Known Hosts and History; search can find Hosts or links into those features, passing the query to the destination where appropriate. `MobileVaultView` passes connections through its `open` callback, edits through an item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication creates a new ID, clears Host-custom SSH, Telnet and proxy identity references and clears the proxy username when its custom identity is removed. TFM's `HostContextMenu` instead has Quick Connect, Connect submenu and Copy SSH Command, retaining desktop-owned editing/deletion.
 
 Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one SSH workspace per allowed target, passing the snippet command as live startup state, never into its restoration descriptor.
 
@@ -280,6 +286,6 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` checks native menus and language variants. `WindowToolbarFindTests` pins foreground Find and New mapping; `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` covers Host menu/credential policy; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into three languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find and New mapping; `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) and [Build and Test](/openwiki/operations/build-test-and-release.md) when changing ownership or verification boundaries.
