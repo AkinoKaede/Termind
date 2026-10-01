@@ -4,6 +4,11 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func revenueCatOwnsCommerceTransactions() throws {
+        try assertNoImports(in: "../Frameworks/TermindInfrastructure/Commerce", forbidden: ["StoreKit"])
+    }
+
+    @Test
     func diagnosisSDKStaysBehindInfrastructureAndStartsWithCollectionDisabled() throws {
         for module in ["TermindDomain", "TermindApplication", "TermindPresentation", "TermindPersistence"] {
             try assertNoImports(
@@ -97,7 +102,7 @@ struct ArchitectureBoundaryTests {
             in: "../Frameworks/TermindDomain",
             forbidden: [
                 "SwiftUI", "AppKit", "UIKit", "SwiftData", "GRDB", "Security", "Network", "StoreKit", "CloudKit",
-                "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme",
+                "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme", "RevenueCat", "RevenueCatUI",
             ]
         )
     }
@@ -192,7 +197,7 @@ struct ArchitectureBoundaryTests {
         }
         try assertNoImports(
             in: "../Frameworks/TermindApplication",
-            forbidden: ["TermindInfrastructure", "TermindPersistence", "SwiftData"])
+            forbidden: ["TermindInfrastructure", "TermindPersistence", "SwiftData", "RevenueCat", "RevenueCatUI"])
         try assertNoImports(
             in: "../Frameworks/TermindPersistence",
             forbidden: ["TermindInfrastructure", "TermindRemoteInfrastructure"])
@@ -204,7 +209,7 @@ struct ArchitectureBoundaryTests {
             in: "../Frameworks/TermindPresentation",
             forbidden: [
                 "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "GRDB", "TermindPersistence",
-                "TermindRemoteInfrastructure", "TermindInfrastructure", "StoreKit",
+                "TermindRemoteInfrastructure", "TermindInfrastructure", "StoreKit", "RevenueCat", "RevenueCatUI",
             ])
     }
 

@@ -11,7 +11,7 @@ import Testing
 
 struct CommerceConfigurationTests {
     @Test
-    func localStoreKitProductMatchesPurchaseRequest() throws {
+    func localStoreKitFixtureContainsAnnualAndLifetimeProducts() throws {
         let configurationFile = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -23,9 +23,9 @@ struct CommerceConfigurationTests {
         let products = try #require(configuration["products"] as? [[String: Any]])
         let productIDs = products.compactMap { $0["productID"] as? String }
 
-        #expect(Set(productIDs) == [ProAccessController.lifetimeProductID])
+        #expect(Set(productIDs) == ["com.akinokaede.termind.pro"])
         let pro = try #require(
-            products.first { $0["productID"] as? String == ProAccessController.lifetimeProductID })
+            products.first { $0["productID"] as? String == "com.akinokaede.termind.pro" })
         #expect(pro["displayPrice"] as? String == "9.99")
         #expect(pro["familyShareable"] as? Bool == true)
 
@@ -33,7 +33,7 @@ struct CommerceConfigurationTests {
         let group = try #require(groups.first)
         let subscriptions = try #require(group["subscriptions"] as? [[String: Any]])
         let annual = try #require(
-            subscriptions.first { $0["productID"] as? String == ProAccessController.annualProductID })
+            subscriptions.first { $0["productID"] as? String == "com.akinokaede.termind.pro.annual" })
         #expect(annual["displayPrice"] as? String == "3.99")
         #expect(annual["familyShareable"] as? Bool == true)
         #expect(annual["recurringSubscriptionPeriod"] as? String == "P1Y")

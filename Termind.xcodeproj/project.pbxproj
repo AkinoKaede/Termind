@@ -68,6 +68,12 @@
 		BENC00000000000000000002 /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
 		BENC00000000000000000003 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		BENC00000000000000000004 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		C0CA00000000000000000101 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000002 /* RevenueCat */; };
+		C0CA00000000000000000102 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000002 /* RevenueCat */; };
+		C0CA00000000000000000103 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000002 /* RevenueCat */; };
+		C0CA00000000000000000104 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000002 /* RevenueCat */; };
+		C0CA00000000000000000201 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000003 /* RevenueCatUI */; };
+		C0CA00000000000000000202 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = C0CA00000000000000000003 /* RevenueCatUI */; };
 		C2D4B372BA5A040DDBCEFC85 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		C4AD00000000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		C4AD00000000000000000002 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
@@ -651,6 +657,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0CA00000000000000000202 /* RevenueCatUI in Frameworks */,
+				C0CA00000000000000000103 /* RevenueCat in Frameworks */,
 				F1BA00000000000000000302 /* FirebaseCrashlytics in Frameworks */,
 				F1BA00000000000000000301 /* FirebaseCore in Frameworks */,
 				DEVK00000000000000000003 /* DeviceKit in Frameworks */,
@@ -676,6 +684,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0CA00000000000000000101 /* RevenueCat in Frameworks */,
 				F1BA00000000000000000102 /* FirebaseCrashlytics in Frameworks */,
 				F1BA00000000000000000101 /* FirebaseCore in Frameworks */,
 				LOGG00000000000000000102 /* Logging in Frameworks */,
@@ -727,6 +736,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0CA00000000000000000104 /* RevenueCat in Frameworks */,
 				F1BA00000000000000000402 /* FirebaseCrashlytics in Frameworks */,
 				F1BA00000000000000000401 /* FirebaseCore in Frameworks */,
 				LOGG00000000000000000106 /* Logging in Frameworks */,
@@ -754,6 +764,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0CA00000000000000000201 /* RevenueCatUI in Frameworks */,
+				C0CA00000000000000000102 /* RevenueCat in Frameworks */,
 				F1BA00000000000000000202 /* FirebaseCrashlytics in Frameworks */,
 				F1BA00000000000000000201 /* FirebaseCore in Frameworks */,
 				DEVK00000000000000000004 /* DeviceKit in Frameworks */,
@@ -915,6 +927,8 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				C0CA00000000000000000003 /* RevenueCatUI */,
+				C0CA00000000000000000002 /* RevenueCat */,
 				F1BA00000000000000000002 /* FirebaseCrashlytics */,
 				F1BA00000000000000000001 /* FirebaseCore */,
 				DEVK00000000000000000002 /* DeviceKit */,
@@ -956,6 +970,7 @@
 			);
 			name = FrameworkTests;
 			packageProductDependencies = (
+				C0CA00000000000000000002 /* RevenueCat */,
 				F1BA00000000000000000002 /* FirebaseCrashlytics */,
 				F1BA00000000000000000001 /* FirebaseCore */,
 				LOGG00000000000000000002 /* Logging */,
@@ -1040,6 +1055,7 @@
 			);
 			name = TermindInfrastructure;
 			packageProductDependencies = (
+				C0CA00000000000000000002 /* RevenueCat */,
 				F1BA00000000000000000002 /* FirebaseCrashlytics */,
 				F1BA00000000000000000001 /* FirebaseCore */,
 				LOGG00000000000000000002 /* Logging */,
@@ -1233,6 +1249,8 @@
 			);
 			name = TFM;
 			packageProductDependencies = (
+				C0CA00000000000000000003 /* RevenueCatUI */,
+				C0CA00000000000000000002 /* RevenueCat */,
 				F1BA00000000000000000002 /* FirebaseCrashlytics */,
 				F1BA00000000000000000001 /* FirebaseCore */,
 				DEVK00000000000000000002 /* DeviceKit */,
@@ -1367,6 +1385,7 @@
 			mainGroup = TRMD00000000000000000030;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */,
 				BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
@@ -2480,6 +2499,8 @@
 					"$(inherited)",
 					"-liconv",
 				);
+				REVENUECAT_API_KEY = REDACTED_REVENUECAT_API_KEY;
+				REVENUECAT_ENTITLEMENT_ID = termind_pro;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=iphoneos27.1*]" = "$(inherited) TERMIND_HAS_IOS_27_1_SDK";
@@ -2544,6 +2565,8 @@
 					"$(inherited)",
 					"-liconv",
 				);
+				REVENUECAT_API_KEY = REDACTED_REVENUECAT_API_KEY;
+				REVENUECAT_ENTITLEMENT_ID = termind_pro;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=iphoneos27.1*]" = "$(inherited) TERMIND_HAS_IOS_27_1_SDK";
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=iphonesimulator27.1*]" = "$(inherited) TERMIND_HAS_IOS_27_1_SDK";
@@ -2875,6 +2898,14 @@
 				version = 7.11.1;
 			};
 		};
+		C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
+			requirement = {
+				kind = exactVersion;
+				version = 5.92.0;
+			};
+		};
 		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
@@ -2970,6 +3001,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
+		};
+		C0CA00000000000000000002 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
+		};
+		C0CA00000000000000000003 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCatUI;
 		};
 		DEVK00000000000000000002 /* DeviceKit */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -23,7 +23,7 @@ extension AppStrings {
         }
 
         public static var terminalUploadFeature: LocalizedStringResource {
-            "Upload files by dropping them on a terminal"
+            "Drag files to upload on terminal"
         }
 
         public static var syncFeature: LocalizedStringResource {

@@ -1,5 +1,5 @@
+import RevenueCatUI
 import SwiftUI
-import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPresentation
@@ -7,27 +7,68 @@ import TermindPresentation
 struct ProPaywallView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    @State private var selectedPlan: ProPurchasePlan = .annual
+    @Environment(\.locale) private var locale
+    @State private var ignoresPurchaseDismissal = false
 
     private var pro: ProAccessController { app.proAccess }
 
     var body: some View {
-        ProPaywallContent(
-            presentation: presentation, selectedPlan: $selectedPlan,
-            background: TermindColor.windowSurface, cardBackground: TermindColor.contentSurface, purchase: purchase,
-            restorePurchases: { Task { await pro.restorePurchases() } },
-            reloadProducts: { Task { await pro.reloadProducts() } },
-            manageSubscription: { openURL(URL(string: "https://apps.apple.com/account/subscriptions")!) }
-        )
-        .frame(width: 604, height: 640)
-        .overlay(alignment: .topLeading) {
-            closeButton.padding(16)
+        VStack(spacing: 0) {
+            if pro.status == .loading {
+                ProgressView(AppStrings.Pro.contactingTheAppStoreProgress.swiftUIKey)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .topLeading) { closeButton }
+            } else if pro.usesRevenueCat {
+                PaywallView(displayCloseButton: true)
+                    .customPaywallVariables(paywallVariables)
+                    .onPurchaseInitiated { [pro] _, resume in
+                        Task { @MainActor in resume(shouldProceed: !pro.hasProAccess) }
+                    }
+                    .onPurchaseStarted { _ in pro.beginPaywallOperation() }
+                    .onRestoreStarted { pro.beginPaywallOperation() }
+                    .onPurchaseCompleted { _ in
+                        ignoresPurchaseDismissal = true
+                        Task { await pro.completePaywallOperation() }
+                    }
+                    .onRestoreCompleted { _ in Task { await pro.completePaywallOperation() } }
+                    .onPurchaseCancelled { pro.cancelPaywallOperation() }
+                    .onPurchaseFailure { _ in pro.cancelPaywallOperation() }
+                    .onRestoreFailure { _ in pro.cancelPaywallOperation() }
+                    .onRequestedDismissal {
+                        // RevenueCat requests dismissal after purchase; keep the account variant visible.
+                        if ignoresPurchaseDismissal {
+                            ignoresPurchaseDismissal = false
+                        } else {
+                            dismiss()
+                        }
+                    }
+            } else {
+                ContentUnavailableView {
+                    Label(AppStrings.Pro.termindPro, systemImage: "cart")
+                } description: {
+                    Text(ProAccessControllerError.productUnavailable.localizedDescription)
+                } actions: {
+                    Button(AppStrings.Pro.restorePurchase) { Task { await pro.restorePurchases() } }
+                    Button(AppStrings.Common.close) { dismiss() }
+                }
+            }
         }
-        .task {
-            await pro.reloadProducts()
-            if pro.annualProduct == nil, pro.product != nil { selectedPlan = .lifetime }
-        }
+        .frame(width: 604, height: 720)
+        .onChange(of: pro.isPaywallPresented) { if !pro.isPaywallPresented { dismiss() } }
+        .onDisappear { pro.cancelPaywallOperation() }
+    }
+    private var paywallVariables: [String: CustomVariableValue] {
+        let account = ProPaywallState(status: pro.status)
+        return [
+            "pro": .bool(account.hasProAccess),
+            "manage": .bool(account.canManageSubscription),
+            "state": .string(account.state),
+            "family": .bool(account.isFamilyShared),
+            "dated": .bool(account.expiresAt != nil),
+            "date": .string(
+                account.expiresAt?.formatted(
+                    .dateTime.year().month().day().hour().minute().locale(locale)) ?? ""),
+        ]
     }
 
     private var closeButton: some View {
@@ -36,34 +77,14 @@ struct ProPaywallView: View {
         } label: {
             Label(AppStrings.Common.close, systemImage: "xmark")
                 .labelStyle(.iconOnly)
-                .frame(width: 30, height: 30)
-                .contentShape(.circle)
+                .font(.system(size: 20, weight: .medium))
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .termindGlassCircle(isInteractive: true)
-        .termindInputAwareFocusEffect()
-        .keyboardShortcut(.cancelAction)
-        .help(AppStrings.Common.close)
-        .accessibilityLabel(Text(AppStrings.Common.close))
+        .padding(16)
     }
 
-    private var presentation: ProPaywallPresentation {
-        ProPaywallPresentation(
-            status: pro.status, annualPrice: pro.annualDisplayPrice, lifetimePrice: pro.displayPrice,
-            billingPeriod: pro.annualBillingPeriod, trialDuration: pro.annualIntroOfferDuration,
-            canStartTrial: pro.canStartTrial, canPurchaseAnnual: pro.canPurchase(.annual),
-            canPurchaseLifetime: pro.canPurchase(.lifetime), isProcessing: pro.isProcessing,
-            message: pro.message, requestedFeature: pro.requestedFeature, supportsMCPServer: true)
-    }
-
-    private func purchase(_ plan: ProPurchasePlan) {
-        Task {
-            switch plan {
-            case .annual: await pro.purchaseAnnual()
-            case .lifetime: await pro.purchaseLifetime()
-            }
-        }
-    }
 }
 
 struct ProPaywallPresenter: ViewModifier {
