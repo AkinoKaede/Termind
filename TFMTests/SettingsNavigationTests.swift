@@ -89,7 +89,8 @@ struct SettingsNavigationTests {
         )
         #expect(SettingsRoute.mcpServer(serverID, isNew: false).parent == .category(.ai))
         #expect(SettingsRoute.localMCPServer.parent == .category(.ai))
-        #expect(SettingsRoute.terminalConfiguration(.dark).parent == .category(.terminal))
+        #expect(SettingsRoute.terminalConfiguration(.dark).parent == .terminalThemes(.dark))
+        #expect(SettingsRoute.terminalThemes(.dark).parent == .category(.terminal))
         #expect(SettingsRoute.logging.parent == .index)
     }
 
@@ -123,6 +124,9 @@ struct SettingsNavigationTests {
     func settingsToolbarBackWalksTheRouteThenRestoresContent() {
         let window = WindowModel()
         window.openSettings(route: .terminalConfiguration(.dark))
+
+        window.navigateBackInSettings()
+        #expect(window.settingsRoute == .terminalThemes(.dark))
 
         window.navigateBackInSettings()
         #expect(window.settingsRoute == .category(.terminal))

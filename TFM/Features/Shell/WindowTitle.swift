@@ -69,6 +69,9 @@ struct SettingsWindowTitleProvider: WindowTitleProviding {
             return AppLocalization.resolve(AppStrings.MCP.mcpServer, locale: locale)
         case .skill:
             return AppLocalization.resolve(AppStrings.Settings.skill, locale: locale)
+        case .terminalThemes(let scheme):
+            return AppLocalization.resolve(
+                scheme == .dark ? AppStrings.Settings.darkTheme : AppStrings.Settings.lightTheme, locale: locale)
         case .terminalConfiguration(let scheme):
             return scheme.title
         case .logging:

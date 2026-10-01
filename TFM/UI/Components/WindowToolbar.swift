@@ -15,6 +15,7 @@ import struct TermindDomain.Host
 /// two of them could be on screen at once.
 nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable {
     case hosts
+    case terminalThemes
     case metrics
     case processes
     case keychain
@@ -833,6 +834,15 @@ extension WindowModel {
     func findContext() -> WindowToolbarFindContext? {
         guard let kind = findKind else { return nil }
         switch kind {
+        case .terminalThemes:
+            guard case .terminalThemes(let scheme) = settingsRoute else { return nil }
+            return WindowToolbarFindContext(
+                query: Binding(
+                    get: { self.terminalThemeQueries[scheme, default: ""] },
+                    set: { self.terminalThemeQueries[scheme] = $0 }
+                ),
+                focusRequest: findFocusRequest
+            )
         case .metrics:
             return WindowToolbarFindContext(
                 query: Binding(get: { self.metricsQuery }, set: { self.metricsQuery = $0 }),

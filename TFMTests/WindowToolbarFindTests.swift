@@ -25,6 +25,30 @@ struct WindowToolbarFindTests {
     }
 
     @Test
+    func themeSearchUsesToolbarAndPreservesEachAppearanceQuery() throws {
+        let window = WindowModel()
+        window.openSettings(route: .terminalThemes(.light))
+        #expect(window.findKind == .terminalThemes)
+        let light = try #require(window.findContext())
+        light.query.wrappedValue = "Day"
+        window.focusToolbarFind()
+        #expect(window.isToolbarFindFocused)
+
+        window.openSettings(route: .terminalThemes(.dark))
+        let dark = try #require(window.findContext())
+        #expect(dark.query.wrappedValue.isEmpty)
+        dark.query.wrappedValue = "Night"
+        window.openSettings(route: .terminalConfiguration(.dark))
+        #expect(window.findContext() == nil)
+        window.navigateBackInSettings()
+        #expect(window.findContext()?.query.wrappedValue == "Night")
+        window.openSettings(route: .terminalThemes(.light))
+        #expect(window.findContext()?.query.wrappedValue == "Day")
+        window.openSettings(route: .category(.terminal))
+        #expect(window.findKind == nil)
+    }
+
+    @Test
     func vaultPagesEachResolveToTheirOwnFind() {
         let window = WindowModel()
 

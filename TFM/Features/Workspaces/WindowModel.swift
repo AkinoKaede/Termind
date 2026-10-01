@@ -84,6 +84,7 @@ final class WindowModel {
     }
     var metricsSelection: Set<UUID> = []
     var settingsRoute: SettingsRoute = .index
+    var terminalThemeQueries: [TerminalCustomConfigurationScheme: String] = [:]
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
     let assistantLibrary: AssistantLibraryModel
@@ -430,6 +431,7 @@ final class WindowModel {
         case .metrics:
             return metricsHostID == nil ? .metrics : .processes
         case .settings:
+            if case .terminalThemes = settingsRoute { return .terminalThemes }
             return nil
         case .workspace:
             if focusedSSHSession != nil || focusedTelnetSession != nil || focusedSerialSession != nil {

@@ -5,8 +5,6 @@ import TermindPresentation
 
 struct MobileTerminalSettingsView: View {
     let model: TerminalSettingsModel
-    @State private var editingDark: Bool?
-    @State private var customText = ""
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
 
@@ -27,47 +25,19 @@ struct MobileTerminalSettingsView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { TerminalFontCatalog.shared.refresh() }
         }
-        .sheet(isPresented: Binding(get: { editingDark != nil }, set: { if !$0 { editingDark = nil } })) {
-            if let dark = editingDark {
-                let original =
-                    dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
-                MobileEditorSheet(
-                    title: String(localized: AppStrings.Settings.customConfiguration), isDirty: customText != original,
-                    save: {
-                        guard model.set(customText, for: dark ? \.darkCustomConfiguration : \.lightCustomConfiguration)
-                        else {
-                            throw MobileEditorError.message(model.storageError ?? "")
-                        }
-                    },
-                    content: {
-                        TextEditor(text: $customText).multilineTextAlignment(.leading).font(
-                            .system(.body, design: .monospaced)
-                        )
-                        .textInputAutocapitalization(.never).autocorrectionDisabled().frame(minHeight: 280)
-                        .accessibilityLabel(AppStrings.Settings.customConfiguration.swiftUIKey)
-                    })
-            }
-        }
     }
 
     private func themeSection(dark: Bool) -> some View {
-        Section {
-            TerminalThemePicker(selection: binding(dark ? \.darkTheme : \.lightTheme), isDark: dark)
-            Toggle(
-                AppStrings.Settings.customConfiguration.swiftUIKey,
-                isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
-            Button(AppStrings.Settings.editConfiguration.swiftUIKey, systemImage: "pencil") {
-                customText =
-                    dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
-                editingDark = dark
-            }
-        } header: {
-            Text(dark ? String(localized: AppStrings.Settings.dark) : String(localized: AppStrings.Settings.light))
-        } footer: {
-            if dark {
-                Text(
-                    AppStrings.Settings.terminalConfigurationExplanation
-                )
+        let options = TerminalThemeOptions(preferences: model.preferences, isDark: dark)
+        return Section {
+            NavigationLink {
+                MobileTerminalThemeView(model: model, isDark: dark)
+            } label: {
+                HStack {
+                    Text(options.title)
+                    Spacer()
+                    options.summary.foregroundStyle(.secondary)
+                }
             }
         }
     }

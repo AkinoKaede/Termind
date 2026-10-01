@@ -2,6 +2,20 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Settings {
+        public static var lightTheme: LocalizedStringResource { "Light Theme" }
+        public static var darkTheme: LocalizedStringResource { "Dark Theme" }
+        public static var customTheme: LocalizedStringResource { "Custom" }
+        public static var searchThemes: LocalizedStringResource { "Search Themes" }
+        public static var noMatchingThemes: LocalizedStringResource { "No matching themes" }
+        public static var noThemeSelected: LocalizedStringResource { "No Theme Selected" }
+        public static var themePreview: LocalizedStringResource { "Theme Preview" }
+        public static func unavailableThemeFallback(_ name: String) -> LocalizedStringResource {
+            "This theme is unavailable for this appearance. Using “\(name)” instead."
+        }
+        public static func themePreviewError(_ error: String) -> LocalizedStringResource {
+            "Unable to update preview: \(error)"
+        }
+
         public static var devices: LocalizedStringResource { "Devices" }
         public static var optionalSync: LocalizedStringResource { "Optional Sync" }
         public static var signInToSync: LocalizedStringResource { "Sign in to iCloud to sync." }
@@ -266,10 +280,6 @@ extension AppStrings {
 
         public static func edit(_ displayTitle: String) -> LocalizedStringResource {
             "Edit \(displayTitle)"
-        }
-
-        public static var editConfiguration: LocalizedStringResource {
-            "Edit Configuration"
         }
 
         public static var editCustomConfiguration: LocalizedStringResource {

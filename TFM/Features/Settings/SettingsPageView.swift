@@ -66,6 +66,7 @@ enum SettingsRoute: Hashable {
     case mcpServer(MCPServer.ID, isNew: Bool)
     case localMCPServer
     case skill(AgentSkill.ID, isNew: Bool)
+    case terminalThemes(TerminalCustomConfigurationScheme)
     case terminalConfiguration(TerminalCustomConfigurationScheme)
     case logging
 
@@ -85,8 +86,10 @@ enum SettingsRoute: Hashable {
             .category(.ai)
         case .skill:
             .category(.ai)
-        case .terminalConfiguration:
+        case .terminalThemes:
             .category(.terminal)
+        case .terminalConfiguration(let scheme):
+            .terminalThemes(scheme)
         case .logging:
             .index
         }
@@ -144,6 +147,8 @@ struct SettingsPageView: View {
             SettingsFormPage { MCPServerSettings() }
         case .skill(let id, _):
             SkillEditorPage(skillID: id, deleted: { navigate(to: .category(.ai)) })
+        case .terminalThemes(let scheme):
+            TerminalThemePage(scheme: scheme, editConfiguration: { navigate(to: .terminalConfiguration(scheme)) })
         case .terminalConfiguration(let scheme):
             TerminalCustomConfigurationEditorPage(scheme: scheme)
         case .logging:
@@ -170,7 +175,7 @@ struct SettingsPageView: View {
         case .terminal:
             SettingsFormPage {
                 TerminalSettings(
-                    editConfiguration: { navigate(to: .terminalConfiguration($0)) }
+                    chooseTheme: { navigate(to: .terminalThemes($0)) }
                 )
             }
         case .connections:
@@ -577,7 +582,7 @@ private struct ConnectionSettings: View {
 }
 
 private struct TerminalSettings: View {
-    let editConfiguration: (TerminalCustomConfigurationScheme) -> Void
+    let chooseTheme: (TerminalCustomConfigurationScheme) -> Void
     @Environment(AppModel.self) private var app
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
@@ -588,30 +593,34 @@ private struct TerminalSettings: View {
             set: { app.terminalSettings.set($0, for: keyPath) })
     }
 
+    private func themeRow(_ scheme: TerminalCustomConfigurationScheme) -> some View {
+        let options = TerminalThemeOptions(preferences: app.terminalSettings.preferences, isDark: scheme == .dark)
+        return Button {
+            chooseTheme(scheme)
+        } label: {
+            HStack {
+                Text(options.title)
+                Spacer()
+                options.summary.foregroundStyle(.secondary)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(options.title))
+        .accessibilityValue(options.summary)
+    }
+
     var body: some View {
         Group {
             if let error = app.terminalSettings.storageError {
                 Text(error).foregroundStyle(.orange)
             }
-            Section(AppStrings.Settings.light.swiftUIKey) {
-                TerminalThemePicker(selection: binding(\.lightTheme), isDark: false)
-                Toggle(AppStrings.Settings.customConfiguration.swiftUIKey, isOn: binding(\.lightCustomEnabled))
-                FormNavigationAction(title: AppStrings.Settings.editCustomConfiguration) {
-                    editConfiguration(.light)
-                }
-            }
-            Section {
-                TerminalThemePicker(selection: binding(\.darkTheme), isDark: true)
-                Toggle(AppStrings.Settings.customConfiguration.swiftUIKey, isOn: binding(\.darkCustomEnabled))
-                FormNavigationAction(title: AppStrings.Settings.editCustomConfiguration) {
-                    editConfiguration(.dark)
-                }
-            } header: {
-                Text(AppStrings.Settings.dark)
-            } footer: {
-                Text(
-                    AppStrings.Settings.terminalConfigurationExplanation
-                )
+            Section(AppStrings.Settings.theme.swiftUIKey) {
+                themeRow(.light)
+                themeRow(.dark)
             }
             Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)

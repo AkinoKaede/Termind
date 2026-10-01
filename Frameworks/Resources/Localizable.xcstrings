@@ -8242,6 +8242,23 @@
         }
       }
     },
+    "Dark Theme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色主題"
+          }
+        }
+      }
+    },
     "Data Bits" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10564,23 +10581,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯%@"
-          }
-        }
-      }
-    },
-    "Edit Configuration" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑配置"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "編輯設定"
           }
         }
       }
@@ -15377,6 +15377,23 @@
         }
       }
     },
+    "Light Theme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浅色主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "淺色主題"
+          }
+        }
+      }
+    },
     "Limits" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17804,6 +17821,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有已安裝的App可以打開此檔案。"
+          }
+        }
+      }
+    },
+    "No matching themes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有匹配的主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有符合的主題"
           }
         }
       }
@@ -24492,6 +24526,23 @@
         }
       }
     },
+    "Search Themes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋主題"
+          }
+        }
+      }
+    },
     "Search hosts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30075,6 +30126,23 @@
         }
       }
     },
+    "Theme Preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主题预览"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主題預覽"
+          }
+        }
+      }
+    },
     "These hosts require conflicting jump routes. Import the routes separately." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32040,6 +32108,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法啟動系統授權工作階段。"
+          }
+        }
+      }
+    },
+    "Unable to update preview: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法更新预览：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法更新預覽：%@"
           }
         }
       }

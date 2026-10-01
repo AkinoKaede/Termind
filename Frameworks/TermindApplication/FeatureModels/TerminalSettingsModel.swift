@@ -19,6 +19,29 @@ public final class TerminalSettingsModel {
     public func set<Value>(_ value: Value, for keyPath: WritableKeyPath<TerminalPreferences, Value>) -> Bool {
         var next = preferences
         next[keyPath: keyPath] = value
+        return save(next)
+    }
+
+    /// A theme choice is one persisted edit, including disabling the custom overlay.
+    @discardableResult
+    public func selectTheme(named name: String, isDark: Bool) -> Bool {
+        var next = preferences
+        if isDark {
+            next.darkTheme = name
+            next.darkCustomEnabled = false
+        } else {
+            next.lightTheme = name
+            next.lightCustomEnabled = false
+        }
+        return save(next)
+    }
+
+    @discardableResult
+    public func selectCustomTheme(isDark: Bool) -> Bool {
+        set(true, for: isDark ? \.darkCustomEnabled : \.lightCustomEnabled)
+    }
+
+    private func save(_ next: TerminalPreferences) -> Bool {
         guard next != preferences else { return true }
         do {
             try persistence?.saveTerminal(next)

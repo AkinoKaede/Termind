@@ -36,6 +36,7 @@ struct TerminalCustomConfigurationEditorPage: View {
     @Environment(AppModel.self) private var app
     let scheme: TerminalCustomConfigurationScheme
 
+    @TerminalFontSettings private var font
     @State private var content = ""
     @State private var lastSavedContent = ""
     @State private var isLoaded = false
@@ -66,13 +67,6 @@ struct TerminalCustomConfigurationEditorPage: View {
             }
 
             HStack {
-                Toggle(
-                    AppStrings.Common.enabled.swiftUIKey,
-                    isOn: Binding(
-                        get: { app.terminalSettings.preferences[keyPath: scheme.enabledKeyPath] },
-                        set: { app.terminalSettings.set($0, for: scheme.enabledKeyPath) })
-                )
-                .toggleStyle(.switch)
                 Spacer()
                 Button(AppStrings.Settings.importFromFile.swiftUIKey) { isImporting = true }
             }
@@ -80,11 +74,27 @@ struct TerminalCustomConfigurationEditorPage: View {
             .padding(.vertical, Metrics.Space.s)
             Divider()
 
-            TextEditor(text: $content)
-                .font(.system(.body, design: .monospaced))
-                .textContentType(.none)
-                .autocorrectionDisabled()
+            ScrollView {
+                Text(AppStrings.Settings.terminalConfigurationExplanation)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Metrics.Space.m)
+                TerminalConfigurationEditorLayout {
+                    TextEditor(text: $content)
+                        .font(.system(.body, design: .monospaced))
+                        .textContentType(.none)
+                        .autocorrectionDisabled()
+                        .frame(minHeight: 360)
+                        .accessibilityLabel(AppStrings.Settings.customConfiguration.swiftUIKey)
+                } preview: {
+                    TerminalConfigurationPreview(
+                        themeName: scheme == .dark
+                            ? app.terminalSettings.preferences.darkTheme : app.terminalSettings.preferences.lightTheme,
+                        text: content, isDark: scheme == .dark,
+                        font: font.resolvingFamily(in: TerminalFontCatalog.shared.families))
+                }
                 .padding(Metrics.Space.m)
+            }
         }
         .onAppear {
             content = app.terminalSettings.preferences[keyPath: scheme.preferenceKeyPath]
