@@ -1,3 +1,4 @@
+import GhosttyTerminal
 import GlyphixTextFx
 import SwiftUI
 import TermindApplication
@@ -384,7 +385,6 @@ private struct PaneView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @TerminalAppearanceSettings private var terminalAppearance
 
     @State private var isHovering = false
     @State private var isRenaming = false
@@ -629,12 +629,21 @@ private struct PaneView: View {
             headerContent.background {
                 ConnectionJourneyBackground()
             }
-        } else if pane.kind == .sshSession || pane.kind == .telnetSession || pane.kind == .serialSession {
-            headerContent.background(terminalAppearance.background)
+        } else if let state = terminalState {
+            headerContent.background { TerminalBackground(state: state) }
         } else if pane.kind == .sftpChannel {
             headerContent.background(TermindColor.windowSurface)
         } else {
             headerContent.termindGlassBar()
+        }
+    }
+
+    private var terminalState: TerminalViewState? {
+        switch pane.content {
+        case .sshSession(let session): session.terminalState
+        case .telnetSession(let session): session.terminalState
+        case .serialSession(let session): session.terminalState
+        case .sftpChannel, .empty: nil
         }
     }
 

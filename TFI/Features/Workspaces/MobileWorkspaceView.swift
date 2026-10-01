@@ -128,6 +128,12 @@ struct MobileWorkspaceView: View {
                     .accessibilityHidden(!MobileContentRegions.isUsable(regions.continuous))
             }
         }
+        .background {
+            if workspace.descriptor.kind != .sftp, !showsJourney {
+                TerminalBackground(state: workspace.terminal)
+                    .ignoresSafeArea(.container)
+            }
+        }
         .navigationTitle(workspace.descriptor.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(toolbarLayout.showsWorkspaceTabs ? .visible : .hidden, for: .tabBar)

@@ -93,7 +93,7 @@ private struct DesktopTerminalChrome: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(appearance.background)
+            .background { TerminalBackground(state: state) }
             .onAppear {
                 state.applyPreferences(appearance.preferences, font: appearance.font)
             }
