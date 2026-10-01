@@ -22,9 +22,15 @@ struct MobileStartupView: View {
     var body: some View {
         switch startup {
         case .success(let app):
-            MobileQuickActionSceneRoot(app: app)
-                .modelContainer(app.container)
-                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
+            Group {
+                if app.diagnosis.needsConsent {
+                    DiagnosisConsentView(controller: app.diagnosis)
+                } else {
+                    MobileQuickActionSceneRoot(app: app)
+                }
+            }
+            .modelContainer(app.container)
+            .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         case .failure:
             ContentUnavailableView(
                 AppStrings.Common.unableToOpenTermind.swiftUIKey, systemImage: "exclamationmark.triangle",

@@ -14,6 +14,10 @@ extension AppStrings {
             "Add Hosts"
         }
 
+        public static var allow: LocalizedStringResource {
+            "Allow"
+        }
+
         public static var back: LocalizedStringResource {
             "Back"
         }

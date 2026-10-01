@@ -140,6 +140,7 @@ final class MobileAppModel {
     let metrics: MobileMetricsModel
     let pro: ProAccessController
     let appReview: AppReviewController
+    let diagnosis: DiagnosisController
     let logging: any ApplicationLogManaging
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
@@ -198,6 +199,7 @@ final class MobileAppModel {
             dependencies.workspaceStore
             ?? MobileWorkspaceStore(defaults: inMemory || hosts != nil ? nil : defaults)
         appReview = dependencies.appReview
+        diagnosis = dependencies.diagnosis
         logging = dependencies.logging
         let memoryOnly = inMemory || hosts != nil
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")

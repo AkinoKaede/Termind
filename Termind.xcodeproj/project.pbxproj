@@ -82,6 +82,16 @@
 		F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */; };
 		F04700000000000000000002 /* TFMTests/SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */; };
 		F04700000000000000000003 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		F1BA00000000000000000101 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
+		F1BA00000000000000000102 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
+		F1BA00000000000000000201 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
+		F1BA00000000000000000202 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
+		F1BA00000000000000000301 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
+		F1BA00000000000000000302 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
+		F1BA00000000000000000401 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
+		F1BA00000000000000000402 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
+		F1BA0000000000000000A001 /* Configuration/Firebase/GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */; };
+		F1BA0000000000000000A002 /* Configuration/Firebase/GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */; };
 		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -474,6 +484,7 @@
 		E28A00000000000000000001 /* V28.store */ = {isa = PBXFileReference; lastKnownFileType = file; name = V28.store; path = FrameworkTests/Fixtures/V28.store; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
+		F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Configuration/Firebase/GoogleService-Info.plist"; sourceTree = SOURCE_ROOT; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -640,6 +651,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA00000000000000000302 /* FirebaseCrashlytics in Frameworks */,
+				F1BA00000000000000000301 /* FirebaseCore in Frameworks */,
 				DEVK00000000000000000003 /* DeviceKit in Frameworks */,
 				LOGG00000000000000000105 /* Logging in Frameworks */,
 				BAAD00000000000000000011 /* GRDB in Frameworks */,
@@ -663,6 +676,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA00000000000000000102 /* FirebaseCrashlytics in Frameworks */,
+				F1BA00000000000000000101 /* FirebaseCore in Frameworks */,
 				LOGG00000000000000000102 /* Logging in Frameworks */,
 				ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */,
 				ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */,
@@ -712,6 +727,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA00000000000000000402 /* FirebaseCrashlytics in Frameworks */,
+				F1BA00000000000000000401 /* FirebaseCore in Frameworks */,
 				LOGG00000000000000000106 /* Logging in Frameworks */,
 				BAAD00000000000000000012 /* GRDB in Frameworks */,
 				AA1200000000000000000010 /* MarkdownView in Frameworks */,
@@ -737,6 +754,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA00000000000000000202 /* FirebaseCrashlytics in Frameworks */,
+				F1BA00000000000000000201 /* FirebaseCore in Frameworks */,
 				DEVK00000000000000000004 /* DeviceKit in Frameworks */,
 				LOGG00000000000000000104 /* Logging in Frameworks */,
 				BAAD00000000000000000010 /* GRDB in Frameworks */,
@@ -826,6 +845,7 @@
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
+				F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */,
 				BENC00000000000000000010 /* Benchmarks/PortForwarding */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
 				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
@@ -875,6 +895,7 @@
 				AC89B83FA8E4154383D9AC81 /* Sources */,
 				7B09CFC5B32584951BD4C8F9 /* Frameworks */,
 				8F0C5245592A0E2AFB85E50F /* Resources */,
+				F1BA00000000000000003002 /* Upload Crashlytics Symbols */,
 			);
 			buildRules = (
 			);
@@ -894,6 +915,8 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				F1BA00000000000000000002 /* FirebaseCrashlytics */,
+				F1BA00000000000000000001 /* FirebaseCore */,
 				DEVK00000000000000000002 /* DeviceKit */,
 				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
@@ -933,6 +956,8 @@
 			);
 			name = FrameworkTests;
 			packageProductDependencies = (
+				F1BA00000000000000000002 /* FirebaseCrashlytics */,
+				F1BA00000000000000000001 /* FirebaseCore */,
 				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD0000000000000010001B /* AgentKit */,
@@ -1015,6 +1040,8 @@
 			);
 			name = TermindInfrastructure;
 			packageProductDependencies = (
+				F1BA00000000000000000002 /* FirebaseCrashlytics */,
+				F1BA00000000000000000001 /* FirebaseCore */,
 				LOGG00000000000000000002 /* Logging */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
@@ -1187,6 +1214,7 @@
 				TRMD00000000000000000020 /* Frameworks */,
 				TRMD00000000000000000080 /* Resources */,
 				TRMD00000000000000000085 /* Embed MCP Bridge */,
+				F1BA00000000000000002002 /* Upload Crashlytics Symbols */,
 			);
 			buildRules = (
 			);
@@ -1205,6 +1233,8 @@
 			);
 			name = TFM;
 			packageProductDependencies = (
+				F1BA00000000000000000002 /* FirebaseCrashlytics */,
+				F1BA00000000000000000001 /* FirebaseCore */,
 				DEVK00000000000000000002 /* DeviceKit */,
 				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
@@ -1337,6 +1367,7 @@
 			mainGroup = TRMD00000000000000000030;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */,
 				BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */,
@@ -1420,6 +1451,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA0000000000000000A002 /* Configuration/Firebase/GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1448,6 +1480,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1BA0000000000000000A001 /* Configuration/Firebase/GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1459,6 +1492,55 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F1BA00000000000000002002 /* Upload Crashlytics Symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run",
+				"$(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Info.plist",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(PRODUCT_NAME)",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Upload Crashlytics Symbols";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+		};
+		F1BA00000000000000003002 /* Upload Crashlytics Symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run",
+				"$(BUILD_DIR)/../../SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Info.plist",
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(PRODUCT_NAME)",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Upload Crashlytics Symbols";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n    \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\" -gsp \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		01260326BA2579B3E3586B26 /* Sources */ = {
@@ -1923,6 +2005,7 @@
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 54;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Development;
 				INFOPLIST_FILE = TFI/Info.plist;
@@ -2234,6 +2317,7 @@
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 54;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Production;
 				INFOPLIST_FILE = TFI/Info.plist;
@@ -2486,6 +2570,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 62;
 				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -2523,6 +2608,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 62;
 				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -2797,6 +2883,14 @@
 				minimumVersion = 5.9.0;
 			};
 		};
+		F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = exactVersion;
+				version = 12.19.2;
+			};
+		};
 		LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
@@ -2881,6 +2975,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */;
 			productName = DeviceKit;
+		};
+		F1BA00000000000000000001 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		F1BA00000000000000000002 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 		LOGG00000000000000000002 /* Logging */ = {
 			isa = XCSwiftPackageProductDependency;

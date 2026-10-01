@@ -3092,6 +3092,29 @@
         }
       }
     },
+    "Allow Termind to send diagnostic data to Google? This includes crash details, app and operating system versions, device information, and diagnostic identifiers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Termind to send diagnostic data to Google? This includes crash details, app and operating system versions, device information, and diagnostic identifiers."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是否允许Termind向Google发送诊断数据？这些数据包含崩溃详情、应用和操作系统版本、设备信息及诊断标识符。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是否允許Termind向Google傳送診斷資料？這些資料包含當機詳情、App與作業系統版本、裝置資訊及診斷識別碼。"
+          }
+        }
+      }
+    },
     "Allow Termind to use Speech Recognition in Settings, then try again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9547,6 +9570,29 @@
         }
       }
     },
+    "Diagnosis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnosis"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "诊断"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診斷"
+          }
+        }
+      }
+    },
     "Did not run “%@”" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9977,6 +10023,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉新手引導提示"
+          }
+        }
+      }
+    },
+    "Don't Send" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不发送"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要傳送"
           }
         }
       }
@@ -13144,6 +13213,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你好，我是Termind。"
+          }
+        }
+      }
+    },
+    "Help make Termind more reliable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help make Termind more reliable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帮助提升Termind的稳定性"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "協助提升Termind的穩定性"
           }
         }
       }
@@ -24850,6 +24942,29 @@
         }
       }
     },
+    "Send Diagnostic Data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Diagnostic Data"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送诊断数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送診斷資料"
+          }
+        }
+      }
+    },
     "Send Speed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24886,6 +25001,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "傳送下面的訊息開始一個。"
+          }
+        }
+      }
+    },
+    "Send diagnostic data to Google Firebase Crashlytics to help make Termind more reliable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send diagnostic data to Google Firebase Crashlytics to help make Termind more reliable."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "向Google Firebase Crashlytics发送诊断数据以帮助提升Termind的稳定性。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "向Google Firebase Crashlytics傳送診斷資料以協助提升Termind的穩定性。"
           }
         }
       }
@@ -27464,6 +27602,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind無法啟動音訊輸入。請檢查麥克風是否已連線且可用。"
+          }
+        }
+      }
+    },
+    "Termind does not attach terminal output, chat content, passwords, or private keys to diagnostic data." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind does not attach terminal output, chat content, passwords, or private keys to diagnostic data."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind不会在诊断数据中附加终端输出、聊天内容、密码或私钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind不會在診斷資料中附加終端輸出、聊天內容、密碼或私鑰。"
           }
         }
       }
@@ -30525,6 +30686,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此iCloud記錄需要同步格式%lld。請更新Termind後再編輯。"
+          }
+        }
+      }
+    },
+    "This is optional. Your choice applies to this device, and you can change it in Settings > App." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is optional. Your choice applies to this device, and you can change it in Settings > App."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此功能为可选项。您的选择仅适用于当前设备，可在“设置”>“应用”中更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此功能為選用項目。您的選擇僅適用於目前裝置，可在「設定」>「App」中更改。"
           }
         }
       }

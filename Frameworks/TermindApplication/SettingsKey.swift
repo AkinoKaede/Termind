@@ -2,6 +2,10 @@ import Foundation
 import TermindDomain
 
 public nonisolated enum SettingsKey {
+    // Device-local privacy consent; absence means the user has not chosen yet.
+    // Preserve the original storage key so a terminology change does not reset consent.
+    public static let diagnosisConsent = "diagnostics.crashReportingConsent"
+
     // Debug visibility and logging are device-local and never included in Settings sync.
     public static let debugSectionEnabled = "debug.section.enabled"
     public static let loggingSavingEnabled = "debug.logging.savingEnabled"

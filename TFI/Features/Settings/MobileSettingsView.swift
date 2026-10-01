@@ -19,7 +19,8 @@ struct MobileSettingsView: View {
                     MobileAppSettingsView(
                         workspaceSettings: app.workspaceSettings,
                         appReview: app.appReview,
-                        reviewScene: reviewScene)
+                        reviewScene: reviewScene,
+                        diagnosis: app.diagnosis)
                 } label: {
                     Label(AppStrings.Settings.app.swiftUIKey, systemImage: "app.badge")
                 }

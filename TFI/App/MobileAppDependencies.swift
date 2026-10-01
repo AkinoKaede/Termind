@@ -13,6 +13,7 @@ struct MobileAppDependencies {
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
     var appReview: AppReviewController
+    var diagnosis = DiagnosisController()
     var logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
     var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
     var container: ModelContainer? = nil
@@ -34,6 +35,7 @@ struct MobileAppDependencies {
             workspaceConnections: .live(coordinator: coordinator),
             metrics: .live(coordinator: coordinator),
             appReview: .live(),
+            diagnosis: DiagnosisController(defaults: .standard, reporter: FirebaseDiagnosticDataReporter.live()),
             logging: logging,
             connectionCoordinator: coordinator,
             makeForwardings: {

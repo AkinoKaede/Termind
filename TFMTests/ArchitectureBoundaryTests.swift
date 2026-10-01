@@ -4,6 +4,22 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func diagnosisSDKStaysBehindInfrastructureAndStartsWithCollectionDisabled() throws {
+        for module in ["TermindDomain", "TermindApplication", "TermindPresentation", "TermindPersistence"] {
+            try assertNoImports(
+                in: "../Frameworks/\(module)", forbidden: ["FirebaseCore", "FirebaseCrashlytics", "FirebaseAnalytics"])
+        }
+        for path in ["Info.plist", "../TFI/Info.plist"] {
+            let data = try Data(contentsOf: sourceRoot.appending(path: path))
+            let plist = try #require(
+                PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
+            #expect(plist["FirebaseCrashlyticsCollectionEnabled"] as? Bool == false)
+            #expect(plist["FirebaseDataCollectionDefaultEnabled"] as? Bool == false)
+            #expect(plist["FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED"] as? Bool == true)
+        }
+    }
+
+    @Test
     func forwardingBenchmarkRemainsIndependentFromAppsAndTests() throws {
         let repositoryRoot = sourceRoot.deletingLastPathComponent().standardizedFileURL
         let project = try String(

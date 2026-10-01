@@ -71,6 +71,7 @@ final class AppModel {
     let commands = AppCommandRegistry()
     let onboarding: OnboardingController
     let appReview: AppReviewController
+    let diagnosis: DiagnosisController
     let serverMetrics: ServerMetricsModel
     let windowSizeStore: MainWindowSizeStore
     let logging: any ApplicationLogManaging
@@ -191,6 +192,7 @@ final class AppModel {
         proAccess: ProAccessController = .unrestrictedForTesting(),
         onboarding: OnboardingController = OnboardingController(),
         appReview: AppReviewController = AppReviewController(),
+        diagnosis: DiagnosisController = DiagnosisController(),
         serverMetrics suppliedMetrics: ServerMetricsModel? = nil,
         windowSizeStore: MainWindowSizeStore = MainWindowSizeStore()
     ) {
@@ -220,6 +222,7 @@ final class AppModel {
         self.proAccess = proAccess
         self.onboarding = onboarding
         self.appReview = appReview
+        self.diagnosis = diagnosis
         knownHosts = KnownHostsLibraryModel(library: hosts)
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)

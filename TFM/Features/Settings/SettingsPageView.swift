@@ -158,6 +158,7 @@ struct SettingsPageView: View {
             SettingsFormPage {
                 AppSettings()
                 StartupSettings()
+                DiagnosisSettingsSection(controller: app.diagnosis)
                 AppInfoSettings()
             }
         case .notifications:

@@ -6,6 +6,7 @@ struct MobileAppSettingsView: View {
     let workspaceSettings: WorkspaceSettingsModel
     var appReview: AppReviewController?
     var reviewScene: MobileSceneModel?
+    var diagnosis = DiagnosisController()
     @AppStorage("mobile.appearance") private var appearance = "system"
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
@@ -34,6 +35,7 @@ struct MobileAppSettingsView: View {
             } footer: {
                 Text(AppStrings.Settings.workspaceNumberingExplanation)
             }
+            DiagnosisSettingsSection(controller: diagnosis)
             Section(AppStrings.Settings.version.swiftUIKey) {
                 LabeledContent(
                     AppStrings.Settings.app.swiftUIKey,

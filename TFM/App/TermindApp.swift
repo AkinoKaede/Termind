@@ -56,6 +56,10 @@ struct TermindApp: App {
             #else
                 let usesInMemoryStore = isRunningTests
             #endif
+            let diagnosis =
+                usesInMemoryStore
+                ? DiagnosisController()
+                : DiagnosisController(defaults: .standard, reporter: FirebaseDiagnosticDataReporter.live())
             if !usesInMemoryStore { try DatabaseStartupGuard.checkRunningApplications() }
             let container = try TermindPersistence.makeContainer(inMemory: usesInMemoryStore)
             ContextAttachmentOpener.cleanPreviousSession()
@@ -195,6 +199,7 @@ struct TermindApp: App {
                     ),
                     proAccess: proAccess,
                     appReview: .live(),
+                    diagnosis: diagnosis,
                     windowSizeStore: MainWindowSizeStore(defaults: isRunningTests ? nil : .standard)
                 )
             )
@@ -228,13 +233,20 @@ struct TermindApp: App {
     /// destinations and dynamic Workspaces.
     var body: some Scene {
         WindowGroup(id: "main", for: UUID.self) { $requestID in
-            RootView(window: makeWindow(requestID: requestID), requestID: requestID)
-                .environment(app)
-                .environment(\.locale, launchLanguage.locale)
-                .modelContainer(modelContainer)
-                #if canImport(AppKit)
-                    .onAppear { delegate.app = app }
-                #endif
+            Group {
+                if app.diagnosis.needsConsent {
+                    DiagnosisConsentView(controller: app.diagnosis)
+                        .frame(minWidth: 560, minHeight: 620)
+                } else {
+                    RootView(window: makeWindow(requestID: requestID), requestID: requestID)
+                }
+            }
+            .environment(app)
+            .environment(\.locale, launchLanguage.locale)
+            .modelContainer(modelContainer)
+            #if canImport(AppKit)
+                .onAppear { delegate.app = app }
+            #endif
         }
         #if DEBUG
             // XCTest launches the real app. Gating individual tests does not stop
