@@ -63,7 +63,6 @@ struct MobileKeyEditor: View {
                                     .multilineTextAlignment(.trailing).disabled(model.passphrase.isEmpty)
                             }
                             Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
-                                .disabled(model.passphrase.isEmpty)
                             if !model.passphrase.isEmpty {
                                 Picker(AppStrings.Keychain.cipher.swiftUIKey, selection: $model.cipher) {
                                     ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
@@ -145,7 +144,7 @@ struct MobileKeyEditor: View {
                                 .multilineTextAlignment(.leading)
                                 .disabled(!model.canEditPrivateKey)
                             Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
-                                .disabled(!model.canEditPrivateKey || model.passphrase.isEmpty)
+                                .disabled(!model.canEditPrivateKey)
                         }
                     }
                 } else {

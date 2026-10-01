@@ -10,7 +10,9 @@ import Testing
 struct SavedPassphraseTests {
     @Test func keychainCardObservesSavingAndClearingThePassphrase() throws {
         let key = SSHKeyRef(label: "Protected", credentialRef: "termind.key.fixture", hasPassphrase: true)
-        let store = HostLibraryModel()
+        let secrets = InMemorySecretStore()
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
+        let store = HostLibraryModel(identities: [identity], secrets: secrets)
         try store.upsert(key, credential: .software(.init(privateKey: "encrypted")))
         let credentials = CredentialLibraryModel(library: store)
         let changed = Mutex(false)
@@ -31,6 +33,12 @@ struct SavedPassphraseTests {
         try store.upsert(key, credential: .software(.init(privateKey: "encrypted")))
         #expect(changed.withLock { $0 })
         #expect(!credentials.hasSavedPassphrase(for: key))
+        #expect(store.requiresPassphraseEntry(for: key))
+        let prompt = SSHAuthenticationPromptResolver.host(
+            Host(name: "Host", host: "example.invalid", identityID: identity.id), using: store)
+        #expect(prompt.requiresPassphrase)
+        let reloaded = HostLibraryModel(keys: store.keys, secrets: secrets)
+        #expect(reloaded.requiresPassphraseEntry(for: key))
     }
 
     @Test(arguments: [false, true], [false, true])
@@ -181,6 +189,8 @@ struct SavedPassphraseTests {
             #expect(value.privateKey == "encrypted")
             #expect(value.passphrase == (failsSave ? "saved" : nil))
             #expect(store.key(key.id) != nil)
+            #expect(store.key(key.id)?.hasPassphrase == true)
+            #expect(store.requiresPassphraseEntry(for: key) == !failsSave)
         }
     }
 

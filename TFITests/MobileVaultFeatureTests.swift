@@ -458,10 +458,17 @@ struct MobileVaultFeatureTests {
         }
         #expect(saved.passphrase == "test-only-passphrase")
         let updated = try #require(app.credentials.key(original.id))
+        let cancelled = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
+        await cancelled.loadPrivateKey()
+        cancelled.savePassphrase = false
+        cancelled.clearSensitiveDrafts()
+        #expect(app.credentials.hasSavedPassphrase(for: updated))
         let remover = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
         await remover.loadPrivateKey()
         remover.savePassphrase = false
         #expect(remover.isDirty)
+        #expect(remover.passphrase == "test-only-passphrase")
+        #expect(app.credentials.hasSavedPassphrase(for: updated))
         try await remover.save()
         guard case .software(let removed)? = try app.credentials.keyCredential(for: updated) else {
             Issue.record("Expected saved key")
@@ -470,6 +477,17 @@ struct MobileVaultFeatureTests {
         #expect(removed.passphrase == nil)
         #expect(removed.privateKey == saved.privateKey)
         #expect(app.credentials.key(original.id)?.hasPassphrase == true)
+        #expect(app.credentials.key(original.id)?.publicKey == original.publicKey)
+        #expect(!app.credentials.hasSavedPassphrase(for: updated))
+        #expect(app.library.requiresPassphraseEntry(for: updated))
+        let reopened = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: updated)
+        await reopened.loadPrivateKey()
+        #expect(!reopened.savePassphrase && reopened.passphrase.isEmpty && !reopened.isDirty)
+        reopened.passphrase = "test-only-passphrase"
+        #expect(!reopened.savePassphrase)
+        reopened.savePassphrase = true
+        try await reopened.save()
+        #expect(app.credentials.hasSavedPassphrase(for: updated))
         let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
         #expect(importer.savePassphrase)
         importer.privateKey = saved.privateKey
@@ -482,6 +500,40 @@ struct MobileVaultFeatureTests {
             return
         }
         #expect(importedSecret.passphrase == nil)
+    }
+
+    @Test func disablingPassphraseSavingBeforeTypingKeepsGeneratedAndImportedKeysEncrypted() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        generator.savePassphrase = false
+        for value in ["first", "", "test-only-passphrase"] {
+            generator.passphrase = value
+            #expect(!generator.savePassphrase)
+        }
+        generator.confirmation = generator.passphrase
+        try await generator.save()
+        let generated = try #require(app.credentials.keys.first)
+        guard case .software(let secret)? = try app.credentials.keyCredential(for: generated) else {
+            Issue.record("Expected generated key")
+            return
+        }
+        #expect(secret.passphrase == nil && generated.hasPassphrase)
+        #expect(throws: (any Error).self) {
+            try SSHKeyMaterial.inspect(privateKey: secret.privateKey, passphrase: nil, comment: "fixture")
+        }
+        let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+        importer.savePassphrase = false
+        importer.privateKey = secret.privateKey
+        importer.passphrase = "test-only-passphrase"
+        #expect(!importer.savePassphrase)
+        try await importer.save()
+        let imported = try #require(app.credentials.keys.first { $0.id != generated.id })
+        guard case .software(let importedSecret)? = try app.credentials.keyCredential(for: imported) else {
+            Issue.record("Expected imported key")
+            return
+        }
+        #expect(importedSecret.passphrase == nil && imported.hasPassphrase)
+        #expect(imported.publicKey == generated.publicKey)
     }
 
     @Test func replacingPrivateKeyDoesNotReuseItsSavedPassphrase() async throws {

@@ -602,7 +602,7 @@ private struct SoftwareKeyEditor: View {
                             )
                             .disabled(!canEditPrivateKey)
                             Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
-                                .disabled(!canEditPrivateKey || passphrase.isEmpty)
+                                .disabled(!canEditPrivateKey)
                         }
                     } header: {
                         fileSectionHeader(
@@ -1203,7 +1203,6 @@ private struct GenerateKeySheet: View {
                         RevealableSecretField(AppStrings.Keychain.confirmPassphrase, text: $confirmation)
                             .disabled(passphrase.isEmpty)
                         Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
-                            .disabled(passphrase.isEmpty)
                         if !passphrase.isEmpty {
                             Picker(AppStrings.Keychain.cipher.swiftUIKey, selection: $cipher) {
                                 ForEach(SSHKeyMaterial.Cipher.allCases) { cipher in
