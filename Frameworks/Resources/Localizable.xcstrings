@@ -4725,6 +4725,23 @@
         }
       }
     },
+    "CPU %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU %lld"
+          }
+        }
+      }
+    },
     "CPU time breakdown" : {
       "extractionState" : "manual",
       "localizations" : {

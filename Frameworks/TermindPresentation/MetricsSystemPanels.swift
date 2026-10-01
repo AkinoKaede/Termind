@@ -12,27 +12,15 @@ public struct MetricsSystemPanels: View {
     public var body: some View {
         VStack(spacing: 12) {
             panel {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
                     Text(MetricsFormat.percent(point?.cpu))
-                        .font(.system(size: 30, weight: .semibold, design: .rounded)).minimumScaleFactor(0.7)
-                    Spacer(minLength: 0)
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            legend("System", value: point?.cpuSystem, color: Color.red)
-                            legend("User", value: point?.cpuUser, color: Color.green)
-                        }
-                        HStack {
-                            legend("I/O Wait", value: point?.cpuWait, color: .purple)
-                            legend("Steal", value: point?.cpuSteal, color: Color.orange)
-                                .help("Steal: time a virtual CPU is ready to run but waiting for the hypervisor.")
-                        }
-                    }
+                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+                        .frame(width: 104, height: 40, alignment: .leading)
+                    cpuLegend
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                HStack(spacing: 2) {
-                    ForEach(0..<48, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 1).fill(cpuColor(at: Double(index) / 48 * 100))
-                    }
-                }.frame(height: 12).accessibilityLabel(Text("CPU time breakdown"))
+                cpuBars
                 HStack {
                     figure("Cores", value: point?.coreCount.map(String.init) ?? "—")
                     figure("Idle", value: MetricsFormat.percent(point?.cpuIdle))
@@ -216,6 +204,33 @@ public struct MetricsSystemPanels: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var cpuLegend: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                legend("System", value: point?.cpuSystem, color: Color.red)
+                legend("User", value: point?.cpuUser, color: Color.green)
+                legend("I/O Wait", value: point?.cpuWait, color: .purple)
+                stealLegend
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                GridRow {
+                    legend("System", value: point?.cpuSystem, color: Color.red)
+                    legend("User", value: point?.cpuUser, color: Color.green)
+                }
+                GridRow {
+                    legend("I/O Wait", value: point?.cpuWait, color: .purple)
+                    stealLegend
+                }
+            }
+        }
+    }
+
+    private var stealLegend: some View {
+        legend("Steal", value: point?.cpuSteal, color: Color.orange)
+            .help("Steal: time a virtual CPU is ready to run but waiting for the hypervisor.")
+    }
+
     private func legend(_ title: LocalizedStringResource, value: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 3) {
@@ -224,18 +239,52 @@ public struct MetricsSystemPanels: View {
             }
             .font(.system(size: 8)).foregroundStyle(.secondary)
             Text(MetricsFormat.percent(value)).font(.system(size: 10, weight: .semibold, design: .monospaced))
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        // Reserve enough room for 100.0% so sampling never shifts the columns.
+        .frame(minWidth: 40, maxWidth: .infinity, alignment: .leading)
     }
 
-    private func cpuColor(at position: Double) -> Color {
-        guard let point, point.cpu != nil else { return Color.secondary.opacity(0.2) }
-        var boundary = point.cpuSystem ?? 0
+    private var cpuBars: some View {
+        Group {
+            if let cores = point?.cpuCores, !cores.isEmpty {
+                VStack(spacing: 3) {
+                    ForEach(cores) { cpu in
+                        cpuBar(cpu)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(Text(AppStrings.Metrics.cpuCore(cpu.id)))
+                            .accessibilityValue(MetricsFormat.percent(cpu.utilization))
+                    }
+                }
+            } else {
+                cpuBar(
+                    MetricsCPUPoint(
+                        id: 0, utilization: point?.cpu, user: point?.cpuUser, system: point?.cpuSystem,
+                        wait: point?.cpuWait, steal: point?.cpuSteal, idle: point?.cpuIdle)
+                )
+                .accessibilityLabel(Text(AppStrings.Metrics.cpuTimeBreakdown))
+                .accessibilityValue(MetricsFormat.percent(point?.cpu))
+            }
+        }
+    }
+
+    private func cpuBar(_ cpu: MetricsCPUPoint) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0..<48, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(cpuColor(at: Double(index) / 48 * 100, cpu: cpu))
+            }
+        }.frame(height: 8)
+    }
+
+    private func cpuColor(at position: Double, cpu: MetricsCPUPoint) -> Color {
+        guard cpu.utilization != nil else { return Color.secondary.opacity(0.2) }
+        var boundary = cpu.system ?? 0
         if position < boundary { return Color.red }
-        boundary += point.cpuUser ?? 0
+        boundary += cpu.user ?? 0
         if position < boundary { return Color.green }
-        boundary += point.cpuWait ?? 0
+        boundary += cpu.wait ?? 0
         if position < boundary { return .purple }
-        boundary += point.cpuSteal ?? 0
+        boundary += cpu.steal ?? 0
         if position < boundary { return Color.orange }
         return Color.secondary.opacity(0.2)
     }

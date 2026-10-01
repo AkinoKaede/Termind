@@ -231,7 +231,8 @@ nonisolated struct MobileMetricsPanels {
             && MobileMetricsDetailPage.showsBothColumns(width: regions.continuous.width)
         {
             let bounds = regions.continuous
-            let statusWidth = min(360, bounds.width * 0.4)
+            // Leave about 400 points for the cards after the scroll content's horizontal padding.
+            let statusWidth = min(432, bounds.width * 0.4)
             status = CGRect(x: bounds.minX, y: bounds.minY, width: statusWidth, height: bounds.height)
             processes = CGRect(
                 x: bounds.minX + statusWidth + 16, y: bounds.minY,
@@ -275,12 +276,16 @@ private struct MobileMetricsProcessesView: View {
                         .fixedSize(horizontal: true, vertical: false)
                         .frame(minWidth: 64, alignment: .leading)
                         .layoutPriority(1)
-                    Text(process.name).lineLimit(1)
-                    Spacer(minLength: 4)
+                    Text(process.name)
+                        .lineLimit(1).truncationMode(.tail)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .trailing) {
                         Text(MetricsFormat.percent(process.cpu))
                         Text(MetricsFormat.bytes(process.memory)).foregroundStyle(.secondary)
-                    }.font(.caption.monospaced())
+                    }
+                    .font(.caption.monospaced())
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }

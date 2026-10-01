@@ -27,7 +27,7 @@ struct MetricsDetailLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
         guard subviews.count == 2 else { return }
-        let statusWidth = split ? min(340, max(270, (bounds.width + 32) * 0.38)) : bounds.width
+        let statusWidth = split ? min(400, max(270, (bounds.width + 32) * 0.38)) : bounds.width
         let processWidth = split ? max(0, bounds.width - statusWidth - 16) : bounds.width
         let showsStatus = split || page == .status
         let showsProcesses = split || page == .processes

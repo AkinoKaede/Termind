@@ -41,6 +41,8 @@ public nonisolated struct MetricsCounters: Equatable, Sendable {
 public nonisolated struct MetricsSample: Sendable {
     public var uptime: Double?
     public var cpu: [UInt64]?
+    /// Linux logical CPU IDs and counters. Empty counters retain an unreadable CPU's identity.
+    public var cpuCores: [Int: [UInt64]]
     public var coreCount: Int?
     public var load: [Double] = []
     public var memoryFree: Double?
@@ -56,7 +58,8 @@ public nonisolated struct MetricsSample: Sendable {
     public var interfaceAddresses: [String: [String]] = [:]
     public var tcp: MetricsTCP?
     public init(
-        uptime: Double? = nil, cpu: [UInt64]? = nil, coreCount: Int? = nil, load: [Double] = [],
+        uptime: Double? = nil, cpu: [UInt64]? = nil, cpuCores: [Int: [UInt64]] = [:],
+        coreCount: Int? = nil, load: [Double] = [],
         memoryFree: Double? = nil, memoryCached: Double? = nil, memoryUsed: Double? = nil, memoryTotal: Double? = nil,
         swapFree: Double? = nil, swapTotal: Double? = nil,
         disks: [String: MetricsCounters]? = nil, interfaces: [String: MetricsCounters]? = nil,
@@ -65,6 +68,7 @@ public nonisolated struct MetricsSample: Sendable {
     ) {
         self.uptime = uptime
         self.cpu = cpu
+        self.cpuCores = cpuCores
         self.coreCount = coreCount
         self.load = load
         self.memoryFree = memoryFree
@@ -191,6 +195,7 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
     public var cpuWait: Double?
     public var cpuSteal: Double?
     public var cpuIdle: Double?
+    public var cpuCores: [MetricsCPUPoint]
     public var memoryFree: Double?
     public var memoryCached: Double?
     public var diskDevices: [MetricsDevicePoint] = []
@@ -206,7 +211,8 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
         diskRead: Double? = nil, diskWrite: Double? = nil, networkReceive: Double? = nil, networkSend: Double? = nil,
         gpus: [NvidiaGPU] = [], uptime: Double? = nil, coreCount: Int? = nil, load: [Double] = [],
         cpuUser: Double? = nil, cpuSystem: Double? = nil, cpuWait: Double? = nil, cpuSteal: Double? = nil,
-        cpuIdle: Double? = nil, memoryFree: Double? = nil, memoryCached: Double? = nil,
+        cpuIdle: Double? = nil, cpuCores: [MetricsCPUPoint] = [], memoryFree: Double? = nil,
+        memoryCached: Double? = nil,
         diskDevices: [MetricsDevicePoint] = [], networkDevices: [MetricsDevicePoint] = [],
         blockDevices: [String: MetricsDevicePoint] = [:], networkSentTotal: Double? = nil,
         networkReceivedTotal: Double? = nil, tcp: MetricsTCP? = nil, tcpRetransmissionPercent: Double? = nil
@@ -233,6 +239,7 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
         self.cpuWait = cpuWait
         self.cpuSteal = cpuSteal
         self.cpuIdle = cpuIdle
+        self.cpuCores = cpuCores
         self.memoryFree = memoryFree
         self.memoryCached = memoryCached
         self.diskDevices = diskDevices
@@ -253,6 +260,7 @@ public nonisolated enum MetricsCalculation {
         var point = MetricsPoint(date: date)
         point.uptime = current.uptime
         point.coreCount = current.coreCount
+        point.cpuCores = current.cpuCores.keys.sorted().map { MetricsCPUPoint(id: $0) }
         point.load = current.load
         point.memoryFree = current.memoryFree
         point.memoryCached = current.memoryCached
@@ -284,19 +292,15 @@ public nonisolated enum MetricsCalculation {
             after > before
         else { return point }
         let elapsed = after - before
-        if let old = previous.cpu, let new = current.cpu, old.count >= 8, new.count >= 8,
-            (0..<8).allSatisfy({ new[$0] >= old[$0] })
-        {
-            let delta = (0..<8).map { Double(new[$0] - old[$0]) }
-            let total = delta.reduce(0, +)
-            if total > 0 {
-                point.cpu = max(0, min(100, (total - delta[3] - delta[4]) / total * 100))
-                point.cpuUser = (delta[0] + delta[1]) / total * 100
-                point.cpuSystem = (delta[2] + delta[5] + delta[6]) / total * 100
-                point.cpuWait = delta[4] / total * 100
-                point.cpuSteal = delta[7] / total * 100
-                point.cpuIdle = delta[3] / total * 100
-            }
+        let cpu = cpuPoint(id: 0, previous: previous.cpu, current: current.cpu)
+        point.cpu = cpu.utilization
+        point.cpuUser = cpu.user
+        point.cpuSystem = cpu.system
+        point.cpuWait = cpu.wait
+        point.cpuSteal = cpu.steal
+        point.cpuIdle = cpu.idle
+        point.cpuCores = current.cpuCores.keys.sorted().map {
+            cpuPoint(id: $0, previous: previous.cpuCores[$0], current: current.cpuCores[$0])
         }
         point.diskDevices = devices(previous.disks, current.disks, selection.disks, elapsed: elapsed)
         point.networkDevices = networkDevices(previous, current, elapsed: elapsed)
@@ -316,6 +320,20 @@ public nonisolated enum MetricsCalculation {
         point.networkReceive = net?.0
         point.networkSend = net?.1
         return point
+    }
+
+    private static func cpuPoint(id: Int, previous: [UInt64]?, current: [UInt64]?) -> MetricsCPUPoint {
+        guard let old = previous, let new = current, old.count >= 8, new.count >= 8,
+            (0..<8).allSatisfy({ new[$0] >= old[$0] })
+        else { return MetricsCPUPoint(id: id) }
+        // Guest counters are already included in user/nice time.
+        let delta = (0..<8).map { Double(new[$0] - old[$0]) }
+        let total = delta.reduce(0, +)
+        guard total > 0 else { return MetricsCPUPoint(id: id) }
+        return MetricsCPUPoint(
+            id: id, utilization: max(0, min(100, (total - delta[3] - delta[4]) / total * 100)),
+            user: (delta[0] + delta[1]) / total * 100, system: (delta[2] + delta[5] + delta[6]) / total * 100,
+            wait: delta[4] / total * 100, steal: delta[7] / total * 100, idle: delta[3] / total * 100)
     }
 
     private static func networkDevices(_ old: MetricsSample?, _ current: MetricsSample, elapsed: Double?)

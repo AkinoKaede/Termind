@@ -23,11 +23,16 @@ public nonisolated enum LinuxMetricsParser {
             if values.count == fields.count, values.count >= 8 { sample.cpu = values }
         }
         if let cpuSection = sections["__TERMIND_CPU__"] {
-            let count = cpuSection.split(separator: "\n").filter {
-                guard let name = $0.split(whereSeparator: \.isWhitespace).first else { return false }
-                return name.hasPrefix("cpu") && Int(name.dropFirst(3)) != nil
-            }.count
-            sample.coreCount = count > 0 ? count : nil
+            for line in cpuSection.split(separator: "\n") {
+                let fields = line.split(whereSeparator: \.isWhitespace)
+                guard let name = fields.first, name.hasPrefix("cpu"),
+                    !name.dropFirst(3).isEmpty, name.dropFirst(3).allSatisfy(\.isNumber),
+                    let id = Int(name.dropFirst(3))
+                else { continue }
+                let counters = fields.dropFirst().compactMap { UInt64($0) }
+                sample.cpuCores[id] = counters.count == fields.count - 1 && counters.count >= 8 ? counters : []
+            }
+            sample.coreCount = sample.cpuCores.isEmpty ? nil : sample.cpuCores.count
         }
         sample.load =
             sections["__TERMIND_LOAD__"]?.split(whereSeparator: \.isWhitespace).prefix(3)

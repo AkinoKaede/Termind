@@ -18,6 +18,14 @@ extension AppStrings {
             "CPU"
         }
 
+        public static func cpuCore(_ id: Int) -> LocalizedStringResource {
+            "CPU \(id)"
+        }
+
+        public static var cpuTimeBreakdown: LocalizedStringResource {
+            "CPU time breakdown"
+        }
+
         public static var defaultNetworkInterfaces: LocalizedStringResource {
             "Default Network Interfaces"
         }

@@ -257,8 +257,8 @@ struct MetricsProcessList: View {
             }
             .width(48)
             TableColumn(AppStrings.Metrics.process.swiftUIKey, value: \.name) { process in
-                Text(process.name).lineLimit(1).help(process.name).frame(height: 28)
-            }.width(min: 80, ideal: 180)
+                Text(process.name).lineLimit(1).truncationMode(.tail).help(process.name).frame(height: 28)
+            }.width(min: 0, ideal: 180)
             TableColumn(AppStrings.Metrics.cpu.swiftUIKey, value: \.cpuSortValue) { process in
                 Text(MetricsFormat.percent(process.cpu)).frame(height: 28)
             }.width(
