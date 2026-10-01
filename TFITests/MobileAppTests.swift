@@ -325,47 +325,6 @@ struct MobileWorkspaceTests {
     }
 }
 
-@Suite
-struct MobileTerminalShiftStateTests {
-    @Test func controlShortcutsPreserveOrderAndKeyPresses() {
-        #expect(
-            MobileTerminalControlShortcut.allCases.map(\.keyPress)
-                == [
-                    TerminalKeyPress(.c, modifiers: .ctrl),
-                    TerminalKeyPress(.i, modifiers: .ctrl),
-                    TerminalKeyPress(.s, modifiers: .ctrl),
-                    TerminalKeyPress(.z, modifiers: .ctrl),
-                ])
-    }
-
-    @Test func armedShiftAppliesOnce() {
-        var state = MobileTerminalShiftState()
-        state.toggle(at: Date(timeIntervalSince1970: 1))
-        #expect(state.activation == .armed)
-        #expect(state.consumeForNextKey() == .shift)
-        #expect(state.activation == .inactive)
-        #expect(state.consumeForNextKey().isEmpty)
-    }
-
-    @Test func quickSecondTapLocksShiftUntilCancelled() {
-        var state = MobileTerminalShiftState()
-        state.toggle(at: Date(timeIntervalSince1970: 1))
-        state.toggle(at: Date(timeIntervalSince1970: 1.2))
-        #expect(state.activation == .locked)
-        #expect(state.consumeForNextKey() == .shift)
-        #expect(state.activation == .locked)
-        state.toggle(at: Date(timeIntervalSince1970: 2))
-        #expect(state.activation == .inactive)
-    }
-
-    @Test func slowSecondTapCancelsArmedShift() {
-        var state = MobileTerminalShiftState()
-        state.toggle(at: Date(timeIntervalSince1970: 1))
-        state.toggle(at: Date(timeIntervalSince1970: 2))
-        #expect(state.activation == .inactive)
-    }
-}
-
 @Suite @MainActor
 struct MobileWorkspaceConnectionRecoveryTests {
     @Test func sameDirectorySFTPStartupUsesTheOverrideAndOffersSSHOnlyWhileConnected() async throws {

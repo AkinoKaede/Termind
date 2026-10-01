@@ -6395,6 +6395,23 @@
         }
       }
     },
+    "Command Key" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command键"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command鍵"
+          }
+        }
+      }
+    },
     "Command analysis exceeded the supported complexity limit." : {
       "extractionState" : "manual",
       "localizations" : {

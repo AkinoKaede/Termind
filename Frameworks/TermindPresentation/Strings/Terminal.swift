@@ -22,6 +22,10 @@ extension AppStrings {
             "Control"
         }
 
+        public static var commandKey: LocalizedStringResource {
+            "Command Key"
+        }
+
         public static var downArrow: LocalizedStringResource {
             "Down Arrow"
         }

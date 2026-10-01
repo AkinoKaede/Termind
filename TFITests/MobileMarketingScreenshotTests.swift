@@ -380,7 +380,6 @@ private struct MarketingTerminalScene: View {
     var body: some View {
         VStack(spacing: 0) {
             TerminalSurfaceView(context: terminal)
-            MobileTerminalKeyboard(state: terminal, paste: {})
         }
         .navigationTitle("web-01")
         .navigationBarTitleDisplayMode(.inline)

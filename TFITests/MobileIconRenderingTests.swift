@@ -15,6 +15,26 @@ import struct TermindDomain.Host
 /// Set TERMIND_ICON_SCREENSHOTS to en, zh-Hans, or zh-Hant in the test runner environment.
 @Suite(.serialized) @MainActor
 struct MobileIconRenderingTests {
+    @Test func renderNativeTerminalKeyboard() async throws {
+        guard let language = ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] else { return }
+        for scheme in [ColorScheme.light, .dark] {
+            try await capture(
+                "native-keyboard-\(scheme == .dark ? "dark" : "light")", language: language, scheme: scheme
+            ) {
+                VStack(spacing: 24) {
+                    Spacer()
+                    MobileTerminalAccessoryPreview()
+                    MobileTerminalAccessoryPreview(locksControl: true)
+                    MobileTerminalAccessoryPreview(scrollsToEnd: true)
+                    MobileTerminalAccessoryPreview(scrollsToEnd: true)
+                        .environment(\.dynamicTypeSize, .accessibility3)
+                    Spacer()
+                }
+                .environment(\.locale, Locale(identifier: language))
+            }
+        }
+    }
+
     @Test func renderMultiHostPickers() async throws {
         guard let language = ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] else { return }
         let hosts = ["Production", "Staging", "Development"].enumerated().map { index, name in
@@ -38,20 +58,6 @@ struct MobileIconRenderingTests {
                     )
                     .environment(\.locale, Locale(identifier: language))
                 }
-            }
-        }
-    }
-
-    @Test func terminalKeyboardKeepsItsCompactHeight() {
-        #expect(UIImage(systemName: "play.rectangle") != nil)
-        #expect(UIImage(systemName: "doc.on.clipboard") != nil)
-        for width in [CGFloat(320), 390, 430] {
-            for dynamicTypeSize in [DynamicTypeSize.large, .accessibility3] {
-                let controller = UIHostingController(
-                    rootView: MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
-                        .environment(\.dynamicTypeSize, dynamicTypeSize))
-                let size = controller.sizeThatFits(in: CGSize(width: width, height: 800))
-                #expect(abs(size.height - 44) < 0.5)
             }
         }
     }
@@ -189,17 +195,14 @@ struct MobileIconRenderingTests {
             try await capture("terminal-keyboard-\(suffix)", language: language, scheme: scheme) {
                 VStack(spacing: 0) {
                     Spacer()
-                    MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
+                    MobileTerminalAccessoryPreview()
                 }
                 .environment(\.locale, locale)
             }
             try await capture("terminal-keyboard-selected-\(suffix)", language: language, scheme: scheme) {
                 VStack(spacing: 0) {
                     Spacer()
-                    MobileTerminalKeyboard(
-                        state: TerminalViewState(),
-                        initialShift: MobileTerminalShiftState(activation: .locked),
-                        paste: {})
+                    MobileTerminalAccessoryPreview(locksControl: true)
                 }
                 .environment(\.locale, locale)
             }
@@ -236,7 +239,7 @@ struct MobileIconRenderingTests {
         try await capture("terminal-keyboard-large-type", language: language, scheme: .light) {
             VStack(spacing: 0) {
                 Spacer()
-                MobileTerminalKeyboard(state: TerminalViewState(), paste: {})
+                MobileTerminalAccessoryPreview()
             }
             .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }

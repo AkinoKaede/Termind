@@ -296,7 +296,6 @@ final class MobileWorkspace: Identifiable {
         terminal.configuration = TerminalSurfaceOptions(backend: .inMemory(backend), resizeThrottleMilliseconds: 35)
         let owner = surfaceOwner
         terminal.makePlatformView = { owner.view }
-        terminal.inputAccessoryItems = []
         relay.owner = self
         terminal.onTextSelectionRequest = { [weak relay] request in
             relay?.owner?.terminalTextSelection = MobileTerminalTextSelection(request)

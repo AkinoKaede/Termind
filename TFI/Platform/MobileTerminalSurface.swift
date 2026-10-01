@@ -30,6 +30,33 @@ final class MobileTerminalSurface {
 final class MobileTerminalView: TerminalView {
     weak var findController: TerminalFindController?
 
+    override func inputAccessoryAccessibilityLabel(for item: TerminalInputAccessoryItem) -> String? {
+        let title: LocalizedStringResource
+        switch item {
+        case .esc: title = AppStrings.Terminal.escape
+        case .tab: title = AppStrings.Terminal.tab
+        case .ctrl: title = AppStrings.Terminal.control
+        case .alt: title = AppStrings.Terminal.option
+        case .command: title = AppStrings.Terminal.commandKey
+        case .arrowLeft: title = AppStrings.Terminal.leftArrow
+        case .arrowUp: title = AppStrings.Terminal.upArrow
+        case .arrowDown: title = AppStrings.Terminal.downArrow
+        case .arrowRight: title = AppStrings.Terminal.rightArrow
+        case .paste: title = AppStrings.Common.paste
+        case .symbol(let symbol): return symbol
+        case .divider: return nil
+        }
+        return String(localized: title)
+    }
+
+    override func inputAccessoryAccessibilityValue(for activation: TerminalPublicStickyActivation) -> String {
+        switch activation {
+        case .inactive: String(localized: AppStrings.Terminal.inactive)
+        case .armed: String(localized: AppStrings.Terminal.armed)
+        case .locked: String(localized: AppStrings.Terminal.locked)
+        }
+    }
+
     override var keyCommands: [UIKeyCommand]? {
         var commands = super.keyCommands ?? []
         commands.append(findCommand(title: AppStrings.Terminal.findNextInTerminal, modifiers: []))
