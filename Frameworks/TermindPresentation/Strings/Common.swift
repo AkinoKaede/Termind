@@ -230,6 +230,10 @@ extension AppStrings {
             "Search"
         }
 
+        public static var select: LocalizedStringResource {
+            "Select"
+        }
+
         public static var selectAll: LocalizedStringResource {
             "Select All"
         }

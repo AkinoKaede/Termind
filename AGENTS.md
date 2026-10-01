@@ -17,6 +17,19 @@ The agent runtime is `AgentKit`, a separate open-source package developed in the
 
 Xcode builds the pinned tag, not the sibling working tree, so an uncommitted change in `../AgentKit` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `../AgentKit`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Both files belong in the same commit as the app-side change that needs them.
 
+`libghostty-spm/` is a maintenance submodule of the public
+`AkinoKaede/libghostty-spm` fork, tracking `termind`; upstream is
+`Lakr233/libghostty-spm`. Xcode consumes the fork as a remote SPM dependency
+pinned to an exact commit, not the submodule working tree. Push package changes
+to `termind`, then update the submodule gitlink, `project.pbxproj` revision and
+`Package.resolved` together. Run `git submodule update --init libghostty-spm`
+to obtain the maintenance checkout. Changes to `Patches/ghostty/` require a new
+fork XCFramework release and a matching URL/checksum in `Package.swift` before
+advancing the app's pin. The package's native iOS touch menus expose
+separate subclass hooks, `touchMenuItems(for:)` and
+`touchSelectionMenuItems(for:)`, before and after selection. Override them on
+the platform view, with grouping and localization owned by Termind.
+
 ## Architecture Records
 
 Treat `openwiki/` as durable just-in-time engineering context. Start with `openwiki/quickstart.md` before changing dependencies, navigation ownership, state lifetimes, persistence, agent execution, permissions, secret handling, or release operations, then follow its topic-specific page to current source and tests. Source code and tests remain authoritative. Refresh invalidated OpenWiki content through the OpenWiki lifecycle and keep `ArchitectureBoundaryTests` aligned; do not maintain a parallel refactoring log.

@@ -24823,6 +24823,23 @@
         }
       }
     },
+    "Select" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選取"
+          }
+        }
+      }
+    },
     "Select %@ for batch actions" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -3,6 +3,7 @@
     import GhosttyTerminal
     import SwiftUI
     import TermindApplication
+    import TermindPresentation
 
     /// Mounts one long-lived Ghostty view into whichever pane currently owns it.
     ///
@@ -194,11 +195,7 @@
             if pastes {
                 // An empty paste must not arm a deferred broadcast ticket that
                 // could consume the next unrelated mouse or protocol report.
-                let pasteboard = NSPasteboard.general
-                guard
-                    pasteboard.string(forType: .string)?.isEmpty == false
-                        || pasteboard.canReadObject(forClasses: [NSURL.self], options: nil)
-                else { return }
+                guard canPasteFromClipboard else { return }
                 captureInteraction { _ = performBindingAction("paste_from_clipboard") }
             } else {
                 super.rightMouseUp(with: event)
@@ -206,12 +203,53 @@
         }
 
         override func menu(for event: NSEvent) -> NSMenu? {
+            guard !isMouseCaptured else { return nil }
             if event.type == .rightMouseDown || event.type == .rightMouseUp,
                 rightClickPastes ?? shouldPasteOnRightClick(event)
             {
                 return nil
             }
             return super.menu(for: event)
+        }
+
+        override func selectionMenuPoint(at point: CGPoint) -> CGPoint? {
+            // The superclass uses this hook to decide whether a right-click
+            // presents a menu. Offer the app's default menu without a selection too.
+            isMouseCaptured ? nil : point
+        }
+
+        override func selectionContextMenu() -> NSMenu {
+            let menu: NSMenu
+            if super.selectionMenuPoint(at: .zero) != nil {
+                menu = super.selectionContextMenu()
+                menu.items.first?.title = String(localized: AppStrings.Common.copy)
+            } else {
+                menu = NSMenu()
+            }
+            menu.autoenablesItems = false
+            let pasteItem = NSMenuItem(
+                title: String(localized: AppStrings.Common.paste),
+                action: #selector(pasteFromContextMenu(_:)), keyEquivalent: "")
+            pasteItem.target = self
+            pasteItem.isEnabled = canPasteFromClipboard
+            menu.addItem(pasteItem)
+            let selectAllItem = NSMenuItem(
+                title: String(localized: AppStrings.Common.selectAll),
+                action: #selector(selectAll(_:)), keyEquivalent: "")
+            selectAllItem.target = self
+            menu.addItem(selectAllItem)
+            return menu
+        }
+
+        private var canPasteFromClipboard: Bool {
+            let pasteboard = NSPasteboard.general
+            return pasteboard.string(forType: .string)?.isEmpty == false
+                || pasteboard.canReadObject(forClasses: [NSURL.self], options: nil)
+        }
+
+        @objc private func pasteFromContextMenu(_: Any?) {
+            guard canPasteFromClipboard else { return }
+            captureInteraction { _ = performBindingAction("paste_from_clipboard") }
         }
 
         private func shouldPasteOnRightClick(_ event: NSEvent) -> Bool {

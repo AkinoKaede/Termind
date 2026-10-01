@@ -1,5 +1,5 @@
 {
-  "originHash" : "b4d0d2a0d4dd48bc17305a7633056c1a5aeddd04bed354f9616d8b1b31e4e888",
+  "originHash" : "2386f4ec13a24a310cbe47f5923c524e937b76e0eb156a380e35eca9e70ec044",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "19528aa07e1426626ea9fb2c4a161edf43c4f9e8",
         "version" : "5.9.0"
+      }
+    },
+    {
+      "identity" : "displaylink",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/DisplayLink.git",
+      "state" : {
+        "revision" : "41bea2661e04bebcb1c4f15fc0b6197850100fdd",
+        "version" : "3.0.1"
       }
     },
     {
@@ -157,10 +166,9 @@
     {
       "identity" : "libghostty-spm",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Lakr233/libghostty-spm",
+      "location" : "https://github.com/AkinoKaede/libghostty-spm.git",
       "state" : {
-        "revision" : "b7f888e3baf8585ea9d590ab1a45b49475e00d1c",
-        "version" : "1.6.20260922"
+        "revision" : "21d9f81178fbb9a7d115a3a19cd9956fd5259f70"
       }
     },
     {

@@ -208,7 +208,8 @@ struct TerminalMouseInteractionTests {
         #expect(fixture.firstWrites.isEmpty)
         fixture.setClipboard("do not paste")
         fixture.view.rightMouseDown(with: try fixture.event(.rightMouseDown, modifiers: .option))
-        fixture.view.rightMouseUp(with: try fixture.event(.rightMouseUp))
+        // Inspect the Option menu without entering AppKit's modal tracking loop.
+        #expect(fixture.view.menu(for: try fixture.event(.rightMouseDown, modifiers: .option)) != nil)
         try await fixture.flushWrites()
         #expect(fixture.firstWrites.isEmpty)
         fixture.feed("selection")
@@ -260,7 +261,8 @@ struct TerminalMouseInteractionTests {
         fixture.setClipboard("paste once")
         fixture.view.rightMouseDown(with: try fixture.event(.rightMouseDown))
         fixture.view.pasteOnRightClick = true
-        fixture.view.rightMouseUp(with: try fixture.event(.rightMouseUp))
+        // The click already chose the menu route; avoid presenting it in this test.
+        #expect(fixture.view.menu(for: try fixture.event(.rightMouseDown)) != nil)
         try await fixture.flushWrites()
         #expect(fixture.firstWrites.isEmpty)
         try fixture.rightClick()
