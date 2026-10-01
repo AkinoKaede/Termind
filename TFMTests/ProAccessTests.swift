@@ -44,6 +44,5 @@ struct ProAccessTests {
         #expect(!access.canUse(feature))
         #expect(!access.require(feature))
         #expect(access.isPaywallPresented)
-        #expect(access.requestedFeature == feature)
     }
 }

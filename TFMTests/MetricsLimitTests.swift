@@ -167,7 +167,6 @@ struct MetricsLimitTests {
         #expect(app.serverMetrics.remainingCardSlots == 3)
         #expect(!app.serverMetrics.requestAddition(count: 4))
         #expect(free.isPaywallPresented)
-        #expect(free.requestedFeature == .unlimitedMetrics)
         for status in [
             EntitlementStatus.subscription(
                 ProSubscriptionStatus(

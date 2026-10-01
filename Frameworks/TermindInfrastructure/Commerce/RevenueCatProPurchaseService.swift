@@ -69,10 +69,6 @@ final class RevenueCatProPurchaseService: ProPurchaseService {
         }
     }
 
-    func restore() async throws -> EntitlementStatus {
-        resolve(try await purchases.restorePurchases())
-    }
-
     private func resolve(_ info: CustomerInfo) -> EntitlementStatus {
         RevenueCatEntitlementResolver.resolve(info, entitlementID: configuration.entitlementID, now: now())
     }

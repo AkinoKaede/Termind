@@ -138,7 +138,7 @@ struct SettingsPageView: View {
                     deleted: { navigate(to: .category(.ai)) }
                 )
             } else {
-                ProLockedSettingsPage(title: AppStrings.Settings.mcp, feature: .remoteMCP)
+                ProLockedSettingsPage(title: AppStrings.Settings.mcp)
             }
         case .localMCPServer:
             SettingsFormPage { MCPServerSettings() }
@@ -362,7 +362,6 @@ enum SettingsDraftPolicy {
 private struct ProLockedSettingsPage: View {
     @Environment(AppModel.self) private var app
     let title: LocalizedStringResource
-    let feature: ProFeature
 
     var body: some View {
         VStack(spacing: Metrics.Space.l) {
@@ -373,7 +372,7 @@ private struct ProLockedSettingsPage: View {
             Text(title).font(.title2.bold())
             Text(AppStrings.Settings.thisConfigurationIsAvailableWithTermindPro)
                 .foregroundStyle(.secondary)
-            Button(AppStrings.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall(for: feature) }
+            Button(AppStrings.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall() }
                 .buttonStyle(.borderedProminent)
             Spacer()
         }

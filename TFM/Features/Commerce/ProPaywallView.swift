@@ -46,14 +46,14 @@ struct ProPaywallView: View {
                 ContentUnavailableView {
                     Label(AppStrings.Pro.termindPro, systemImage: "cart")
                 } description: {
-                    Text(ProAccessControllerError.productUnavailable.localizedDescription)
+                    Text(AppStrings.Pro.productUnavailable)
                 } actions: {
-                    Button(AppStrings.Pro.restorePurchase) { Task { await pro.restorePurchases() } }
                     Button(AppStrings.Common.close) { dismiss() }
                 }
             }
         }
         .frame(width: 604, height: 720)
+        .termindInputAwareFocusEffect()
         .onChange(of: pro.isPaywallPresented) { if !pro.isPaywallPresented { dismiss() } }
         .onDisappear { pro.cancelPaywallOperation() }
     }

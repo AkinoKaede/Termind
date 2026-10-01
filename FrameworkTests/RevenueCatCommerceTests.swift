@@ -5,7 +5,7 @@ import Testing
 
 @testable import TermindInfrastructure
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct RevenueCatCommerceTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -85,31 +85,15 @@ struct RevenueCatCommerceTests {
         #expect(resolve(try customerInfo(expiration: nil, verification: 2)) == .verificationFailed)
     }
 
-    @Test
-    func restoreUsesRevenueCatAndKeepsTheAccountVariantOpen() async {
-        let service = FakeService()
-        let controller = ProAccessController(purchaseService: service, observeUpdates: false)
-        controller.isPaywallPresented = true
-        await controller.restorePurchases()
-        #expect(service.restores == 1)
-        #expect(controller.isPaywallPresented)
-        #expect(controller.error == .purchaseNotFound)
-        service.status = .purchased(.purchased)
-        await controller.restorePurchases()
-        #expect(controller.hasProAccess)
-        #expect(controller.isPaywallPresented)
-        #expect(controller.error == nil)
-    }
-
-    @Test
-    func remotePaywallCompletionUpdatesAccessWithoutClosingItsAccountVariant() async {
+    @Test(arguments: [EntitlementStatus.purchased(.purchased), .free(trialAvailable: false)])
+    func remotePaywallCompletionUpdatesAccessWithoutClosingItsAccountVariant(status: EntitlementStatus) async {
         let service = FakeService()
         let controller = ProAccessController(purchaseService: service, observeUpdates: false)
         controller.isPaywallPresented = true
         controller.beginPaywallOperation()
-        service.status = .purchased(.purchased)
+        service.status = status
         await controller.completePaywallOperation()
-        #expect(controller.hasProAccess)
+        #expect(controller.status == status)
         #expect(controller.isPaywallPresented)
         #expect(!controller.isProcessing)
 
@@ -151,14 +135,62 @@ struct RevenueCatCommerceTests {
     }
 
     @Test
+    func anObsoleteRefreshCannotOverwriteOrDiscardANewerRefresh() async throws {
+        let service = FakeService()
+        let controller = ProAccessController(purchaseService: service)
+        await controller.refresh()
+        service.suspendsRefresh = true
+        let olderRefresh = Task { await controller.refresh() }
+        for _ in 0..<100 where service.refreshContinuation == nil { await Task.yield() }
+        let olderResponse = try #require(service.refreshContinuation)
+        service.refreshContinuation = nil
+
+        service.continuation.yield(.purchased(.purchased))
+        for _ in 0..<100 where !controller.hasProAccess { await Task.yield() }
+        #expect(controller.hasProAccess)
+        let newerRefresh = Task { await controller.refresh() }
+        for _ in 0..<100 where service.refreshContinuation == nil { await Task.yield() }
+        let newerResponse = try #require(service.refreshContinuation)
+        service.refreshContinuation = nil
+
+        olderResponse.resume(returning: .free(trialAvailable: false))
+        await olderRefresh.value
+        #expect(controller.hasProAccess)
+        newerResponse.resume(returning: .purchased(.familyShared))
+        await newerRefresh.value
+        #expect(controller.status == .purchased(.familyShared))
+    }
+
+    @Test
+    func concurrentRefreshesShareOneRevenueCatRequest() async throws {
+        let service = FakeService()
+        service.suspendsRefresh = true
+        let controller = ProAccessController(purchaseService: service, observeUpdates: false)
+        let first = Task { await controller.refresh() }
+        for _ in 0..<100 where service.refreshContinuation == nil { await Task.yield() }
+        let response = try #require(service.refreshContinuation)
+        service.refreshContinuation = nil
+        var secondStarted = false
+        let second = Task {
+            secondStarted = true
+            await controller.refresh()
+        }
+        for _ in 0..<100 where !secondStarted { await Task.yield() }
+        #expect(secondStarted)
+        response.resume(returning: .purchased(.purchased))
+        await first.value
+        await second.value
+        #expect(service.refreshes == 1)
+        #expect(controller.hasProAccess)
+    }
+
+    @Test
     func anUnavailableServiceDoesNotStartAStoreKitFallback() async {
         let controller = ProAccessController(purchaseService: nil)
         await controller.refresh()
         #expect(!controller.hasProAccess)
         #expect(!controller.usesRevenueCat)
         #expect(controller.status == .verificationFailed)
-        await controller.restorePurchases()
-        #expect(controller.error == .productUnavailable)
     }
 
     @Test
@@ -168,12 +200,13 @@ struct RevenueCatCommerceTests {
         let controller = ProAccessController(purchaseService: service, observeUpdates: false)
         await controller.refresh()
         #expect(controller.status == .verificationFailed)
-        #expect(controller.error != nil)
         service.refreshFails = false
         service.status = .purchased(.purchased)
         await controller.refresh()
         #expect(controller.hasProAccess)
-        #expect(controller.error == nil)
+        service.refreshFails = true
+        await controller.refresh()
+        #expect(controller.hasProAccess)
     }
 
     private func resolve(_ info: CustomerInfo) -> EntitlementStatus {
@@ -218,21 +251,18 @@ struct RevenueCatCommerceTests {
         let updates: AsyncStream<EntitlementStatus>
         let continuation: AsyncStream<EntitlementStatus>.Continuation
         var status: EntitlementStatus = .free(trialAvailable: false)
-        var restores = 0
+        var refreshes = 0
         var refreshFails = false
         var suspendsRefresh = false
         var refreshContinuation: CheckedContinuation<EntitlementStatus, Never>?
 
         init() { (updates, continuation) = AsyncStream.makeStream() }
         func currentStatus() async throws -> EntitlementStatus {
+            refreshes += 1
             if refreshFails { throw URLError(.notConnectedToInternet) }
             if suspendsRefresh {
                 return await withCheckedContinuation { refreshContinuation = $0 }
             }
-            return status
-        }
-        func restore() async throws -> EntitlementStatus {
-            restores += 1
             return status
         }
     }

@@ -62,8 +62,8 @@ extension AppStrings {
             "Terms of Use"
         }
 
-        public static var theAppStoreCouldNotVerifyThisPurchase: LocalizedStringResource {
-            "The App Store could not verify this purchase."
+        public static var productUnavailable: LocalizedStringResource {
+            "Termind Pro is not available from the App Store right now."
         }
 
         public static var annualSubscription: LocalizedStringResource {
@@ -104,10 +104,6 @@ extension AppStrings {
 
         public static var privacyPolicy: LocalizedStringResource {
             "Privacy Policy"
-        }
-
-        public static var restorePurchase: LocalizedStringResource {
-            "Restore Purchase"
         }
 
         public static var subscriptionExpired: LocalizedStringResource {

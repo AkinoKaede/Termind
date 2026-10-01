@@ -44,9 +44,8 @@ struct MobileProView: View {
                 ContentUnavailableView {
                     Label(AppStrings.Pro.termindPro, systemImage: "cart")
                 } description: {
-                    Text(ProAccessControllerError.productUnavailable.localizedDescription)
+                    Text(AppStrings.Pro.productUnavailable)
                 } actions: {
-                    Button(AppStrings.Pro.restorePurchase) { Task { await pro.restorePurchases() } }
                     Button(AppStrings.Common.close) { dismiss() }
                 }
             }

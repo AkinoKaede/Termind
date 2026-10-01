@@ -88,7 +88,7 @@ struct MobileMetricsView: View {
             if let error = app.metrics.core.storageError {
                 app.error = error
             } else {
-                app.pro.presentPaywall(for: .unlimitedMetrics)
+                app.pro.presentPaywall()
             }
         }
     }

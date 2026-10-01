@@ -194,7 +194,6 @@ struct WorkspaceAccessTests {
         func expectNoPaywall() {
             #expect(!access.hasProAccess)
             #expect(!access.isPaywallPresented)
-            #expect(access.requestedFeature == nil)
         }
 
         func close() {
