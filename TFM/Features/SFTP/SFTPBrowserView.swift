@@ -999,7 +999,8 @@ struct SFTPBrowserView: View {
             case .download: chooseDownloadDestination(for: targets)
             case .copy: copyRemoteItems(targets)
             case .copyNames: copyToPasteboard(targets.map(\.name).joined(separator: "\n"))
-            case .copyPaths: copyToPasteboard(targets.map(\.path).joined(separator: "\n"))
+            case .copyPaths:
+                copyToPasteboard(targets.map { RemoteShellCommand.escapeArgument($0.path) }.joined(separator: " "))
             case .paste: pasteRemoteItems()
             case .rename:
                 renameTarget = file

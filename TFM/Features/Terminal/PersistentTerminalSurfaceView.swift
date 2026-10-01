@@ -96,6 +96,70 @@
         var pasteOnRightClick = false
         private var isSelectingWithMouse = false
         private var rightClickPastes: Bool?
+        private var isPathDropVisible = false
+
+        override func setSurfaceVisible(_ visible: Bool) {
+            super.setSurfaceVisible(visible)
+            isPathDropVisible = visible
+            updatePathDropRegistration()
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            updatePathDropRegistration()
+        }
+
+        private func updatePathDropRegistration() {
+            if isPathDropVisible, window != nil {
+                registerForDraggedTypes([TerminalPathDrag.pasteboardType])
+            } else {
+                unregisterDraggedTypes()
+            }
+        }
+
+        /// Registration alone cannot cancel a drag AppKit already dispatched
+        /// before this workspace became hidden. Recheck at every entry point.
+        func pathDropOperation(
+            from pasteboard: NSPasteboard, sourceOperations: NSDragOperation
+        ) -> NSDragOperation {
+            guard isPathDropVisible, window != nil, superview != nil,
+                !isHiddenOrHasHiddenAncestor, sourceOperations.contains(.copy),
+                TerminalPathDrag.text(from: pasteboard) != nil
+            else { return [] }
+            // AppKit supplies the green circle with a white plus cursor badge.
+            return .copy
+        }
+
+        override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+            pathDropOperation(from: sender.draggingPasteboard, sourceOperations: sender.draggingSourceOperationMask)
+        }
+
+        override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+            pathDropOperation(from: sender.draggingPasteboard, sourceOperations: sender.draggingSourceOperationMask)
+        }
+
+        override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+            draggingUpdated(sender) == .copy
+        }
+
+        override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+            receivePathDrop(from: sender.draggingPasteboard, sourceOperations: sender.draggingSourceOperationMask)
+        }
+
+        func receivePathDrop(from pasteboard: NSPasteboard, sourceOperations: NSDragOperation) -> Bool {
+            guard pathDropOperation(from: pasteboard, sourceOperations: sourceOperations) == .copy,
+                let text = TerminalPathDrag.text(from: pasteboard)
+            else { return false }
+            return pasteDroppedPath(text)
+        }
+
+        func pasteDroppedPath(_ text: String) -> Bool {
+            guard isPathDropVisible, window != nil, superview != nil,
+                !isHiddenOrHasHiddenAncestor, !text.isEmpty
+            else { return false }
+            acquireProgrammaticFocus()
+            return captureInteraction { paste(text: text) }
+        }
 
         override func mouseDown(with event: NSEvent) {
             // Remote mouse reports must never copy an unrelated retained selection.
@@ -248,6 +312,12 @@
 
         nonisolated func readViewportText() -> String? {
             backend.readViewportText()
+        }
+
+        /// Pane overlays own native drop routing above the embedded surface.
+        @discardableResult
+        func pasteDroppedPath(_ text: String) -> Bool {
+            terminalView.pasteDroppedPath(text)
         }
 
         func appendNotice(_ message: String) {

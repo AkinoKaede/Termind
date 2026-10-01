@@ -73,6 +73,14 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
+				<string>public.utf8-plain-text</string>
+			</array>
+			<key>UTTypeIdentifier</key>
+			<string>com.akinokaede.termind.terminal-path</string>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
 				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>

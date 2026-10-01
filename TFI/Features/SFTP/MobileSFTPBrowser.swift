@@ -151,7 +151,9 @@ struct MobileSFTPBrowser: View {
             Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(file) }
             Menu(AppStrings.SFTP.copyAs.swiftUIKey, systemImage: "doc.on.doc") {
                 Button(AppStrings.Common.name.swiftUIKey) { UIPasteboard.general.string = file.name }
-                Button(AppStrings.SFTP.path.swiftUIKey) { UIPasteboard.general.string = file.path }
+                Button(AppStrings.SFTP.path.swiftUIKey) {
+                    UIPasteboard.general.string = RemoteShellCommand.escapeArgument(file.path)
+                }
             }
             Button(AppStrings.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard") { paste() }
             Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil") { rename(file) }

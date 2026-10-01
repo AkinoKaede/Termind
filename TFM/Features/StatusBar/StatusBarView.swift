@@ -275,6 +275,7 @@ struct StatusBarView: View {
         .buttonStyle(.plain)
         .help(Text(AppStrings.SFTP.openDirectoryWithSFTPHelp))
         .accessibilityLabel(Text(AppStrings.SFTP.openWithSftp))
+        .onDrag { TerminalPathDrag.provider(for: path) }
         .contextMenu {
             // The children read on from the parent — "Open with SFTP ▸ in New
             // Workspace" — and take the same pair of glyphs Duplicate's do.
@@ -290,7 +291,7 @@ struct StatusBarView: View {
             }
             Button(AppStrings.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
-                copyToPasteboard(path)
+                copyToPasteboard(RemoteShellCommand.escapeArgument(path))
             }
         }
     }
@@ -307,6 +308,7 @@ struct StatusBarView: View {
         .buttonStyle(.plain)
         .help(Text(AppStrings.Workspace.openDirectoryWithSSHHelp))
         .accessibilityLabel(Text(AppStrings.Connections.openWithSsh))
+        .onDrag { TerminalPathDrag.provider(for: path) }
         .contextMenu {
             Menu(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
                 Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
@@ -320,7 +322,7 @@ struct StatusBarView: View {
             }
             Button(AppStrings.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
-                copyToPasteboard(path)
+                copyToPasteboard(RemoteShellCommand.escapeArgument(path))
             }
         }
     }

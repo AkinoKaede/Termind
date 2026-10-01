@@ -31,6 +31,71 @@ import TermindRemoteInfrastructure
         /// through to the control underneath.
         private static let dragEvent = NSEvent.EventType.leftMouseDragged
 
+        @Test
+        func terminalPaneOverlayClaimsPathDragsAndProposesCopyWithoutStartingATransfer() {
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
+            let text = RemoteShellCommand.escapeArgument("/srv/中文/my files")
+            pasteboard.setString(text, forType: TerminalPathDrag.pasteboardType)
+            var received: [NativeDropPayload] = []
+            let target = FileURLDropNSView(
+                acceptedKinds: [.files, .sftpItems, .terminalPath],
+                targetedKind: { _ in },
+                receivePayload: {
+                    received.append($0)
+                    return true
+                })
+            target.frame = CGRect(x: 0, y: 0, width: 200, height: 100)
+            let drag = DraggingInfoStub(pasteboard: pasteboard)
+            #expect(participation(target, pasteboard))
+            #expect(!participation(target, pasteboard, event: .leftMouseDown))
+            #expect(target.draggingEntered(drag) == .copy)
+            #expect(target.draggingUpdated(drag) == .copy)
+            #expect(target.performDragOperation(drag))
+            #expect(received.count == 1)
+            #expect(received.first?.terminalPath == text)
+            #expect(received.first?.sftpItems == nil)
+            #expect(received.first?.fileURLs.isEmpty == true)
+            target.isEnabled = false
+            #expect(!participation(target, pasteboard))
+            #expect(target.draggingUpdated(drag).isEmpty)
+            #expect(!target.performDragOperation(drag))
+        }
+
+        @Test
+        func sftpDragsProposeTheCopyCursorAndDeliverOnlyTheRemotePayload() throws {
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
+            let data = try JSONEncoder().encode(SFTPRemoteItemsPayload(token: UUID()))
+            pasteboard.setData(data, forType: NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier))
+            let drag = DraggingInfoStub(pasteboard: pasteboard)
+            var targeted: NativeDropKind?
+            var received: [NativeDropPayload] = []
+            let target = FileURLDropNSView(
+                acceptedKinds: [.files, .sftpItems],
+                targetedKind: { targeted = $0 },
+                receivePayload: {
+                    received.append($0)
+                    return true
+                })
+
+            #expect(target.draggingEntered(drag) == .copy)
+            #expect(target.draggingUpdated(drag) == .copy)
+            #expect(targeted == .sftpItems)
+            #expect(received.isEmpty)
+            #expect(target.performDragOperation(drag))
+            #expect(received.count == 1)
+            #expect(received.first?.sftpItems == data)
+            #expect(received.first?.fileURLs.isEmpty == true)
+            #expect(targeted == nil)
+
+            target.isEnabled = false
+            #expect(target.draggingEntered(drag).isEmpty)
+            #expect(target.draggingUpdated(drag).isEmpty)
+            #expect(!target.performDragOperation(drag))
+            #expect(received.count == 1)
+        }
+
         /// Asks the participation rule about a point inside the target, so each
         /// case below reads as one line instead of a four-line call.
         private func participation(

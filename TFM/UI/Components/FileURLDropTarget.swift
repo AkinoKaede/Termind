@@ -19,15 +19,18 @@ nonisolated enum NativeDropKind: Hashable, Sendable {
     case files
     case images
     case sftpItems
+    case terminalPath
 }
 
 nonisolated struct NativeDropPayload: Sendable {
     var fileURLs: [URL] = []
     var images: [Data] = []
     var sftpItems: Data?
+    var terminalPath: String?
 
     var preferredKind: NativeDropKind? {
         if sftpItems != nil { return .sftpItems }
+        if terminalPath != nil { return .terminalPath }
         if !fileURLs.isEmpty { return .files }
         if !images.isEmpty { return .images }
         return nil
@@ -37,7 +40,8 @@ nonisolated struct NativeDropPayload: Sendable {
         NativeDropPayload(
             fileURLs: acceptedKinds.contains(.files) ? fileURLs : [],
             images: acceptedKinds.contains(.images) ? images : [],
-            sftpItems: acceptedKinds.contains(.sftpItems) ? sftpItems : nil
+            sftpItems: acceptedKinds.contains(.sftpItems) ? sftpItems : nil,
+            terminalPath: acceptedKinds.contains(.terminalPath) ? terminalPath : nil
         )
     }
 }
@@ -244,6 +248,9 @@ nonisolated struct NativeDropPayload: Sendable {
                 // creates both a remote copy and a redundant download/upload.
                 return NativeDropPayload(sftpItems: sftpItems)
             }
+            if let text = TerminalPathDrag.text(from: pasteboard) {
+                return NativeDropPayload(terminalPath: text)
+            }
             var payload = NativeDropPayload(sftpItems: sftpItems)
 
             for item in pasteboard.pasteboardItems ?? [] {
@@ -274,6 +281,7 @@ nonisolated struct NativeDropPayload: Sendable {
             NSPasteboard.PasteboardType(UTType.tiff.identifier),
             NSPasteboard.PasteboardType(UTType.heic.identifier),
             NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier),
+            TerminalPathDrag.pasteboardType,
         ]
     }
 #endif

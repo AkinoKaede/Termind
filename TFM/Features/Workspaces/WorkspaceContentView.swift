@@ -459,7 +459,7 @@ private struct PaneView: View {
         case .sshSession:
             NativeDropTarget(
                 targetedKind: $nativeDropKind,
-                acceptedKinds: [.files, .sftpItems],
+                acceptedKinds: [.files, .sftpItems, .terminalPath],
                 isEnabled: isActive && window.dragging == nil,
                 receive: receivePaneDrop
             )
@@ -470,7 +470,14 @@ private struct PaneView: View {
                 isEnabled: isActive && window.dragging == nil,
                 receive: receivePaneDrop
             )
-        case .telnetSession, .serialSession, .empty:
+        case .telnetSession, .serialSession:
+            NativeDropTarget(
+                targetedKind: $nativeDropKind,
+                acceptedKinds: [.terminalPath],
+                isEnabled: isActive && window.dragging == nil,
+                receive: receivePaneDrop
+            )
+        case .empty:
             EmptyView()
         }
     }
@@ -483,6 +490,8 @@ private struct PaneView: View {
     }
 
     private var paneDropPresentation: DropTargetPresentation? {
+        // Path insertion uses the native copy cursor, not the upload overlay.
+        guard nativeDropKind != .terminalPath else { return nil }
         switch pane.content {
         case .sshSession(let sshSession):
             if let problem = TerminalUploadAvailability.problem(
@@ -535,6 +544,17 @@ private struct PaneView: View {
     }
 
     private func receivePaneDrop(_ payload: NativeDropPayload) -> Bool {
+        if let text = payload.terminalPath {
+            let owner: PersistentTerminalViewOwner
+            switch pane.content {
+            case .sshSession(let session): owner = session.terminalViewOwner
+            case .telnetSession(let session): owner = session.terminalViewOwner
+            case .serialSession(let session): owner = session.terminalViewOwner
+            case .sftpChannel, .empty: return false
+            }
+            workspace.focus(pane.id)
+            return owner.pasteDroppedPath(text)
+        }
         if let data = payload.sftpItems {
             switch pane.content {
             case .sshSession, .sftpChannel:

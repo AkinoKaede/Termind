@@ -3,7 +3,10 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
+
+import struct TermindDomain.Host
 
 @testable import Termind
 
@@ -16,6 +19,111 @@ private nonisolated let terminalMouseHasDisplay: Bool = {
     .requiresVisibleWindow, .serialized, .disabled(if: !terminalMouseHasDisplay, "Ghostty requires an active display"))
 @MainActor
 struct TerminalMouseInteractionTests {
+    @Test func statusBarPathReachesTerminalThroughWorkspaceOverlays() async throws {
+        let fixture = try await TerminalMouseFixture.make()
+        defer { fixture.close() }
+        let path = "/home/user/中文/my files"
+        let hosts = fixture.workspace.panes.compactMap { pane -> Host? in
+            guard let session = pane.sshSession else { return nil }
+            session.status = .connected
+            session.workingDirectory = path
+            session.receiveShellIntegrationEvent(.available(shell: "zsh", systemInfo: nil, homeDirectory: "/home/user"))
+            return Host(id: session.hostID, name: "Drag test", host: "test.invalid")
+        }
+        let app = AppModel(hosts: HostLibraryModel(hosts: hosts))
+        defer { app.shutdownForTermination() }
+        let model = WindowModel(workspaces: [fixture.workspace])
+        let first = try #require(fixture.workspace.panes.first { $0.sshSession === fixture.session })
+        fixture.workspace.focus(first.id)
+        let domain = "TerminalPathDrag.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defaults.set(true, forKey: DesktopSettingsKey.statusBarExpanded)
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let hosting = NSHostingView(
+            rootView: WorkspaceContentView(workspace: fixture.workspace, isActive: true)
+                .overlay(alignment: .bottomTrailing) { StatusBarView().padding(12) }
+                .environment(app).environment(model).defaultAppStorage(defaults)
+                .frame(width: 800, height: 500))
+        fixture.window.title = "Path drag verification"
+        fixture.window.contentView = hosting
+        fixture.window.setContentSize(NSSize(width: 800, height: 500))
+        fixture.window.makeKeyAndOrderFront(nil)
+        hosting.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(300))
+        fixture.feed("\u{1B}[?2004h")
+        fixture.firstWrites.removeAll()
+
+        func targets(in view: NSView) -> [FileURLDropNSView] {
+            (view as? FileURLDropNSView).map { [$0] } ?? view.subviews.flatMap { targets(in: $0) }
+        }
+        let point = fixture.view.convert(NSPoint(x: 50, y: 50), to: hosting)
+        let target = try #require(
+            targets(in: hosting).first {
+                $0.acceptedKinds.contains(.terminalPath) && $0.bounds.contains($0.convert(point, from: hosting))
+            })
+        let text = RemoteShellCommand.escapeArgument(path)
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.setString(text, forType: TerminalPathDrag.pasteboardType)
+        let drag = DraggingInfoStub(pasteboard: pasteboard)
+        #expect(target.draggingEntered(drag) == .copy)
+        #expect(target.draggingUpdated(drag) == .copy)
+        #expect(target.performDragOperation(drag))
+        try await fixture.flushWrites()
+        #expect(fixture.firstWrites.reduce(Data(), +) == Data("\u{1B}[200~\(text)\u{1B}[201~".utf8))
+        fixture.window.contentView = nil
+    }
+
+    @Test func pathDropProposesCopyAndPastesExactlyOnceWithoutSubmittingOrEscapingAgain() async throws {
+        let fixture = try await TerminalMouseFixture.make()
+        defer { fixture.close() }
+        fixture.workspace.broadcastsInput = true
+        fixture.feed("\u{1B}[?2004h")
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        let text = RemoteShellCommand.escapeArgument("/home/user/中文/my files/it's live")
+        pasteboard.setString(text, forType: TerminalPathDrag.pasteboardType)
+        let drag = DraggingInfoStub(pasteboard: pasteboard)
+        fixture.setClipboard("unchanged")
+
+        #expect(fixture.view.registeredDraggedTypes.contains(TerminalPathDrag.pasteboardType))
+        #expect(fixture.view.draggingEntered(drag) == .copy)
+        #expect(fixture.view.draggingUpdated(drag) == .copy)
+        #expect(fixture.view.prepareForDragOperation(drag))
+        #expect(fixture.view.pathDropOperation(from: pasteboard, sourceOperations: [.copy, .move]) == .copy)
+        #expect(fixture.view.pathDropOperation(from: pasteboard, sourceOperations: .move).isEmpty)
+        #expect(fixture.firstWrites.isEmpty)
+        #expect(fixture.view.performDragOperation(drag))
+        try await fixture.flushWrites()
+
+        let expected = Data("\u{1B}[200~\(text)\u{1B}[201~".utf8)
+        #expect(fixture.firstWrites.reduce(Data(), +) == expected)
+        #expect(fixture.secondWrites.reduce(Data(), +) == expected)
+        #expect(NSPasteboard.general.string(forType: .string) == "unchanged")
+    }
+
+    @Test func hidingOrUnmountingTheTerminalRejectsAnAlreadyTrackedPathDrop() async throws {
+        let fixture = try await TerminalMouseFixture.make()
+        defer { fixture.close() }
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.setString("/srv/path", forType: TerminalPathDrag.pasteboardType)
+        #expect(fixture.view.pathDropOperation(from: pasteboard, sourceOperations: .copy) == .copy)
+
+        fixture.owner.mount(in: fixture.mount, state: fixture.state, isVisible: false, requestsFocus: false)
+        #expect(!fixture.view.registeredDraggedTypes.contains(TerminalPathDrag.pasteboardType))
+        #expect(fixture.view.pathDropOperation(from: pasteboard, sourceOperations: .copy).isEmpty)
+        #expect(!fixture.view.receivePathDrop(from: pasteboard, sourceOperations: .copy))
+
+        fixture.owner.mount(in: fixture.mount, state: fixture.state, isVisible: true, requestsFocus: false)
+        #expect(fixture.view.pathDropOperation(from: pasteboard, sourceOperations: .copy) == .copy)
+        fixture.owner.unmount(from: fixture.mount)
+        #expect(!fixture.view.registeredDraggedTypes.contains(TerminalPathDrag.pasteboardType))
+        #expect(!fixture.view.receivePathDrop(from: pasteboard, sourceOperations: .copy))
+        try await fixture.flushWrites()
+        #expect(fixture.firstWrites.isEmpty)
+    }
+
     @Test func dragCopiesChineseAndMultipleLinesOnlyAfterRelease() async throws {
         let fixture = try await TerminalMouseFixture.make()
         defer { fixture.close() }
