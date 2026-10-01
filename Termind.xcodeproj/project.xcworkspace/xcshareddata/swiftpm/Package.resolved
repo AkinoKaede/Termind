@@ -168,7 +168,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/libghostty-spm.git",
       "state" : {
-        "revision" : "21d9f81178fbb9a7d115a3a19cd9956fd5259f70"
+        "revision" : "acb252ed011d6c0168596a931f802ca69e1e139a"
       }
     },
     {
