@@ -32,7 +32,7 @@ struct RevenueCatCommerceTests {
     @Test
     func onlyTheConfiguredEntitlementUnlocksPro() throws {
         let info = try customerInfo(entitlementID: "another_entitlement", expiration: now.addingTimeInterval(60))
-        #expect(resolve(info) == .free(trialAvailable: false))
+        #expect(resolve(info) == .free)
     }
 
     @Test
@@ -85,7 +85,7 @@ struct RevenueCatCommerceTests {
         #expect(resolve(try customerInfo(expiration: nil, verification: 2)) == .verificationFailed)
     }
 
-    @Test(arguments: [EntitlementStatus.purchased(.purchased), .free(trialAvailable: false)])
+    @Test(arguments: [EntitlementStatus.purchased(.purchased), .free])
     func remotePaywallCompletionUpdatesAccessWithoutClosingItsAccountVariant(status: EntitlementStatus) async {
         let service = FakeService()
         let controller = ProAccessController(purchaseService: service, observeUpdates: false)
@@ -97,7 +97,7 @@ struct RevenueCatCommerceTests {
         #expect(controller.isPaywallPresented)
         #expect(!controller.isProcessing)
 
-        service.status = .free(trialAvailable: false)
+        service.status = .free
         await controller.refresh()
         #expect(!controller.hasProAccess)
         #expect(controller.isPaywallPresented)
@@ -111,7 +111,7 @@ struct RevenueCatCommerceTests {
         service.continuation.yield(.purchased(.purchased))
         for _ in 0..<100 where !controller.hasProAccess { await Task.yield() }
         #expect(controller.hasProAccess)
-        service.continuation.yield(.free(trialAvailable: false))
+        service.continuation.yield(.free)
         for _ in 0..<100 where controller.hasProAccess { await Task.yield() }
         #expect(!controller.hasProAccess)
     }
@@ -127,7 +127,7 @@ struct RevenueCatCommerceTests {
         await controller.refresh()
         service.status = .purchased(.familyShared)
         await controller.refresh()
-        service.status = .free(trialAvailable: false)
+        service.status = .free
         await controller.refresh()
         #expect(observed == [true, false])
         #expect(!controller.isPaywallPresented)
@@ -145,7 +145,7 @@ struct RevenueCatCommerceTests {
         service.continuation.yield(.purchased(.purchased))
         for _ in 0..<100 where !controller.hasProAccess { await Task.yield() }
         #expect(controller.hasProAccess)
-        service.refreshContinuation?.resume(returning: .free(trialAvailable: false))
+        service.refreshContinuation?.resume(returning: .free)
         service.refreshContinuation = nil
         await refresh.value
         #expect(controller.hasProAccess)
@@ -170,7 +170,7 @@ struct RevenueCatCommerceTests {
         let newerResponse = try #require(service.refreshContinuation)
         service.refreshContinuation = nil
 
-        olderResponse.resume(returning: .free(trialAvailable: false))
+        olderResponse.resume(returning: .free)
         await olderRefresh.value
         #expect(controller.hasProAccess)
         newerResponse.resume(returning: .purchased(.familyShared))
@@ -267,7 +267,7 @@ struct RevenueCatCommerceTests {
     private final class FakeService: ProPurchaseService {
         let updates: AsyncStream<EntitlementStatus>
         let continuation: AsyncStream<EntitlementStatus>.Continuation
-        var status: EntitlementStatus = .free(trialAvailable: false)
+        var status: EntitlementStatus = .free
         var refreshes = 0
         var refreshFails = false
         var suspendsRefresh = false

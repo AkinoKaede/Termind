@@ -13,7 +13,7 @@ import Testing
 struct SettingsNavigationTests {
     @Test(
         arguments: [
-            EntitlementStatus.free(trialAvailable: true), .purchased(.purchased), .purchased(.familyShared),
+            EntitlementStatus.free, .purchased(.purchased), .purchased(.familyShared),
             .subscription(
                 ProSubscriptionStatus(
                     phase: .subscribed, expiresAt: .distantFuture, willAutoRenew: true, ownership: .purchased)),

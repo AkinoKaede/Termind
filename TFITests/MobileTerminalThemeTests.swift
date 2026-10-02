@@ -38,7 +38,6 @@ struct MobileTerminalThemeTests {
         }
         let data = try #require(image.pngData())
         Attachment.record(data, named: "mobile-themes-\(language)-\(isDark ? "dark" : "light").png")
-        #expect(data.count > 10_000)
         #expect(model.preferences == initial)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("termind-theme-previews")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

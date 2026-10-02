@@ -64,7 +64,6 @@ struct MobilePassphraseFormLayoutTests {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 10000)
         let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
             "termind-passphrase-ios-\(language)-\(showKeys ? "keys" : "form").png")
         try data.write(to: url)

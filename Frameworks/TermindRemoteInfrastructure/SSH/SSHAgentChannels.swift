@@ -18,7 +18,6 @@ nonisolated final class SSHAgentChannels: @unchecked Sendable {
     private let wake: @Sendable () -> Void
     private var channels: [Channel] = []
     private var stopped = false
-    var hasChannels: Bool { !channels.isEmpty }
 
     init(provider: any SSHAgentForwarding, queue: DispatchQueue, wake: @escaping @Sendable () -> Void) {
         self.provider = provider

@@ -78,8 +78,6 @@ final class VaultSelectionState {
         set(items, for: page)
     }
 
-    func clear(_ page: VaultPage) { selections[page] = [] }
-
     func prune(available: Set<VaultSelectionID>, pages: Set<VaultPage> = Set(VaultPage.allCases)) {
         for page in pages {
             let valid = selection(for: page).filter(available.contains)

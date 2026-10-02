@@ -18,7 +18,7 @@ struct MobileMultiConnectionAccessTests {
         service.status = .purchased(.purchased)
         await pro.refresh()
         #expect(app.transfers.strategy == strategy)
-        service.status = .free(trialAvailable: false)
+        service.status = .free
         await pro.refresh()
         #expect(app.transfers.strategy == .channelsOnly)
         #expect(app.sftpSettings.preferences.strategy == strategy)
@@ -32,6 +32,6 @@ struct MobileMultiConnectionAccessTests {
 @MainActor
 private final class MobileConnectionPurchaseService: ProPurchaseService {
     let updates = AsyncStream<EntitlementStatus> { $0.finish() }
-    var status = EntitlementStatus.free(trialAvailable: false)
+    var status = EntitlementStatus.free
     func currentStatus() async throws -> EntitlementStatus { status }
 }

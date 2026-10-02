@@ -39,7 +39,6 @@ protocol SerialPortConnection: Sendable {
 }
 
 protocol SerialPortServing: Sendable {
-    func availablePorts() async -> [SerialPortDescriptor]
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]>
     func open(
         _ configuration: SerialConnectionConfiguration,

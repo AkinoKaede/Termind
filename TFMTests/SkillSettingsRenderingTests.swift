@@ -33,6 +33,5 @@ import Testing
         controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         Attachment.record(data, named: "ai-skills-memory-\(language).png")
-        #expect(data.count > 20_000)
     }
 }

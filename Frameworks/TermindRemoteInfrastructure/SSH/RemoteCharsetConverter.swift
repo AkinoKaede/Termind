@@ -17,27 +17,6 @@ nonisolated extension RemoteCharset {
     }
 }
 
-public nonisolated struct RemoteCharsetConversionError: LocalizedError, Sendable {
-    public enum Direction: Sendable { case encoding, decoding }
-
-    public var charset: RemoteCharset
-    public var direction: Direction
-
-    public init(charset: RemoteCharset, direction: Direction) {
-        self.charset = charset
-        self.direction = direction
-    }
-
-    public var errorDescription: String? {
-        switch direction {
-        case .encoding:
-            String(localized: "Text cannot be represented using \(charset.displayName).")
-        case .decoding:
-            String(localized: "Received text is not valid \(charset.displayName).")
-        }
-    }
-}
-
 /// A stateful iconv adapter that preserves unconvertible source bytes verbatim.
 /// Valid input is converted while malformed, incomplete, or unrepresentable bytes
 /// remain in place so Charset conversion never interrupts a byte stream.

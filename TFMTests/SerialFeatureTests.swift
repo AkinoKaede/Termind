@@ -15,7 +15,6 @@ nonisolated private struct InertSerialConnection: SerialPortConnection {
 }
 
 nonisolated private struct InertSerialService: SerialPortServing {
-    func availablePorts() async -> [SerialPortDescriptor] { [] }
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
         AsyncStream { $0.finish() }
     }
@@ -32,7 +31,6 @@ nonisolated private struct InertSerialService: SerialPortServing {
 nonisolated private struct EmittingSerialService: SerialPortServing {
     let data: Data
 
-    func availablePorts() async -> [SerialPortDescriptor] { [] }
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
         AsyncStream { $0.finish() }
     }
@@ -60,7 +58,6 @@ nonisolated private final class RecordingSerialConnection: SerialPortConnection,
 nonisolated private struct RecordingSerialService: SerialPortServing {
     let connection: RecordingSerialConnection
 
-    func availablePorts() async -> [SerialPortDescriptor] { [] }
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
         AsyncStream { $0.finish() }
     }

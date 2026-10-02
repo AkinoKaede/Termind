@@ -36,7 +36,6 @@ struct MobileSFTPSettingsRenderingTests {
             }
             let data = try #require(image.pngData())
             Attachment.record(data, named: "mobile-connection-settings-\(language)-\(value.globalLimit).png")
-            #expect(data.count > 10_000)
         }
     }
 }

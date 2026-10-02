@@ -13,7 +13,7 @@ import struct TermindDomain.Host
 struct WorkspaceAccessTests {
     nonisolated static let nonProStatuses: [EntitlementStatus] =
         [
-            .loading, .free(trialAvailable: true), .free(trialAvailable: false), .verificationFailed,
+            .loading, .free, .verificationFailed,
         ]
         + [ProSubscriptionPhase.billingRetry, .expired, .revoked].map {
             .subscription(

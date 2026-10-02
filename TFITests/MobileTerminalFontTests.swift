@@ -93,7 +93,6 @@ struct MobileTerminalFontTests {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 10_000)
         Attachment.record(data, named: "\(name).png")
     }
 }

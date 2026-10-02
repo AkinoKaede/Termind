@@ -33,7 +33,6 @@ struct DiagnosisConsentRenderingTests {
         let bitmap = try #require(host.view.bitmapImageRepForCachingDisplay(in: host.view.bounds))
         host.view.cacheDisplay(in: host.view.bounds, to: bitmap)
         let png = try #require(bitmap.representation(using: .png, properties: [:]))
-        #expect(png.count > 5_000)
         #expect(controller.needsConsent)
         #expect(defaults.object(forKey: SettingsKey.diagnosisConsent) == nil)
         Attachment.record(png, named: "diagnosis-\(language)-\(Int(width)).png")

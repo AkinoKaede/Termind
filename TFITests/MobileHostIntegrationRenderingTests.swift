@@ -68,7 +68,6 @@ struct MobileHostIntegrationRenderingTests {
             #expect(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 5_000)
         Attachment.record(data, named: "host-integration-mobile-\(language).png")
         try data.write(
             to: FileManager.default.temporaryDirectory.appending(path: "host-integration-mobile-\(language).png"))

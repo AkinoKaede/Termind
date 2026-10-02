@@ -350,16 +350,6 @@ final class MobileWorkspace: Identifiable {
 
     var hostKeyPrompt: SSHHostKeyPrompt? { connection.pendingHostKey }
 
-    private func preparation(
-        for host: Host, submissions: [UUID: SSHAuthenticationSubmission]
-    ) throws -> SSHConnectionPreparation {
-        try hosts.prepareSSHConnection(
-            for: host,
-            submissions: submissions,
-            temporaryHostKeys: temporaryKeys
-        )
-    }
-
     func submitAuthentication(
         identityID: UUID?, username: String, password: String?, passphrase: String?, keyID: UUID?, save: Bool
     ) {

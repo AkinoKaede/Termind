@@ -84,11 +84,6 @@ public struct SSHAuthenticationForm: View {
         }
     }
 
-    private var needsPasswordEntry: Bool {
-        guard let selectedIdentity else { return true }
-        return library.passwordAvailability(for: selectedIdentity) != .available
-    }
-
     private var title: LocalizedStringResource {
         if needsPassphrase { return "Passphrase required" }
         if prompt.isProxy { return "Proxy authentication required" }

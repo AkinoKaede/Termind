@@ -11,7 +11,7 @@ import Testing
 struct SheetQuitInteractionTests {
     @Test(arguments: ["connect", "batch", "pro"])
     func nativeQuitWorksWithSheetFocusAndAfterCancellingAndReopening(_ surface: String) async throws {
-        let app = AppModel(hosts: HostLibraryModel(), proAccess: .testing(status: .free(trialAvailable: true)))
+        let app = AppModel(hosts: HostLibraryModel(), proAccess: .testing(status: .free))
         let model = WindowModel()
         let root = RootView(window: model)
             .environment(app)

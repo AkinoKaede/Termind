@@ -5,11 +5,11 @@ import TermindDomain
 nonisolated enum RevenueCatEntitlementResolver {
     static func resolve(_ info: CustomerInfo, entitlementID: String, now: Date) -> EntitlementStatus {
         guard info.entitlements.verification != .failed else { return .verificationFailed }
-        guard let entitlement = info.entitlements.all[entitlementID] else { return .free(trialAvailable: false) }
+        guard let entitlement = info.entitlements.all[entitlementID] else { return .free }
         guard entitlement.verification != .failed else { return .verificationFailed }
         let ownership: ProOwnership = entitlement.ownershipType == .familyShared ? .familyShared : .purchased
         if entitlement.expirationDate == nil {
-            return entitlement.isActive ? .purchased(ownership) : .free(trialAvailable: false)
+            return entitlement.isActive ? .purchased(ownership) : .free
         }
         let subscription = info.subscriptionsByProductIdentifier[entitlement.productIdentifier]
         let expiration = entitlement.expirationDate

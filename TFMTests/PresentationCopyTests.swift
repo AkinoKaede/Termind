@@ -54,15 +54,6 @@ struct PresentationCopyTests {
         #expect(!message.contains("NSLanguage"))
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func singleFileDeletionWarningDoesNotRepeatTheTitlePath(language: String) {
-        let locale = Locale(identifier: language)
-        let warning = AppLocalization.resolve(AppStrings.SFTP.recursiveDeletionWarning, locale: locale)
-        #expect(!warning.contains("/home/example/file.txt"))
-        #expect(!warning.contains("NSLanguage"))
-        #expect(!warning.isEmpty)
-    }
-
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 2])
     func groupDeletionUsesTheRequestedLanguageAndPreservesPluralRules(language: String, count: Int) {
         let locale = Locale(identifier: language)

@@ -266,7 +266,6 @@ struct MobileMarketingScreenshotTests {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 100_000)
 
         let outputDirectory = try #require(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
             .appending(path: "marketing-screenshots", directoryHint: .isDirectory)

@@ -15,7 +15,6 @@ nonisolated private struct SidebarTestSerialConnection: SerialPortConnection {
 }
 
 nonisolated private struct SidebarTestSerialService: SerialPortServing {
-    func availablePorts() async -> [SerialPortDescriptor] { [] }
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
         AsyncStream { $0.finish() }
     }

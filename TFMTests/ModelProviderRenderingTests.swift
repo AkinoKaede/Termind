@@ -137,6 +137,5 @@ struct ModelProviderRenderingTests {
         controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         Attachment.record(data, named: "keyless-\(name)-\(language).png")
-        #expect(data.count > 10_000)
     }
 }

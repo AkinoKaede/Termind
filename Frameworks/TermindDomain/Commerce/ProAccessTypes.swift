@@ -15,11 +15,6 @@ public nonisolated enum ProOwnership: Equatable, Sendable {
     case familyShared
 }
 
-public nonisolated enum ProPurchasePlan: Hashable, Sendable {
-    case annual
-    case lifetime
-}
-
 public nonisolated enum ProSubscriptionPhase: Equatable, Sendable {
     case introductoryTrial
     case subscribed
@@ -57,7 +52,7 @@ public nonisolated struct ProSubscriptionStatus: Equatable, Sendable {
 
 public nonisolated enum EntitlementStatus: Equatable, Sendable {
     case loading
-    case free(trialAvailable: Bool)
+    case free
     case subscription(ProSubscriptionStatus)
     case purchased(ProOwnership)
     case verificationFailed
@@ -68,14 +63,6 @@ public nonisolated enum EntitlementStatus: Equatable, Sendable {
         case .purchased, .unrestrictedForTesting: true
         case .subscription(let subscription): subscription.phase.hasProAccess
         default: false
-        }
-    }
-
-    public var canPurchase: Bool {
-        switch self {
-        case .purchased, .unrestrictedForTesting: false
-        case .subscription(let subscription): !subscription.phase.hasProAccess
-        default: true
         }
     }
 }

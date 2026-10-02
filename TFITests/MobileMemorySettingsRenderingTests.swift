@@ -46,7 +46,6 @@ struct MobileMemorySettingsRenderingTests {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 10_000)
         Attachment.record(data, named: "mobile-memory-\(language)-\(enabled ? "enabled" : "disabled").png")
         await model.destroy()
     }

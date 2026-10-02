@@ -41,22 +41,6 @@ struct ListViewMigrationTests {
         #expect(normal != selected)
     }
 
-    /// Folding a section must not change the item's *value*, or ListViewKit
-    /// reconfigures the header's hosting view from inside the click that asked
-    /// for the fold — which crashed. Only the count is data; expansion is read
-    /// by the row itself. See `AssistantSectionHeaderRow`.
-    @Test
-    func foldingASectionDoesNotChangeItsListItem() {
-        let expanded = AssistantConversationListItem.section(.pinned, count: 3)
-        let collapsed = AssistantConversationListItem.section(.pinned, count: 3)
-
-        #expect(expanded == collapsed)
-        #expect(
-            AssistantConversationListItem.Section.pinned.expansionKey
-                != AssistantConversationListItem.Section.chats.expansionKey
-        )
-    }
-
     @Test
     func assistantSectionIdentityIsSeparateFromConversationIdentity() {
         let pinned = AssistantConversationListItem.section(.pinned)

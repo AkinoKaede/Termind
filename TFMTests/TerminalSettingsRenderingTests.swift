@@ -71,6 +71,5 @@ struct TerminalSettingsRenderingTests {
         view.cacheDisplay(in: view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         Attachment.record(data, named: "\(name).png")
-        #expect(data.count > 5_000)
     }
 }

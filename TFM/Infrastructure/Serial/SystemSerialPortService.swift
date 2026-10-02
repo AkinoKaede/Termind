@@ -9,7 +9,6 @@ nonisolated final class SystemSerialPortService: SerialPortServing, @unchecked S
     private let openQueue = DispatchQueue(
         label: "com.akinokaede.termind.serial.open", attributes: .concurrent
     )
-    func availablePorts() async -> [SerialPortDescriptor] { Self.scanPorts() }
 
     func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
         AsyncStream { continuation in

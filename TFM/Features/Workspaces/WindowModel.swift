@@ -174,10 +174,6 @@ final class WindowModel {
         vaultPages.selection.toggle(detail, on: page)
     }
 
-    func clearVaultSelection(for page: VaultPage) {
-        vaultPages.selection.clear(page)
-    }
-
     /// Removes records deleted out from under a remembered selection.
     func pruneVaultSelections(in store: HostLibraryModel) {
         vaultPages.selection.prune(available: Self.availableVaultSelections(in: store))
@@ -1615,13 +1611,6 @@ nonisolated enum DragPayload: Hashable, Sendable {
     case workspace(UUID)
     case pane(UUID)
     case assistantConversation(UUID)
-
-    nonisolated var isLayoutPayload: Bool {
-        switch self {
-        case .workspace, .pane: true
-        case .assistantConversation: false
-        }
-    }
 }
 
 // MARK: - Sidebar rows

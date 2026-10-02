@@ -13,7 +13,7 @@ struct ProAccessTests {
     @Test
     func entitlementStatesExposeOnlyRealAccess() {
         #expect(!EntitlementStatus.loading.hasProAccess)
-        #expect(!EntitlementStatus.free(trialAvailable: true).hasProAccess)
+        #expect(!EntitlementStatus.free.hasProAccess)
         #expect(!EntitlementStatus.verificationFailed.hasProAccess)
         #expect(EntitlementStatus.purchased(.purchased).hasProAccess)
         #expect(EntitlementStatus.purchased(.familyShared).hasProAccess)
@@ -40,7 +40,7 @@ struct ProAccessTests {
 
     @Test(arguments: ProFeature.allCases) @MainActor
     func freeAccessRefusesEveryPaidFeatureBeforeAnyCallerCanProceed(feature: ProFeature) {
-        let access = ProAccessController.testing(status: .free(trialAvailable: true))
+        let access = ProAccessController.testing(status: .free)
         #expect(!access.canUse(feature))
         #expect(!access.require(feature))
         #expect(access.isPaywallPresented)

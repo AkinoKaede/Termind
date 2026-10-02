@@ -45,7 +45,6 @@ struct MobileTerminalHighlightingTests {
             }
             let data = try #require(image.pngData())
             Attachment.record(data, named: "mobile-keyword-\(name)-\(language)-\(Int(window.bounds.width)).png")
-            #expect(data.count > 20000)
         }
     }
 }

@@ -161,7 +161,7 @@ struct MetricsLimitTests {
 
     @Test
     func productionWiringUsesTheExistingProPaywallAndIncludesSubscriptionAccess() {
-        let free = ProAccessController.testing(status: .free(trialAvailable: true))
+        let free = ProAccessController.testing(status: .free)
         let app = AppModel(hosts: HostLibraryModel(), proAccess: free)
         defer { app.shutdownForTermination() }
         #expect(app.serverMetrics.remainingCardSlots == 3)

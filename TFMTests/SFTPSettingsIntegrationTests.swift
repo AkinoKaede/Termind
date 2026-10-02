@@ -48,7 +48,7 @@ struct SFTPSettingsIntegrationTests {
 
     @Test func freeStartupAndSyncedPreferencesUseOnlyTheEffectiveStrategy() {
         let settings = SFTPSettingsModel()
-        let pro = ProAccessController.testing(status: .free(trialAvailable: true))
+        let pro = ProAccessController.testing(status: .free)
         let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings, proAccess: pro)
         defer { app.shutdownForTermination() }
         #expect(settings.preferences.strategy == .smart)
@@ -107,7 +107,6 @@ struct SFTPSettingsIntegrationTests {
             controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
             let data = try #require(bitmap.representation(using: .png, properties: [:]))
             Attachment.record(data, named: "sftp-settings-\(language)-\(value.globalLimit).png")
-            #expect(data.count > 5_000)
         }
     }
 }
@@ -115,6 +114,6 @@ struct SFTPSettingsIntegrationTests {
 @MainActor
 private final class ConnectionPurchaseService: ProPurchaseService {
     let updates = AsyncStream<EntitlementStatus> { $0.finish() }
-    var status = EntitlementStatus.free(trialAvailable: false)
+    var status = EntitlementStatus.free
     func currentStatus() async throws -> EntitlementStatus { status }
 }

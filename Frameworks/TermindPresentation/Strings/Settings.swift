@@ -26,10 +26,6 @@ extension AppStrings {
             "Abilities"
         }
 
-        public static var accessEnds: LocalizedStringResource {
-            "Access Ends"
-        }
-
         public static func add(_ count: Int) -> LocalizedStringResource {
             "Add \(count)"
         }
@@ -76,14 +72,6 @@ extension AppStrings {
 
         public static var ai: LocalizedStringResource {
             "AI"
-        }
-
-        public static var aiProviderUsageAndChargesAreSeparateFromTermindPro: LocalizedStringResource {
-            "AI provider usage and charges are separate from Termind Pro."
-        }
-
-        public static var annualFamilyShared: LocalizedStringResource {
-            "Annual · Family Shared"
         }
 
         public static var anotherMcpServerAlreadyUsesThisId: LocalizedStringResource {
@@ -250,10 +238,6 @@ extension AppStrings {
             "Description"
         }
 
-        public static var developmentAccess: LocalizedStringResource {
-            "Development Access"
-        }
-
         public static var disabled: LocalizedStringResource {
             "Disabled"
         }
@@ -306,10 +290,6 @@ extension AppStrings {
             "Exact model ID, such as gpt-5.4"
         }
 
-        public static var expired: LocalizedStringResource {
-            "Expired"
-        }
-
         public static var exposedTools: LocalizedStringResource {
             "Exposed Tools"
         }
@@ -352,10 +332,6 @@ extension AppStrings {
 
         public static var ghostty: LocalizedStringResource {
             "Ghostty"
-        }
-
-        public static var gracePeriodEnds: LocalizedStringResource {
-            "Grace Period Ends"
         }
 
         public static var headerName: LocalizedStringResource {
@@ -658,10 +634,6 @@ extension AppStrings {
             "Removes the selected models. You can fetch them again."
         }
 
-        public static var renews: LocalizedStringResource {
-            "Renews"
-        }
-
         public static var replaceKey: LocalizedStringResource {
             "Replace Key"
         }
@@ -812,10 +784,6 @@ extension AppStrings {
 
         public static var transport: LocalizedStringResource {
             "Transport"
-        }
-
-        public static var trialEnds: LocalizedStringResource {
-            "Trial Ends"
         }
 
         public static var url: LocalizedStringResource {

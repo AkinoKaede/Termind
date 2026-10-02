@@ -49,10 +49,6 @@ public final class SFTPTransferContext {
         if let primary { Task { await primary.disconnect() } }
     }
 
-    /// Admission is owned by `SFTPTransferCoordinator`; a channel consumes the
-    /// same slot as a connection, so fallback never changes capacity.
-    var canStartTransfer: Bool { true }
-
     func configureClientFactory(_ factory: @escaping SFTPTransferCoordinator.ClientFactory) {
         clientFactory = factory
     }

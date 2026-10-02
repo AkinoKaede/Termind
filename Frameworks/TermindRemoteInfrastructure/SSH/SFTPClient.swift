@@ -48,48 +48,6 @@ public nonisolated struct SFTPProgress: Sendable {
 
 }
 
-nonisolated private struct SFTPProgressMeter {
-    public let total: Int64
-    public let report: @Sendable (SFTPProgress) -> Void
-    public private(set) var completed: Int64 = 0
-    private var sampledBytes: Int64 = 0
-    private var sampledAt = ContinuousClock.now
-
-    public nonisolated init(
-        total: Int64, offset: Int64 = 0, report: @escaping @Sendable (SFTPProgress) -> Void
-    ) {
-        self.total = total
-        self.completed = offset
-        self.report = report
-    }
-
-    public nonisolated mutating func add(_ bytes: Int) {
-        completed += Int64(bytes)
-        sampledBytes += Int64(bytes)
-        let elapsed = sampledAt.duration(to: .now)
-        guard elapsed >= .milliseconds(250) else { return }
-        let components = elapsed.components
-        let seconds = max(
-            0.001,
-            Double(components.seconds) + Double(components.attoseconds) / 1e18
-        )
-        report(
-            SFTPProgress(
-                completedBytes: completed, totalBytes: total,
-                bytesPerSecond: Int64(Double(sampledBytes) / seconds)
-            ))
-        sampledBytes = 0
-        sampledAt = .now
-    }
-
-    public nonisolated func finish() {
-        report(
-            SFTPProgress(
-                completedBytes: completed, totalBytes: total, bytesPerSecond: 0
-            ))
-    }
-}
-
 /// One initialized SFTP subsystem running over an SSH channel.
 public nonisolated protocol SFTPChannelProtocol: RemoteFileSystem, Sendable {
     /// Opens another SFTP subsystem channel on the same authenticated SSH

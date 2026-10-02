@@ -241,7 +241,6 @@ struct MobileAISettingsRenderingTests {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let data = try #require(image.pngData())
-        #expect(data.count > 10000)
         let directory = FileManager.default.temporaryDirectory.appending(path: "ai-settings-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"

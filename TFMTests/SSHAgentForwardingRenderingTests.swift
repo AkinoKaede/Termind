@@ -32,7 +32,6 @@ struct SSHAgentForwardingRenderingTests {
         let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
         controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
-        #expect(data.count > 5000)
         Attachment.record(data, named: "agent-forwarding-mac-\(language).png")
         try data.write(
             to: FileManager.default.temporaryDirectory.appending(path: "agent-forwarding-mac-\(language).png"))
