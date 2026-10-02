@@ -1,5 +1,5 @@
 {
-  "originHash" : "2386f4ec13a24a310cbe47f5923c524e937b76e0eb156a380e35eca9e70ec044",
+  "originHash" : "289fd4765cd352f7e6c42b83a996dcc0e094b80d702510ffea18fb4328ffdc0d",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -168,7 +168,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/libghostty-spm.git",
       "state" : {
-        "revision" : "bad8b78445ceee0fff7487f48660ab8f8aa5861f"
+        "revision" : "88327c8946e5304e95cdb8e00120ceeb71f1d127"
       }
     },
     {
