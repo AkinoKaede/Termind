@@ -64,7 +64,7 @@ struct MobileTerminalThemeView: View {
     private func tile(theme: GhosttyThemeDefinition, custom: Bool) -> some View {
         let hoverID = custom ? "__custom__" : theme.name
         let selected = custom ? options.isCustom : options.isSelected(theme.name)
-        return MobileActionCard {
+        return MobileActionCard(alignment: .leading) {
             let saved =
                 custom
                 ? model.selectCustomTheme(isDark: isDark)

@@ -121,15 +121,18 @@ struct MobileCard<Content: View>: View {
 
 /// The primary action fills the card. Secondary actions are available from the card's context menu.
 struct MobileActionCard<Content: View, Actions: View>: View {
+    let alignment: Alignment
     let action: () -> Void
     @ViewBuilder var content: Content
     @ViewBuilder var actions: Actions
 
     init(
+        alignment: Alignment = .topLeading,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder actions: () -> Actions
     ) {
+        self.alignment = alignment
         self.action = action
         self.content = content()
         self.actions = actions()
@@ -140,7 +143,7 @@ struct MobileActionCard<Content: View, Actions: View>: View {
             .padding(16)
             .frame(
                 maxWidth: .infinity, minHeight: MobileCardLayout.minimumHeight,
-                alignment: .topLeading
+                alignment: alignment
             )
             .mobileCardSurface()
     }
