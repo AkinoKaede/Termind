@@ -159,6 +159,7 @@ final class MobileAppModel {
     private var recoveredWorkspaceIDs: [String: Set<UUID>] = [:]
     private var discardedSessionIDs: Set<String> = []
     var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void
+    var closeWorkspaceSession: @MainActor (String, @escaping @MainActor (any Error) -> Void) -> Void
 
     let outbox: OutboxRunner
     private var sceneSessionIDs: [UUID: String] = [:]
@@ -193,6 +194,7 @@ final class MobileAppModel {
             try await connectionCoordinator.installAuthorizedKeys(keys, using: configuration)
         }
         activateWorkspaceSession = dependencies.activateWorkspaceSession
+        closeWorkspaceSession = dependencies.closeWorkspaceSession
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =

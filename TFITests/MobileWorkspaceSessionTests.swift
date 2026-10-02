@@ -638,6 +638,80 @@ struct MobileWorkspaceSessionTests {
         #expect(first.isWorkspaceUnavailable)
     }
 
+    @Test func windowCloseWaitsForNativeDiscardBeforeRemovingItsWorkspaces() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "a")
+        let second = MobileSceneModel(app: app, sessionID: "b")
+        first.open(hostID: fixture.host.id, kind: .ssh)
+        second.open(hostID: fixture.host.id, kind: .sftp)
+        let firstID = try #require(first.workspaceSession.workspaces.first?.id)
+        let secondID = try #require(second.workspaceSession.workspaces.first?.id)
+        var requestedSessions: [String] = []
+        app.closeWorkspaceSession = { id, _ in requestedSessions.append(id) }
+        first.openSettings()
+
+        first.closeSelectionOrWindow()
+
+        #expect(requestedSessions == ["a"])
+        #expect(first.workspaceSession.workspaces.map(\.id) == [firstID])
+        #expect(try fixture.store.load().sessions["a"]?.map(\.id) == [firstID])
+        let delegate = MobileAppDelegate()
+        delegate.app = app
+        delegate.discardSessions(["a"])
+
+        #expect(first.workspaceSession.isDiscarded)
+        #expect(first.workspaceSession.orderedWorkspaceItems.isEmpty)
+        #expect(try fixture.store.load().sessions["a"] == nil)
+        #expect(second.workspaceSession.workspaces.map(\.id) == [secondID])
+        #expect(try fixture.store.load().sessions["b"]?.map(\.id) == [secondID])
+        #expect(app.error == nil)
+        first.closeSelectionOrWindow()
+        #expect(requestedSessions == ["a"])
+    }
+
+    @Test func rejectedWindowCloseKeepsWorkspacesAndSavedRecordsWithoutAnAlert() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "a")
+        scene.open(hostID: fixture.host.id, kind: .ssh)
+        let workspace = try #require(scene.workspaceSession.workspaces.first)
+        var reportFailure: (@MainActor (any Error) -> Void)?
+        app.closeWorkspaceSession = { _, failed in reportFailure = failed }
+        scene.openSettings()
+
+        scene.closeSelectionOrWindow()
+        let failed = try #require(reportFailure)
+        failed(NSError(domain: "WindowCloseTest", code: 1))
+
+        #expect(scene.workspaceSession.workspaces.first === workspace)
+        #expect(!scene.workspaceSession.isDiscarded)
+        #expect(try fixture.store.load().sessions["a"]?.map(\.id) == [workspace.id])
+        #expect(scene.selectedDestination == .settings)
+        #expect(!scene.isWorkspaceUnavailable)
+        #expect(app.error == nil)
+    }
+
+    @Test func closingMissingNativeSessionReportsFailureWithoutDiscardingSavedWorkspaces() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let id = "missing-\(UUID())"
+        let scene = MobileSceneModel(app: app, sessionID: id)
+        scene.open(hostID: fixture.host.id, kind: .ssh)
+        let workspaceID = try #require(scene.workspaceSession.workspaces.first?.id)
+        var failure: (any Error)?
+
+        MobileWorkspaceSceneRouting.close(sessionID: id) { failure = $0 }
+
+        #expect(failure as? MobileWorkspaceSceneRouting.CloseError == .sessionNotFound)
+        #expect(scene.workspaceSession.workspaces.map(\.id) == [workspaceID])
+        #expect(try fixture.store.load().sessions[id]?.map(\.id) == [workspaceID])
+        #expect(app.error == nil)
+    }
+
     @Test func missingNativeWindowReportsUnavailableWithoutCreatingAConnection() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

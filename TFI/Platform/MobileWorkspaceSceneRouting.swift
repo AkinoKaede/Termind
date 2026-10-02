@@ -4,6 +4,10 @@ import UIKit
 /// Links keep their existing workspace UUID. Window ownership is resolved locally by the app.
 @MainActor
 enum MobileWorkspaceSceneRouting {
+    nonisolated enum CloseError: Error {
+        case sessionNotFound
+    }
+
     static let activityType = "com.akinokaede.termind.open-workspace"
     private static let workspaceIDKey = "workspaceID"
 
@@ -36,6 +40,17 @@ enum MobileWorkspaceSceneRouting {
             session, userActivity: activity(for: workspaceID), options: nil
         ) { _ in
             MainActor.assumeIsolated { unavailable() }
+        }
+    }
+
+    static func close(sessionID: String, failed: @escaping @MainActor (any Error) -> Void) {
+        guard let session = UIApplication.shared.openSessions.first(where: { $0.persistentIdentifier == sessionID })
+        else {
+            failed(CloseError.sessionNotFound)
+            return
+        }
+        UIApplication.shared.requestSceneSessionDestruction(session, options: nil) { error in
+            MainActor.assumeIsolated { failed(error) }
         }
     }
 }

@@ -84,11 +84,15 @@ struct MobileCommands: Commands {
         }
 
         CommandGroup(replacing: .saveItem) {
-            Button(AppStrings.Workspace.closeWorkspace.swiftUIKey, systemImage: "xmark") {
-                scene?.closeActiveWorkspace()
+            Button(
+                scene?.canCloseWorkspace == true
+                    ? AppStrings.Workspace.closeWorkspace.swiftUIKey : AppStrings.Workspace.closeWindow.swiftUIKey,
+                systemImage: "xmark"
+            ) {
+                scene?.closeSelectionOrWindow()
             }
             .keyboardShortcut(MobileShortcut.closeWorkspace)
-            .disabled(scene?.canCloseWorkspace != true)
+            .disabled(scene == nil)
         }
 
         CommandMenu(AppStrings.Navigation.workspaces.swiftUIKey) {

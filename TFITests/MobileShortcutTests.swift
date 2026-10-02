@@ -225,6 +225,54 @@ struct MobileShortcutTests {
         #expect(scene.workspaceID == third)
     }
 
+    @Test func closeCommandClosesTheLastWorkspaceBeforeRequestingWindowClosure() throws {
+        var requestedSessions: [String] = []
+        var dependencies = MobileAppDependencies.testing()
+        dependencies.closeWorkspaceSession = { id, _ in requestedSessions.append(id) }
+        let app = try MobileAppModel(dependencies: dependencies)
+        let host = Host(name: "Test", host: "example.invalid")
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        let other = MobileSceneModel(app: app, sessionID: "other")
+        defer { app.discardWorkspaceSessions(["owner", "other"]) }
+        let first = try #require(scene.workspaceSession.open(hostID: host.id, kind: .ssh))
+        let second = try #require(other.workspaceSession.open(hostID: host.id, kind: .sftp))
+        scene.selectWorkspace(first)
+        scene.activatePendingWorkspace()
+        other.selectWorkspace(second)
+        other.activatePendingWorkspace()
+
+        scene.closeSelectionOrWindow()
+
+        #expect(scene.workspaceSession.orderedWorkspaceItems.isEmpty)
+        #expect(scene.workspaceID == nil)
+        #expect(requestedSessions.isEmpty)
+        #expect(other.activeWorkspace?.id == second)
+
+        scene.closeSelectionOrWindow()
+
+        #expect(requestedSessions == ["owner"])
+        #expect(other.activeWorkspace?.id == second)
+    }
+
+    @Test(arguments: MobileDestination.allCases)
+    func closeCommandWithoutSelectionRequestsOnlyItsOwnWindow(destination: MobileDestination) throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        let other = MobileSceneModel(app: app, sessionID: "other")
+        defer { app.discardWorkspaceSessions(["owner", "other"]) }
+        var requestedSessions: [String] = []
+        app.closeWorkspaceSession = { id, _ in requestedSessions.append(id) }
+        scene.selectedDestination = destination
+
+        scene.closeSelectionOrWindow()
+
+        #expect(requestedSessions == [scene.workspaceSession.id])
+        #expect(!other.workspaceSession.isDiscarded)
+        #expect(app.error == nil)
+        #expect(!scene.isWorkspaceUnavailable)
+    }
+
     @Test func closeCommandOnlyClosesAWorkspaceVisibleInThisScene() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Test", host: "example.invalid")

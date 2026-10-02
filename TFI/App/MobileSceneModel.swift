@@ -315,6 +315,22 @@ final class MobileSceneModel {
         closeWorkspace(activeWorkspace.id)
     }
 
+    func closeSelectionOrWindow() {
+        guard !workspaceSession.isDiscarded else { return }
+        if activeWorkspace != nil {
+            closeActiveWorkspace()
+        } else {
+            // UIKit's discard callback owns cleanup; a rejected request must preserve this session.
+            let logger = app.logging.makeLogger(label: "termind.window")
+            app.closeWorkspaceSession(workspaceSession.id) { error in
+                let error = error as NSError
+                logger.warning(
+                    "Window close request failed",
+                    metadata: ["domain": .string(error.domain), "code": .stringConvertible(error.code)])
+            }
+        }
+    }
+
     func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
         guard workspaceSession.orderedWorkspaceItems.contains(where: { $0.id == id }) else { return }
         workspaceSession.closeOtherWorkspaces(than: id)
