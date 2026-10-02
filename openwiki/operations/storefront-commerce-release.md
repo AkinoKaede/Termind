@@ -3,9 +3,6 @@ type: storefront-release-operations
 title: Storefront commerce release checks
 description: Release checklist for the local StoreKit product fixture, RevenueCat entitlement and paywall configuration, cross-platform access refresh, and Sandbox validation.
 tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, release]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -45,6 +42,8 @@ sources:
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
     resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-4f0f9c14c0bea850182fe19b
     resource: repo://TFI/Info.plist
   - id: openwiki-source-25a2df896b93f410289e8512
@@ -63,7 +62,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Storefront commerce release checks
@@ -91,7 +93,7 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 
 ## Access and refresh lifecycle
 
-`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. `ProFeature` covers assistant, terminal upload, remote MCP, the Mac built-in MCP server, Vault sync and unlimited Metrics, not ordinary Workspace composition. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. On Mac `.mcpServer` gates the built-in server; mobile uses `.remoteMCP` for remote connections. The enumeration alone is not a platform availability promise.
+`ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. `ProFeature` covers Assistant, remote MCP, the Mac built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. On Mac `.mcpServer` gates the built-in server; mobile uses `.remoteMCP` for remote connections. The enumeration alone is not a platform availability promise.
 
 ```mermaid
 flowchart TD

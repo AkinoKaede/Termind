@@ -3,9 +3,6 @@ type: architecture
 title: Platform startup and runtime composition
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -105,7 +102,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Platform startup and runtime composition

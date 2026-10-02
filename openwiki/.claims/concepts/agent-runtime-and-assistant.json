@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:346fb61330a6f22a82552896be143ae6c486734bd646fa1af96dc28ec5f556f9",
+  "pageVersion": "sha256:b9d3f20124afeb311487835f41693454690eaeb101b25d611b705aac2e44277d",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:16286cf2f473b876a2bc2e10ceabfd17c8baf1dda9fd047cb70b958a8d08615a"
+          "version": "repo-file-v1:sha256:2b9f6e50952c98ba7b190f9d44fb2982755ee2e161b55849f383b1452e6b21fd"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
@@ -36,7 +36,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         }
       ]
     },
@@ -100,7 +100,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         },
         {
           "resource": "repo://TFMTests/AgentRuntimeTests.swift",
@@ -274,7 +274,7 @@
         },
         {
           "resource": "repo://TFM/Features/AI/ConversationTranscriptView.swift",
-          "version": "repo-file-v1:sha256:2e10352d08b0fd86e9f1ad8c358e69300e25fc4723b85f6533e76150cfdbb170"
+          "version": "repo-file-v1:sha256:0307bb4c3252e9d4986c1132ead3385781895d22d974c68023bb66489562ca52"
         },
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
@@ -296,7 +296,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         }
       ]
     },
@@ -350,7 +350,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
+          "version": "repo-file-v1:sha256:d5341c2aa23b2e5ff484b5f14f083b9cb13fefac46417405a894db1b574f5a0e"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L184-L213",
@@ -384,7 +384,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         },
         {
           "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift",
@@ -414,7 +414,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         },
         {
           "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift",
@@ -422,7 +422,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:bdef2de767f37e63b96974407bf3d0dd45319fff966dd70653a67c60592484ce"
+          "version": "repo-file-v1:sha256:0a7729dca3ad780977bd2908708980320529a19e398746e100320a6e59930e4c"
         }
       ]
     },
@@ -440,7 +440,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         },
         {
           "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift",
@@ -488,7 +488,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         }
       ]
     },
@@ -506,11 +506,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         },
         {
           "resource": "repo://TFITests/MobileAssistantTests.swift",
-          "version": "repo-file-v1:sha256:ff5f8ea1e5505b3aaf901faf4f50fe2358ec54a932f433a45c10627083ffc028"
+          "version": "repo-file-v1:sha256:984ea8c40d8a39af0b8afd49773a1577de89a46aa896b39e870d007e3ec7e29d"
         }
       ]
     },
@@ -670,7 +670,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:83554103464906f0c5ebb0897e308d27b9f388364cf7c81978a6281d080317b9"
+          "version": "repo-file-v1:sha256:c0aeb2b3a840059327734363592d4660a8e9a0898d3c831dd9d2362432c9baf0"
         }
       ]
     },
@@ -1278,7 +1278,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift#L317-L335",
-          "version": "repo-lines-v1:sha256:fd165ffeecace2aebba9da760bdfe67f8cb0f33a5830740e11f0080c6a02a032:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNDk5MzcyNDBjOWNmYzYwZGQ5MWM1YjhkNzdiMWVlODJlNGFiMTkwM2IzYzA5MDgyYjJhZmQ1ODMyZTQwMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNTY1MzJmZTczM2Y4YWIzMjFkN2NiMDJlZDhlYWFjOTc0N2RhODJiMjVlYTMzZTY2MDMzMzhiOTM0NTJiMWYifQ"
+          "version": "repo-lines-v1:sha256:2e9b85366860ae4cd5e22e53f0185758472c3becf8c0ed513a40782b7a78da17:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNTY1MzJmZTczM2Y4YWIzMjFkN2NiMDJlZDhlYWFjOTc0N2RhODJiMjVlYTMzZTY2MDMzMzhiOTM0NTJiMWYifQ"
         },
         {
           "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift#L72-L117",
@@ -1292,7 +1292,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-10-01T23:39:56.631Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
   }
 }

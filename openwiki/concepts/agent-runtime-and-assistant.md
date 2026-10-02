@@ -3,9 +3,6 @@ type: assistant runtime concept
 title: Agent runtime and assistant ownership
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -111,7 +108,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Agent runtime and assistant ownership

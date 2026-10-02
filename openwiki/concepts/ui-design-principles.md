@@ -3,18 +3,21 @@ type: design guide
 title: UI state and presentation principles
 description: Source-backed guide to native desktop and mobile settings routes, reusable presentation, terminal appearance selection, and state continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
+  - id: openwiki-source-d2e7cb31d1a80790818ed440
+    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalHighlightSettingsModel.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
   - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
+  - id: openwiki-source-4fa88a1531df1670329dabc9
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalHighlightPreferences.swift
+  - id: openwiki-source-bcf5761569fe8b5098014524
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
@@ -37,6 +40,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift
   - id: openwiki-source-821c6451f936b3390d26080d
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
+  - id: openwiki-source-76bfec2a5f9d38c73ab870c3
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalKeywordHighlighting.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -71,6 +76,8 @@ sources:
     resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
+  - id: openwiki-source-ca0b3e6e839587396cdeaf54
+    resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-3af0aeffcab26dc81096aefc
@@ -115,6 +122,8 @@ sources:
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-23281ca04cda9d7abc31173f
     resource: repo://TFM/Features/Snippets/SnippetsPageView.swift
+  - id: openwiki-source-fe5539ed6f675410b82b41c4
+    resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-564c1a0cc523e70840b9fc66
     resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-ba160208435f3410138a3539
@@ -157,7 +166,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # UI state and presentation principles
@@ -262,6 +274,10 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 `TerminalFontFields` shares a `TerminalFontPreferences` binding, family selection and 8–36 editing range, but uses Slider on macOS and Stepper on iOS. AppKit/UIKit catalogs include a family with any loadable monospaced member, sort in localized order and refresh on settings appearance or scene activation. Unavailable family selections remain stored; rendering resolves a fallback copy without overwriting them. Typography is device-local through `TerminalFontSettings` / `@AppStorage`, separate from synchronized `TerminalPreferences`. `TerminalSettingsModel` persists preference edits before publishing and reports storage errors without replacing old preferences on failure.
 
 `TerminalThemeOptions` is the read-only, appearance-filtered theme browser model. It preserves missing, empty and wrong-appearance stored names and shows `TerminalThemeAvailabilityNotice` when the selected base is unavailable; rendering chooses an appearance-specific default without repairing storage on entry. Each app's light/dark browser has a custom tile and separately editable custom configuration. Tapping a catalog tile calls `TerminalSettingsModel.selectTheme`, which saves the chosen name **and disables that appearance's custom overlay atomically**; tapping Custom calls `selectCustomTheme`, enabling the overlay without changing the saved base name. Successful selection goes Back on desktop or dismisses the mobile browser; save failure retains the page and shows `storageError`. Rendering applies resolved base theme, enabled custom overlay, then device-local typography in that order. Desktop custom editing debounces autosave, flushes on disappearance and imports UTF-8 files; mobile opens a draft `MobileEditorSheet` and explicitly saves the custom text. Theme previewing and opening Settings alone do not write preferences. Tests cover font membership/precedence/controller identity, theme fallback and overlays with zero writes on opening desktop Settings, and mobile controls in English and both Chinese scripts.
+
+Terminal keyword highlighting is a separate synchronized preference. Both Settings shells expose the shared rule editor: Domain supplies fixed built-in rules and bounded custom rules, Application validates and saves edits before publication, and Presentation converts colors and matching modes into Ghostty runtime rules. A remote pattern unsupported by the current engine is skipped while usable rules remain active. The desktop and mobile terminal views apply the resulting rules without replacing their native surfaces.
+
+Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
 
 ```mermaid
 flowchart TD

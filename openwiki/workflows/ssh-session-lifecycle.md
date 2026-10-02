@@ -3,9 +3,6 @@ type: workflow
 title: SSH session lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -83,7 +80,10 @@ sources:
     resource: repo://TFMTests/ConnectionJourneyTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # SSH session lifecycle

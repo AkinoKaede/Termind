@@ -42,8 +42,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
   - id: openwiki-source-1b008d375c28ace3a9684717
     resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
-  - id: openwiki-source-b37c974aaea12bd08606d67d
-    resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-8a925ad4232be8815ba03a04
     resource: repo://Frameworks/TermindDomain/Connections/HistorySyncTypes.swift
   - id: openwiki-source-c3006decff414f8b4ca021c4
@@ -68,8 +66,6 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
   - id: openwiki-source-f0aa3596750ed8bd3ffd8c9e
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift
-  - id: openwiki-source-38ed84f3c15242480046f900
-    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift
   - id: openwiki-source-82f1da82c84bec6e60959357
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
   - id: openwiki-source-95647caf87bfc76c0a8884d2
@@ -90,8 +86,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
-  - id: openwiki-source-33f99816db979bf169f1eab5
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
@@ -224,10 +218,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
 verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Engineering invariants
@@ -250,7 +244,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V45 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V46 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -262,7 +256,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V45 schema/plan; each app composition root retains its startup container
+  migration. `makeContainer` fixes the complete V46 schema/plan; each app composition root retains its startup container
   for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
   app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
   store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
@@ -281,18 +275,18 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V45 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V46 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
   asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
   retaining scoped quarantine), V41 (shared notification preferences), V42 (agent-message provenance, chat creation
   relations and durable collaboration delivery receipts), V43 (public MCP OAuth settings), V44 (Host model fields), and
-  V45 (Security Key reference metadata on SSH keys). Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
 ### Notification ownership and delivery
 
-`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V45 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
+`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V46 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
 
 ```mermaid
 sequenceDiagram

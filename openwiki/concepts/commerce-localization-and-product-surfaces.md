@@ -3,9 +3,6 @@ type: product-surface-concept
 title: Commerce, localization and product surfaces
 description: Explains RevenueCat-derived Pro access and remote paywalls, native language and copy ownership, and the separate app, widget, screenshot, and public-site product surfaces.
 tags: [commerce, revenuecat, localization, product-surfaces, marketing, widgets]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -93,14 +90,12 @@ sources:
     resource: repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift
   - id: openwiki-source-a053f8c3524e81f98b0b0938
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
-  - id: openwiki-source-4bb1006b8fba7cd74268940b
-    resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
     resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
-  - id: openwiki-source-4c2de67bfdb2238d765a642a
-    resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
   - id: openwiki-source-7a29627adf93e3da4a56dd5d
@@ -135,7 +130,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 ## Commerce ownership and configuration
@@ -172,7 +170,7 @@ This is the access-resolution and refresh path, not a guarantee that a remote pa
 
 `RevenueCatEntitlementResolver` rejects failed CustomerInfo or entitlement verification and ignores entitlements other than the configured ID. An active entitlement without an expiration maps to lifetime purchased access (including family-shared ownership); an inactive one is free. A subscription grants access for an active trial or subscription before its deadline, and for an active billing-issue grace period before the **grace** deadline. Refund maps to revoked; after the deadline a billing issue maps to billing retry and otherwise to expiry. Cancellation disables renewal but does not itself withdraw access before expiration. Unlike the previous StoreKit `.subscribed` fallback, a cached `isActive` flag cannot extend access beyond a past deadline. `apply` cancels its prior expiration timer and schedules a re-fetch at a future granting subscription deadline; no timer is installed without a future deadline. iOS scene activation and macOS app activation also refresh access. A refresh failure without cache can retain an established controller status, so neither a timer nor an offline test proves a server-side revocation was observed.
 
-`ProFeature` enumerates assistant, terminal-file upload, remote MCP, built-in MCP server, Vault sync and unlimited Metrics. `canUse` reflects the current entitlement and `require` returns false and presents the shared paywall when denied; it does **not** record a requested feature. The basic remote-workspace experience remains free. Protected callers gate assistant execution, SSH terminal drop/upload, remote MCP operations, built-in macOS MCP availability, iCloud sync and monitoring beyond three free cards. The mobile Metrics picker passes current access to `MobileMetricsModel.replaceHosts`; on failure it reports the core storage error, otherwise presents Pro. The shared Metrics model preserves choices outside the edited set, counts net additions and persists a replacement atomically; desktop supplies a live card limit and calls `require(.unlimitedMetrics)` on rejection. Losing access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data; macOS also suspends an enabled built-in MCP server. Mobile synchronization additionally requires an active foreground scene. `RootView` reconciles macOS status changes; `MobileRootView` reconciles mobile access changes and scene activity.
+`ProFeature` enumerates Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration. `canUse` reflects the current entitlement and `require` returns false and presents the shared paywall when denied; it does **not** record a requested feature. The basic remote-workspace experience remains free. Protected callers gate Assistant execution, remote MCP operations, built-in macOS MCP availability, iCloud sync, monitoring beyond three free cards and the optional multi-connection acceleration settings. SSH terminal uploads remain available without Pro when the session and destination are ready. The mobile Metrics picker passes current access to `MobileMetricsModel.replaceHosts`; on failure it reports the core storage error, otherwise presents Pro. The shared Metrics model preserves choices outside the edited set, counts net additions and persists a replacement atomically; desktop supplies a live card limit and calls `require(.unlimitedMetrics)` on rejection. Losing access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data; macOS also suspends an enabled built-in MCP server. Mobile synchronization additionally requires an active foreground scene. `RootView` reconciles macOS status changes; `MobileRootView` reconciles mobile access changes and scene activity.
 
 ## Paywall presentation and copy boundary
 

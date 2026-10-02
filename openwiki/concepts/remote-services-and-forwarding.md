@@ -3,9 +3,6 @@ type: Remote service ownership
 title: Remote Services and Forwarding
 description: Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 tags: [ssh, terminal, metrics, sftp, port-forwarding, agent, scheduling]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
 sources:
   - id: openwiki-source-c62dc61fc50ab8273b4dcf9c
     resource: repo://Frameworks/TermindApplication/Metrics/MetricsSnapshot.swift
@@ -15,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift
   - id: openwiki-source-5e7fb300dcdfa0227467d965
     resource: repo://Frameworks/TermindDomain/Metrics/ServerMetrics.swift
+  - id: openwiki-source-eeeeca9ded05fd2db5c3240d
+    resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
@@ -75,7 +74,10 @@ sources:
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "codex", at: "2026-10-02T09:09:18.930Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T09:09:18.930Z
 ---
 
 
@@ -180,7 +182,7 @@ When changing this integration, check `TFITests/MobileAssistantTests.swift` for 
 
 ## Forwarding: explicit intent and host-scoped runtime
 
-A rule runs only after `PortForwardingController.start(_:)` validates the rule and confirms SSH is enabled for its Host. The controller creates or joins one `PortForwardingConnection` for that Host and route, snapshots the selected pool limit at that first start, and gives all active rules on that context the same Journey/authentication surface. Starting a later rule on an already connected context installs only that rule. Stopping one rule unregisters it without disturbing peers; the final stop retires the context and its transport.
+A rule runs only after `PortForwardingController.start(_:)` validates the rule and confirms SSH is enabled for its Host. The controller creates or joins one `PortForwardingConnection` for that Host and route, computes an initial effective pool limit, and gives all active rules on that context the same Journey/authentication surface. A later app-supplied limit change updates that context and its connection pool. Starting a later rule on an already connected context installs only that rule. Stopping one rule unregisters it without disturbing peers; the final stop retires the context and its transport.
 
 The visible rule state moves through `stopped`, preparation/trust/authentication/connecting stages, `starting`, `running`, reconnecting, or `failed`. Each rule start has a generation, and callbacks must match both the current context and generation. This rejects stale connection counts, delayed listener creation, and late open success after stop/restart or configuration retirement.
 
@@ -210,7 +212,7 @@ This is the controller-facing forwarding lifecycle; a shared Host context can ca
 
 ### Connection pool and dispatch
 
-On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 1); a value above one selects `SSHForwardingConnectionPool` instead of a single `SSHForwardingConnection`. iOS preserves the setting but uses a single connection. In a pool, local/dynamic rules register on healthy slots behind one local listener per rule; accepted flows go to the least-loaded eligible slot with round-robin ties. Remote listeners remain on the primary connection. Auxiliary opens are limited to four at once and must install existing rules before becoming eligible. Transient slot loss retries at 1, 2, 5, 10, then 30 seconds, but a failure requiring interaction, trust, or credentials, or cancellation, does not automatically retry. These are transport availability policies, not restored listener intent; for slot promotion, socket dispatch and pumping details, use [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md).
+On macOS, a Host-configured forwarding maximum is normalized to 1–64 (default 1) and capped by the app-supplied connection limit. Without Pro multi-connection access the effective limit is one; gaining or losing access updates existing contexts without changing the saved Host value. The macOS `.hostConfigured` policy uses `SSHForwardingConnectionPool` even at a one-connection target. iOS preserves the setting but uses a single-connection policy. In a pool, local/dynamic rules register on healthy slots behind one local listener per rule; accepted flows go to the least-loaded eligible slot with round-robin ties. Remote listeners remain on the primary connection. Auxiliary opens are limited to four at once and must install existing rules before becoming eligible. Transient slot loss retries at 1, 2, 5, 10, then 30 seconds, but a failure requiring interaction, trust, or credentials, or cancellation, does not automatically retry. These are transport availability policies, not restored listener intent; for slot promotion, socket dispatch and pumping details, use [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md).
 
 The first physical connection may use the forwarding Journey to collect host-key approval, credentials, or keyboard-interactive answers. Its recovery and every auxiliary connection are silent opens with interaction forbidden. Their reusable snapshot keeps route/network and identity references, not temporary passwords or passphrases. A remembered host key can permit recovery, but “continue once” trust cannot. If a silent open needs interaction, recovery fails/degrades rather than showing a form; an explicit Retry starts a new interactive Journey. Existing TCP streams are never migrated or replayed to a replacement worker.
 

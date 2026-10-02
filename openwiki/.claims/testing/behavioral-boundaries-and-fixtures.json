@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:16d4f6bcf9cf2af8ad07894c4d63e275376689b02b2487feb803c282ca6cf332",
+  "pageVersion": "sha256:bda8aefe05d674d9eef34d9cbbd99d450882d3ed661f4f7164f77f3bc7a80b58",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L40-L44",
-          "version": "repo-lines-v1:sha256:e338764617da1424b56fb4b3d8eeb6b688285fa246721671afbd893a11c72e92:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:b9c5362039eaecea9b4b474df09c641e9e6d28b2fb2a2a8086e7b88d4d169cc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://AGENTS.md#L5-L14",
@@ -157,12 +157,12 @@
           "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L902-L918",
-          "version": "repo-lines-v1:sha256:74ad527aa264062f2c52c5bb38b1248089525b4fc5a717e48564fe1bab857a5f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhNmFkMmJjZWI3ZDViYTc4MmIyZmVjOGIxZWUzN2Y1MzhhNzAzZDhlZWUzMTA3NmY2YmE1NWViOTg0OGYyM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:989ee481cd97f6b566a4a0a5f4a14128ab308b2dd83111fe00c564cad7ccaa2e"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L47",
-          "version": "repo-lines-v1:sha256:b6ecd5473339d39eee0bb3881e02d4b9f94582002d219f08395af0f9920819ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:5da8443b36a9f991bb7957cf79c24787e3cc00bd42d81e696bdf8700f3352beb"
         }
       ]
     },
@@ -210,19 +210,15 @@
     },
     {
       "id": "claim_eb35f30233ca461cb7de961bbe793326",
-      "statement": "Disk-backed CloudSyncSafetyPersistenceTests migrate synthetic V30 and V39 stores to V45 across V40 retirement of per-category quarantine tables without claiming legacy quarantine import; interrupted fetch fixtures reopen every record category with original quarantined bytes, durable recovery fence and pending intent while a compatible peer remains uploadable. These tests do not prove live CloudKit delivery.",
+      "statement": "Disk-backed CloudSyncSafetyPersistenceTests migrate synthetic V30 and V39 stores to V46 across V40 retirement of per-category quarantine tables without claiming legacy quarantine import; interrupted fetch fixtures reopen every record category with original quarantined bytes, durable recovery fence and pending intent while a compatible peer remains uploadable. These tests do not prove live CloudKit delivery.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L141-L187",
-          "version": "repo-lines-v1:sha256:44a3c70f2aa16fa4c684a8d9adcba69e4dd37f46bbba7f78f813bc60f3121501:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExMWNiZDE1NDA3ZjcyZTZjNTY2YzZjYTBiOGNkZDVhMzljMmZmMTgwOGE0NGZmODFmMTc1NGUyZmFmODNmMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5OGVkMTNhZmYxYzM5ZDFiY2FlNzIwMGE3Yzc1MDkyN2M0ZWM0YWQ0NmUyZDU2ZGMyMmE5NjYzZjVjMDFlNDYifQ"
+          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:18739d1648cbc3f96fb954708c1b00bf3de93cf3a629a1c286ff0fbcf5d70e82"
         },
         {
-          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift#L250-L325",
-          "version": "repo-lines-v1:sha256:3f301bc693c952d12f4bc7c04aab39b04ba84ae9bc6247a857187755a46d1033:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRiM2RmNjM2N2E5YmY0NDIxMTViYmVhNjk5NWZhODMzMTg1Y2RlMzhkMjQ3NDUwYmE4OGI3MDQwZDNiMjIxNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjMTZhN2ZjNzE2ZGQxMTk1MWQxMDU5MGU3MzMyMDYzMWVkNTljOGViOGNkNjZhNjY4ZDQ0MWIyMjhmZTYzY2QifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L903-L918",
-          "version": "repo-lines-v1:sha256:1f612aa0c1f2dd63aceb36ed869f493c27e951db332a58f00b304dab2122afd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNzk1MjlmZjBiMjRmN2MwNTM4MTExYmNlNjU4YjgwNTljOWFiN2VmNDkzZDc5OGU4NzFkNGNlZDc1ODJiZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MzQ4YzEzYjUxYzMxZjFhNzgyY2IxYjBiY2NiMjI4MWJiZjAyMTJmYTJhNzVlZTc1NGYxNzU0ZTVhZTA4ODEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L898-L1030",
+          "version": "repo-lines-v1:sha256:19345f8da3c9b9c8fab3632924eec814dbf80c65228c60537aa2bc888ed6595f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1Mjg2ZDkyNjQ2MDFkMjZjMDZkZGEyZTllNTZkM2Q1NWVlYjZhOTEzZmQ0NTY1NDRiYjlkZDUzNjQ5YmY5ZDlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiYWFlOGEwY2E3NmY5OGY3YjdkYzc5ODQ5NTFkNjNlNTdkYjNjNjQ1NTc5Y2E1MWJhZDZhNTM5ZDYxNGVkYmJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMTJkMmI1NjYwOWIwYTEzMGVjYzY4YWYyZDA3ZjFmYmYwYjQwYTQ4NGVkYjc0NzY4OTA1ZjQ2ZjdiYTFiNzE4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIn0"
         }
       ]
     },
@@ -408,7 +404,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L40-L46",
-          "version": "repo-lines-v1:sha256:234a5eef8443b4d362174156c84cd70b777a307705ffd81785268d23fbf8080f:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:ec53bdeb286c2b7aa0501969ced137969aec97ebcb76ad1d82a0cdc3722633ec:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift#L8-L13",
@@ -468,7 +464,7 @@
         },
         {
           "resource": "repo://FrameworkTests/RevenueCatCommerceTests.swift#L12-L210",
-          "version": "repo-lines-v1:sha256:218d3a4d234c0b7942388ed40475af2b9eafa38b23c161e24aad32e17ffa617c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTk5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZjQzNzI1NGE1N2Q3OTI1ODc1NTljMmRiNDViY2NmMjQ3NzEzOGMzNjQ1NzMzN2E0Y2IzY2NiZDM3YzdmOGJkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNzc0ZDYzYzUyYjcxOTBkYzk4ZDJmN2JmNjgxNzA5YzY2Y2Y1MThhYjAwZWFiNWU0NzhjNjZjMTdkNjcwMzE2In0"
+          "version": "repo-lines-v1:sha256:ab36c20f2f0661cde976b00d6fce9373f0c344956e6c28e7cb31209c0b365a57:eyJzZWxlY3RlZExpbmVDb3VudCI6MjE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZjQzNzI1NGE1N2Q3OTI1ODc1NTljMmRiNDViY2NmMjQ3NzEzOGMzNjQ1NzMzN2E0Y2IzY2NiZDM3YzdmOGJkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNzc0ZDYzYzUyYjcxOTBkYzk4ZDJmN2JmNjgxNzA5YzY2Y2Y1MThhYjAwZWFiNWU0NzhjNjZjMTdkNjcwMzE2In0"
         }
       ]
     },
@@ -514,7 +510,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L51-L59",
-          "version": "repo-lines-v1:sha256:070213e98b52cec4fdee409349c32e94d42a6a1c41a2f6b5e43523d08e46b11b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:b9c5362039eaecea9b4b474df09c641e9e6d28b2fb2a2a8086e7b88d4d169cc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L13-L56",
@@ -578,11 +574,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
+          "version": "repo-file-v1:sha256:d5341c2aa23b2e5ff484b5f14f083b9cb13fefac46417405a894db1b574f5a0e"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:ab31156c9fb3fb0ceb267bf051845477d3cdad688de7ad8a1f355514e55bd560"
+          "version": "repo-file-v1:sha256:ae0dc3abb5f4d5fd7d9fb80368cd269197312f3774f5b9fb20c57219ca6f5003"
         }
       ]
     },
@@ -592,7 +588,7 @@
       "evidence": [
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:ab31156c9fb3fb0ceb267bf051845477d3cdad688de7ad8a1f355514e55bd560"
+          "version": "repo-file-v1:sha256:ae0dc3abb5f4d5fd7d9fb80368cd269197312f3774f5b9fb20c57219ca6f5003"
         }
       ]
     },
@@ -624,7 +620,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:b38e4443ead4eeb77b019f9e30c9988cdcbb0847ae5afe79b73d90d16a614e81"
+          "version": "repo-file-v1:sha256:989ee481cd97f6b566a4a0a5f4a14128ab308b2dd83111fe00c564cad7ccaa2e"
         }
       ]
     },
@@ -654,7 +650,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:8fbc93232daeebb755f824827f96a5e2f72f51170f94d51e0a0475b72b911c4a"
+          "version": "repo-file-v1:sha256:18739d1648cbc3f96fb954708c1b00bf3de93cf3a629a1c286ff0fbcf5d70e82"
         }
       ]
     },
@@ -664,7 +660,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
+          "version": "repo-file-v1:sha256:d5341c2aa23b2e5ff484b5f14f083b9cb13fefac46417405a894db1b574f5a0e"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
@@ -742,7 +738,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L40-L46",
-          "version": "repo-lines-v1:sha256:234a5eef8443b4d362174156c84cd70b777a307705ffd81785268d23fbf8080f:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:ec53bdeb286c2b7aa0501969ced137969aec97ebcb76ad1d82a0cdc3722633ec:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
         },
         {
           "resource": "repo://TFITests/MobileConnectionJourneyRenderingTests.swift#L10-L42",
@@ -760,19 +756,15 @@
     },
     {
       "id": "claim_ac6b855414eb42ad933f8601eb3c1284",
-      "statement": "The shared Persistence container factory owns the V45 model set and migration plan, disables automatic CloudKit for the SwiftData configuration, rejects combining a URL with in-memory mode, and leaves the disk versus memory choice and container lifetime to platform entrypoints; compatibility tests use this seam for independent full-schema memory containers and disk migrations/reopen.",
+      "statement": "The shared Persistence container factory owns the V46 model set and migration plan, disables automatic CloudKit for the SwiftData configuration, rejects combining a URL with in-memory mode, and leaves the disk versus memory choice and container lifetime to platform entrypoints; compatibility tests use this seam for independent full-schema memory containers and disk migrations/reopen.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L114-L163",
-          "version": "repo-lines-v1:sha256:624698defa14ee86ad3cd76af9df7cd37a5e2f830d02aacd52b4456f186b137d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwY2NlMjYyMzJlNGRmZGY0MzdkMDRjNDAxN2I1MWQ5ZGY0ZGYyODVjYmFkNTI4YzcxMDY5ZTA5NGRkNjNhMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljZDY0Y2U3MWNmNThiZmMxOGRjOGNlOTc3N2RlNjVhMGU4MjcyNDc2ZDUzMDUzNDdiZDYyNmI3YjFiZTJjMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4YWNmOWMxMWUwZWVhNTkyZGNjNWM2OWMxMzIwZWQ2ZWNlZjY4ZjYzMGZjNTUwODJiNmFhMDQwYWRhMTQyMWYifQ"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:265e89cd45aec88e7120700d6a0f512ca4b4ec6cbd49adcde76d9f66fc034a10"
         },
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L239-L297",
-          "version": "repo-lines-v1:sha256:d6109d2ae6f60936a106ec38e3b50919db40a82147937d602240ab2cc821920e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3ODVjN2VhYjUwZDQ5YWY1NmI0NTk0ZmU4YTk3NjMwZWMzMTY1MGI4MDVmZWZkMTE2ZWU5NDA2NjUyNjBiYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5YjMxMzE4NWIyNWJkZTBlNzcyZWIyZGIwNzNlZmU3ZTI4Y2FiYjdjNWQ2OGZkY2JkMGM4YjNiY2Q0ZmY2Y2MifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L47",
-          "version": "repo-lines-v1:sha256:b6ecd5473339d39eee0bb3881e02d4b9f94582002d219f08395af0f9920819ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L20-L47",
+          "version": "repo-lines-v1:sha256:ce108f27c0eb961013f052a3e8cd0be04d52d6704c3e02f41c04d8e14ccee2a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiOWVlODU3NGEyYzJmNTVjNmE5NjdmNmFhM2Q1NzM0NGFiZmFmNzgyZjMzZTBkMDk1YzYwNTdkZGMzNjdhOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwMzNiNzlmYmQ1MDRiYzk1YTg1YjkzNjgwYmM2ODQwNzcwM2RmZDdjZWJkYjJkYTBhMmNmZGE2OWRhOTgwNTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
         }
       ]
     },
@@ -899,10 +891,28 @@
           "version": "repo-lines-v1:sha256:43db7b53769b5dbcf1603fbc195daf263ec2f2e69c480f86cc3a9c0a49aa3198:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1ZGY3MjNiZTk4ZWZhYjFkY2IyYmYyZTZkNzAzYzNhMTMzNmFjZTQ5YzlhNTU4MTVjMGI4NWU0NGQ0MjgxNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkMWZiMWQ3ODljZmE4ZDMyNjU4Y2JjZmEyZTc4ODhiNGJmMjYzMmViOTZjYWQzNzBkOGE3NjI0OWE4ZjMyYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTEwNTEwMTYzNTNiNzBjNDQ5YWM1OGUxNmI3YjcxN2E0MTRmZjc4NTA1NDBiNjIwZjZiNzA5MTgxZmRiZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiNDNmYzBkOTEzZjgzNjE4MmI3ZTljYjEzM2FlMWVjNWI1MmUzNzM1YTEzMTY1MjQ5MTdmZTk5MWE5OWM3MmQifQ"
         }
       ]
+    },
+    {
+      "id": "claim_57982e129b9e453195a0b68f8161ba6f",
+      "statement": "Ghostty menu regressions cross package and app seams: desktop TerminalContextMenuTests covers blank-space and selected menus, paste/right-click behavior, dynamic upload availability and stale binding teardown; mobile MobileTerminalUploadMenuTests checks the Photos/Files group and availability, while the fork has touch-selection tests for its own selection mechanics.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift",
+          "version": "repo-file-v1:sha256:ad7af09923adb3cf8fe3f0679c048cda3cd5c836c76fe5acbe22267a02a33827"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalContextMenuTests.swift",
+          "version": "repo-file-v1:sha256:624404c844613d1a8b0228ce7ee51e593cd6dcdb9b66f33571b671dcd40fa2bb"
+        },
+        {
+          "resource": "repo://libghostty-spm/Tests/GhosttyKitTest/Input/TerminalTouchSelectionTests.swift",
+          "version": "repo-file-v1:sha256:4cba1788e4c335fc5e04d6a525c32795cd1b70fe53aaa3441f35b138bf9b16db"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-10-01T23:39:56.631Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
   }
 }

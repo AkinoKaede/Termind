@@ -3,9 +3,6 @@ type: architecture ownership guide
 title: Supporting systems ownership guide
 description: Ownership and integration boundaries for external Swift packages, the MCP bridge, Live Activities, tests, forwarding benchmarks, the Astro site, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -79,7 +76,10 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Supporting systems ownership guide
@@ -88,11 +88,11 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. In this checkout the submodule directory is unpopulated, so its source layout, manifest, tests, resource generation, and dependency graph cannot be verified here. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.18.1`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
+`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.18.1`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
 
-The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from that separate repository; this checkout cannot substantiate their implementation. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
+The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
-The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-1`, and `libghostty-spm` at an exact revision recorded in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Build, Test, and Release](../operations/build-test-and-release.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
+The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-1`, and `libghostty-spm` at an exact revision recorded in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
 
 ## MCP bridge and desktop server
 

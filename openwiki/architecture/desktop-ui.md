@@ -4,8 +4,8 @@ title: macOS UI and Workspace Ownership
 description: How macOS window navigation, sidebar modes, workspace sessions and Vault editing routes divide responsibility between AppModel and WindowModel.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -83,7 +83,7 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
 ---
 
 # macOS UI and Workspace Ownership

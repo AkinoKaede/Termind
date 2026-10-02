@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3717e6ca690d3e4356540969208bc7e0382d0f0f0556d17c9a3a5c654f12299c",
+  "pageVersion": "sha256:2dd921dc0ef2c13e6b49c633d83061c1332f972ac2f7b40da203095d53f55f10",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -60,7 +60,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L40-L44",
-          "version": "repo-lines-v1:sha256:e338764617da1424b56fb4b3d8eeb6b688285fa246721671afbd893a11c72e92:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:b9c5362039eaecea9b4b474df09c641e9e6d28b2fb2a2a8086e7b88d4d169cc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L11",
@@ -84,7 +84,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:16286cf2f473b876a2bc2e10ceabfd17c8baf1dda9fd047cb70b958a8d08615a"
+          "version": "repo-file-v1:sha256:2b9f6e50952c98ba7b190f9d44fb2982755ee2e161b55849f383b1452e6b21fd"
         }
       ]
     },
@@ -204,7 +204,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L38-L46",
-          "version": "repo-lines-v1:sha256:070213e98b52cec4fdee409349c32e94d42a6a1c41a2f6b5e43523d08e46b11b:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+          "version": "repo-lines-v1:sha256:b9c5362039eaecea9b4b474df09c641e9e6d28b2fb2a2a8086e7b88d4d169cc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme#L25-L52",
@@ -581,20 +581,20 @@
       "statement": "The Ghostty fork is a maintenance submodule on `termind`, but app builds consume a separate remote `libghostty-spm` revision; package maintenance requires pushing the fork and advancing the submodule gitlink, project revision and resolved revision together rather than relying on uncommitted submodule edits.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules#L7-L9",
-          "version": "repo-lines-v1:sha256:556b6b5efd6d44264a9868b8b920b89c814727011bf605ad79a31fdf73729db3:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzIyNTEzZDVmYzY2NjA1YWZjZjM4ZTI2OTk4N2Q3NjVmMTk4YWQxZDU3NTllNWNhZTdlZDRmYWUzYzc4OGY3NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTJhNTU0MGVjYjdmYmU5NTU4NWUzYzQzMmJkM2NiMDVmOTdjYzFjNjRkZjFlMzlhNTYyMDZiN2I2MDhjODZmNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjdlNGRkNTI4YTUwNmI4NjllMzk1MmNiZDljNGVkYzFlZWU1OGJlODhjMWY3MzFkMGNjYzgzN2U2YzZjZmE3NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjMxNWViY2Y2MDIwZDZlZDEyODQzZTI0YmUwMjE0N2Y5OWFmYmNmMTEzNzlmMWIyMWQ1NWU4NjA3ZmM3OTI3MCJ9"
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:a444f23f802ed525a8e6c148f55fd3391b2c2619ebe03acda8671e270fe9e366"
         },
         {
-          "resource": "repo://AGENTS.md#L20-L25",
-          "version": "repo-lines-v1:sha256:c9ceb8bbfdc1e0b2c9f8e7eecd35273a7f866e793d8891dc28977bfa2dd4aede:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjIwNjgxODg4ODRhZDNiMmYxOTcxODFjMDE0MzU4N2U0YTk4MmIwNjdlM2FiZjZkYjcyZDM2MmRhMWE2MGMwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA1MmZmNDM0ZWFlZDI3YTYwOTg5MDliNmNmYWU4OTBkMGUzZmMzZjhiNjI4MWM1NjRmZDIxN2FkMjQyZjcxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDYwM2U5M2I5MjBkY2MyNWM0YWY4MmNlMTc0YjczZDE4NzI5NTEwYzZkYTE1MTBmNTgwYTQwMTc3NmQ3YzY1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNiYTM1MjMzNDAxNzI1ZDc5MmY5MTk3NDhhOGFlZGE3YjJjMWJjYmJiNzg1ODYyMDFmM2NmYWQ1YzViYmZlZiJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:2b9f6e50952c98ba7b190f9d44fb2982755ee2e161b55849f383b1452e6b21fd"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L2941-L2948",
-          "version": "repo-lines-v1:sha256:18ab0b21d9d5d93431de0ef3b7d4024a9df48fb6657505d39651edf097e54ab4:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmMDYwMjExZjNiOGQyYzU5ZjAyN2EwYzU4MWM2MmIzYjA2YzNlNGZjOGI3OGJmYTJmMmFjMmU4M2FlNTU1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjkxMTMwZGU5ZDJiY2MxZDVhMDA4ZmE5OGM1YWE0YmU4ZjU2OThmYjRjZGY3NGY0OGM2YTBmNzI5YTI4NDM1NyJ9"
+          "version": "repo-lines-v1:sha256:bae56c820b389cb714024651ded8a631a5d00d59c256b903f8f951a10fa3e28c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmMDYwMjExZjNiOGQyYzU5ZjAyN2EwYzU4MWM2MmIzYjA2YzNlNGZjOGI3OGJmYTJmMmFjMmU4M2FlNTU1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjkxMTMwZGU5ZDJiY2MxZDVhMDA4ZmE5OGM1YWE0YmU4ZjU2OThmYjRjZGY3NGY0OGM2YTBmNzI5YTI4NDM1NyJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L167-L173",
-          "version": "repo-lines-v1:sha256:2e576fdb148d9b7f9a59410252fd68e61f325ba45df865ac3a4a25677dac0ef2:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjE1MmE0NmY4N2E4ZjZlZWMxY2UyZWNmMTE0ODAzYzU1NzNlOGQ5MjA3N2UzYTk3MzQ3MTIwNDJkYWQ2YTIwYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjllNGJlMjg3N2YzMTkwYzQzMTRhMmE0ZmIxYTQ5MTQ4OTgyMzczZjY2YjFjMjNiNWYwYzIwNzRlMzMzNGVmNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTZkZTA5NmFmZTlkMzgwMDk3NWQwMjA4NmQyMjhlYzA3Y2M2M2E1NWI5NDVmMWI1ZjM2ODhiZTY1NmI4ZGMzMiJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L166-L174",
+          "version": "repo-lines-v1:sha256:74a13031f42b19db404178e74f82b5ff34372f6440da0fc3f45c267b93813513:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhhNWI3NGY4MGQ0OTdmZWQzMjJiYmVlYWJjNmYwMDdiMGY0NWRiMGVlNDdlNDU2MjEyMzk2NzZmMGE4ZmY5ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDIzNDkyZGI5M2Q4NTRkMDAwNjJkYmYwYWUxOTU4ZmYzYzJhMmUxMmI1ZWJhMjBiYWUyZmY2NGU0ZTQ5MTUyMyJ9"
         }
       ]
     },
@@ -610,7 +610,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-10-01T23:39:56.631Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
   }
 }

@@ -3,9 +3,6 @@ type: architecture guide
 title: iOS and iPadOS UI and Scene Ownership
 description: "How iOS and iPadOS scenes own navigation and workspace routes while shared services own connection journeys and Metrics; covers native presentation continuity and key-window test boundaries."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -111,7 +108,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -325,7 +325,7 @@ The Metrics destination reads `app.metrics.servers` (one application-wide monito
 
 These are not all enabled merely because the menu exists. Connection state, available history, refresh state and operation capability control individual actions.
 
-Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal view even when SwiftUI navigates away. The adapter configures inline touch selection, binds the workspace Find controller, and appends F3/Shift-F3 Find key commands to Ghostty's existing commands. It replaces unmodified and Shift-Escape equivalents with Find dismissal only while Find is presented; ordinary terminal key handling remains with Ghostty otherwise.
+Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal view even when SwiftUI navigates away. The adapter configures inline touch selection, binds the workspace Find controller, and appends F3/Shift-F3 Find key commands to Ghostty's existing commands. It replaces unmodified and Shift-Escape equivalents with Find dismissal only while Find is presented; ordinary terminal key handling remains with Ghostty otherwise. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the native menu hooks, backend and appearance flow.
 
 Presentation cleanup is narrower than session shutdown: workspace view disappearance disables external Open With presentation and window drop handling, clears drop targeting and cancels drop loading. It is not itself the instruction to disconnect the workspace. Drop handling is also gated by scene activity and destination changes, so an invisible detail does not accept a late upload as though it were foreground.
 

@@ -3,14 +3,15 @@ type: release-readiness
 title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-4fa88a1531df1670329dabc9
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalHighlightPreferences.swift
+  - id: openwiki-source-36d16adefef02f0ed0cdc428
+    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
   - id: openwiki-source-46ff6ca103fc5aeb8793c80d
@@ -33,6 +34,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-3901258f8935dbb0588eb226
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/TerminalHighlightCloudRecordCoding.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-969607b796e062c1bad0a301
@@ -95,7 +98,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # CloudKit Release Readiness
@@ -117,8 +123,11 @@ Validate the Development schema first, then explicitly deploy it to Production.
 | SSH preferences | `TermindAIConfigurationV1` | `SSHPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | SFTP preferences | `TermindAIConfigurationV1` | `SFTPPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | Notification preferences | `TermindAIConfigurationV1` | `NotificationPreferencesItem` | `termind-ai-configuration-v1-changes` |
+| Terminal keyword highlighting | `TermindAIConfigurationV1` | `TerminalHighlightPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | Workspace preferences | `TermindAIConfigurationV1` | `WorkspacePreferencesItem` | `termind-ai-configuration-v1-changes` |
 | Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
+
+Terminal keyword highlighting uses the Settings record name `v1/terminalHighlighting/default`. Its `TerminalHighlightPreferencesItem` stores `enabled`, `ruleCount` and parallel native arrays for custom rule IDs, names, patterns, modes, case sensitivity, foreground colors and background colors; `ruleCount` preserves an intentionally empty list. Deploy that record type and fields before a client that uploads them.
 
 Vault records use the same private container through their own coordinator and compatibility contract. A Vault envelope stores integer `formatVersion` and `counter`, Boolean `isDeleted`, strings `kind`, `entityID`, `writerID`, and `payloadHash`, date `modifiedAt`, inline bytes `payload`, or `payloadAsset` for payloads above the 700,000-byte inline limit. Preserve zone names, record types, subscription identifiers, envelope fields, and format compatibility: older clients must be able to ignore the distinct `SFTPPreferencesItem` record type before attempting to decode it.
 
@@ -164,6 +173,7 @@ Use at least two Macs and one iPhone or iPad signed into the same Apple account,
 - Verify that an account switch merges before upload and that category selections and account bindings remain independent.
 - Confirm that theme text, custom terminal text, and shell-integration changes update existing windows. Font family, size, and follow-theme-size are device-local; distinguish them from fonts authored inside synchronized theme text.
 - Confirm that notification preferences (including assistant, terminal and SFTP notification modes, terminal delivery and minimum duration) synchronize as Settings while conversations, approval mode, and the local MCP listener's enabled state, port, tools, and token never synchronize.
+- Verify that terminal keyword-highlight enablement and custom rule order, names, patterns, match modes and colors synchronize across devices. Built-in rules are code-defined and do not need cloud rows; a device with an older engine must keep usable rules even if it cannot apply a newer pattern.
 - Before deleting the iCloud Keychain copy of a migrated MCP token, verify that the local replacement works.
 - Verify Metrics ordering, pause state, disk choices, and network choices across platforms. Metrics records that arrive before their Vault Hosts must remain hidden until those Hosts exist.
 - Verify that the published privacy-policy version and effective date match the release being shipped.
@@ -180,14 +190,14 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V45** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V46** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
-Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["V28 to V30 to V31 to V34 to V45"]
+    Factory --> Local["V28 to V30 to V31 to V34 to V46"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -198,7 +208,7 @@ The checked-in `V28.store` was generated against the historical Persistence buil
 
 ## First-stage mixed-version safety
 
-V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model. The notification test creates a disk store with the V40 schema and an existing Workspace preference, opens it through the current container factory, saves a V41-introduced notification preference, then reopens the file and checks both values. It checks schema membership in V41 but not V40; the independent V41→V42 migration test retains an existing Host group and starts with empty collaboration sidecars. These checks are separate from the V28 fixture and from deploying CloudKit record types, including `NotificationPreferencesItem`; the notification test does not itself establish signed-device delivery.
+V35 retained existing scoped quarantine/recovery models and added independent History journals, a now-retired importer state, and decoder-capability checkpoints via a lightweight V34→V35 stage. V36 removes the importer table; V37 adds scoped cloud-presence and confirmed-deletion state (its `legacyDeletion` column is retained in the shipped model but no longer read as cleanup intent); V38 adds durable delete-handoff and asset-cleanup sidecars. V39 adds local assistant-model selection; V40 drops retired per-category Vault, Settings and Metrics quarantine tables while retaining the scoped quarantine table. History bootstrap uses local history data and does not reuse retired Vault journal records or old-zone system fields. V41 adds shared notification preferences without changing historical shapes; V42 adds agent-message and conversation provenance and durable collaboration delivery receipts. V43 adds public MCP OAuth configuration; V44 adds Host SSH enablement and forwarding fields; V45 adds Security Key credential metadata to the SSH key model; V46 adds persisted terminal keyword-highlight preferences. The notification test creates a disk store with the V40 schema and an existing Workspace preference, opens it through the current container factory, saves a V41-introduced notification preference, then reopens the file and checks both values. It checks schema membership in V41 but not V40; the independent V41→V42 migration test retains an existing Host group and starts with empty collaboration sidecars. These checks are separate from the V28 fixture and from deploying CloudKit record types, including `NotificationPreferencesItem` and `TerminalHighlightPreferencesItem`; the notification test does not itself establish signed-device delivery.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
 
@@ -250,7 +260,7 @@ Release sign-off should record, separately:
 
 1. the current pinned macOS and mobile build/test results, including historical V28 fixture migration and reopening, V40 notification-preference persistence, and V41→V42 collaboration-sidecar migration;
 2. an installed signed-device V28 upgrade and relaunch with real credentials, separately from fixture results;
-3. successful Development validation and explicit Production deployment for every required zone and record type, including `NotificationPreferencesItem`;
+3. successful Development validation and explicit Production deployment for every required zone and record type, including `NotificationPreferencesItem` and `TerminalHighlightPreferencesItem`;
 4. the signed multi-device/account-switch matrix, including offline and pause/resume behavior;
 5. Keychain-delivery and migrated-token checks;
 6. the SFTP preference and mixed-version safety matrices; and

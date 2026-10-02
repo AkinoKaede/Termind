@@ -4,6 +4,8 @@ title: SFTP Transfer, Scheduling, and External Edit Workflow
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
+  - id: openwiki-source-eeeeca9ded05fd2db5c3240d
+    resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
   - id: openwiki-source-96c4e228b6057cf9d989eb04
@@ -36,6 +38,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-d92ce4bb378fe3506b55c85a
     resource: repo://FrameworkTests/SFTPRemoteConflictResolverTests.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-396f97a332870d48c065d7e9
@@ -48,10 +54,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
 verified:
   - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 ## Scope and operating model
@@ -84,7 +90,7 @@ For a same-host remote copy, planning rejects copying a file onto itself and rej
 
 `SFTPConcurrencyScheduler` is process-wide admission for data operations. Capacity counts logical files, not connections or channels: a remote copy consumes one global slot and one per-host slot for each distinct endpoint. Metadata work is outside this data admission path. The scheduler rotates anchor hosts and then sources (`workspace`, `agentRun`, or `batch`), retaining FIFO order within each source queue; it grants only a request whose every endpoint remains below the per-host limit and whose exclusive borrowed resources are free. [^scheduler-contract] [^scheduler-fairness]
 
-Preferences default to 30 global active files and 10 per host, constrain global to 1–100 and per-host to 1–50/not above global, and select `smart`, `channels_only`, or `connections_preferred`. Updating preferences drains queued work with the new values; an already-admitted permit retains its selected mode. In Smart mode, unknown sizes and sizes through 64,000,000 bytes use channels; only a larger known file prefers an additional connection. [^preferences] [^mode-selection] [^preferences-update]
+Preferences default to 30 global active files and 10 per host, constrain global to 1–100 and per-host to 1–50/not above global, and select `smart`, `channels_only`, or `connections_preferred`. Updating preferences drains queued work with the new values; an already-admitted permit retains its selected mode. In Smart mode, unknown sizes and sizes through 64,000,000 bytes use channels; only a larger known file prefers an additional connection. Both app composition roots apply `MultiConnectionPolicy` to the saved strategy: without SFTP multi-connection Pro access the effective strategy is `channelsOnly`, while the stored user choice remains intact for later access restoration. A Pro change updates future scheduler admission without changing an already-admitted permit. [^preferences] [^mode-selection] [^preferences-update]
 
 ```mermaid
 sequenceDiagram

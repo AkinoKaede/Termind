@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1fd667e120679ccb152d5bfd893352c86f299dffe69edbb567ca514b3c8c0add",
+  "pageVersion": "sha256:1b8bcd5f1f6e72f369a729f7861528304f9aeeb063abcdc590394a4d7172ae70",
   "claims": [
     {
       "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
@@ -51,22 +51,18 @@
       "statement": "Current forwarding pooling distributes local and dynamic flows across eligible connections while remote forwarding remains on the primary connection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L300-L320",
-          "version": "repo-lines-v1:sha256:c5ff7b25ed0e5478c01268b524ae756a24681c88b2ece9323fbdfe0e6afa8d47:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MjM5YTMxMTJiZWYyNjMzYTY4Yjg4Nzk1OWViYWZmNmY1ZjY3ODI3NzJlYTA1YTdmNjU0MzBjNGFjZTllOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMTUwOTViMTU2YWFiYjc0YmI0Y2YwYWU5OWE3MzJmNDc1YWMyNjNlOTViNmIwZDNlNWZiOTJhZGQ0MmJiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjMzU3MTRiNzUwYzc5ODRkNWM5ZWMyYzZiMGI5NDU0OTE5ZTRmZTU1YmJjZjNhN2RiNzgwODMwMjQzODgzNGUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L132-L149",
+          "version": "repo-lines-v1:sha256:ff8826d00c67163cea1bc394a8e08a9d6cc42fd1a15da15c0eb9510a91e7d847:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzFmODg1ZTdlYjQ0ZjM2NjMyYmE4OTE1MmVlODcxYzVkMmQ5Y2NjNTIzYzVjYzk1N2ZiNjQ5Y2E4NmEwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NzAwODliMzUxNWNjNTU2OGNlNzEyNWUwNTVlYWE1MzQwNTFiMDhhYTZlMjZlN2UzMDhiOGUwYTE1MDQ3OGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOWY5MzQ2MmRjNzQzMjdiOWMwZTQ5MDcxODlhYWE3NzdkOWUwOWM3NTRlM2NlNGRiZTIwM2VhZWQ1YzJlMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0MzM3ZjI2MzMxOTZhMWY5ZjYyNjUxMDk2OWIwMjUyMDM3MTRiYWJhY2Q3YjZlMmVhMzMzYjkxZTJmNmVkZGIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L7-L8",
-          "version": "repo-lines-v1:sha256:8e4f205ed9c09fe1250cb2a138270fc71860926197c51765d91fc6137abb0ab4:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzJkNjAxNzA1MTJmZjA3MjQxYmUyN2FmMGY5N2VmMmY3OTA4YzIzMDE2ZjQ5NWE3MGZhODM5ZTg3Yzg5ZDFmZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzAyMmM5NzY1MTU2ODVkZGNiNjgwNDQyZmJmNDNmYTIzZmM1ZmQxZTQ4MGE2OWZhMTIxMGUxZmZiN2MzN2MxZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWRkYjg1NzgwMGE1ZDcyNDdmZjIzYzVjZDVlNTJjNTQ3YmJmNGJjMzY1YjlhNzQyNjk5ZWUzM2RiYjI4OTJjMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTdjOWI2NDE0NzkwY2IxMTZmODBhMGI1N2RhZTJkOGEwNjk4NGVlOTAxZDA3YzkwZGU1ZGE1MmViYjgxNzFlMyJ9"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L94-L128",
-          "version": "repo-lines-v1:sha256:fda260ceb3874c81c24929acce6d886bbb96d87494cbe9e4865195bd2def34c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzFmODg1ZTdlYjQ0ZjM2NjMyYmE4OTE1MmVlODcxYzVkMmQ5Y2NjNTIzYzVjYzk1N2ZiNjQ5Y2E4NmEwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOWY5MzQ2MmRjNzQzMjdiOWMwZTQ5MDcxODlhYWE3NzdkOWUwOWM3NTRlM2NlNGRiZTIwM2VhZWQ1YzJlMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMGUwNTVkMTUzZjhhNjU3MjM5ZjE0ODU5MGExMGMzNmI4MzQwZjhiZTBlZDI3MjdmOWVmMGZhNzU5YWYxYzUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L396-L412",
+          "version": "repo-lines-v1:sha256:110d917d9bb479961dc65c84405280fbc6a07f8ad513e3ac532c933d23eea57a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZWZhNDg3MTI5ZWQ5ZmFiYzMzMjg5Y2NlOWVjY2U0MzEwYTQyZGM5NDZlOTgwYzFmOTliMTM3ZDY0OTQ3ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MDM3ZTBmMjVkNWU1YzEzNWM2NmJlMmRlODg2M2VjYmI2MzU3MjU4NGRlNDVkYTFlYTc5ZWM1MmFhNGE4MzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxYTQ1ZTQxZjQ0MDg4MmJmYzJhNWZiMjNiODE1Y2M1MWZkNjJmZjRhOGNhOTFiNjIyZDI3YjNiYjdmNTZlNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4MjU0ZTZhOThkNmQ3YWEyMmMxZTJkZWI2ZjJiMzk2NDE2NTYyNWEyYzRiNTI3M2NkYzFmYmRhMWExM2QxZGUifQ"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
   }
 }

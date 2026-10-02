@@ -3,9 +3,6 @@ type: release operations
 title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -73,7 +70,10 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Build, Test, and Release
@@ -251,7 +251,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 
 ### Ghostty fork is a different pin workflow
 
-`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Unlike AgentKit's version range, Xcode specifies a **revision** for the remote `libghostty-spm` package (`acb252ed011d6c0168596a931f802ca69e1e139a` in the current project and lockfile), not the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project revision and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not.
+`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Unlike AgentKit's version range, Xcode specifies a **revision** for the remote `libghostty-spm` package (`f4cc2d064baef32e2ab92b455b03b1a46880338b` in the current project and lockfile), not the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project revision and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not. See [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md) for patch application, local workspace preparation, package tests and the full release sequence.
 
 ## Release-oriented checklist
 

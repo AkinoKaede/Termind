@@ -4,8 +4,8 @@ title: "Port Forwarding: Multi-Connection Pool and Flow Dispatch"
 description: "Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
 sources:
-  - id: openwiki-source-9bd2b93db78747d6956c2405
-    resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
+  - id: openwiki-source-eeeeca9ded05fd2db5c3240d
+    resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
   - id: openwiki-source-079b35134aa7d0dc22681651
@@ -16,18 +16,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
-  - id: openwiki-source-dc9295278cc250ed20567540
-    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
 verified:
   - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Port Forwarding: Multi-Connection Pool and Flow Dispatch
@@ -46,9 +44,9 @@ The pool is **not** several sockets jointly carrying one TCP stream. Every flow 
 
 ## Intent, configuration, and runtime ownership
 
-`PortForwardingController.start` validates a saved rule and SSH-enabled Host. It creates or joins a `PortForwardingConnection` context keyed by Host ID; the context contains the route snapshot, shared Journey/authentication surface, connection attempt, active rule presentations, and the maximum captured at context creation. Later rules on the same connected context call `startRule` instead of authenticating again. Stop removes that rule's generation; the last active rule retires the context. Route changes, including jumps, invalidate affected contexts. Saved rules themselves are not live listeners.
+`PortForwardingController.start` validates a saved rule and SSH-enabled Host. It creates or joins a `PortForwardingConnection` context keyed by Host ID; the context contains the route snapshot, shared Journey/authentication surface, connection attempt, active rule presentations, and an effective maximum computed when the context starts. App-supplied limit changes can update that maximum on a live context without rewriting the saved Host setting. Later rules on the same connected context call `startRule` instead of authenticating again. Stop removes that rule's generation; the last active rule retires the context. Route changes, including jumps, invalidate affected contexts. Saved rules themselves are not live listeners.
 
-macOS `AppModel` selects `.hostConfigured`; Host values normalize to `1...64`, default `1`. The factory chooses a plain `SSHForwardingConnection` for one and `SSHForwardingConnectionPool` for more than one. Mobile composition uses the controller's default `.singleConnection` policy. Thus a synchronized Host setting can remain stored on mobile without producing the desktop multi-connection topology.
+macOS `AppModel` selects `.hostConfigured`; Host values normalize to `1...64`, default `1`, and the controller caps that saved value by an app-supplied connection limit. Without Pro multi-connection access the effective limit is one; entitlement changes update the limit on existing contexts without changing the saved Host preference. The `.hostConfigured` factory uses `SSHForwardingConnectionPool` even when its current target is one. Mobile composition uses the controller's default `.singleConnection` policy, so a synchronized Host setting can remain stored on mobile without producing the desktop multi-connection topology.
 
 Three runtime numbers must be read separately:
 

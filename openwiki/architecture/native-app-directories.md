@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Native app ownership guide
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -145,7 +142,10 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Native App Responsibilities

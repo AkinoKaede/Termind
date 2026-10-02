@@ -3,9 +3,6 @@ type: integration guide
 title: MCP server and bridge integration
 description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
 tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-3118dfa7dfade14baaccd202
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
@@ -67,7 +64,10 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # MCP server and bridge integration

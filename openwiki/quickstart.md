@@ -3,9 +3,6 @@ type: engineering quickstart
 title: Quickstart and task routing
 description: Start here to route Termind changes to their owners, preserve platform lifetimes and dependency pins, and choose focused build and test gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -23,6 +20,8 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
+  - id: openwiki-source-9e7915b5fd54b91e430607e2
+    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -37,6 +36,8 @@ sources:
     resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-ca0b3e6e839587396cdeaf54
+    resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-707053bb7defcfbf9343584b
     resource: repo://TFI/UI/Components/MobileConnectionJourneyView.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
@@ -57,6 +58,8 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-fe5539ed6f675410b82b41c4
+    resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-dc041600497a72c229d5eef4
     resource: repo://TFM/UI/Components/ConnectionJourneyView.swift
   - id: openwiki-source-73c75477db0674192248aa00
@@ -73,7 +76,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Quickstart and task routing
@@ -94,6 +100,8 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For journey route/checkpoint changes, `ConnectionJourneyTests` covers shared state and `MobileConnectionJourneyRenderingTests` covers native mobile rendering; see [Behavioral Tests and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md). For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |
 | SSH Security Key registration, FIDO2/WebAuthn signing, Vault metadata, or forwarding limits | [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md); use `FrameworkTests/WebAuthnVaultMetadataTests.swift` for destination/jump resolution without Keychain, V45/V2 Vault metadata, legacy storage normalization and failure rollback; `TFMTests/WebAuthnSSHTests.swift` for assertion/registration validation and SSH wire fields; and `FrameworkTests/SSHInteractionPolicyTests.swift` for silent-connection restrictions. These fixtures do not replace a hardware-key and native-prompt check. |
 | Terminal, metrics, forwards, shell hooks or forwarding pools | [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md), [Shell Integration](/openwiki/concepts/shell-integration.md), [Port Forwarding Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md); choose the matching service or pump tests. For metrics keyboard-auth presentation, use `MetricsJourneyRenderingTests` on desktop and `MobileMetricsJourneyTests` on mobile. |
+| Ghostty terminal menus, touch selection, native surface identity, themes or highlighting | [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md); for menu changes inspect both iOS touch hooks and the separate pointer path, plus macOS secondary-click composition. Run `TerminalContextMenuTests` and `MobileTerminalUploadMenuTests`; use the fork touch-selection tests when its menu seam changes. |
+| Ghostty fork source, Swift menu hooks, native patches, XCFramework or dependency pin | [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md); keep the pushed fork revision, submodule gitlink, project revision and resolved pin aligned, and publish a new XCFramework asset first for native patch changes. |
 | SFTP browsing, transfer scheduling, external edit | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md); select the transfer, conflict, or edit suite. |
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](/openwiki/concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools, or memory tests. |
 | SwiftData, secrets, migrations, CloudKit, settings | [Persistent Data, Migrations, and Secrets](/openwiki/concepts/persistence-and-secrets.md), [Settings, Vault, Metrics, History, Device, and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](/openwiki/operations/cloudkit-release-readiness.md); select repository, migration, or `CloudSyncLifecycleTests` / `CloudSyncSafetyTests` for a sync lifecycle change. |
@@ -111,7 +119,7 @@ In Debug XCTest runs, the **real desktop app** still launches. By default it sup
 
 Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback; the fallback bounds the quit reply, not completion of asynchronous cleanup. Use [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
 
-AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Ghostty has a different release boundary: `libghostty-spm/` is a maintenance submodule, but Xcode consumes the remote fork at a fixed revision, not that checkout. For package changes push the fork, then update the submodule gitlink, project revision and resolved pin together; native patch changes additionally require a new XCFramework release and matching package URL/checksum. See [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for the exact sequence. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
+AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Ghostty has a different release boundary: `libghostty-spm/` is a maintenance submodule, but Xcode consumes the remote fork at a fixed revision, not that checkout. For package changes push the fork, then update the submodule gitlink, project revision and resolved pin together; native patch changes additionally require a new XCFramework release and matching package URL/checksum. See [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md) for the exact fork sequence and [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the native menu hooks. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 
 For CloudKit changes, follow [Settings and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) through the [release checklist](/openwiki/operations/cloudkit-release-readiness.md): `CloudSyncLifecycle` owns a separate engine and account scope per category. It commits a recovery fence before making an automatically syncing engine, fetches before authorizing uploads, and reconciles pending engine changes against the durable journal. Pausing, account changes and non-cancellation persistence failures retire the engine and cancel its operations; late callbacks must not act on a replacement engine. Recheck `CloudSyncLifecycleTests` (including retirement and delegate-context coverage), `CloudSyncSafetyTests`, and the relevant coordinator tests rather than treating a successful build as a sync migration check.
 

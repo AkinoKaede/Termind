@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9a9236c88cdcdf04dd35e535931f3b1e9f9d9af8a916f81e90b80a3902765686",
+  "pageVersion": "sha256:afb3cd749f50ab382ccd17197d2e0a6acb241dab33a3e6e4da0e64fafb341a88",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -74,19 +74,15 @@
     },
     {
       "id": "claim_4ed733207e8b495f9fb9f0db86f1ad04",
-      "statement": "Persistence owns the V45 SwiftData schema/container and sync adapters. V31 through V42 retain their migration history; V43 adds public MCP OAuth configuration, V44 replaces Host, and V45 replaces SSHKey to persist Security Key reference metadata. Local schema versions are independent of CloudKit formats, and GRDBMemoryStore owns a separate memory database.",
+      "statement": "Persistence owns the V46 SwiftData schema/container and sync adapters. V31 through V42 retain their migration history; V43 adds public MCP OAuth configuration, V44 replaces Host, V45 replaces SSHKey to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences. Local schema versions do not change CloudKit record-format versions.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L6-L75",
-          "version": "repo-lines-v1:sha256:841f5b7c1b38d1d5b8a338b08543c3872fd8b022e13956e7c6e7aaf3aa11e498:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2ZTgzNWJiMzkzNjdhODBkMDdiMDkxZDJmZGIwODFhZGM0YThkYTg0NmQ4MjhjYjM1YzUzY2IwYzUyMjc4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNTk0OGZjNGE2MTllOTBjZDM5Yzk1YzdmNjdlZGJhOWU2OTdhZGJlN2YxNmFmMjY5NmM1ZGRlNDMzMTgyODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZWFjYTU1MGI4N2Y4MTM4MGM0NDM2MDc1YTA3MDQ0NGJkMTRhYWQ4MzMwNTZmNjE0MmYyMDdiNzlhNjdkMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5ODg4MmQ2NWE4M2YwNjEyNzFiMTQ0MmNjMWRhOTIzNzZlM2E5MDg5NzczZjMyNzg5ODQ2NTFmNGZmZjQzNDQifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L870-L1030",
+          "version": "repo-lines-v1:sha256:bdfef2420c172e09cff634059deaa996ffcfeef82ab1bd0894031e082671097c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MWQxZmNjZjRiZDBiYzM0ZTc0YTdlMGNjMmQ0ZWNjY2UwYTM4ZGM4NWI0OTFmMjg0MTRhYjdmMTdmNmRjNzc4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiYWFlOGEwY2E3NmY5OGY3YjdkYzc5ODQ5NTFkNjNlNTdkYjNjNjQ1NTc5Y2E1MWJhZDZhNTM5ZDYxNGVkYmJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5ZjFiZWI3NjM2MTIxOWJlZDlmNGQyMjUzZjU1NmVmZDQ5ZDc1Mzc0ZTRiMmRiY2E5MmM3NjQ5Y2IyNGNkOWU0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L865-L920",
-          "version": "repo-lines-v1:sha256:19230dde961047720be7262999c6f86c4a6549d5456730bc61493c43b759d604:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyODIzMWQ4NTE0YTNiMWVhNjFkODBkNWU3MTM3YTZjNDRmZDgyZjdhMWFjMTc5MjQyMTkzYjlmMzgxNzJkYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MGYxYWE1YjFkYWIyNzk0Mzk1OTYxYmEyMzlmMTc1ZDMxMDU1YTA3ZGVlZTVlN2RkOWZlY2Y5NGU1NDA3ZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3ZTc0YTY3ZDY4N2Y1NzQ5ODg2Nzc1ODQ5ZjU0YTA3NGQxNjQ3ZmY3MjFmZDc3ZTQzODFmZDg1YWE0MzM4YWEifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L47",
-          "version": "repo-lines-v1:sha256:b6ecd5473339d39eee0bb3881e02d4b9f94582002d219f08395af0f9920819ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTJkMWI1NTI3YTJhNzM1NTRlMzM1MWYzNDk4OTJkYTkwYjE1NGViMDNmNjM2YzI3NGI5YmUwYjdjOWMxYmMifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L20-L33",
+          "version": "repo-lines-v1:sha256:2a897335883e31fbca2700a7ea67618fe8519577fb3b8b4d98425a76ea93ff16:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiOWVlODU3NGEyYzJmNTVjNmE5NjdmNmFhM2Q1NzM0NGFiZmFmNzgyZjMzZTBkMDk1YzYwNTdkZGMzNjdhOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwMzNiNzlmYmQ1MDRiYzk1YTg1YjkzNjgwYmM2ODQwNzcwM2RmZDdjZWJkYjJkYTBhMmNmZGE2OWRhOTgwNTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYzk2NzIxZmRlNjZmN2Q2Mjk5OTFmZWQ1NDY5MWQ4YzUzMjIzMmY2N2YxZTBkNWVkMGQ1MjJlOTE5YjQzNDYifQ"
         }
       ]
     },
@@ -116,7 +112,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40",
-          "version": "repo-lines-v1:sha256:09952e788552fb119e8613758a8fe364dd3c01cd5dd30b861bca6dc3b5a55f0c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
+          "version": "repo-lines-v1:sha256:5b3e2e375a2d480bef5d112e03c4dd0a6881900456e0e46ecfe9bad8b2dcfa48:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
         }
       ]
     },
@@ -130,7 +126,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L1-L85",
-          "version": "repo-lines-v1:sha256:404610b12ac0cd14645de0e30616d9fa79c64f2186fa21e87a558307e3fbda03:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNDgxNDRmYmNmNWZjNjZiNzc2OTliYjkzOWJjYmNiOWEwYWJkNjVkNmM3ZDYxYjlkNDZiYWE5MDJmOTEwZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxYzdiZjU2YzdkNDAxYjY2NTVlODI1YzA1MGZiZTg4NjJiNTIxM2Y0NTFmNjNiMjNjNTNhOGRmNGVjYTA0ZmIifQ"
+          "version": "repo-lines-v1:sha256:513d67a28ca9a45ffa04c4f2d7bfa834edf9d3023b22761a7dab1963a354b40b:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNDgxNDRmYmNmNWZjNjZiNzc2OTliYjkzOWJjYmNiOWEwYWJkNjVkNmM3ZDYxYjlkNDZiYWE5MDJmOTEwZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxYzdiZjU2YzdkNDAxYjY2NTVlODI1YzA1MGZiZTg4NjJiNTIxM2Y0NTFmNjNiMjNjNTNhOGRmNGVjYTA0ZmIifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift#L1-L76",
@@ -228,7 +224,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
-          "version": "repo-file-v1:sha256:d241c72546135933f5bd14e41f73a5ca8b8deb3a6298043bdaf8c7c07a66ad32"
+          "version": "repo-file-v1:sha256:5270e1567ba19b8feb09bbcdb1835ffbff9862b68d8ffd2fee992861520a3499"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L203",
@@ -262,7 +258,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:83389053f37a1d35487622b82d582e33d5e21c98f90c96e4af51883e03a33d41"
+          "version": "repo-file-v1:sha256:62289b4ea2358a7c54a9d2efddf2398aa9c2964c8f363446f61329ccb3b62417"
         }
       ]
     },
@@ -476,7 +472,7 @@
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:16286cf2f473b876a2bc2e10ceabfd17c8baf1dda9fd047cb70b958a8d08615a"
+          "version": "repo-file-v1:sha256:2b9f6e50952c98ba7b190f9d44fb2982755ee2e161b55849f383b1452e6b21fd"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift",
@@ -510,7 +506,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:83389053f37a1d35487622b82d582e33d5e21c98f90c96e4af51883e03a33d41"
+          "version": "repo-file-v1:sha256:62289b4ea2358a7c54a9d2efddf2398aa9c2964c8f363446f61329ccb3b62417"
         }
       ]
     },
@@ -682,7 +678,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40",
-          "version": "repo-lines-v1:sha256:09952e788552fb119e8613758a8fe364dd3c01cd5dd30b861bca6dc3b5a55f0c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
+          "version": "repo-lines-v1:sha256:5b3e2e375a2d480bef5d112e03c4dd0a6881900456e0e46ecfe9bad8b2dcfa48:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
         }
       ]
     },
@@ -926,7 +922,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift#L219-L219",
-          "version": "repo-lines-v1:sha256:dd1c81a160ea2226844c12d3a1228da8cd738dc1e8c9e9dbef34c7223972ad16:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGQxYzgxYTE2MGVhMjIyNjg0NGMxMmQzYTEyMjhkYThjZDczOGRjMWU4YzllOWRiZWYzNGM3MjIzOTcyYWQxNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGQxYzgxYTE2MGVhMjIyNjg0NGMxMmQzYTEyMjhkYThjZDczOGRjMWU4YzllOWRiZWYzNGM3MjIzOTcyYWQxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDdjMWI2YjRiMTQ0NmJkMDg1MDA3ODhlOThiYmE5ZDU2NWViYmU2MmYxMTdlNGVlNzQyOWRjNTE2ZjgyNDg2NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDQ2Y2I1OTE3OWNkODkwZGYwYmQzNmFlMWNkYWNlNzRkY2Q1NDg4N2I4MjFiMThjNWUyMTU0YTAxYTgxOTFlYSJ9"
+          "version": "repo-lines-v1:sha256:b9db606d264e298b0721a84cf76bfd43ae594b5c915f5312b35c81a547edf9ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjlkYjYwNmQyNjRlMjk4YjA3MjFhODRjZjc2YmZkNDNhZTU5NGI1YzkxNWY1MzEyYjM1YzgxYTU0N2VkZjlhZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjlkYjYwNmQyNjRlMjk4YjA3MjFhODRjZjc2YmZkNDNhZTU5NGI1YzkxNWY1MzEyYjM1YzgxYTU0N2VkZjlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDdjMWI2YjRiMTQ0NmJkMDg1MDA3ODhlOThiYmE5ZDU2NWViYmU2MmYxMTdlNGVlNzQyOWRjNTE2ZjgyNDg2NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDQ2Y2I1OTE3OWNkODkwZGYwYmQzNmFlMWNkYWNlNzRkY2Q1NDg4N2I4MjFiMThjNWUyMTU0YTAxYTgxOTFlYSJ9"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift#L137-L140",
@@ -958,7 +954,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L76-L133",
-          "version": "repo-lines-v1:sha256:62538a0f4aeddff8c3248df76df5e673017a41afb33d40079e13fce360b11f76:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3NmY3ZTYzYmNmMWM3OWEyOTY1YTg1OWZhZDA2NTA5OTVmNjc3MTEyMTUzZTU1OWVlOWEzMGI5NjcwNGFhNzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2OTFmYTU5YmU2ODkyMzY4ZjIzNzA1ZGVmOTNlNGY2Nzk3M2IwMTRkMTBkMDBhMzI0MTg0NDhlNTZhMDA2ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "version": "repo-lines-v1:sha256:d21f23f113da033fe7b29efd7c3a8638bf14f78273061cd18afc013147751699:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3NmY3ZTYzYmNmMWM3OWEyOTY1YTg1OWZhZDA2NTA5OTVmNjc3MTEyMTUzZTU1OWVlOWEzMGI5NjcwNGFhNzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU2OTFmYTU5YmU2ODkyMzY4ZjIzNzA1ZGVmOTNlNGY2Nzk3M2IwMTRkMTBkMDBhMzI0MTg0NDhlNTZhMDA2ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift#L5-L36",
@@ -994,7 +990,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L3-L80",
-          "version": "repo-lines-v1:sha256:a95488aef70dda71bfb1c411fc586eb9c407282492a0380b660dce16fcedc34d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZTFjMjcyNGE5OTQ5ZDRjZjgzMThmZmQxYTcyMjMzYzM2ZTdjOTlhOGRkMDBhZDM4ZDg4M2NjNTliZjYyNWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "version": "repo-lines-v1:sha256:a458d699e55ff9224a153b95ead8d81de9afdc0a62499f90a861d9978e3f1b1f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZTFjMjcyNGE5OTQ5ZDRjZjgzMThmZmQxYTcyMjMzYzM2ZTdjOTlhOGRkMDBhZDM4ZDg4M2NjNTliZjYyNWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L109-L118",
@@ -1016,7 +1012,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.5.2",
-    "at": "2026-10-01T23:39:56.631Z"
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
   }
 }

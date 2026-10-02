@@ -18,8 +18,8 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
 generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Port Forwarding Benchmark Design, Results, and Reproduction

@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Shared module ownership guide
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -185,7 +182,10 @@ sources:
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Shared module ownership guide
@@ -244,7 +244,7 @@ Submission and failure ordering: a rejected selection write stops before capture
 
 ## TermindPersistence — stored representations
 
-Persistence has **no functional subdirectories**. Its root owns the complete SwiftData model set, frozen historical schemas, migration plan, `TermindPersistence.makeContainer`, Vault and History journals, device-directory and settings adapters, provider/skill records, secret *metadata*, agent replay, collaboration provenance and receipts, and a separate GRDB memory store. Platform entrypoints choose the container URL/lifetime. The factory uses **V45** and explicitly disables SwiftData's automatic CloudKit storage; Infrastructure's coordinators synchronize records using journals instead. V31→V34 replaces host/history/identity shapes and backfills device attribution; V35 adds History journal and capability checkpoints; V36 removes an obsolete import checkpoint; V37 adds scoped record/replica state; V38 adds deletion handoff and asset cleanup; V39 adds conversation model selection; V40 removes retired per-category quarantine while preserving scoped quarantine; V41 adds notification preferences; V42 adds agent-message provenance, created-chat relations and durable delivery receipts; V43 adds public MCP OAuth configuration; V44 replaces the Host model; V45 replaces the SSH key model with Security Key reference metadata. These are **local** schema versions, not CloudKit record-format versions. No other module should introduce a competing `@Model` owner.
+Persistence has **no functional subdirectories**. Its root owns the complete SwiftData model set, frozen historical schemas, migration plan, `TermindPersistence.makeContainer`, Vault and History journals, device-directory and settings adapters, provider/skill records, secret *metadata*, agent replay, collaboration provenance and receipts, and a separate GRDB memory store. Platform entrypoints choose the container URL/lifetime. The factory uses **V46** and explicitly disables SwiftData's automatic CloudKit storage; Infrastructure's coordinators synchronize records using journals instead. V31→V34 replaces host/history/identity shapes and backfills device attribution; V35 adds History journal and capability checkpoints; V36 removes an obsolete import checkpoint; V37 adds scoped record/replica state; V38 adds deletion handoff and asset cleanup; V39 adds conversation model selection; V40 removes retired per-category quarantine while preserving scoped quarantine; V41 adds notification preferences; V42 adds agent-message provenance, created-chat relations and durable delivery receipts; V43 adds public MCP OAuth configuration; V44 replaces the Host model; V45 replaces the SSH key model with Security Key reference metadata; V46 adds persisted terminal keyword-highlight preferences. These are **local** schema versions, not CloudKit record-format versions. No other module should introduce a competing `@Model` owner.
 
 On macOS, file-backed `makeContainer` acquires a per-store nonblocking advisory lock **before** SwiftData opens or migrates the database. Containers in the same process share a lease for canonicalized URLs until the last container closes; another process gets `PersistentStoreAccessError.inUse` instead of opening the store. The stable `.lock` file is not unlinked on release. In-memory containers do not acquire this lock; passing both `inMemory: true` and a URL violates a precondition. Keep container creation through this factory so journals and migration stay under the same store lifetime.
 
@@ -292,7 +292,7 @@ Representative remote execution and monitoring collaboration; arrows describe re
 
 ## TermindPresentation — reusable content, not runtime ownership
 
-Root files provide shared SwiftUI forms, transcript/tool-card presentation state, Markdown, metrics, notifications, and formatting; `SFTP` holds file and transfer presentation; `Terminal` maps domain palettes to Ghostty themes, applies custom configuration and typography and exposes font/theme settings. Terminal appearance does not own a PTY or native mounting. `Strings` owns semantic `AppStrings` `LocalizedStringResource` definitions and shared formatting for both apps, including single-platform copy. The `swiftUIKey` bridge preserves interpolation metadata for key-only APIs; pass resources directly to supported dialog-title overloads. Architecture tests prohibit AppKit/UIKit, persistence, infrastructure and remote-infrastructure imports here and app-local `AppStrings` declarations. See [UI Design Principles](../concepts/ui-design-principles.md).
+Root files provide shared SwiftUI forms, transcript/tool-card presentation state, Markdown, metrics, notifications, and formatting; `SFTP` holds file and transfer presentation; `Terminal` maps domain palettes to Ghostty themes, applies custom configuration and typography and exposes font/theme settings. Terminal appearance does not own a PTY or native mounting. `Strings` owns semantic `AppStrings` `LocalizedStringResource` definitions and shared formatting for both apps, including single-platform copy. The `swiftUIKey` bridge preserves interpolation metadata for key-only APIs; pass resources directly to supported dialog-title overloads. Architecture tests prohibit AppKit/UIKit, persistence, infrastructure and remote-infrastructure imports here and app-local `AppStrings` declarations. See [UI Design Principles](../concepts/ui-design-principles.md) and [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
 
 ## Frameworks/Resources — bundled data
 

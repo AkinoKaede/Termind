@@ -3,9 +3,6 @@ type: asset-production-operations
 title: Marketing Assets and App Icons
 description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and hand off platform, website, and paywall icon artwork.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-ea04d3d10088e2d554646adf
     resource: repo://Design/Brand/README.md
@@ -79,7 +76,10 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # Marketing Assets and App Icons

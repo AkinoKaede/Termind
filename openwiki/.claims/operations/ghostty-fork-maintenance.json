@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:9c94e1c02f5e98fd141a8df03c0015f155836927edba78c0493c717f2bf213b5",
+  "claims": [
+    {
+      "id": "claim_178354d1d71f460e9b920a02dd44754f",
+      "statement": "Termind tracks the libghostty-spm fork as a maintenance submodule but Xcode consumes its remote package at exact revision f4cc2d064baef32e2ab92b455b03b1a46880338b, which matches the submodule gitlink and Package.resolved rather than uncommitted checkout edits.",
+      "evidence": [
+        {
+          "resource": "repo://.gitmodules#L7-L10",
+          "version": "repo-lines-v1:sha256:e97c9d1eee9599dbbef97defff371ddfde27f36df66ec51df89a3308cdcff71c:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzIyNTEzZDVmYzY2NjA1YWZjZjM4ZTI2OTk4N2Q3NjVmMTk4YWQxZDU3NTllNWNhZTdlZDRmYWUzYzc4OGY3NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjMxNWViY2Y2MDIwZDZlZDEyODQzZTI0YmUwMjE0N2Y5OWFmYmNmMTEzNzlmMWIyMWQ1NWU4NjA3ZmM3OTI3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjdlNGRkNTI4YTUwNmI4NjllMzk1MmNiZDljNGVkYzFlZWU1OGJlODhjMWY3MzFkMGNjYzgzN2U2YzZjZmE3NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L20-L25",
+          "version": "repo-lines-v1:sha256:c9ceb8bbfdc1e0b2c9f8e7eecd35273a7f866e793d8891dc28977bfa2dd4aede:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjIwNjgxODg4ODRhZDNiMmYxOTcxODFjMDE0MzU4N2U0YTk4MmIwNjdlM2FiZjZkYjcyZDM2MmRhMWE2MGMwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA1MmZmNDM0ZWFlZDI3YTYwOTg5MDliNmNmYWU4OTBkMGUzZmMzZjhiNjI4MWM1NjRmZDIxN2FkMjQyZjcxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDYwM2U5M2I5MjBkY2MyNWM0YWY4MmNlMTc0YjczZDE4NzI5NTEwYzZkYTE1MTBmNTgwYTQwMTc3NmQ3YzY1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNiYTM1MjMzNDAxNzI1ZDc5MmY5MTk3NDhhOGFlZGE3YjJjMWJjYmJiNzg1ODYyMDFmM2NmYWQ1YzViYmZlZiJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2941-L2948",
+          "version": "repo-lines-v1:sha256:bae56c820b389cb714024651ded8a631a5d00d59c256b903f8f951a10fa3e28c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmMDYwMjExZjNiOGQyYzU5ZjAyN2EwYzU4MWM2MmIzYjA2YzNlNGZjOGI3OGJmYTJmMmFjMmU4M2FlNTU1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjkxMTMwZGU5ZDJiY2MxZDVhMDA4ZmE5OGM1YWE0YmU4ZjU2OThmYjRjZGY3NGY0OGM2YTBmNzI5YTI4NDM1NyJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L166-L174",
+          "version": "repo-lines-v1:sha256:74a13031f42b19db404178e74f82b5ff34372f6440da0fc3f45c267b93813513:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhhNWI3NGY4MGQ0OTdmZWQzMjJiYmVlYWJjNmYwMDdiMGY0NWRiMGVlNDdlNDU2MjEyMzk2NzZmMGE4ZmY5ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDIzNDkyZGI5M2Q4NTRkMDAwNjJkYmYwYWUxOTU4ZmYzYzJhMmUxMmI1ZWJhMjBiYWUyZmY2NGU0ZTQ5MTUyMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_97e1fb24af744a61991d40aa8f8b463d",
+      "statement": "The pinned fork's release Package.swift obtains its native libghostty binary from the upstream.0538f7535be0-4 GhosttyKit XCFramework asset with checksum 7ae784a888ec4bd5f46d67f761d09bf11b871d2e846cf02ade76e2515aec0c30; its local package manifest instead references a locally built BinaryTarget directory.",
+      "evidence": [
+        {
+          "resource": "repo://libghostty-spm/Package.local.swift#L47-L55",
+          "version": "repo-lines-v1:sha256:2e73f99d30039808a4c34e78902b4211245815ef6ca409651df5c804082b6536:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzdhNzZkMGM5NTllZmRiODc1NDIzN2NkZTI5NDU4Y2UyN2JiNjk1MTUxM2Q1MjRjNGI4MGJhOTc5Y2IxM2Q5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjM5NGY5M2I1OTQxNjhkMzAyMTE1YzY1NWI0NjA2MDNhNTg4NzBmYzE2YmQ4ZDc0ZTY3ODVmZWMyY2RlZTE4MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGMxOWY4NTkzNjlkZmVmNzlhMzA3NGQzZGI5NTQwOTM3MWU5OTU4NDgzMmNiZDQyYzkwMzA2ODc2NWY3MDU2MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmI5ZTI3ZWY4YzdjZTg3YmNkZTQzMWEzZDI4YWNjNzc4YTdjMDI2NjEwNGIxYWIwZDhiN2E2ZDU5ZmZiYmRiZCJ9"
+        },
+        {
+          "resource": "repo://libghostty-spm/Package.swift#L43-L55",
+          "version": "repo-lines-v1:sha256:5a3762e3fe2ce10b6c13656d42eb18de31315f50a0d194e4afd75fe34c50a4be:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2MDkxZWEyNzkzNGE2YjVjNDNkYjQyNzFhZTQ3ODZiNDkwZDQ1ZjgwYTU2MDFlNTQyOGFiNDZiNmE4YTU1NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0MzNkMGVhOWVjZjJmMzljOWE1MDQwNzM5NWVlNDExNzJmZTY4MmM5Yzg4NWEzNTA4Zjc1YmRlZTE1MWVmZmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0YTZmMTQ0MjdlYzI3YzIzNmIyN2Q4MjQ5OTFjMjg4MjRiMzI2MmMzMDE5NTE4ZTkwNjQ5YjM1OWE0MDgxYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlNDNjNTJmMmU5ZDdjMzM0MmY0NzllZWQ1OWUyYjExNjliMjhjOWVkMjVhMGZkOThhODNlZDNiZmE3OGMwYTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_45912db4e0a443b78ae565fdf3c71686",
+      "statement": "The fork defines separate UIKit touch-menu hooks for unselected and selected terminal text, while Termind overrides both in MobileTerminalView to localize built-in actions and append SSH upload choices; its AppKit subclass extends a separate selectionContextMenu path.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L24-L74",
+          "version": "repo-lines-v1:sha256:af14298acc887b047e3442171733ba84546b2e2b75131adb64f1ea89631b82d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYTY5ZTYyOTJiNjhiNmFjM2VmYTQxN2YzZDNlNzFjMmI5NDE1YTBmMjA2ZTFiMGZkNmM2MzMwNTM0MWQ4MjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwOGM3MTZlZTllMjZiNDkxODk1ODY2ZTRhMzI4MmVmYzg0YTQ2OTMxZmEwODk1YzYzODlkODE5YjU2YTRiYWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmZTA5YTAzN2I5M2QwODE0NTg2MjU4ZmU3NjgzMzU3Zjk4Y2FmNjAyNTU4OWU1NDZmOTQwNjgxYmEwYTk3YWEifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L217-L258",
+          "version": "repo-lines-v1:sha256:a5f8611f88641f8f4c32c3bde8f0152be566a06fbfdc19fcc35584f2235cd34f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZmQ1NTZkZmQzNjk0YjgwMWNlNWZkYzM3ZjFjODZkMTU2ZmZkNGUwY2E4MjVmYTgyOTU1N2I2ZDQ0OWU1NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmODZmYWNjZDlkODY5YmVkM2E0M2FkOTM4YzVkZWEwZTU3MjgyNTMzM2MzZjY1ZTQxYzljNjcyZWI3Y2U1M2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5MmFhYWY4MzBlZTI2MmFmZDM4N2UzNTRmNzk0OGNiNzIxZjY2MWE1NTM5MTk0YmM1ZjY5MDg1ODVkMGU4NWUifQ"
+        },
+        {
+          "resource": "repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView.swift#L117-L130",
+          "version": "repo-lines-v1:sha256:5d7af99a3deeac1be6c7e0399de9ef8ade25fbd8c060274640ed83302138c7f4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0ZTFjMTU4YzVmZmQzZmU2NTE1NDdhMmYyNGY2NGUzNzcwM2Q5ZGU1ZjIxYzUyNjc1OTlmNDkzNTNjYzk5NDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhOWY4NmQyOGU3ODRmOWZkMzFmYjcyZDE1ZjYwY2JjZWFhZmRkNjY5Y2JkNWI2ZGE3ODg4YTAyMzMyMWViYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmZGM2ZGI2ZGU3OWIzMWYyMmRhMTcyYzAxNTZjMjA3ZGZjMGY5YmU0YzU4YmM1NjlmMDM0ZWJiYmVlMmUwYjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_18700d529ae44a24b6d7277d4a927d65",
+      "statement": "The fork's native Ghostty build applies the numbered Patches/ghostty stack before each Zig target, and a native patch change requires a new XCFramework asset and updated Package.swift URL/checksum before Termind advances its exact remote revision.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L20-L25",
+          "version": "repo-lines-v1:sha256:c9ceb8bbfdc1e0b2c9f8e7eecd35273a7f866e793d8891dc28977bfa2dd4aede:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjIwNjgxODg4ODRhZDNiMmYxOTcxODFjMDE0MzU4N2U0YTk4MmIwNjdlM2FiZjZkYjcyZDM2MmRhMWE2MGMwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA1MmZmNDM0ZWFlZDI3YTYwOTg5MDliNmNmYWU4OTBkMGUzZmMzZjhiNjI4MWM1NjRmZDIxN2FkMjQyZjcxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDYwM2U5M2I5MjBkY2MyNWM0YWY4MmNlMTc0YjczZDE4NzI5NTEwYzZkYTE1MTBmNTgwYTQwMTc3NmQ3YzY1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNiYTM1MjMzNDAxNzI1ZDc5MmY5MTk3NDhhOGFlZGE3YjJjMWJjYmJiNzg1ODYyMDFmM2NmYWQ1YzViYmZlZiJ9"
+        },
+        {
+          "resource": "repo://libghostty-spm/Patches/ghostty/README.md",
+          "version": "repo-file-v1:sha256:c61d63325ec86670365e64053bb1c9584bb4e62b790b25791dc0be31b7c0d80e"
+        },
+        {
+          "resource": "repo://libghostty-spm/Script/apply-patches.sh",
+          "version": "repo-file-v1:sha256:faa6882eaac90f94971c4a58253ffea77a12f2edc22ffb463e041386a26278cb"
+        },
+        {
+          "resource": "repo://libghostty-spm/Script/build-ghostty.sh#L31-L35",
+          "version": "repo-lines-v1:sha256:15680063667a8b9c274f1e78143ff1567616faa17d23affe16b12b552a9fb2c0:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzFjYzk1MmI3N2VjZGE5ZWMwMmE4NDEwNGMwNmE5YjdiMGUzZjIzZTMyNzMyZDRmMjA2ZTQ1NjFhYjg3OTQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWFiOWEyZDA3ZGM4YTk5YmI0YmY2NmVkNmJiOTk4OGE2MGY5MTZmZTg0NjNjMjdiZTgzMzRlYTlhODYzZTcyMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjZiYWI2Zjg4YjFjOWFlYWJiYzRhOTk2ODk5NTI5NmFhMDljNGUyMDU5NTdjYzZhYmVmYTJhZTY5YThkZWM2MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzg4OWU0Yjg2NDg0Y2ZmYmFmMjY1ZDJjY2U2M2Y3NmE2NGI5MGI4MzFlZDIzZDM4MjY4ZDdkNmNkODkyZGQ0MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_bca96f9cfca54b26b4e50b95ba4e0405",
+      "statement": "The fork's package-release workflow requires a prepublished upstream binary asset, generates the release manifest, verifies an XCFramework consumer, runs the package matrix and Swift tests, then verifies the release asset digest against the final package manifest.",
+      "evidence": [
+        {
+          "resource": "repo://libghostty-spm/.github/workflows/release.yml#L55-L143",
+          "version": "repo-lines-v1:sha256:253257f28a24e1bf138faa83701039f332134514bee633a993add1356652f8d3:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1MjVmMDQ3NmNiOTNhZjZhMTM2YmMzNjkzMTViY2NiZDI3MmQ0OTVlNDliYjE3NzE1ZTQzMTNiOGM2YjhhNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjOWY5NDg1YTJhOGJjMjg0ZTc4ZDM4MmY0OWM0MWE5ZmM4YjY4MGRjOTM0MzJmYTk1YmRmYmM2OGRiODk2YTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmZTBiNTVhNWQ0YTZiOGE1ZTBlNGJhYjY4NzViYzgyYjQzZTViMDk1NjBhYmYzODNlZTU4YzY4YTRlMzY3MmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZlZGQ5N2MzNGMyZDcwMWZlMzRhNjgyNjdlZTIxMGRhMWJiOTg3MWZiZDdiYWY4MTk5YmM0ZWQyNzgyZTUxZjcifQ"
+        },
+        {
+          "resource": "repo://libghostty-spm/Script/verify-release.sh",
+          "version": "repo-file-v1:sha256:def308c7478304e55ce1756e0fe491c7903ce5b1d0e02b99f157f2997c2da0b4"
+        }
+      ]
+    },
+    {
+      "id": "claim_1bfd8570a6314a5c85ce736b9c0bc634",
+      "statement": "Scripts/prepare-local-ghostty-workspace.sh requires a locally built GhosttyKit.xcframework and stages a local-manifest Xcode workspace under build/KeywordHighlighting without altering the committed remote package requirement; release consumption still requires the pushed fork revision, submodule gitlink, project requirement and resolved pin to agree.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L20-L25",
+          "version": "repo-lines-v1:sha256:c9ceb8bbfdc1e0b2c9f8e7eecd35273a7f866e793d8891dc28977bfa2dd4aede:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjIwNjgxODg4ODRhZDNiMmYxOTcxODFjMDE0MzU4N2U0YTk4MmIwNjdlM2FiZjZkYjcyZDM2MmRhMWE2MGMwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA1MmZmNDM0ZWFlZDI3YTYwOTg5MDliNmNmYWU4OTBkMGUzZmMzZjhiNjI4MWM1NjRmZDIxN2FkMjQyZjcxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDYwM2U5M2I5MjBkY2MyNWM0YWY4MmNlMTc0YjczZDE4NzI5NTEwYzZkYTE1MTBmNTgwYTQwMTc3NmQ3YzY1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNiYTM1MjMzNDAxNzI1ZDc5MmY5MTk3NDhhOGFlZGE3YjJjMWJjYmJiNzg1ODYyMDFmM2NmYWQ1YzViYmZlZiJ9"
+        },
+        {
+          "resource": "repo://Scripts/prepare-local-ghostty-workspace.sh",
+          "version": "repo-file-v1:sha256:4ed069472ec0a371fc0f1c8c88c046262f37dc9f3ec87643df5745466d977f1b"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2941-L2948",
+          "version": "repo-lines-v1:sha256:bae56c820b389cb714024651ded8a631a5d00d59c256b903f8f951a10fa3e28c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmMDYwMjExZjNiOGQyYzU5ZjAyN2EwYzU4MWM2MmIzYjA2YzNlNGZjOGI3OGJmYTJmMmFjMmU4M2FlNTU1MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjkxMTMwZGU5ZDJiY2MxZDVhMDA4ZmE5OGM1YWE0YmU4ZjU2OThmYjRjZGY3NGY0OGM2YTBmNzI5YTI4NDM1NyJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.6.0",
+    "at": "2026-10-02T08:42:40.505Z"
+  }
+}

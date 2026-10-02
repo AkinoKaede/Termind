@@ -3,14 +3,13 @@ type: interaction workflow
 title: File Drop and Upload Routing
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-9f901321faf927c1696ac6e6
     resource: repo://Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift
+  - id: openwiki-source-b37c974aaea12bd08606d67d
+    resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-4b9f58eec58128055ac58b6f
     resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
   - id: openwiki-source-2f0ffe388e45ad08e33d678c
@@ -59,6 +58,8 @@ sources:
     resource: repo://TFM/Features/Terminal/TerminalPathDrag.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
+  - id: openwiki-source-d7973be685aa90a4b2ec555b
+    resource: repo://TFM/Features/Terminal/TerminalUploadModel.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-fbce742d07f4b9d43aaf149d
@@ -69,7 +70,10 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
+generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+verified:
+  - by: openwiki/0.6.0
+    at: 2026-10-02T08:42:40.505Z
 ---
 
 # File Drop and Upload Routing
@@ -91,9 +95,9 @@ This page follows those events and ownership transitions. [TFM Drag and Drop](/o
 | SFTP file → Finder / external file consumer | Lazy promised file. | No corresponding drag exporter in the mobile SFTP browser. | Download when the consumer requests the file representation. |
 | Key file → Key editor | Native file receiver. | No matching Key drag receiver. | Software mode populates private-key/certificate fields; Security Key mode reads a validated FIDO2 reference. Save persists the chosen key type. |
 
-“Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is gated by `.terminalFileUpload` Pro access on both platforms; SFTP browser upload uses its own path without that gate.
+“Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is available without Pro on both platforms; it still requires a connected session, transfer configuration and a usable reported working directory. SFTP browser upload uses its own explicit-directory path. For the separate native Upload File menu actions, see [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md).
 
-Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L457-L549), [mobile destinations](../../TFI/Features/Workspaces/MobileWorkspace.swift#L194-L223), [mobile upload entry](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L560-L594), [desktop SSH gate](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L230-L245).
+Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L457-L549), [mobile destinations](../../TFI/Features/Workspaces/MobileWorkspace.swift#L194-L223), [mobile upload entry](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L560-L594), [desktop SSH availability](../../TFM/Features/Terminal/TerminalUploadModel.swift).
 
 ## TFM: AppKit events and representation priority
 
@@ -115,7 +119,7 @@ Representation selection is ordered:
 2. Otherwise, if the pasteboard carries valid nonempty UTF-8 for `TerminalPathDrag.pasteboardType`, select `.terminalPath` before scanning file and bitmap representations. The private type is shell-escaped text, **not** a local file URL or remote-copy token. Ordinary text, malformed/empty private data and file URLs alone do not qualify as path insertions.
 3. Otherwise, each item's file URL wins over bitmap data, preserving the original filename of a Finder image. Only `file:` URLs are collected; an image representation is read only when that item has no usable file URL. Finally restrict the result to the target's accepted kinds: Assistant accepts files/images, SSH accepts files/remote items/terminal paths, SFTP accepts files/remote items, Telnet and Serial accept paths only, and Key import accepts files.
 
-`receivePaneDrop` dispatches terminal paths **first**: it focuses the SSH, Telnet or Serial pane and calls its persistent terminal owner's `pasteDroppedPath`. That checks the mounted visible terminal, acquires focus and pastes the escaped text into input, without Shell Integration, Pro upload gating or an SFTP transfer. The status-bar working-directory and SFTP-directory labels produce the private path provider (with a plain-text representation for other consumers, but no file URL). The embedded `TermindTerminalView` also has a path-only native drop fallback with visibility/window and copy-operation checks; the outer pane receiver is the primary route above Ghostty. For remaining payloads, the pane records a fresh `SFTPRemoteDropRequest` for SSH/SFTP remote items or `LocalFileDropRequest` for file URLs. Request UUID changes drive the terminal/SFTP views even when identical items are dropped again; no request is produced for unsupported/empty payloads.
+`receivePaneDrop` dispatches terminal paths **first**: it focuses the SSH, Telnet or Serial pane and calls its persistent terminal owner's `pasteDroppedPath`. That checks the mounted visible terminal, acquires focus and pastes the escaped text into input, without Shell Integration or an SFTP transfer. The status-bar working-directory and SFTP-directory labels produce the private path provider (with a plain-text representation for other consumers, but no file URL). The embedded `TermindTerminalView` also has a path-only native drop fallback with visibility/window and copy-operation checks; the outer pane receiver is the primary route above Ghostty. For remaining payloads, the pane records a fresh `SFTPRemoteDropRequest` for SSH/SFTP remote items or `LocalFileDropRequest` for file URLs. Request UUID changes drive the terminal/SFTP views even when identical items are dropped again; no request is produced for unsupported/empty payloads.
 
 ```mermaid
 flowchart TD
@@ -170,7 +174,7 @@ Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L
 
 Shell Integration emits the working directory through OSC 7. Ghostty parses it; desktop `SSHSessionModel` and mobile `MobileWorkspace` observe that terminal state. `TerminalUploadAvailability.problem` requires a connected session, a transfer configuration, and a resolved nonempty working directory. It asks the user to wait for the shell prompt when the directory is unavailable; the transfer does not guess `/` or the user's home. The actual gate checks this state, rather than a separate “integration enabled” Boolean. See [Shell Integration](/openwiki/concepts/shell-integration.md) for hook installation and reporting.
 
-On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered SFTP token becomes `.remote`. After the Pro and availability gates, `prepareTerminalTransfer` cancels prior preparation and captures the normalized directory, connection-attempt ID, and a new preparation ID. It prefers an independent SFTP connection from the SSH connection snapshot. If opening it fails while the attempt is still current, `TerminalUploadConnectionResolver` can open an SFTP channel on the PTY connection; cancellation must not trigger that fallback.
+On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered SFTP token becomes `.remote`. After the upload-availability checks, `prepareTerminalTransfer` cancels prior preparation and captures the normalized directory, connection-attempt ID, and a new preparation ID. It prefers an independent SFTP connection from the SSH connection snapshot. If opening it fails while the attempt is still current, `TerminalUploadConnectionResolver` can open an SFTP channel on the PTY connection; cancellation must not trigger that fallback.
 
 The temporary `SFTPChannelModel` prepares the local upload or remote-copy batch. After awaits, cancellation and connection-generation checks prevent an old preparation from publishing into a new session. Conflicts present Replace / Skip / Keep Both; otherwise the batch is enqueued. Enqueue dispatches to the corresponding local/remote planner, then releases the temporary channel owner. Disconnect/reconnect or disappearance cancels pending terminal preparation; already queued transfer lifetimes belong to the coordinator/context, not the view.
 
@@ -204,7 +208,7 @@ Local file drops onto a connected desktop SFTP pane call `SFTPChannelModel.prepa
 
 Desktop SFTP rows export `remoteDragProvider(for:)`. It resolves the selection through `menuTargets`, registers an `SFTPRemoteCopySource` with the app's `SFTPTransferCoordinator`, and advertises an own-process `UTType.termindSFTPItems` representation. The encoded `SFTPRemoteItemsPayload` contains a UUID token; source files, host and connection are resolved through the coordinator, not trusted as arbitrary pasteboard paths or credentials.
 
-Dropping this payload onto another SFTP pane prepares a remote copy to its current browser directory. Dropping onto an SSH pane uses the same remote-copy planner with the terminal's reported directory and SSH upload gates. Invalid/missing source tokens fail. Same-host copies into the source itself or a directory's descendants are rejected. Cross-host copies use the transfer coordinator's remote-copy path, with no local promised-file download/upload round trip.
+Dropping this payload onto another SFTP pane prepares a remote copy to its current browser directory. Dropping onto an SSH pane uses the same remote-copy planner with the terminal's reported directory and SSH upload-availability checks. Invalid/missing source tokens fail. Same-host copies into the source itself or a directory's descendants are rejected. Cross-host copies use the transfer coordinator's remote-copy path, with no local promised-file download/upload round trip.
 
 These are the concrete file routes currently wired for terminal/SFTP interaction: **SFTP → SSH and SFTP → SFTP**. The SSH terminal adapter is a receiver here; it does not publish a corresponding private remote-file drag source. Dragging terminal text or moving an SSH Pane is a different interaction, and should not be documented as a reverse SSH → SFTP file-copy implementation. TFI has remote-copy commands, but its Workspace drag loader handles local provider files rather than the desktop private SFTP token.
 
