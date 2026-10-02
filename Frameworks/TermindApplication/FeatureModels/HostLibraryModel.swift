@@ -1932,8 +1932,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     /// OpenSSH equivalent when the route needs no in-process Proxy. Passwords,
     /// private keys, and proxy credentials never enter the clipboard.
-    public func sshCommand(for host: Host) -> String? {
-        sshCommand(for: host, additionalArguments: [])
+    public func sshCommand(for host: Host, username: String? = nil) -> String? {
+        sshCommand(for: host, additionalArguments: [], username: username)
     }
 
     public func telnetCommand(for host: Host) -> String {
@@ -1967,7 +1967,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return sshCommand(for: destination, additionalArguments: arguments)
     }
 
-    private func sshCommand(for destination: Host, additionalArguments: [String]) -> String? {
+    private func sshCommand(
+        for destination: Host, additionalArguments: [String], username: String? = nil
+    ) -> String? {
         guard destination.sshEnabled, let route = validatedRoute(for: destination),
             route.allSatisfy({ $0.proxy == nil })
         else { return nil }
@@ -1984,7 +1986,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         arguments.append(
             Self.openSSHAddress(
                 host: destination.host, port: 22,
-                username: identity(for: destination)?.username, bracketsIPv6: false
+                username: username
+                    ?? (destination.isTailscaleManaged
+                        ? savedTailscaleUsername(for: destination) : identity(for: destination)?.username),
+                bracketsIPv6: false
             )
         )
         let suffix = arguments.map(Self.shellQuoted).joined(separator: " ")

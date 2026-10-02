@@ -455,6 +455,23 @@ struct TailscaleIntegrationTests {
         #expect(library.identities.isEmpty)
     }
 
+    @Test func sshCommandUsesTailscaleUsernameAndPreviewsUnsavedEdits() throws {
+        let group = try group("example.ts.net")
+        let library = HostLibraryModel(groups: [group])
+        library.replaceTailscalePeers([peer()], groupID: group.id)
+        let host = try #require(library.hosts.first)
+
+        #expect(library.sshCommand(for: host) == "ssh operator@server.example.ts.net")
+        #expect(library.saveTailscaleUsername("deploy", hostID: host.id))
+        #expect(library.sshCommand(for: host) == "ssh deploy@server.example.ts.net")
+        #expect(
+            library.sshCommand(for: host, username: " o'brien ")
+                == "ssh 'o'\"'\"'brien@server.example.ts.net'")
+        #expect(library.sshCommand(for: host, username: "") == "ssh server.example.ts.net")
+        #expect(library.savedTailscaleUsername(for: host) == "deploy")
+        #expect(library.identities.isEmpty)
+    }
+
     @Test func hostnamePersistsLocallyAndEditsReachTheRunningNode() async throws {
         let group = try group("example.ts.net")
         let library = HostLibraryModel(groups: [group])

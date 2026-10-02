@@ -1013,6 +1013,54 @@ struct WindowStateTests {
         #expect(window.vaultWorkRoute == .hostEditor(host.id, groupID: nil))
     }
 
+    @Test(arguments: [false, true])
+    func tailscaleDetailsFollowEligibleHostsAndCloseForAnOrdinaryHost(_ isManaged: Bool) {
+        let first = Host(name: "First", host: "first.example")
+        var second = Host(name: "Second", host: "second.example")
+        if isManaged {
+            second.tailscale = TailscaleHostReference(groupID: UUID(), stableNodeID: "second")
+        }
+        let window = WindowModel()
+        window.openVaultWork(.tailscaleDetails(first.id), on: .hosts)
+
+        window.updateTailscaleDetails(for: second, hasPeer: !isManaged)
+        #expect(window.vaultWorkRoute == .tailscaleDetails(second.id))
+
+        window.updateTailscaleDetails(for: first, hasPeer: false)
+        #expect(window.vaultWorkRoute == nil)
+        #expect(window.vaultDestination == .hosts)
+
+        window.updateTailscaleDetails(for: second, hasPeer: true)
+        #expect(window.vaultWorkRoute == nil)
+    }
+
+    @Test
+    func clearingTailscaleSelectionClosesDetailsWithoutAffectingOtherEditors() {
+        let host = Host(name: "Server", host: "server.example")
+        let window = WindowModel()
+        window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
+
+        window.updateTailscaleDetails(for: nil, hasPeer: false)
+        #expect(window.vaultWorkRoute == nil)
+
+        window.openHostEditor(host: host)
+        window.updateTailscaleDetails(for: nil, hasPeer: false)
+        #expect(window.vaultWorkRoute == .hostEditor(host.id))
+    }
+
+    @Test
+    func deletingTheDisplayedTailscaleHostClosesDetails() {
+        let host = Host(name: "Server", host: "server.example")
+        let window = WindowModel()
+        window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
+
+        window.closeWorkspaces(for: UUID())
+        #expect(window.vaultWorkRoute == .tailscaleDetails(host.id))
+
+        window.closeWorkspaces(for: host.id)
+        #expect(window.vaultWorkRoute == nil)
+    }
+
     @Test
     func changingVaultPageClosesRightColumnWork() {
         let window = WindowModel(vaultDestination: .hosts)

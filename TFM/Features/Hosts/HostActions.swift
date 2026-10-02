@@ -71,7 +71,7 @@ struct HostContextMenu: View {
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             }
-            if showsDuplicate && !host.isTailscaleManaged {
+            if showsDuplicate {
                 Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
                     var copy = host
                     if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
@@ -92,6 +92,7 @@ struct HostContextMenu: View {
                     copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
                     app.hostLibrary.upsert(copy)
                 }
+                .disabled(host.isTailscaleManaged)
             }
             Divider()
         }

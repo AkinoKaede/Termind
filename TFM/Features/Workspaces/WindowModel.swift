@@ -1051,6 +1051,16 @@ final class WindowModel {
         )
     }
 
+    /// An open Tailscale form follows a single eligible host selection.
+    func updateTailscaleDetails(for host: Host?, hasPeer: Bool) {
+        guard case .tailscaleDetails = vaultWorkRoute else { return }
+        guard let host, host.isTailscaleManaged || hasPeer else {
+            closeVaultWork()
+            return
+        }
+        vaultWorkRoute = .tailscaleDetails(host.id)
+    }
+
     // MARK: - Combining
 
     /// Folds every pane of `source` into `target` beside a named pane, on a named
@@ -1478,10 +1488,13 @@ final class WindowModel {
     func closeWorkspaces(for hostID: Host.ID) {
         let paneIDs = workspaces.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
         for paneID in paneIDs { closePane(paneID) }
-        if case .hostEditor(let editingID, _) = vaultWorkRoute,
-            editingID == hostID
-        {
+        switch vaultWorkRoute {
+        case .hostEditor(let editingID, _) where editingID == hostID:
             closeVaultWork()
+        case .tailscaleDetails(let detailID) where detailID == hostID:
+            closeVaultWork()
+        default:
+            break
         }
     }
 

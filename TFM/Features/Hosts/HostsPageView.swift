@@ -305,6 +305,8 @@ struct HostsPageView: ManagedCardPage {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
         let ordered = visibleHosts.filter { valid.contains($0.id) }.map { VaultSelectionID.host($0.id) }
         window.setVaultSelection(ordered, for: .hosts)
+        let host = ordered.count == 1 ? ordered.first?.hostID.flatMap(app.hostLibrary.host) : nil
+        window.updateTailscaleDetails(for: host, hasPeer: host.flatMap(app.tailscale.peer) != nil)
     }
 
     private func pruneHostSelection() {

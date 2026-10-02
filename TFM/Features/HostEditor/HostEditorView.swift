@@ -324,9 +324,11 @@ struct HostEditorView: View {
                 }
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
 
-                if !draft.isTailscaleManaged && !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Section(AppStrings.Vault.sshCommand.swiftUIKey) {
-                        if let command = app.hostLibrary.sshCommand(for: draft) {
+                        if let command = app.hostLibrary.sshCommand(
+                            for: draft, username: draft.isTailscaleManaged ? tailscaleUsername : nil)
+                        {
                             HStack(spacing: Metrics.Space.s) {
                                 Text(command)
                                     .font(.caption.monospaced())
