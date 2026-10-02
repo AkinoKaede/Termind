@@ -292,7 +292,7 @@ private struct ExternalSecretRequestForm: View {
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(AppStrings.Common.continue.swiftUIKey) { submitSecret() }
-                    .buttonStyle(.borderedProminent)
+                    .transcriptProminentButtonStyle()
                     .keyboardShortcut(.defaultAction)
                     .disabled(secret.isEmpty || question == nil)
             }

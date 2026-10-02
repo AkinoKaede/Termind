@@ -26,7 +26,7 @@ struct MobileAssistantTests {
             ]))
         let shortHeight = measuredInteractionHeight(
             conversation: shortAssistant.conversation,
-            hosts: shortApp.library,
+            hosts: shortApp.library, speech: shortAssistant.speech,
             availableHeight: availableHeight
         )
 
@@ -50,7 +50,7 @@ struct MobileAssistantTests {
             ]))
         let longHeight = measuredInteractionHeight(
             conversation: longAssistant.conversation,
-            hosts: longApp.library,
+            hosts: longApp.library, speech: longAssistant.speech,
             availableHeight: availableHeight
         )
 
@@ -95,7 +95,7 @@ struct MobileAssistantTests {
         let availableHeight: CGFloat = 640
         let height = measuredInteractionHeight(
             conversation: conversation,
-            hosts: app.library,
+            hosts: app.library, speech: app.assistant.speech,
             availableHeight: availableHeight
         )
 
@@ -640,11 +640,12 @@ struct MobileAssistantTests {
     private func measuredInteractionHeight(
         conversation: ConversationModel,
         hosts: HostLibraryModel,
+        speech: SpeechTranscriptionCoordinator,
         width: CGFloat = 390,
         availableHeight: CGFloat = 1_000
     ) -> CGFloat {
         let controller = UIHostingController(
-            rootView: MobileAssistantInteraction(conversation: conversation, hosts: hosts)
+            rootView: MobileAssistantInteraction(conversation: conversation, hosts: hosts, speech: speech)
                 .environment(\.dynamicTypeSize, .large)
         )
         return controller.sizeThatFits(in: CGSize(width: width, height: availableHeight)).height

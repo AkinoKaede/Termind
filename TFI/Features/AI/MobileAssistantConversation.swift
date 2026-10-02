@@ -498,7 +498,7 @@ struct MobileAssistantConversation: View {
                         .stroke(.primary.opacity(0.08), lineWidth: 1)
                 }
         } else if conversation.pendingApproval != nil || conversation.pendingUserInteraction != nil {
-            MobileAssistantInteraction(conversation: conversation, hosts: app.library)
+            MobileAssistantInteraction(conversation: conversation, hosts: app.library, speech: model.speech)
         } else {
             regularInteractionSurface
         }

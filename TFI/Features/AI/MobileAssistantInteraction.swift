@@ -8,8 +8,11 @@ struct MobileAssistantInteraction: View {
     @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
+    let speech: SpeechTranscriptionCoordinator
+    @State var speechSession = UserInputSpeechSession()
     @FocusState private var focusedInput: InputFocus?
     @Environment(\.locale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var expandedApprovalID: UUID?
 
     private enum InputFocus: Hashable {
@@ -162,6 +165,25 @@ struct MobileAssistantInteraction: View {
                 footer(for: question)
             }
         }
+        .onChange(of: conversation.id) { _, _ in speechSession.cancel() }
+        .onChange(of: conversation.pendingUserInput?.id) { _, _ in speechSession.cancel() }
+        .onChange(of: conversation.currentUserInputQuestion?.id) { _, _ in speechSession.cancel() }
+        .onDisappear { speechSession.cancel() }
+        .alert(
+            speechSession.error?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
+            isPresented: Binding(
+                get: { speechSession.error != nil },
+                set: { if !$0 { speechSession.dismissError() } })
+        ) {
+            if speechSession.error?.offersSystemSettings == true {
+                Button(AppStrings.Navigation.settings.swiftUIKey) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                }
+            }
+            Button(AppStrings.Common.ok.swiftUIKey) { speechSession.dismissError() }
+        } message: {
+            Text(speechSession.error?.message ?? "")
+        }
     }
 
     private func scrollingQuestion(_ question: AgentUserQuestion) -> some View {
@@ -221,7 +243,7 @@ struct MobileAssistantInteraction: View {
     }
 
     private func textField(for question: AgentUserQuestion) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: "text.cursor")
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
@@ -231,10 +253,12 @@ struct MobileAssistantInteraction: View {
                 .focused($focusedInput, equals: .text(question.id))
                 .submitLabel(isLastQuestion ? .done : .next)
                 .onSubmit { advanceFromKeyboard(question.id) }
+                .disabled(speechSession.isActive)
+            speechControls(for: .text(question.id))
         }
         .questionInputSurface()
         .contentShape(.rect)
-        .onTapGesture { focusedInput = .text(question.id) }
+        .onTapGesture { if !speechSession.isActive { focusedInput = .text(question.id) } }
     }
 
     private func choiceList(_ choice: AgentUserInputChoice, in questionID: String) -> some View {
@@ -294,6 +318,7 @@ struct MobileAssistantInteraction: View {
         }
         .buttonStyle(.plain)
         .hoverEffect(.highlight)
+        .disabled(speechSession.isActive)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -311,13 +336,15 @@ struct MobileAssistantInteraction: View {
                 .focused($focusedInput, equals: .custom(questionID))
                 .submitLabel(isLastQuestion ? .done : .next)
                 .onSubmit { advanceFromKeyboard(questionID) }
+                .disabled(speechSession.isActive)
+            speechControls(for: .custom(questionID))
         }
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .questionOptionSurface(isSelected: isSelected)
         .contentShape(.rect)
-        .onTapGesture { focusedInput = .custom(questionID) }
+        .onTapGesture { if !speechSession.isActive { focusedInput = .custom(questionID) } }
     }
 
     @ViewBuilder
@@ -333,17 +360,18 @@ struct MobileAssistantInteraction: View {
         VStack(spacing: 8) {
             Divider()
             ViewThatFits(in: .horizontal) {
-                wideFooter(for: question)
+                wideFooter(for: question, compactProgress: horizontalSizeClass == .compact)
+                wideFooter(for: question, compactProgress: true)
                 compactFooter(for: question)
             }
         }
     }
 
-    private func wideFooter(for question: AgentUserQuestion) -> some View {
+    private func wideFooter(for question: AgentUserQuestion, compactProgress: Bool) -> some View {
         HStack(spacing: 10) {
             leadingActions
                 .frame(maxWidth: .infinity, alignment: .leading)
-            questionProgress
+            questionProgress(compact: compactProgress)
             trailingActions(for: question)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -352,7 +380,7 @@ struct MobileAssistantInteraction: View {
     private func compactFooter(for question: AgentUserQuestion) -> some View {
         VStack(spacing: 4) {
             HStack {
-                questionProgress
+                questionProgress(compact: true)
                 Spacer(minLength: 8)
                 if conversation.canSkipUserInputQuestion {
                     skipButton
@@ -368,13 +396,20 @@ struct MobileAssistantInteraction: View {
 
     private var leadingActions: some View {
         HStack(spacing: 10) {
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { conversation.cancelUserInput() }
-                .keyboardShortcut(MobileShortcut.formCancel)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {
+                speechSession.cancel()
+                conversation.cancelUserInput()
+            }
+            .keyboardShortcut(MobileShortcut.formCancel)
             if conversation.currentUserInputQuestionIndex > 0 {
-                Button(AppStrings.Common.back.swiftUIKey) { conversation.previousUserInputQuestion() }
+                Button(AppStrings.Common.back.swiftUIKey) {
+                    speechSession.cancel()
+                    conversation.previousUserInputQuestion()
+                }
             }
         }
         .frame(minHeight: 44)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private func trailingActions(for question: AgentUserQuestion) -> some View {
@@ -388,7 +423,11 @@ struct MobileAssistantInteraction: View {
     }
 
     private var skipButton: some View {
-        Button(AppStrings.Common.skip.swiftUIKey) { conversation.skipUserInputQuestion() }
+        Button(AppStrings.Common.skip.swiftUIKey) {
+            speechSession.cancel()
+            conversation.skipUserInputQuestion()
+        }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private func primaryButton(for question: AgentUserQuestion) -> some View {
@@ -397,19 +436,26 @@ struct MobileAssistantInteraction: View {
         }
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(MobileShortcut.formDefault)
-        .disabled(!conversation.canAdvanceUserInput)
+        .disabled(!conversation.canAdvanceUserInput || speechSession.isActive)
         .fixedSize(horizontal: true, vertical: false)
     }
 
-    private var questionProgress: some View {
-        Text(
-            AppStrings.Assistant.questionOf(
-                current: conversation.currentUserInputQuestionIndex + 1,
-                total: conversation.pendingUserInput?.questions.count ?? 0)
-        )
-        .font(.caption.monospacedDigit())
-        .foregroundStyle(.secondary)
-        .fixedSize()
+    @ViewBuilder
+    private func questionProgress(compact: Bool) -> some View {
+        let total = conversation.pendingUserInput?.questions.count ?? 0
+        let current = conversation.currentUserInputQuestionIndex + 1
+        if total > 1 {
+            Group {
+                if compact {
+                    Text("\(current) / \(total)")
+                } else {
+                    Text(AppStrings.Assistant.questionOf(current: current, total: total))
+                }
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .fixedSize()
+        }
     }
 
     private var isLastQuestion: Bool {
@@ -418,7 +464,7 @@ struct MobileAssistantInteraction: View {
     }
 
     private func advanceFromKeyboard(_ questionID: String) {
-        guard conversation.currentUserInputQuestion?.id == questionID,
+        guard !speechSession.isActive, conversation.currentUserInputQuestion?.id == questionID,
             conversation.canAdvanceUserInput
         else { return }
         conversation.advanceUserInputQuestion()
@@ -430,6 +476,21 @@ struct MobileAssistantInteraction: View {
         } else {
             isSelected ? "largecircle.fill.circle" : "circle"
         }
+    }
+
+    private func speechControls(for focus: InputFocus) -> some View {
+        UserInputSpeechControls(
+            isActive: speechSession.isActive, isRecording: speechSession.isRecording,
+            canStart: speech.canStart(for: speechSession.ownerID),
+            start: {
+                focusedInput = nil
+                speechSession.start(coordinator: speech, conversation: conversation) { focusedInput = focus }
+            },
+            cancel: {
+                speechSession.cancel()
+                focusedInput = focus
+            }, stop: speechSession.stop
+        )
     }
 
     private func answer(_ id: String) -> Binding<String> {

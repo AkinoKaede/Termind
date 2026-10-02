@@ -7,13 +7,6 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
-extension View {
-    fileprivate func transcriptProminentButtonStyle() -> some View {
-        buttonStyle(.borderedProminent)
-            .foregroundStyle(TermindColor.transcriptProminentForeground)
-    }
-}
-
 private struct ConversationAttachmentDropModifier: ViewModifier {
     let conversation: ConversationModel
     let isEnabled: Bool
@@ -558,10 +551,14 @@ private struct AgentSSHHostKeyCard: View {
 /// label and not a default, so that an answer always takes a deliberate click.
 /// A question may also be explicitly skipped: the tool reports that as a null
 /// and the model decides it itself.
-private struct AgentUserInputCard: View {
+struct AgentUserInputCard: View {
     let request: AgentUserInputRequest
     let conversation: ConversationModel
     var isCompact = false
+
+    @Environment(AppModel.self) private var app
+    @State var speechSession = UserInputSpeechSession()
+    @FocusState private var focusedQuestionID: String?
 
     private var isLastQuestion: Bool {
         conversation.currentUserInputQuestionIndex == request.questions.count - 1
@@ -587,10 +584,27 @@ private struct AgentUserInputCard: View {
             footer
         }
         .activeFormKeyboardActions(
-            isDefaultEnabled: conversation.canAdvanceUserInput,
-            onDefault: conversation.advanceUserInputQuestion,
-            onCancel: conversation.cancelUserInput
+            isDefaultEnabled: conversation.canAdvanceUserInput && !speechSession.isActive,
+            onDefault: advanceQuestion,
+            onCancel: cancelRequest
         )
+        .onChange(of: conversation.id) { _, _ in speechSession.cancel() }
+        .onChange(of: conversation.pendingUserInput?.id) { _, _ in speechSession.cancel() }
+        .onChange(of: conversation.currentUserInputQuestion?.id) { _, _ in speechSession.cancel() }
+        .onDisappear { speechSession.cancel() }
+        .alert(
+            speechSession.error?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
+            isPresented: Binding(
+                get: { speechSession.error != nil },
+                set: { if !$0 { speechSession.dismissError() } })
+        ) {
+            if speechSession.error?.offersSystemSettings == true {
+                Button(AppStrings.Assistant.openSystemSettings.swiftUIKey) { openSpeechSettings() }
+            }
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { speechSession.dismissError() }
+        } message: {
+            Text(speechSession.error?.message ?? "")
+        }
     }
 
     @ViewBuilder
@@ -605,10 +619,13 @@ private struct AgentUserInputCard: View {
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
             HStack(spacing: Metrics.Space.s) {
-                Button(AppStrings.Common.cancel.swiftUIKey) { conversation.cancelUserInput() }
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelRequest)
                     .keyboardShortcut(.cancelAction)
                 if conversation.currentUserInputQuestionIndex > 0 {
-                    Button(AppStrings.Common.back.swiftUIKey) { conversation.previousUserInputQuestion() }
+                    Button(AppStrings.Common.back.swiftUIKey) {
+                        speechSession.cancel()
+                        conversation.previousUserInputQuestion()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -620,14 +637,17 @@ private struct AgentUserInputCard: View {
 
             HStack(spacing: Metrics.Space.s) {
                 if conversation.canSkipUserInputQuestion {
-                    Button(AppStrings.Common.skip.swiftUIKey) { conversation.skipUserInputQuestion() }
+                    Button(AppStrings.Common.skip.swiftUIKey) {
+                        speechSession.cancel()
+                        conversation.skipUserInputQuestion()
+                    }
                 }
                 Button(isLastQuestion ? AppStrings.Common.submit.swiftUIKey : AppStrings.Common.next.swiftUIKey) {
-                    conversation.advanceUserInputQuestion()
+                    advanceQuestion()
                 }
                 .transcriptProminentButtonStyle()
                 .keyboardShortcut(.defaultAction)
-                .disabled(!conversation.canAdvanceUserInput)
+                .disabled(!conversation.canAdvanceUserInput || speechSession.isActive)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -636,10 +656,12 @@ private struct AgentUserInputCard: View {
     @ViewBuilder
     private var questionProgress: some View {
         let current = conversation.currentUserInputQuestionIndex + 1
-        if isCompact {
-            Text("\(current) / \(request.questions.count)")
-        } else {
-            Text(AppStrings.Assistant.questionOf(current: current, total: request.questions.count))
+        if request.questions.count > 1 {
+            if isCompact {
+                Text("\(current) / \(request.questions.count)")
+            } else {
+                Text(AppStrings.Assistant.questionOf(current: current, total: request.questions.count))
+            }
         }
     }
 
@@ -663,8 +685,7 @@ private struct AgentUserInputCard: View {
             case .choice(let choice):
                 choiceList(choice, in: question.id)
             case .text:
-                TextField(AppStrings.Assistant.answer.swiftUIKey, text: customBinding(for: question.id))
-                    .textFieldStyle(.roundedBorder)
+                answerField(String(localized: AppStrings.Assistant.answer), questionID: question.id)
             }
         }
     }
@@ -718,6 +739,7 @@ private struct AgentUserInputCard: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .disabled(speechSession.isActive)
     }
 
     /// The escape hatch, sitting in the list as one more choice rather than
@@ -730,12 +752,60 @@ private struct AgentUserInputCard: View {
                 .foregroundStyle(typed.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .frame(width: Metrics.Sidebar.rowIcon)
 
-            TextField(
+            answerField(
                 choice.customPlaceholder.isEmpty
                     ? String(localized: AppStrings.Assistant.otherAnswer) : choice.customPlaceholder,
-                text: customBinding(for: questionID)
+                questionID: questionID
             )
-            .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private func answerField(_ placeholder: String, questionID: String) -> some View {
+        HStack(spacing: Metrics.Space.xs) {
+            TextField(placeholder, text: customBinding(for: questionID))
+                .textFieldStyle(.plain)
+                .focused($focusedQuestionID, equals: questionID)
+                .disabled(speechSession.isActive)
+            UserInputSpeechControls(
+                isActive: speechSession.isActive, isRecording: speechSession.isRecording,
+                canStart: app.speechTranscription.canStart(for: speechSession.ownerID),
+                start: {
+                    focusedQuestionID = nil
+                    speechSession.start(coordinator: app.speechTranscription, conversation: conversation) {
+                        focusedQuestionID = questionID
+                    }
+                },
+                cancel: {
+                    speechSession.cancel()
+                    focusedQuestionID = questionID
+                }, stop: speechSession.stop
+            )
+        }
+        .padding(.leading, Metrics.Space.s)
+        .background(.background, in: .rect(cornerRadius: 5))
+        .overlay {
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(.secondary.opacity(0.25))
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func advanceQuestion() {
+        guard !speechSession.isActive else { return }
+        conversation.advanceUserInputQuestion()
+    }
+
+    private func cancelRequest() {
+        speechSession.cancel()
+        conversation.cancelUserInput()
+    }
+
+    private func openSpeechSettings() {
+        let anchor =
+            speechSession.error?.code == .speechPermissionDenied
+            ? "Privacy_SpeechRecognition" : "Privacy_Microphone"
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") {
+            NSWorkspace.shared.open(url)
         }
     }
 

@@ -3387,6 +3387,29 @@ public final class ConversationModel: Identifiable {
         updateToolCard(id) { $0.state = state }
     }
 
+    func acceptsUserInputTranscription(requestID: UUID, questionID: String) -> Bool {
+        guard !isArchived, pendingUserInput?.id == requestID,
+            let question = currentUserInputQuestion, question.id == questionID
+        else { return false }
+        switch question.kind {
+        case .text: return true
+        case .choice(let choice): return choice.allowsCustomAnswer
+        case .secret: return false
+        }
+    }
+
+    /// Speech is an answer draft, never a chat message or an implicit submission.
+    @discardableResult
+    public func applyUserInputTranscription(_ transcript: String, requestID: UUID, questionID: String) -> Bool {
+        guard acceptsUserInputTranscription(requestID: requestID, questionID: questionID) else { return false }
+        let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return false }
+        let draft = userInputDraft(for: questionID).text
+        let separator = draft.isEmpty || draft.last?.isWhitespace == true ? "" : " "
+        setUserInputCustomAnswer(draft + separator + cleaned, for: questionID)
+        return true
+    }
+
     /// Adds a final speech-recognition result without disturbing text the user
     /// already wrote. The callback keeps the standalone composer and the
     /// sidebar's "promote draft to conversation" path on the same behavior.
