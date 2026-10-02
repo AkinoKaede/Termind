@@ -25,6 +25,8 @@ import struct TermindDomain.Host
 private final class WorkspaceCommandGeneratorStub: CommandGenerating {
     var command: String
     var delay: Duration?
+    var ignoresCancellation = false
+    private(set) var didFinish = false
     private(set) var contexts: [CommandGeneratorContext] = []
 
     init(command: String, delay: Duration? = nil) {
@@ -34,7 +36,14 @@ private final class WorkspaceCommandGeneratorStub: CommandGenerating {
 
     func generate(_ context: CommandGeneratorContext) async throws -> String {
         contexts.append(context)
-        if let delay { try await Task.sleep(for: delay) }
+        if let delay {
+            if ignoresCancellation {
+                try? await Task.sleep(for: delay)
+            } else {
+                try await Task.sleep(for: delay)
+            }
+        }
+        didFinish = true
         return command
     }
 }
@@ -220,8 +229,8 @@ struct BroadcastInputTests {
         #expect(!capture.classifyWrite())
     }
 
-    @Test
-    func commandGeneratorReadsAndReplacesOnlyFocusedSessionWithoutBroadcast() async throws {
+    @Test(arguments: [nil, "", "error: missing file\n  中文 😀\n\n"] as [String?])
+    func commandGeneratorReadsAndReplacesOnlyFocusedSessionWithoutBroadcast(_ screen: String?) async throws {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         focus(firstSSHSession, in: workspace)
         try await Task.sleep(for: .milliseconds(20))
@@ -245,16 +254,24 @@ struct BroadcastInputTests {
         secondSSHSession.inputSink = { secondWrites.append($0) }
         let generator = WorkspaceCommandGeneratorStub(command: "ls -la")
 
-        workspace.generateFocusedCommand(using: generator)
+        var viewportReads = 0
+        workspace.generateFocusedCommand(using: generator) { session in
+            #expect(session === firstSSHSession)
+            #expect(firstWrites.isEmpty)
+            viewportReads += 1
+            return screen
+        }
         try await waitUntil { workspace.commandGeneratorState == .inserted(targetCount: 1) }
 
         #expect(
             generator.contexts == [
                 .init(
                     draft: "show hidden files", shell: "zsh", cwd: "/srv/app",
-                    remoteSystemInfo: systemInfo
+                    remoteSystemInfo: systemInfo,
+                    viewport: screen.map { .init(text: $0) }
                 )
             ])
+        #expect(viewportReads == 1)
         #expect(firstWrites.first == Data("\u{1B}[777;1~".utf8))
         let replacement = try #require(firstWrites.last)
         #expect(replacement == replacementPayload(command: "ls -la"))
@@ -284,12 +301,19 @@ struct BroadcastInputTests {
         secondSSHSession.inputSink = { secondWrites.append($0) }
         let generator = WorkspaceCommandGeneratorStub(command: "find . -type f -size +1M")
 
-        workspace.generateFocusedCommand(using: generator)
+        var readSessions: [SSHSessionModel.ID] = []
+        workspace.generateFocusedCommand(using: generator) { session in
+            readSessions.append(session.id)
+            #expect(firstWrites.isEmpty && secondWrites.isEmpty)
+            return session === firstSSHSession ? "focused output" : "other output"
+        }
         try await waitUntil { workspace.commandGeneratorState == .inserted(targetCount: 2) }
 
         #expect(generator.contexts.count == 1)
         #expect(generator.contexts.first?.shell == "bash")
         #expect(generator.contexts.first?.cwd == "/tmp")
+        #expect(readSessions == [firstSSHSession.id])
+        #expect(generator.contexts.first?.viewport?.text == "focused output")
         #expect(firstWrites.count == 2)
         #expect(secondWrites == [replacementPayload(command: generator.command)])
         #expect(firstWrites.last == secondWrites.last)
@@ -318,12 +342,15 @@ struct BroadcastInputTests {
         }
     }
 
-    @Test
-    func programmaticInputCancelsGenerationWithoutReplacingTheDraft() async throws {
-        let workspace = Workspace.sshSession(
-            host: Host(name: "host", host: "host.example")
-        )
-        let sshSession = workspace.focusedPane.sshSession!
+    enum GenerationInterruption: CaseIterable, Sendable {
+        case input, focus, disconnect, cancel
+    }
+
+    @Test(arguments: GenerationInterruption.allCases)
+    func interruptionDiscardsLateGenerationWithoutReplacingTheDraft(_ interruption: GenerationInterruption) async throws
+    {
+        let (workspace, sshSession, otherSession) = makeTwoSSHSessionWorkspace()
+        focus(sshSession, in: workspace)
         try await Task.sleep(for: .milliseconds(20))
         prepareForCommandGenerator(sshSession, cwd: "/tmp", shell: "bash")
         var writes: [Data] = []
@@ -338,17 +365,23 @@ struct BroadcastInputTests {
         let generator = WorkspaceCommandGeneratorStub(
             command: "ls", delay: .seconds(30)
         )
+        generator.ignoresCancellation = true
 
-        workspace.generateFocusedCommand(using: generator)
+        workspace.generateFocusedCommand(using: generator, readViewport: { _ in "original screen" })
         try await waitUntil { workspace.commandGeneratorState == .generating }
-        sshSession.insert("new draft")
-        try await Task.sleep(for: .milliseconds(20))
+        switch interruption {
+        case .input: sshSession.insert("new draft")
+        case .focus: focus(otherSession, in: workspace)
+        case .disconnect: sshSession.disconnect()
+        case .cancel: workspace.cancelCommandGeneration()
+        }
+        try await waitUntil { generator.didFinish }
 
         #expect(workspace.commandGeneratorState == .idle)
-        #expect(
-            writes == [
-                Data("\u{1B}[777;1~".utf8), Data("new draft".utf8),
-            ])
+        let expected =
+            [Data("\u{1B}[777;1~".utf8)]
+            + (interruption == .input ? [Data("new draft".utf8)] : [])
+        #expect(writes == expected)
     }
 
     #if canImport(AppKit)

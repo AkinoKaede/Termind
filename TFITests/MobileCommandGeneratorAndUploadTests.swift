@@ -14,6 +14,8 @@ import struct TermindDomain.Host
 private final class MobileCommandGeneratorStub: CommandGenerating {
     var command: String
     var delay: Duration?
+    var ignoresCancellation = false
+    private(set) var didFinish = false
     private(set) var contexts: [CommandGeneratorContext] = []
 
     init(command: String, delay: Duration? = nil) {
@@ -23,7 +25,14 @@ private final class MobileCommandGeneratorStub: CommandGenerating {
 
     func generate(_ context: CommandGeneratorContext) async throws -> String {
         contexts.append(context)
-        if let delay { try await Task.sleep(for: delay) }
+        if let delay {
+            if ignoresCancellation {
+                try? await Task.sleep(for: delay)
+            } else {
+                try await Task.sleep(for: delay)
+            }
+        }
+        didFinish = true
         return command
     }
 }
@@ -201,7 +210,8 @@ struct MobileCommandGeneratorTests {
         )
     }
 
-    @Test func readsTheCurrentDraftAndInsertsWithoutExecuting() async throws {
+    @Test(arguments: [nil, "", "error: missing file\n  中文 😀\n\n"] as [String?])
+    func readsTheCurrentDraftAndInsertsWithoutExecuting(_ screen: String?) async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
         connections.draft = "show hidden files"
@@ -227,7 +237,13 @@ struct MobileCommandGeneratorTests {
         #expect(await eventually { workspace.canGenerateFromCurrentDraft })
         let generator = MobileCommandGeneratorStub(command: "ls -la")
 
-        workspace.generateCommand(using: generator)
+        var viewportReads = 0
+        workspace.generateCommand(using: generator) { source in
+            #expect(source === workspace)
+            #expect(connections.writes.isEmpty)
+            viewportReads += 1
+            return screen
+        }
 
         #expect(await eventually { workspace.commandGeneratorState == .inserted(targetCount: 1) })
         #expect(
@@ -236,10 +252,12 @@ struct MobileCommandGeneratorTests {
                     draft: "show hidden files",
                     shell: "zsh",
                     cwd: "/srv/app",
-                    remoteSystemInfo: systemInfo
+                    remoteSystemInfo: systemInfo,
+                    viewport: screen.map { .init(text: $0) }
                 )
             ]
         )
+        #expect(viewportReads == 1)
         #expect(connections.writes.first == Data("\u{1B}[777;1~".utf8))
         #expect(
             connections.writes.last
@@ -371,7 +389,12 @@ struct MobileCommandGeneratorTests {
         #expect(workspace.pendingInitialCommand == nil)
     }
 
-    @Test func newTerminalInputCancelsAnInFlightGeneration() async throws {
+    enum GenerationInterruption: CaseIterable, Sendable {
+        case input, disconnect, cancel
+    }
+
+    @Test(arguments: GenerationInterruption.allCases)
+    func interruptionDiscardsLateGeneration(_ interruption: GenerationInterruption) async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
         let workspace = MobileWorkspace(
@@ -389,11 +412,17 @@ struct MobileCommandGeneratorTests {
         ])
         #expect(await eventually { workspace.canGenerateFromCurrentDraft })
         let generator = MobileCommandGeneratorStub(command: "ls", delay: .seconds(30))
-        workspace.generateCommand(using: generator)
+        generator.ignoresCancellation = true
+        workspace.generateCommand(using: generator, readViewport: { _ in "original screen" })
         #expect(await eventually { workspace.commandGeneratorState == .generating })
 
-        await workspace.receiveInteractiveTerminalInput(Data("new draft".utf8))
+        switch interruption {
+        case .input: await workspace.receiveInteractiveTerminalInput(Data("new draft".utf8))
+        case .disconnect: workspace.disconnect()
+        case .cancel: workspace.cancelCommandGeneration()
+        }
 
+        #expect(await eventually { generator.didFinish })
         #expect(await eventually { workspace.commandGeneratorState == .idle })
         #expect(!connections.writes.contains(Data("\u{1B}[777;2~\u{1B}[200~ls\u{1B}[201~".utf8)))
     }

@@ -267,7 +267,10 @@ final class Workspace: Identifiable {
         }
     }
 
-    func generateFocusedCommand(using controller: any CommandGenerating) {
+    func generateFocusedCommand(
+        using controller: any CommandGenerating,
+        readViewport: @MainActor (SSHSessionModel) -> String? = { $0.terminalViewOwner.readViewportText() }
+    ) {
         if commandGeneration.isRunning {
             cancelCommandGeneration()
             return
@@ -292,6 +295,8 @@ final class Workspace: Identifiable {
             return
         }
 
+        // Capture before the shell draft request can redraw or scroll the terminal.
+        let viewport = readViewport(origin).map { CommandGeneratorContext.Viewport(text: $0) }
         let targetIDs = targets.map(\.id)
         let revisions = Dictionary(
             uniqueKeysWithValues: targets.map {
@@ -305,7 +310,7 @@ final class Workspace: Identifiable {
                 let draft = try await origin.requestCurrentDraft()
                 return CommandGeneratorContext(
                     draft: draft, shell: shell, cwd: cwd,
-                    remoteSystemInfo: origin.remoteSystemInfo
+                    remoteSystemInfo: origin.remoteSystemInfo, viewport: viewport
                 )
             },
             isCurrent: { [weak self] in

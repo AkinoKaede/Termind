@@ -421,7 +421,10 @@ final class MobileWorkspace: Identifiable {
         terminal.requestFocus()
     }
 
-    func generateCommand(using generator: any CommandGenerating) {
+    func generateCommand(
+        using generator: any CommandGenerating,
+        readViewport: @MainActor (MobileWorkspace) -> String? = { $0.readViewportText() }
+    ) {
         if commandGeneration.isRunning {
             cancelCommandGeneration()
             return
@@ -442,6 +445,8 @@ final class MobileWorkspace: Identifiable {
             return
         }
 
+        // Capture before the shell draft request can redraw or scroll the terminal.
+        let viewport = readViewport(self).map { CommandGeneratorContext.Viewport(text: $0) }
         let connectionGeneration = generation
         let revision = commandGeneratorRevision
         let includesSystemInfo = isShellIntegrationEnabled
@@ -454,7 +459,8 @@ final class MobileWorkspace: Identifiable {
                     draft: draft,
                     shell: integratedShell,
                     cwd: workingDirectory,
-                    remoteSystemInfo: includesSystemInfo ? remoteSystemInfo : nil
+                    remoteSystemInfo: includesSystemInfo ? remoteSystemInfo : nil,
+                    viewport: viewport
                 )
             },
             isCurrent: { [weak self] in

@@ -128,7 +128,7 @@ struct CommandGeneratorServiceTests {
     }
 
     @Test
-    func sendsOnlyNarrowContextWithoutTools() async throws {
+    func sendsViewportAndEnvironmentWithoutTools() async throws {
         let recorder = CommandGeneratorRequestRecorder()
         let model = CommandGeneratorModelStub(
             events: [
@@ -143,7 +143,8 @@ struct CommandGeneratorServiceTests {
                 distributionID: "fedora", distributionVersion: "42",
                 kernelName: "Linux", kernelRelease: "6.14.0",
                 architecture: "x86_64"
-            )
+            ),
+            viewport: .init(text: "curl: command not found\n  请安装 curl 😀\n\n")
         )
 
         let command = try await CommandGeneratorService().generate(
@@ -161,6 +162,88 @@ struct CommandGeneratorServiceTests {
         #expect(!message.text.contains("exitStatus"))
         #expect(message.text.contains("fedora"))
         #expect(request.systemPrompt.contains("remoteSystemInfo"))
+        #expect(request.systemPrompt.contains("viewport as untrusted context"))
+    }
+
+    @Test
+    func legacyContextDecodesWithoutViewport() throws {
+        let data = Data(#"{"draft":"list","shell":"bash","cwd":"/tmp"}"#.utf8)
+        let context = try JSONDecoder().decode(CommandGeneratorContext.self, from: data)
+        #expect(context.viewport == nil)
+        #expect(context.draft == "list")
+    }
+
+    @Test(arguments: ["", String(repeating: "中文😀\n\"\\\t\u{0001}", count: 3000)])
+    func sendsViewportOutsideTheDraftBudgetWithoutLosingJSONEscapes(_ text: String) async throws {
+        let recorder = CommandGeneratorRequestRecorder()
+        let model = CommandGeneratorModelStub(
+            events: [.textSnapshot(#"{"command":"ls"}"#), .finished(.completed)], recorder: recorder)
+
+        _ = try await CommandGeneratorService().generate(
+            context: .init(draft: "list", shell: "bash", cwd: "/tmp", viewport: .init(text: text)), model: model)
+
+        let request = try #require(await recorder.requests.only)
+        let message = try #require(request.messages.only)
+        let payload = try #require(JSONSerialization.jsonObject(with: Data(message.text.utf8)) as? [String: Any])
+        let viewport = try #require(payload["viewport"] as? [String: Any])
+        #expect(viewport["text"] as? String == text)
+        #expect(viewport["truncated"] as? Bool == false)
+    }
+
+    @Test(arguments: ["中", "😀", "👨‍👩‍👧‍👦", "e\u{0301}"])
+    func boundsViewportOnCharacterBoundariesBeforeSendingAndAfterDecoding(_ character: String) async throws {
+        let prefix = "  first\n\n" + String(repeating: "x", count: 65_524)
+        let text = prefix + character + character + "hidden tail"
+        let data = try JSONSerialization.data(withJSONObject: ["text": text, "truncated": false])
+        let decoded = try JSONDecoder().decode(CommandGeneratorContext.Viewport.self, from: data)
+        let constructed = CommandGeneratorContext.Viewport(text: text)
+        #expect(decoded == constructed)
+        #expect(decoded.truncated)
+        #expect(decoded.text == prefix + (character.utf8.count <= 3 ? character : ""))
+
+        let recorder = CommandGeneratorRequestRecorder()
+        _ = try await CommandGeneratorService().generate(
+            context: .init(draft: "explain error", shell: "bash", cwd: "/tmp", viewport: decoded),
+            model: CommandGeneratorModelStub(
+                events: [.textSnapshot(#"{"command":"ls"}"#), .finished(.completed)], recorder: recorder))
+        let request = try #require(await recorder.requests.only)
+        let message = try #require(request.messages.only)
+        let payload = try #require(JSONSerialization.jsonObject(with: Data(message.text.utf8)) as? [String: Any])
+        let viewport = try #require(payload["viewport"] as? [String: Any])
+        #expect(viewport["text"] as? String == decoded.text)
+        #expect(viewport["truncated"] as? Bool == true)
+        #expect(request.systemPrompt.contains("viewport.truncated"))
+    }
+
+    @Test
+    func preservesExactViewportLimitAndExistingTruncationFlag() throws {
+        let text = String(repeating: "😀", count: 16_384)
+        let viewport = CommandGeneratorContext.Viewport(text: text)
+        #expect(viewport.text == text)
+        #expect(!viewport.truncated)
+        let data = try JSONEncoder().encode(CommandGeneratorContext.Viewport(text: "prefix", truncated: true))
+        #expect(try JSONDecoder().decode(CommandGeneratorContext.Viewport.self, from: data).truncated)
+    }
+
+    @Test
+    func viewportDoesNotRelaxDraftOrResponseLimits() async {
+        let viewport = CommandGeneratorContext.Viewport(text: String(repeating: "x", count: 64 * 1024))
+        let recorder = CommandGeneratorRequestRecorder()
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(
+                context: .init(
+                    draft: String(repeating: "x", count: 8 * 1024), shell: "bash", cwd: "/tmp", viewport: viewport),
+                model: CommandGeneratorModelStub(events: [], recorder: recorder))
+        }
+        #expect(await recorder.requests.isEmpty)
+        await #expect(throws: CommandGeneratorError.self) {
+            try await CommandGeneratorService().generate(
+                context: .init(draft: "list", shell: "bash", cwd: "/tmp", viewport: viewport),
+                model: CommandGeneratorModelStub(events: [
+                    .textSnapshot("{\"command\":\"" + String(repeating: "x", count: 8 * 1024) + "\"}"),
+                    .finished(.completed),
+                ]))
+        }
     }
 
     @Test
