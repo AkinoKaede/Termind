@@ -37,9 +37,9 @@ nonisolated public enum MetricsToolOutput {
         overview["swap_total_bytes"] = number(point?.swapTotal)
         overview["swap_free_bytes"] = number(point?.swapFree)
         for (key, value) in [
-            ("cpu_user_percent", point?.cpuUser), ("cpu_system_percent", point?.cpuSystem),
-            ("cpu_wait_percent", point?.cpuWait), ("cpu_steal_percent", point?.cpuSteal),
-            ("cpu_idle_percent", point?.cpuIdle),
+            ("cpu_user_percent", point?.cpuUsage.user), ("cpu_system_percent", point?.cpuUsage.system),
+            ("cpu_wait_percent", point?.cpuUsage.wait), ("cpu_steal_percent", point?.cpuUsage.steal),
+            ("cpu_idle_percent", point?.cpuUsage.idle),
         ] { overview[key] = number(value) }
         result["overview"] = .object(overview)
         result["trend"] = trend(snapshot.history, now: now)

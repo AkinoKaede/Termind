@@ -102,7 +102,6 @@ final class MobileWorkspace: Identifiable {
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
-    var terminalTextSelection: MobileTerminalTextSelection?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in _ = self?.terminal.performBindingAction($0) },
         focus: { [weak self] in self?.terminal.requestFocus() }
@@ -309,9 +308,6 @@ final class MobileWorkspace: Identifiable {
         let owner = surfaceOwner
         terminal.makePlatformView = { owner.view }
         relay.owner = self
-        terminal.onTextSelectionRequest = { [weak relay] request in
-            relay?.owner?.terminalTextSelection = MobileTerminalTextSelection(request)
-        }
         workingDirectoryObservation = terminal.$workingDirectory.sink { [weak relay] path in
             Task { @MainActor in
                 relay?.owner?.receiveWorkingDirectory(path)
@@ -319,10 +315,6 @@ final class MobileWorkspace: Identifiable {
         }
         commandObservation = TerminalCommandObservation(state: terminal, monitor: commandMonitor)
         surfaceOwner.bindFind(find)
-    }
-
-    func dismissTerminalTextSelection() {
-        terminalTextSelection = nil
     }
 
     @discardableResult

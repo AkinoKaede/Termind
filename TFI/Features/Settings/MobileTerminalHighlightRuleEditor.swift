@@ -17,7 +17,7 @@ struct MobileTerminalHighlightRuleEditor: View {
 
     private var isNew: Bool { !model.preferences.rules.contains { $0.id == rule.id } }
     private var canSave: Bool {
-        !rule.isBuiltIn && rule.isValid && TerminalKeywordHighlighting.validationIssue(rule) == nil
+        model.validationIssue(for: rule) == nil
     }
 
     var body: some View {
@@ -27,14 +27,14 @@ struct MobileTerminalHighlightRuleEditor: View {
             isDirty: rule != original, canSave: canSave,
             actions: toolbarActions,
             save: {
-                guard model.upsert(rule, validate: { TerminalKeywordHighlighting.validationIssue($0) == nil }) else {
+                guard model.upsert(rule) else {
                     throw MobileEditorError.message(
-                        model.storageError ?? String(localized: AppStrings.TerminalHighlighting.invalidPattern))
+                        model.failureMessage ?? String(localized: AppStrings.TerminalHighlighting.invalidPattern))
                 }
             },
             content: {
-                TerminalHighlightRuleFields(rule: $rule)
-                if let error = model.storageError { Section { Text(error).foregroundStyle(.red) } }
+                TerminalHighlightRuleFields(rule: $rule, model: model)
+                if let error = model.failureMessage { Section { Text(error).foregroundStyle(.red) } }
             }
         )
     }
@@ -45,9 +45,7 @@ struct MobileTerminalHighlightRuleEditor: View {
             MobileEditorToolbarAction(
                 id: "delete", title: AppStrings.Common.delete, systemImage: "trash", role: .destructive,
                 perform: {
-                    var next = model.preferences
-                    next.rules.removeAll { $0.id == rule.id }
-                    if model.save(next) { dismiss() }
+                    if model.delete(rule.id) { dismiss() }
                 })
         ]
     }

@@ -53,11 +53,11 @@ import struct TermindDomain.Host
             )
             var point = MetricsPoint(date: date)
             point.cpu = cpu
-            point.cpuSystem = 6.2
-            point.cpuUser = cpu - 6.3
-            point.cpuWait = 0.3
-            point.cpuSteal = 0.1
-            point.cpuIdle = 100 - cpu - 0.3
+            point.cpuUsage.system = 6.2
+            point.cpuUsage.user = cpu - 6.3
+            point.cpuUsage.wait = 0.3
+            point.cpuUsage.steal = 0.1
+            point.cpuUsage.idle = 100 - cpu - 0.3
             point.coreCount = [16, 8, 32, 4, 8, 16][index]
             point.uptime = Double(18 + index * 3) * 86_400 + 14_400
             point.load = [cpu / 10, cpu / 11, cpu / 12]

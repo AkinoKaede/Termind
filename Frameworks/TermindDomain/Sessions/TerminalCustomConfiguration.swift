@@ -24,8 +24,4 @@ public nonisolated struct TerminalCustomConfiguration: Hashable, Sendable {
             return Entry(key: key, value: value)
         }
     }
-
-    public func lastValue(for key: String) -> String? {
-        entries.last { $0.key == key }?.value
-    }
 }

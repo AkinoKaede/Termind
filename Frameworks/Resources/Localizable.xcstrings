@@ -24911,23 +24911,6 @@
         }
       }
     },
-    "Select Text" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择文本"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選擇文字"
-          }
-        }
-      }
-    },
     "Select a model to edit it. Use the checkboxes to test or delete models." : {
       "extractionState" : "manual",
       "localizations" : {

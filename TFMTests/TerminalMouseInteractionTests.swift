@@ -24,10 +24,10 @@ struct TerminalMouseInteractionTests {
         defer { fixture.close() }
         // The custom mount bypasses Ghostty's SwiftUI representable.
         #expect(fixture.state.attachedPlatformView == nil)
-        fixture.owner.configureUpload(
+        let uploadBindingID = fixture.owner.bindUpload(
             action: { fixture.owner.chooseUploadFiles { _ in Issue.record("Cancelled picker must not upload") } },
             isAvailable: { true })
-        defer { fixture.owner.configureUpload(action: nil) }
+        defer { fixture.owner.unbindUpload(uploadBindingID) }
         let title = String(localized: AppStrings.Terminal.uploadFile)
         let item = try #require(fixture.view.selectionContextMenu().item(withTitle: title))
         #expect(!title.contains("…"))

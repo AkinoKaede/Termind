@@ -44,11 +44,14 @@ struct TerminalBackgroundTests {
         first.status = .connected
         second.status = .connected
         let app = AppModel(hosts: HostLibraryModel(hosts: [firstHost, secondHost]))
+        first.terminalState.applyPreferences(app.terminalSettings.preferences)
+        second.terminalState.applyPreferences(app.terminalSettings.preferences)
         let navigation = WindowModel(workspaces: [workspace])
         defer { app.shutdownForTermination() }
         let host = NSHostingView(
             rootView: WorkspaceContentView(workspace: workspace, isActive: true)
-                .environment(app).environment(navigation).frame(width: 800, height: 400))
+                .environment(app).environment(navigation).environment(\.colorScheme, .light)
+                .frame(width: 800, height: 400))
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 800, height: 400),
             styleMask: [.borderless], backing: .buffered, defer: false)
@@ -112,24 +115,29 @@ struct TerminalBackgroundTests {
             referenceWindow?.contentView = nil
             referenceWindow?.close()
         }
-        try await Task.sleep(for: .milliseconds(100))
         // Compare to a static swatch drawn through the same display color space;
         // cacheDisplay's calibrated RGB tagging varies between windowed and detached views.
-        let bitmap = try snapshot(view)
-        let expected = try #require(try snapshot(reference).colorAt(x: 10, y: 10)?.usingColorSpace(.sRGB))
-        let scaleX = Double(bitmap.pixelsWide) / view.bounds.width
-        let scaleY = Double(bitmap.pixelsHigh) / view.bounds.height
-        let actual = try #require(
-            bitmap.colorAt(x: Int(Double(x) * scaleX), y: Int(Double(y) * scaleY))?.usingColorSpace(.sRGB))
-        let matches =
-            abs(actual.redComponent - expected.redComponent) < 0.015
-            && abs(actual.greenComponent - expected.greenComponent) < 0.015
-            && abs(actual.blueComponent - expected.blueComponent) < 0.015
-        if !matches {
-            let data = try #require(bitmap.representation(using: .png, properties: [:]))
-            Attachment.record(data, named: "terminal-background-\(x)-\(color.red).png")
+        // SwiftUI and Ghostty publish on separate turns. Wait for the mounted view
+        // to render the color instead of assuming the whole test host is idle in 100 ms.
+        for attempt in 0..<100 {
+            try await Task.sleep(for: .milliseconds(20))
+            let bitmap = try snapshot(view)
+            let expected = try #require(try snapshot(reference).colorAt(x: 10, y: 10)?.usingColorSpace(.sRGB))
+            let scaleX = Double(bitmap.pixelsWide) / view.bounds.width
+            let scaleY = Double(bitmap.pixelsHigh) / view.bounds.height
+            let actual = try #require(
+                bitmap.colorAt(x: Int(Double(x) * scaleX), y: Int(Double(y) * scaleY))?.usingColorSpace(.sRGB))
+            let matches =
+                abs(actual.redComponent - expected.redComponent) < 0.015
+                && abs(actual.greenComponent - expected.greenComponent) < 0.015
+                && abs(actual.blueComponent - expected.blueComponent) < 0.015
+            if matches { return }
+            if attempt == 99 {
+                let data = try #require(bitmap.representation(using: .png, properties: [:]))
+                Attachment.record(data, named: "terminal-background-\(x)-\(color.red).png")
+                #expect(matches, "Pixel (\(x), \(y)): \(actual), expected \(color)")
+            }
         }
-        #expect(matches, "Pixel (\(x), \(y)): \(actual), expected \(color)")
     }
 
     private func snapshot(_ view: NSView) throws -> NSBitmapImageRep {

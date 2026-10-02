@@ -52,6 +52,8 @@ Follow `.swift-format`: four spaces and 120 columns. Use PascalCase types, camel
 
 Use Swift Testing (`@Suite`, `@Test`, `#expect`) in the three test directories. Add regression coverage and run the default test suite before submission. Web changes must pass `npm run build`; verify English and `/zh/` routes visually.
 
+Test SwiftData migrations by opening historical stores and verifying retained data after reopening. Do not assert that the latest schema equals a hard-coded version number; adding a migration must not invalidate unrelated tests.
+
 macOS tests that present windows or activate the app must use `.requiresVisibleWindow` on their suite or individual test. They are skipped by default; keep this opt-in off for routine verification. To opt in from the command line, prefix the test command with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (Xcode forwards it as `TERMIND_WINDOW_TESTS=1` to the test host), preferably with `-only-testing:TFMTests/<Suite>` to limit the run. In Xcode, set `TERMIND_WINDOW_TESTS=1` in the test action's environment. Screenshot tests with existing dedicated opt-in variables keep those gates. Offscreen layout and logic tests remain enabled by default.
 
 StoreKit tests require manual authorization and are also skipped by default. Run them explicitly with `TERMIND_STOREKIT_TESTS=1`, preferably with `-only-testing:TFMTests/StoreKitTrialTests`.

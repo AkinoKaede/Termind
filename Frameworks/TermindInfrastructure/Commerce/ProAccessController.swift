@@ -64,17 +64,6 @@ public final class ProAccessController {
 
     public func canUse(_: ProFeature) -> Bool { hasProAccess }
 
-    /// Resolve access without changing the user's persisted choice or presenting commerce UI.
-    public func effectiveSFTPPreferences(_ saved: SFTPPreferences) -> SFTPPreferences {
-        var effective = saved
-        if !canUse(.sftpMultiConnection) { effective.strategy = .channelsOnly }
-        return effective
-    }
-
-    public func effectiveForwardingConnections(_ saved: Int) -> Int {
-        canUse(.portForwardingMultiConnection) ? Host.normalizedPortForwardingMaxConnections(saved) : 1
-    }
-
     @discardableResult
     public func require(_ feature: ProFeature) -> Bool {
         guard !canUse(feature) else { return true }

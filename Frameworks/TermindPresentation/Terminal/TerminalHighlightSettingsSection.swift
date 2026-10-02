@@ -24,7 +24,7 @@ public struct TerminalHighlightSettingsSection: View {
                 AppStrings.Common.enabled.swiftUIKey,
                 isOn: Binding(
                     get: { model.preferences.isEnabled },
-                    set: { enabled in update { $0.isEnabled = enabled } }))
+                    set: { model.setEnabled($0) }))
             ForEach(TerminalHighlightPreferences.builtInRules) { rule in
                 ruleLabel(rule)
             }
@@ -37,26 +37,25 @@ public struct TerminalHighlightSettingsSection: View {
                 .buttonStyle(.plain)
                 .contextMenu {
                     Button(AppStrings.Common.edit.swiftUIKey) { edit(rule) }
-                    Button(AppStrings.TerminalHighlighting.moveUp.swiftUIKey) { move(rule.id, by: -1) }
-                        .disabled(model.preferences.rules.first?.id == rule.id)
-                    Button(AppStrings.TerminalHighlighting.moveDown.swiftUIKey) { move(rule.id, by: 1) }
-                        .disabled(model.preferences.rules.last?.id == rule.id)
+                    Button(AppStrings.TerminalHighlighting.moveUp.swiftUIKey) { model.move(rule.id, by: -1) }
+                        .disabled(!model.canMove(rule.id, by: -1))
+                    Button(AppStrings.TerminalHighlighting.moveDown.swiftUIKey) { model.move(rule.id, by: 1) }
+                        .disabled(!model.canMove(rule.id, by: 1))
                     Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                        update { $0.rules.removeAll { $0.id == rule.id } }
+                        model.delete(rule.id)
                     }
                 }
             }
-            .onMove { indices, destination in update { $0.rules.move(fromOffsets: indices, toOffset: destination) }
-            }
+            .onMove { model.move(fromOffsets: $0, toOffset: $1) }
             if showsAddRule {
                 FormNavigationAction(title: AppStrings.TerminalHighlighting.addRule) {
                     edit(TerminalHighlightRule())
-                }.disabled(model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount)
+                }.disabled(!model.canAddRule)
             }
-            if model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount {
+            if !model.canAddRule {
                 Text(AppStrings.TerminalHighlighting.ruleLimit).font(.caption).foregroundStyle(.secondary)
             }
-            if let error = model.storageError { Text(error).foregroundStyle(.red) }
+            if let error = model.failureMessage { Text(error).foregroundStyle(.red) }
         } header: {
             if showsTitle { Text(AppStrings.TerminalHighlighting.title) }
         } footer: {
@@ -77,18 +76,4 @@ public struct TerminalHighlightSettingsSection: View {
         }.contentShape(.rect)
     }
 
-    private func update(_ edit: (inout TerminalHighlightPreferences) -> Void) {
-        var next = model.preferences
-        edit(&next)
-        model.save(next)
-    }
-
-    private func move(_ id: UUID, by offset: Int) {
-        update { value in
-            guard let index = value.rules.firstIndex(where: { $0.id == id }),
-                value.rules.indices.contains(index + offset)
-            else { return }
-            value.rules.swapAt(index, index + offset)
-        }
-    }
 }

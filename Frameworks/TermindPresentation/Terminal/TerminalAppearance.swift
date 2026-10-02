@@ -96,22 +96,6 @@ public nonisolated enum TermindTerminalThemeCatalog {
         }
     }
 
-    public static func background(
-        themeName: String,
-        customEnabled: Bool,
-        customText: String,
-        isDark: Bool
-    ) -> TermindTerminalPalette.RGB {
-        let selected = resolvedTheme(named: themeName, isDark: isDark)
-        if customEnabled,
-            let value = TerminalCustomConfiguration(customText).lastValue(for: "background"),
-            let customBackground = TermindTerminalPalette.RGB(hex: value)
-        {
-            return customBackground
-        }
-        return TermindTerminalPalette.RGB(hex: selected.background)
-            ?? (isDark ? TermindTerminalPalette.termindDark.background : TermindTerminalPalette.termindLight.background)
-    }
 }
 
 @MainActor

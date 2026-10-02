@@ -76,7 +76,7 @@ private struct WorkspaceTabBarHarness: View {
             NavigationStack {
                 if visibility.showsDetail {
                     MobileWorkspaceView(
-                        library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                        library: app.library, commandGenerator: app.commandGenerator,
                         workspace: workspace, workspaces: [workspace.descriptor],
                         selectWorkspace: { _ in }, renameWorkspace: { _ in },
                         canCloseMultipleWorkspaces: false,

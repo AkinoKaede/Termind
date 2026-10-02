@@ -9,6 +9,66 @@ import Testing
 /// Uses the loopback Paramiko or forwarding-only OpenSSH fixture in Scripts/.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
 nonisolated struct SSHForwardingWireTests {
+    @Test func losingRetainedAuxiliaryRestoresAdmissionWhileOtherConnectionsDrain() async throws {
+        let fixture = try fixture()
+        let connections = ForwardingWireConnections()
+        let pool = SSHForwardingConnectionPool(
+            maximumConnections: 4, connectionHandler: { _, _, _ in },
+            failureHandler: { Issue.record(Comment(rawValue: $0)) },
+            makeConnection: { id, connectionHandler, failureHandler in
+                connections.make(id: id, connectionHandler: connectionHandler, failureHandler: failureHandler)
+            })
+        try await pool.connect(request(fixture, jumps: 0), progress: nil)
+        defer { Task { await pool.disconnect() } }
+        await pool.configureAdditionalConnections { request(fixture, jumps: 0).enforcingInteractionPolicy() }
+        let existingRule = try rule(.local, fixture: fixture)
+        try await pool.start(existingRule, generation: UUID())
+        try await waitForPool(pool, connected: 4, target: 4)
+
+        var clients: [Int32] = []
+        defer { for client in clients { Darwin.close(client) } }
+        for _ in 0..<16 {
+            clients.append(try SSHSocketConnector.open(host: "127.0.0.1", port: existingRule.bindPort))
+        }
+        try await waitForFlows(pool, ruleID: existingRule.id, count: 16, connections: 4)
+        await pool.updateMaximumConnections(2)
+        // The primary is created first; the pool retains auxiliaries in UUID order.
+        let retained = try #require(
+            connections.entries.dropFirst().min { $0.id.uuidString < $1.id.uuidString })
+        await retained.connection.disconnect()
+        // Graceful disconnect does not emit failure. Inject the event after closing
+        // the real transport to exercise pool recovery, not network-loss detection.
+        retained.failureHandler("Retained auxiliary disconnected by the wire fixture")
+        try await waitForPool(pool, connected: 3, target: 2)
+
+        let newRule = try rule(.local, fixture: fixture)
+        try await pool.start(newRule, generation: UUID())
+        for _ in 0..<12 {
+            clients.append(try SSHSocketConnector.open(host: "127.0.0.1", port: newRule.bindPort))
+        }
+        try await waitForFlows(pool, ruleID: newRule.id, count: 12, connections: 2)
+        for client in clients.suffix(12) {
+            var timeout = timeval(tv_sec: 5, tv_usec: 0)
+            setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+            try send(client, Data([42]))
+            #expect(try receive(client, count: 1) == Data([42]))
+        }
+        #expect(await pool.connectionPoolStatus() == SSHForwardingPoolStatus(connected: 3, target: 2))
+    }
+
+    private func waitForFlows(
+        _ pool: SSHForwardingConnectionPool, ruleID: UUID, count: Int, connections: Int
+    ) async throws {
+        for _ in 0..<1_000 {
+            let distribution = await pool.flowDistribution(for: ruleID)
+            if distribution.reduce(0, +) == count, distribution.filter({ $0 > 0 }).count == connections { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let distribution = await pool.flowDistribution(for: ruleID)
+        try #require(distribution.reduce(0, +) == count)
+        try #require(distribution.filter { $0 > 0 }.count == connections)
+    }
+
     @Test func poolShrinksWithoutClosingExistingFlowsAndCanExpandAgain() async throws {
         let fixture = try fixture()
         let pool = SSHForwardingConnectionPool(
@@ -514,4 +574,26 @@ private nonisolated final class ForwardingWireConnectionCount: @unchecked Sendab
     private var count = 0
     var value: Int { lock.withLock { count } }
     func set(_ value: Int) { lock.withLock { count = value } }
+}
+
+private nonisolated final class ForwardingWireConnections: @unchecked Sendable {
+    struct Entry: Sendable {
+        let id: UUID
+        let connection: SSHForwardingConnection
+        let failureHandler: SSHForwardingConnection.FailureHandler
+    }
+
+    private let lock = NSLock()
+    private var stored: [Entry] = []
+    var entries: [Entry] { lock.withLock { stored } }
+
+    func make(
+        id: UUID, connectionHandler: @escaping SSHForwardingConnection.ConnectionHandler,
+        failureHandler: @escaping SSHForwardingConnection.FailureHandler
+    ) -> SSHForwardingConnection {
+        let connection = SSHForwardingConnection(
+            connectionHandler: connectionHandler, failureHandler: failureHandler)
+        lock.withLock { stored.append(Entry(id: id, connection: connection, failureHandler: failureHandler)) }
+        return connection
+    }
 }

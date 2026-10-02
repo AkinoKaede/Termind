@@ -244,7 +244,9 @@ final class AppModel {
             store: dependencies.assistantModelSelectionStore ?? InMemoryAssistantModelSelectionStore())
         assistantChatCollaborationStore =
             dependencies.assistantChatCollaborationStore ?? InMemoryAssistantChatCollaborationStore()
-        let sftpPreferences = proAccess.effectiveSFTPPreferences(sftpSettings.preferences)
+        let sftpPreferences = MultiConnectionPolicy(
+            allowsMultipleConnections: proAccess.canUse(.sftpMultiConnection)
+        ).sftpPreferences(sftpSettings.preferences)
         let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpPreferences)
         let agentHostServices = AgentHostServices.live(
             store: hosts,
@@ -262,8 +264,9 @@ final class AppModel {
         metricsSync = dependencies.metricsSync
         forwarding = PortForwardingController(
             hosts: hosts, poolPolicy: .hostConfigured,
-            connectionLimit: proAccess.effectiveForwardingConnections(
-                Host.portForwardingMaxConnectionsRange.upperBound),
+            connectionLimit: MultiConnectionPolicy(
+                allowsMultipleConnections: proAccess.canUse(.portForwardingMultiConnection)
+            ).forwardingConnections(Host.portForwardingMaxConnectionsRange.upperBound),
             logger: dependencies.logging.makeLogger(label: "termind.port-forwarding"))
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
@@ -377,15 +380,11 @@ final class AppModel {
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
-        sftpSettings.didChange = { [weak sftpTransfers, weak proAccess] preferences in
-            guard let proAccess else { return }
-            sftpTransfers?.updatePreferences(proAccess.effectiveSFTPPreferences(preferences))
+        sftpSettings.didChange = { [weak self] _ in
+            self?.reconcileSFTPPreferences()
         }
         proAccess.accessDidChange = { [weak self] in
-            guard let self else { return }
-            self.sftpTransfers.updatePreferences(self.proAccess.effectiveSFTPPreferences(self.sftpSettings.preferences))
-            self.forwarding.updateConnectionLimit(
-                self.proAccess.effectiveForwardingConnections(Host.portForwardingMaxConnectionsRange.upperBound))
+            self?.reconcileConnectionPreferences()
         }
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)
@@ -426,6 +425,19 @@ final class AppModel {
             settingsSync?.start()
         }
         _ = assistantChatCoordinator
+    }
+
+    private func reconcileConnectionPreferences() {
+        reconcileSFTPPreferences()
+        let forwardingPolicy = MultiConnectionPolicy(
+            allowsMultipleConnections: proAccess.canUse(.portForwardingMultiConnection))
+        forwarding.updateConnectionLimit(
+            forwardingPolicy.forwardingConnections(Host.portForwardingMaxConnectionsRange.upperBound))
+    }
+
+    private func reconcileSFTPPreferences() {
+        let policy = MultiConnectionPolicy(allowsMultipleConnections: proAccess.canUse(.sftpMultiConnection))
+        sftpTransfers.updatePreferences(policy.sftpPreferences(sftpSettings.preferences))
     }
 
     private func repairUnavailableAssistantModels() {

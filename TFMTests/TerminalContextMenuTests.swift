@@ -25,6 +25,29 @@ struct TerminalContextMenuTests {
         #expect(requests == 1)
     }
 
+    @Test func oldPaneTeardownCannotRemoveOrDisableTheReplacementUploadMenu() throws {
+        let owner = PersistentTerminalViewOwner(write: { _, _ in }, resize: { _ in })
+        let mount = TerminalMountView(frame: .zero)
+        owner.mount(in: mount, state: owner.state, isVisible: false, requestsFocus: false)
+        defer { owner.unmount(from: mount) }
+        let view = try #require(mount.subviews.first as? TermindTerminalView)
+        let oldBinding = owner.bindUpload(
+            action: { Issue.record("Retired pane received upload") }, isAvailable: { true })
+        var requests = 0
+        let currentBinding = owner.bindUpload(action: { requests += 1 }, isAvailable: { true })
+
+        owner.updateUploadAvailability(for: oldBinding, isAvailable: { false })
+        #expect(!owner.unbindUpload(oldBinding))
+        let title = String(localized: AppStrings.Terminal.uploadFile)
+        let item = try #require(view.selectionContextMenu().item(withTitle: title))
+        #expect(item.isEnabled)
+        _ = view.perform(item.action, with: item)
+        #expect(requests == 1)
+
+        #expect(owner.unbindUpload(currentBinding))
+        #expect(view.selectionContextMenu().item(withTitle: title) == nil)
+    }
+
     @Test func defaultMenuValidatesPasteAndOptionBypassesAutomaticPaste() throws {
         let pasteboard = NSPasteboard.general
         let saved = (pasteboard.pasteboardItems ?? []).map { item in

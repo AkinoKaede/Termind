@@ -88,10 +88,6 @@ extension AppStrings {
             "Right Arrow"
         }
 
-        public static var selectText: LocalizedStringResource {
-            "Select Text"
-        }
-
         public static var shift: LocalizedStringResource {
             "Shift"
         }

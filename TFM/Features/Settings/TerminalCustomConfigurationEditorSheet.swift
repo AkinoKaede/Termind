@@ -17,13 +17,6 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
         }
     }
 
-    var enabledKeyPath: WritableKeyPath<TerminalPreferences, Bool> {
-        switch self {
-        case .light: \.lightCustomEnabled
-        case .dark: \.darkCustomEnabled
-        }
-    }
-
     var title: String {
         switch self {
         case .light: String(localized: AppStrings.Settings.lightCustomConfiguration)

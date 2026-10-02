@@ -333,9 +333,30 @@
         private var wantsFocus = false
         private var nextMountOrdinal: UInt64 = 0
 
-        func configureUpload(action: (() -> Void)?, isAvailable: (() -> Bool)? = nil) {
+        private var uploadBindingID: UUID?
+
+        /// Bindings follow their presenting pane. A late disappearance from the old pane
+        /// must not remove the replacement pane's menu or cancel its pending transfer.
+        func bindUpload(action: @escaping () -> Void, isAvailable: @escaping () -> Bool) -> UUID {
+            let id = UUID()
+            uploadBindingID = id
             terminalView.uploadFiles = action
             terminalView.canUploadFiles = isAvailable
+            return id
+        }
+
+        func updateUploadAvailability(for id: UUID, isAvailable: @escaping () -> Bool) {
+            guard uploadBindingID == id else { return }
+            terminalView.canUploadFiles = isAvailable
+        }
+
+        @discardableResult
+        func unbindUpload(_ id: UUID) -> Bool {
+            guard uploadBindingID == id else { return false }
+            uploadBindingID = nil
+            terminalView.uploadFiles = nil
+            terminalView.canUploadFiles = nil
+            return true
         }
 
         func chooseUploadFiles(completion: @escaping ([URL]) -> Void) {

@@ -162,7 +162,8 @@ struct TermindApp: App {
                         ? MemoryModel()
                         : MemoryModel(
                             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: .standard),
-                    terminalHighlightSettings: TerminalHighlightSettingsModel(persistence: settingsPersistence),
+                    terminalHighlightSettings: TerminalHighlightSettingsModel(
+                        persistence: settingsPersistence, validatePattern: TerminalKeywordHighlighting.validationIssue),
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
                     notificationSettings: NotificationSettingsModel(persistence: settingsPersistence),
                     sshSettings: SSHSettingsModel(persistence: settingsPersistence),

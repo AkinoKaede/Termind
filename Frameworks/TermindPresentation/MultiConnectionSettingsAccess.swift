@@ -12,12 +12,14 @@ public struct MultiConnectionSettingsAccess {
         self.requestAccess = requestAccess
     }
 
+    private var policy: MultiConnectionPolicy { .init(allowsMultipleConnections: isAllowed) }
+
     public func strategy(for model: SFTPSettingsModel) -> Binding<SFTPConcurrencyStrategy> {
         Binding(
-            get: { isAllowed ? model.preferences.strategy : .channelsOnly },
+            get: { policy.sftpStrategy(model.preferences.strategy) },
             set: { value in
                 guard isAllowed else {
-                    if value != .channelsOnly { requestAccess() }
+                    if value != policy.sftpStrategy(value) { requestAccess() }
                     return
                 }
                 model.setStrategy(value)
@@ -26,13 +28,13 @@ public struct MultiConnectionSettingsAccess {
 
     public func forwardingConnections(_ saved: Binding<Int>) -> Binding<Int> {
         Binding(
-            get: { isAllowed ? saved.wrappedValue : 1 },
+            get: { policy.forwardingConnections(saved.wrappedValue) },
             set: { value in
                 guard isAllowed else {
-                    if value > 1 { requestAccess() }
+                    if value > policy.forwardingConnections(value) { requestAccess() }
                     return
                 }
-                saved.wrappedValue = Host.normalizedPortForwardingMaxConnections(value)
+                saved.wrappedValue = policy.forwardingConnections(value)
             })
     }
 }

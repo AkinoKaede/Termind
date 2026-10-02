@@ -143,7 +143,12 @@ final class SSHSessionModel: Identifiable {
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
-    private(set) var connectionAttemptID: UUID?
+    private(set) var connectionAttemptID: UUID? {
+        didSet {
+            if connectionAttemptID != oldValue { terminalUpload.cancelPendingUpload() }
+        }
+    }
+    @ObservationIgnored lazy var terminalUpload = TerminalUploadModel(session: self)
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
     private var remoteWindowTitleObservation: AnyCancellable?
@@ -769,6 +774,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        terminalUpload.cancelPendingUpload()
         commandMonitor.endConnection()
         startsOnMount = false
         resetCommandGeneratorShellState()

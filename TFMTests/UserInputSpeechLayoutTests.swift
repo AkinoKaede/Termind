@@ -10,7 +10,20 @@ import Testing
 @Suite @MainActor
 struct UserInputSpeechLayoutTests {
     @Test(arguments: [false, true])
-    func disabledSubmitAndContinueRemainReadable(isDark: Bool) throws {
+    func recordingAndFinalizationReserveSpaceForBothControls(recording: Bool) {
+        let controls = UserInputSpeechControls(
+            isActive: true, isRecording: recording, canStart: false, start: {}, cancel: {}, stop: {})
+        let host = NSHostingController(rootView: controls)
+        let size = host.view.fittingSize
+        // Two independent actions must keep their hit areas while leaving room for the answer.
+        #expect(size.width >= 64 && size.width <= 96)
+        #expect(size.height >= 32 && size.height <= 44)
+    }
+
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1"),
+        arguments: [false, true])
+    func captureSubmitAndContinueButtonStates(isDark: Bool) throws {
         let content = VStack(spacing: 16) {
             ForEach([true, false], id: \.self) { enabled in
                 HStack(spacing: 12) {
@@ -39,8 +52,10 @@ struct UserInputSpeechLayoutTests {
         Attachment.record(png, named: "question-button-states-\(isDark).png")
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [360.0, 680.0])
-    func answerFieldsKeepSpeechControlsInsideTheirTrailingEdge(language: String, width: Double) async throws {
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1"),
+        arguments: ["en", "zh-Hans", "zh-Hant"], [360.0, 680.0])
+    func captureAnswerFieldsAcrossSizesAndSpeechStates(language: String, width: Double) async throws {
         let service = DesktopQuestionSpeechService()
         let speech = SpeechTranscriptionCoordinator(service: service)
         let app = AppModel(hosts: HostLibraryModel(), speechTranscription: speech)
@@ -73,7 +88,8 @@ struct UserInputSpeechLayoutTests {
                 }
                 if phase == "transcribing" { session.stop() }
                 let content = AgentUserInputCard(
-                    request: request, conversation: conversation, isCompact: width < 400, speechSession: session
+                    request: request, conversation: conversation, isCompact: width < 400,
+                    interaction: UserInputInteractionModel(speech: session)
                 )
                 .environment(app)
                 .environment(\.locale, Locale(identifier: language))

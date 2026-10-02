@@ -1,6 +1,7 @@
 import GhosttyTheme
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import TermindPresentation
 
 struct MobileTerminalThemeView: View {

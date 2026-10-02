@@ -2,8 +2,6 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
-import TermindPresentation
 import Testing
 
 @testable import Termind
@@ -11,29 +9,6 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct SFTPSettingsIntegrationTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func freeSettingsRenderOffscreenWithoutMutatingTheSavedChoice(language: String) async throws {
-        let settings = SFTPSettingsModel()
-        settings.setStrategy(.connectionsPreferred)
-        let view = Form {
-            SFTPSettingsFields(model: settings, access: .init(isAllowed: false, requestAccess: {}))
-        }
-        .formStyle(.grouped)
-        .environment(\.locale, Locale(identifier: language))
-        .frame(width: 620, height: 340)
-        let host = NSHostingView(rootView: view)
-        host.frame = NSRect(x: 0, y: 0, width: 620, height: 340)
-        host.appearance = NSAppearance(named: .aqua)
-        host.layoutSubtreeIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
-        let bitmap = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-        host.cacheDisplay(in: host.bounds, to: bitmap)
-        let data = try #require(bitmap.representation(using: .png, properties: [:]))
-        Attachment.record(data, named: "free-sftp-settings-\(language).png")
-        #expect(data.count > 2_000)
-        #expect(settings.preferences.strategy == .connectionsPreferred)
-    }
-
     @Test(arguments: SFTPConcurrencyStrategy.allCases)
     func purchaseRestoresSavedStrategyWithoutOpeningSettings(_ strategy: SFTPConcurrencyStrategy) async {
         let service = ConnectionPurchaseService()

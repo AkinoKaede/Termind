@@ -2,18 +2,17 @@ import Foundation
 import SwiftUI
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPresentation
 import Testing
 
 @Suite @MainActor
 struct MultiConnectionSettingsTests {
     @Test(arguments: SFTPConcurrencyStrategy.allCases)
-    func freeDisplayAndOtherEditsPreserveTheSavedStrategy(_ strategy: SFTPConcurrencyStrategy) {
+    func restrictedDisplayAndOtherEditsPreserveTheSavedStrategy(_ strategy: SFTPConcurrencyStrategy) {
         let persistence = SettingsStore(.init(strategy: strategy))
         let settings = SFTPSettingsModel(persistence: persistence)
-        let pro = ProAccessController.testing(status: .free(trialAvailable: true))
-        let access = MultiConnectionSettingsAccess(isAllowed: false) { pro.require(.sftpMultiConnection) }
+        var requests = 0
+        let access = MultiConnectionSettingsAccess(isAllowed: false) { requests += 1 }
         let selection = access.strategy(for: settings)
         #expect(selection.wrappedValue == .channelsOnly)
         #expect(persistence.saves == 0)
@@ -21,7 +20,7 @@ struct MultiConnectionSettingsTests {
         #expect(persistence.saves == 0)
         selection.wrappedValue = .smart
         selection.wrappedValue = .connectionsPreferred
-        #expect(pro.isPaywallPresented)
+        #expect(requests == 2)
         #expect(persistence.saves == 0)
         #expect(settings.set(12, for: \.globalLimit))
         #expect(persistence.value.strategy == strategy)
@@ -47,19 +46,6 @@ struct MultiConnectionSettingsTests {
         #expect(host.portForwardingMaxConnections == 4)
     }
 
-    @Test(arguments: SFTPConcurrencyStrategy.allCases)
-    func runtimeProjectionPreservesSavedPreferencesWithoutOpeningPaywall(_ strategy: SFTPConcurrencyStrategy) {
-        let saved = SFTPPreferences(globalLimit: 80, perHostLimit: 40, strategy: strategy)
-        let free = ProAccessController.testing(status: .verificationFailed)
-        let effective = free.effectiveSFTPPreferences(saved)
-        #expect(effective == SFTPPreferences(globalLimit: 80, perHostLimit: 40, strategy: .channelsOnly))
-        #expect(free.effectiveForwardingConnections(8) == 1)
-        #expect(!free.isPaywallPresented)
-        let paid = ProAccessController.testing(status: .purchased(.familyShared))
-        #expect(paid.effectiveSFTPPreferences(saved) == saved)
-        #expect(paid.effectiveForwardingConnections(8) == 8)
-        #expect(!paid.isPaywallPresented)
-    }
 }
 
 @MainActor

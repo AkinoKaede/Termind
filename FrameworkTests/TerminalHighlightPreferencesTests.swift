@@ -9,6 +9,47 @@ import Testing
 
 @Suite @MainActor
 struct TerminalHighlightPreferencesTests {
+    @Test func ruleActionsPersistOrderAndKeepTheCommittedSnapshotAfterFailure() {
+        let store = HighlightStore()
+        let model = TerminalHighlightSettingsModel(persistence: store)
+        let rules = (0..<4).map { TerminalHighlightRule(name: "Rule \($0)", pattern: "\($0)") }
+        for rule in rules { #expect(model.upsert(rule)) }
+        #expect(model.move(fromOffsets: IndexSet([0, 2]), toOffset: 4))
+        #expect(model.preferences.rules.map(\.id) == [rules[1].id, rules[3].id, rules[0].id, rules[2].id])
+        #expect(!model.canMove(rules[1].id, by: -1))
+        #expect(model.move(rules[2].id, by: -1))
+        #expect(model.delete(rules[3].id))
+        #expect(model.preferences.rules.map(\.id) == [rules[1].id, rules[2].id, rules[0].id])
+        let committed = model.preferences
+        store.fails = true
+        #expect(!model.delete(rules[0].id))
+        #expect(!model.setEnabled(false))
+        #expect(model.preferences == committed)
+        #expect(store.value == committed)
+        #expect(model.storageError != nil)
+    }
+
+    @Test func editingAndSavingUseTheSameInjectedPatternAndCapacityValidation() {
+        let model = TerminalHighlightSettingsModel(validatePattern: { $0.pattern == "[" ? "Unclosed bracket" : nil })
+        let invalid = TerminalHighlightRule(name: "Invalid", pattern: "[", mode: .regularExpression)
+        #expect(model.validationIssue(for: invalid) == .invalidPattern("Unclosed bracket"))
+        #expect(!model.upsert(invalid))
+        #expect(model.failure == .validation(.invalidPattern("Unclosed bracket")))
+        for index in 0..<TerminalHighlightPreferences.maximumCustomRuleCount {
+            #expect(model.upsert(.init(name: "Rule \(index)", pattern: "value")))
+        }
+        #expect(!model.canAddRule)
+        let extra = TerminalHighlightRule(name: "Extra", pattern: "value")
+        #expect(model.validationIssue(for: extra) == .ruleLimit)
+        #expect(!model.upsert(extra))
+        #expect(model.failure == .validation(.ruleLimit))
+        var existing = model.preferences.rules[0]
+        existing.name = "Updated"
+        #expect(model.validationIssue(for: existing) == nil)
+        #expect(model.upsert(existing))
+        #expect(model.failure == nil)
+    }
+
     @Test func defaultsAreStableAndUseSixExistingColors() throws {
         let value = TerminalHighlightPreferences()
         #expect(value.isEnabled && value.isValid)
@@ -25,10 +66,9 @@ struct TerminalHighlightPreferencesTests {
         for rule in TerminalHighlightPreferences.builtInRules {
             var edited = rule
             edited.pattern = "changed"
-            #expect(!model.upsert(edited, validate: { _ in true }))
-            #expect(!model.save(.init(rules: [edited])))
+            #expect(!model.upsert(edited))
         }
-        #expect(model.save(.init(isEnabled: false)))
+        #expect(model.setEnabled(false))
         #expect(!model.preferences.isEnabled)
         #expect(model.preferences.rules.isEmpty)
         #expect(model.preferences.effectiveRules == TerminalHighlightPreferences.builtInRules)
@@ -38,15 +78,13 @@ struct TerminalHighlightPreferencesTests {
         let model = TerminalHighlightSettingsModel()
         var rule = TerminalHighlightRule(name: "Custom", pattern: "hello", color: .none)
         #expect(!rule.isBuiltIn)
-        #expect(model.upsert(rule, validate: { _ in true }))
+        #expect(model.upsert(rule))
         rule.name = "Edited"
         rule.pattern = "world"
         rule.backgroundColor = .pink
-        #expect(model.upsert(rule, validate: { _ in true }))
+        #expect(model.upsert(rule))
         #expect(model.preferences.rules.last == rule)
-        var changed = model.preferences
-        changed.rules.removeAll { $0.id == rule.id }
-        #expect(model.save(changed))
+        #expect(model.delete(rule.id))
         #expect(model.preferences == TerminalHighlightPreferences())
     }
 
@@ -66,12 +104,13 @@ struct TerminalHighlightPreferencesTests {
 
     @Test func failedSaveAndInvalidPatternKeepLastCommittedPreferences() {
         let store = HighlightStore()
-        let model = TerminalHighlightSettingsModel(persistence: store)
+        let model = TerminalHighlightSettingsModel(
+            persistence: store, validatePattern: { $0.pattern == "[" ? "Invalid regex" : nil })
         store.fails = true
-        #expect(!model.save(.init(isEnabled: false)))
+        #expect(!model.setEnabled(false))
         #expect(model.preferences == TerminalHighlightPreferences())
         #expect(model.storageError != nil)
-        #expect(!model.upsert(.init(name: "Invalid", pattern: "[", mode: .regularExpression), validate: { _ in false }))
+        #expect(!model.upsert(.init(name: "Invalid", pattern: "[", mode: .regularExpression)))
         model.applyRemoteSnapshot(.init(rules: []))
         #expect(model.preferences.rules.isEmpty)
         #expect(model.storageError == nil)
@@ -141,7 +180,6 @@ struct TerminalHighlightPreferencesTests {
         }
         #expect(TermindSchemaV46.models.contains { $0 == PersistentTerminalHighlightPreferences.self })
         #expect(!TermindSchemaV45.models.contains { $0 == PersistentTerminalHighlightPreferences.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == Schema.Version(46, 0, 0))
     }
 
     @Test func nativeCloudFieldsRejectMalformedRulesAndPreserveEmptyAndDeletedStates() throws {

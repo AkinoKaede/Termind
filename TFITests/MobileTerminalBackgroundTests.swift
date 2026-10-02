@@ -22,7 +22,7 @@ struct MobileTerminalBackgroundTests {
         let controller = UIHostingController(
             rootView: MobileRegionTestHost(state: regions) {
                 MobileWorkspaceView(
-                    library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                    library: app.library, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
                     renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
                     openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in })

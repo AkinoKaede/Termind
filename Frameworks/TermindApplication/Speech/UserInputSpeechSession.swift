@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// A question surface owns one session, including while its adaptive layout
 /// measures multiple copies of the answer field.
@@ -38,6 +39,7 @@ public final class UserInputSpeechSession {
         self.coordinator = coordinator
         let token = UUID()
         self.token = token
+        observeTarget(conversation, requestID: requestID, questionID: questionID, token: token)
         startTask = Task { [weak self, weak conversation] in
             guard let self else { return }
             defer { if self.token == token { self.startTask = nil } }
@@ -68,5 +70,23 @@ public final class UserInputSpeechSession {
 
     public func dismissError() {
         coordinator?.dismissError(ownerID: ownerID)
+    }
+
+    /// Request retirement also happens outside a view (timeouts, cancellation, and queue changes).
+    /// Keep microphone ownership tied to that request even when no SwiftUI update has run yet.
+    private func observeTarget(_ conversation: ConversationModel, requestID: UUID, questionID: String, token: UUID) {
+        let accepts = withObservationTracking {
+            conversation.acceptsUserInputTranscription(requestID: requestID, questionID: questionID)
+        } onChange: { [weak self, weak conversation] in
+            Task { @MainActor in
+                guard let self, self.token == token else { return }
+                guard let conversation else {
+                    self.cancel()
+                    return
+                }
+                self.observeTarget(conversation, requestID: requestID, questionID: questionID, token: token)
+            }
+        }
+        if !accepts { cancel() }
     }
 }

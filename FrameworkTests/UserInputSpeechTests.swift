@@ -6,6 +6,76 @@ import Testing
 
 @Suite @MainActor
 struct UserInputSpeechTests {
+    @Test func requestRetirementReleasesTheMicrophoneWithoutAViewCallback() async throws {
+        let (conversation, _) = fixture()
+        let service = QuestionSpeechService()
+        let speech = SpeechTranscriptionCoordinator(service: service)
+        let session = UserInputSpeechSession()
+        session.start(coordinator: speech, conversation: conversation) {}
+        try await eventually { session.isRecording }
+        conversation.cancelUserInput()
+        try await eventually { !session.isActive }
+        #expect(speech.ownerID == nil)
+        #expect(service.cancelCount == 1)
+    }
+
+    @Test func aQueuedRequestDoesNotInterruptTheCurrentQuestionsRecording() async throws {
+        let (conversation, request) = fixture()
+        let service = QuestionSpeechService()
+        let speech = SpeechTranscriptionCoordinator(service: service)
+        let session = UserInputSpeechSession()
+        session.start(coordinator: speech, conversation: conversation) {}
+        try await eventually { session.isRecording }
+        conversation.present(
+            AgentUserInputRequest(questions: [AgentUserQuestion(id: "queued", prompt: "Next", kind: .text)]))
+        await Task.yield()
+        #expect(conversation.pendingUserInput?.id == request.id)
+        #expect(session.isRecording)
+        session.cancel()
+        conversation.cancelUserInput()
+        conversation.cancelUserInput()
+    }
+
+    @Test func interactionCannotAdvanceOrSelectAnOptionWhileSpeechIsActive() async throws {
+        let choice = AgentUserInputChoice(
+            options: [AgentUserInputOption(id: "option", label: "Option")], allowsCustomAnswer: true)
+        let (conversation, _) = fixture(kind: .choice(choice))
+        conversation.setUserInputCustomAnswer("Existing", for: "answer")
+        let interaction = UserInputInteractionModel()
+        let speech = SpeechTranscriptionCoordinator(service: QuestionSpeechService())
+        interaction.speech.start(coordinator: speech, conversation: conversation) {}
+        try await eventually { interaction.speech.isRecording }
+        #expect(!interaction.canAdvance(in: conversation))
+        interaction.advance(in: conversation)
+        interaction.selectOption("option", in: "answer", conversation: conversation)
+        #expect(conversation.currentUserInputQuestionIndex == 0)
+        #expect(conversation.userInputDraft(for: "answer").text == "Existing")
+        #expect(conversation.userInputDraft(for: "answer").selection.isEmpty)
+        interaction.cancelRequest(in: conversation)
+    }
+
+    @Test(arguments: ["previous", "skip", "cancel"])
+    func interactionCancelsSpeechBeforeLeavingTheQuestion(action: String) async throws {
+        let (conversation, _) = fixture()
+        if action == "previous" { conversation.skipUserInputQuestion() }
+        let service = QuestionSpeechService()
+        let speech = SpeechTranscriptionCoordinator(service: service)
+        let interaction = UserInputInteractionModel()
+        interaction.speech.start(coordinator: speech, conversation: conversation) {}
+        try await eventually { interaction.speech.isRecording }
+        switch action {
+        case "previous": interaction.previous(in: conversation)
+        case "skip": interaction.skip(in: conversation)
+        default: interaction.cancelRequest(in: conversation)
+        }
+        #expect(!interaction.speech.isActive)
+        #expect(speech.ownerID == nil)
+        #expect(service.cancelCount == 1)
+        service.emit(.final("Late answer"))
+        #expect(conversation.userInputDrafts.values.allSatisfy { $0.text.isEmpty })
+        conversation.cancelUserInput()
+    }
+
     @Test(arguments: ["", "Existing", "Existing\n"])
     func finalSpeechAppendsToTheAnswerWithoutSubmittingOrChangingChat(initial: String) async throws {
         let (conversation, request) = fixture()

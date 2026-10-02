@@ -21,7 +21,7 @@ struct MobileTerminalHighlightSettingsView: View {
                     editingRule = TerminalHighlightRule()
                 }
                 .labelStyle(.iconOnly)
-                .disabled(model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount)
+                .disabled(!model.canAddRule)
             }
         }
         .sheet(item: $editingRule) { rule in

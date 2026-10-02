@@ -1,13 +1,19 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 public struct TerminalHighlightRuleFields: View {
     @Binding private var rule: TerminalHighlightRule
 
-    public init(rule: Binding<TerminalHighlightRule>) { _rule = rule }
+    private let model: TerminalHighlightSettingsModel
+
+    public init(rule: Binding<TerminalHighlightRule>, model: TerminalHighlightSettingsModel) {
+        _rule = rule
+        self.model = model
+    }
 
     private var patternIssue: String? {
-        rule.pattern.isEmpty ? nil : TerminalKeywordHighlighting.validationIssue(rule)
+        model.patternValidationIssue(for: rule)
     }
 
     public var body: some View {

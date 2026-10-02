@@ -174,7 +174,11 @@ public nonisolated struct MetricsDevicePoint: Identifiable, Sendable {
 public nonisolated struct MetricsPoint: Identifiable, Sendable {
     public var id: Date { date }
     public var date: Date
-    public var cpu: Double?
+    public var cpuUsage: MetricsCPUUsage
+    public var cpu: Double? {
+        get { cpuUsage.utilization }
+        set { cpuUsage.utilization = newValue }
+    }
     public var memory: Double?
     public var memoryUsed: Double?
     public var memoryTotal: Double?
@@ -190,11 +194,6 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
     public var uptime: Double?
     public var coreCount: Int?
     public var load: [Double] = []
-    public var cpuUser: Double?
-    public var cpuSystem: Double?
-    public var cpuWait: Double?
-    public var cpuSteal: Double?
-    public var cpuIdle: Double?
     public var cpuCores: [MetricsCPUPoint]
     public var memoryFree: Double?
     public var memoryCached: Double?
@@ -210,15 +209,14 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
         swapPercent: Double? = nil, swapUsed: Double? = nil, swapTotal: Double? = nil, swapFree: Double? = nil,
         diskRead: Double? = nil, diskWrite: Double? = nil, networkReceive: Double? = nil, networkSend: Double? = nil,
         gpus: [NvidiaGPU] = [], uptime: Double? = nil, coreCount: Int? = nil, load: [Double] = [],
-        cpuUser: Double? = nil, cpuSystem: Double? = nil, cpuWait: Double? = nil, cpuSteal: Double? = nil,
-        cpuIdle: Double? = nil, cpuCores: [MetricsCPUPoint] = [], memoryFree: Double? = nil,
+        cpuCores: [MetricsCPUPoint] = [], memoryFree: Double? = nil,
         memoryCached: Double? = nil,
         diskDevices: [MetricsDevicePoint] = [], networkDevices: [MetricsDevicePoint] = [],
         blockDevices: [String: MetricsDevicePoint] = [:], networkSentTotal: Double? = nil,
         networkReceivedTotal: Double? = nil, tcp: MetricsTCP? = nil, tcpRetransmissionPercent: Double? = nil
     ) {
         self.date = date
-        self.cpu = cpu
+        cpuUsage = MetricsCPUUsage(utilization: cpu)
         self.memory = memory
         self.memoryUsed = memoryUsed
         self.memoryTotal = memoryTotal
@@ -234,11 +232,6 @@ public nonisolated struct MetricsPoint: Identifiable, Sendable {
         self.uptime = uptime
         self.coreCount = coreCount
         self.load = load
-        self.cpuUser = cpuUser
-        self.cpuSystem = cpuSystem
-        self.cpuWait = cpuWait
-        self.cpuSteal = cpuSteal
-        self.cpuIdle = cpuIdle
         self.cpuCores = cpuCores
         self.memoryFree = memoryFree
         self.memoryCached = memoryCached
@@ -292,15 +285,9 @@ public nonisolated enum MetricsCalculation {
             after > before
         else { return point }
         let elapsed = after - before
-        let cpu = cpuPoint(id: 0, previous: previous.cpu, current: current.cpu)
-        point.cpu = cpu.utilization
-        point.cpuUser = cpu.user
-        point.cpuSystem = cpu.system
-        point.cpuWait = cpu.wait
-        point.cpuSteal = cpu.steal
-        point.cpuIdle = cpu.idle
+        point.cpuUsage = cpuUsage(previous: previous.cpu, current: current.cpu)
         point.cpuCores = current.cpuCores.keys.sorted().map {
-            cpuPoint(id: $0, previous: previous.cpuCores[$0], current: current.cpuCores[$0])
+            MetricsCPUPoint(id: $0, usage: cpuUsage(previous: previous.cpuCores[$0], current: current.cpuCores[$0]))
         }
         point.diskDevices = devices(previous.disks, current.disks, selection.disks, elapsed: elapsed)
         point.networkDevices = networkDevices(previous, current, elapsed: elapsed)
@@ -322,16 +309,16 @@ public nonisolated enum MetricsCalculation {
         return point
     }
 
-    private static func cpuPoint(id: Int, previous: [UInt64]?, current: [UInt64]?) -> MetricsCPUPoint {
+    private static func cpuUsage(previous: [UInt64]?, current: [UInt64]?) -> MetricsCPUUsage {
         guard let old = previous, let new = current, old.count >= 8, new.count >= 8,
             (0..<8).allSatisfy({ new[$0] >= old[$0] })
-        else { return MetricsCPUPoint(id: id) }
+        else { return MetricsCPUUsage() }
         // Guest counters are already included in user/nice time.
         let delta = (0..<8).map { Double(new[$0] - old[$0]) }
         let total = delta.reduce(0, +)
-        guard total > 0 else { return MetricsCPUPoint(id: id) }
-        return MetricsCPUPoint(
-            id: id, utilization: max(0, min(100, (total - delta[3] - delta[4]) / total * 100)),
+        guard total > 0 else { return MetricsCPUUsage() }
+        return MetricsCPUUsage(
+            utilization: max(0, min(100, (total - delta[3] - delta[4]) / total * 100)),
             user: (delta[0] + delta[1]) / total * 100, system: (delta[2] + delta[5] + delta[6]) / total * 100,
             wait: delta[4] / total * 100, steal: delta[7] / total * 100, idle: delta[3] / total * 100)
     }

@@ -17,7 +17,7 @@ struct MobileTerminalHighlightingTests {
         backgroundRule.id = UUID()
         backgroundRule.color = .none
         backgroundRule.backgroundColor = .yellow
-        #expect(model.upsert(backgroundRule, validate: { _ in true }))
+        #expect(model.upsert(backgroundRule))
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.keyWindow
         let window = UIWindow(windowScene: scene)

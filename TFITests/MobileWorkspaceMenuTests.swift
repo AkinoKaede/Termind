@@ -17,7 +17,7 @@ struct MobileWorkspaceMenuTests {
 
         try await withNavigation(
             MobileWorkspaceView(
-                library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                library: app.library, commandGenerator: app.commandGenerator,
                 workspace: workspace, workspaces: [opened, dormant],
                 unreadWorkspaceIDs: [dormant.id],
                 selectWorkspace: { _ in }, renameWorkspace: { _ in }, canCloseMultipleWorkspaces: true,

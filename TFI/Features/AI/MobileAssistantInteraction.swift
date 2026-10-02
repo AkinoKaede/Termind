@@ -9,7 +9,9 @@ struct MobileAssistantInteraction: View {
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     let speech: SpeechTranscriptionCoordinator
-    @State var speechSession = UserInputSpeechSession()
+    @State var interaction = UserInputInteractionModel()
+
+    private var speechSession: UserInputSpeechSession { interaction.speech }
     @FocusState private var focusedInput: InputFocus?
     @Environment(\.locale) private var locale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -166,8 +168,6 @@ struct MobileAssistantInteraction: View {
             }
         }
         .onChange(of: conversation.id) { _, _ in speechSession.cancel() }
-        .onChange(of: conversation.pendingUserInput?.id) { _, _ in speechSession.cancel() }
-        .onChange(of: conversation.currentUserInputQuestion?.id) { _, _ in speechSession.cancel() }
         .onDisappear { speechSession.cancel() }
         .alert(
             speechSession.error?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
@@ -279,7 +279,7 @@ struct MobileAssistantInteraction: View {
     ) -> some View {
         let isSelected = conversation.userInputDraft(for: questionID).selection.contains(option.id)
         return Button {
-            conversation.answerUserInputOption(option.id, in: questionID)
+            interaction.selectOption(option.id, in: questionID, conversation: conversation)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Image(systemName: marker(isSelected: isSelected, choice: choice))
@@ -397,14 +397,12 @@ struct MobileAssistantInteraction: View {
     private var leadingActions: some View {
         HStack(spacing: 10) {
             Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {
-                speechSession.cancel()
-                conversation.cancelUserInput()
+                interaction.cancelRequest(in: conversation)
             }
             .keyboardShortcut(MobileShortcut.formCancel)
             if conversation.currentUserInputQuestionIndex > 0 {
                 Button(AppStrings.Common.back.swiftUIKey) {
-                    speechSession.cancel()
-                    conversation.previousUserInputQuestion()
+                    interaction.previous(in: conversation)
                 }
             }
         }
@@ -424,8 +422,7 @@ struct MobileAssistantInteraction: View {
 
     private var skipButton: some View {
         Button(AppStrings.Common.skip.swiftUIKey) {
-            speechSession.cancel()
-            conversation.skipUserInputQuestion()
+            interaction.skip(in: conversation)
         }
         .fixedSize(horizontal: true, vertical: false)
     }
@@ -436,7 +433,7 @@ struct MobileAssistantInteraction: View {
         }
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(MobileShortcut.formDefault)
-        .disabled(!conversation.canAdvanceUserInput || speechSession.isActive)
+        .disabled(!interaction.canAdvance(in: conversation))
         .fixedSize(horizontal: true, vertical: false)
     }
 
@@ -464,10 +461,7 @@ struct MobileAssistantInteraction: View {
     }
 
     private func advanceFromKeyboard(_ questionID: String) {
-        guard !speechSession.isActive, conversation.currentUserInputQuestion?.id == questionID,
-            conversation.canAdvanceUserInput
-        else { return }
-        conversation.advanceUserInputQuestion()
+        interaction.advance(in: conversation, questionID: questionID)
     }
 
     private func marker(isSelected: Bool, choice: AgentUserInputChoice) -> String {

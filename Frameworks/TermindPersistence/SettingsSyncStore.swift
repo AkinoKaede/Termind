@@ -98,10 +98,7 @@ public final class SettingsSyncPersistence {
             }
         }
         let snapshot = try load()
-        mirror(snapshot.webSearch)
-        snapshot.terminal.mirror(to: defaults)
-        snapshot.ssh.mirror(to: defaults)
-        snapshot.sftp.mirror(to: defaults)
+        mirrorSnapshot(snapshot)
         didRecordChanges?(mutations)
     }
 
@@ -115,15 +112,7 @@ public final class SettingsSyncPersistence {
                 try journal.cloudRecords().compactMap { SettingsRecordKey(recordName: $0.mutation.recordName) })
             let suppressed = try journal.purgeCloudCache()
             snapshot = try materialize()
-            try ai.replace(snapshot.configuration)
-            try skills.replace(snapshot.skills)
-            try preferences().apply(snapshot.webSearch)
-            try terminalPreferences().apply(snapshot.terminal)
-            try sshPreferences().apply(snapshot.ssh)
-            try sftpPreferences().apply(snapshot.sftp)
-            try workspacePreferences().apply(snapshot.workspace)
-            try notificationPreferences().apply(snapshot.notifications)
-            try terminalHighlightPreferences().apply(snapshot.terminalHighlighting)
+            try applySnapshot(snapshot)
             try CloudSyncSafetyStore(context: context, scope: scope).purgeScope()
             let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
             try cloud.purgeScope()
@@ -135,10 +124,7 @@ public final class SettingsSyncPersistence {
                     scope: scope, cacheKey: assetCleanupKey)
             }
         }
-        mirror(snapshot.webSearch)
-        snapshot.terminal.mirror(to: defaults)
-        snapshot.ssh.mirror(to: defaults)
-        snapshot.sftp.mirror(to: defaults)
+        mirrorSnapshot(snapshot)
         return (snapshot, removed)
     }
 
@@ -223,22 +209,31 @@ public final class SettingsSyncPersistence {
                 snapshot.skills[index].package = existingPackages[snapshot.skills[index].id]
             }
             merge.needsUpload.formUnion(try journal.recordLocalChanges(from: remoteSnapshot, to: snapshot).keys)
-            try ai.replace(snapshot.configuration)
-            try skills.replace(snapshot.skills)
-            try preferences().apply(snapshot.webSearch)
-            try terminalPreferences().apply(snapshot.terminal)
-            try sshPreferences().apply(snapshot.ssh)
-            try sftpPreferences().apply(snapshot.sftp)
-            try workspacePreferences().apply(snapshot.workspace)
-            try notificationPreferences().apply(snapshot.notifications)
-            try terminalHighlightPreferences().apply(snapshot.terminalHighlighting)
+            try applySnapshot(snapshot)
             try journal.markNeedsUpload(merge.needsUpload)
         }
+        mirrorSnapshot(snapshot)
+        return (snapshot, Set(merge.accepted.map(\.key)), merge.needsUpload)
+    }
+
+    /// Call inside the caller's transaction so preference rows and sync intent stay atomic.
+    private func applySnapshot(_ snapshot: SettingsSyncSnapshot) throws {
+        try ai.replace(snapshot.configuration)
+        try skills.replace(snapshot.skills)
+        try preferences().apply(snapshot.webSearch)
+        try terminalPreferences().apply(snapshot.terminal)
+        try sshPreferences().apply(snapshot.ssh)
+        try sftpPreferences().apply(snapshot.sftp)
+        try workspacePreferences().apply(snapshot.workspace)
+        try notificationPreferences().apply(snapshot.notifications)
+        try terminalHighlightPreferences().apply(snapshot.terminalHighlighting)
+    }
+
+    private func mirrorSnapshot(_ snapshot: SettingsSyncSnapshot) {
         mirror(snapshot.webSearch)
         snapshot.terminal.mirror(to: defaults)
         snapshot.ssh.mirror(to: defaults)
         snapshot.sftp.mirror(to: defaults)
-        return (snapshot, Set(merge.accepted.map(\.key)), merge.needsUpload)
     }
 
     private func materialize() throws -> SettingsSyncSnapshot {

@@ -64,7 +64,7 @@ struct MobileWorkspaceListView: View {
         .navigationDestination(item: $scene.workspaceID) { id in
             if let workspace = scene.workspaceSession.workspaces.first(where: { $0.id == id }) {
                 MobileWorkspaceView(
-                    library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                    library: app.library, commandGenerator: app.commandGenerator,
                     workspace: workspace, workspaces: scene.workspaceSession.orderedWorkspaceItems.map(\.descriptor),
                     unreadWorkspaceIDs: scene.workspaceSession.unreadWorkspaceIDs,
                     selectWorkspace: scene.selectWorkspace,

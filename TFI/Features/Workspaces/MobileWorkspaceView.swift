@@ -3,7 +3,6 @@ import QuickLook
 import SwiftUI
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPresentation
 import TermindRemoteInfrastructure
 import UIKit
@@ -19,7 +18,6 @@ struct MobileWorkspaceView: View {
     }
 
     let library: HostLibraryModel
-    let pro: ProAccessController
     let commandGenerator: any CommandGenerating
     @Bindable var workspace: MobileWorkspace
     let workspaces: [MobileWorkspaceDescriptor]
@@ -294,16 +292,6 @@ struct MobileWorkspaceView: View {
                 case .sftpHistory:
                     MobileSFTPHistoryView(workspace: workspace, open: reopenHistory)
                 }
-            }
-            .sheet(
-                item: Binding(
-                    get: { workspace.terminalTextSelection },
-                    set: { if $0 == nil { workspace.dismissTerminalTextSelection() } }
-                ),
-                onDismiss: { workspace.terminal.requestFocus() }
-            ) { selection in
-                MobileTerminalTextSelectionView(selection: selection)
-                    .mobileSheetPresentation(compact: true)
             }
             .sheet(item: $renaming) { MobileRemoteFileEditor(workspace: workspace, file: $0, mode: .rename) }
             .sheet(item: $editingPermissions) {

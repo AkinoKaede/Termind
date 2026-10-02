@@ -238,7 +238,8 @@ final class MobileAppModel {
         try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(
             context: settingsPersistence.context, keychain: secrets, defaults: settingsDefaults)
-        terminalHighlightSettings = TerminalHighlightSettingsModel(persistence: settingsPersistence)
+        terminalHighlightSettings = TerminalHighlightSettingsModel(
+            persistence: settingsPersistence, validatePattern: TerminalKeywordHighlighting.validationIssue)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         notificationSettings = NotificationSettingsModel(persistence: settingsPersistence)
         sshSettings = SSHSettingsModel(persistence: settingsPersistence)
@@ -316,7 +317,9 @@ final class MobileAppModel {
             service: AppleSpeechTranscriptionService(audioInput: speechAudio)
         )
         speechAudio.onInterruption = { [weak speech] in speech?.cancelAll() }
-        let sftpPreferences = pro.effectiveSFTPPreferences(sftpSettings.preferences)
+        let sftpPreferences = MultiConnectionPolicy(
+            allowsMultipleConnections: pro.canUse(.sftpMultiConnection)
+        ).sftpPreferences(sftpSettings.preferences)
         let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpPreferences)
         assistant = MobileAssistantModel(
             configuration: ai,
@@ -392,13 +395,11 @@ final class MobileAppModel {
         connectionHistorySync?.didApplyRemote = { [weak self] _ in self?.connectionHistory.reload() }
         deviceSync?.didApplyRemote = { [weak self] _ in self?.devices.reload() }
         vaultSync?.didApplyRemote = { [weak self] in self?.applyRemoteVault($0, keys: $1) }
-        sftpSettings.didChange = { [weak transfers, weak pro] preferences in
-            guard let pro else { return }
-            transfers?.updatePreferences(pro.effectiveSFTPPreferences(preferences))
+        sftpSettings.didChange = { [weak self] _ in
+            self?.reconcileConnectionPreferences()
         }
         pro.accessDidChange = { [weak self] in
-            guard let self else { return }
-            transfers.updatePreferences(pro.effectiveSFTPPreferences(sftpSettings.preferences))
+            self?.reconcileConnectionPreferences()
         }
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)
@@ -431,6 +432,11 @@ final class MobileAppModel {
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
         loadRecentWorkspaces()
+    }
+
+    private func reconcileConnectionPreferences() {
+        let policy = MultiConnectionPolicy(allowsMultipleConnections: pro.canUse(.sftpMultiConnection))
+        transfers.updatePreferences(policy.sftpPreferences(sftpSettings.preferences))
     }
 
     var newVaultKeyStorage: KeyStorage {

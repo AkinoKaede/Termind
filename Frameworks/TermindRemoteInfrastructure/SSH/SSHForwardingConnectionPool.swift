@@ -6,6 +6,12 @@ import TermindDomain
 
 /// A host-scoped group of physical SSH connections. Only local and dynamic rules fan out.
 actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
+    typealias ConnectionFactory =
+        @Sendable (
+            UUID, @escaping SSHForwardingConnection.ConnectionHandler,
+            @escaping SSHForwardingConnection.FailureHandler
+        ) -> SSHForwardingConnection
+
     private final class Slot: @unchecked Sendable {
         let id: UUID
         let connection: SSHForwardingConnection
@@ -25,7 +31,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private var maximumConnections: Int
     private let connectionHandler: SSHForwardingConnection.ConnectionHandler
     private let failureHandler: SSHForwardingConnection.FailureHandler
-    private let logger: Logger
+    private let makeConnection: ConnectionFactory
     private let listeners: SSHForwardingLocalListeners
     private var slots: [UUID: Slot] = [:]
     private var primaryID: UUID?
@@ -49,12 +55,17 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         maximumConnections: Int,
         connectionHandler: @escaping SSHForwardingConnection.ConnectionHandler,
         failureHandler: @escaping SSHForwardingConnection.FailureHandler,
-        logger: Logger = ApplicationLogger.disabled("termind.port-forwarding-pool")
+        logger: Logger = ApplicationLogger.disabled("termind.port-forwarding-pool"),
+        makeConnection: ConnectionFactory? = nil
     ) {
         self.maximumConnections = Host.normalizedPortForwardingMaxConnections(maximumConnections)
         self.connectionHandler = connectionHandler
         self.failureHandler = failureHandler
-        self.logger = logger
+        self.makeConnection =
+            makeConnection ?? { _, connectionHandler, failureHandler in
+                SSHForwardingConnection(
+                    connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
+            }
         listeners = SSHForwardingLocalListeners { _, _, descriptor in
             Darwin.close(descriptor)
         }
@@ -221,14 +232,14 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     }
 
     private func makeSlot(id: UUID) -> Slot {
-        let connection = SSHForwardingConnection(
-            connectionHandler: { [weak self] ruleID, generation, count in
+        let connection = makeConnection(
+            id,
+            { [weak self] ruleID, generation, count in
                 Task { await self?.receivedCount(count, ruleID: ruleID, generation: generation, slotID: id) }
             },
-            failureHandler: { [weak self] message in
+            { [weak self] message in
                 Task { await self?.failed(slotID: id, message: message) }
-            },
-            logger: logger)
+            })
         return Slot(id: id, connection: connection)
     }
 
@@ -328,11 +339,15 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
             scheduleRetry(for: TermindSSHError.disconnected)
             return
         }
+        guard slots.removeValue(forKey: slotID) != nil else { return }
         let wasPrimary = primaryID == slotID
         stabilityTasks.removeValue(forKey: slotID)?.cancel()
         counts[slotID] = nil
-        slots[slotID] = nil
         draining.remove(slotID)
+        // A healthy draining connection can take over admission immediately.
+        // Counting it toward capacity without retaining it would suppress both
+        // new assignments and replacement opens until its old flows finish.
+        if !wasPrimary { rebalanceSlots() }
         publishPoolCounts()
         if wasPrimary, let promoted = slots.values.first {
             primaryID = promoted.id

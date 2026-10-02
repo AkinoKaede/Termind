@@ -120,11 +120,11 @@ nonisolated struct ServerMetricsParsingTests {
         ]
         let point = MetricsCalculation.point(
             previous: old, current: new, selection: MetricsSelection(id: UUID()), date: Date())
-        #expect(point.cpuUser == 20)
-        #expect(point.cpuSystem == 10)
-        #expect(point.cpuWait == 15)
-        #expect(point.cpuSteal == 5)
-        #expect(point.cpuIdle == 50)
+        #expect(point.cpuUsage.user == 20)
+        #expect(point.cpuUsage.system == 10)
+        #expect(point.cpuUsage.wait == 15)
+        #expect(point.cpuUsage.steal == 5)
+        #expect(point.cpuUsage.idle == 50)
         let disk = try #require(point.diskDevices.first)
         #expect(disk.readIOPS == 10 && disk.writeIOPS == 20)
         #expect(disk.busy == 50)

@@ -18,7 +18,7 @@ struct TerminalKeywordHighlightingTests {
         backgroundRule.id = UUID()
         backgroundRule.color = .none
         backgroundRule.backgroundColor = .yellow
-        #expect(model.upsert(backgroundRule, validate: { _ in true }))
+        #expect(model.upsert(backgroundRule))
         let views: [(String, AnyView)] = [
             ("settings", AnyView(SettingsFormPage { TerminalHighlightSettingsSection(model: model) { _ in } })),
             ("editor", AnyView(TerminalHighlightRuleEditorPage(rule: backgroundRule, model: model, deleted: {}))),

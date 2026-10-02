@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -8,8 +9,20 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileUserInputSpeechLayoutTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 768.0])
-    func answerFieldsFitPhoneAndPadWhileRecordingAndTranscribing(language: String, width: Double) async throws {
+    @Test(arguments: [false, true])
+    func recordingAndFinalizationKeepTwoTouchTargetsWithinACompactAnswer(recording: Bool) {
+        let controls = UserInputSpeechControls(
+            isActive: true, isRecording: recording, canStart: false, start: {}, cancel: {}, stop: {})
+        let host = UIHostingController(rootView: controls)
+        let size = host.sizeThatFits(in: CGSize(width: 320, height: 100))
+        #expect(size.width >= 88 && size.width <= 112)
+        #expect(size.height >= 44 && size.height <= 60)
+    }
+
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1"),
+        arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 768.0])
+    func captureAnswerFieldsAcrossSizesAndSpeechStates(language: String, width: Double) async throws {
         let app = try MobileAppModel(inMemory: true)
         let service = MobileQuestionSpeechService()
         let speech = SpeechTranscriptionCoordinator(service: service)
@@ -43,7 +56,8 @@ struct MobileUserInputSpeechLayoutTests {
                 }
                 if phase == "transcribing" { session.stop() }
                 let content = MobileAssistantInteraction(
-                    conversation: conversation, hosts: app.library, speech: speech, speechSession: session
+                    conversation: conversation, hosts: app.library, speech: speech,
+                    interaction: UserInputInteractionModel(speech: session)
                 )
                 .environment(\.locale, Locale(identifier: language))
                 .environment(\.dynamicTypeSize, .large)

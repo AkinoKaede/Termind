@@ -3,74 +3,6 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
-import TermindRemoteInfrastructure
-
-struct TerminalUploadConnection {
-    let channel: any SFTPChannelProtocol
-    let primaryRole: SFTPTransferPrimaryRole
-}
-
-enum TerminalUploadConnectionResolver {
-    @MainActor
-    static func resolve(
-        isCurrent: () -> Bool,
-        connectIndependent: () async throws -> any SFTPChannelProtocol,
-        openPTYSFTPChannel: () async throws -> any SFTPChannelProtocol
-    ) async throws -> TerminalUploadConnection {
-        do {
-            return TerminalUploadConnection(
-                channel: try await connectIndependent(), primaryRole: .donatedConnection)
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch let error as SFTPError {
-            if case .cancelled = error { throw error }
-            try Task.checkCancellation()
-            guard isCurrent() else { throw CancellationError() }
-            return TerminalUploadConnection(
-                channel: try await openPTYSFTPChannel(), primaryRole: .ptyConnectionFallback)
-        } catch {
-            try Task.checkCancellation()
-            guard isCurrent() else { throw CancellationError() }
-            return TerminalUploadConnection(
-                channel: try await openPTYSFTPChannel(), primaryRole: .ptyConnectionFallback)
-        }
-    }
-}
-
-enum TerminalTransferRequest {
-    case local([URL])
-    case remote(SFTPRemoteItemsPayload, itemCount: Int)
-
-    var itemCount: Int {
-        switch self {
-        case .local(let files): files.count
-        case .remote(_, let itemCount): itemCount
-        }
-    }
-
-    static func remote(
-        data: Data,
-        coordinator: SFTPTransferCoordinator
-    ) -> TerminalTransferRequest? {
-        guard let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data),
-            let source = coordinator.remoteCopySource(for: payload),
-            !source.files.isEmpty
-        else { return nil }
-        return .remote(payload, itemCount: source.files.count)
-    }
-
-    func prepare(
-        on channel: SFTPChannelModel,
-        coordinator: SFTPTransferCoordinator
-    ) async {
-        switch self {
-        case .local(let files):
-            await channel.prepareUpload(files)
-        case .remote(let payload, _):
-            await channel.prepareRemoteCopy(payload, coordinator: coordinator)
-        }
-    }
-}
 
 /// A libghostty terminal surface with Termind's connection and suggestion chrome.
 struct TerminalPlaceholderView: View {
@@ -93,15 +25,10 @@ struct TerminalPlaceholderView: View {
     @Environment(WindowModel.self) private var window
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var terminalFocused: Bool
-    @State private var pendingUploadChannel: SFTPChannelModel?
-    @State private var pendingUploadItemCount = 0
-    @State private var insertUploadedPaths = false
     @State private var uploadConflictPresented = false
-    @State private var uploadNotice: WorkspaceUploadNotice?
-    @State private var uploadNoticeTask: Task<Void, Never>?
-    @State private var uploadPreparationTask: Task<Void, Never>?
-    @State private var uploadPreparationID: UUID?
-    @State private var uploadEnqueueTask: Task<Void, Never>?
+    @State private var uploadBindingID: UUID?
+
+    private var uploads: TerminalUploadModel { sshSession.terminalUpload }
 
     /// The surface decides the pane's size; everything else is an overlay.
     ///
@@ -119,7 +46,7 @@ struct TerminalPlaceholderView: View {
             .desktopTerminalChrome(state: sshSession.terminalState)
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
-            .animation(Motion.panel, value: uploadNotice)
+            .animation(Motion.panel, value: uploads.notice)
             .onAppear {
                 // The mounted view is the final source of truth after any drag,
                 // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
@@ -128,16 +55,16 @@ struct TerminalPlaceholderView: View {
                 sshSession.inputRouter = workspace
                 terminalFocused = requestsFocus
                 TerminalFontCatalog.shared.refresh()
-                sshSession.terminalViewOwner.configureUpload(
+                uploadBindingID = sshSession.terminalViewOwner.bindUpload(
                     action: chooseUploadFiles,
-                    isAvailable: { isVisible && uploadTargetProblem == nil })
+                    isAvailable: { isVisible && uploads.uploadTargetProblem == nil })
                 sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
             }
             .onChange(of: isVisible) {
-                sshSession.terminalViewOwner.configureUpload(
-                    action: chooseUploadFiles,
-                    isAvailable: { isVisible && uploadTargetProblem == nil })
+                guard let uploadBindingID else { return }
+                sshSession.terminalViewOwner.updateUploadAvailability(
+                    for: uploadBindingID, isAvailable: { isVisible && uploads.uploadTargetProblem == nil })
             }
             .onChange(of: requestsFocus) { _, focused in
                 terminalFocused = focused
@@ -145,17 +72,20 @@ struct TerminalPlaceholderView: View {
             }
             .onChange(of: externalFileDrop?.id) {
                 guard let externalFileDrop else { return }
-                _ = receiveDroppedURLs(externalFileDrop.urls)
+                uploads.receiveFiles(externalFileDrop.urls, connections: app.connections, transfers: app.sftpTransfers)
             }
             .onChange(of: externalRemoteDrop?.id) {
                 guard let externalRemoteDrop else { return }
-                _ = receiveRemoteDrop(externalRemoteDrop.data)
+                uploads.receiveRemoteDrop(
+                    externalRemoteDrop.data, connections: app.connections, transfers: app.sftpTransfers)
             }
-            .onChange(of: sshSession.connectionAttemptID) { cancelPendingUpload() }
+            .onChange(of: uploads.hasConflict, initial: true) { _, hasConflict in
+                uploadConflictPresented = hasConflict
+            }
             .onDisappear {
                 terminalFocused = false
-                sshSession.terminalViewOwner.configureUpload(action: nil)
-                cancelPendingUpload()
+                if let uploadBindingID { sshSession.terminalViewOwner.unbindUpload(uploadBindingID) }
+                uploadBindingID = nil
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { TerminalFontCatalog.shared.refresh() }
@@ -165,10 +95,10 @@ struct TerminalPlaceholderView: View {
                 isPresented: $uploadConflictPresented,
                 titleVisibility: .visible
             ) {
-                Button(AppStrings.SFTP.replace.swiftUIKey) { enqueuePendingUpload(.replace) }
-                Button(AppStrings.SFTP.skipExisting.swiftUIKey) { enqueuePendingUpload(.skip) }
-                Button(AppStrings.SFTP.keepBoth.swiftUIKey) { enqueuePendingUpload(.keepBoth) }
-                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { cancelPendingUpload() }
+                Button(AppStrings.SFTP.replace.swiftUIKey) { uploads.enqueue(.replace) }
+                Button(AppStrings.SFTP.skipExisting.swiftUIKey) { uploads.enqueue(.skip) }
+                Button(AppStrings.SFTP.keepBoth.swiftUIKey) { uploads.enqueue(.keepBoth) }
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { uploads.cancelPendingUpload() }
             } message: {
                 Text(AppStrings.SFTP.applyToAllConflicts)
             }
@@ -176,8 +106,8 @@ struct TerminalPlaceholderView: View {
 
     @ViewBuilder
     private var uploadDecoration: some View {
-        if let uploadNotice {
-            TerminalUploadOverlay(notice: uploadNotice, homeResolution: sshSession.homeResolution)
+        if let notice = uploads.notice {
+            TerminalUploadOverlay(notice: notice, homeResolution: sshSession.homeResolution)
                 // Above the floating status capsule, not on top of it.
                 .padding(.bottom, Metrics.StatusBar.overlayClearance)
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -224,205 +154,15 @@ struct TerminalPlaceholderView: View {
         }
     }
 
-    private var uploadTargetProblem: String? {
-        TerminalUploadAvailability.problem(
-            isConnected: sshSession.status == .connected,
-            hasTransferConfiguration: sshSession.transferSnapshot != nil,
-            isWorkingDirectoryPending: sshSession.homeResolution.isPending,
-            workingDirectory: sshSession.workingDirectory
-        )
-    }
-
     private var uploadConflictTitle: String {
-        let count = pendingUploadChannel?.conflictCount ?? 0
-        return String(localized: AppStrings.SFTP.existingItemsMessage(count: count))
+        String(localized: AppStrings.SFTP.existingItemsMessage(count: uploads.conflictCount))
     }
 
     private func chooseUploadFiles() {
-        guard uploadTargetProblem == nil else { return }
-        let generation = sshSession.connectionAttemptID
-        let destination = sshSession.workingDirectory
+        guard let target = uploads.target else { return }
         sshSession.terminalViewOwner.chooseUploadFiles { urls in
-            guard sshSession.connectionAttemptID == generation,
-                sshSession.workingDirectory == destination, uploadTargetProblem == nil
-            else { return }
-            _ = prepareTerminalTransfer(.local(urls), insertPaths: true)
-        }
-    }
-
-    private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
-        let files = urls.filter(\.isFileURL)
-        guard !files.isEmpty else { return false }
-        return prepareTerminalTransfer(.local(files))
-    }
-
-    private func receiveRemoteDrop(_ data: Data) -> Bool {
-        guard let request = TerminalTransferRequest.remote(data: data, coordinator: app.sftpTransfers) else {
-            showUploadNotice(.rejected(String(localized: AppStrings.SFTP.theCopiedSftpItemsAreInvalid)))
-            return false
-        }
-        return prepareTerminalTransfer(request)
-    }
-
-    private func prepareTerminalTransfer(_ request: TerminalTransferRequest, insertPaths: Bool = false) -> Bool {
-        cancelPendingUpload()
-        insertUploadedPaths = insertPaths
-        guard uploadTargetProblem == nil,
-            let snapshot = sshSession.transferSnapshot,
-            let workingDirectory = sshSession.workingDirectory
-        else {
-            showUploadNotice(
-                .rejected(
-                    uploadTargetProblem
-                        ?? String(localized: AppStrings.SFTP.theUploadDestinationIsUnavailable)
-                )
-            )
-            return false
-        }
-
-        let destination = RemotePath.normalized(workingDirectory)
-        let generation = sshSession.connectionAttemptID
-        let preparationID = UUID()
-        uploadPreparationID = preparationID
-        pendingUploadItemCount = request.itemCount
-        uploadNotice = .preparing(destination)
-
-        uploadPreparationTask = Task {
-            defer {
-                if uploadPreparationID == preparationID {
-                    uploadPreparationTask = nil
-                    uploadPreparationID = nil
-                }
-            }
-            var connectedChannel: (any SFTPChannelProtocol)?
-            do {
-                let resolved = try await TerminalUploadConnectionResolver.resolve(
-                    isCurrent: { sshSession.connectionAttemptID == generation },
-                    connectIndependent: {
-                        let request = try sshSession.additionalConnectionRequest(from: snapshot)
-                        return try await app.connections.connectSFTP(
-                            using: request, progress: nil
-                        )
-                    },
-                    openPTYSFTPChannel: {
-                        try await sshSession.openPTYSFTPChannel(for: generation)
-                    })
-                let client = resolved.channel
-                connectedChannel = client
-                try Task.checkCancellation()
-                guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
-                let uploadChannel = SFTPChannelModel(
-                    hostID: sshSession.hostID,
-                    initialPath: destination,
-                    client: client,
-                    additionalSnapshot: snapshot,
-                    hostStore: sshSession.transferHostStore,
-                    primaryRole: resolved.primaryRole,
-                    homeResolution: sshSession.homeResolution
-                )
-                await request.prepare(on: uploadChannel, coordinator: app.sftpTransfers)
-                try Task.checkCancellation()
-                guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
-                if let error = uploadChannel.operationError {
-                    uploadChannel.disconnect()
-                    showUploadNotice(.rejected(error))
-                    return
-                }
-                guard uploadChannel.hasPendingBatch else {
-                    uploadChannel.disconnect()
-                    showUploadNotice(.rejected(String(localized: AppStrings.SFTP.noUploadableFilesWereFound)))
-                    return
-                }
-                pendingUploadChannel = uploadChannel
-                connectedChannel = nil
-                if uploadChannel.conflictCount > 0 {
-                    uploadNotice = nil
-                    uploadConflictPresented = true
-                } else {
-                    enqueuePendingUpload(.replace)
-                }
-            } catch is CancellationError {
-                await connectedChannel?.disconnect()
-                guard uploadPreparationID == preparationID else { return }
-                uploadNotice = nil
-            } catch {
-                await connectedChannel?.disconnect()
-                guard uploadPreparationID == preparationID,
-                    sshSession.connectionAttemptID == generation
-                else { return }
-                showUploadNotice(.rejected(error.localizedDescription))
-            }
-        }
-        return true
-    }
-
-    private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
-        guard let uploadChannel = pendingUploadChannel else { return }
-        let itemCount = pendingUploadItemCount
-        let destination = uploadChannel.path
-        let generation = sshSession.connectionAttemptID
-        let insertPaths = insertUploadedPaths
-        uploadConflictPresented = false
-        uploadEnqueueTask = Task {
-            if uploadChannel.pendingRemoteCopyBatch != nil {
-                await uploadChannel.enqueuePendingRemoteCopy(
-                    policy: policy,
-                    coordinator: app.sftpTransfers
-                )
-            } else {
-                await uploadChannel.enqueuePending(
-                    policy: policy,
-                    coordinator: app.sftpTransfers,
-                    uploadedPaths: insertPaths
-                        ? { [weak session = sshSession] paths in
-                            guard let session, session.status == .connected,
-                                session.connectionAttemptID == generation
-                            else { return }
-                            session.insertUploadedPaths(paths)
-                        } : nil
-                )
-            }
-            let error = uploadChannel.operationError
-            uploadChannel.disconnect()
-            guard !Task.isCancelled, pendingUploadChannel === uploadChannel,
-                sshSession.connectionAttemptID == generation
-            else { return }
-            uploadEnqueueTask = nil
-            pendingUploadChannel = nil
-            pendingUploadItemCount = 0
-            if let error {
-                showUploadNotice(.rejected(error))
-            } else {
-                showUploadNotice(.queued(itemCount, destination))
-            }
-        }
-    }
-
-    private func cancelPendingUpload() {
-        uploadPreparationTask?.cancel()
-        uploadPreparationTask = nil
-        uploadPreparationID = nil
-        uploadEnqueueTask?.cancel()
-        uploadEnqueueTask = nil
-        uploadNoticeTask?.cancel()
-        uploadNoticeTask = nil
-        uploadNotice = nil
-        uploadConflictPresented = false
-        pendingUploadItemCount = 0
-        guard let uploadChannel = pendingUploadChannel else { return }
-        uploadChannel.cancelPendingBatch()
-        uploadChannel.disconnect()
-        pendingUploadChannel = nil
-    }
-
-    private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
-        uploadNoticeTask?.cancel()
-        uploadNotice = notice
-        uploadNoticeTask = Task {
-            try? await Task.sleep(for: .seconds(notice.isRejected ? 3 : 2))
-            guard !Task.isCancelled, uploadNotice == notice else { return }
-            uploadNotice = nil
-            uploadNoticeTask = nil
+            uploads.receiveFiles(
+                urls, selectedTarget: target, connections: app.connections, transfers: app.sftpTransfers)
         }
     }
 
