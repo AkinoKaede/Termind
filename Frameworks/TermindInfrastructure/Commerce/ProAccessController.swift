@@ -15,6 +15,8 @@ public final class ProAccessController {
     public private(set) var status: EntitlementStatus
     public private(set) var isProcessing = false
     public var isPaywallPresented = false
+    /// App-owned runtime reconciliation; does not require a visible SwiftUI surface.
+    public var accessDidChange: (() -> Void)?
 
     public var usesRevenueCat: Bool { purchaseService != nil }
     public var hasProAccess: Bool { status.hasProAccess }
@@ -61,6 +63,17 @@ public final class ProAccessController {
     }
 
     public func canUse(_: ProFeature) -> Bool { hasProAccess }
+
+    /// Resolve access without changing the user's persisted choice or presenting commerce UI.
+    public func effectiveSFTPPreferences(_ saved: SFTPPreferences) -> SFTPPreferences {
+        var effective = saved
+        if !canUse(.sftpMultiConnection) { effective.strategy = .channelsOnly }
+        return effective
+    }
+
+    public func effectiveForwardingConnections(_ saved: Int) -> Int {
+        canUse(.portForwardingMultiConnection) ? Host.normalizedPortForwardingMaxConnections(saved) : 1
+    }
 
     @discardableResult
     public func require(_ feature: ProFeature) -> Bool {
@@ -118,7 +131,9 @@ public final class ProAccessController {
     }
 
     private func apply(_ next: EntitlementStatus) {
+        let changed = status.hasProAccess != next.hasProAccess
         status = next
+        if changed { accessDidChange?() }
         entitlementExpirationTask?.cancel()
         if case .subscription(let subscription) = next,
             subscription.phase.hasProAccess, let expiresAt = subscription.expiresAt, expiresAt > now()

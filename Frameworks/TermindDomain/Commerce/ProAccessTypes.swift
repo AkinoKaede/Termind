@@ -6,6 +6,8 @@ public nonisolated enum ProFeature: String, CaseIterable, Hashable, Sendable {
     case mcpServer
     case vaultSync
     case unlimitedMetrics
+    case sftpMultiConnection
+    case portForwardingMultiConnection
 }
 
 public nonisolated enum ProOwnership: Equatable, Sendable {

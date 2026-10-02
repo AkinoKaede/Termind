@@ -5,6 +5,30 @@ import Testing
 
 @Suite
 struct SFTPConcurrencySchedulerTests {
+    @Test func finalPreferencesAffectQueuedWorkWithoutChangingGrantedPermits() async throws {
+        let scheduler = SFTPConcurrencyScheduler(
+            preferences: .init(globalLimit: 1, perHostLimit: 1, strategy: .connectionsPreferred))
+        let host = UUID()
+        let first = try await scheduler.acquire(
+            anchorHostID: host, hostIDs: [host], source: .workspace(UUID()), byteCount: 80_000_000)
+        let queued = Task {
+            try await scheduler.acquire(
+                anchorHostID: host, hostIDs: [host], source: .agentRun(UUID()), byteCount: 80_000_000)
+        }
+        try await eventually { await scheduler.queuedCount == 1 }
+        await scheduler.updatePreferences(.init(globalLimit: 1, perHostLimit: 1, strategy: .channelsOnly))
+        #expect(first.schedulingMode == .connectionsPreferred)
+        await first.release()
+        let next = try await queued.value
+        #expect(next.schedulingMode == .channelsOnly)
+        await next.release()
+        await scheduler.updatePreferences(.init(strategy: .smart))
+        let upgraded = try await scheduler.acquire(
+            anchorHostID: host, hostIDs: [host], source: .workspace(UUID()), byteCount: 80_000_000)
+        #expect(upgraded.schedulingMode == .connectionsPreferred)
+        await upgraded.release()
+    }
+
     @Test func smartResolvesTheSixtyFourMBBoundaryAndUnknownSizeToSessions() async throws {
         let scheduler = SFTPConcurrencyScheduler(
             preferences: SFTPPreferences(globalLimit: 3, perHostLimit: 3, strategy: .smart))

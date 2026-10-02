@@ -2,6 +2,18 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum SFTP {
+        public static var concurrentStrategy: LocalizedStringResource { "Concurrent Strategy" }
+        public static var smart: LocalizedStringResource { "Smart" }
+        public static var channelsOnly: LocalizedStringResource { "Channels Only" }
+        public static var connectionsPreferred: LocalizedStringResource { "Connections Preferred" }
+        public static var concurrentTransfers: LocalizedStringResource { "Concurrent Transfers" }
+        public static var perHostTransfers: LocalizedStringResource { "Per-Host Transfers" }
+        public static var smartStrategyExplanation: LocalizedStringResource {
+            "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels."
+        }
+        public static var concurrencyChangesExplanation: LocalizedStringResource {
+            "Changes apply to queued transfers; active transfers continue. If new connections would prompt for authentication, transfers use parallel channels on the existing connection."
+        }
 
         public static var appStoreProgress: LocalizedStringResource {
             "App Store…"

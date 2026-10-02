@@ -4,31 +4,35 @@ import TermindDomain
 
 public struct SFTPSettingsFields: View {
     let model: SFTPSettingsModel
+    let access: MultiConnectionSettingsAccess
 
-    public init(model: SFTPSettingsModel) { self.model = model }
-
+    public init(
+        model: SFTPSettingsModel,
+        access: MultiConnectionSettingsAccess = .init(isAllowed: true, requestAccess: {})
+    ) {
+        self.model = model
+        self.access = access
+    }
     public var body: some View {
-        Picker("Concurrent Strategy", selection: strategyBinding) {
-            Text("Smart").tag(SFTPConcurrencyStrategy.smart)
-            Text("Channels Only").tag(SFTPConcurrencyStrategy.channelsOnly)
-            Text("Connections Preferred").tag(SFTPConcurrencyStrategy.connectionsPreferred)
+        Picker(AppStrings.SFTP.concurrentStrategy, selection: access.strategy(for: model)) {
+            Text(access.isAllowed ? AppStrings.SFTP.smart : AppStrings.Pro.smartStrategy)
+                .tag(SFTPConcurrencyStrategy.smart)
+            Text(AppStrings.SFTP.channelsOnly).tag(SFTPConcurrencyStrategy.channelsOnly)
+            Text(access.isAllowed ? AppStrings.SFTP.connectionsPreferred : AppStrings.Pro.connectionsPreferredStrategy)
+                .tag(SFTPConcurrencyStrategy.connectionsPreferred)
         }
-        if model.preferences.strategy == .smart {
-            Text(
-                "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels."
-            )
-            .font(.caption).foregroundStyle(.secondary)
+        if access.strategy(for: model).wrappedValue == .smart {
+            Text(AppStrings.SFTP.smartStrategyExplanation)
+                .font(.caption).foregroundStyle(.secondary)
         }
         Stepper(value: binding(\.globalLimit), in: SFTPPreferences.globalLimitRange) {
-            label("Concurrent Transfers", value: model.preferences.globalLimit)
+            label(AppStrings.SFTP.concurrentTransfers, value: model.preferences.globalLimit)
         }
         Stepper(value: binding(\.perHostLimit), in: model.preferences.availablePerHostRange) {
-            label("Per-Host Transfers", value: model.preferences.perHostLimit)
+            label(AppStrings.SFTP.perHostTransfers, value: model.preferences.perHostLimit)
         }
-        Text(
-            "Changes apply to queued transfers; active transfers continue. If new connections would prompt for authentication, transfers use parallel channels on the existing connection."
-        )
-        .font(.caption).foregroundStyle(.secondary)
+        Text(AppStrings.SFTP.concurrencyChangesExplanation)
+            .font(.caption).foregroundStyle(.secondary)
         if let error = model.storageError { Text(error).foregroundStyle(.red) }
     }
 
@@ -51,7 +55,4 @@ public struct SFTPSettingsFields: View {
         Binding(get: { model.preferences[keyPath: keyPath] }, set: { model.set($0, for: keyPath) })
     }
 
-    private var strategyBinding: Binding<SFTPConcurrencyStrategy> {
-        Binding(get: { model.preferences.strategy }, set: { model.setStrategy($0) })
-    }
 }

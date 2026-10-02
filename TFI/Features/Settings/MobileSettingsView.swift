@@ -41,7 +41,11 @@ struct MobileSettingsView: View {
                     Label(AppStrings.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }
                 NavigationLink {
-                    MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
+                    MobileConnectionSettingsView(
+                        ssh: app.sshSettings, sftp: app.sftpSettings,
+                        sftpAccess: .init(isAllowed: app.pro.canUse(.sftpMultiConnection)) {
+                            app.pro.require(.sftpMultiConnection)
+                        })
                 } label: {
                     Label(AppStrings.Settings.connections.swiftUIKey, systemImage: "network")
                 }

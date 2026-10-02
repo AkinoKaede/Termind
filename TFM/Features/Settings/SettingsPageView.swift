@@ -583,7 +583,13 @@ private struct ConnectionSettings: View {
 
     var body: some View {
         Section(AppStrings.Vault.ssh.swiftUIKey) { SSHSettingsFields(model: app.sshSettings) }
-        Section(AppStrings.SFTP.sftp.swiftUIKey) { SFTPSettingsFields(model: app.sftpSettings) }
+        Section(AppStrings.SFTP.sftp.swiftUIKey) {
+            SFTPSettingsFields(
+                model: app.sftpSettings,
+                access: .init(isAllowed: app.proAccess.canUse(.sftpMultiConnection)) {
+                    app.proAccess.require(.sftpMultiConnection)
+                })
+        }
     }
 }
 

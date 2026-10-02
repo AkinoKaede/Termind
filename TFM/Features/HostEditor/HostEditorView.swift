@@ -295,13 +295,15 @@ struct HostEditorView: View {
 
                 Section(AppStrings.Navigation.portForwarding.swiftUIKey) {
                     Stepper(
-                        value: $draft.portForwardingMaxConnections,
+                        value: forwardingConnections,
                         in: Host.portForwardingMaxConnectionsRange
                     ) {
                         HStack {
-                            Text(AppStrings.Vault.maxConnections)
+                            Text(
+                                app.proAccess.canUse(.portForwardingMultiConnection)
+                                    ? AppStrings.Vault.maxConnections : AppStrings.Pro.maxConnections)
                             Spacer()
-                            Text(draft.portForwardingMaxConnections, format: .number).monospacedDigit()
+                            Text(forwardingConnections.wrappedValue, format: .number).monospacedDigit()
                         }
                     }
                     Text(AppStrings.Vault.forwardingPoolExplanation)
@@ -514,6 +516,12 @@ struct HostEditorView: View {
     }
 
     // MARK: - Picking, and making
+
+    private var forwardingConnections: Binding<Int> {
+        MultiConnectionSettingsAccess(isAllowed: app.proAccess.canUse(.portForwardingMultiConnection)) {
+            app.proAccess.require(.portForwardingMultiConnection)
+        }.forwardingConnections($draft.portForwardingMaxConnections)
+    }
 
     /// What a picker row means: nothing, one of the saved records, or the row
     /// that makes a new one.

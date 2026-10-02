@@ -159,8 +159,11 @@ public final class SFTPTransferCoordinator {
         globalLimit = limits.globalLimit
         perHostLimit = limits.perHostLimit
         strategy = limits.strategy
-        preferencesUpdateTask?.cancel()
-        preferencesUpdateTask = Task { await concurrencyScheduler.updatePreferences(limits) }
+        let previous = preferencesUpdateTask
+        preferencesUpdateTask = Task {
+            await previous?.value
+            await concurrencyScheduler.updatePreferences(limits)
+        }
         schedule()
     }
 

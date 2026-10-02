@@ -80,7 +80,7 @@ public final class PortForwardingConnection {
     fileprivate var silentAttempt = false
     fileprivate var additionalSnapshot: SSHAdditionalConnectionSnapshot?
     fileprivate var connectionCounts: [PortForwardingRule.ID: Int] = [:]
-    fileprivate let maximumConnections: Int
+    fileprivate var maximumConnections: Int
 
     fileprivate init(
         host: Host, route: [Host], maximumConnections: Int, reconnect: SessionReconnectController
@@ -100,14 +100,6 @@ public final class PortForwardingController {
     public nonisolated enum PoolPolicy: Sendable {
         case singleConnection
         case hostConfigured
-
-        fileprivate func maximumConnections(for host: Host) -> Int {
-            switch self {
-            case .singleConnection: 1
-            case .hostConfigured:
-                Host.normalizedPortForwardingMaxConnections(host.portForwardingMaxConnections)
-            }
-        }
     }
 
     public typealias ConnectionFactory =
@@ -122,6 +114,8 @@ public final class PortForwardingController {
             @escaping SSHForwardingConnection.FailureHandler
         ) -> any SSHForwardingConnectionProtocol
     private let poolPolicy: PoolPolicy
+    private var connectionLimit: Int
+    private var limitUpdateTask: Task<Void, Never>?
     private let logger: Logger
     private let makeReconnectController: @MainActor () -> SessionReconnectController
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
@@ -135,6 +129,7 @@ public final class PortForwardingController {
     public init(
         hosts: HostLibraryModel,
         poolPolicy: PoolPolicy = .singleConnection,
+        connectionLimit: Int = Host.portForwardingMaxConnectionsRange.upperBound,
         logger: Logger = ApplicationLogger.disabled("termind.port-forwarding"),
         makeConnection: ConnectionFactory? = nil,
         makeReconnectController: @escaping @MainActor () -> SessionReconnectController = {
@@ -144,6 +139,7 @@ public final class PortForwardingController {
         self.hosts = hosts
         self.logger = logger
         self.poolPolicy = poolPolicy
+        self.connectionLimit = Host.normalizedPortForwardingMaxConnections(connectionLimit)
         self.makeReconnectController = makeReconnectController
         if let makeConnection {
             self.makeConnection = { _, connectionHandler, failureHandler in
@@ -151,7 +147,7 @@ public final class PortForwardingController {
             }
         } else {
             self.makeConnection = { maximumConnections, connectionHandler, failureHandler in
-                if maximumConnections > 1 {
+                if poolPolicy == .hostConfigured {
                     SSHForwardingConnectionPool(
                         maximumConnections: maximumConnections,
                         connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
@@ -165,6 +161,30 @@ public final class PortForwardingController {
 
     public func state(for id: PortForwardingRule.ID) -> PortForwardingRuntimeState { states[id] ?? .stopped }
     public func connection(for id: PortForwardingRule.ID) -> PortForwardingConnection? { presentations[id] }
+
+    private func maximumConnections(for host: Host) -> Int {
+        switch poolPolicy {
+        case .singleConnection: 1
+        case .hostConfigured:
+            min(connectionLimit, Host.normalizedPortForwardingMaxConnections(host.portForwardingMaxConnections))
+        }
+    }
+
+    /// The app supplies final connection limits; the transport has no commerce dependency.
+    public func updateConnectionLimit(_ maximum: Int) {
+        connectionLimit = Host.normalizedPortForwardingMaxConnections(maximum)
+        for context in connections.values {
+            if let host = hosts.host(context.hostID) { context.maximumConnections = maximumConnections(for: host) }
+        }
+        let previous = limitUpdateTask
+        limitUpdateTask = Task { [weak self] in
+            await previous?.value
+            guard let self else { return }
+            for context in Array(connections.values) {
+                await context.forwardingConnection?.updateMaximumConnections(context.maximumConnections)
+            }
+        }
+    }
 
     public func start(_ id: PortForwardingRule.ID) {
         guard !state(for: id).isActive, let rule = hosts.portForwarding(id), rule.isValid,
@@ -183,7 +203,7 @@ public final class PortForwardingController {
         } else {
             context = PortForwardingConnection(
                 host: host, route: hosts.route(for: host),
-                maximumConnections: poolPolicy.maximumConnections(for: host),
+                maximumConnections: maximumConnections(for: host),
                 reconnect: makeReconnectController())
             connections[host.id] = context
         }
@@ -396,6 +416,7 @@ public final class PortForwardingController {
         }
         let attemptSubmissions = silently ? [:] : context.submissions.takeAuthenticationSecrets()
         let attemptProxySubmissions = silently ? [:] : context.proxySubmissions.takeProxyAuthenticationSecrets()
+        context.maximumConnections = maximumConnections(for: host)
         let forwardingConnection = makeConnection(
             context.maximumConnections,
             { [weak self, weak context] id, generation, count in
@@ -476,6 +497,7 @@ public final class PortForwardingController {
                     context.additionalSnapshot = hosts.additionalConnectionSnapshot(from: configuration)
                 }
                 if let snapshot = context.additionalSnapshot {
+                    await forwardingConnection.updateMaximumConnections(context.maximumConnections)
                     await forwardingConnection.configureAdditionalConnections { [weak self] in
                         guard let self else { throw CancellationError() }
                         return try self.hosts.additionalConnectionRequest(from: snapshot)

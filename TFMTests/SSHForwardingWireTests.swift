@@ -9,6 +9,76 @@ import Testing
 /// Uses the loopback Paramiko or forwarding-only OpenSSH fixture in Scripts/.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
 nonisolated struct SSHForwardingWireTests {
+    @Test func poolShrinksWithoutClosingExistingFlowsAndCanExpandAgain() async throws {
+        let fixture = try fixture()
+        let pool = SSHForwardingConnectionPool(
+            maximumConnections: 1, connectionHandler: { _, _, _ in },
+            failureHandler: { Issue.record(Comment(rawValue: $0)) })
+        try await pool.connect(request(fixture, jumps: 0), progress: nil)
+        await pool.configureAdditionalConnections { request(fixture, jumps: 0).enforcingInteractionPolicy() }
+        let local = try rule(.local, fixture: fixture)
+        try await pool.start(local, generation: UUID())
+        defer { Task { await pool.disconnect() } }
+        #expect(await pool.connectionPoolStatus() == .single)
+        await pool.updateMaximumConnections(3)
+        try await waitForPool(pool, connected: 3, target: 3)
+        var clients: [Int32] = []
+        defer { for client in clients { Darwin.close(client) } }
+        for _ in 0..<12 { clients.append(try SSHSocketConnector.open(host: "127.0.0.1", port: local.bindPort)) }
+        for _ in 0..<1_000 {
+            if await pool.flowDistribution(for: local.id).reduce(0, +) == clients.count { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(await pool.flowDistribution(for: local.id).filter { $0 > 0 }.count > 1)
+        await pool.updateMaximumConnections(1)
+        #expect(await pool.connectionPoolStatus().target == 1)
+        // Every established TCP stream must still pass data after the downgrade.
+        for client in clients {
+            var sent: UInt8 = 42
+            #expect(Darwin.write(client, &sent, 1) == 1)
+            var timeout = timeval(tv_sec: 5, tv_usec: 0)
+            setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+            var received: UInt8 = 0
+            #expect(Darwin.read(client, &received, 1) == 1)
+            #expect(received == sent)
+        }
+        // A new stream still works on the retained connection while auxiliaries drain.
+        try await exchange(port: local.bindPort, target: nil, seed: 72, rounds: 2)
+        let addedWhileDraining = try rule(.local, fixture: fixture)
+        try await pool.start(addedWhileDraining, generation: UUID())
+        await pool.updateMaximumConnections(3)
+        try await waitForPool(pool, connected: 3, target: 3)
+        var addedClients: [Int32] = []
+        defer { for client in addedClients { Darwin.close(client) } }
+        for _ in 0..<12 {
+            addedClients.append(try SSHSocketConnector.open(host: "127.0.0.1", port: addedWhileDraining.bindPort))
+        }
+        for _ in 0..<1_000 {
+            if await pool.flowDistribution(for: addedWhileDraining.id).filter({ $0 > 0 }).count > 1 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(await pool.flowDistribution(for: addedWhileDraining.id).filter { $0 > 0 }.count > 1)
+        for client in addedClients { Darwin.close(client) }
+        addedClients.removeAll()
+        await pool.updateMaximumConnections(1)
+        for client in clients { Darwin.close(client) }
+        clients.removeAll()
+        try await waitForPool(pool, connected: 1, target: 1)
+        await pool.updateMaximumConnections(3)
+        try await waitForPool(pool, connected: 3, target: 3)
+        await pool.updateMaximumConnections(1)
+        try await waitForPool(pool, connected: 1, target: 1)
+    }
+
+    private func waitForPool(_ pool: SSHForwardingConnectionPool, connected: Int, target: Int) async throws {
+        let expected = SSHForwardingPoolStatus(connected: connected, target: target)
+        for _ in 0..<1_000 {
+            if await pool.connectionPoolStatus() == expected { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(await pool.connectionPoolStatus() == expected)
+    }
+
     @Test(arguments: [PortForwardingRule.Kind.local, .dynamic])
     func disconnectReleasesThePortBeforeReturningEvenWithEstablishedStreams(_ kind: PortForwardingRule.Kind)
         async throws

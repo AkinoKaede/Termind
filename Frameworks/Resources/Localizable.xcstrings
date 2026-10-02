@@ -7223,6 +7223,23 @@
         }
       }
     },
+    "Connections Preferred (Pro)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "优先连接（Pro）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優先連線（Pro）"
+          }
+        }
+      }
+    },
     "Contacting the App Store…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15915,6 +15932,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最大連線數"
+          }
+        }
+      }
+    },
+    "Max Connections (Pro)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大连接数（Pro）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線數上限（Pro）"
           }
         }
       }
@@ -26093,6 +26127,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "智慧"
+          }
+        }
+      }
+    },
+    "Smart (Pro)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能（Pro）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智慧（Pro）"
           }
         }
       }

@@ -29,6 +29,7 @@ public nonisolated struct SSHForwardingPoolStatus: Hashable, Sendable {
 public protocol SSHForwardingConnectionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
     func configureAdditionalConnections(_ resolver: @escaping SSHAdditionalConnectionRequestResolver) async
+    func updateMaximumConnections(_ maximum: Int) async
     func connectionPoolStatus() async -> SSHForwardingPoolStatus
     func start(_ rule: PortForwardingRule, generation: UUID) async throws
     func stop(_ id: PortForwardingRule.ID) async
@@ -37,6 +38,7 @@ public protocol SSHForwardingConnectionProtocol: Actor {
 
 extension SSHForwardingConnectionProtocol {
     public func configureAdditionalConnections(_ resolver: @escaping SSHAdditionalConnectionRequestResolver) async {}
+    public func updateMaximumConnections(_ maximum: Int) async {}
     public func connectionPoolStatus() async -> SSHForwardingPoolStatus { .single }
 }
 
@@ -76,6 +78,9 @@ public actor SSHForwardingConnection: SSHForwardingConnectionProtocol {
     func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
         await worker.acceptShared(descriptor, ruleID: ruleID, generation: generation)
     }
+
+    /// Queried only after the pool has stopped assigning flows to this connection.
+    func hasActiveFlows() async -> Bool { await worker.hasActiveFlows() }
 
     public func stop(_ id: PortForwardingRule.ID) async {
         await worker.stop(id)
@@ -330,6 +335,12 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 schedulePump()
                 continuation.resume(returning: true)
             }
+        }
+    }
+
+    func hasActiveFlows() async -> Bool {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in continuation.resume(returning: !flows.isEmpty) }
         }
     }
 

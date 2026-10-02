@@ -2,12 +2,88 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindInfrastructure
+import TermindPresentation
 import Testing
 
 @testable import Termind
+@testable import TermindInfrastructure
 
 @Suite(.serialized) @MainActor
 struct SFTPSettingsIntegrationTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func freeSettingsRenderOffscreenWithoutMutatingTheSavedChoice(language: String) async throws {
+        let settings = SFTPSettingsModel()
+        settings.setStrategy(.connectionsPreferred)
+        let view = Form {
+            SFTPSettingsFields(model: settings, access: .init(isAllowed: false, requestAccess: {}))
+        }
+        .formStyle(.grouped)
+        .environment(\.locale, Locale(identifier: language))
+        .frame(width: 620, height: 340)
+        let host = NSHostingView(rootView: view)
+        host.frame = NSRect(x: 0, y: 0, width: 620, height: 340)
+        host.appearance = NSAppearance(named: .aqua)
+        host.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
+        let bitmap = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        let data = try #require(bitmap.representation(using: .png, properties: [:]))
+        Attachment.record(data, named: "free-sftp-settings-\(language).png")
+        #expect(data.count > 2_000)
+        #expect(settings.preferences.strategy == .connectionsPreferred)
+    }
+
+    @Test(arguments: SFTPConcurrencyStrategy.allCases)
+    func purchaseRestoresSavedStrategyWithoutOpeningSettings(_ strategy: SFTPConcurrencyStrategy) async {
+        let service = ConnectionPurchaseService()
+        let pro = ProAccessController(purchaseService: service, observeUpdates: false)
+        let settings = SFTPSettingsModel()
+        settings.setStrategy(strategy)
+        let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings, proAccess: pro)
+        defer { app.shutdownForTermination() }
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
+        settings.set(60, for: \.globalLimit)
+        service.status = .purchased(.purchased)
+        await pro.refresh()
+        #expect(app.sftpTransfers.strategy == strategy)
+        #expect(app.sftpTransfers.globalLimit == 60)
+        #expect(settings.preferences.strategy == strategy)
+        #expect(!pro.isPaywallPresented)
+    }
+    @Test(arguments: SFTPConcurrencyStrategy.allCases)
+    func losingAccessChangesRuntimeWithoutRewritingPreferencesOrOpeningPaywall(_ strategy: SFTPConcurrencyStrategy)
+        async
+    {
+        let settings = SFTPSettingsModel()
+        settings.setStrategy(strategy)
+        let pro = ProAccessController.testing(status: .purchased(.purchased))
+        let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings, proAccess: pro)
+        defer { app.shutdownForTermination() }
+        #expect(app.sftpTransfers.strategy == strategy)
+        await pro.refresh()
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
+        #expect(settings.preferences.strategy == strategy)
+        #expect(!pro.isPaywallPresented)
+        settings.set(50, for: \.globalLimit)
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
+        #expect(app.sftpTransfers.globalLimit == 50)
+        #expect(settings.preferences.strategy == strategy)
+    }
+
+    @Test func freeStartupAndSyncedPreferencesUseOnlyTheEffectiveStrategy() {
+        let settings = SFTPSettingsModel()
+        let pro = ProAccessController.testing(status: .free(trialAvailable: true))
+        let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings, proAccess: pro)
+        defer { app.shutdownForTermination() }
+        #expect(settings.preferences.strategy == .smart)
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
+        settings.applyRemoteSnapshot(.init(strategy: .connectionsPreferred))
+        #expect(settings.preferences.strategy == .connectionsPreferred)
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
+        #expect(!pro.isPaywallPresented)
+    }
+
     @Test func localAndRemoteChangesReachTheQueueWithoutOpeningSettings() {
         let settings = SFTPSettingsModel()
         let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings)
@@ -59,4 +135,11 @@ struct SFTPSettingsIntegrationTests {
             #expect(data.count > 5_000)
         }
     }
+}
+
+@MainActor
+private final class ConnectionPurchaseService: ProPurchaseService {
+    let updates = AsyncStream<EntitlementStatus> { $0.finish() }
+    var status = EntitlementStatus.free(trialAvailable: false)
+    func currentStatus() async throws -> EntitlementStatus { status }
 }

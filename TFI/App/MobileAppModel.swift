@@ -217,7 +217,7 @@ final class MobileAppModel {
         self.defaults = inMemory || hosts != nil ? nil : defaults
         snippetTimestampFallback = MobileSnippetTimestamp.fallback(in: self.defaults)
         liveActivities = dependencies.liveActivities ?? MobileLiveActivityController(enabled: !inMemory && hosts == nil)
-        pro = inMemory || hosts != nil ? .unrestrictedForTesting() : .live()
+        pro = dependencies.proAccess ?? (inMemory || hosts != nil ? .unrestrictedForTesting() : .live())
         let persistence = HostPersistence(context: vaultContext)
         _ = try persistence.load()
         let secrets: any SecretStoring =
@@ -316,7 +316,8 @@ final class MobileAppModel {
             service: AppleSpeechTranscriptionService(audioInput: speechAudio)
         )
         speechAudio.onInterruption = { [weak speech] in speech?.cancelAll() }
-        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
+        let sftpPreferences = pro.effectiveSFTPPreferences(sftpSettings.preferences)
+        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpPreferences)
         assistant = MobileAssistantModel(
             configuration: ai,
             repository: MemoryIndexedAgentRepository(
@@ -342,9 +343,9 @@ final class MobileAppModel {
         forwardings = dependencies.makeForwardings(library)
         transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { connectionCoordinator.makeSFTPClient() },
-            globalLimit: sftpSettings.preferences.globalLimit,
-            perHostLimit: sftpSettings.preferences.perHostLimit,
-            strategy: sftpSettings.preferences.strategy,
+            globalLimit: sftpPreferences.globalLimit,
+            perHostLimit: sftpPreferences.perHostLimit,
+            strategy: sftpPreferences.strategy,
             concurrencyScheduler: sftpConcurrencyScheduler)
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in
@@ -391,8 +392,13 @@ final class MobileAppModel {
         connectionHistorySync?.didApplyRemote = { [weak self] _ in self?.connectionHistory.reload() }
         deviceSync?.didApplyRemote = { [weak self] _ in self?.devices.reload() }
         vaultSync?.didApplyRemote = { [weak self] in self?.applyRemoteVault($0, keys: $1) }
-        sftpSettings.didChange = { [weak transfers] preferences in
-            transfers?.updatePreferences(preferences)
+        sftpSettings.didChange = { [weak transfers, weak pro] preferences in
+            guard let pro else { return }
+            transfers?.updatePreferences(pro.effectiveSFTPPreferences(preferences))
+        }
+        pro.accessDidChange = { [weak self] in
+            guard let self else { return }
+            transfers.updatePreferences(pro.effectiveSFTPPreferences(sftpSettings.preferences))
         }
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)

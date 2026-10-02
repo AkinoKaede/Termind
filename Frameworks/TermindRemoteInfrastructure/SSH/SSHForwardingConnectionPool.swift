@@ -22,7 +22,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         let generation: UUID
     }
 
-    private let maximumConnections: Int
+    private var maximumConnections: Int
     private let connectionHandler: SSHForwardingConnection.ConnectionHandler
     private let failureHandler: SSHForwardingConnection.FailureHandler
     private let logger: Logger
@@ -34,6 +34,11 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private var additionalRequest: SSHAdditionalConnectionRequestResolver?
     private var opening: [UUID: Slot] = [:]
     private var installing: [UUID: Slot] = [:]
+    private var openingTasks: [UUID: Task<Void, Never>] = [:]
+    private var draining: Set<UUID> = []
+    private var assignments: [UUID: Int] = [:]
+    private var checkingIdle: Set<UUID> = []
+    private var recheckIdle: Set<UUID> = []
     private var retryTask: Task<Void, Never>?
     private var stabilityTasks: [UUID: Task<Void, Never>] = [:]
     private var retryAttempt = 0
@@ -46,7 +51,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         failureHandler: @escaping SSHForwardingConnection.FailureHandler,
         logger: Logger = ApplicationLogger.disabled("termind.port-forwarding-pool")
     ) {
-        self.maximumConnections = min(max(maximumConnections, 2), Host.portForwardingMaxConnectionsRange.upperBound)
+        self.maximumConnections = Host.normalizedPortForwardingMaxConnections(maximumConnections)
         self.connectionHandler = connectionHandler
         self.failureHandler = failureHandler
         self.logger = logger
@@ -87,6 +92,28 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         SSHForwardingPoolStatus(connected: slots.count, target: desiredConnections)
     }
 
+    func updateMaximumConnections(_ maximum: Int) async {
+        maximumConnections = Host.normalizedPortForwardingMaxConnections(maximum)
+        rebalanceSlots()
+        // Pending auxiliaries have no accepted flows and can be cancelled immediately.
+        let pending: [Slot]
+        if slots.count + opening.count + installing.count > desiredConnections {
+            pending = Array(opening.values) + Array(installing.values)
+            opening.removeAll()
+            installing.removeAll()
+            for task in openingTasks.values { task.cancel() }
+            openingTasks.removeAll()
+        } else {
+            pending = []
+        }
+        retryTask?.cancel()
+        retryTask = nil
+        publishPoolCounts()
+        for slot in pending { await slot.connection.disconnect() }
+        for id in Array(draining) { await retireIfIdle(id) }
+        fillPool()
+    }
+
     func flowDistribution(for ruleID: PortForwardingRule.ID) async -> [Int] {
         slots.keys.sorted { $0.uuidString < $1.uuidString }.map { counts[$0]?[ruleID] ?? 0 }
     }
@@ -99,6 +126,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
                 try await primary.connection.start(rule, generation: generation)
                 primary.rules.insert(rule.id)
             } else {
+                // Draining slots may be retained again if the limit increases before their flows finish.
                 for slot in slots.values {
                     try await slot.connection.registerShared(rule, generation: generation)
                     slot.rules.insert(rule.id)
@@ -133,6 +161,12 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         retryTask = nil
         for task in stabilityTasks.values { task.cancel() }
         stabilityTasks.removeAll()
+        for task in openingTasks.values { task.cancel() }
+        openingTasks.removeAll()
+        draining.removeAll()
+        assignments.removeAll()
+        checkingIdle.removeAll()
+        recheckIdle.removeAll()
         let pending = Array(opening.values) + Array(installing.values)
         opening.removeAll()
         installing.removeAll()
@@ -151,6 +185,40 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private var primarySlot: Slot? { primaryID.flatMap { slots[$0] } }
     private var needsPool: Bool { registrations.values.contains { $0.rule.kind != .remote } }
     private var desiredConnections: Int { needsPool ? maximumConnections : 1 }
+
+    private func rebalanceSlots() {
+        let auxiliaries = slots.keys.filter { $0 != primaryID }.sorted { $0.uuidString < $1.uuidString }
+        let retained = Set(auxiliaries.prefix(max(0, desiredConnections - 1)))
+        draining = Set(auxiliaries).subtracting(retained)
+    }
+
+    private func retireIfIdle(_ id: UUID) async {
+        guard draining.contains(id), id != primaryID, assignments[id, default: 0] == 0,
+            let slot = slots[id]
+        else { return }
+        guard checkingIdle.insert(id).inserted else {
+            recheckIdle.insert(id)
+            return
+        }
+        let busy = await slot.connection.hasActiveFlows()
+        checkingIdle.remove(id)
+        let needsRecheck = recheckIdle.remove(id) != nil
+        if busy {
+            if needsRecheck { await retireIfIdle(id) }
+            return
+        }
+        // The worker query is authoritative: count callbacks may still be in flight.
+        guard draining.contains(id), id != primaryID, slots[id] === slot,
+            assignments[id, default: 0] == 0
+        else { return }
+        slots[id] = nil
+        counts[id] = nil
+        draining.remove(id)
+        stabilityTasks.removeValue(forKey: id)?.cancel()
+        publishPoolCounts()
+        await slot.connection.disconnect()
+        fillPool()
+    }
 
     private func makeSlot(id: UUID) -> Slot {
         let connection = SSHForwardingConnection(
@@ -173,10 +241,12 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
             let slot = makeSlot(id: id)
             opening[id] = slot
             let resolver = additionalRequest!
-            Task { [weak self] in
+            openingTasks[id] = Task { [weak self] in
                 do {
                     let request = try await resolver()
+                    try Task.checkCancellation()
                     try await slot.connection.connect(request, progress: nil)
+                    try Task.checkCancellation()
                     await self?.opened(slot)
                 } catch {
                     await self?.openFailed(id: id, error: error)
@@ -187,6 +257,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     }
 
     private func opened(_ slot: Slot) async {
+        defer { openingTasks[slot.id] = nil }
         guard opening.removeValue(forKey: slot.id) != nil, !disconnecting,
             slots.count + installing.count < desiredConnections
         else {
@@ -221,12 +292,15 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     }
 
     private func openFailed(id: UUID, error: any Error) {
+        openingTasks[id] = nil
         guard opening.removeValue(forKey: id) != nil, !disconnecting else { return }
         scheduleRetry(for: error)
     }
 
     private func scheduleRetry(for error: any Error) {
-        guard !Self.requiresManualRetry(error), retryTask == nil, needsPool else { return }
+        guard !Self.requiresManualRetry(error), retryTask == nil, needsPool,
+            !disconnecting, slots.count + opening.count + installing.count < desiredConnections
+        else { return }
         let delays = [1, 2, 5, 10, 30]
         let delay = delays[min(retryAttempt, delays.count - 1)]
         retryAttempt += 1
@@ -258,15 +332,18 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         stabilityTasks.removeValue(forKey: slotID)?.cancel()
         counts[slotID] = nil
         slots[slotID] = nil
+        draining.remove(slotID)
         publishPoolCounts()
         if wasPrimary, let promoted = slots.values.first {
             primaryID = promoted.id
+            rebalanceSlots()
             do {
                 for registration in registrations.values where registration.rule.kind == .remote {
                     try await promoted.connection.start(registration.rule, generation: registration.generation)
                     promoted.rules.insert(registration.rule.id)
                 }
                 fillPool()
+                for id in Array(draining) { await retireIfIdle(id) }
             } catch {
                 failureHandler(error.localizedDescription)
             }
@@ -281,6 +358,8 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private func retireAuxiliaries() async {
         retryTask?.cancel()
         retryTask = nil
+        for task in openingTasks.values { task.cancel() }
+        openingTasks.removeAll()
         let pending = Array(opening.values) + Array(installing.values)
         opening.removeAll()
         installing.removeAll()
@@ -289,6 +368,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         for slot in auxiliaries {
             slots[slot.id] = nil
             counts[slot.id] = nil
+            draining.remove(slot.id)
             stabilityTasks.removeValue(forKey: slot.id)?.cancel()
         }
         await withTaskGroup(of: Void.self) { group in
@@ -302,7 +382,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
             Darwin.close(descriptor)
             return
         }
-        let eligible = slots.values.filter { $0.rules.contains(ruleID) }
+        let eligible = slots.values.filter { $0.rules.contains(ruleID) && !draining.contains($0.id) }
         guard !eligible.isEmpty else {
             Darwin.close(descriptor)
             return
@@ -313,16 +393,21 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         }
         let slot = candidates[roundRobin % candidates.count]
         roundRobin &+= 1
-        guard await slot.connection.acceptShared(descriptor, ruleID: ruleID, generation: generation) else {
+        assignments[slot.id, default: 0] += 1
+        let accepted = await slot.connection.acceptShared(descriptor, ruleID: ruleID, generation: generation)
+        assignments[slot.id, default: 1] -= 1
+        if assignments[slot.id] == 0 { assignments[slot.id] = nil }
+        if !accepted {
             Darwin.close(descriptor)
-            return
         }
+        await retireIfIdle(slot.id)
     }
 
-    private func receivedCount(_ count: Int, ruleID: UUID, generation: UUID, slotID: UUID) {
+    private func receivedCount(_ count: Int, ruleID: UUID, generation: UUID, slotID: UUID) async {
         guard registrations[ruleID]?.generation == generation, slots[slotID] != nil else { return }
         counts[slotID, default: [:]][ruleID] = count
         report(ruleID, generation: generation)
+        if count == 0 { await retireIfIdle(slotID) }
     }
 
     private func report(_ ruleID: UUID, generation: UUID?) {

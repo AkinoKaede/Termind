@@ -244,7 +244,8 @@ final class AppModel {
             store: dependencies.assistantModelSelectionStore ?? InMemoryAssistantModelSelectionStore())
         assistantChatCollaborationStore =
             dependencies.assistantChatCollaborationStore ?? InMemoryAssistantChatCollaborationStore()
-        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
+        let sftpPreferences = proAccess.effectiveSFTPPreferences(sftpSettings.preferences)
+        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpPreferences)
         let agentHostServices = AgentHostServices.live(
             store: hosts,
             coordinator: connectionCoordinator,
@@ -261,13 +262,15 @@ final class AppModel {
         metricsSync = dependencies.metricsSync
         forwarding = PortForwardingController(
             hosts: hosts, poolPolicy: .hostConfigured,
+            connectionLimit: proAccess.effectiveForwardingConnections(
+                Host.portForwardingMaxConnectionsRange.upperBound),
             logger: dependencies.logging.makeLogger(label: "termind.port-forwarding"))
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() },
-            globalLimit: sftpSettings.preferences.globalLimit,
-            perHostLimit: sftpSettings.preferences.perHostLimit,
-            strategy: sftpSettings.preferences.strategy,
+            globalLimit: sftpPreferences.globalLimit,
+            perHostLimit: sftpPreferences.perHostLimit,
+            strategy: sftpPreferences.strategy,
             concurrencyScheduler: sftpConcurrencyScheduler
         )
         sftpEdits = SFTPEditService(transfers: sftpTransfers, host: { [weak hosts] in hosts?.host($0) })
@@ -374,8 +377,15 @@ final class AppModel {
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
-        sftpSettings.didChange = { [weak sftpTransfers] preferences in
-            sftpTransfers?.updatePreferences(preferences)
+        sftpSettings.didChange = { [weak sftpTransfers, weak proAccess] preferences in
+            guard let proAccess else { return }
+            sftpTransfers?.updatePreferences(proAccess.effectiveSFTPPreferences(preferences))
+        }
+        proAccess.accessDidChange = { [weak self] in
+            guard let self else { return }
+            self.sftpTransfers.updatePreferences(self.proAccess.effectiveSFTPPreferences(self.sftpSettings.preferences))
+            self.forwarding.updateConnectionLimit(
+                self.proAccess.effectiveForwardingConnections(Host.portForwardingMaxConnectionsRange.upperBound))
         }
         sshSettings.didChange = { preferences in
             connectionCoordinator.updateSSHPreferences(preferences)

@@ -8,6 +8,23 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct PortForwardingReconnectTests {
+    @Test func numericLimitsUpdateLiveConnectionsAndSurviveRecoveryWithoutChangingHosts() async throws {
+        let fixture = ReconnectFixture(poolPolicy: .hostConfigured, connectionLimit: 1, hostConnections: 8)
+        defer { fixture.stop() }
+        try await fixture.start([0, 1, 2])
+        #expect(await fixture.sessions[0].maximumConnections == 1)
+        fixture.controller.updateConnectionLimit(64)
+        try await eventually { await fixture.sessions[0].maximumConnections == 8 }
+        fixture.controller.updateConnectionLimit(1)
+        try await eventually { await fixture.sessions[0].maximumConnections == 1 }
+        #expect(fixture.library.host(fixture.host.id)?.portForwardingMaxConnections == 8)
+        await fixture.sessions[0].fail()
+        try await fixture.retry()
+        try await fixture.waitForRunning([0, 1, 2])
+        #expect(await fixture.sessions[1].maximumConnections == 1)
+        #expect(!fixture.context!.journey.isPresented)
+    }
+
     @Test func compactLabelsHideConnectionCountsAndFailureDetails() {
         let running = PortForwardingRuntimeState.running(
             activeConnections: 37, sshConnections: 3, targetSSHConnections: 8)
@@ -376,6 +393,8 @@ private final class ReconnectFixture {
     var sessions: [ReconnectSession] = []
     var nextError: TermindSSHError?
     let modes: [ReconnectSession.Mode]
+    let poolPolicy: PortForwardingController.PoolPolicy
+    let connectionLimit: Int
     lazy var controller = makeController()
 
     private func makeController() -> PortForwardingController {
@@ -387,17 +406,25 @@ private final class ReconnectFixture {
             return session
         }
         return PortForwardingController(
-            hosts: library, makeConnection: makeConnection,
+            hosts: library, poolPolicy: poolPolicy, connectionLimit: connectionLimit, makeConnection: makeConnection,
             makeReconnectController: { [gate] in
                 SessionReconnectController(policy: .sessionDefault, sleep: { await gate.sleep($0) }, now: Date.init)
             })
     }
     var context: PortForwardingConnection? { controller.connection(for: rules[0].id) }
 
-    init(modes: [ReconnectSession.Mode] = [], usesJump: Bool = false, trusted: Bool = true) {
+    init(
+        modes: [ReconnectSession.Mode] = [], usesJump: Bool = false, trusted: Bool = true,
+        poolPolicy: PortForwardingController.PoolPolicy = .singleConnection, connectionLimit: Int = 64,
+        hostConnections: Int = 1
+    ) {
         self.modes = modes
+        self.poolPolicy = poolPolicy
+        self.connectionLimit = connectionLimit
         jump = Host(name: "Jump", host: "jump.invalid", identityID: identity.id)
-        host = Host(name: "Host", host: "host.invalid", identityID: identity.id, jumpHostID: usesJump ? jump.id : nil)
+        host = Host(
+            name: "Host", host: "host.invalid", identityID: identity.id, jumpHostID: usesJump ? jump.id : nil,
+            portForwardingMaxConnections: hostConnections)
         rules = [
             PortForwardingRule(hostID: host.id, kind: .local, bindPort: 8000),
             PortForwardingRule(hostID: host.id, kind: .remote, bindPort: 9000),
@@ -482,6 +509,8 @@ private actor ReconnectSession: SSHForwardingConnectionProtocol {
     var generations: [UUID: UUID] = [:]
     var hasProgress = false
     var disconnects = 0
+    var maximumConnections = 1
+    func updateMaximumConnections(_ maximum: Int) async { maximumConnections = maximum }
     private var connectGate: CheckedContinuation<Void, Never>?
     private var disconnectGate: CheckedContinuation<Void, Never>?
     private var pendingStarts: [UUID: CheckedContinuation<Void, any Error>] = [:]

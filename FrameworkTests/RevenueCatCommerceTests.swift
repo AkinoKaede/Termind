@@ -116,6 +116,23 @@ struct RevenueCatCommerceTests {
         #expect(!controller.hasProAccess)
     }
 
+    @Test func accessChangesNotifyRuntimeWithoutAVisibleViewOrPaywall() async {
+        let service = FakeService()
+        let controller = ProAccessController(purchaseService: service, observeUpdates: false)
+        var observed: [Bool] = []
+        controller.accessDidChange = { observed.append(controller.hasProAccess) }
+        defer { controller.accessDidChange = nil }
+        await controller.refresh()
+        service.status = .purchased(.purchased)
+        await controller.refresh()
+        service.status = .purchased(.familyShared)
+        await controller.refresh()
+        service.status = .free(trialAvailable: false)
+        await controller.refresh()
+        #expect(observed == [true, false])
+        #expect(!controller.isPaywallPresented)
+    }
+
     @Test
     func newerCustomerInfoWinsOverAnOlderRefreshResponse() async {
         let service = FakeService()

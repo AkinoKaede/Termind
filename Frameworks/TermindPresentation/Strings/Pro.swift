@@ -2,6 +2,10 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Pro {
+        public static var smartStrategy: LocalizedStringResource { "Smart (Pro)" }
+        public static var connectionsPreferredStrategy: LocalizedStringResource { "Connections Preferred (Pro)" }
+        public static var maxConnections: LocalizedStringResource { "Max Connections (Pro)" }
+
         public static var contactingTheAppStoreProgress: LocalizedStringResource {
             "Contacting the App Store…"
         }

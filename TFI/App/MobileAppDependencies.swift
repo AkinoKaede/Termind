@@ -13,6 +13,7 @@ struct MobileAppDependencies {
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
     var appReview: AppReviewController
+    var proAccess: ProAccessController?
     var diagnosis = DiagnosisController()
     var logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
     var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
