@@ -20,7 +20,7 @@ public struct TerminalHighlightRuleFields: View {
         Group {
             Section {
                 LabeledContent(AppStrings.Common.name.swiftUIKey) {
-                    TextField(AppStrings.Common.name.swiftUIKey, text: $rule.name)
+                    TextField(AppStrings.Common.name.swiftUIKey, text: $rule.name, prompt: Text(""))
                         .labelsHidden().multilineTextAlignment(.trailing)
                 }
                 Picker(AppStrings.TerminalHighlighting.mode.swiftUIKey, selection: $rule.mode) {
