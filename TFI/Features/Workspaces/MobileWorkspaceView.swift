@@ -448,6 +448,12 @@ struct MobileWorkspaceView: View {
             ZStack {
                 VStack(spacing: 0) {
                     TerminalSurfaceView(context: workspace.terminal)
+                        .modifier(
+                            MobileTerminalInitialFocus(
+                                terminal: workspace.terminal,
+                                isReady: workspaceIsVisible && scenePhase == .active && workspace.connected
+                                    && !showsJourney)
+                        )
                         .id(workspace.id)
                         .onChange(of: workspace.terminalSettings.preferences, initial: true) { _, value in
                             workspace.terminal.applyPreferences(value, font: resolvedFont)
