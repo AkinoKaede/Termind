@@ -35,7 +35,9 @@ struct MobileTerminalUploadMenuTests {
                 + ["terminal.selectAll"]
             #expect(actions.map(\.identifier.rawValue) == expectedIDs)
             #expect(actions.last?.title == String(localized: AppStrings.Common.selectAll))
-            let upload = try #require(items[1] as? UIMenu)
+            let uploadGroup = try #require(items[1] as? UIMenu)
+            #expect(uploadGroup.options.contains(.displayInline))
+            let upload = try #require(uploadGroup.children.first as? UIMenu)
             #expect(upload.title == String(localized: AppStrings.Terminal.uploadFile))
             let system = try #require(items[2] as? UIMenu)
             #expect(system.identifier == .autoFill)

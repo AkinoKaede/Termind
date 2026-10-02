@@ -55,7 +55,10 @@ final class MobileTerminalView: TerminalView {
             action.title = String(localized: title)
             editingActions.append(action)
         }
-        let trailingItems = uploadMenuItems() + otherItems
+        let uploadItems = uploadMenuItems()
+        let uploadGroups: [UIMenuElement] =
+            uploadItems.isEmpty ? [] : [UIMenu(options: .displayInline, children: uploadItems)]
+        let trailingItems = uploadGroups + otherItems
         guard !editingActions.isEmpty else { return trailingItems }
         let editingMenu = UIMenu(options: .displayInline, children: editingActions)
         editingMenu.preferredElementSize = .medium
