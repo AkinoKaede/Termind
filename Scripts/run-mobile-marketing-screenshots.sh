@@ -10,6 +10,7 @@ derived_data="$repository_directory/.build/mobile-marketing-screenshots"
 marketing_xctestrun="$derived_data/Build/Products/Marketing-TFI.xctestrun"
 marketing_scenes="${TERMIND_MARKETING_SCENES:-}"
 marketing_devices="${TERMIND_MARKETING_DEVICES:-iphone,ipad}"
+marketing_locales="${TERMIND_MARKETING_LOCALES:-en,zh-Hans,zh-Hant}"
 marketing_runtime="${TERMIND_MARKETING_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-27-0}"
 
 case "$marketing_runtime" in
@@ -188,12 +189,12 @@ if [[ -n "$marketing_scenes" ]]; then
 fi
 
 if [[ ",$marketing_devices," == *,iphone,* ]]; then
-    for language in en zh-Hans zh-Hant; do
+    for language in "${(@s:,:)marketing_locales}"; do
         run_capture "iPhone 17 Pro Max" "$language"
     done
 fi
 if [[ ",$marketing_devices," == *,ipad,* ]]; then
-    for language in en zh-Hans zh-Hant; do
+    for language in "${(@s:,:)marketing_locales}"; do
         run_capture "iPad Pro 13-inch (M5)" "$language"
     done
 fi

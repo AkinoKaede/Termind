@@ -1,5 +1,5 @@
 import AgentKit
-import GhosttyTerminal
+import ObjectiveC
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -66,12 +66,9 @@ struct MobileMarketingScreenshotTests {
                 }
             }
 
-            if includes("ssh"), UIDevice.current.userInterfaceIdiom == .pad {
-                try await captureWorkspace(.ssh, language: language)
-            } else if includes("ssh") {
-                let terminal = makeTerminal()
-                try await capture("ssh", language: language) {
-                    NavigationStack { MarketingTerminalScene(terminal: terminal, language: language) }
+            if includes("ssh") {
+                try await withEnglishKeyboard {
+                    try await captureWorkspace(.ssh, language: language)
                 }
             }
 
@@ -162,17 +159,36 @@ struct MobileMarketingScreenshotTests {
         scene.selectWorkspace(id)
         try await capture(kind == .ssh ? "ssh" : "sftp", language: language) {
             MobileRootView(app: app, scene: scene)
+                .environment(\.scenePhase, .active)
         }
     }
 
-    private func makeTerminal() -> TerminalViewState {
-        let backend = InMemoryTerminalSession(write: { _ in }, resize: { _ in })
-        let terminal = TerminalViewState(configSource: .none)
-        terminal.configuration = TerminalSurfaceOptions(backend: .inMemory(backend), resizeThrottleMilliseconds: 0)
-        let surface = MobileTerminalSurface()
-        terminal.makePlatformView = { surface.view }
-        backend.receive(terminalOutput)
-        return terminal
+    private func withEnglishKeyboard(_ capture: () async throws -> Void) async throws {
+        let mode = try #require(UITextInputMode.activeInputModes.first { $0.primaryLanguage?.hasPrefix("en") == true })
+        let selector = #selector(getter: UIResponder.textInputMode)
+        let method = try #require(class_getInstanceMethod(MobileTerminalView.self, selector))
+        let original = method_getImplementation(method)
+        let encoding = try #require(method_getTypeEncoding(method))
+        let getter: @convention(block) (AnyObject) -> UITextInputMode = { _ in mode }
+        let replacement = imp_implementationWithBlock(getter)
+        let typeSelector = #selector(getter: UITextField.keyboardType)
+        let typeMethod = try #require(class_getInstanceMethod(MobileTerminalView.self, typeSelector))
+        let originalType = method_getImplementation(typeMethod)
+        let typeEncoding = try #require(method_getTypeEncoding(typeMethod))
+        let typeGetter: @convention(block) (AnyObject) -> Int = { _ in UIKeyboardType.asciiCapable.rawValue }
+        let typeReplacement = imp_implementationWithBlock(typeGetter)
+        // Scope the public input-mode getter override to this opt-in capture.
+        // UIKit still renders its real keyboard, independently of the app locale.
+        // ASCII mode also excludes the bilingual keyboard's Pinyin/Zhuyin toggle.
+        class_replaceMethod(MobileTerminalView.self, selector, replacement, encoding)
+        class_replaceMethod(MobileTerminalView.self, typeSelector, typeReplacement, typeEncoding)
+        defer {
+            class_replaceMethod(MobileTerminalView.self, selector, original, encoding)
+            class_replaceMethod(MobileTerminalView.self, typeSelector, originalType, typeEncoding)
+            imp_removeBlock(replacement)
+            imp_removeBlock(typeReplacement)
+        }
+        try await capture()
     }
 
     private var terminalOutput: Data {
@@ -254,6 +270,30 @@ struct MobileMarketingScreenshotTests {
             try await Task.sleep(for: .milliseconds(900))
         }
 
+        if name == "ssh" {
+            let terminal = try #require(terminalView(in: controller.view))
+            let accessory = try #require(terminal.inputAccessoryView)
+            for _ in 0..<100 {
+                window.layoutIfNeeded()
+                if terminal.isFirstResponder, accessory.window != nil,
+                    accessory.convert(accessory.bounds, to: window).maxY
+                        < window.bounds.maxY - window.safeAreaInsets.bottom
+                {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            try #require(terminal.isFirstResponder)
+            try #require(terminal.textInputMode?.primaryLanguage?.hasPrefix("en") == true)
+            try #require(accessory.window != nil)
+            // An accessory-only hardware keyboard bar ends at the bottom safe area.
+            // A software keyboard has its key rows below the accessory instead.
+            try #require(
+                accessory.convert(accessory.bounds, to: window).maxY
+                    < window.bounds.maxY - window.safeAreaInsets.bottom)
+            try await Task.sleep(for: .milliseconds(300))
+        }
+
         if ProcessInfo.processInfo.environment["TERMIND_MARKETING_SYSTEM_CAPTURE"] == "1" {
             try await waitForSystemCapture(name, language: language)
             return
@@ -282,6 +322,11 @@ struct MobileMarketingScreenshotTests {
     private func tabController(in controller: UIViewController) -> UITabBarController? {
         if let tabs = controller as? UITabBarController { return tabs }
         return controller.children.lazy.compactMap { tabController(in: $0) }.first
+    }
+
+    private func terminalView(in view: UIView) -> MobileTerminalView? {
+        if let terminal = view as? MobileTerminalView { return terminal }
+        return view.subviews.lazy.compactMap { terminalView(in: $0) }.first
     }
 
     private func waitForSystemCapture(_ name: String, language: String) async throws {
@@ -369,35 +414,6 @@ private struct MarketingTabShell<Content: View>: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .toolbar(.visible, for: .tabBar)
-    }
-}
-
-private struct MarketingTerminalScene: View {
-    @ObservedObject var terminal: TerminalViewState
-    let language: String
-
-    var body: some View {
-        VStack(spacing: 0) {
-            TerminalSurfaceView(context: terminal)
-        }
-        .navigationTitle("web-01")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {}) {
-                    Label(
-                        language == "zh-Hans" ? "工作区" : language == "zh-Hant" ? "工作區" : "Workspaces",
-                        systemImage: "chevron.left")
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button("Generate Command", systemImage: "sparkles") {}
-                } label: {
-                    MobileOverflowMenuLabel("Terminal")
-                }
-            }
-        }
     }
 }
 
