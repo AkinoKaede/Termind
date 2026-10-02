@@ -1,11 +1,8 @@
 ---
-type: architecture-contract
-title: Cross-Cutting Engineering Invariants
-description: Change-safety contracts for persistence, cloud replication, Assistant cancellation, app lifetimes and localization, with focused regression tests.
-tags: [architecture, invariants, lifecycle, security, persistence, sync, agent, localization]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+type: engineering-contract
+title: Engineering invariants
+description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
+tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -45,6 +42,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
   - id: openwiki-source-1b008d375c28ace3a9684717
     resource: repo://Frameworks/TermindApplication/TerminalNotificationCoordinator.swift
+  - id: openwiki-source-b37c974aaea12bd08606d67d
+    resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-8a925ad4232be8815ba03a04
     resource: repo://Frameworks/TermindDomain/Connections/HistorySyncTypes.swift
   - id: openwiki-source-c3006decff414f8b4ca021c4
@@ -65,6 +64,14 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
   - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift
+  - id: openwiki-source-3aa42bdd0f8eaf866f06599f
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
+  - id: openwiki-source-f0aa3596750ed8bd3ffd8c9e
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift
+  - id: openwiki-source-38ed84f3c15242480046f900
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift
+  - id: openwiki-source-82f1da82c84bec6e60959357
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
   - id: openwiki-source-95647caf87bfc76c0a8884d2
     resource: repo://Frameworks/TermindInfrastructure/SystemNotifications.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
@@ -95,8 +102,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
   - id: openwiki-source-821c6451f936b3390d26080d
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
-  - id: openwiki-source-07dbc9527b95676a55499eb8
-    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
+  - id: openwiki-source-0d0e7ce62874bbaca379e0eb
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
@@ -125,6 +132,8 @@ sources:
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-ad1a1eea0aea739f2004d93a
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
+  - id: openwiki-source-35e54ff3f3ad9f3931b11be7
+    resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
   - id: openwiki-source-3ff855d6e002a67eb54f3199
     resource: repo://FrameworkTests/SFTPNotificationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -151,8 +160,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
-  - id: openwiki-source-02810e1f8eac4d0983f8cd44
-    resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
+  - id: openwiki-source-7431229315ca54a8d8633a3c
+    resource: repo://TFI/Features/Settings/MobileTerminalThemeView.swift
   - id: openwiki-source-3c85f29e2d0bdf3d44f4e0e8
     resource: repo://TFI/Features/Terminal/MobileTerminalListPresentation.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
@@ -183,6 +192,8 @@ sources:
     resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-c661b665fc19c6bd43499b01
+    resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -213,10 +224,13 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-10-01T23:39:56.631Z
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Cross-Cutting Engineering Invariants
+# Engineering invariants
 
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
@@ -233,7 +247,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | --- | --- |
 | TermindDomain | Portable values/rules; Foundation, CryptoKit, AgentKit values; no UI/concrete I/O. |
 | TermindApplication | Ports, feature models, connection/import policy, remote-file-system and sync/outbox use cases; Domain, AgentKit. |
-| TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
+| TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
 | TermindPersistence | All SwiftData models, historical schemas, V45 live schema, migrations and container construction; no app dependency. |
@@ -260,7 +274,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   location; mobile uses Application Support/in-memory tests. Both apps share the CloudKit container and bundle-derived
   Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
-- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent selected AgentKit type redeclarations in TFM, and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. Every CloudKit `CKSyncEngineDelegate` writer (including the shared History/Device delegate) must use lifecycle batch/upload gates and remote decode/quarantine/conflict handling; there is no read-only legacy History importer exception. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
+- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
@@ -505,8 +519,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
 - Shared `TerminalFontFields` binds local typography with an 8–36 point editing range, a macOS slider and an iOS stepper;
   merely presenting the controls does not normalize saved sizes. Font discovery/refresh stays app-owned: a family qualifies
   when any loadable member is monospaced, with localized ordering rather than a shared AppKit/UIKit adapter.
-- Shared theme options are appearance-filtered and name-sorted. Keep unavailable or wrong-appearance saved names as picker
-  selections and show the actual fallback; opening Settings must not replace or persist them. Rendering uses the matching
+- Shared theme options are appearance-filtered and name-sorted. An unavailable or wrong-appearance saved name remains in preferences and its summary, even when absent from the available-theme grid; the picker shows the actual fallback notice. Opening Settings must not replace or persist the saved name. Rendering uses the matching
   Termind default, then custom commands, then local typography. Base-theme selection remains editable with custom commands
   enabled, since commands overlay only their specified keys. Save/remote-apply and native terminal lifetimes stay with their owners.
 - Desktop copy-completed-selection/right-click-paste default off and sync in the terminal record; mobile preserves without
@@ -759,10 +772,24 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 
 ## Commerce, review invitations and metrics
 
-- `ProAccessController` is app-wide. StoreKit metadata/verified transactions alone determine offers/access; permanent wins, trial/subscribed/grace
-  grant access, metadata failures do not remove it. Foreground/minutely expiration checks. Presentation derives values, native paywalls navigate.
-  Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement.
-  Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
+- `ProAccessController` is app-wide and receives access from `RevenueCatProPurchaseService`, not a separate StoreKit transaction observer. The service configures anonymous RevenueCat StoreKit 2, requests current customer info, observes updates, and may sync pre-integration purchases once when access is absent; on a fetch error it uses cached customer info if available. The configured RevenueCat entitlement alone unlocks Pro: failed verification does not unlock, lifetime purchases grant access, and active trial/subscription/grace phases grant access only through their deadlines; billing retry, expiration and revocation do not. A failed refresh preserves previously resolved status except when still loading; newer customer-info updates outrank older refresh responses. The controller schedules a refresh at the current entitlement deadline; mobile also refreshes on foreground. An absent or invalid bundled RevenueCat configuration fails closed. The StoreKit fixture test is a manually gated **catalog metadata** check, not a runtime entitlement or purchase-flow proof; `FrameworkTests/RevenueCatCommerceTests.swift` exercises configuration, resolver and controller behavior with fixtures/fakes. Presentation derives values and native paywalls navigate. Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement. Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
+
+```mermaid
+sequenceDiagram
+    participant App as App composition
+    participant Access as ProAccessController
+    participant Service as RevenueCatProPurchaseService
+    participant SDK as RevenueCat Purchases
+    App->>Access: construct live controller with service
+    Service->>SDK: request current CustomerInfo
+    SDK-->>Service: entitlement and verification
+    Service-->>Access: resolved status
+    SDK-->>Service: customerInfoStream update
+    Service-->>Access: newer resolved status
+    Access->>Access: schedule expiry refresh
+```
+RevenueCat is the production purchase/access adapter; the controller gates features on its latest eligible entitlement status.
+
 - App-wide/device-local `AppReviewController` records attempts before StoreKit, never claims display. Automatic criteria: seven days, three active
   dates, five foreground Workspace minutes, three quiet seconds entering Vault/Settings; input/focus/navigation/sleep/modal cancels. Once/version,
   120-day cooldown including manual review. Tests/screenshots disable live requests; native observation remains app-owned.

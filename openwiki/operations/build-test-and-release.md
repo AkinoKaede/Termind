@@ -5,7 +5,7 @@ description: Reproducible Xcode builds and pinned dependency updates, opt-in UI 
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-29T00:09:14.116Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -17,6 +17,8 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
+  - id: openwiki-source-35e54ff3f3ad9f3931b11be7
+    resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
   - id: openwiki-source-c76cbada020604024adadb22
@@ -61,6 +63,8 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-6d4d7df7ad23d2d862a0cb5c
+    resource: repo://TFMTests/CommerceConfigurationTests.swift
   - id: openwiki-source-e2813ac17589f2155998862e
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
@@ -69,7 +73,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-29T00:09:14.116Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # Build, Test, and Release
@@ -169,7 +173,7 @@ xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Sim
 TERMIND_STOREKIT_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/StoreKitTrialTests
 ```
 
-The suite creates and resets an `SKTestSession` against `StoreKit/Termind.storekit`, clears transactions around each fixture, and checks annual trial entitlement and restore, lifetime precedence, pending Ask to Buy, cancellation/network failures, unverified transactions, and invalid or missing introductory-offer configurations. These local StoreKit tests do not replace storefront/Sandbox verification.
+This is a **catalog metadata fixture**, not a purchase/entitlement integration test. Its one test creates an `SKTestSession` from `StoreKit/Termind.storekit`, resets it, disables dialogs, and restores default session state on exit. It fetches the annual and lifetime products and checks product type, family sharing, and the annual subscription's one-year period and two-week free introductory offer. It does **not** purchase, restore, simulate failed transactions, or prove access. The ungated `CommerceConfigurationTests` checks the fixture's JSON; `FrameworkTests/RevenueCatCommerceTests` checks access resolution with fake customer info. Neither replaces real App Store/Sandbox validation. See [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md) for storefront checks.
 
 For an isolated interactive desktop demo, use a supported scene and one of the three supported languages:
 
@@ -245,6 +249,10 @@ This shows the required ordering from a host-neutral package change through Term
 
 Do not skip the release or resolve steps: a project-file bump alone does not establish the exact revision used in ordinary builds, and local sibling edits are invisible to that build. Likewise, do not casually refresh the lock file during unrelated work—the resolved graph is a reproducibility boundary.
 
+### Ghostty fork is a different pin workflow
+
+`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Unlike AgentKit's version range, Xcode specifies a **revision** for the remote `libghostty-spm` package (`acb252ed011d6c0168596a931f802ca69e1e139a` in the current project and lockfile), not the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project revision and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not.
+
 ## Release-oriented checklist
 
 1. Identify the smallest affected product surface and run its focused tests.
@@ -254,7 +262,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
 6. Keep visible-window, gated mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout and metrics-journey suites deliberately without parallel testing for relevant UI changes; they are not disabled by the mobile UI gate.
 7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.
-8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
-9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.
+8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files. For Ghostty fork work, align the pushed revision, submodule gitlink, project revision and lockfile; refresh the XCFramework URL/checksum first if patches change.
+9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing. A green build or test run is not proof of StoreKit purchase/restore or deployed storefront configuration: record the actual executed suites and follow the separate commerce release verification.
 
 CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md).

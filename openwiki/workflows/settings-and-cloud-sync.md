@@ -5,8 +5,10 @@ description: Per-category CloudKit replication, durable journals, compatibility 
 tags: [cloudkit, synchronization, settings, vault, metrics, history, devices, secrets, swiftdata]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
+  - id: openwiki-source-162732a78d991992cfb9458d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
   - id: openwiki-source-cd830b9886c3f5d3d7181662
@@ -83,6 +85,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-d78ad50c7d68f56cf454a54d
+    resource: repo://FrameworkTests/DiagnosisTests.swift
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
     resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
@@ -101,12 +105,24 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-44cb7a6172854edbfc9b5ccb
+    resource: repo://TFMTests/SettingsNavigationTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
 
 Termind replicates a SwiftData-backed journal into the private `iCloud.com.akinokaede.termind` CloudKit container; this is **not** SwiftData CloudKit mirroring (`TermindPersistence.makeContainer` uses `cloudKitDatabase: .none`). Five writable owners—Vault, Settings, Metrics, Connection History, and Device—each own an engine, subscription, binding, queue, and lifecycle. History and Device retain the **same deployed zone**, `TermindConnectionHistoryV1`, but use separate subscriptions, kind-filtered journals and state rows, and separate safety scopes (Device's scope has consumer `device`; History keeps the original empty consumer). Neither should consume, reset or acknowledge the other's records. `HistoryRecordSyncCoordinator` shares the record-handling implementation, **not** their engine or account state. The former legacy importer is retired: Vault ignores obsolete History/Device copies in its own zone; it neither imports nor currently schedules physical cleanup of those copies. [CloudSyncJournal](repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncJournal.swift), [HistoryRecordSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/HistoryRecordSyncCoordinator.swift), [VaultSyncCoordinator](repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift).
+
+## Settings routes and ownership
+
+On macOS, `WindowModel` owns a per-window `settingsRoute` separate from app-wide preference models. `SettingsPageView` dispatches index → category → detail: App (including workspace preferences and diagnosis consent), Notifications, Terminal, Connections (SSH/SFTP), AI (providers, models, MCP servers, skills), and Sync. The index opens Pro as a paywall rather than a Settings category; a debug-enabled Logging route hangs directly off the index, and Developer is compiled only in DEBUG builds. `SettingsRoute.parent` drives toolbar back navigation: terminal configuration → scheme themes → Terminal, provider models → provider → AI, and other detail pages → their category; back from index closes Settings and restores the previous destination, falling back to Vault if its workspace vanished. [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L10-L207), [WindowModel](repo://TFM/Features/Workspaces/WindowModel.swift#L596-L632), [SettingsNavigationTests](repo://TFMTests/SettingsNavigationTests.swift#L13-L39), [SettingsNavigationTests](repo://TFMTests/SettingsNavigationTests.swift#L76-L155).
+
+Leaving a provider draft discards it only if unnamed and unconfigured; a new MCP draft with no valid name/namespace is deleted, whereas a skill with written content but no title is kept as a draft. Navigating between provider and its models does not prematurely clean it up. These route transitions act on shared app models rather than starting CloudKit directly. [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L107-L113), [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L213-L245), [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L343-L365).
+
+`SettingsKey` contains local `UserDefaults` keys for both UI/selection and mirrors of synced preferences; being a key in this enum does **not** imply it is a cloud record. `SettingsSyncSnapshot.recordPayloads` determines what Settings actually journals: AI providers, MCP servers, roles, skills, web search, terminal, SSH, SFTP, workspace and notification preferences. In contrast diagnostic consent (`diagnostics.crashReportingConsent`, retained to avoid resetting earlier choices), debug visibility/logging, review-invitation history and terminal font family/size/follow-theme are device-local. Consent is an optional per-installation choice, not a synced notification preference or a cloud toggle: absence requires a choice and never enables reporting; `DiagnosisController` persists an explicit choice before applying it to the reporter. Terminal theme and integration preferences *do* enter the Settings snapshot even though they are mirrored to defaults. [SettingsKey](repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L78), [SettingsSyncStore](repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [DiagnosisController](repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32), [DiagnosisTests](repo://FrameworkTests/DiagnosisTests.swift#L9-L50).
 
 ## Selection and app ownership
 
@@ -249,6 +265,7 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 
 ## Focused verification
 
+- `SettingsNavigationTests` verifies the Settings parent-route chain, back-to-content return (including a missing workspace), paywall presentation without a Pro route, and navigation through Assistant; `DiagnosisTests` verifies per-installation consent defaults, durable choices and revocation ordering. [SettingsNavigationTests](repo://TFMTests/SettingsNavigationTests.swift#L13-L155), [DiagnosisTests](repo://FrameworkTests/DiagnosisTests.swift#L9-L75).
 - `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit. Its delegate-context tests verify detached fetch/send and engine cancellation; late fetch/send and fatal delegate failures cannot revive a retired engine. Disabled selection prevents start, retry and account confirmation.
 - `CloudSyncSafetyTests` uses five real owner adapters with fake CloudKit transport to check winner/queue reconciliation, quarantine at each upload boundary, conflict handling, malformed native fields, rollback, and healthy-peer progress; `CloudSyncSafetyPersistenceTests` covers scoped on-disk recovery and migrations.
 - `HistorySyncTests` checks typed native fields, independent History/Device scopes and switches, terminal event tombstones and retention, no retired-source import, and error/cancellation diagnostics. `PersistenceCompatibilityTests` verifies V28 local reopen as well as dropping retired importer state on V35 reopen.

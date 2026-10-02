@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2a1a75fdb5c418afce12cefdb621bc77c7741c82322544b39d7d2c3773496b9e",
+  "pageVersion": "sha256:2f4316d18f79399a4b3a497934ffd8ed93a5d8065143a4bbadccb78b2fec284b",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -192,7 +192,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L54",
-          "version": "repo-lines-v1:sha256:a2edfd1d3e4dd77f7271bae0af90707fe0af555b04896adc0e1c90e0c0c846ea:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNTVjODY0YzFkM2E1ZTEzZWYzOGNiZTIyMWMzZjM4OWJhZGI2OThjYjA1MzQxZWRhN2ZmYzFiM2U0M2RlNTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3NDU1OTIzNzY3MDBmOWNjZGQ2YTVjZjJhZjQ2NDRkZjdhZDVkN2JkZDRhNzViMWM4ZTk4ZDAxNTU0ZjgxYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTgzMzk3MTI1MTBiNDEzODQwZTdhZmQxYmQ5MjZjODYzYzUyZjUyN2Q4MmFkODMzNmYzOTMwNDc5MmJmMzQifQ"
+          "version": "repo-lines-v1:sha256:e9b87743bf637c58790b4e97b9340ce37fac763df42d6bf1b12c5d8a04a24f39:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNTVjODY0YzFkM2E1ZTEzZWYzOGNiZTIyMWMzZjM4OWJhZGI2OThjYjA1MzQxZWRhN2ZmYzFiM2U0M2RlNTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3NDU1OTIzNzY3MDBmOWNjZGQ2YTVjZjJhZjQ2NDRkZjdhZDVkN2JkZDRhNzViMWM4ZTk4ZDAxNTU0ZjgxYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOTgzMzk3MTI1MTBiNDEzODQwZTdhZmQxYmQ5MjZjODYzYzUyZjUyN2Q4MmFkODMzNmYzOTMwNDc5MmJmMzQifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift#L123-L143",
@@ -388,7 +388,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:62e0425942320f3446157b9e232760df64548edd892e3c2dee23fea154b20476"
+          "version": "repo-file-v1:sha256:acc0b06f252e4baa9cdec52795cae0a5bf6a36457213786ec77e0cef4bbd9987"
         },
         {
           "resource": "repo://TFM/Features/Settings/SyncSettings.swift",
@@ -871,10 +871,108 @@
           "version": "repo-lines-v1:sha256:728a3a42f43a5c68bc7c88e1cb84b24bf2cffd0216cecfe8e4247774fba80f1e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmNzBiZWVjODZkYzVjMGEwNGM5M2Q3ODVlMjk4ZDlhOGE5N2I1MDU5NjljZjVmZGMwMjZmZTlkYTA2MzU0NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1MGE4Y2JlZTYzMmYxNTY5NjI3YTE3ZmUzZGQ2Y2U2NjQyMmNjOWRhOTExMzFiNTg1NmYwOTUxYWNkZWY0N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlYWQ4ZmEzNTg3M2I1MTg5ZDg1ODZhNmJmNjE5MTk2ODBkM2EwNTZiMGVlOTk0ZTU4ZjY0MDMzOGRkYTViZjkifQ"
         }
       ]
+    },
+    {
+      "id": "claim_195e77eb1fc3477d8359c16e7ca5be82",
+      "statement": "On desktop, Settings navigation is per-window: SettingsPageView routes index, category and detail pages through WindowModel.settingsRoute; parent routes drive back navigation and closing Settings restores the previous content destination, falling back to Vault when its workspace is gone.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L10-L207",
+          "version": "repo-lines-v1:sha256:5198be0a206bf79658e9a269f3e83ddab0ba08848786b3b12378c4d3d628e7a5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTk4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0ZWJkMzM2YmNlYWM4YjcwZTRkZDE5YjdiMzNiOGExNjA3MjU0MmVjY2MyZTVhMWJhMWQ2NGIyN2UyMDdiNjljIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZGEzMTJmZTE1NTcwNDM5MzM0YmM5MDBkYjQ0Mjk1MzYyZjM4OWY1YzZlZDhlNDE1YjgyMmMwZjdmMDQyYzQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4MDVhY2Y1ZWFhM2E0N2U3NWM1ZDczYmI5OTQ2MWZmODEyNmU3NDY4Mjg0ODEyNTc3ODQ5ODI0N2I2YzZmYjlhIn0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L55-L86",
+          "version": "repo-lines-v1:sha256:71779b90133636f3e2a54d4c5def880561247b2d8b67d8a9c5fa4fe936839c28:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyODJiZWQxOTFiNTg3MDNmNDIzM2UzMjFiMWFhYjczNmZmYzMzNzUzOTliN2VkYWQ4ZjhhM2UwZjIyYWNhNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYThkYzk5ZmQzYjkwMjA3MzhmNTM3ZTgwYzgzOTk1ZWRkODc3MTI3YjViNzViMmZjOGI3NmVhNzEwNjcxZDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2ZTkwYmEzOWQ1NGMyYjJkNWFiMDAxZDk1ZGI4MWUxOWFkNjNjYWYzYjA4MTdkOGI1NDZmYzgzNGZjMDljZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5ODRmNGI1NGYwYzJlNWY2YjEyMjNjMmZhNTMyZmE2MWYxMGQwM2NiZThmYTllNTAyOWQ0ZGVlNTM4YWExZjcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L596-L632",
+          "version": "repo-lines-v1:sha256:09ee17ae6dec430f48790f3ffc1eb6e268c2beae85238bd679a3e6d1a23b2718:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3N2U2ZGVlZjczYTA3ZTg4ZmQxZTk2ZDA3ODU0ZGZjYjI2Y2MzMjM2OWU3OTg0YmEwNjc5ODY4MGQyMzM0NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzOGRhMDk0NzRiODU3ODdiN2ZiYzJlYjFmNDUzZjdlMGE4ZDMyYWVhNTFkYTZhYmU5YWY2YzI4M2IyZWQ2MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MmU3MDJiOGI2MTYxNmJjNTI0MGY2N2VkNWM2NGIwMDgyMjdhZDJkZDhiOGUwMzcxYjI0YzRlYmUxNzgwYzYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SettingsNavigationTests.swift#L76-L155",
+          "version": "repo-lines-v1:sha256:6c04acf25bfd8644e2ae8b76826606ec58687293e631426603d62654eead83ca:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3Zjc0ZDAzZWNjYmIxOWZlM2IwNWY1NjZlMTkxNWUyMzIyMzI5NzMzNWFhYTcxZWU3NGVlOGQ4ODlhN2IyMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiN2VlZWEyODgxZmZiY2Y0ZDJjMTgyNzk5ZDZmZTJhZjc5Y2E4NmViZTA2NjBkNjU0OGU0M2VkMTM5NDI4MWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f0d7f8bbbd9d4cc299cfaba6b8de4773",
+      "statement": "The desktop Settings index presents Pro via a paywall rather than a Pro route, exposes Logging directly from the index when debug visibility is enabled, and compiles Developer only for DEBUG builds.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L10-L95",
+          "version": "repo-lines-v1:sha256:8aaa0d6215e4f6e60957ca279a199a0269b48ab057c07fbcfbce66d0d991f2df:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlYmQzMzZiY2VhYzhiNzBlNGRkMTliN2IzM2I4YTE2MDcyNTQyZWNjYzJlNWExYmExZDY0YjI3ZTIwN2I2OWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L248-L312",
+          "version": "repo-lines-v1:sha256:30f79b377a472d2158d6341aa83f129baee1cfa8ee3d1decae5f8484c7ae094e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MTY2MzVlOGIyNjUzNWNmNTNiOTk2OTgwOGExYzUxYmM2MjYxOTdkZTc3OWFmM2E2YWUwYTIxNTM5ODE5NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzMGYyOTI0OWJkNmE5ZjUzZGNiM2E1ZTZhNGJiYWFhZjkzY2NjYjg1MmUxMThjNDI5YjRhMDY3MThmZGY4NGIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SettingsNavigationTests.swift#L13-L39",
+          "version": "repo-lines-v1:sha256:5e8d5d8072d9e3b193c109cefc3181af663bcdabc690b5beaf89c31739e6ee3f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3Y2U4MGEzNzE4MWIyZDA2NjBmNjE4NmRhZGE4OWUzMWI4YmY0MTgxNTljZmRkODkxOGEyNTA3MGQ4Yjg5ZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhOGQzYTYyYTA4ZTliNGYxOTAzNTEyNzYyOThiMDg3ZTU5YWRjZmYyOWY0ZTkyNDBmMTczMTUxZjBjZmZjN2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5743b1d3c4604fb48d99f067581d358b",
+      "statement": "Leaving desktop Settings detail routes discards an unconfigured unnamed provider and a new MCP server without a usable name/namespace, but keeps a skill with written content even if untitled; navigating between provider and model list does not discard the provider.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L213-L245",
+          "version": "repo-lines-v1:sha256:c452b24bac854e836d8336333344cc3b53143555cfca728802125619d8755309:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiNmE0N2NjYzUyMzA3NTRiYzM5M2QxNTBhZTJmMWUyZTA1ODcyNDNmMDYwNTJkMjdlNDVhZGQwZTI2ZThkMzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5Y2EzNjgxODVkZGMxMmUyZmNhZDdmNjEwYjVkYTkzMzhhOTg0NzBlZmM2ODJlOWI1MDkwNDM2NGFhM2EzZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMzJkOTY2ZWQ0MWIwOWU4ODE4ODkwNGFmZGFmNTQ0NGFiOWQ1ZjUxMDRiZDhmYWUxZmVmYTIzOTQ3NDhjNWUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L343-L365",
+          "version": "repo-lines-v1:sha256:a3a2a4c940bbff434561cf2acab4878edfc677414148da377551e33ba164a5a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2ODMwN2I0ODJlNzM2N2YyMTczZGI5OGNhNzcxOTZmMmQyNzNlZDFlMTY2Zjc4MGE4MzU3Y2I2ZjQwOTg1YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmODAyYWRhYjBhYzQ3NjAxOWI4NDMyMWNkMTdmMDFjN2UyYWYwN2E1ODc3MjUwNTc2NTk0YTQ0ZmMyZGEyMTcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SettingsNavigationTests.swift#L158-L200",
+          "version": "repo-lines-v1:sha256:cbb422dd0e61a3be95809d7cd0d05336b2f1ddc6e1bb447546a9829b25f6be91:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjZTZmYmI1NjcyMTYxMGY0Mzg1ZWM0NTM3MGJkZDgxMTEwNGY3MDUzNjY5ODAyNWUxODkwOWQzODQ0YjA2YWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyMzA1OWJiYjhjZDJlNmY0MGRkZjM0YjhlYzc1M2U2Yzk5NzgxY2M3MWNkMmZmYTM3ZGU1MDE0NjY4MTVhNGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0MGU2YmE0YmYwOWUxMDA5YzU3OGFkOWM0OTEwYTlkZGM1YjllYzcxOGEwMTQzZjU3NzY1ZTExOWMyOWIwMWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0bc2b987d6444fb0bc15dd2ee60457e5",
+      "statement": "SettingsKey contains both device-local keys and defaults mirrors of synced preferences: actual Settings journal records come from SettingsSyncSnapshot.recordPayloads, which includes AI configuration, skills, web search, terminal, SSH, SFTP, workspace and notification preferences; a UserDefaults key by itself does not imply CloudKit replication.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L78",
+          "version": "repo-lines-v1:sha256:23032d8c2152c603a2db4f944f967c2c1b6086974c7cfe177fcb24104701fbb8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNTVjODY0YzFkM2E1ZTEzZWYzOGNiZTIyMWMzZjM4OWJhZGI2OThjYjA1MzQxZWRhN2ZmYzFiM2U0M2RlNTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2MTE1ZDkwNDc1NjMxOTg3YzE1NTVmYjIyOTdhNjgxZjBlNGMwMmRiZTA3MjYyZjU3M2UxMzkwNmE1Yjc3YTIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55",
+          "version": "repo-lines-v1:sha256:4bf97fc192c6b535ab7b1b802dd0380e7ba5e9bda7720831a9ff679908efb284:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiNjM3ODA1YzE0M2NlYzE3YWQxOTY0ZmVhOWYxZGU5MGViNzgzODc1MDFjMjNmZjUzZTYxM2JkMDlmZjZiMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0MDg4Y2ViMTQ1NWIzODJiZjViYTRiYmNhYmViOTI1ZTVmODUzNzU2ZjBmMDQ5Zjk2YjQ3MWY5YjZlMzJmMWUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L76-L102",
+          "version": "repo-lines-v1:sha256:35610dd349ded5d37e07be29a896c4c656f776532b008c39c7303260551eb76e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlMjc2YTdjN2VhYjlkYTE2NTVmZWJjY2JkMGEzNTYzMDRiZGY3MDgzNTU0MDg2YTRkMGQwMWQxYjRkMzJjZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3ODBhZDhhMDE0Y2FjZDIwNGNhYTRkNjhkMWFmZmE2MTZiNjFlN2M1ZjZkYzRmZTBmODE5NDBhZDVjZDYwZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxYjRhMmMxZjVhNzg1YzgzZWUxNmNhZTU0MDcyY2ViYTUzYTZjNjMwMGExODlmM2MwOGZiMDJlZDFjYzI3ODUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_93b7694ef81746329cda3da0015bbd96",
+      "statement": "Diagnostic reporting consent is a device-local optional UserDefaults choice under the preserved diagnostics.crashReportingConsent key; absent or declined consent does not enable reporting, and DiagnosisController saves a changed choice before notifying the reporter rather than placing it in Settings sync.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/DiagnosisTests.swift#L9-L50",
+          "version": "repo-lines-v1:sha256:e565393ccd1d9c49b1770cef3c382c3768875eab3429fcb8a11f56e2e7611455:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiNTdjZTI2Y2FiOTEyYTZiMTU5MmM1MDE5NzE0MjRkM2YzMzE4NzY2YjYwNmQwMDhjMTkwZmJkOTcyM2JkMzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzZGU5YzA2YTU1MGIxZWE0NDYxZmE2MjBhYjU3OTE5NDAxYjExM2Y4YzIxMTA4YzU1OTFmM2Y4ZmIzNzQ3ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32",
+          "version": "repo-lines-v1:sha256:5d2e3f22fd146fc19338248a51dd8fdc43fc2c6570fa80946f804facd0940508:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2YzAzNGRjMGI3MDEwMjAzYzk0MGU5ODc5YmVhYTYwNzI1NzFjN2IzMTRmOGIxOWRmYTg2NTBjZjBiZjhlMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjMTg4YWE3NjlhZTJhZTIyOGQxZTVmZGMyZGFkYjE4MDFiMzI3ZDU4ZWJmMGQ1ZWU4NTYzMzZlOTQ2OGE4OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L8",
+          "version": "repo-lines-v1:sha256:d75b04f9696e1e13e8059db5e4a7c07704f173457ed60afd7ebde7e0db8e6429:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2I1NWM4NjRjMWQzYTVlMTNlZjM4Y2JlMjIxYzNmMzg5YmFkYjY5OGNiMDUzNDFlZGE3ZmZjMWIzZTQzZGU1MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTU4ZDRhOTEwNzQwNTlmMGM4ZDIxMzZmOWJmODA4MzQ2MTQ4ZmM4Y2ZiMzU0M2RkY2JjNzUwZTc1NzZlNzI2MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDZkZTYzNzdhMzhhNTA2NjhiOWE5NmYzNjg3ODE3MmY4MjY1NmRhZDQzZTFmZTY5NTZkZDk4M2Y1NGU4YzgzOSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L33-L55",
+          "version": "repo-lines-v1:sha256:cc41da20891311f0e681bd0bcea41eba3231057fe8ad75fb961acf61dbcec8cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4YzNiNDkyNjFlOWRiODEzN2MzOTUzNTIxOWFhMzJiNzI2NTMwMGRiNjJlODA1MjhiZmVjOGRkOWI1MThkYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4MzliOTlkMzBkNzQwYmMwMjBlMzI5ZTUyNDhiZTI2ZTgxY2QyMGIxNmY1YjlhOTllZmZlNmE3ZWJjMGJjNTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0MDg4Y2ViMTQ1NWIzODJiZjViYTRiYmNhYmViOTI1ZTVmODUzNzU2ZjBmMDQ5Zjk2YjQ3MWY5YjZlMzJmMWUifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-30T23:24:42.368Z"
+    "at": "2026-10-01T23:39:56.631Z"
   }
 }

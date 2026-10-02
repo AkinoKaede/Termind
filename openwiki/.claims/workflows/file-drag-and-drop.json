@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:42ac67a1c293d4a3f23ec9fc5e8a8063cccbd0ca204cb09963f26df6dd323c74",
+  "pageVersion": "sha256:65e25d781be66b27c90db8485ab6eb39488413c50e1d7558c22be991c5d41dd8",
   "claims": [
     {
       "id": "claim_cb8c68c7e50f4794ae6ed98e8c1c58c8",
@@ -18,11 +18,11 @@
     },
     {
       "id": "claim_dde59f1a544f423b8d845ec1235a8824",
-      "statement": "The desktop pane file receiver is the outermost overlay above Ghostty/Table content, accepts local files and private SFTP items only for SSH/SFTP panes, and is disabled during window layout dragging.",
+      "statement": "The desktop pane native receiver is the outermost overlay above Ghostty/Table content and is active only for the visible Workspace while no window layout drag is underway; SSH receives local files, private SFTP items and private terminal paths, SFTP receives files and private SFTP items, Telnet/Serial receive only terminal paths, and empty panes have no receiver.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L475",
-          "version": "repo-lines-v1:sha256:d998b87eb30fd074e416cafb6373606b467369114727ddfeda5c4a9bc81d8356:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxYzQ5NDZlZmE1YjM5ZTFmMWJlOWMzMDI2ZDE2NDM3YjY0MjMyYzBmNjBjMjg0OTc2OTcwNmVmOGMyMDhiZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxNGI4NjAzODcwZDZiZGEzMDMzMTcxYTExOThjOTBlODBjMTdjM2EyMjYyZDZhZDA0OWZiOGQ3MGE0MGRhODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiODlkNTljMjE3MGEwZWFmOWY0NDc2YmVjMjRjOThlYjdlYTRiMWNlYTY4ZDQ5MmQ2OGNkNzAzOGZkNDE0YmQifQ"
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L483",
+          "version": "repo-lines-v1:sha256:1cf4f020054920eb029c849554dd7efdffbb543f977d091ae94b167ac79a1dfb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxYzQ5NDZlZmE1YjM5ZTFmMWJlOWMzMDI2ZDE2NDM3YjY0MjMyYzBmNjBjMjg0OTc2OTcwNmVmOGMyMDhiZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxNGI4NjAzODcwZDZiZGEzMDMzMTcxYTExOThjOTBlODBjMTdjM2EyMjYyZDZhZDA0OWZiOGQ3MGE0MGRhODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlNmY2MjcyY2M1ODJiODAyYjY3ZTNiYzJjYjVkNjA2OGQ1ZTgxOWJjOGY0YWI4NWFkMGE5NGM4YzVkMzNkNjcifQ"
         }
       ]
     },
@@ -31,12 +31,12 @@
       "statement": "For a desktop target accepting SFTP items, a private remote payload wins before any file URL is requested, avoiding promised-file materialization; otherwise a file URL wins over bitmap data per item.",
       "evidence": [
         {
-          "resource": "repo://TFM/UI/Components/FileURLDropTarget.swift#L234-L266",
-          "version": "repo-lines-v1:sha256:5aeca4f3b4f1642074b87d6efdcea13e7bd5865cb4c144ef073d670d4e37ad3e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZTkzZTA3MzkxM2NjNDdlMjIxNmJlMTBlOGJmZjI3YjRiZTQ5ZTI4YjljMTJmZjExYzhmYTdmMTQyODEzNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjZDBiYzU0ODU3YTZlZDAzZDlmMjVlMjUwMTRiODQ1MWQyOTk1NjlmZWMwMzFhNWZhNDBjODZiNzM4YjFlOGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkYWZhZjU3YzdiNGUwOGVkMGRiNDA1Yjg4ZDhmMTVjYmY3M2FkOGEyZmFhOTNlZjJkYzk5ZjBmN2FiZDNhNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM1Yzg1MDQ1NWU5ZjZlNzcwZmE4Yjg3MmFmMThkNTcyYTkzNjJkMmJhMmQxMzIxMzkxZDZkN2U4MjllNDhjNDUifQ"
+          "resource": "repo://TFM/UI/Components/FileURLDropTarget.swift#L237-L274",
+          "version": "repo-lines-v1:sha256:7da37aee509290109c70c2a05f8093843db19428590df239a231625ffa078ecc:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzZThlZmMwZDVlNWFiMmE4ZTAzYmQyYzUyMWU5YmFhYmY0OTQ4NGY0ODhmZTEwNGRiNTQxN2MyZDhkNGFiYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4YjZlZmMwODkzNzMzYWM4YTcwOGFiMGRjZGJkNDRhODRmYjEyNzcxNjAyZDkyMzc4OTlhZTM3NDg3MDcyZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkZDBkYWMxZDBjOTMwMTQwNWEwNmFjYjhhMjE0MjJlM2RkMDA3YmZiYjU0MzI3NTA2YzMwYmJhMzFjYzdiNWYifQ"
         },
         {
-          "resource": "repo://TFMTests/FileURLDropTargetTests.swift#L101-L155",
-          "version": "repo-lines-v1:sha256:90c0b2445778988f2c606bac97ff14b56c96c2000371c4b8194ec689a75d11d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMjk2NmU4NjJiNDFjODhhMDFmYTJhMjI0YWQzYzNjNmRhNDg2YTIwM2M4YjY4MmEzNWRkYzU1OTYxOTcxNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2Y2I2OTIzNzdhZGFhYjA0MGZiOGQyMTMwYjE2MDI0YmY2YmRiNzdjOTllZDNhMTA1ZjMyMzc0MGM0ZmQ4MWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzNDgwYmJjNDc0MmZlMzhiMjFjNmQxOTU2NDIxZTU4OGY5NGVhNDIwMjFjMzk4MGJkZmEzYzA4N2ZlMGU2NjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3ZjllZjliNTc2NzZjOGJlNjA0OGMxMjg1ZGFlOWMxZmUxMDQxYjc3MDU3OWVkNmFhNGU3OWUyOGJlYjM0N2MifQ"
+          "resource": "repo://TFMTests/FileURLDropTargetTests.swift#L166-L216",
+          "version": "repo-lines-v1:sha256:cd159abec7cbd0fcdcc5544fe298474011b3dadc54995f771e8d3c2d67fb864a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMjk2NmU4NjJiNDFjODhhMDFmYTJhMjI0YWQzYzNjNmRhNDg2YTIwM2M4YjY4MmEzNWRkYzU1OTYxOTcxNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzNDgwYmJjNDc0MmZlMzhiMjFjNmQxOTU2NDIxZTU4OGY5NGVhNDIwMjFjMzk4MGJkZmEzYzA4N2ZlMGU2NjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJjNzJlNDIyZWEwM2VjMjZjMjI3NDc2YTFmYmI1ZDlmMTVkNjI2Y2JlMjY5OTMxYjg1ZmRmYWU2MDUyY2U4YTMifQ"
         }
       ]
     },
@@ -317,16 +317,12 @@
           "version": "repo-lines-v1:sha256:4a45bc72f5bcd74fd4cc0062de51d05a4f1cff5b95d06f6420b4709e3ee48401:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwZjQxNjViYTNlNzFhN2EwYjI1ZTNiNWY5Y2Y0ODA0NDcwM2Q1NDZjOWM0ZjE3NzJhZjMyNzg5YTUyN2ExY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0MmVmZTUwYWRjNTIyOWI1MzdmZGFkMWE5MzM4ODlmYjk1ZmQ1YTg4NDc3MjVkOTY0ZmE0ODJiZDcwZGMyYWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OTY1ZmU4Zjg5ZDU0OWU2YTkxY2Y5YjIxMGRjNTcwOGEwZDg1OTE5MWI5OTQyNmY5YTBjMzBkYzVkNmU5ZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L119-L125",
-          "version": "repo-lines-v1:sha256:05117a89b12557cac85fe4b8ae0a9a323522762bcfa208c861f8541ee0d39ca1:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGRiMzM5YzE3ZDRjYzU0ZTcwYzRmY2ZlY2I2MTFiYjllN2QzNjNmMjViMThlMDkyM2ExZDMwNmNjOTU5MjRlNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmVhMzU5YTNkYmZhZWUxN2ZmOGMwNDQwNDc2YzMxNDhiZmM1MTNkZjBkZjE5OTViYTcwNmFjNzRjY2VkNjYxOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWFhZTZiYzVhZTdiZjQzOGIzNGNkYTBkZjhmMTUwNjdhMDliNjI5NjRlZjVlN2RlNTRiNjRjN2JmZTE4ZGM2MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGU1ZTI4ZTVhYzRkYjUzZDUzNzJiN2U3MDYwZWVlZTRkZDYyNzZmNjA5OWQyMWNjNTFmYmQxMTY5NTUxM2ExYyJ9"
-        },
-        {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L542-L557",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L550-L565",
           "version": "repo-lines-v1:sha256:e8262e448625c0b7c12c55d724f853d6fc386fb458a67eddfa493963d6569565:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMjEzNzkzYmZmMTQwNWJmYmY3NTNkNzYyNTZkMjZkMGEzNTRiOGI4MWMwMGEwYWY0ODc1MjAwZDJmZWUzNWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjYzQ0M2ZkYjNlYjQ4MmEwODJhZTUzMzAwYzI4MjE0OGM5YjVlMzVmY2NiOGM3MDgxZGFjNWFjOTM5ODc2YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjODllOTcxM2YwNDBjYWM1MjgyYmE0MjA5MTZiNmRkNDU4Y2ZlYjlhYzc0YmViZTBiZDBiMDA4Y2NhZTZkYmYifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L478-L534",
-          "version": "repo-lines-v1:sha256:b2497dca8977af2e675e22ab27cfc3ccbfe92fe619527d9e14e3171dcbf1838d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3ZmJiNjRmM2ZiOTU1YTU5YWEwYzIxMWJmYWMwMDRjNTRhOTYxNjgxYjQ4NTQyMzRhZjliOGIwNGY4MDk2ZTEifQ"
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L485-L544",
+          "version": "repo-lines-v1:sha256:1d9028c46fcab54b59351dfcb3f6785f4189006604f465eb9d2b16ec795b529b:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMWNlNGUxM2VhMDlmMDQ1NjFiNjMyZjlhNGVlNjE1ZWFmNTFjMGFmMmEwOTAzYThjNGUxYzBhZTIxMTlmOGMifQ"
         }
       ]
     },
@@ -347,10 +343,90 @@
           "version": "repo-lines-v1:sha256:88877df6939dd3842d9614496eb6f2ba5721644c455342c22b6c1e2b340a11db:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiMGFhN2M0MGMzYzEzZjYxNWEzOWE0ZGQ1NjU4NWE2MTMwMDljZGI5NjY3YWIyYjYyOGM3MDI0YjJmZWZiN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjODQ5ODc2ZjM3NThkM2E3OTZhOTkzZDllODgxNDJhYTQ5NDZmNDRiOTUzNzVhYmM2ZjA0MzQ2N2U3ZTYwNTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhYTk2NmQ3ZGEwMjllZjEyNTdkOGI0NDNmNWE5MzZiODgzN2E1YzMzMTVjYjBkMzFlNzA0YzMwMzQyYWMwZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1ODJkMmZkMzA0NzQxNTIxMWZjNDk0OGE2YTdkOTIwN2IxODVkMTQ4MDJkZmQ1YzE0OTJlZTc3YWEyN2E1M2IifQ"
         }
       ]
+    },
+    {
+      "id": "claim_c20aed1a5b14402e8e00a4fbf5e84cf7",
+      "statement": "Desktop native drop classification gives an accepted private SFTP item priority over its promised file representation, then recognizes a valid nonempty private terminal-path text before scanning file URLs and images; plain text, malformed private path data and file URLs alone are not path insertions.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Terminal/TerminalPathDrag.swift#L5-L27",
+          "version": "repo-lines-v1:sha256:c79bee90bcd0e3ce47de593f9e57617fb83aba7263ca566cb96f639b6e326256:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhY2NkYjBiZDY0YzA1MTgxYWE1ODNiMTQ5ZTZhOWRmYmE4YTY0NmM5MGQ0YjQ2ZmY2YThlYmZkYjkxZDU0ZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkOGIzOGE0ODU0NDJmNDFjODY4OGNhMWQ1YTE0M2FhZmRlMWIzY2M1OGM2ZDZjNzMxNzdkYTEzOWIyMjU1ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/FileURLDropTarget.swift#L228-L274",
+          "version": "repo-lines-v1:sha256:a6a7cb09099898a04caf0dd1f1454ac753295e0cfd4ec5142f2e64e4af5739fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNDRlOThmMWU0YmI3YWIyYTkxOThjYzA5MTk3ZTc4ODhjZDI0Y2MwZDc4YjA3MDc2ODk1ZDMzZmMyMmM2OTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2Nzk4YWM0MzkwNzBjMDJhNmEzMmY4MDQ3OTQ4OTc3ZmE2NWFkZDQ0NjI3MTg4MTJhMzQ2M2NhZTFjZDM3NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkZDBkYWMxZDBjOTMwMTQwNWEwNmFjYjhhMjE0MjJlM2RkMDA3YmZiYjU0MzI3NTA2YzMwYmJhMzFjYzdiNWYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/FileURLDropTargetTests.swift#L34-L63",
+          "version": "repo-lines-v1:sha256:5d512b83d59db50f824dbaef57b25ffc37446eaf7be54fa57ce4b1ee4ee57ca3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMjk2NmU4NjJiNDFjODhhMDFmYTJhMjI0YWQzYzNjNmRhNDg2YTIwM2M4YjY4MmEzNWRkYzU1OTYxOTcxNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyODMyNDM0MzMzN2I2YmNkYzVkNmQyMDk3Y2JiOWFhNGMwY2NlMTY1NjRmZDBjZmZiOTliMDMwOTdlNjUxM2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyZTJjY2ExOTk5ZGUwZmY2MWUxYWVlYzg1Njk2Mjg5M2QwMDRiZTY0ZmU5OTJmNTU0MDZlNzM5MzY0MDY2MWEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalPathDragTests.swift#L11-L43",
+          "version": "repo-lines-v1:sha256:c1e933e944f2809a7cf673eb016de3eb620ad80f558c6f3290139355c86f120b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczZWYxYzU3MTZmNDZlNzc1YjI2ZDIwYjUxMmQ3MzdkY2JmZGExZjIyMjk0YjYxMWVjZDU1NWU0MTI1NTNhM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzMWJhOTIwNTVjNzA4OWUzODZjMmRiNzU1ZGU2YjQ1YzFlNjA4YzMwYjQ2N2M5MDgzNDUzYjljNjkzNjdlZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjZTY1Yzg5N2MxY2U4YTlhM2Q1NGU4MjBkOGU2ZGNkY2FiOTcyYjgyYTVjYWRmOTczOTZkZDQ3MDVhOGQ2MzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d9ef287fca9a442eac41e9b23c36feb8",
+      "statement": "Status-bar working-directory and SFTP-directory drags expose shell-escaped private terminal-path text without advertising a file URL; dropping it on an SSH, Telnet or Serial pane focuses that pane and pastes into its mounted visible terminal instead of starting an upload, while SFTP panes do not accept the path payload.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/StatusBar/StatusBarView.swift#L266-L311",
+          "version": "repo-lines-v1:sha256:10d29a15eb315081054a2437558d3000a72bc887164115cc45f2b61fc437f65f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMzg4ODVmMTVkYjQwNmY1ZTYxZWE0NmZiMjJlZDE2M2U3ZGI4MmQ5YzQxOTExZDg1YmEwZDU3YmUxZjI2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYjU0ZWExMzcxYTcxZmU1MTg4ZWUxN2Q2YjgxMzcyZTg2NmM3MmZiMDVmNGIwM2VhNGY5NDljYTNiYjYwNTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyN2Q0MGM1NTNmOTRiZTFjM2NmYTA0MjFlZjA0OTFmNjJjNGVlY2YzZTMzOGE2NmM2ZWQzZTIwMzFhNTU0NWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5M2YzN2NjNjcxMWY3YmMyZDYyYTExNDFkYzFiMWMxYTk0Y2RkZDRmZjczM2MxOTM1ZTQxMzZmM2Q2NGJhMDQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L150-L163",
+          "version": "repo-lines-v1:sha256:eb5cd8806c79077ad4e782dba74f8867acf1ab63aca898a9ee45d2d899664c30:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2ZDhjMGU3M2RkOWNhNmExZTg3M2FjZjQyNTliOTJkZDZlN2U2YjIxNGE1ODJiNmU4YWUyNGUzNzlmYTcxN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdlN2FmNjkyNTUyNmIyNTUzZTU0YjdjN2Y5NGVhNjA4ZDI2YzgyZmE0YzVkYjRiZjI3MjM3YjYyYTcyMjBjYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMDFkOTJhZTJlOWZlZGU1NWYzYzA3ZTVkNmUwNWVlYmExZTlhOGFhMDI2ODI5NDg5MTg0NjVlMTY1N2Q2MGYifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/TerminalPathDrag.swift#L5-L27",
+          "version": "repo-lines-v1:sha256:c79bee90bcd0e3ce47de593f9e57617fb83aba7263ca566cb96f639b6e326256:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhY2NkYjBiZDY0YzA1MTgxYWE1ODNiMTQ5ZTZhOWRmYmE4YTY0NmM5MGQ0YjQ2ZmY2YThlYmZkYjkxZDU0ZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkOGIzOGE0ODU0NDJmNDFjODY4OGNhMWQ1YTE0M2FhZmRlMWIzY2M1OGM2ZDZjNzMxNzdkYTEzOWIyMjU1ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L456-L569",
+          "version": "repo-lines-v1:sha256:ad57f70a1f07681571c49503fee8b1b641b8bbf3493b31e90ea56cf92b5fb89a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMDIwNDMyZGM0NzRhZjdlZmNjZWJjMGU0NWQwM2MyMWJjNzk2NGVjM2VmOTQxNmY4OTZkZTA1ZTZjNDgwMzM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1N2M0ZmY1ZmNhMjBlMzg5NGY3N2ZmNjQ5NGNhZjZlZGQ1NjcxYmYxNzdmMjJlZjAxNzQwZTczYTE2MDE3NzljIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjYTZjOTMwZDVjZTcyOWI2ZGQwM2QyMzdmZjBhZGE2ZWU1OTg1OTA0ZjExODJiYjc1Mjg4NDVjNTZiODg5OWVmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiYjg5ZDU5YzIxNzBhMGVhZjlmNDQ3NmJlYzI0Yzk4ZWI3ZWE0YjFjZWE2OGQ0OTJkNjhjZDcwMzhmZDQxNGJkIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_11ebe9f2bd6341fba093fc5ef2d385f2",
+      "statement": "The embedded desktop terminal provides a path-only fallback receiver that registers only when mounted and visible, checks the copy operation and valid path again on entry and performance, and declines path drops when unmounted.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L100-L163",
+          "version": "repo-lines-v1:sha256:d0dcf06f6efd9901a465221272ac491a7b8323ae22a42d58834a0e38ab6280b0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1MGI3Y2JmNWQxMmM0YTBiOGU0YTFjODc1YzM5NjIyNTBjYWMxODVmNTJhNjg0MTUwZDgxYWM2M2JlMDNhODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1MDdjYWNlMWIzMGNkNGJmZTJjYzZhOTc4NzdjZTI3ZGE2MDgzY2Y2NDFiNTYxNGM0M2NjNDc1N2Q5YWVmYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMDFkOTJhZTJlOWZlZGU1NWYzYzA3ZTVkNmUwNWVlYmExZTlhOGFhMDI2ODI5NDg5MTg0NjVlMTY1N2Q2MGYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalPathDragTests.swift#L45-L55",
+          "version": "repo-lines-v1:sha256:4eb641eccd421e5f0062bf695fd758ad2337ce60cf8236195f973c8d23c57c76:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiY2QwMmE1NmZlYzdkMDZhZTQ1MWRjYmViZWM0ZmExNzRlMDlmNDRkZmQxYjY4MjAxYjA5Mjc1OWRhZmMzNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_905afe2b469844ea94f10339e4b03410",
+      "statement": "Desktop pane hover feedback suppresses the upload/copy overlay for terminal-path insertion and uses native copy feedback; for SSH and SFTP file or remote-item drags an unavailable destination can show an unavailable overlay even though the receiver's copy proposal precedes transfer validation.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift#L1251-L1258",
+          "version": "repo-lines-v1:sha256:e6fa44c7b1b04a375a4a87d67ec4671b7c0a0c3c19f37a8723babe45c178d643:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODhkY2YwMzlmNTU2YTBjODZkYjY5YWY3YTAwZGZmNjQzNDc5ZWI1MjA4NTVjYzVjZDM0NzYyMDYyMThhMGNmMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTdjNGZmNWZjYTIwZTM4OTRmNzdmZjY0OTRjYWY2ZWRkNTY3MWJmMTc3ZjIyZWYwMTc0MGU3M2ExNjAxNzc5YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA5YmQ0ODcwMzM5NjU2NzgyYzAxNjI1ODcwZjRjMmE5YWEyNTZjZDFjZjA1ZTAxMjY0YjA5YzUyZDQxMDdjMSJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Terminal/TerminalPlaceholderView.swift#L231-L265",
+          "version": "repo-lines-v1:sha256:e3fcf23e3b0a2bffd77937a2d7222bf4d63651b08f20db2b1289bd9f9ebad9ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4ZGNmMDM5ZjU1NmEwYzg2ZGI2OWFmN2EwMGRmZjY0MzQ3OWViNTIwODU1Y2M1Y2QzNDc2MjA2MjE4YTBjZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlZDcyYWM5ZGMyNzdmYmJiYzhkMDg3NWZiNDhlMmE1ZjI2NTUwMTFiYTZjMTZjZTY0YmVhMWQ5MzY4M2YxY2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5OGE5MGUyZDM3MmZmY2Y5MzkyYTM3YzM3YjJjN2NmM2VhZmZjYTUxM2JjNGJjYWIwNjlmZWUxYjJmNmEyN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyNTNhMWM5OGQzNzYzNDhhMTE1M2ViMDcxZTA1ODhkZTg3N2M2N2U0OGQwNDg3YTc4ODk4YjI1NDk2NDAxMmQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L485-L544",
+          "version": "repo-lines-v1:sha256:1d9028c46fcab54b59351dfcb3f6785f4189006604f465eb9d2b16ec795b529b:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMWNlNGUxM2VhMDlmMDQ1NjFiNjMyZjlhNGVlNjE1ZWFmNTFjMGFmMmEwOTAzYThjNGUxYzBhZTIxMTlmOGMifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/FileURLDropTarget.swift#L188-L215",
+          "version": "repo-lines-v1:sha256:69363ff1106fc853088599ae2701bca01f8670311a120bc5b30f808cb844f824:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyODNkNjJhNWQ0MjBiMTVhMmE3MmMyM2JiZGNiMDlhYjU4ZWZlMjQ1NjViZmZjN2I4MjgxMjEwNjQ4NGFlNTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYmFmNGM2ZjBlNzRhNDk1ZDc0OTNkMjZkZDg2NTk3NDFkYTU5YzM0MDY5ODFkZDJhNjVlOGJhN2NkYjJjYjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhOWY4NmQyOGU3ODRmOWZkMzFmYjcyZDE1ZjYwY2JjZWFhZmRkNjY5Y2JkNWI2ZGE3ODg4YTAyMzMyMWViYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViNDNlMjljNDhmOTc0ZjEyYjQyY2I2Nzk0NzE3ZTEyY2E2YTAyOWFmOGVkZWI5ZTVjOTNiZTI0MjVhYTJiMTQifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-09-26T04:29:20.893Z"
+    "by": "openwiki/0.5.2",
+    "at": "2026-10-01T23:39:56.631Z"
   }
 }

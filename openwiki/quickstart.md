@@ -1,11 +1,11 @@
 ---
 type: engineering quickstart
-title: Termind Engineering Quickstart
-description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
+title: Quickstart and task routing
+description: Start here to route Termind changes to their owners, preserve platform lifetimes and dependency pins, and choose focused build and test gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -29,8 +29,6 @@ sources:
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-c8d832474c03f5ebad7b0578
-    resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-5b8c72c5373a41af34fa9fd4
@@ -75,10 +73,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Termind Engineering Quickstart
+# Quickstart and task routing
 
 Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) app targets over shared frameworks, plus separate test, widget, and macOS MCP bridge products; platform UI and lifecycle remain app-owned. Source and tests are authoritative. Before changing an ownership boundary, read [Cross-Cutting Engineering Invariants](/openwiki/architecture/engineering-invariants.md) and the narrowest topic page below.
 
@@ -113,7 +111,7 @@ In Debug XCTest runs, the **real desktop app** still launches. By default it sup
 
 Mobile phase changes are aggregated across scenes: background work is paused when *all* registered scenes are backgrounded; the expiration handler suspends workspaces, stops forwards, pauses transfers, and expires Assistant work. An active scene resumes monitoring, memory, workspaces, eligible sync, and metrics. On macOS, closing the last window does **not** always quit: during tests it never terminates the test host; otherwise the menu-bar metrics preference and running metrics decide. Quit first rechecks unuploaded SFTP edits and can be cancelled; confirmed termination fences new Assistant runs, drains cancellation/persistence, stops transfers and MCP, then closes agent resources. The delegate replies to AppKit only once, after cleanup or a three-second fallback; the fallback bounds the quit reply, not completion of asynchronous cleanup. Use [Platform Composition and Lifetimes](/openwiki/architecture/platform-runtime.md) for the full sequence and ownership rules.
 
-AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
+AgentKit is a separately versioned, host-neutral remote package for the agent loop, approvals, providers, MCP client and built-in tools; Termind owns SSH/SFTP tools and registers them additively. The Xcode project currently requires AgentKit `0.18.1` or later within the next major version; `Package.resolved` records the selected remote release and revision. For a cross-repository change, test and release `../AgentKit`, then update `minimumVersion` in `Termind.xcodeproj/project.pbxproj` **and** re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; the sibling working tree does not affect Xcode's resolved build. Ghostty has a different release boundary: `libghostty-spm/` is a maintenance submodule, but Xcode consumes the remote fork at a fixed revision, not that checkout. For package changes push the fork, then update the submodule gitlink, project revision and resolved pin together; native patch changes additionally require a new XCFramework release and matching package URL/checksum. See [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for the exact sequence. Keep metadata in persistence and secret values behind Keychain references. Follow [Dependency and Ownership Boundaries](/openwiki/architecture/system-boundaries.md) for imports and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) for release steps.
 
 For CloudKit changes, follow [Settings and Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) through the [release checklist](/openwiki/operations/cloudkit-release-readiness.md): `CloudSyncLifecycle` owns a separate engine and account scope per category. It commits a recovery fence before making an automatically syncing engine, fetches before authorizing uploads, and reconciles pending engine changes against the durable journal. Pausing, account changes and non-cancellation persistence failures retire the engine and cancel its operations; late callbacks must not act on a replacement engine. Recheck `CloudSyncLifecycleTests` (including retirement and delegate-context coverage), `CloudSyncSafetyTests`, and the relevant coordinator tests rather than treating a successful build as a sync migration check.
 
@@ -131,6 +129,6 @@ xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests T
 Scripts/check-zh-localization.sh
 ```
 
-For `TFI` tests use an installed iPhone/iPad simulator. Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` and `MobileMetricsJourneyTests` are serialized but not gated by that variable; use a narrow nonparallel run when working with their process-wide UIKit window fixtures. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
+For `TFI` tests use an installed iPhone/iPad simulator; initialize `libghostty-spm/` with `git submodule update --init libghostty-spm` only if you need its maintenance checkout (routine pinned builds do not use it). Visible-window macOS suites require `.requiresVisibleWindow` and explicit `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (or `TERMIND_WINDOW_TESTS=1` in the Xcode test action), preferably with `-only-testing:TFMTests/<Suite>`; the opt-in enables both the test and automatic app-host windows. Opt-in mobile key-window suites require `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>`; `MobileAdaptiveLayoutTests` and `MobileMetricsJourneyTests` are serialized but not gated by that variable; use a narrow nonparallel run when working with their process-wide UIKit window fixtures. StoreKit suites require manual authorization and `TERMIND_STOREKIT_TESTS=1`. Keep these gates off for routine checks; offscreen tests remain enabled. Define app copy via shared `TermindPresentation/Strings` resources; new app text needs completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Shared catalogs are manually managed: after catalog edits run `Scripts/normalize-string-catalogs.py --write`, then `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (requires `jq`); run the Chinese check even without intended copy changes, and `AppLanguageTests` for language behavior. For web changes run `cd LandingPage && npm ci && npm run build` and check English and `/zh/` routes.
 
 Before submitting, inspect the diff for secrets, generated artifacts, cross-layer imports and accidental `Package.resolved` churn; use the routed operations pages for CloudKit deployment, StoreKit release, marketing assets, and forwarding benchmark measurement semantics.

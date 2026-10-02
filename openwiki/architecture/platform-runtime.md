@@ -1,14 +1,16 @@
 ---
 type: architecture
-title: Platform Composition and Lifetimes
-description: How macOS and iOS compose shared persistence and runtime services, separate app-wide from window and scene state, and handle sync, backgrounding, startup failure, and shutdown.
+title: Platform startup and runtime composition
+description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
+  - id: openwiki-source-162732a78d991992cfb9458d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-31cbaa9f7ceabda76ea07ba4
@@ -25,6 +27,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-f7f7803d6920f3e68b98385b
     resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
+  - id: openwiki-source-ecede91560d27caa3ae01d3e
+    resource: repo://Frameworks/TermindPresentation/DiagnosisConsentView.swift
   - id: openwiki-source-ad1a1eea0aea739f2004d93a
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -101,10 +105,34 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Platform Composition and Lifetimes
+# Platform startup and runtime composition
+
+Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](/openwiki/concepts/persistence-and-secrets.md) for storage details.
+
+```mermaid
+flowchart TD
+    DLaunch["Desktop entrypoint"] --> DMode{"Memory launch"}
+    DMode -->|"No"| DGuard["Other instance preflight and store lock"]
+    DMode -->|"Yes"| DStore["In-memory container"]
+    DGuard -->|"In use"| DAlert["Database in use alert then exit"]
+    DGuard -->|"Available"| DOpen["Open disk container"]
+    DOpen -->|"Other error"| DFatal["Fatal startup error"]
+    DStore --> DApp["Build app runtime"]
+    DOpen --> DApp
+    DApp --> DConsent{"Consent needed"}
+    DConsent -->|"Yes"| DChoice["Consent view"]
+    DConsent -->|"No"| DWindow["Per-window root and model"]
+    MLaunch["Mobile entrypoint"] --> MResult["Build startup Result"]
+    MResult -->|"Failure"| MUnavailable["Store unavailable view"]
+    MResult -->|"Success"| MConsent{"Consent needed"}
+    MConsent -->|"Yes"| MChoice["Consent view"]
+    MConsent -->|"No"| MScene["Bind UIKit scene session"]
+```
+
+Startup creates the shared runtime before asking for diagnostics consent; only successful, consent-cleared scene content constructs normal window or scene state.
 
 Termind has separate native application targets—`TFM` for macOS and `TFI` for iOS/iPadOS—but both compose the same layered frameworks into a platform-owned runtime. The application target owns startup, native lifecycle hooks, dependency assembly, platform UI, and the boundary between durable app data and live UI/session state. Shared frameworks do not import either app target.
 
@@ -132,7 +160,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
+`TermindPersistence.makeContainer` fixes the shared versioned SwiftData schema and migration plan for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
 
 After the container opens, the desktop entrypoint cleans previous context attachments, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty.
 
@@ -147,7 +175,8 @@ flowchart TD
     Memory --> Store
     Guard -->|"Store in use"| Alert["Alert then exit"]
     Lock -->|"Store in use"| Alert
-    Store --> Persistence["Settings and metrics persistence"]
+    Store -->|"Screenshot mode"| Demo["Isolated demo AppModel"]
+    Store -->|"Normal or XCTest"| Persistence["Settings and metrics persistence"]
     Store --> Hosts["HostLibraryModel and SwiftData repositories"]
     Launch --> Secrets["KeychainSecretStore"]
     Launch --> Logging["LaunchFileLogService"]
@@ -158,8 +187,10 @@ flowchart TD
     Logging --> App
     Remote --> App
     Sync --> App
-    App --> Group["WindowGroup main"]
-    Group --> Window["WindowModel per window"]
+    Demo --> Group["WindowGroup main"]
+    App --> Group
+    Group --> Consent["Consent view when needed"]
+    Group -->|"Consent resolved"| Window["WindowModel per window"]
     Window --> Root["RootView retains window"]
     App --> Root
     Window --> Workspace["Window-owned Workspaces and panes"]
@@ -174,7 +205,7 @@ This diagram shows the desktop composition root and the split between one app ru
 
 The model keeps only weak registrations for open `WindowModel`s. Registration injects shared stores and coordinators into a window and attaches that window's assistant library to the process-wide conversation store. Fan-out operations—such as a host route change or deletion—find registered windows and disconnect or close the affected window-owned workspaces. A desktop deletion request first persists the repository marker/outbox jobs, clears local histories and projects the Host away; the registered outbox handlers close panes across windows, cancel transfers, stop forwarding and finalize repository cleanup. A failed request reports a storage error instead of projecting the removal. This is coordination, not ownership transfer: the window remains responsible for its own UI and workspaces.
 
-`TermindApp` creates a `WindowGroup(id: "main", for: UUID.self)`. Each scene receives a fresh `WindowModel` (except a request-less debug screenshot scene, which can receive demo window state), places it in `RootView`, and injects the same `AppModel` and SwiftData container through the SwiftUI environment. `RootView` retains that model in `@State`, registers it on appearance, and exposes it via the environment and focused scene value. The independent `Authentication Request` window shares app dependencies but is reserved for external authentication presentation; `.commandsRemoved()` prevents normal Window-menu creation.
+`TermindApp` creates a `WindowGroup(id: "main", for: UUID.self)`. Once diagnosis consent is resolved, each scene receives a fresh `WindowModel` (except a request-less debug screenshot scene, which can receive demo window state), places it in `RootView`, and injects the same `AppModel` and SwiftData container through the SwiftUI environment. Until then, it shows the consent view without creating a window model. `RootView` retains that model in `@State`, registers it on appearance, and exposes it via the environment and focused scene value. The independent `Authentication Request` window shares app dependencies but is reserved for external authentication presentation; `.commandsRemoved()` prevents normal Window-menu creation.
 
 **Scene policy is separate from store policy.** In DEBUG, a default XCTest host suppresses automatic launch of both the main and authentication scenes unless `TERMIND_WINDOW_TESTS=1` or screenshot-demo mode is active. Tests disable restoration for both scenes even when visible windows are opted in; screenshot mode disables main-scene restoration, while ordinary launches use automatic launch and restoration. The delegate also refuses Dock reopen while test-window suppression applies, refuses to quit the test host when its last fixture window closes, and skips starting metrics activity/menu in tests. Explicit window/focus tests use `.requiresVisibleWindow` and opt in with `TERMIND_WINDOW_TESTS=1` (or Xcode's `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` forwarding); suppression is not a ban on explicitly created offscreen test fixtures. The default test-host checks assert no visible windows and no reopen. To exercise a gated suite, use `TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile -only-testing:TFMTests/<Suite> test`; the test host itself checks `TERMIND_WINDOW_TESTS=1`. Keep routine logic and offscreen tests on the default suppressed path.
 
@@ -222,7 +253,7 @@ Desktop termination orders assistant draining before agent connection teardown, 
 
 ## Mobile composition
 
-`TermindIOSApp` runs language-preference migration and constructs one startup `Result<MobileAppModel, Error>`. It selects `.testing()` dependencies when XCTest is detected and `.live()` otherwise. The `WindowGroup` uses `MobileStartupView.sceneContent(for:)`, a `@Sendable` closure carrying only the result: SwiftUI can invoke lazy scene content off the main actor, so the view accesses main-actor app state only in `body`. A successful body injects the shared model container into scene content; construction failure instead displays an unavailable-data screen rather than terminating the process. `MobileAppDelegate` configures UIKit window scenes, registers for remote notifications outside tests, and queues native session discards received before the model is assigned.
+`TermindIOSApp` runs language-preference migration and constructs one startup `Result<MobileAppModel, Error>`. It selects `.testing()` dependencies when XCTest is detected and `.live()` otherwise. The `WindowGroup` uses `MobileStartupView.sceneContent(for:)`, a `@Sendable` closure carrying only the result: SwiftUI can invoke lazy scene content off the main actor, so the view accesses main-actor app state only in `body`. A successful body injects the shared model container into scene content and shows the diagnosis consent view if needed before binding the UIKit session; construction failure instead displays an unavailable-data screen rather than terminating the process. `MobileAppDelegate` configures UIKit window scenes, registers for remote notifications outside tests, and queues native session discards received before the model is assigned.
 
 ```mermaid
 flowchart TD
@@ -232,8 +263,10 @@ flowchart TD
     MobileApp --> Services["Libraries sync transfer forwarding assistant metrics"]
     MobileApp --> Sessions["Workspace session registry keyed by UIKit session ID"]
     MobileApp --> Group["WindowGroup"]
+    Group -->|"Startup failure"| Unavailable["Unavailable data store view"]
     Group --> Startup["MobileStartupView success or unavailable store"]
-    Startup --> Bound["Bound scene root keyed by UIKit session ID"]
+    Startup -->|"Needs consent"| Consent["Diagnosis consent view"]
+    Startup -->|"Successful and consent resolved"| Bound["Bound scene root keyed by UIKit session ID"]
     Bound --> Scene["MobileSceneModel created in task per scene"]
     Scene --> Root["MobileRootView retains scene"]
     Scene --> Nav["Tab and navigation selection"]
@@ -311,6 +344,7 @@ Mobile phase aggregation controls a single background lease and foreground sync 
 
 ### Preserve these boundaries
 
+- **Keep the consent gate at scene content, after successful runtime construction.** New normal-root setup should not run while `diagnosis.needsConsent` is true; do not treat the consent view as a replacement for failed container creation.
 - **Do not make a window or scene the owner of app services.** Inject app-wide services into per-window/per-scene presentation models; use the central model for operations that must affect all live owners.
 - **Do not make app-wide navigation or workspace state.** Desktop window workspaces and mobile persistent scene-session workspaces must remain independently mutable; the app aggregates the latter only to coordinate global lifecycle and cleanup.
 - **Do not persist live connection state as restoration.** Mobile descriptors are intentionally limited; desktop state restoration must not reconnect active workspaces merely because a window returns.
@@ -326,7 +360,7 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 
 ## Focused verification
 
-Tests exercise the lifetime contracts rather than merely constructing views:
+Tests exercise the lifetime contracts rather than merely constructing views. For startup changes, check both the production consent gate and the test-only in-memory path: these are separate from error handling and from native scene launch suppression.
 
 - `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, links route to a descriptor's existing owner for a single initial connection, failed first opens require explicit retry, and Host deletion removes opened and unopened descriptors.
 - `MobileWorkspaceSessionTests` verifies separate windows create independent workspaces, cold-launch descriptor consolidation, native session reclaim versus explicit discard, and ownership transfer without reconnecting or losing saved order.

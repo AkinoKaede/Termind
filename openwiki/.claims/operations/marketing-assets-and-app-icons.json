@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:480443abe3fe4bbadc267c6776129116a7e9356c514ac85e354c42f0e59cdcaa",
+  "pageVersion": "sha256:b6b7f9e4ccb70d756b6eb646370af2de7b30b2d8f3cd23f74dc6a4b2a02eb3f3",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -276,7 +276,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift#L44-L74",
-          "version": "repo-lines-v1:sha256:34391182db401182a04afba5844a4945d995432744a14a97cf418c1157bdf286:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNWU1MzZjNGQ3N2U0MTM0YmYyMDg2YThjZjRmN2Q2ZGQwMWFjNTg1ZGNhZDI1MDJiNGVmMDllMWJmMzE4YWUifQ"
+          "version": "repo-lines-v1:sha256:ce619523b0b8d2b586172ca222314c01e61c8d1f34f47ab70be5d9cd076a684c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNWU1MzZjNGQ3N2U0MTM0YmYyMDg2YThjZjRmN2Q2ZGQwMWFjNTg1ZGNhZDI1MDJiNGVmMDllMWJmMzE4YWUifQ"
         },
         {
           "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L15-L98",
@@ -354,7 +354,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift#L44-L100",
-          "version": "repo-lines-v1:sha256:8c595e749429cb9e3273f195f35b5f2b2b078b42a415f8c98981f9bb4c3009e7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NTQzNmY2MWI3YzE3ZDI0OTQ0ZTdhYTNkZTM1MzU4YWQ2ZjFjZDE0MmM5YzIxOTFjN2NiOTFmYjA0OWJiODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNDk3NTM5NDVkZDY0NjEwY2IwZTdlNGY1YjFiZGRiMGZhNmY0OTM0YjhiOGE2MDhhNDFlMjRhMWQ1NzgzMTkifQ"
+          "version": "repo-lines-v1:sha256:82a79bfcfd5b58e5ce9e5492c442f62e4b0e61fd661bdf59bb5dc9364b2dba85:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NTQzNmY2MWI3YzE3ZDI0OTQ0ZTdhYTNkZTM1MzU4YWQ2ZjFjZDE0MmM5YzIxOTFjN2NiOTFmYjA0OWJiODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNDk3NTM5NDVkZDY0NjEwY2IwZTdlNGY1YjFiZGRiMGZhNmY0OTM0YjhiOGE2MDhhNDFlMjRhMWQ1NzgzMTkifQ"
         }
       ]
     },
@@ -364,7 +364,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindApp.swift#L216-L250",
-          "version": "repo-lines-v1:sha256:52a90d8746ce8b6e8966f90cd9a53eb003477ed20d22a1cf24c4025a2fda5735:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZThjZDVkNTA2ZmYwYjY4ODQ3MTFjMmMxNTI1YjdiY2UwMmY0NDMxMDU2YTk3Y2E0ZDQ1NWY3N2Y5MTg4MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiOTZhMjE0MmNhYWZkMTdiNGEzYzMwYjI3MDMzZWIxMDMxOWZjNzEwOTFhMTc5NzY4YWQ3YTVjNmU3NmE2YjAifQ"
+          "version": "repo-lines-v1:sha256:0e7ecf72cfdfa6e5ba24a7ea583033eae0266399d02c4cd0b631575a16dbdab2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZThjZDVkNTA2ZmYwYjY4ODQ3MTFjMmMxNTI1YjdiY2UwMmY0NDMxMDU2YTk3Y2E0ZDQ1NWY3N2Y5MTg4MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiOTZhMjE0MmNhYWZkMTdiNGEzYzMwYjI3MDMzZWIxMDMxOWZjNzEwOTFhMTc5NzY4YWQ3YTVjNmU3NmE2YjAifQ"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift#L24-L33",
@@ -389,10 +389,56 @@
           "version": "repo-lines-v1:sha256:5dcd86af40e684795522ee54b09fe9f3426bb444a2d6cc70466194a9de67e6a1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYmVmN2M0M2JhYTIxZDJhNDVlNWNkOWY5MjNjMjlmN2FkOWMzMGE0Mjk1ZWE1MzgzOWUzYjYyNDVmNDVkNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2ODc0ZjNmZmZlYzQ2NjlmOTFlYTUwZGU1NWRjZmNjOTVmMGU5NDI2NmI0OWM3Y2NkYjliNTgyMWEyNjI4OGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_05f5c3b629c84e8d9bf49492b42eec69",
+      "statement": "The Mac demo path still runs scrubber setup and previous-session attachment cleanup before returning from in-memory demo model assembly; it skips the ordinary persistent settings, Keychain and sync/model wiring rather than all startup side effects.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L44-L80",
+          "version": "repo-lines-v1:sha256:92db665184aa45237e4298efcb6b5d2de7ff91bce8f37539f26162c8b2730184:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0N2Y4YTRmZDhlNjlhM2FiY2ZlYzY3NWY2YjI0OThiNzJmNWFhNTEzOTllZjcyOGRhMTNmZTdiNjkxMTM5OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4Y2E4ZDY0YjZmMjMzMTkyOGYyYWU4Y2E4ZDhiMTY0N2IxNjg0MmExNTQzNjBmMjQ4YjU4NmI1M2JiMTAxYzgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9293612e13cc4646935f7da13fff48f1",
+      "statement": "The site app-icon PNG is a separately exported Icon Composer rendition: the brand README's ictool example targets the obsolete Termind/Resources/AppIcon.icon path, whereas the current platform icon sources are TFM/Resources/AppIcon.icon and TFI/Resources/AppIcon.icon.",
+      "evidence": [
+        {
+          "resource": "repo://Design/Brand/README.md#L7-L27",
+          "version": "repo-lines-v1:sha256:9eef7da953cda4a1074f3c054084267a740eb61512318f8129c0e8543aa05cf2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMGUyODlhZTE4YTEzMmEzMGE2NTZlODVhYTc5YjQwMDYwODZmZjRjYWJiYjFkNjQ2ZDM2MmEwYjJjMjVjMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NmE1ZDU3OWVmNTU2NTk4MTViNmU3MTMzMmU2ZmEyNzcxZTU0NTA0ZmIzZGYzMDc1MGJlYzY4M2ZmNzY2ZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxYTM5Yjg3MjIzYzAxZmQ2ZjQxYzgzOGE3YWYxYzgzZmQ1MTI2NzY4M2E3NmFiZjBkZjgyMzUwMGJjYzg1ZDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYTExNWEyOTk5MWU0NTdhOGY5ZDJlNGM1MTJlOTY4ZDQ5ZGMwOWFmN2Q4NWQyOTY0YzdiN2Y1MjlmYzQ1MTYifQ"
+        },
+        {
+          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        },
+        {
+          "resource": "repo://TFM/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        }
+      ]
+    },
+    {
+      "id": "claim_e071a72be59c4afbaa7b520a182c3817",
+      "statement": "The repository-root Swift paywall icon renderer produces light and dark Pro hero PNG handoff assets under Design/Brand/ProPaywall; native Mac and iOS Pro paywall views instead embed RevenueCatUI.PaywallView, so rendering those files does not itself configure or publish the remote paywall.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/render-pro-paywall-icon.swift#L1-L28",
+          "version": "repo-lines-v1:sha256:8a3401b7800b6b033ce7920c28b13743d8468d329533b63ebf16ba8756450250:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjMzYyZGQ0NjUwMDgyZDM0N2RhMTFjMmRlYzc0MjBjNDJjNmMwZDEzMzYwNTAzYjg4OGZjOTgxZmU3Njk3ZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L13-L22",
+          "version": "repo-lines-v1:sha256:a4759d4d202a78f85e6c6676dbea9adfc0582878cd4851679ba12de807d258a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzODY5N2ZlOTljYWZmNDY3Nzc1YjFhYzhiMzVlZjYwNWU5MzFkOGQwOTYwYWIxNjI0NmZkYjllY2VkMGVhZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNmY0MjkzMGVhNDgxNDEzNjA1NjBmN2UxNTIwNmM4YTgyMmU1MWIzNjg4YTllZTg2YWE2MWI1NmY4NzFlYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwNjNjM2VhODkzOWM1ZWQ5Y2VhNDdjNzUzYTQxNmE2NGE3OGRhYTc4MDQzNzIyNDM1NWM0YzlhNjVkYjU5ZTkifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift#L15-L24",
+          "version": "repo-lines-v1:sha256:a4759d4d202a78f85e6c6676dbea9adfc0582878cd4851679ba12de807d258a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzODY5N2ZlOTljYWZmNDY3Nzc1YjFhYzhiMzVlZjYwNWU5MzFkOGQwOTYwYWIxNjI0NmZkYjllY2VkMGVhZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MTc0MGI5Y2FmN2I5NGNiNjM3MTQyODBmMjA1NDUzNWYyODY1MjMzYWM2NzBjM2YwNjFiZjkxNjZjYTMxOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwNjNjM2VhODkzOWM1ZWQ5Y2VhNDdjNzUzYTQxNmE2NGE3OGRhYTc4MDQzNzIyNDM1NWM0YzlhNjVkYjU5ZTkifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-30T23:24:42.368Z"
+    "at": "2026-10-01T23:39:56.631Z"
   }
 }

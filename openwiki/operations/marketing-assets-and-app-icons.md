@@ -1,12 +1,14 @@
 ---
 type: asset-production-operations
 title: Marketing Assets and App Icons
-description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and maintain layered platform app icons and shared UI assets.
+description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and hand off platform, website, and paywall icon artwork.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
+  - id: openwiki-source-ea04d3d10088e2d554646adf
+    resource: repo://Design/Brand/README.md
   - id: openwiki-source-d87a42cf655efbaeefd54d4d
     resource: repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
   - id: openwiki-source-68ca54483f1d0e8fb48ee5cc
@@ -43,6 +45,8 @@ sources:
     resource: repo://Marketing/README.md
   - id: openwiki-source-50cefcf872db40d1af4a4c5e
     resource: repo://Scripts/generate-mockuphone-assets.py
+  - id: openwiki-source-88fc7ecb318dc280f6715036
+    resource: repo://Scripts/render-pro-paywall-icon.swift
   - id: openwiki-source-6a4176e7d97bf05b3983882c
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
@@ -51,6 +55,8 @@ sources:
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-0ffab0ae6452f870ce4a0efe
+    resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-407fd8a7c64006c458cce603
     resource: repo://TFI/Resources/AppIcon.icon/icon.json
   - id: openwiki-source-030dddd97c4034e7a030866e
@@ -63,6 +69,8 @@ sources:
     resource: repo://TFM/App/ScreenshotDemo%2BMetrics.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-766dc23f16ac26a41a5b5c22
+    resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-a93c339a06b550013d027e29
     resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
   - id: openwiki-source-6477f7482bee83060dc1667d
@@ -71,7 +79,7 @@ sources:
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
   - id: openwiki-source-d32f5321ec392c768391e314
     resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # Marketing Assets and App Icons
@@ -138,7 +146,7 @@ Recapture an affected scene in every locale and regenerate only its matching fra
 
 `ScreenshotDemoConfiguration` is a **DEBUG-only app launch mode**, not a replacement view or an XCTest-only fixture. `--termind-demo=<scene>:<en|zh-Hans|zh-Hant>` is parsed as one scene/language pair; missing argument means ordinary launch, while malformed, duplicate, or unsupported values abort demo launch. `Scripts/run-screenshot-demo.sh` opens a debug app for manual review; the automated runner passes the same argument into the TFM test launch. Only the runner's five supported marketing scenes are exported; `metrics-detail` and `app-settings` remain available for development review.
 
-On demo launch, `TermindApp.init()` selects the requested language and an in-memory SwiftData container even outside XCTest. It builds demo hosts, AI, unrestricted test access, frozen metrics, and one `WindowModel`, then **returns before normal persisted settings, Keychain-backed secrets, sync/coordinator and live model assembly**. No demo argument means the ordinary startup path (subject to the separate XCTest in-memory branch); screenshot data does not become a user's saved workspace. `makeWindow(requestID:)` supplies that same demo window to the real `RootView` in `WindowGroup(id: "main")` for the initial nil request; explicit new-window requests use normal window creation. In DEBUG, the main scene stays auto-launchable for the demo even under XCTest and disables restoration for tests or demos. `AppDelegate` centers and sizes the visible window, applies light appearance and emits a `TERMIND_DEMO_READY` window diagnostic. This is not the capture-ready signal: `TFMTests/MacMarketingScreenshotTests.swift` independently waits for the production window, prepares it and writes `TERMIND_MAC_MARKETING_READY` only after focused rendering.
+On demo launch, `TermindApp.init()` selects the requested language and an in-memory SwiftData container even outside XCTest. It builds demo hosts, AI, unrestricted test access, frozen metrics, and one `WindowModel`, then **returns before normal persisted settings, Keychain-backed secrets, sync/coordinator and live model assembly**. Startup still sets up the scrubber and cleans the previous attachment session before this return; the isolation guarantee applies to the store and live model assembly, not every launch side effect. No demo argument means the ordinary startup path (subject to the separate XCTest in-memory branch); screenshot data does not become a user's saved workspace. `makeWindow(requestID:)` supplies that same demo window to the real `RootView` in `WindowGroup(id: "main")` for the initial nil request; explicit new-window requests use normal window creation. In DEBUG, the main scene stays auto-launchable for the demo even under XCTest and disables restoration for tests or demos. `AppDelegate` centers and sizes the visible window, applies light appearance and emits a `TERMIND_DEMO_READY` window diagnostic. This is not the capture-ready signal: `TFMTests/MacMarketingScreenshotTests.swift` independently waits for the production window, prepares it and writes `TERMIND_MAC_MARKETING_READY` only after focused rendering.
 
 ```mermaid
 sequenceDiagram
@@ -221,6 +229,8 @@ Expect 18 opaque sRGB RGB images at each platform size, and inspect embedded ICC
 `TFM/Resources/AppIcon.icon` and `TFI/Resources/AppIcon.icon` are the platform icon sources selected by `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`. Each `icon.json` composes the SVG layers in order: Terminal, FrontWindow, MiddleWindow, BackWindow. Preserve that order, the shared-square platform declaration, individual lighting, disabled glass/specular/translucency, zero Terminal shadow, and the subtle 0.08 neutral shadow on the three window layers.
 
 Icon Composer and Xcode own padding, masks, and compatibility output. Do not reintroduce a competing PNG appiconset or hand-maintained generated sizes; the former flattened `Artwork.png` flow is obsolete. Build both platform icons with resolved dependencies. When visually validating macOS, a temporary bundle identifier can bypass the icon cache. Local compilation cannot prove App Store processing, so inspect the uploaded TestFlight icon as separate release evidence.
+
+The website's `LandingPage/public/app-icon.png` is a **separate exported rendition**, not the app's icon source. `Design/Brand/README.md` documents an `ictool --export-image` command, but its example still points at `Termind/Resources/AppIcon.icon`, a legacy path: select the current `TFM/Resources/AppIcon.icon` instead and check the output visually after export. Keep website brand marks and favicon in `LandingPage/public` distinct from both this exported PNG and the runtime distribution icons. For RevenueCat's remote Pro paywall image component, run `swift Scripts/render-pro-paywall-icon.swift` from the repository root; its SwiftUI renderer writes light/dark `pro-hero-*.png` into `Design/Brand/ProPaywall` at 4× an 80×72 point canvas. These are **handoff assets for remote paywall authoring**, not layered app icons, not marketing screenshot captures, and not images loaded by the native `ProPaywallView` or `MobileProView` (those host `RevenueCatUI.PaywallView`). Re-export/re-upload intentionally after changing the symbol or colors; generating the files does not publish a RevenueCat paywall.
 
 `TFITests/MobileIconRenderingTests.swift` is a separate opt-in **in-app icon and UI-label rendering** check, not the layered app-icon asset compiler or the App Store marketing capture pipeline. Set `TERMIND_ICON_SCREENSHOTS` to `en`, `zh-Hans`, or `zh-Hant` in the test environment to emit temporary `icon-screenshots` PNGs for light/dark navigation, pickers, forms, and large-type cases; without it, the screenshot-producing tests return early. Its terminal keyboard height and SF Symbol availability assertions still run independently of that environment variable. Do not count these temporary images toward the 30 mobile marketing captures or 54 App Store boards.
 

@@ -1,11 +1,11 @@
 ---
 type: architecture boundaries
-title: Dependency and Ownership Boundaries
-description: Enforced import scopes and ownership of shared application ports, SwiftData persistence, AgentKit tools, and native app composition in Termind.
+title: System boundaries and dependency direction
+description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -21,6 +21,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
     resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
+  - id: openwiki-source-82f1da82c84bec6e60959357
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
@@ -67,10 +69,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Dependency and Ownership Boundaries
+# System boundaries and dependency direction
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -100,7 +102,7 @@ The diagram shows consumer-to-dependency arrows for explicit shared-framework Xc
 | --- | --- | --- |
 | `TermindDomain` | Portable values, domain rules, records, and protocol-neutral concepts. | UI, persistence APIs, security/network frameworks, CloudKit, StoreKit, SSH C libraries, and terminal implementations. |
 | `TermindApplication` | Use cases, feature models, repository and service ports, connection/import policy, and cross-feature policy. | Platform UI, SwiftData/GRDB, transport imports, concrete infrastructure construction, and dependencies on Infrastructure or Persistence. |
-| `TermindInfrastructure` | General implementations such as in-memory repositories, CloudKit-backed sync, metrics parsers, logging, StoreKit, and settings/Vault services. | Native app targets and platform UI. It may depend on Application, Domain, and Persistence. |
+| `TermindInfrastructure` | General implementations such as in-memory repositories, CloudKit-backed sync, metrics parsers, logging, RevenueCat commerce integration, and settings/Vault services. | Native app targets and platform UI. It may depend on Application, Domain, and Persistence. |
 | `TermindRemoteInfrastructure` | SSH, SFTP, Telnet, Keychain-backed remote credentials, host-key/authentication mechanics, transfers, forwarding, and Termind-specific agent tools. | App targets and their UI; features should use injected services rather than construct remote transports themselves. |
 | `TermindPersistence` | SwiftData `@Model` declarations, versioned schemas, migration plan, SwiftData repository/store implementations, `ModelContainer` factory, and GRDB-backed memory store. | Application-infrastructure implementation dependencies, remote infrastructure, and app targets. |
 | `TermindPresentation` | Reusable SwiftUI presentation policy and content: formatting, forms, summaries, transcript/tool-card rendering, and terminal presentation helpers. | AppKit/UIKit, SwiftData/GRDB/Persistence, Infrastructure/Remote Infrastructure, StoreKit, and app targets. |
@@ -110,21 +112,21 @@ The diagram shows consumer-to-dependency arrows for explicit shared-framework Xc
 
 ### Dependency rules that are enforced
 
-`ArchitectureBoundaryTests` checks **specific forbidden import sets per root**, not a blanket prohibition on platform APIs or concrete dependencies. Its exact-line import scans currently enforce:
+`ArchitectureBoundaryTests` checks **specific forbidden import sets per root**, not a blanket prohibition on platform APIs or concrete dependencies. The Xcode target graph expresses current build edges, while the source tests police selected imports and declarations; broader ownership guidance in this page is a convention unless a matching test or target constraint is identified. Its exact-line import scans currently enforce:
 
 | Scanned source root | Imports rejected by the test |
 | --- | --- |
-| Shared `TermindDomain` | `SwiftUI`, `AppKit`, `UIKit`, `SwiftData`, `GRDB`, `Security`, `Network`, `StoreKit`, `CloudKit`, `CSSH2`, `OpenSSL`, `GhosttyTerminal`, `GhosttyTheme`; also the shared non-presentation rule below. |
-| Shared `TermindApplication` | `TermindInfrastructure`, `TermindPersistence`, `SwiftData`; also the shared non-presentation rule below. Unlike desktop `TFM/Application`, this root has no separate UI/transport import list, but does have the concrete-symbol guard. |
-| Shared `TermindInfrastructure` and `TermindRemoteInfrastructure` | Only the shared non-presentation rule below; for example, Infrastructure can use StoreKit and Remote Infrastructure can use its transport libraries. |
-| Shared `TermindPersistence` | `TermindInfrastructure`, `TermindRemoteInfrastructure`; also the shared non-presentation rule below. |
-| **Shared `TermindPresentation`** | Its **separate** rule rejects `Termind`, `TermindIOS`, `UIKit`, `AppKit`, `SwiftData`, `GRDB`, `TermindPersistence`, `TermindRemoteInfrastructure`, `TermindInfrastructure`, `StoreKit`. It intentionally can import `SwiftUI`; it is not covered by the other five-framework rule. |
+| Shared `TermindDomain` | `SwiftUI`, `AppKit`, `UIKit`, `SwiftData`, `GRDB`, `Security`, `Network`, `StoreKit`, `CloudKit`, `CSSH2`, `OpenSSL`, `GhosttyTerminal`, `GhosttyTheme`, `RevenueCat`, `RevenueCatUI`; also the shared non-presentation and diagnosis rules below. |
+| Shared `TermindApplication` | `TermindInfrastructure`, `TermindPersistence`, `SwiftData`, `RevenueCat`, `RevenueCatUI`; also the shared non-presentation and diagnosis rules below. Unlike desktop `TFM/Application`, this root has no separate UI/transport import list, but does have the concrete-symbol guard. |
+| Shared `TermindInfrastructure` and `TermindRemoteInfrastructure` | The shared non-presentation rule below; Infrastructure's `Commerce` directory additionally rejects `StoreKit` (transactions are handled by RevenueCat), while Remote Infrastructure may use transport libraries. |
+| Shared `TermindPersistence` | `TermindInfrastructure`, `TermindRemoteInfrastructure`; also the shared non-presentation and diagnosis rules below. |
+| **Shared `TermindPresentation`** | Its **separate** rule rejects `Termind`, `TermindIOS`, `UIKit`, `AppKit`, `SwiftData`, `GRDB`, `TermindPersistence`, `TermindRemoteInfrastructure`, `TermindInfrastructure`, `StoreKit`, `RevenueCat`, `RevenueCatUI`. It intentionally can import `SwiftUI`; it is not covered by the other five-framework rule. The diagnosis rule also applies. |
 | Desktop `TFM/Application` | `SwiftUI`, `AppKit`, `UIKit`, `AuthenticationServices`, `SwiftData`, `GRDB`, `Security`, `Network`, `CSSH2`, `OpenSSL`, `GhosttyTerminal`, `GhosttyTheme`, plus the concrete-symbol guard. |
 | Desktop `TFM/Features` | `SwiftData`, `GRDB`, `Security`, `Network`, `CSSH2`, `OpenSSL`, plus the concrete-symbol guard. |
 | Mobile `TFI/Application` | `SwiftUI`, `UIKit`, `SwiftData`, `GRDB`, `TermindPersistence`. |
 | Mobile `TFI/UI` | `SwiftData`, `GRDB`, `TermindPersistence`, `TermindRemoteInfrastructure`. Mobile `TFI/Features` gets only the concrete-symbol guard. |
 
-The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. These are **source-root checks**, not blanket rules for all of `TFM` or `TFI`: desktop `App/TermindApp.swift` and mobile `App/MobileAppModel.swift` composition files can import SwiftData and concrete frameworks. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes; neither proves an exhaustive compiler-enforced boundary or bans all concrete code. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
+The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. A separate diagnosis rule rejects `FirebaseCore`, `FirebaseCrashlytics`, and `FirebaseAnalytics` in Domain, Application, Presentation, and Persistence (but not Infrastructure or Remote Infrastructure), and checks both app plists default crash/analytics collection off. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. These are **source-root checks**, not blanket rules for all of `TFM` or `TFI`: desktop `App/TermindApp.swift` and mobile `App/MobileAppModel.swift` composition files can import SwiftData and concrete frameworks. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes; neither proves an exhaustive compiler-enforced boundary or bans all concrete code. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
 
 ## Persistence is a single-owner boundary
 
@@ -183,7 +185,7 @@ The most common failure modes are a UI feature importing Persistence “just to 
 
 ## Focused verification
 
-`TFMTests/ArchitectureBoundaryTests.swift` is the focused regression suite for these constraints. In addition to layer imports and SwiftData ownership, it checks that AgentKit runtime type names are not redefined locally, limits `ListViewKit` to an explicit native-list allowlist, keeps forwarding/mobile authentication feature-owned, and ensures the forwarding benchmark is independent of app and test targets. The checks fail closed if an expected production root is missing or contains no Swift files, so relocating source cannot silently disable the safeguards. `FrameworkTests/PersistentStoreLockTests.swift` exercises pre-open contention, container-lifetime and same-process leases, forced-exit recovery, and independent/in-memory stores; `TFITests/MobileAssistantTests.swift` checks built-in and remote tool presence only for tool-capable models. For the device-directory boundary, `FrameworkTests/HistoryRenderingSnapshotTests.swift` checks that a failed registration still leaves readable names visible, rendering reads do not fetch or publish changes, and reload recovers from a failed read; `TFMTests/ConnectionHistoryTests.swift` checks stable device IDs and rename projection for existing history events.
+`TFMTests/ArchitectureBoundaryTests.swift` is the focused regression suite for these constraints. In addition to layer imports and SwiftData ownership, it checks that AgentKit runtime type names are not redefined locally, limits `ListViewKit` to an explicit native-list allowlist, checks selected forwarding/mobile authentication boundaries and additional-connection references, and ensures the forwarding benchmark is independent of app and test targets. It also checks RevenueCat's commerce ownership, diagnosis SDK isolation and disabled-by-default collection, shared CloudKit upload/quarantine gates, and selected localization ownership rules. The checks fail closed if an expected production root is missing or contains no Swift files, so relocating source cannot silently disable the safeguards. `FrameworkTests/PersistentStoreLockTests.swift` exercises pre-open contention, container-lifetime and same-process leases, forced-exit recovery, and independent/in-memory stores; `TFITests/MobileAssistantTests.swift` checks built-in and remote tool presence only for tool-capable models. For the device-directory boundary, `FrameworkTests/HistoryRenderingSnapshotTests.swift` checks that a failed registration still leaves readable names visible, rendering reads do not fetch or publish changes, and reload recovers from a failed read; `TFMTests/ConnectionHistoryTests.swift` checks stable device IDs and rename projection for existing history events.
 
 For normal project validation, use the resolved dependency graph rather than allowing a fresh resolution:
 

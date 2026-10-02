@@ -1,11 +1,11 @@
 ---
 type: architecture directory guide
-title: Shared Framework Responsibilities
+title: Shared module ownership guide
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -39,6 +39,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Repositories/VaultStore.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
+  - id: openwiki-source-b37c974aaea12bd08606d67d
+    resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-f402125a513db26af8c36b3e
     resource: repo://Frameworks/TermindDomain/Credentials/Identity.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
@@ -65,6 +67,12 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
+  - id: openwiki-source-f0aa3596750ed8bd3ffd8c9e
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift
+  - id: openwiki-source-38ed84f3c15242480046f900
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift
+  - id: openwiki-source-82f1da82c84bec6e60959357
+    resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
   - id: openwiki-source-ce0d1bf07660ad90431b6a2a
     resource: repo://Frameworks/TermindInfrastructure/LinuxMetricsParser.swift
   - id: openwiki-source-b2e6667d1d47df09577b9b52
@@ -151,6 +159,8 @@ sources:
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
+  - id: openwiki-source-35e54ff3f3ad9f3931b11be7
+    resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
     resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-41a7ded3800c9422f058a3ef
@@ -161,18 +171,26 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-0ffab0ae6452f870ce4a0efe
+    resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-766dc23f16ac26a41a5b5c22
+    resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Shared Framework Responsibilities
+# Shared module ownership guide
 
-The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.18.1**, and `Package.resolved` currently pins **0.18.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
+The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. This is a **static build/bundle boundary**, distinct from runtime dependency injection: apps construct concrete services and pass them into Application ports; a framework's source directory does not imply that its resources live in that framework's bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.18.1**, and `Package.resolved` currently pins **0.18.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
 
 ## TermindDomain — portable values and rules
 
@@ -236,7 +254,9 @@ On macOS, file-backed `makeContainer` acquires a per-store nonblocking advisory 
 
 ## TermindInfrastructure — general concrete services
 
-Root services include an in-memory host repository, Linux process/filesystem/server and NVIDIA parsers, provider service-account files, skill import and system notification delivery. `Agent` imports context attachments; host-executing tools live in Remote Infrastructure. `Commerce` implements StoreKit entitlement/purchase state, `Logging` manages launch-scoped files, and `Speech` implements Apple recognition with an injected audio-input capability, not native app capture policy.
+Root services include an in-memory host repository, Linux process/filesystem/server and NVIDIA parsers, provider service-account files, skill import and system notification delivery. `Agent` imports context attachments; host-executing tools live in Remote Infrastructure. `Commerce` implements the RevenueCat-backed Pro entitlement adapter, **not a direct StoreKit purchase service**: `ProAccessController.live()` reads the bundled RevenueCat configuration and exposes access/paywall state; `RevenueCatProPurchaseService` configures the SDK, resolves its `CustomerInfo` stream and fetches current status. `Logging` manages launch-scoped files, and `Speech` implements Apple recognition with an injected audio-input capability, not native app capture policy. Domain defines `ProFeature` and `EntitlementStatus`; the apps own paywall UI and inject the live controller into their models (tests can inject unrestricted access). A missing/invalid configuration fails closed as `.verificationFailed`, not a StoreKit fallback. RevenueCat itself is configured for StoreKit 2; that **SDK runtime choice** does not move purchase ownership into the framework's source code.
+
+The service uses anonymous RevenueCat users, not a device or iCloud ID; a current fetch can sync pre-integration purchases once for an unentitled non-test user, then falls back to SDK cached customer info on a fetch error. The resolver grants access only for the configured, verified entitlement and an active purchase/trial/subscription/grace period, not an expired, refunded, billing-retry or verification-failed state. The controller coalesces concurrent refreshes, lets later customer-info updates outrank older refreshes, and schedules a refresh at an active subscription's deadline. `require` opens the paywall when access is absent; completing a paywall operation refreshes access without forcing the paywall closed. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
 
 `Cloud` implements explicit CloudKit lifecycle, coding, receive validation and safety gates using Persistence's stores. Vault, History, Device, Settings and Metrics coordinators keep category-specific engines and journals; History and Device use kind-scoped records in a shared zone, excluded from Vault's receive/upload/deletion paths. `CloudSyncLifecycle` checks the enabled setting and account before binding a scoped account/environment, and requires confirmation rather than merging on an unexpected account switch. `CloudSyncLifecycleSafety` consults scoped recovery and capability checkpoints; an invalid serialized engine state, recovery requirement or replica upgrade triggers a fresh snapshot. The lifecycle saves its recovery fence **before** creating an automatically syncing engine, reconciles its queue against durable journal mutations, and fetches before enabling uploads and sending. A failed fetch keeps uploads fenced; persistence/callback failure retires the engine, while retryable CloudKit failures retain retryable status. A quarantined record blocks upload until supported reconciliation clears it in the same save; native-field decode failures retain the full record for later readers. Incoming records and server-record-changed replies use the same validation path. This is not automatic SwiftData mirroring.
 
@@ -276,9 +296,9 @@ Root files provide shared SwiftUI forms, transcript/tool-card presentation state
 
 ## Frameworks/Resources — bundled data
 
-`Frameworks/Resources` is a synchronized group attached to TFM, TFI, TermindWidgets and FrameworkTests, **not** to the six shared framework targets: framework code must not assume `Bundle(for:)` contains this data. It includes `Localizable.xcstrings` and `InfoPlist.xcstrings`, privacy metadata, shared accent/distribution assets, Linux icon JSON and separately stored upstream licensing, plus Pi model catalog/overrides; platform-specific icons remain app-owned. `LinuxDistributionIconCatalog` looks in `Bundle.main`, prefers exact distribution ID then like IDs and returns no result if the catalog/distribution is unavailable. AgentKit owns model capability resolution, so do not assume its model-file bundle search from this repository.
+`Frameworks/Resources` is a synchronized group attached to TFM, TFI, TermindWidgets and FrameworkTests, **not** to the six shared framework targets: framework code must not assume `Bundle(for:)` contains this data. It includes `Localizable.xcstrings` and `InfoPlist.xcstrings`, `PrivacyInfo.xcprivacy` (nontracking crash/diagnostic/device-ID disclosures and accessed-API reasons), shared accent/distribution assets, Linux icon JSON and separately stored upstream licensing, plus Pi model catalog/overrides; platform-specific icons remain app-owned. `LinuxDistributionIconCatalog` looks in `Bundle.main`, prefers exact distribution ID then like IDs and returns no result if the catalog/distribution is unavailable. AgentKit owns model capability resolution, so do not assume its model-file bundle search from this repository.
 
-Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog in the sibling package repository, but Xcode consumes the **resolved remote release**, not edits in that checkout. Add finished `zh-Hans`/`zh-Hant` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from a pinned Simple Icons version; no runtime icon fetch is needed.
+Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog in the sibling package repository, but Xcode consumes the **resolved remote release**, not edits in that checkout. Add finished `zh-Hans`/`zh-Hant` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from an explicitly supplied Simple Icons version; no runtime icon fetch is needed.
 
 ## Change and verification seams
 
@@ -298,6 +318,6 @@ flowchart TB
 
 Edit, journal, synchronize and render: the dashed path keeps secret bytes out of Cloud/Vault records.
 
-- `ArchitectureBoundaryTests` guard import direction, single SwiftData ownership and shared-copy boundaries.
-- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `PersistentStoreLockTests` check refusal before opening or migration, same-process shared leases, crash release and independent/in-memory stores. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories.
+- `ArchitectureBoundaryTests` guard import direction, single SwiftData ownership, shared-copy boundaries and the absence of a direct `StoreKit` import in Infrastructure Commerce.
+- `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `PersistentStoreLockTests` check refusal before opening or migration, same-process shared leases, crash release and independent/in-memory stores. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories. `RevenueCatCommerceTests` cover configuration, entitlement expiry/verification, customer-info update races and the no-StoreKit-fallback failure path; StoreKit UI integration tests are opt-in with `TERMIND_STOREKIT_TESTS=1`.
 - Remote/session/transfer suites cover authentication, resource admission, cancellation and recovery; native test targets cover routing and platform lifetimes. Use the [Engineering Quickstart](../quickstart.md) for build/test commands and [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) for zone-specific behavior.

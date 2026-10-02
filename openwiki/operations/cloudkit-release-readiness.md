@@ -5,7 +5,7 @@ description: Release gates for CloudKit schema deployment, historical SwiftData 
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -77,24 +77,32 @@ sources:
     resource: repo://FrameworkTests/SFTPSettingsTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-25a2df896b93f410289e8512
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-d5cca6ff91d9aaa5da323b40
+    resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+  - id: openwiki-source-e6490dc6a3e86e39aa4323fc
+    resource: repo://TFMTests/DatabaseStartupGuardTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # CloudKit Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
-The macOS and mobile targets declare the private container `iCloud.com.akinokaede.termind`, shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
+Both target entitlement templates declare CloudKit and `iCloud.com.akinokaede.termind`; their iCloud-container environment and push environment are build-setting substitutions. The project sets the iCloud environment to Development in Debug and Production in Release for each target. Inspect the **signed artifact's** effective entitlements and the actual deployment environment rather than inferring them from a source plist or a local build. The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
 
 ## Schema inventory
 
@@ -172,7 +180,7 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. The factory creates file or in-memory `ModelConfiguration` values with the shared **V45** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V45** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
 Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
@@ -228,7 +236,7 @@ This shows the committed recovery fence preceding automatic engine activity and 
 
 Physical deletion is distinct from a protocol tombstone. Batch construction rechecks scoped pending mutations and upload blocks, limits combined saves and deletes to 250, records each delete's causal version durably **before** returning the batch, and holds a per-ID in-flight slot. V37 cloud-presence state and V38 handoffs reconcile incremental deletions and full-inventory absence after a reset or crash. A stale delete acknowledgement cannot erase a newer explicit incarnation; History event UUIDs stay terminal, while other kinds can be explicitly recreated. A reobserved tombstone can require another physical delete. A `.deleted` zone resets and recreates its replica; `.purged` or `.encryptedDataReset` retires the engine and removes only that category's scoped cloud projection and asset cache, without resurrecting the old snapshot. If filesystem cleanup fails after a committed purge, a durable pending cleanup marker is retried before the next engine starts.
 
-Portable tests exercise real journals, coordinators, record coding and batch providers behind a fake CloudKit transport, plus on-disk migration and reopening. `CloudSyncLifecycleTests` verifies that a failed fence save prevents engine creation, failed and overlapping fetches keep uploads fenced, and late callbacks from retired engines are ignored. `CloudSyncSafetyPersistenceTests` verifies scope isolation across container, environment, account, zone and owner; interrupted fetches reopen with the quarantine bytes, recovery fence and local pending intent intact, while compatible edits remain uploadable. It also verifies causal delete-handoff on reopen, V30 store upgrade, and V39→V40 preservation of scoped safety while retired quarantine tables disappear. The cross-category journal test asserts repeated identical system-field and upload-acknowledgement operations do not dirty the context. `CloudSyncPhysicalDeletionTests` covers handoff/restart, stale acknowledgements, full-inventory and incremental deletion, purge isolation and asset-cleanup failure across categories. They do not establish signed-device delivery or Production behavior.
+Portable tests exercise real journals, coordinators, record coding and batch providers behind a fake CloudKit transport, plus on-disk migration and reopening. `CloudSyncSafetyTests` checks across all sync categories that supported remote winners remove stale journal/engine work, older or losing records cannot acknowledge a local winner, unsupported fetched records and server conflicts preserve quarantine and block only the affected ID at the batch/provider boundaries, and a failed merge rolls back the unblock. `DatabaseStartupGuardTests` tests the process-ID decision (self allowed, other process refused), not an actual signed older-app coexistence or lock race. `CloudSyncLifecycleTests` verifies that a failed fence save prevents engine creation, failed and overlapping fetches keep uploads fenced, and late callbacks from retired engines are ignored. `CloudSyncSafetyPersistenceTests` verifies scope isolation across container, environment, account, zone and owner; interrupted fetches reopen with the quarantine bytes, recovery fence and local pending intent intact, while compatible edits remain uploadable. It also verifies causal delete-handoff on reopen, V30 store upgrade, and V39→V40 preservation of scoped safety while retired quarantine tables disappear. The cross-category journal test asserts repeated identical system-field and upload-acknowledgement operations do not dirty the context. `CloudSyncPhysicalDeletionTests` covers handoff/restart, stale acknowledgements, full-inventory and incremental deletion, purge isolation and asset-cleanup failure across categories. They do not establish signed-device delivery or Production behavior.
 
 Decoder capability changes now force scoped full rereading; only successful merge and persistence advance the checkpoint and clear quarantine. Native quarantine retains complete CKRecord archives. This does not retrofit unsafe old binaries or preserve unknown fields silently ignored by a V1 JSON decoder: incompatible additions must raise that kind’s version. Keep signed new→old→edit→new tests in the release matrix and document what legacy-only records an old client leaves behind; current clients do not run a continuous old-zone importer.
 

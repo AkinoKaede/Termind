@@ -1,8 +1,11 @@
 ---
 type: interaction workflow
-title: File Drag and Drop Across TFM and TFI
-description: File drag event routing, payload selection, Assistant attachment import, SSH and SFTP upload lifetimes, desktop remote-file copying and Key import, with a brief guide to the shared Overlay UI.
+title: File Drop and Upload Routing
+description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
@@ -46,8 +49,14 @@ sources:
     resource: repo://TFM/Features/Keychain/KeychainPageView.swift
   - id: openwiki-source-61a7b49f0fef771653753f14
     resource: repo://TFM/Features/SFTP/SFTPBrowserView.swift
+  - id: openwiki-source-959c55c879956237ad156bda
+    resource: repo://TFM/Features/StatusBar/StatusBarView.swift
+  - id: openwiki-source-fe5539ed6f675410b82b41c4
+    resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
+  - id: openwiki-source-c07d1ec13cbf698f5d45b98e
+    resource: repo://TFM/Features/Terminal/TerminalPathDrag.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
@@ -58,13 +67,12 @@ sources:
     resource: repo://TFMTests/FileURLDropTargetTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+  - id: openwiki-source-feb0ce87e6f1433273c91c11
+    resource: repo://TFMTests/TerminalPathDragTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# File Drag and Drop Across TFM and TFI
+# File Drop and Upload Routing
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
@@ -77,7 +85,8 @@ This page follows those events and ownership transitions. [TFM Drag and Drop](/o
 | Local file or image → Assistant | Native AppKit receiver. | SwiftUI file-URL/image drop. | Import into the receiving conversation's composer; dropping does not send a message. |
 | Local files/folders → SSH terminal | Pane receiver → terminal transfer request. | Window/terminal interaction → staged provider files. | Upload with SFTP to the shell-reported working directory. |
 | Local files/folders → SFTP browser | Pane receiver → channel upload preparation. | Visible Workspace receiver → staged provider files. | Upload to the browser's current directory. |
-| Files → Telnet terminal | No pane file receiver. | Workspace reports that Telnet does not support file upload. | No upload destination. Desktop Serial and empty panes also have no file receiver. |
+| Local files → Telnet or Serial terminal | No desktop file-upload receiver; the pane receiver accepts only private terminal-path drags. | Workspace reports that Telnet does not support file upload. | No upload destination. Desktop empty panes have no native receiver. |
+| Status-bar directory path → SSH, Telnet or Serial terminal | Private terminal-path text → focused terminal input. | No matching private-path receiver. | Insert shell-escaped path text; no file transfer or SFTP copy. An SFTP pane declines this payload. |
 | SFTP entries → SSH terminal or another SFTP pane | Private remote-item payload. | The mobile upload receiver does not consume this private payload. | Remote copy to the SSH working directory or SFTP browser directory. |
 | SFTP file → Finder / external file consumer | Lazy promised file. | No corresponding drag exporter in the mobile SFTP browser. | Download when the consumer requests the file representation. |
 | Key file → Key editor | Native file receiver. | No matching Key drag receiver. | Software mode populates private-key/certificate fields; Security Key mode reads a validated FIDO2 reference. Save persists the chosen key type. |
@@ -88,7 +97,7 @@ Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentV
 
 ## TFM: AppKit events and representation priority
 
-`NativeDropTarget` embeds `FileURLDropNSView` above native terminal, table, and transcript content. In `WorkspaceContentView` the order is layout receiver, file decoration, then **file receiver as the outermost pane overlay**. A receiver attached only inside the terminal or Table can be bypassed by their AppKit views. The file receiver is enabled only for the active pane surface while `window.dragging == nil`, keeping layout drags on their existing path.
+`NativeDropTarget` embeds `FileURLDropNSView` above native terminal, table, and transcript content. In `WorkspaceContentView` the order is layout receiver, drop decoration, then **native receiver as the outermost pane overlay**. A receiver attached only inside the terminal or Table can be bypassed by their AppKit views. SSH accepts local files, private SFTP items and private terminal paths; SFTP accepts local files and private SFTP items; Telnet and Serial accept **only** terminal paths; empty panes have no native receiver. These pane receivers are enabled only for the active Workspace surface while `window.dragging == nil`, keeping layout drags on their own path. A native copy proposal is not a guarantee that an upload is possible: destination checks occur after routing.
 
 | Event / decision | Behavior |
 | --- | --- |
@@ -103,12 +112,27 @@ Retained invisible Workspaces and Assistant layers are the reason for both regis
 Representation selection is ordered:
 
 1. If the target accepts `.sftpItems` and the pasteboard contains `UTType.termindSFTPItems`, return that private payload immediately. Do not request the same provider's promised local file: that would trigger an unnecessary download and could turn one gesture into both a remote copy and a local upload.
-2. Otherwise, each item's file URL wins over bitmap data, preserving the original filename of a Finder image.
-3. Read an image representation only when that item has no file URL; restrict the result to the target's accepted kinds. Assistant accepts files/images, SSH and SFTP accept files/remote items, and Key import accepts files.
+2. Otherwise, if the pasteboard carries valid nonempty UTF-8 for `TerminalPathDrag.pasteboardType`, select `.terminalPath` before scanning file and bitmap representations. The private type is shell-escaped text, **not** a local file URL or remote-copy token. Ordinary text, malformed/empty private data and file URLs alone do not qualify as path insertions.
+3. Otherwise, each item's file URL wins over bitmap data, preserving the original filename of a Finder image. Only `file:` URLs are collected; an image representation is read only when that item has no usable file URL. Finally restrict the result to the target's accepted kinds: Assistant accepts files/images, SSH accepts files/remote items/terminal paths, SFTP accepts files/remote items, Telnet and Serial accept paths only, and Key import accepts files.
 
-`receivePaneDrop` translates the result into a fresh `LocalFileDropRequest` or `SFTPRemoteDropRequest`. Their UUIDs make successive drops observable even when the same file is dropped again; the terminal and SFTP views handle changes to the request ID.
+`receivePaneDrop` dispatches terminal paths **first**: it focuses the SSH, Telnet or Serial pane and calls its persistent terminal owner's `pasteDroppedPath`. That checks the mounted visible terminal, acquires focus and pastes the escaped text into input, without Shell Integration, Pro upload gating or an SFTP transfer. The status-bar working-directory and SFTP-directory labels produce the private path provider (with a plain-text representation for other consumers, but no file URL). The embedded `TermindTerminalView` also has a path-only native drop fallback with visibility/window and copy-operation checks; the outer pane receiver is the primary route above Ghostty. For remaining payloads, the pane records a fresh `SFTPRemoteDropRequest` for SSH/SFTP remote items or `LocalFileDropRequest` for file URLs. Request UUID changes drive the terminal/SFTP views even when identical items are dropped again; no request is produced for unsupported/empty payloads.
 
-Evidence: [native receiver](../../TFM/UI/Components/FileURLDropTarget.swift#L8-L278), [overlay placement](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L433), [terminal consumption](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L137-L149), [SFTP consumption](../../TFM/Features/SFTP/SFTPBrowserView.swift#L646-L656).
+```mermaid
+flowchart TD
+    Drag["Desktop drag pasteboard"] --> Gate{"Active receiver and supported kind?"}
+    Gate -->|No| Decline["Decline or pass through"]
+    Gate -->|Yes| Private{"Private SFTP items accepted?"}
+    Private -->|Yes| Remote["Remote-copy request to SSH or SFTP"]
+    Private -->|No| Path{"Valid private terminal path?"}
+    Path -->|Yes| Insert["Focus terminal and paste escaped path"]
+    Path -->|No| File{"Local file URL accepted?"}
+    File -->|Yes| Upload["Local upload request to SSH or SFTP"]
+    File -->|No| Other["Image attachment or decline"]
+```
+
+Desktop representation priority and pane dispatch; accepting a gesture precedes upload availability and transfer preflight.
+
+Evidence: [native receiver](../../TFM/UI/Components/FileURLDropTarget.swift#L223-L285), [overlay and pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L610), [path producer](../../TFM/Features/Terminal/TerminalPathDrag.swift#L5-L27), [status-bar sources](../../TFM/Features/StatusBar/StatusBarView.swift#L266-L311), [terminal paste fallback](../../TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L100-L163), [terminal consumption](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L137-L149), [SFTP consumption](../../TFM/Features/SFTP/SFTPBrowserView.swift#L650-L661).
 
 ## TFI: window routing, terminal forwarding, and provider lifetime
 
@@ -200,13 +224,13 @@ Evidence: [receiver enablement](../../TFM/Features/Keychain/KeychainPageView.swi
 
 ## Shared Overlay UI
 
-Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTargetOverlay.swift#L3-L113) with `DropTargetPresentation` (title, detail, symbol, accent/unavailable tone). Callers provide attachment/upload/copy/import wording and show it from native targeting state; the component supplies the translucent tint, dashed border, compact card and reduced-motion behavior. It disables hit testing and owns no payload decoding or transfer state. This hover UI is separate from post-drop `WorkspaceUploadNotice` feedback.
+Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTargetOverlay.swift#L3-L113) with `DropTargetPresentation` (title, detail, symbol, accent/unavailable tone). Callers provide attachment/upload/copy/import wording and show it from native targeting state; the component supplies the translucent tint, dashed border, compact card and reduced-motion behavior. It disables hit testing and owns no payload decoding or transfer state. On desktop panes, `.terminalPath` deliberately suppresses this upload/copy overlay and uses the native copy cursor instead; unavailable SSH/SFTP destinations may still show an unavailable hover overlay and reject during preparation. This hover UI is separate from post-drop `WorkspaceUploadNotice` feedback.
 
 ## Regression map and change boundaries
 
 | Concern | Focused evidence / tests |
 | --- | --- |
-| Native precedence, hidden targets, stale pasteboards, filename preservation | [FileURLDropTargetTests](../../TFMTests/FileURLDropTargetTests.swift), especially private SFTP payload versus promised local file and disabled registration/callback cases. |
+| Native precedence, hidden targets, stale pasteboards, filename preservation | [FileURLDropTargetTests](../../TFMTests/FileURLDropTargetTests.swift), especially private SFTP payload versus promised local file, path-only copy proposal without transfer, and disabled registration/callback cases. [TerminalPathDragTests](../../TFMTests/TerminalPathDragTests.swift) checks shell escaping, absence of file-URL advertising, rejection of plain text/malformed private data, and refusal by an unmounted terminal. |
 | Provider staging, text/link exclusion, cancellation, duplicate delivery, interaction restoration | [MobileDropTests](../../TFITests/MobileDropTests.swift): `MobileDropPayloadTests` and `MobileWorkspaceDropTests`. Includes late exits, presentation/hiding/detachment and window changes. |
 | Shell-reported destination, folder preflight, partial provider failures, queue surviving closure | [MobileCommandGeneratorAndUploadTests](../../TFITests/MobileCommandGeneratorAndUploadTests.swift), including `sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient` and `cancelledUploadDoesNotCreateRemoteDirectories`. |
 | Desktop connection fallback and transfer ownership | [SFTPTransferContextTests](../../TFMTests/SFTPTransferContextTests.swift); cancellation cannot fall back, releasing a UI owner cannot invalidate retained transfers. |
@@ -215,4 +239,4 @@ Both apps reuse [DropTargetOverlay](../../Frameworks/TermindPresentation/DropTar
 | Key classification and name inference | [SoftwareKeyFileImporterTests](../../TFMTests/SoftwareKeyFileImporterTests.swift). |
 | Upload availability and focus-preserving feedback | [WorkspaceUploadNoticeTests](../../FrameworkTests/WorkspaceUploadNoticeTests.swift), mobile upload tests, and [TerminalUploadNoticeTests](../../TFMTests/TerminalUploadNoticeTests.swift). The last suite requires visible-window opt-in and `TERMIND_SSH_FIXTURE`. |
 
-When changing a drag entrypoint, preserve the existing receiver's representation priority, visibility gates and teardown behavior before changing feature dispatch. Keep staging alive until its consumers no longer need it, and distinguish cancelling a pending preparation from cancelling an admitted transfer. Extend the specific importer/planner for new semantics; a new Overlay label alone does not implement a drop operation. File-drop work does not require replacing the native Workspace List drag source described in the layout guide.
+When changing a drag entrypoint, preserve the existing receiver's private SFTP → private path → file/image representation priority, visibility gates and teardown behavior before changing feature dispatch. A generic text or Finder file URL must not become a terminal-path paste; a path-only drag must not become an upload. Keep staging alive until its consumers no longer need it, and distinguish cancelling a pending preparation from cancelling an admitted transfer. Extend the specific importer/planner for new semantics; a new Overlay label alone does not implement a drop operation. File-drop work does not require replacing the native Workspace List drag source described in the layout guide.

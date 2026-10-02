@@ -1,11 +1,11 @@
 ---
 type: architecture map
-title: Module and Product Map
-description: Maps Termind's native products, six shared frameworks, package dependencies, composition owners, and cross-layer capabilities without mistaking folders for build boundaries.
+title: Module map and composition roots
+description: Maps Termind's native products, six shared framework dependency targets, composition lifetimes, supporting products and pinned external package inputs.
 tags: [architecture, modules, products, dependencies, ownership]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -77,7 +77,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # Module and Product Map
@@ -153,6 +153,8 @@ flowchart LR
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
 **AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMajorVersion` requirement starting at `0.18.1`, and `Package.resolved` pins version `0.18.1` at revision `e21235d8647a780e16a1c2c3b19cc00db5c82cb7`. Use `-onlyUsePackageVersionsFromResolvedFile` when building to require that committed pin rather than silently re-resolving. A local checkout edit alone will not change the Xcode build; release the package change, update the project requirement, and re-resolve the pin together. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. Do not substitute the sibling working tree's version for the resolved Xcode revision.
+
+**Other local checkout boundaries:** `.gitmodules` also lists `libssh2-spm/` and `libghostty-spm/`, but Xcode references remote `AkinoKaede` package URLs rather than either checkout. `libssh2-spm` is required at exact version `2.0.3-termind-1` (resolved revision `c2df1cacae38d3bd8dcdd5bd9290f668b88f4257`); `libghostty-spm` is required at revision `acb252ed011d6c0168596a931f802ca69e1e139a`, which is also its resolved revision. Changing local fork source or a submodule gitlink alone is not a change to the Xcode package input: update the remote release/revision, project requirement and resolution as appropriate. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Build, Test, and Release](../operations/build-test-and-release.md)).
 
 ## How responsibilities meet
 

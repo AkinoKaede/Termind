@@ -5,7 +5,7 @@ description: How Termind owns SwiftData and GRDB durable data, evolves compatibl
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -123,6 +123,10 @@ sources:
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-5b8c72c5373a41af34fa9fd4
+    resource: repo://TFI/App/MobileStartupView.swift
+  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
+    resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
@@ -139,7 +143,7 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # Persistent Data, Migrations, and Secrets
@@ -173,7 +177,7 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 **macOS file-store exclusivity:** Before `ModelContainer` can open or migrate a file-backed store, the factory creates the parent directory, canonicalizes the URL (symlinks and standardized file URL), and obtains an exclusive nonblocking `flock` on a stable adjacent `.lock` file. A different process holding the lease causes `PersistentStoreAccessError.inUse` before database or WAL access; other POSIX failures propagate. Never unlink the lock file: a process may already have the inode open. The factory weakly indexes active leases by canonical URL so multiple containers for the *same store in one process* share the lease; each container retains it until deallocation, when closing the descriptor releases the kernel lock (including after forced exit). Different stores and in-memory containers do not contend. This mechanism is macOS-only, not a cross-platform mobile file lock. [PersistentStoreLockTests](../../FrameworkTests/PersistentStoreLockTests.swift) cover blocked opens before migration, symlink aliases and last-container release, a separate process killed while holding the lock followed by intact Vault/journal reopening, and noncontending stores.
 
-The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. Before normal open, `DatabaseStartupGuard` checks for another running instance of the same bundle identifier, including older versions that do **not** use the new lock; a busy store presents an alert and exits, while other open/setup errors are fatal rather than replaced with an empty database. It supplies `KeychainSecretStore` for normal composition and passes the same container to the main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before live repository wiring; XCTest uses an in-memory container but disables cloud coordinators. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Mobile initialization throws on open failure rather than replacing the store. Data availability is an explicit startup condition.
+The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. Before normal open, `DatabaseStartupGuard` checks for another running instance of the same bundle identifier, including older versions that do **not** use the new lock; a busy store presents an alert and exits, while other open/setup errors are fatal rather than replaced with an empty database. It supplies `KeychainSecretStore` for live composition and passes the same container to the main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before live repository wiring; XCTest uses an in-memory container but disables cloud coordinators (it still constructs a Keychain secret store). The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` when `inMemory` is set or hosts are injected. A supplied container overrides factory construction; otherwise mobile initialization throws on open failure rather than replacing the store. `TermindIOSApp` retains the startup result and `MobileStartupView` injects the container on success or shows an unavailable-data-store view on failure. Data availability is an explicit startup condition.
 
 ### Repository projections and atomic mutation
 

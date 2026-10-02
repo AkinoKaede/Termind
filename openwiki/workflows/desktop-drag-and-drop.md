@@ -1,11 +1,11 @@
 ---
 type: interaction workflow
-title: TFM Drag and Drop
-description: Native workspace and pane dragging in TFM, including live drop routing, cancellation, and deferred new-window ownership and placement. Also covers the distinct Assistant reorder path and focused regression tests.
+title: Desktop workspace drag and drop
+description: Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -15,6 +15,8 @@ sources:
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-873894299539cce9a737a860
+    resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
@@ -55,10 +57,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# TFM Drag and Drop
+# Desktop workspace drag and drop
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 
@@ -146,9 +148,9 @@ Only an eligible pane's **title** installs `WorkspaceLayoutDragSource`; terminal
 
 The recognizer retains the actual `mouseDragged` event because AppKit may schedule its action after `NSApp.currentEvent` has changed. Before beginning the native session, the source captures the live model and payload, sets drag state and installs Escape tracking. The session allows `.move` inside the application and no operation outside it: its UUID is internal routing data, not text to paste into another app.
 
-Pane file receivers are a separate outermost overlay above terminal/table native content. They accept files/SFTP items only for the active supported pane and while `window.dragging == nil`; do not replace this distinction with a generic `.string` drop target on the entire root.
+Pane content drops use a separate **outermost** `NativeDropTarget` above the terminal/table native content, outside the `WorkspaceLayoutDropTarget` overlay. It is enabled only for an active supported pane while `window.dragging == nil`: SSH accepts files, SFTP items and terminal paths; SFTP accepts files and SFTP items; Telnet and Serial accept terminal paths only; an empty pane has no such receiver. File/SFTP payloads dispatch to the pane's upload/copy requests, whereas terminal paths are pasted into a terminal. None of these content drops merges or transfers a workspace; do not replace the distinction with a generic `.string` drop target on the root.
 
-Evidence: [title handle](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L724-L761), [gesture lifetime](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L79-L214), [retained event](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L290-L305), [overlay ordering](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L475).
+Evidence: [title handle](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L724-L761), [gesture lifetime](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L79-L214), [retained event](../../TFM/UI/Components/WorkspaceLayoutDragSource.swift#L290-L305), [overlay ordering and payload types](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L483), [content dispatch](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L546-L610).
 
 ## Outside release, cancellation and responsiveness
 
@@ -189,6 +191,7 @@ sequenceDiagram
     Note over Source: Live layout remains in source
     Scene->>Target: Construct fresh model
     Scene->>Coordinator: configure model with requested layout
+    Scene->>Bridge: Attach native window to RootView bridge
     Bridge->>Coordinator: register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
     Source-->>Coordinator: Existing workspace or pane wrapped in workspace
@@ -197,9 +200,11 @@ sequenceDiagram
     Coordinator->>Target: Bump sidebar layout generation for move
 ```
 
+Scene creation and native registration are distinct phases; the diagram's transfer happens at registration, not at the drop or initial SwiftUI layout.
+
 Request-to-registration transfer keeps the live session in its source until the destination has a native window.
 
-`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`; `TermindApp.makeWindow` applies the request's sidebar presentation and preferred width before the first `RootView` layout. `MainWindowRegistration` calls `register` after AppKit attaches the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
+`TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`. On the normal workspace scene path (after the diagnosis-consent gate), `TermindApp.makeWindow` creates a fresh `WindowModel` and applies the request's sidebar presentation and preferred width before constructing `RootView`. Its `MainWindowRegistration` bridge calls `register` only after AppKit attaches the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
 
 Live layout ownership changes only when the requested destination window registers.
 
@@ -213,7 +218,7 @@ Closing the source window removes its pending requests. A pane closed before reg
 
 New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. During scene construction `configure` applies sidebar presentation and preferred width; registration reapplies them (and invalidates initial sidebar layout if they differ), sizes the native window, then bumps `sidebar.initialLayoutGeneration` for a move to rebuild the split view at the transferred width. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
 
-Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L214-L265), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L291-L350), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L352-L436), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L517-L576), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction](../../TFM/App/TermindApp.swift#L216-L249), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
+Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L214-L265), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L291-L350), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L352-L436), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L517-L576), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction and consent gate](../../TFM/App/TermindApp.swift#L221-L249), [RootView bridge](../../TFM/App/RootView.swift#L75-L89), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
 
 ## Assistant conversation reordering
 

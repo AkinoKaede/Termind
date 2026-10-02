@@ -1,11 +1,11 @@
 ---
 type: workflow
-title: SSH, Telnet, Trust, and Workspace Session Lifecycle
-description: Traces how Termind prepares SSH and Telnet connections, routes them through proxies and jump hosts, authorizes server identity, consumes credentials, and retires or restores live workspace sessions.
+title: SSH session lifecycle
+description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -83,14 +83,14 @@ sources:
     resource: repo://TFMTests/ConnectionJourneyTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# SSH, Telnet, Trust, and Workspace Session Lifecycle
+# SSH session lifecycle
 
 ## Scope and ownership
 
-A remote session is deliberately assembled in layers. `RemoteSessionHostStore` can snapshot a route, identity choices, known-host expectations, and transient submissions into `SSHConnectionPreparation` for callers such as Agent services and mobile workspaces; the desktop terminal also has its own prompt-first path that builds `SSHConnectionConfiguration` from the store and staged credentials for each attempt. Remote Infrastructure opens the routed socket, completes each libssh2 handshake and authentication, then gives the feature an authenticated transport or protocol-specific client. `RemoteConnectionCoordinator` is the application-facing factory and one-shot connection boundary: it produces PTY, multiplexed SSH, or SFTP owners and disconnects an owner if its initial connect fails, so callers never receive a half-open session.
+A remote session is deliberately assembled in layers. `RemoteSessionHostStore` can snapshot a route, identity choices, known-host expectations, and transient submissions into `SSHConnectionPreparation` for mobile workspaces and other preparation-based callers; the desktop terminal also has its own prompt-first path that builds `SSHConnectionConfiguration` from the store and staged credentials for each attempt. On desktop `AppModel.open(_:as:in:)` dispatches a saved Host to a window pane; `SSHSessionModel.connectIfNeeded(using:)` starts its pending mounted session, while explicit `connect(using:)` handles retry. On mobile `MobileWorkspace.connect()` takes one-use submissions, resolves preparation with `.allowChallenge`, installs trust, keyboard-interactive and Security Key callbacks on the request, then opens a PTY or SFTP client. Agent tools instead use the app-owned resolver, authentication registry and pool: their interactive connection preparation is not a desktop pane's `SSHSessionModel` path. Remote Infrastructure opens the routed socket, completes each libssh2 handshake and authentication, then gives the feature an authenticated transport or protocol-specific client. `RemoteConnectionCoordinator` is the application-facing factory and one-shot connection boundary: it produces PTY, multiplexed SSH, or SFTP owners and disconnects an owner if its initial connect fails, so callers never receive a half-open session.
 
 The session feature—not the coordinator—owns user-facing `ConnectionJourney`, host-key and keyboard-interactive queues, retry timing, and the decision to keep or discard a workspace. This separation is important: a terminal, an SFTP browser, Metrics, forwarding, or an Agent tool can share preparation and transport policy without sharing UI lifetime or an interactive prompt. On desktop, `TermindApp` builds one `AppModel` for shared host data and services, but `WindowGroup` constructs a separate `WindowModel` for each window's dynamic workspaces and selection. Agent SSH connections are **not** borrowed from those workspace sessions: `AppModel` constructs `AgentHostServices.live` with the shared coordinator and registers its resolver, authentication registry, connection pool, and background-command owner with Assistant and MCP. Agent sessions can therefore survive a window's workspace closure until their own pool eviction or app cleanup. A temporary pane-backed Agent target is different: the resolver rechecks that its pane still exists before reusing a pooled connection, and a vanished pane makes the target invalid.
 
@@ -101,11 +101,13 @@ sequenceDiagram
     participant Opener as SSHConnectionOpener
     participant Route as SSHRoutedSocket
     participant Remote as Server or jump host
-    alt preparation based caller
+    alt mobile or preparation based caller
         Feature->>Prepare: resolve route and one shot credentials
         Prepare-->>Feature: SSHConnectionConfiguration
     else desktop terminal
         Feature->>Feature: stage prompts and build attempt configuration from host store
+    else Agent tool
+        Feature->>Feature: resolve through Agent authentication registry and pool
     end
     Feature->>Opener: open authenticated connection
     Opener->>Route: open direct or routed socket
@@ -118,7 +120,7 @@ sequenceDiagram
     Opener-->>Feature: authenticated connection
 ```
 
-*Both configuration paths resolve credentials before transport opening; trust approval occurs on the actual handshake path.*
+*Desktop and mobile workspace attempts and Agent tool attempts have distinct state owners; all authorize the server on the handshake path, not during host listing.*
 
 ## Prepare the route and attribute proxies correctly
 

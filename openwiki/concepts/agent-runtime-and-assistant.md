@@ -1,11 +1,11 @@
 ---
 type: assistant runtime concept
-title: Assistant and Agent Runtime
-description: How Termind captures assistant submissions, prepares and cancels AgentKit runs, persists conversations, and gates host tools, skills, and device-local memory.
+title: Agent runtime and assistant ownership
+description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -111,16 +111,34 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# Assistant and Agent Runtime
+# Agent runtime and assistant ownership
 
-Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit** owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges.
+Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release 0.18.1 and its revision for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.18.1** at revision `e21235d8647a780e16a1c2c3b19cc00db5c82cb7` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
+
+The two native apps provide different surface adapters, not separate agent engines: desktop `AppModel` injects host services, pane access and a shared chat coordinator into `AssistantExecutionController`; mobile `MobileAppModel` creates `MobileAssistantModel`, which injects the same registry builder, repository and coordinator. Both paths eventually construct `AgentProviderClient` and `AgentRuntime` in the shared controller, handing its events to `ConversationModel`. The macOS MCP server is a separate external tool-execution surface, not the Assistant's provider loop.
+
+```mermaid
+flowchart TD
+    Desktop["macOS AppModel"] --> Controller["Shared AssistantExecutionController"]
+    Mobile["iOS MobileAppModel"] --> Adapter["MobileAssistantModel"]
+    Adapter --> Controller
+    Controller --> Registry["AssistantToolRegistry"]
+    Registry --> Builtins["AgentKit generic catalog"]
+    Registry --> Host["TermindAgentTools host capabilities"]
+    Controller --> Runtime["AgentKit AgentRuntime and provider"]
+    Runtime --> Conversation["ConversationModel event projection"]
+    Runtime --> Repository["Termind run repository"]
+    Desktop --> External["macOS MCP server tool surface"]
+```
+
+Native assistant composition: app targets inject device services, while the shared controller creates an AgentKit runtime and the separate macOS MCP server exports a restricted tool surface.
 
 For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md).
 

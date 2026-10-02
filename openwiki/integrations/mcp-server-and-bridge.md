@@ -1,11 +1,11 @@
 ---
 type: integration guide
-title: MCP Server, Transfers, and Stdio Bridge
-description: How the macOS loopback MCP server and stdio bridge expose host tools and scoped SFTP byte transfers, including session authorization, ticket lifecycle, and failure recovery. Distinguishes desktop inbound serving from the embedded Assistant's outbound AgentKit MCP client.
-tags: [mcp, macos, loopback, authentication, sftp, bridge]
+title: MCP server and bridge integration
+description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
+tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-3118dfa7dfade14baaccd202
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
@@ -67,10 +67,10 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
-# MCP Server, Transfers, and Stdio Bridge
+# MCP server and bridge integration
 
 Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, configure a manual Bearer credential or OAuth, set per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
@@ -254,7 +254,7 @@ The server pulls no more than 64 KiB per send and revalidates bytes, size, and m
 
 Some MCP clients expect a stdio command rather than HTTP. The bundled `termind-mcp` executable is a protocol forwarder only: it does not expose another listener or implement Termind tools. It reads one JSON-RPC object per stdin line, sends its original bytes to the configured loopback URL as HTTP POST, and writes each JSON response as one stdout line. Diagnostics go to stderr. It forwards JSON-RPC and session headers only; a client must separately perform ticket-authorized `PUT`/`GET` for file bytes, not send them over bridge stdin.
 
-By default it uses `TERMIND_MCP_URL` or `http://127.0.0.1:7391/mcp`, and requires `TERMIND_MCP_TOKEN`; `--url` and `--token` override those values. Invalid stdin lines are ignored with an error on stderr. For HTTP failure or reachability failure, requests with an `id` receive a JSON-RPC `-32000` error; notifications produce only stderr diagnostics. On EOF, it best-effort sends `DELETE` with the established session ID.
+By default it uses `TERMIND_MCP_URL` or `http://127.0.0.1:7391/mcp`, and requires `TERMIND_MCP_TOKEN`; `--url` and `--token` override those values. Invalid stdin lines are ignored with an error on stderr. For a non-2xx HTTP response containing a JSON-RPC error envelope, the bridge forwards that envelope as-is; other HTTP failures or reachability failures produce a JSON-RPC `-32000` error for requests with an `id`. Notifications produce only stderr diagnostics on these failures. Empty responses and HTTP `202` do not produce stdout lines. On EOF, it best-effort sends `DELETE` with the established session ID.
 
 ```mermaid
 sequenceDiagram
@@ -301,6 +301,7 @@ Missing token disables all generated commands; a missing bundled bridge disables
 
 ## Related pages
 
+* [Platform runtime](/openwiki/architecture/platform-runtime.md) — desktop and mobile composition and shutdown ownership.
 * [System boundaries](/openwiki/architecture/system-boundaries.md) — inbound desktop integration versus embedded outbound client ownership.
 * [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) — tool execution, approval, and secret-handle semantics.
 * [Persistence and secrets](/openwiki/concepts/persistence-and-secrets.md) — Keychain and local-secret ownership.

@@ -5,7 +5,7 @@ description: "How iOS and iPadOS scenes own navigation and workspace routes whil
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-30T23:24:42.368Z
+    at: 2026-10-01T23:39:56.631Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -61,6 +61,8 @@ sources:
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
@@ -109,7 +111,7 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-30T23:24:42.368Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-10-01T23:39:56.631Z" }
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -161,7 +163,7 @@ Each registered destination gets its own `NavigationStack`; the enclosing `TabVi
 | `MobileWorkspace` / `MobileTerminalSurface` | Connection/session state and owned native terminal view. | Workspace lifetime, not just the currently pushed detail. |
 | Feature view state | Temporary picker, preview, drop loading and focus-request state. | Current presentation. |
 
-Two iPad scenes can navigate independently over the same Assistant conversation store, but each window owns independent workspace/terminal instances, even when opening the same Host. Selecting a dormant descriptor publishes a runtime in its owning `MobileWorkspaceSessionModel` before connecting, so repeated selection in that session shares one initial attempt. `TermindIOSApp` constructs one app model before `WindowGroup`; `MobileStartupView` waits for the UIKit delegate's persistent session ID before `MobileBoundSceneRoot` creates a `@State` scene model. `MobileRootView` retains it and publishes it as a focused scene value for commands. Startup failure displays a data-store error instead of mounting feature navigation.
+Two iPad scenes can navigate independently over the same Assistant conversation store, but each window owns independent workspace/terminal instances, even when opening the same Host. Selecting a dormant descriptor publishes a runtime in its owning `MobileWorkspaceSessionModel` before connecting, so repeated selection in that session shares one initial attempt. `TermindIOSApp` constructs one app model before `WindowGroup`; `MobileStartupView` waits for the UIKit delegate's persistent session ID before `MobileBoundSceneRoot` creates a `@State` scene model. `MobileRootView` retains it and publishes it as a focused scene value for commands. Startup success first gates the feature shell on diagnosis consent; a failed model construction displays a data-store error instead of mounting feature navigation. The bound root creates the scene in a task, rather than while evaluating its view body, and waits for an active scene before consuming a pending workspace activity.
 
 ## Navigation is an intent sequence
 
@@ -308,7 +310,7 @@ The mobile content priority matters: logs (when toggled) replace the form, then 
 
 ### Metrics detail and monitoring boundary
 
-The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Failed persistence is surfaced as `app.error`, while an admission-limit failure presents the Pro paywall. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
+The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. The view's `.task` starts that model idempotently, while the foreground/background lifecycle can restart or pause it independent of the Metrics tab. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Failed persistence is surfaced as `app.error`, while an admission-limit failure presents the Pro paywall. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
 
 `MobileMetricsDetailView` displays the inline journey whenever `server.requiresAuthentication` or `server.journey.isPresented`, before Metrics status/process panels. It wires authentication, host-key trust and Retry to `app.metrics.core`; its cancel disables that server and dismisses the pushed detail. When the journey is shown it stops detail observation; otherwise it registers its observer, including on the transition to live data, and removes the observer on disappearance. That observer controls detail-only sampling, **not** the lifetime of the shared monitor. Normal content keeps status and process children mounted in `MobilePaneLayout`, hiding covered children from hit testing and accessibility. A usable split shows both; without a division a sufficiently wide continuous area shows two columns, otherwise a page selection shows one. The page control is absent during the journey or when both panels fit; in a vertical toolbar it becomes a menu, otherwise a segmented picker. This separation keeps a challenge in the Metrics navigation stack instead of presenting a sheet or constructing a terminal workspace.
 
@@ -323,7 +325,7 @@ The Metrics destination reads `app.metrics.servers` (one application-wide monito
 
 These are not all enabled merely because the menu exists. Connection state, available history, refresh state and operation capability control individual actions.
 
-`MobileTerminalSurface` owns the native terminal view even when SwiftUI navigates away. Its `MobileTerminalView` adds terminal Find key equivalents while preserving Ghostty's ordinary key commands. Escape is intercepted for Find dismissal only while Find is actually presented.
+Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal view even when SwiftUI navigates away. The adapter configures inline touch selection, binds the workspace Find controller, and appends F3/Shift-F3 Find key commands to Ghostty's existing commands. It replaces unmodified and Shift-Escape equivalents with Find dismissal only while Find is presented; ordinary terminal key handling remains with Ghostty otherwise.
 
 Presentation cleanup is narrower than session shutdown: workspace view disappearance disables external Open With presentation and window drop handling, clears drop targeting and cancels drop loading. It is not itself the instruction to disconnect the workspace. Drop handling is also gated by scene activity and destination changes, so an invisible detail does not accept a late upload as though it were foreground.
 

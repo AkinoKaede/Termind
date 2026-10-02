@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:256baca012e1b930be531836a22707ac1fee89f2821ad3e68a365b5b23dc882a",
+  "pageVersion": "sha256:faf2bece5088564948095405a511e010c35fd8ced31326177c668c191d69f404",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -114,7 +114,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Platform/MobileTerminalSurface.swift",
-          "version": "repo-file-v1:sha256:4b153637bcffb887abae4fcb50008c74396611e04d81c0c9e7f194e624f1636b"
+          "version": "repo-file-v1:sha256:40d0ea7fb0a151529d27fb91d8a2bbf85c5458b93cb3432f2d828b46d2ff7adc"
         }
       ]
     },
@@ -156,7 +156,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -266,7 +266,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -284,7 +284,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -352,7 +352,7 @@
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:b8c363b57821837253c03ab08778965836a874f9509b7bb89d28d6de608aee2d"
+          "version": "repo-file-v1:sha256:a2af5f0e69917f306ae3192960f8d00ef41a6e817c60e49fde43d006ac3cf45d"
         }
       ]
     },
@@ -466,11 +466,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:b8c363b57821837253c03ab08778965836a874f9509b7bb89d28d6de608aee2d"
+          "version": "repo-file-v1:sha256:a2af5f0e69917f306ae3192960f8d00ef41a6e817c60e49fde43d006ac3cf45d"
         }
       ]
     },
@@ -502,7 +502,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileStartupView.swift",
-          "version": "repo-file-v1:sha256:d072e1666eb4ec393517701c276224902d4862203b9bf565084889b10e5efd11"
+          "version": "repo-file-v1:sha256:fcffe26322a6bee48633467a65e305ae316771e6ab7618293e6f4f7c36fc7d58"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
@@ -516,7 +516,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -566,7 +566,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -624,7 +624,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -642,7 +642,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
@@ -674,7 +674,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceSessionTests.swift",
@@ -698,7 +698,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -720,7 +720,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/Platform/MobileNotificationPlatform.swift",
@@ -742,7 +742,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -778,7 +778,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:597237b6d3ad8613e15dbca0666bad162c7f1479af6e0a804aaa496b38c26045"
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -894,7 +894,7 @@
         },
         {
           "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift#L6-L94",
-          "version": "repo-lines-v1:sha256:7f52256174893c97f421c2a36b23059ec1de795c3837736696d39b039bb846e6:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjODI0Zjk3ZTgzYmE5ZGJhZDE1YjFhZmI1MzNiZDc4NTZiYmI2ZTVjYzFlN2IwZDgzM2Q2OWRjNzI0YTA0ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODMzMmZhOTk2MTExMDJiYjgyOTEzYTZjMDFlYWU5N2Q3OTMyN2JlNTViZTY1ODYxMDM3Y2Y0OGRmYWQ5MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZDY2ZjY0YjYyYjVlNzlhZmFmNDc4MTQ3ZmVkMmExODY1NDI3ZTdjMzZmZmZmMzFhM2EwYzJkNDFkY2NkNWIifQ"
+          "version": "repo-lines-v1:sha256:8cc0d53d6dd108a9bd82675324f6514121338a6ec1734fbbce4f81c6096f7edc:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjODI0Zjk3ZTgzYmE5ZGJhZDE1YjFhZmI1MzNiZDc4NTZiYmI2ZTVjYzFlN2IwZDgzM2Q2OWRjNzI0YTA0ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODMzMmZhOTk2MTExMDJiYjgyOTEzYTZjMDFlYWU5N2Q3OTMyN2JlNTViZTY1ODYxMDM3Y2Y0OGRmYWQ5MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZDY2ZjY0YjYyYjVlNzlhZmFmNDc4MTQ3ZmVkMmExODY1NDI3ZTdjMzZmZmZmMzFhM2EwYzJkNDFkY2NkNWIifQ"
         }
       ]
     },
@@ -935,12 +935,8 @@
       "statement": "Metrics status and processes keep stable pane children with hidden-pane interaction/accessibility gates; usable region splits or wide undivided geometry show both, otherwise a selected page shows one, and its page picker is suppressed during a journey or two-panel mode and adapts to vertical toolbars.",
       "evidence": [
         {
-          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift#L129-L165",
-          "version": "repo-lines-v1:sha256:49bca97c8b066c20c58120ec415af65bcc50e1f34a9c6243ae4b10e333cc3841:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NjY4Y2Y2Nzg3N2Y3NmJjZTA1NTBmZjNkY2ZkZDFmNTIxZmZlMDJkODQxY2QwOTM1M2U5ZjAyYzc5MTk3MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkYjMzOWMxN2Q0Y2M1NGU3MGM0ZmNmZWNiNjExYmI5ZTdkMzYzZjI1YjE4ZTA5MjNhMWQzMDZjYzk1OTI0ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1ZTY0NmYwYjUzYzFmMjg5YjI3NTMyZTA0OTY0MDliYzg2NTUyNWYzOGJkYzYzYzlkZDQ3ODZkNGY0ZGJmZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkOTJkYjZhMGI5NzMzYTA3N2Q3Mjc1MzgzMTFjMWEzZTJhMGNjNWRlOGFlYWY2MmNkMDkzOGY2YTI4NTU2ODgifQ"
-        },
-        {
-          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift#L221-L244",
-          "version": "repo-lines-v1:sha256:1c1b9a2e0e9c7b265bafa9f28a3a01e2e81ba8559ce8800c5f6ea14dc5173697:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyM2RkN2M4ZTc2NTA4ODI4ZTFjZGQ0MDJjMzczM2FiZGU0NjVlYTkyMGZkZTVkYjU3ZTQ2MDg0ZWYxMzdmY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNjUzYmFiN2QwMTg2ZmM0ZjY0MzM4NzhlY2E4NTdkYzNlNzE4Mjk2YTZkNjAzN2FiYWUxYjI0ZjM5NTNiZjYifQ"
+          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
+          "version": "repo-file-v1:sha256:8247065df9921f3763136a1732ebacaa80153fbd274e15aff8e90316ae3857eb"
         }
       ]
     },
@@ -989,10 +985,52 @@
           "version": "repo-lines-v1:sha256:7f1eee07fcdb08cacdb0aee8ead03028da5d588ec619947fbd773d04a13b5e10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2OTllNGJmZDIyN2YxOTYwZWI1MWY3ZTlmMTU4NTFmMWMwOWQ4NWNjNDkzZWJjN2E1MDRmMGQxZTY2NmQ0ZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2N2IyNmY2YWVhZGY4N2Q2NWViMTgzOTUyZGY5OWRmYzcyZjc2YzI1ZDFlYzI0ZDg3OWNjNWFkNmVmOTkxMDMifQ"
         }
       ]
+    },
+    {
+      "id": "claim_03bc2f7796294bf7851f42e04b638f2c",
+      "statement": "On successful model construction, mobile startup gates the feature shell on diagnosis consent; the window-bound root creates its scene model in a task and delays pending workspace activity routing until the scene is active.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileStartupView.swift",
+          "version": "repo-file-v1:sha256:fcffe26322a6bee48633467a65e305ae316771e6ab7618293e6f4f7c36fc7d58"
+        }
+      ]
+    },
+    {
+      "id": "claim_7324d34fc9f54349b23cf12b03ebfb3c",
+      "statement": "The Metrics view starts the shared monitor idempotently on entry, while the app's scene lifecycle separately starts or pauses it; leaving the Metrics view does not own or shut down monitoring.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift",
+          "version": "repo-file-v1:sha256:dfc3424d9d6efd044363de5cede4bbd770edc3bbba18413f6b62cf74aa565c97"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:5b2e31f6e4003893d5d6794cc5b875c7aa700adebfa4dc6dcd27d0d7fe981fc7"
+        },
+        {
+          "resource": "repo://TFI/Features/Metrics/MobileMetricsView.swift",
+          "version": "repo-file-v1:sha256:8247065df9921f3763136a1732ebacaa80153fbd274e15aff8e90316ae3857eb"
+        }
+      ]
+    },
+    {
+      "id": "claim_6d92723f81cf46589ed5637c0e5b26bc",
+      "statement": "A workspace retains the MobileTerminalSurface native view across navigation; its platform adapter configures inline touch selection, adds F3 and Shift-F3 Find equivalents to the inherited terminal commands, and replaces Escape equivalents only during Find presentation.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
+          "version": "repo-file-v1:sha256:ccbae79ca605030fdba3f73e8df82491475cf6fc5f8023d34e608bdb65c40258"
+        },
+        {
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift",
+          "version": "repo-file-v1:sha256:40d0ea7fb0a151529d27fb91d8a2bbf85c5458b93cb3432f2d828b46d2ff7adc"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-30T23:24:42.368Z"
+    "at": "2026-10-01T23:39:56.631Z"
   }
 }
