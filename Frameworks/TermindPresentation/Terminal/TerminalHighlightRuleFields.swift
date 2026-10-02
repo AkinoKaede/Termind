@@ -28,12 +28,15 @@ public struct TerminalHighlightRuleFields: View {
                     Text(AppStrings.TerminalHighlighting.regex).tag(
                         TerminalHighlightRule.MatchMode.regularExpression)
                 }
-                TextField(AppStrings.TerminalHighlighting.pattern.swiftUIKey, text: $rule.pattern, axis: .vertical)
-                    .labelsHidden().multilineTextAlignment(.leading)
-                    .font(.body.monospaced()).lineLimit(2...6).autocorrectionDisabled()
-                    #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                    #endif
+                TextField(
+                    AppStrings.TerminalHighlighting.pattern.swiftUIKey, text: $rule.pattern,
+                    prompt: Text(AppStrings.TerminalHighlighting.pattern), axis: .vertical
+                )
+                .labelsHidden().multilineTextAlignment(.leading)
+                .font(.body.monospaced()).lineLimit(2...6).autocorrectionDisabled()
+                #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                #endif
                 if let patternIssue {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(AppStrings.TerminalHighlighting.invalidPattern).foregroundStyle(.red)

@@ -6,15 +6,18 @@ public struct TerminalHighlightSettingsSection: View {
     private let model: TerminalHighlightSettingsModel
     private let showsTitle: Bool
     private let showsAddRule: Bool
+    private let deleteImage: Image
     private let edit: (TerminalHighlightRule) -> Void
 
     public init(
         model: TerminalHighlightSettingsModel, showsTitle: Bool = true, showsAddRule: Bool = true,
+        deleteImage: Image = Image(systemName: "trash"),
         edit: @escaping (TerminalHighlightRule) -> Void
     ) {
         self.model = model
         self.showsTitle = showsTitle
         self.showsAddRule = showsAddRule
+        self.deleteImage = deleteImage
         self.edit = edit
     }
 
@@ -36,13 +39,24 @@ public struct TerminalHighlightSettingsSection: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    Button(AppStrings.Common.edit.swiftUIKey) { edit(rule) }
-                    Button(AppStrings.TerminalHighlighting.moveUp.swiftUIKey) { model.move(rule.id, by: -1) }
-                        .disabled(!model.canMove(rule.id, by: -1))
-                    Button(AppStrings.TerminalHighlighting.moveDown.swiftUIKey) { model.move(rule.id, by: 1) }
-                        .disabled(!model.canMove(rule.id, by: 1))
-                    Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
+                    Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { edit(rule) }
+                    Button(AppStrings.TerminalHighlighting.moveUp.swiftUIKey, systemImage: "arrow.up") {
+                        model.move(rule.id, by: -1)
+                    }
+                    .disabled(!model.canMove(rule.id, by: -1))
+                    Button(AppStrings.TerminalHighlighting.moveDown.swiftUIKey, systemImage: "arrow.down") {
+                        model.move(rule.id, by: 1)
+                    }
+                    .disabled(!model.canMove(rule.id, by: 1))
+                    Divider()
+                    Button(role: .destructive) {
                         model.delete(rule.id)
+                    } label: {
+                        Label {
+                            Text(AppStrings.Common.delete)
+                        } icon: {
+                            deleteImage
+                        }
                     }
                 }
             }

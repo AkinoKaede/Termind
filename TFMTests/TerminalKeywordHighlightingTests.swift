@@ -22,6 +22,7 @@ struct TerminalKeywordHighlightingTests {
         let views: [(String, AnyView)] = [
             ("settings", AnyView(SettingsFormPage { TerminalHighlightSettingsSection(model: model) { _ in } })),
             ("editor", AnyView(TerminalHighlightRuleEditorPage(rule: backgroundRule, model: model, deleted: {}))),
+            ("new-editor", AnyView(TerminalHighlightRuleEditorPage(rule: .init(), model: model, deleted: {}))),
             (
                 "invalid-editor",
                 AnyView(
@@ -70,7 +71,8 @@ struct TerminalKeywordHighlightingTests {
             let expression = try NSRegularExpression(pattern: rule.pattern, options: .caseInsensitive)
             for keyword in [rule.name.lowercased(), rule.name.uppercased(), rule.name] {
                 let text = "\(keyword):"
-                #expect(expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil)
+                let range = NSRange(text.startIndex..., in: text)
+                #expect(expression.firstMatch(in: text, range: range)?.range == range)
             }
         }
         let warning = TerminalHighlightPreferences.builtInRules[1]
@@ -86,7 +88,7 @@ struct TerminalKeywordHighlightingTests {
         let matches = error.matches(in: messages, range: NSRange(messages.startIndex..., in: messages))
         #expect(
             matches.map { (messages as NSString).substring(with: $0.range) }
-                == ["Error", "ERROR", "error", "error"])
+                == ["Error:", "ERROR", "error", "error:"])
     }
 
     @Test func quotedLogKeywordsRequireAnImmediateColon() throws {
@@ -94,20 +96,25 @@ struct TerminalKeywordHighlightingTests {
             let expression = try NSRegularExpression(pattern: rule.pattern, options: .caseInsensitive)
             let keywords = rule.name == "Warning" ? ["warn", "warning"] : [rule.name.lowercased()]
             for keyword in keywords {
-                for (text, expectedCount) in [
-                    ("\(keyword) before \"ordinary text\"", 1),
-                    ("msg=\"xxx \(keyword)\"", 0),
-                    ("msg=\"\(keyword): detail\"", 1),
-                    ("msg=\"\(keyword) : detail\"", 0),
-                    ("msg='xxx \(keyword)'", 0),
-                    ("msg='\(keyword): detail'", 1),
-                    ("msg=\"don't \(keyword)\" \(keyword)", 1),
-                    ("msg=\"say \\\"\(keyword)\\\" now\" \(keyword)", 1),
-                    ("\"\(keyword): \(keyword)\" \(keyword) '\(keyword)'", 2),
+                for (text, expected) in [
+                    ("\(keyword) before \"ordinary text\"", [keyword]),
+                    ("\(keyword): detail", [keyword + ":"]),
+                    ("\(keyword):detail", [keyword + ":"]),
+                    ("\(keyword) : detail", [keyword]),
+                    ("pre\(keyword):", []),
+                    ("msg=\"xxx \(keyword)\"", []),
+                    ("msg=\"\(keyword): detail\"", [keyword + ":"]),
+                    ("msg=\"\(keyword) : detail\"", []),
+                    ("msg='xxx \(keyword)'", []),
+                    ("msg='\(keyword): detail'", [keyword + ":"]),
+                    ("msg=\"don't \(keyword)\" \(keyword)", [keyword]),
+                    ("msg=\"say \\\"\(keyword)\\\" now\" \(keyword)", [keyword]),
+                    ("\"\(keyword): \(keyword)\" \(keyword) '\(keyword)'", [keyword + ":", keyword]),
                 ] {
                     let matches = expression.matches(in: text, range: NSRange(text.startIndex..., in: text))
-                    #expect(matches.count == expectedCount, "\(rule.name): \(text)")
-                    #expect(matches.allSatisfy { (text as NSString).substring(with: $0.range) == keyword })
+                    #expect(
+                        matches.map { (text as NSString).substring(with: $0.range) } == expected,
+                        "\(rule.name): \(text)")
                 }
             }
         }

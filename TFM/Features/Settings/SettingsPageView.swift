@@ -651,7 +651,10 @@ private struct TerminalSettings: View {
                     }
                 }
             }
-            TerminalHighlightSettingsSection(model: app.terminalHighlightSettings, edit: editHighlighting)
+            TerminalHighlightSettingsSection(
+                model: app.terminalHighlightSettings,
+                deleteImage: Image(nsImage: MenuImageVisibilityController.markedImage(systemName: MenuSymbol.delete)),
+                edit: editHighlighting)
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {

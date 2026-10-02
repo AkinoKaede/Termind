@@ -4347,13 +4347,13 @@
         }
       }
     },
-    "Background" : {
+    "Background Color" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Background"
+            "value" : "Background Color"
           }
         },
         "zh-Hans" : {
@@ -12479,13 +12479,13 @@
         }
       }
     },
-    "Foreground" : {
+    "Foreground Color" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Foreground"
+            "value" : "Foreground Color"
           }
         },
         "zh-Hans" : {
@@ -16435,36 +16435,36 @@
         }
       }
     },
-    "Move Rule Down" : {
+    "Move Down" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下移规则"
+            "value" : "下移"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下移規則"
+            "value" : "下移"
           }
         }
       }
     },
-    "Move Rule Up" : {
+    "Move Up" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上移规则"
+            "value" : "上移"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上移規則"
+            "value" : "上移"
           }
         }
       }

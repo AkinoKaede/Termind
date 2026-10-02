@@ -14,10 +14,10 @@ extension AppStrings {
         public static var invalidPattern: LocalizedStringResource { "The match pattern is invalid." }
         public static var limits: LocalizedStringResource { "Use a name up to 256 bytes and a pattern up to 16 KB." }
         public static var ruleLimit: LocalizedStringResource { "You can add up to 58 custom highlight rules." }
-        public static var foreground: LocalizedStringResource { "Foreground" }
-        public static var background: LocalizedStringResource { "Background" }
-        public static var moveUp: LocalizedStringResource { "Move Rule Up" }
-        public static var moveDown: LocalizedStringResource { "Move Rule Down" }
+        public static var foreground: LocalizedStringResource { "Foreground Color" }
+        public static var background: LocalizedStringResource { "Background Color" }
+        public static var moveUp: LocalizedStringResource { "Move Up" }
+        public static var moveDown: LocalizedStringResource { "Move Down" }
         public static var error: LocalizedStringResource { "Error" }
         public static var warning: LocalizedStringResource { "Warning" }
         public static var ok: LocalizedStringResource { "OK" }

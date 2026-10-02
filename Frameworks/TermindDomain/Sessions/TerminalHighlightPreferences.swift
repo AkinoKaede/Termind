@@ -59,13 +59,14 @@ public nonisolated struct TerminalHighlightPreferences: Codable, Hashable, Senda
             ("Info", "info(?:rmation)?|notice", .blue),
             ("Debug", "debug|trace", .purple),
         ]
-        // A colon always qualifies. Otherwise, require balanced quoted strings after the keyword.
+        // Include an immediate colon in the match, even inside quotes.
+        // Otherwise, require balanced quoted strings after the keyword.
         let outsideQuotes =
             #"(?=(?:[^\x22\x27\\\r\n]|\\[^\r\n]|\x22(?:[^\x22\\\r\n]|\\[^\r\n])*\x22|\x27(?:[^\x27\\\r\n]|\\[^\r\n])*\x27)*$)"#
         var rules = words.enumerated().map { index, entry in
             TerminalHighlightRule(
                 id: builtInID(index), name: entry.0,
-                pattern: #"\b(?:"# + entry.1 + #")\b(?=:|"# + outsideQuotes + ")",
+                pattern: #"\b(?:"# + entry.1 + #")\b(?::|"# + outsideQuotes + ")",
                 mode: .regularExpression, isCaseSensitive: false, color: entry.2)
         }
         rules.append(
