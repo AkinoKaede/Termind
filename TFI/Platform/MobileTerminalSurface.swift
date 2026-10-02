@@ -10,12 +10,6 @@ final class MobileTerminalSurface {
     let view: MobileTerminalView = {
         let view = MobileTerminalView(frame: .zero)
         view.usesInlineTextSelection = true
-        view.touchSelectionTitles = TerminalTouchSelectionTitles(
-            paste: String(localized: AppStrings.Common.paste),
-            select: String(localized: AppStrings.Common.select),
-            selectAll: String(localized: AppStrings.Common.selectAll),
-            copy: String(localized: AppStrings.Common.copy)
-        )
         return view
     }()
 
@@ -33,11 +27,26 @@ final class MobileTerminalView: TerminalView {
     var canUploadFiles: (() -> Bool)?
 
     override func touchMenuItems(for context: TerminalTouchMenuContext) -> [UIMenuElement] {
-        super.touchMenuItems(for: context) + uploadMenuItems()
+        localizedTouchMenuItems(super.touchMenuItems(for: context)) + uploadMenuItems()
     }
 
     override func touchSelectionMenuItems(for context: TerminalTouchSelectionMenuContext) -> [UIMenuElement] {
-        super.touchSelectionMenuItems(for: context) + uploadMenuItems()
+        localizedTouchMenuItems(super.touchSelectionMenuItems(for: context)) + uploadMenuItems()
+    }
+
+    private func localizedTouchMenuItems(_ items: [UIMenuElement]) -> [UIMenuElement] {
+        for case let action as UIAction in items {
+            let title: LocalizedStringResource
+            switch action.identifier.rawValue {
+            case "terminal.copy": title = AppStrings.Common.copy
+            case "terminal.paste": title = AppStrings.Common.paste
+            case "terminal.select": title = AppStrings.Common.select
+            case "terminal.selectAll": title = AppStrings.Common.selectAll
+            default: continue
+            }
+            action.title = String(localized: title)
+        }
+        return items
     }
 
     func uploadMenuItems() -> [UIMenuElement] {
