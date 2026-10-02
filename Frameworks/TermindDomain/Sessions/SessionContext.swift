@@ -14,6 +14,9 @@ import Foundation
 /// a disclosure of what leaves the machine, so they must be neither less nor
 /// more than what actually goes.
 public nonisolated struct SessionContext: Hashable, Sendable {
+    /// The focused terminal's `read_pane` target, distinct from its host ID.
+    /// Capturing it keeps the submitted turn bound to that pane if focus moves.
+    public var paneID: UUID?
     /// What `ssh_exec` and every SFTP tool actually take.
     ///
     /// Without it the model's only route to a host is `list_hosts`, which costs
@@ -34,6 +37,7 @@ public nonisolated struct SessionContext: Hashable, Sendable {
     public static let none = SessionContext()
 
     public init(
+        paneID: UUID? = nil,
         hostID: UUID? = nil,
         hostName: String? = nil,
         workingDirectory: String? = nil,
@@ -41,6 +45,7 @@ public nonisolated struct SessionContext: Hashable, Sendable {
         showsWorkingDirectoryChip: Bool = true,
         systemInfo: RemoteSystemInfo? = nil
     ) {
+        self.paneID = paneID
         self.hostID = hostID
         self.hostName = Self.sanitizedLine(hostName)
         self.workingDirectory = Self.sanitizedLine(workingDirectory)
@@ -50,7 +55,7 @@ public nonisolated struct SessionContext: Hashable, Sendable {
     }
 
     public var isEmpty: Bool {
-        hostID == nil && hostName == nil && workingDirectory == nil && systemInfo == nil
+        paneID == nil && hostID == nil && hostName == nil && workingDirectory == nil && systemInfo == nil
     }
 
     /// One fenced, data-only block, sent at the tail of the message list
@@ -70,6 +75,7 @@ public nonisolated struct SessionContext: Hashable, Sendable {
         // `host_name` pairs with it rather than being the bare `host` it once
         // was. The block instructs nothing, so a key that reads as the argument
         // it belongs in is doing the work a sentence would otherwise have to.
+        if let paneID { lines.append("pane_id: \(paneID.uuidString)") }
         if let hostID { lines.append("host_id: \(hostID.uuidString)") }
         if let hostName { lines.append("host_name: \(hostName)") }
         if let workingDirectory { lines.append("cwd: \(workingDirectory)") }

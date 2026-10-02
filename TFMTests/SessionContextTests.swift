@@ -75,6 +75,17 @@ struct SessionContextTests {
     }
 
     @Test
+    func aTerminalWithoutAHostStillProvidesAReadTarget() {
+        let paneID = UUID()
+        let context = SessionContext(paneID: paneID)
+
+        #expect(!context.isEmpty)
+        #expect(context.modelContext?.contains("pane_id: \(paneID.uuidString)") == true)
+        #expect(context.modelContext?.contains("host_id:") == false)
+        #expect(context.chips.isEmpty)
+    }
+
+    @Test
     func ordinaryPathsSurviveTheSanitizerThatRemoteSystemInfoWouldReject() {
         let context = SessionContext(
             hostName: "web-01", workingDirectory: "/srv/app/releases-2024.11"

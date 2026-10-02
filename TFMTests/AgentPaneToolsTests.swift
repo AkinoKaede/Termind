@@ -91,24 +91,56 @@ struct AgentPaneToolsTests {
     }
 
     @Test
-    func readResolvesCurrentAtCallTimeAndExplicitInactiveID() async throws {
+    func readUsesTheExplicitTargetEvenAfterFocusMovesWithoutListingAgain() async throws {
         let fixture = Fixture()
-        let tool = ReadPaneTool(panes: fixture.access())
-        let implicit = invocation("read_pane")
+        var listings = 0
+        let access = fixture.access()
+        let tool = ReadPaneTool(
+            panes: AgentPaneAccess(
+                list: {
+                    listings += 1
+                    return access.list()
+                }, read: access.read))
+        let explicit = invocation("read_pane", paneID: fixture.first.uuidString)
         fixture.current = fixture.second
-        let empty = try await tool.execute(implicit, context: context(implicit))
+        let second = invocation("read_pane", paneID: fixture.second.uuidString)
+        let empty = try await tool.execute(second, context: context(second))
         #expect(try payload(empty)["pane_id"] == .string(fixture.second.uuidString))
         #expect(try payload(empty)["text"] == .string(""))
         #expect(try payload(empty)["truncated"] == .bool(false))
 
-        let explicit = invocation("read_pane", paneID: fixture.first.uuidString)
         let first = try await tool.execute(explicit, context: context(explicit))
         #expect(try payload(first)["text"] == .string("first  \n\nlast"))
         #expect(try payload(first)["pane_id"] == .string(fixture.first.uuidString))
+        #expect(listings == 0)
     }
 
     @Test
-    func missingCurrentInvalidIDClosedDisconnectedAndNoSurfaceDoNotFallback() async throws {
+    func missingIDIsRejectedEvenWhenACurrentTerminalExists() async throws {
+        var listings = 0
+        var reads = 0
+        let fixture = Fixture()
+        let tool = ReadPaneTool(
+            panes: AgentPaneAccess(
+                list: {
+                    listings += 1
+                    return [fixture.pane(fixture.first)]
+                },
+                read: { id in
+                    reads += 1
+                    return .text(fixture.pane(id), "must not be read")
+                }))
+        let call = invocation("read_pane")
+        #expect(tool.descriptor.inputSchema.objectValue?["required"]?.arrayValue?.contains(.string("pane_id")) == true)
+        await #expect(throws: AgentToolError.self) {
+            try await tool.execute(call, context: context(call))
+        }
+        #expect(listings == 0)
+        #expect(reads == 0)
+    }
+
+    @Test
+    func invalidIDClosedDisconnectedAndNoSurfaceDoNotFallback() async throws {
         let fixture = Fixture()
         let tool = ReadPaneTool(panes: fixture.access())
         fixture.current = nil
@@ -152,7 +184,7 @@ struct AgentPaneToolsTests {
     @Test
     func cardsShowOnlyNamesIDsAndStatesEvenWithoutPresenter() async throws {
         let fixture = Fixture()
-        let readCall = invocation("read_pane")
+        let readCall = invocation("read_pane", paneID: fixture.first.uuidString)
         let readTool = ReadPaneTool(panes: fixture.access())
         let readResult = try await readTool.execute(readCall, context: context(readCall))
         let card = AgentToolCard(
@@ -200,6 +232,50 @@ struct AgentPaneToolsTests {
                 arguments: [:], locale: Locale(identifier: "zh-Hant")))
         #expect(String(describing: directHant).contains("此視窗已啟用"))
         #expect(String(describing: directHant).contains("目前助理視窗"))
+    }
+
+    @Test
+    func batchesDescribeListingAndReadingIncludingRestoredCardsAndFailures() {
+        let fixture = Fixture()
+        let descriptors = [
+            ListPanesTool(panes: fixture.access()).descriptor,
+            ReadPaneTool(panes: fixture.access()).descriptor,
+        ]
+        for legacy in [false, true] {
+            let cards = descriptors.map { descriptor in
+                AgentToolCard(
+                    invocation: invocation(descriptor.name),
+                    descriptor: legacy
+                        ? AgentToolDescriptor(
+                            name: descriptor.name, summary: descriptor.summary,
+                            inputSchema: descriptor.inputSchema, target: .local, approvalPolicy: .approve,
+                            presentation: .init(
+                                symbol: "terminal",
+                                activity: .label(descriptor.name == "list_panes" ? "terminals" : "terminal")))
+                        : descriptor,
+                    state: .completed)
+            }
+            #expect(
+                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "en"))
+                    == "Listed terminals, read terminal")
+            #expect(
+                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "zh-Hans"))
+                    == "已列出终端，已读取终端")
+            #expect(
+                AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "zh-Hant"))
+                    == "已列出終端，已讀取終端")
+            let failed = AgentToolCard(
+                invocation: invocation("read_pane"), descriptor: cards[1].descriptor, state: .failed)
+            #expect(
+                AgentToolPresentation.batchSummary(
+                    for: [cards[0], cards[1], cards[1], failed], locale: Locale(identifier: "en"))
+                    == "Listed terminals, read terminal (2 times), failed to read terminal")
+        }
+        let mcp = AgentToolDescriptor(
+            name: "read_pane", summary: "Unrelated MCP tool", inputSchema: .object([:]),
+            target: .mcp, approvalPolicy: .approve)
+        let card = AgentToolCard(invocation: invocation("read_pane"), descriptor: mcp, state: .completed)
+        #expect(AgentToolPresentation.batchSummary(for: [card], locale: Locale(identifier: "en")) != "Read terminal")
     }
 
     @Test

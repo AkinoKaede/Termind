@@ -637,6 +637,33 @@ struct WindowStateTests {
         // left for the model to guess from the name.
         #expect(window.sidebar.sessionContext.hostID == workspace.focusedPane.hostID)
         #expect(window.sidebar.sessionContext.hostID == host.id)
+        #expect(window.sidebar.sessionContext.paneID == nil)
+    }
+
+    @Test
+    func terminalContextFollowsPaneFocusWithoutConfusingHostAndPaneIDs() {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let first = workspace.focusedPane
+        let window = WindowModel(workspaces: [workspace])
+        window.hostStore = HostLibraryModel(hosts: [host])
+
+        let submitted = window.sidebar.sessionContext
+        #expect(submitted.paneID == first.id)
+        #expect(submitted.hostID == host.id)
+        workspace.splitFocusedPane(axis: .horizontal, with: .sshSession(host: host))
+        #expect(window.sidebar.sessionContext.paneID == workspace.focusedPane.id)
+        #expect(window.sidebar.sessionContext.paneID != submitted.paneID)
+        #expect(window.sidebar.sessionContext.hostID == submitted.hostID)
+        #expect(submitted.modelContext?.contains("pane_id: \(first.id.uuidString)") == true)
+
+        workspace.splitFocusedPane(axis: .horizontal, with: .sftpChannel(host: host))
+        #expect(window.sidebar.sessionContext.paneID == nil)
+        workspace.focus(first.id)
+        #expect(window.sidebar.sessionContext.paneID == first.id)
+        window.selectAssistant()
+        window.refreshSessionContext()
+        #expect(window.sidebar.sessionContext == .none)
     }
 
     @Test

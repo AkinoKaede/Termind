@@ -28,13 +28,16 @@ struct AssistantExecutionControllerTests {
         conversation.reasoningEffort = .low
         conversation.isPlanning = true
         conversation.composer.draft = "inspect"
+        var context = SessionContext(paneID: UUID(), hostName: "captured-host", workingDirectory: "/captured")
+        let submittedPaneID = try #require(context.paneID)
 
         #expect(
             controller.sendAgentDraft(
                 conversation,
-                context: SessionContext(hostName: "captured-host", workingDirectory: "/captured"),
+                context: context,
                 terminalSuggestionsAvailable: true))
         await memoryStore.waitUntilPreparationEntered()
+        context.paneID = UUID()
 
         conversation.permissionMode = .fullAccess
         conversation.reasoningEffort = .high
@@ -46,6 +49,8 @@ struct AssistantExecutionControllerTests {
 
         let captured = try #require(conversation.transcript.last?.contextSnapshot)
         #expect(captured.sessionContext?.contains("captured-host") == true)
+        #expect(captured.sessionContext?.contains("pane_id: \(submittedPaneID.uuidString)") == true)
+        #expect(captured.sessionContext?.contains(try #require(context.paneID).uuidString) == false)
         #expect(captured.planContract == TermindAgentPolicy.planContract)
         #expect(captured.toolAvailability?["terminal_suggest"] == true)
         #expect(captured.skillCatalog?.contains("old-skill") == true)

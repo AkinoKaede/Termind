@@ -205,12 +205,14 @@ struct AgentSteeringTests {
                 contextSnapshot: first),
             repository: repository)
         conversation.composer.draft = "inspect here"
+        let paneID = UUID()
         conversation.submitSteeringDraft(
-            context: SessionContext(hostName: "B", workingDirectory: "/srv"),
+            context: SessionContext(paneID: paneID, hostName: "B", workingDirectory: "/srv"),
             terminalSuggestionsAvailable: true)
         let queued = try! #require(conversation.pendingSteering.first?.message)
         #expect(conversation.activeContextSnapshot == first)
         #expect(queued.contextSnapshot?.sessionContext?.contains("host_name: B") == true)
+        #expect(queued.contextSnapshot?.sessionContext?.contains("pane_id: \(paneID.uuidString)") == true)
         #expect(queued.contextSnapshot?.skillCatalog == first.skillCatalog)
         #expect(queued.contextSnapshot?.planContract == first.planContract)
         #expect(queued.contextSnapshot?.memorySessionID == memorySessionID)

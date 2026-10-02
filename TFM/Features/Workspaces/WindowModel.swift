@@ -808,7 +808,14 @@ final class WindowModel {
             sidebar.sessionContext = .none
             return
         }
+        let pane = workspace.focusedPane
+        let paneID: UUID? =
+            switch pane.kind {
+            case .sshSession, .telnetSession, .serialSession: pane.id
+            case .sftpChannel, .empty: nil
+            }
         sidebar.sessionContext = SessionContext(
+            paneID: paneID,
             hostID: workspace.focusedPane.hostID,
             hostName: workspace.focusedPane.hostID.flatMap { hostStore.host($0)?.name },
             workingDirectory: workspace.focusedPane.workingDirectory,

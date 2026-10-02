@@ -261,7 +261,7 @@ nonisolated public enum AgentToolPresentation {
     public static func batchSummary(
         for cards: [AgentToolCard], locale: Locale = .current
     ) -> String {
-        if cards.count == 1, let card = cards.first,
+        if cards.count == 1, let card = cards.first, card.state == .completed,
             isLocalPaneTool(card.descriptor, named: "list_panes")
                 || isLocalPaneTool(card.descriptor, named: "read_pane")
         {
@@ -777,6 +777,18 @@ nonisolated public enum AgentToolPresentation {
         _ cards: [AgentToolCard], locale: Locale
     ) -> String {
         guard let first = cards.first else { return "" }
+        let listsPanes = isLocalPaneTool(first.descriptor, named: "list_panes")
+        if listsPanes || isLocalPaneTool(first.descriptor, named: "read_pane") {
+            // Recover the action for persisted cards whose descriptors predate
+            // actionKind, and count reads/listings rather than inferred terminals.
+            let activity = localized(
+                listsPanes ? AppStrings.Assistant.terminalsActivity : AppStrings.Assistant.terminalActivity,
+                locale: locale)
+            return actionSummary(
+                listsPanes ? .list : .read, state: first.state,
+                activity: repeatedActivity(activity, count: cards.count, locale: locale),
+                isArgumentValue: false, target: nil, locale: locale)
+        }
         if isTerminalSuggestion(first) {
             let activity =
                 cards.count == 1

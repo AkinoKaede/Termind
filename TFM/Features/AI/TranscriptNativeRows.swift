@@ -1612,6 +1612,7 @@ private enum NativeTranscriptFactory {
         _ row: AgentToolDetail.ListRow, context: NativeTranscriptContext
     ) -> NSView {
         let outer = NativeStack.horizontal(spacing: Metrics.Space.s)
+        outer.alignment = .top
         if let symbol = row.symbol {
             let icon = NSImageView(
                 image: NSImage(systemSymbolName: symbol, accessibilityDescription: nil) ?? NSImage()
@@ -2221,6 +2222,8 @@ final class NativeMarkdownSegment: NSView {
 
 @MainActor
 private final class NativeFlowView: NSView {
+    override var isFlipped: Bool { true }
+
     enum HorizontalAlignment {
         case leading
         case trailing
@@ -2674,36 +2677,46 @@ private final class NativeRiskBadge: NSView {
 
 @MainActor
 private final class NativeBadge: NSView {
+    private let label: NativeLabel
+
     init(text: String) {
-        super.init(frame: .zero)
-        wantsLayer = true
-        layer?.cornerRadius = 8
-        let label = NativeLabel(
+        label = NativeLabel(
             text,
             font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
-            color: .secondaryLabelColor
+            color: TermindColor.nativeTranscriptProminentForeground
         )
+        super.init(frame: .zero)
+        toolTip = text
+        wantsLayer = true
+        layer?.cornerRadius = 8
         label.maximumNumberOfLines = 1
+        label.usesSingleLineMode = true
         label.lineBreakMode = .byTruncatingTail
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.Space.xs),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Metrics.Space.xs),
-            label.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
-        ])
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    override var intrinsicContentSize: NSSize {
+        let size = label.cell?.cellSize ?? label.intrinsicContentSize
+        return NSSize(width: size.width + 2 * Metrics.Space.xs, height: size.height + 4)
+    }
+
+    override var fittingSize: NSSize { intrinsicContentSize }
+
+    override func layout() {
+        super.layout()
+        label.frame = CGRect(
+            x: Metrics.Space.xs, y: 2,
+            width: max(0, bounds.width - 2 * Metrics.Space.xs), height: max(0, bounds.height - 4))
+    }
+
     override func updateLayer() {
         super.updateLayer()
         layer?.backgroundColor =
             TermindColor.resolvedNative(
-                NSColor.quaternaryLabelColor.withAlphaComponent(0.5),
+                .secondaryLabelColor,
                 for: effectiveAppearance
             ).cgColor
     }

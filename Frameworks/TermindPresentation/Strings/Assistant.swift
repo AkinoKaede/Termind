@@ -2,6 +2,8 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Assistant {
+        public static var terminalActivity: LocalizedStringResource { "terminal" }
+        public static var terminalsActivity: LocalizedStringResource { "terminals" }
         public static var listTerminals: LocalizedStringResource { "List terminals" }
         public static var readTerminal: LocalizedStringResource { "Read terminal" }
         public static func readTerminal(_ name: String) -> LocalizedStringResource { "Read terminal \(name)" }

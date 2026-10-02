@@ -34,10 +34,11 @@ nonisolated public struct ListPanesTool: AgentToolDefinition, AgentToolSchemaBui
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "list_panes",
-            "List open terminal panes on this device, including hidden panes, without reading their text or opening a connection. is_active is per window; is_current identifies this run's window default.",
+            "List metadata for open terminal panes on this device, including hidden panes. Use read_pane directly when the intended pane_id is already known from session context or a prior result. is_active is per window; is_current identifies the current terminal in this run's window.",
             properties: [:], required: [], target: .local, approvalPolicy: .approve,
             concurrency: .parallel,
-            presentation: .init(symbol: "rectangle.split.2x1", activity: .label("terminals"), output: .json)
+            presentation: .init(
+                symbol: "rectangle.split.2x1", activity: .label("terminals"), output: .json, actionKind: .list)
         )
     }
 
@@ -87,10 +88,10 @@ nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuil
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "read_pane",
-            "Read the visible viewport of an open terminal pane on this device without changing focus, scroll position, selection, or clipboard. With no pane_id, use this run's window current terminal at call time. Use list_panes to find an ID when no current terminal exists.",
-            properties: ["pane_id": Self.string(max: 64)], required: [],
+            "Read the visible viewport of an open terminal pane on this device while preserving focus, scroll position, selection, and clipboard. pane_id is required: use the terminal ID from session context or a prior tool result. Call read_pane directly when the intended ID is known; use list_panes to discover an unknown or unavailable target.",
+            properties: ["pane_id": Self.string(max: 64)], required: ["pane_id"],
             target: .local, approvalPolicy: .approve, concurrency: .parallel,
-            presentation: .init(symbol: "terminal", activity: .label("terminal"), output: .json)
+            presentation: .init(symbol: "terminal", activity: .label("terminal"), output: .json, actionKind: .read)
         )
     }
 
@@ -98,20 +99,9 @@ nonisolated public struct ReadPaneTool: AgentToolDefinition, AgentToolSchemaBuil
         -> AgentToolResult
     {
         let arguments = try Arguments(invocation)
-        let id: UUID
-        if let supplied = arguments.optionalString("pane_id") {
-            guard let parsed = UUID(uuidString: supplied) else {
-                throw AgentToolError.invalidArguments(
-                    "pane_id is not a valid UUID. Use list_panes for an open pane ID.")
-            }
-            id = parsed
-        } else {
-            guard let current = await panes.list().first(where: \.isCurrent) else {
-                throw AgentToolError.invalidArguments(
-                    "No current terminal in this Assistant window. Call list_panes and pass pane_id."
-                )
-            }
-            id = current.id
+        guard let id = UUID(uuidString: try arguments.string("pane_id")) else {
+            throw AgentToolError.invalidArguments(
+                "pane_id is not a valid UUID. Use the intended pane ID from session context or list_panes.")
         }
         let read = await panes.read(id)
         switch read {
