@@ -94,6 +94,7 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections == [
                 [.ssh, .telnet, .sftp],
+                [.tailscale],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -116,7 +117,7 @@ struct MobileVaultFeatureTests {
             ])
 
         host.sshEnabled = true
-        #expect(MobileHostMenuPolicy.sections(for: host) == MobileHostMenuPolicy.sections)
+        #expect(MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: true) == MobileHostMenuPolicy.sections)
 
         host.sshEnabled = false
         host.telnetEnabled = false

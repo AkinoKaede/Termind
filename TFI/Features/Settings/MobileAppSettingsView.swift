@@ -46,6 +46,7 @@ struct MobileAppSettingsView: View {
                 LabeledContent(AppStrings.Settings.ghostty.swiftUIKey, value: MobileRuntimeVersions.ghostty)
                 LabeledContent(AppStrings.Settings.libssh2.swiftUIKey, value: MobileRuntimeVersions.libssh2)
                 LabeledContent(AppStrings.Settings.openSSL.swiftUIKey, value: MobileRuntimeVersions.openSSL)
+                LabeledContent(AppStrings.Tailscale.title.swiftUIKey, value: MobileRuntimeVersions.tailscale)
             }
             Section(AppStrings.Settings.support.swiftUIKey) {
                 Link(destination: AppReviewController.reviewURL) {

@@ -411,7 +411,7 @@ final class SSHSessionModel: Identifiable {
         let stagedAuthentication = suppliedAuthentications[host.id]
         let username =
             stagedAuthentication?.username
-            ?? identity?.username
+            ?? (host.isTailscaleManaged ? store.savedTailscaleUsername(for: host) : identity?.username)
             ?? usernameHint
         connectionJourney.begin(
             host: host, route: route, purpose: .sshSession, username: username,
@@ -823,13 +823,17 @@ final class SSHSessionModel: Identifiable {
     ) async throws {
         let wasReconnecting = connection.isRecovering
         let presentsConnectionJourney = connectionJourney.isPresented
-        let configuration = SSHConnectionConfiguration(
+        var configuration = SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials, expectedHostKeys: expectedHostKeys,
             proxy: proxy, jumps: jumps,
             charset: host.charset,
             authenticationReference: authenticationReference
         )
+        guard let store = statusStore else { throw TailscaleConfigurationError.unavailable }
+        configuration.network = try store.tailscaleNetwork(
+            for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
+        configuration.tailscaleNodeID = host.tailscale?.stableNodeID
         let terminalSurface = terminalSurface
         commandMonitor.beginConnection()
         let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
@@ -1000,6 +1004,10 @@ final class SSHSessionModel: Identifiable {
             allowsSaving: connectionOrigin.allowsPersistence
         )
         status = .disconnected
+        if host.isTailscaleManaged {
+            connectionJourney.waitForTailscaleUsername(at: host.id, failure: failureMessage)
+            return
+        }
         switch mode {
         case .localIdentity:
             if requiresPassphrase {

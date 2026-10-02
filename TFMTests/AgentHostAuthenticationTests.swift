@@ -16,6 +16,24 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct AgentHostAuthenticationTests {
+    @Test func tailscaleBrowserApprovalRemainsPendingInAssistantUntilTheUserResponds() async throws {
+        let conversation = ConversationModel()
+        let interaction = WeakAgentUserInteraction(conversation).sshInteraction
+        let challenge = SSHKeyboardInteractiveChallenge(
+            connectionID: UUID(), hostID: UUID(), hostname: "server.example", port: 22, username: "root",
+            round: 1, name: "", instruction: "Approve at https://login.example/ssh/check", prompts: [],
+            isTailscaleApproval: true)
+        let task = Task { try await interaction.respondToChallenge(challenge, invocationID: UUID()) }
+        defer { task.cancel() }
+        try await waitForAuthentication(in: conversation)
+        for _ in 0..<10 { await Task.yield() }
+        let pending = try #require(conversation.pendingSSHAuthentication)
+        #expect(pending.keyboardInteractive?.isTailscaleApproval == true)
+        conversation.respondToSSHAuthentication(.keyboardInteractive([]), requestID: pending.id)
+        #expect(try await task.value.isEmpty)
+        #expect(conversation.pendingSSHAuthentication == nil)
+    }
+
     @Test func webAuthnSigningUsesTheConversationAuthenticationForm() async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         let host = Host(name: "Server", host: "server.example", identityID: identity.id)
@@ -377,7 +395,7 @@ struct AgentHostAuthenticationTests {
                         username: "deploy", password: "fallback-password",
                         keyID: key.id, save: false
                     ))
-            case .keyboardInteractive, .securityKey:
+            case .keyboardInteractive, .securityKey, .tailscaleUsername:
                 return .cancelled
             case .proxy:
                 return .cancelled

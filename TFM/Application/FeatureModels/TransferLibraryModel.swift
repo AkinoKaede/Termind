@@ -16,6 +16,15 @@ final class TransferLibraryModel {
 
 extension TransferLibraryModel: RemoteSessionHostStore {
     func host(_ id: Host.ID) -> Host? { library.host(id) }
+    func networkConfigurationStamp(for host: Host) -> Data { library.networkConfigurationStamp(for: host) }
+    func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)? {
+        try library.tailscaleNetwork(for: host)
+    }
+    func savedTailscaleUsername(for host: Host) -> String? { library.savedTailscaleUsername(for: host) }
+    func tailscaleUsername(for host: Host) -> String { library.tailscaleUsername(for: host) }
+    @discardableResult func saveTailscaleUsername(_ username: String, hostID: Host.ID) -> Bool {
+        library.saveTailscaleUsername(username, hostID: hostID)
+    }
     func identity(_ id: Identity.ID) -> Identity? { library.identity(id) }
     func identity(for host: Host) -> Identity? { library.identity(for: host) }
     func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? {

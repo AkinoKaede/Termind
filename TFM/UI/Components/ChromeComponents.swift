@@ -100,19 +100,22 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
     let close: () -> Void
     var closeLabel: LocalizedStringResource = AppStrings.Common.close
     var closeSymbol = "xmark"
+    var showsHeaderClose = true
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: Metrics.Space.m) {
-                Button(action: close) {
-                    Label(closeLabel, systemImage: closeSymbol)
-                        .labelStyle(.iconOnly)
+                if showsHeaderClose {
+                    Button(action: close) {
+                        Label(closeLabel, systemImage: closeSymbol)
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .keyboardShortcut(.cancelAction)
+                    .help(closeLabel)
                 }
-                .buttonStyle(.borderless)
-                .keyboardShortcut(.cancelAction)
-                .help(closeLabel)
 
                 Label(title, systemImage: symbol)
                     .font(.headline)

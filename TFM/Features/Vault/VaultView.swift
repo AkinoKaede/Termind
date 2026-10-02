@@ -37,6 +37,8 @@ struct VaultWorkDetailView: View {
     @ViewBuilder
     var body: some View {
         switch route {
+        case .tailscaleDetails(let hostID):
+            TailscaleDetailView(hostID: hostID)
         case .hostEditor(let id, let groupID):
             HostEditorView(hostID: id, initialGroupID: groupID)
         case .hostGroupEditor(let groupID, let parentID):

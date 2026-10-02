@@ -62,10 +62,16 @@ struct HostContextMenu: View {
         Divider()
 
         if hosts.count == 1, let host = hosts.first {
+            if host.isTailscaleManaged || app.tailscale.peer(for: host) != nil {
+                Button(AppStrings.Tailscale.title.swiftUIKey, systemImage: "point.3.connected.trianglepath.dotted") {
+                    window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
+                }
+                Divider()
+            }
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             }
-            if showsDuplicate {
+            if showsDuplicate && !host.isTailscaleManaged {
                 Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
                     var copy = host
                     if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
@@ -94,7 +100,7 @@ struct HostContextMenu: View {
             DestructiveMenuButton(AppStrings.Common.delete) {
                 requestDelete()
             }
-            .disabled(hosts.isEmpty)
+            .disabled(hosts.isEmpty || hosts.contains(where: \.isTailscaleManaged))
         }
     }
 
@@ -212,6 +218,13 @@ enum HostMenuEntries {
                 })
         }
         entries.append(.separator)
+        if host.isTailscaleManaged || app.tailscale.peer(for: host) != nil {
+            entries.append(
+                NativeMenuEntry(title: AppStrings.Tailscale.title, symbol: "point.3.connected.trianglepath.dotted") {
+                    window.openVaultWork(.tailscaleDetails(host.id), on: .hosts)
+                })
+            entries.append(.separator)
+        }
         entries.append(
             NativeMenuEntry(title: AppStrings.Common.edit, symbol: MenuSymbol.edit) {
                 window.openHostEditor(host: host)

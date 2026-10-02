@@ -56,6 +56,12 @@ public final class PersistentVaultSyncQuarantine {
 /// Stable CloudKit V1 encoding is deliberately independent of domain Codable.
 public nonisolated enum VaultSyncCodec {
     public static func encode(_ envelope: VaultEnvelope) throws -> Data {
+        if case .host(let host) = envelope.payload, host.isTailscaleManaged {
+            throw TailscaleConfigurationError.managedHost
+        }
+        if case .hostGroup(let group) = envelope.payload, group.tailscale != nil, envelope.formatVersion == 1 {
+            throw CocoaError(.coderInvalidValue)
+        }
         try SyncRecordFormats.vault.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
@@ -75,6 +81,9 @@ public nonisolated enum VaultSyncCodec {
             try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
         }
         decoders[VaultRecordKind.host.rawValue]?[2] = {
+            try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
+        }
+        decoders[VaultRecordKind.hostGroup.rawValue]?[2] = {
             try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
         }
         return VersionedRecordDecoder(decoders)

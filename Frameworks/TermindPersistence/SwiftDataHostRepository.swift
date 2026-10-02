@@ -27,7 +27,7 @@ public final class SwiftDataHostRepository: HostRepository {
         let hosts = try context.fetch(FetchDescriptor<PersistentHost>())
             .map(\.value)
             .filter { !hidden.contains($0.id) }
-        let groups = try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.value)
+        let groups = try HostPersistence.groups(in: context)
         return RepositoryChange(
             revision: try currentRevision(),
             value: HostLibrarySnapshot(hosts: hosts, groups: groups),
@@ -51,6 +51,7 @@ public final class SwiftDataHostRepository: HostRepository {
     }
 
     public func upsertHost(_ host: Host) throws {
+        guard !host.isTailscaleManaged else { throw TailscaleConfigurationError.managedHost }
         let hostID = host.id
         var descriptor = FetchDescriptor<PersistentHost>(predicate: #Predicate { $0.id == hostID })
         descriptor.fetchLimit = 1

@@ -303,7 +303,8 @@ public final class AgentHostResolver: Sendable {
                     displayName: node.name, address: node.displayAddress,
                     mode: requirement.mode,
                     selectedIdentityID: existing?.identityID ?? identity?.id,
-                    username: existing?.username ?? identity?.username ?? "",
+                    username: existing?.username
+                        ?? (node.isTailscaleManaged ? store.tailscaleUsername(for: node) : identity?.username) ?? "",
                     selectedKeyID: existing?.keyID ?? identity?.keyID,
                     failureMessage: failure
                 )
@@ -408,6 +409,12 @@ public final class AgentHostResolver: Sendable {
         forcedHostID: Host.ID?
     ) -> AuthenticationRequirement? {
         guard forcedHostID == nil || forcedHostID == host.id else { return nil }
+        if host.isTailscaleManaged {
+            let username = (submissions[host.id]?.username ?? store.savedTailscaleUsername(for: host))?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return username?.isEmpty != false || forcedHostID == host.id
+                ? AuthenticationRequirement(mode: .tailscaleUsername) : nil
+        }
         if let submission = submissions[host.id] {
             if let keyID = submission.keyID,
                 store.key(keyID).map({
@@ -449,6 +456,14 @@ public final class AgentHostResolver: Sendable {
     private func submission(
         from answer: AgentSSHAuthenticationAnswer, for host: Host
     ) throws -> SSHAuthenticationSubmission {
+        if host.isTailscaleManaged {
+            let username = answer.username.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+            if answer.save, !store.saveTailscaleUsername(username, hostID: host.id) {
+                throw TailscaleConfigurationError.unavailable
+            }
+            return SSHAuthenticationSubmission(username: username)
+        }
         if let identityID = answer.identityID {
             guard let identity = store.identity(identityID) else {
                 throw TermindSSHError.missingCredential

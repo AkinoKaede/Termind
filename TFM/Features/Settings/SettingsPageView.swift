@@ -503,6 +503,9 @@ private struct AppInfoSettings: View {
             LabeledContent(AppStrings.Settings.openSSL.swiftUIKey) {
                 Text(RuntimeVersions.openSSL).foregroundStyle(.secondary).textSelection(.enabled)
             }
+            LabeledContent(AppStrings.Tailscale.title.swiftUIKey) {
+                Text(RuntimeVersions.tailscale).foregroundStyle(.secondary).textSelection(.enabled)
+            }
         }
 
         Section(AppStrings.Settings.support.swiftUIKey) {

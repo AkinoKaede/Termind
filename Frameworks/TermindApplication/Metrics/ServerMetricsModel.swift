@@ -189,7 +189,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         var seen = Set(configuredSelections.map(\.id))
         let additions = hosts.filter { seen.insert($0.id).inserted }
         guard requestAddition(count: additions.count) else { return false }
-        let next = configuredSelections + additions.map { MetricsSelection(id: $0.id) }
+        let next = configuredSelections + additions.map { selection(for: $0) }
         guard persist(next) else { return false }
         applyConfiguration(next)
         return true
@@ -210,12 +210,26 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         let retained = configuredSelections.filter {
             !editableHostIDs.contains($0.id) || requested.contains($0.id)
         }
-        let next = retained + additions.map { MetricsSelection(id: $0) }
+        let next =
+            retained + additions.map { id in hosts.host(id).map { selection(for: $0) } ?? MetricsSelection(id: id) }
         guard next != configuredSelections else { return true }
         guard requestAddition(count: max(0, next.count - configuredSelections.count)) else { return false }
         guard persist(next) else { return false }
         applyConfiguration(next)
         return true
+    }
+
+    private func selection(for host: Host) -> MetricsSelection {
+        var selection = MetricsSelection(id: host.id)
+        selection.tailscaleGroupID = host.tailscale?.groupID
+        if host.isTailscaleManaged { selection.displayName = host.name }
+        return selection
+    }
+
+    public func removeTailscaleGroups(_ ids: Set<UUID>) {
+        let next = configuredSelections.filter { $0.tailscaleGroupID.map { !ids.contains($0) } ?? true }
+        guard next != configuredSelections, persist(next) else { return }
+        applyConfiguration(next)
     }
 
     public func move(_ ids: [UUID], before next: UUID?) {
@@ -309,6 +323,16 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             }
             return
         }
+        if host.isTailscaleManaged {
+            if save, !hosts.saveTailscaleUsername(name, hostID: host.id) {
+                server.status = TailscaleConfigurationError.unavailable.localizedDescription
+                server.journey.fail(server.status)
+                return
+            }
+            submissions[server.id, default: [:]][host.id] = SSHAuthenticationSubmission(username: name)
+            retry(server)
+            return
+        }
         let chosenKey = identity?.keyID ?? keyID
         if save {
             let saved = identity ?? Identity(name: name, username: name, keyID: chosenKey)
@@ -380,7 +404,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
             requiresPassphrase: passphrase)
         server.needsAttention = true
-        if error.isServerAuthenticationChallenge {
+        if host.isTailscaleManaged {
+            server.journey.waitForTailscaleUsername(at: host.id, failure: error.localizedDescription)
+        } else if error.isServerAuthenticationChallenge {
             server.journey.waitForAuthentication(at: host.id, failure: error.localizedDescription)
         } else if passphrase {
             server.journey.waitForLocalPassphrase(at: host.id, failure: error.localizedDescription)
@@ -420,7 +446,17 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public func reconcile() {
         applyConfiguration(configuredSelections)
         for server in servers {
-            guard let host = hosts.host(server.id) else { continue }
+            guard let host = hosts.host(server.id) else {
+                cancel(server.id)
+                continue
+            }
+            do { _ = try hosts.tailscaleNetwork(for: host) } catch {
+                cancel(server.id)
+                server.isConnecting = false
+                server.status = error.localizedDescription
+                server.collectionState = .failed
+                continue
+            }
             server.name = host.name
             guard host.sshEnabled else {
                 cancel(server.id)
@@ -448,6 +484,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         encoder.outputFormatting = .sortedKeys
         var result = (try? encoder.encode(route)) ?? Data()
         for item in route {
+            result.append(hosts.networkConfigurationStamp(for: item))
             if let identity = hosts.identity(for: item) {
                 result.append((try? encoder.encode(identity)) ?? Data())
                 if let id = identity.keyID, let key = hosts.key(id) {
@@ -477,14 +514,16 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         var nextServers: [ServerMetric] = []
 
         for selection in normalized {
-            guard let host = hosts.host(selection.id) else { continue }
+            let host = hosts.host(selection.id)
+            if host == nil && selection.tailscaleGroupID == nil { continue }
+            let name = host?.name ?? selection.displayName ?? selection.id.uuidString
             if let server = previous[selection.id] {
                 let enabledChanged = server.selection.enabled != selection.enabled
                 let devicesChanged =
                     server.selection.disks != selection.disks
                     || server.selection.interfaces != selection.interfaces
                 server.selection = selection
-                server.name = host.name
+                server.name = name
                 if enabledChanged || devicesChanged {
                     cancel(server.id)
                     server.isConnecting = false
@@ -505,7 +544,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                 }
                 nextServers.append(server)
             } else {
-                nextServers.append(ServerMetric(selection: selection, name: host.name))
+                nextServers.append(ServerMetric(selection: selection, name: name))
             }
         }
 
@@ -567,6 +606,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             server.status = message
             server.collectionState = .failed
             server.journey.fail(message)
+            return
+        }
+        do { _ = try hosts.tailscaleNetwork(for: host) } catch {
+            server.isConnecting = false
+            server.status = error.localizedDescription
+            server.collectionState = .failed
             return
         }
         beginConnectionJourney(for: server, host: host)
@@ -763,7 +808,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     private func isCurrent(_ serverID: UUID, token: UUID) -> Bool {
-        current(serverID, token)
+        guard current(serverID, token), let host = hosts.host(serverID) else { return false }
+        do { _ = try hosts.tailscaleNetwork(for: host) } catch { return false }
+        return true
     }
 
     private func publishConnected(_ serverID: UUID, token: UUID, hostID: UUID) -> Bool {

@@ -25,11 +25,12 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
     public var mode: Mode = .localIdentity
     public var target: Target = .host
     public var allowsSaving = true
+    public var usernameOnly: Bool
     public init(
         host: Host, selectedIdentityID: Identity.ID? = nil, username: String, selectedKeyID: SSHKeyRef.ID? = nil,
         failureMessage: String? = nil, requiresPassphrase: Bool = false, mode: Mode = .localIdentity,
         keyboardInteractive: SSHKeyboardInteractiveChallenge? = nil, target: Target = .host,
-        allowsSaving: Bool = true
+        allowsSaving: Bool = true, usernameOnly: Bool = false
     ) {
         self.host = host
         self.selectedIdentityID = selectedIdentityID
@@ -41,6 +42,7 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
         self.keyboardInteractive = keyboardInteractive
         self.target = target
         self.allowsSaving = allowsSaving
+        self.usernameOnly = usernameOnly || host.isTailscaleManaged
     }
 
     public var isProxy: Bool {
@@ -62,6 +64,14 @@ public enum SSHAuthenticationPromptResolver {
         mode: SSHAuthenticationPrompt.Mode = .localIdentity,
         requiresPassphrase: Bool? = nil, allowsSaving: Bool = true
     ) -> SSHAuthenticationPrompt {
+        if host.isTailscaleManaged {
+            let suppliedUsername = username?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return SSHAuthenticationPrompt(
+                host: host,
+                username: suppliedUsername?.isEmpty == false
+                    ? suppliedUsername! : (submission?.username ?? store.tailscaleUsername(for: host)),
+                failureMessage: failureMessage, mode: mode, allowsSaving: allowsSaving)
+        }
         let identity = submission?.identityID.flatMap(store.identity) ?? store.identity(for: host)
         let keyID = selectedKeyID ?? submission?.keyID ?? identity?.keyID
         let resolvedUsername = username ?? submission?.username ?? identity?.username ?? ""

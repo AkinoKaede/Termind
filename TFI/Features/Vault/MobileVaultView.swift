@@ -18,6 +18,7 @@ enum MobileHostMenuAction: Hashable, Sendable {
     case telnet
     case sftp
     case edit
+    case tailscale
     case duplicate
     case delete
 }
@@ -25,16 +26,18 @@ enum MobileHostMenuAction: Hashable, Sendable {
 nonisolated enum MobileHostMenuPolicy {
     static let sections: [[MobileHostMenuAction]] = [
         [.ssh, .telnet, .sftp],
+        [.tailscale],
         [.edit, .duplicate],
         [.delete],
     ]
 
-    static func sections(for host: Host) -> [[MobileHostMenuAction]] {
+    static func sections(for host: Host, hasTailscalePeer: Bool = false) -> [[MobileHostMenuAction]] {
         sections.compactMap { section in
             let available = section.filter { action in
                 switch action {
                 case .ssh, .sftp: host.sshEnabled
                 case .telnet: host.telnetEnabled
+                case .tailscale: host.isTailscaleManaged || hasTailscalePeer
                 case .edit, .duplicate, .delete: true
                 }
             }
@@ -291,6 +294,7 @@ struct MobileVaultView: View {
     private let openMetrics: (() -> Void)?
     @Binding var editingHost: Host?
     @State private var query = ""
+    @State private var tailscaleHost: Host?
     @State private var deletingHost: Host?
     @State private var groupEditorRequest: GroupEditorRequest?
     @State private var deletingGroup: HostGroup?
@@ -490,6 +494,9 @@ struct MobileVaultView: View {
                     Label(AppStrings.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
                 }
             }
+        }
+        .sheet(item: $tailscaleHost) { host in
+            TailscalePeerView(model: app.tailscale, host: host) { UIPasteboard.general.string = $0 }
         }
         .sheet(item: $editingHost) { MobileHostEditor(app: app, host: $0) }
         .sheet(item: $groupEditorRequest) { request in
@@ -813,7 +820,8 @@ struct MobileVaultView: View {
             .accessibilityElement(children: .combine)
             .accessibilityHint(AppStrings.Vault.openWorkspace.swiftUIKey)
         } actions: {
-            let sections = MobileHostMenuPolicy.sections(for: host)
+            let sections = MobileHostMenuPolicy.sections(
+                for: host, hasTailscalePeer: app.tailscale.peer(for: host) != nil)
             ForEach(sections.indices, id: \.self) { section in
                 ForEach(sections[section], id: \.self) { action in
                     hostMenuButton(action, host: host)
@@ -842,14 +850,18 @@ struct MobileVaultView: View {
             }
         case .edit:
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editingHost = host }
+        case .tailscale:
+            Button(AppStrings.Tailscale.title.swiftUIKey, systemImage: "point.3.connected.trianglepath.dotted") {
+                tailscaleHost = host
+            }
         case .duplicate:
             Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") {
                 app.duplicateHost(host)
-            }
+            }.disabled(host.isTailscaleManaged)
         case .delete:
             Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                 deletingHost = host
-            }
+            }.disabled(host.isTailscaleManaged)
         }
     }
 }
@@ -859,6 +871,9 @@ struct MobileHostGroupEditor: View {
     let original: HostGroup
     let existing: Bool
     let didSave: (HostGroup) -> Void
+    @State private var showsTailscaleLogin = false
+    @State private var exitNodeID = ""
+    @State private var hostname = ""
     @State private var draft: HostGroup
     @Environment(\.dismiss) private var dismiss
 
@@ -872,6 +887,8 @@ struct MobileHostGroupEditor: View {
         existing = group != nil
         self.didSave = didSave
         _draft = State(initialValue: initial)
+        _hostname = State(initialValue: app.tailscale.savedHostname(groupID: initial.id) ?? "")
+        _exitNodeID = State(initialValue: app.tailscale.exitNodeID(groupID: initial.id))
     }
 
     private var trimmedName: String {
@@ -882,7 +899,9 @@ struct MobileHostGroupEditor: View {
         MobileEditorSheet(
             title: existing
                 ? String(localized: AppStrings.Vault.editGroup) : String(localized: AppStrings.Vault.newGroup),
-            isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
+            isDirty: draft != original || hostname != (app.tailscale.savedHostname(groupID: draft.id) ?? "")
+                || exitNodeID != app.tailscale.exitNodeID(groupID: draft.id),
+            canSave: !trimmedName.isEmpty && !showsTailscaleLogin, compact: true,
             save: save
         ) {
             TextField(AppStrings.Common.name.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal)
@@ -894,12 +913,51 @@ struct MobileHostGroupEditor: View {
                     Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
                 }
             }
+            Section(AppStrings.Tailscale.title.swiftUIKey) {
+                if let configuration = draft.tailscale {
+                    LabeledContent(AppStrings.Tailscale.network.swiftUIKey, value: configuration.network.dnsSuffix)
+                    TailscaleExitNodeField(model: app.tailscale, groupID: draft.id, selection: $exitNodeID)
+                    if app.tailscale.runningGroups.contains(draft.id) {
+                        TailscaleDeviceFields(model: app.tailscale, groupID: draft.id, hostname: $hostname) { value in
+                            UIPasteboard.general.string = value
+                        }
+                    } else if !showsTailscaleLogin {
+                        Button(AppStrings.Tailscale.login.swiftUIKey) {
+                            if app.pro.require(.tailscale) { showsTailscaleLogin = true }
+                        }.disabled(trimmedName.isEmpty)
+                    }
+                } else {
+                    Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: tailscaleEnabled)
+                }
+                if showsTailscaleLogin {
+                    TailscaleLoginFields(
+                        model: app.tailscale, name: trimmedName, parentID: draft.parentID,
+                        group: existing ? draft : nil
+                    ) { id in
+                        if let group = app.library.group(id) { didSave(group) }
+                        dismiss()
+                    }
+                }
+            }
         }
         .onChange(of: app.library.groups.map(\.id)) {
             if existing && !app.library.groups.contains(where: { $0.id == original.id }) {
                 dismiss()
             }
         }
+    }
+
+    private var tailscaleEnabled: Binding<Bool> {
+        Binding(
+            get: { showsTailscaleLogin },
+            set: { enabled in
+                if enabled {
+                    showsTailscaleLogin = app.pro.require(.tailscale)
+                } else {
+                    app.tailscale.cancelLogin()
+                    showsTailscaleLogin = false
+                }
+            })
     }
 
     private var parentChoices: [(group: HostGroup, path: String)] {
@@ -921,6 +979,13 @@ struct MobileHostGroupEditor: View {
     }
 
     private func save() async throws {
+        if draft.tailscale != nil, app.tailscale.savedHostname(groupID: draft.id) != nil {
+            try await app.tailscale.saveHostname(hostname, groupID: draft.id)
+        }
+        if draft.tailscale != nil {
+            try app.tailscale.saveExitNode(exitNodeID, groupID: draft.id)
+            draft.tailscale = app.library.group(draft.id)?.tailscale
+        }
         draft.name = trimmedName
         app.library.upsert(draft)
         if let error = app.library.storageError { throw MobileEditorError.message(error) }

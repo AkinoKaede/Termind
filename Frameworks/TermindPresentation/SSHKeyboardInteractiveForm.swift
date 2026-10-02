@@ -26,7 +26,13 @@ public struct SSHKeyboardInteractiveForm: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Interactive authentication").font(.headline)
+            Group {
+                if challenge.isTailscaleApproval {
+                    Text(AppStrings.Tailscale.check)
+                } else {
+                    Text("Interactive authentication")
+                }
+            }.font(.headline)
             Text(verbatim: challenge.address).font(.caption.monospaced()).foregroundStyle(.secondary)
             ViewThatFits(in: .vertical) {
                 fields.fixedSize(horizontal: false, vertical: true)
@@ -42,7 +48,7 @@ public struct SSHKeyboardInteractiveForm: View {
             HStack {
                 Button(AppStrings.Common.cancel.swiftUIKey, action: cancel).keyboardShortcut(.cancelAction)
                 Spacer()
-                if !challenge.prompts.isEmpty {
+                if !challenge.isInformational {
                     Button(AppStrings.Common.continue.swiftUIKey, action: commit)
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
@@ -59,7 +65,7 @@ public struct SSHKeyboardInteractiveForm: View {
         .task {
             focus = answers.isEmpty ? nil : 0
             // RFC 4256 also permits informational rounds without any questions.
-            if challenge.prompts.isEmpty { commit() }
+            if challenge.isInformational { commit() }
         }
         .onDisappear { answers = Array(repeating: "", count: answers.count) }
     }
@@ -69,6 +75,9 @@ public struct SSHKeyboardInteractiveForm: View {
             if !challenge.name.isEmpty { Text(verbatim: challenge.name).font(.headline) }
             if !challenge.instruction.isEmpty {
                 Text(verbatim: challenge.instruction).textSelection(.enabled)
+            }
+            if let url = challenge.tailscaleApprovalURL {
+                Link(AppStrings.Tailscale.openLogin.swiftUIKey, destination: url)
             }
             ForEach(challenge.prompts.indices, id: \.self) { index in
                 VStack(alignment: .leading, spacing: 5) {

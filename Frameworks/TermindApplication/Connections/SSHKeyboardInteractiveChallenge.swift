@@ -23,6 +23,19 @@ public nonisolated struct SSHKeyboardInteractiveChallenge: Identifiable, Hashabl
     public var name: String
     public var instruction: String
     public var prompts: [Prompt]
+    /// A Tailscale SSH banner needs browser approval, not keyboard-interactive credentials.
+    public var isTailscaleApproval: Bool
+    public var isInformational: Bool { prompts.isEmpty && !isTailscaleApproval }
+
+    public var tailscaleApprovalURL: URL? {
+        guard isTailscaleApproval else { return nil }
+        return instruction.split(whereSeparator: \.isWhitespace).compactMap { word in
+            guard let url = URL(string: String(word)), url.scheme == "https", url.host != nil,
+                url.user == nil, url.password == nil
+            else { return nil as URL? }
+            return url
+        }.first
+    }
 
     public var address: String {
         let host = hostname.contains(":") ? "[\(hostname)]" : hostname
@@ -32,7 +45,7 @@ public nonisolated struct SSHKeyboardInteractiveChallenge: Identifiable, Hashabl
     public init(
         id: UUID = UUID(), connectionID: UUID, hostID: UUID, hostname: String,
         port: Int, username: String, round: Int, name: String, instruction: String,
-        prompts: [Prompt]
+        prompts: [Prompt], isTailscaleApproval: Bool = false
     ) {
         self.id = id
         self.connectionID = connectionID
@@ -44,6 +57,7 @@ public nonisolated struct SSHKeyboardInteractiveChallenge: Identifiable, Hashabl
         self.name = name
         self.instruction = instruction
         self.prompts = prompts
+        self.isTailscaleApproval = isTailscaleApproval
     }
 }
 
@@ -78,7 +92,7 @@ public final class SSHKeyboardInteractiveQueue {
                 }
                 waiters[challenge.id] = continuation
                 pending.append(challenge)
-                if challenge.prompts.isEmpty {
+                if challenge.isInformational {
                     Task { [weak self] in
                         await Task.yield()
                         self?.respond(challenge.id, answers: [])

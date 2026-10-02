@@ -54,6 +54,7 @@ final class AppModel {
 
     private let hosts: HostLibraryModel
     let proAccess: ProAccessController
+    let tailscale: TailscaleModel
     var hostLibrary: HostLibraryModel { hosts }
     let knownHosts: KnownHostsLibraryModel
     let credentials: CredentialLibraryModel
@@ -188,6 +189,7 @@ final class AppModel {
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
         devices: DeviceDirectoryModel? = nil,
+        tailscaleStore: (any TailscaleLocalStoring)? = nil,
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
@@ -233,7 +235,13 @@ final class AppModel {
         self.commandHistory = commandHistory
         self.sftpHistory = sftpHistory
         self.connectionHistory = connectionHistory
-        self.devices = devices ?? DeviceDirectoryModel(currentDeviceID: connectionHistory.sourceDeviceID)
+        let devices = devices ?? DeviceDirectoryModel(currentDeviceID: connectionHistory.sourceDeviceID)
+        self.devices = devices
+        tailscale = TailscaleModel(
+            library: hosts, store: tailscaleStore ?? InMemoryTailscaleLocalStore(),
+            factory: LibTailscaleNodeSession.factory,
+            hostname: { devices.currentDeviceName }, hasAccess: { proAccess.canUse(.tailscale) }
+        )
         self.externalToolCalls = externalToolCalls
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
@@ -309,10 +317,9 @@ final class AppModel {
             }
         )
         hosts.willDeleteHost = {
-            [weak forwarding, weak serverMetrics, weak mcpServer, agentConnections, weak sftpEdits] hostID, ruleIDs in
+            [weak forwarding, weak mcpServer, agentConnections, weak sftpEdits] hostID, ruleIDs in
             sftpEdits?.invalidate(hostID: hostID)
             mcpServer?.tools.revokeHost(hostID)
-            serverMetrics?.remove(hostID)
             forwarding?.hostConfigurationChanged(hostID)
             forwarding?.stop(ruleIDs)
             // Not a `HostDeletionOutbox` step like the others: a live socket
@@ -358,6 +365,7 @@ final class AppModel {
             outboxRunner.registerHostDeletionHandlers(
                 repository: hostRepository,
                 closeWorkspaces: { [weak self] deletion in
+                    self?.serverMetrics.remove(deletion.hostID)
                     self?.closeWorkspaces(for: deletion.hostID)
                     self?.connectionHistory.clear(for: deletion.hostID)
                 },
@@ -383,7 +391,20 @@ final class AppModel {
         sftpSettings.didChange = { [weak self] _ in
             self?.reconcileSFTPPreferences()
         }
+        hosts.didDeleteTailscaleGroups = { [weak self] groups, hostIDs in
+            guard let self else { return }
+            self.serverMetrics.removeTailscaleGroups(groups)
+            for id in hostIDs {
+                self.closeWorkspaces(for: id)
+                self.sftpEdits.invalidate(hostID: id)
+                self.sftpTransfers.cancelAll(for: id)
+                self.serverMetrics.remove(id)
+            }
+        }
+        tailscale.start()
         proAccess.accessDidChange = { [weak self] in
+            self?.tailscale.reconcile()
+            self?.serverMetrics.reconcile()
             self?.reconcileConnectionPreferences()
         }
         sshSettings.didChange = { preferences in
@@ -473,6 +494,10 @@ final class AppModel {
     private func applyRemoteVaultSnapshot(
         _ snapshot: VaultSnapshot, changedKeys: Set<VaultRecordKey>
     ) {
+        let retainedHostIDs = Set(snapshot.hosts.map(\.id))
+        for key in changedKeys where key.kind == .host && !retainedHostIDs.contains(key.id) {
+            serverMetrics.remove(key.id)
+        }
         let plan = VaultRemoteChangePlan.make(
             currentHosts: hosts.hosts,
             snapshot: snapshot,
@@ -483,6 +508,7 @@ final class AppModel {
                 hosts.willDeleteHost?(change.id, hosts.portForwardings(for: change.id).map(\.id))
             }
             if change.isRemoved {
+                serverMetrics.remove(change.id)
                 closeWorkspaces(for: change.id)
                 sftpEdits.invalidate(hostID: change.id)
                 sftpTransfers.cancelAll(for: change.id)
@@ -865,8 +891,10 @@ final class AppModel {
 
     @discardableResult
     func requestHostDeletion(_ hostID: Host.ID) -> Bool {
+        guard hosts.host(hostID)?.isTailscaleManaged != true else { return false }
         do {
             try hostRepository.requestHostDeletion(hostID)
+            serverMetrics.remove(hostID)
             forwarding.hostConfigurationChanged(hostID)
             forwarding.remove(hosts.portForwardings(for: hostID).map(\.id))
             commandHistory.clear(for: hostID)
@@ -882,7 +910,7 @@ final class AppModel {
 
     func deleteHostGroup(_ groupID: HostGroup.ID, keepHosts: Bool) {
         if !keepHosts {
-            let affected = hosts.hosts(inTreeOf: groupID)
+            let affected = hosts.hosts(inTreeOf: groupID).filter { !$0.isTailscaleManaged }
             guard affected.allSatisfy({ requestHostDeletion($0.id) }) else { return }
         }
         hosts.deleteGroupProjection(groupID)
@@ -942,7 +970,7 @@ final class AppModel {
             Task { @MainActor in await conversation.stopAndWait() }
         }
         let task = Task {
-            [shutdownDependencies, mcpServer, sftpTransfers, agentBackgroundCommands, agentConnections] in
+            [shutdownDependencies, mcpServer, sftpTransfers, agentBackgroundCommands, agentConnections, tailscale] in
             async let stopMCP: Void = {
                 if let stop = shutdownDependencies?.stopMCP {
                     await stop()
@@ -970,6 +998,7 @@ final class AppModel {
             } else {
                 await agentConnections.closeAll()
             }
+            await tailscale.shutdown()
         }
         terminationTask = task
         memory.suspend()

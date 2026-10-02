@@ -12,6 +12,7 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
     public nonisolated enum Mode: Hashable, Sendable {
         case securityKey(SecurityKeySigningRequest)
         case identity
+        case tailscaleUsername
         case proxy(ownerHostID: Host.ID)
         case keyboardInteractive(SSHKeyboardInteractiveChallenge)
         case passphrase(keyID: SSHKeyRef.ID)
@@ -55,7 +56,7 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
             failureMessage: failureMessage,
             requiresPassphrase: requiresPassphrase,
             mode: failureMessage == nil ? .localIdentity : .serverChallenge,
-            keyboardInteractive: keyboardInteractive, target: target
+            keyboardInteractive: keyboardInteractive, target: target, usernameOnly: mode == .tailscaleUsername
         )
     }
 

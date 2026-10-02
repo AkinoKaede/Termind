@@ -8,3 +8,7 @@
 	path = libghostty-spm
 	url = https://github.com/AkinoKaede/libghostty-spm.git
 	branch = termind
+[submodule "libtailscale-spm"]
+	path = libtailscale-spm
+	url = https://github.com/AkinoKaede/libtailscale-spm.git
+	branch = main

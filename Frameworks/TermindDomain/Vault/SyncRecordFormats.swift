@@ -44,7 +44,8 @@ public nonisolated struct SyncRecordFormats: Sendable {
 
     private static let v1 = Format(readingVersions: [1], writingVersion: 1)
     public static let vault = Self([
-        "host": Format(readingVersions: [1, 2], writingVersion: 2), "hostGroup": v1, "identity": v1,
+        "host": Format(readingVersions: [1, 2], writingVersion: 2),
+        "hostGroup": Format(readingVersions: [1, 2], writingVersion: 2), "identity": v1,
         "sshKey": Format(readingVersions: [1, 2], writingVersion: 2),
         "knownHost": v1, "snippet": v1, "snippetPackage": v1,
         "portForwarding": v1, "workspaceTemplate": v1,

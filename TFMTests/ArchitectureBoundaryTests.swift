@@ -4,6 +4,13 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func embeddedTailscaleStaysBehindRemoteInfrastructure() throws {
+        for module in ["TermindDomain", "TermindApplication", "TermindPresentation", "TermindPersistence"] {
+            try assertNoImports(in: "../Frameworks/\(module)", forbidden: ["TailscaleKit", "CTailscale"])
+        }
+    }
+
+    @Test
     func revenueCatOwnsCommerceTransactions() throws {
         try assertNoImports(in: "../Frameworks/TermindInfrastructure/Commerce", forbidden: ["StoreKit"])
     }

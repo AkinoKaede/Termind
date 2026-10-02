@@ -338,9 +338,17 @@ final class SFTPChannelModel: Identifiable {
         let stagedAuthentication = suppliedAuthentications[host.id]
         connectionJourney.begin(
             host: host, route: route, purpose: .sftpChannel,
-            username: stagedAuthentication?.username ?? store.identity(for: host)?.username,
+            username: stagedAuthentication?.username ?? usernameHint
+                ?? (host.isTailscaleManaged
+                    ? store.savedTailscaleUsername(for: host) : store.identity(for: host)?.username),
             mode: reconnecting ? .reconnection : .connection
         )
+        if host.isTailscaleManaged, stagedAuthentication == nil, usernameHint == nil,
+            store.savedTailscaleUsername(for: host) == nil
+        {
+            requestAuthentication(host: host, store: store)
+            return
+        }
         if let proxyHost = suppliedProxyAuthentications.firstHostRequiringProxyPassword(in: route) {
             requestProxyAuthentication(host: proxyHost, store: store)
             return
@@ -380,7 +388,7 @@ final class SFTPChannelModel: Identifiable {
             guard let self, let store else { return }
             do {
                 let configuration: SSHConnectionConfiguration
-                if let suppliedAuthentication {
+                if let suppliedAuthentication, !host.isTailscaleManaged {
                     let expectedHostKeys = try store.expectedHostKeys(
                         for: host, temporaryHostKeys: temporaryHostKeys,
                         trustPolicy: .allowChallenge
@@ -444,10 +452,14 @@ final class SFTPChannelModel: Identifiable {
                         trustPolicy: .allowChallenge
                     )
                 }
+                var routedConfiguration = configuration
+                routedConfiguration.network = try store.tailscaleNetwork(
+                    for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
+                routedConfiguration.tailscaleNodeID = host.tailscale?.stableNodeID
                 let coordinator = self.connectionCoordinator ?? RemoteConnectionCoordinator()
                 let client = try await coordinator.connectSFTP(
                     using: SSHConnectionRequest(
-                        configuration: configuration,
+                        configuration: routedConfiguration,
                         authorizeHostKey: { [weak self] challenge in
                             guard let self else { throw CancellationError() }
                             return await self.connection.authorizeHostKey(challenge)
@@ -514,6 +526,18 @@ final class SFTPChannelModel: Identifiable {
                 self.homeResolution = .unavailable
                 self.connection.stopRecovery()
                 self.connectionJourney.fail(String(localized: AppStrings.Connections.authenticationCancelled))
+            } catch  where host.isTailscaleManaged {
+                guard self.connectionAttemptID == attemptID else { return }
+                let username = suppliedAuthentication?.username ?? usernameHint ?? store.tailscaleUsername(for: host)
+                let message = String(
+                    localized: AppStrings.Tailscale.sftpFailure(
+                        username: username, address: host.host, detail: error.localizedDescription))
+                self.pendingAuthentication = nil
+                self.connection.stopRecovery()
+                self.status = .failed(message)
+                self.homeResolution = .unavailable
+                self.hint = message
+                self.connectionJourney.fail(message, at: host.id)
             } catch TermindSSHError.missingCredential,
                 TermindSSHError.missingUsername,
                 TermindSSHError.keyPassphraseRequired
@@ -1192,6 +1216,10 @@ final class SFTPChannelModel: Identifiable {
             allowsSaving: connectionOrigin.allowsPersistence
         )
         status = .disconnected
+        if host.isTailscaleManaged {
+            connectionJourney.waitForTailscaleUsername(at: host.id, failure: failure)
+            return
+        }
         switch mode {
         case .localIdentity:
             if pendingAuthentication?.requiresPassphrase == true {

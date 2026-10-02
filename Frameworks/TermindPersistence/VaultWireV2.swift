@@ -163,8 +163,33 @@ nonisolated enum VaultWireV2 {
             return result
         }
     }
+    struct HostGroup: Codable {
+        var base: VaultWireV1.HostGroup
+        var tailscale: TailscaleGroupConfiguration?
+        enum CodingKeys: String, CodingKey { case tailscale }
+        init(_ value: TermindDomain.HostGroup) {
+            base = VaultWireV1.HostGroup(value)
+            tailscale = value.tailscale
+        }
+        init(from decoder: any Decoder) throws {
+            base = try VaultWireV1.HostGroup(from: decoder)
+            tailscale = try decoder.container(keyedBy: CodingKeys.self)
+                .decode(TailscaleGroupConfiguration?.self, forKey: .tailscale)
+        }
+        func encode(to encoder: any Encoder) throws {
+            try base.encode(to: encoder)
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(tailscale, forKey: .tailscale)
+        }
+        var domainValue: TermindDomain.HostGroup {
+            var value = base.domainValue
+            value.tailscale = tailscale
+            return value
+        }
+    }
     enum Payload: Codable {
         case host(Host)
+        case hostGroup(HostGroup)
         case sshKey(SSHKeyRef)
     }
     struct Envelope: Codable {
@@ -180,6 +205,8 @@ nonisolated enum VaultWireV2 {
             isDeleted = envelope.isDeleted
             if case .host(let host) = envelope.payload {
                 payload = .host(try Host(host))
+            } else if case .hostGroup(let group) = envelope.payload {
+                payload = .hostGroup(HostGroup(group))
             } else if case .sshKey(let key) = envelope.payload {
                 guard key.storage != .external || key.algorithm == .securityKey else {
                     throw CocoaError(.coderInvalidValue)
@@ -195,6 +222,7 @@ nonisolated enum VaultWireV2 {
             var value: VaultRecordPayload?
             switch payload {
             case .host(let host): value = .host(host.domainValue)
+            case .hostGroup(let group): value = .hostGroup(group.domainValue)
             case .sshKey(let key): value = .sshKey(key.domainValue)
             case nil: value = nil
             }

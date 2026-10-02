@@ -856,6 +856,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     ) throws -> SSHAuthenticatedConnection {
         _ = initialization
         defer { configuration.clearSecrets() }
+        guard configuration.network == nil, configuration.tailscaleNodeID == nil else {
+            throw TailscaleConfigurationError.unavailable
+        }
         let operationID = UUID().uuidString.lowercased()
         var logger = logger
         logger[metadataKey: "operation_id"] = "\(operationID)"
@@ -935,7 +938,15 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         logger[metadataKey: "host_id"] = RemoteLogging.hostID(request.configuration.hostID)
         let authenticationLogger = logger
         let request = request.enforcingInteractionPolicy()
-        let configuration = request.configuration
+        var resolvedConfiguration = request.configuration
+        if let nodeID = resolvedConfiguration.tailscaleNodeID {
+            guard let network = resolvedConfiguration.network, resolvedConfiguration.jumps.isEmpty else {
+                throw TailscaleConfigurationError.unavailable
+            }
+            resolvedConfiguration.expectedHostKeys = try await network.hostKeys(stableNodeID: nodeID)
+            guard !resolvedConfiguration.expectedHostKeys.isEmpty else { throw TailscaleConfigurationError.unavailable }
+        }
+        let configuration = resolvedConfiguration
         defer { configuration.clearSecrets() }
         logger.info(
             "ssh.authentication.started",
@@ -948,6 +959,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             proxy: configuration.proxy, jumps: configuration.jumps,
             timeout: timeout, progress: progress,
             authorizeHostKey: request.authorizeHostKey,
+            network: configuration.network,
             keyboardInteractive: request.keyboardInteractive,
             securityKeySigning: request.securityKeySigning,
             interactionPolicy: request.interactionPolicy,
@@ -968,19 +980,54 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     )
                 }
                 let requiredApproval = !configuration.expectedHostKeys.contains(observed.identity)
-                try await authorizeHostKey(
-                    hostID: configuration.hostID, observed: observed,
-                    expected: configuration.expectedHostKeys,
-                    constraint: request.hostKeyConstraints[configuration.hostID],
-                    authorizer: request.authorizeHostKey
-                )
-                try Task.checkCancellation()
-                let authentication = try await queue.perform {
-                    try state.authenticate(
-                        configuration: configuration,
-                        afterHostKeyApproval: requiredApproval,
-                        progress: progress, keyboardInteractive: exchange, logger: authenticationLogger
+                let authentication: String
+                if configuration.tailscaleNodeID != nil, configuration.network != nil {
+                    guard configuration.expectedHostKeys.contains(observed.identity) else {
+                        throw TailscaleConfigurationError.hostKeyMismatch
+                    }
+                    progress?(.authenticating(configuration.hostID))
+                    let deadline = ContinuousClock.now.advanced(by: .seconds(600))
+                    var presentedBanners: Set<String> = []
+                    let approvalConnectionID = UUID()
+                    while true {
+                        try Task.checkCancellation()
+                        let step = try await queue.perform {
+                            try state.authenticateTailscale(username: configuration.username)
+                        }
+                        if step.authenticated { break }
+                        if let banner = step.banner, !banner.isEmpty, presentedBanners.insert(banner).inserted {
+                            guard request.interactionPolicy == .allowed, let present = request.keyboardInteractive
+                            else {
+                                throw SSHInteractionRequired()
+                            }
+                            _ = try await present(
+                                SSHKeyboardInteractiveChallenge(
+                                    connectionID: approvalConnectionID, hostID: configuration.hostID,
+                                    hostname: configuration.host, port: configuration.port,
+                                    username: configuration.username,
+                                    round: presentedBanners.count, name: "", instruction: banner, prompts: [],
+                                    isTailscaleApproval: true))
+                        }
+                        guard ContinuousClock.now < deadline else { throw TailscaleConfigurationError.approvalTimedOut }
+                        try await Task.sleep(for: .milliseconds(50))
+                    }
+                    progress?(.authenticated(configuration.hostID))
+                    authentication = "tailscale"
+                } else {
+                    try await authorizeHostKey(
+                        hostID: configuration.hostID, observed: observed,
+                        expected: configuration.expectedHostKeys,
+                        constraint: request.hostKeyConstraints[configuration.hostID],
+                        authorizer: request.authorizeHostKey
                     )
+                    try Task.checkCancellation()
+                    authentication = try await queue.perform {
+                        try state.authenticate(
+                            configuration: configuration,
+                            afterHostKeyApproval: requiredApproval,
+                            progress: progress, keyboardInteractive: exchange, logger: authenticationLogger
+                        )
+                    }
                 }
                 let result = try await queue.perform { try state.takeResult() }
                 logger.info(
@@ -1977,6 +2024,30 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
         )
         progress?(.authenticated(configuration.hostID))
         return authentication
+    }
+
+    func authenticateTailscale(username: String) throws -> (authenticated: Bool, banner: String?) {
+        guard let session else { throw TermindSSHError.disconnected }
+        libssh2_session_set_blocking(session, 0)
+        _ = username.withCString { libssh2_userauth_list(session, $0, UInt32(username.utf8.count)) }
+        if libssh2_userauth_authenticated(session) != 0 {
+            libssh2_session_set_blocking(session, 1)
+            return (true, nil)
+        }
+        let code = libssh2_session_last_errno(session)
+        var message: UnsafeMutablePointer<CChar>?
+        var length: Int32 = 0
+        _ = libssh2_session_last_error(session, &message, &length, 0)
+        let failureDetail = message.map { String(cString: $0) }
+        var banner: UnsafeMutablePointer<CChar>?
+        _ = libssh2_userauth_banner(session, &banner)
+        guard code == LIBSSH2_ERROR_EAGAIN else {
+            let detail = banner.map { String(cString: $0) } ?? failureDetail
+            let reason = String(localized: "Tailscale SSH authentication failed.")
+            throw TermindSSHError.authenticationFailed(
+                detail.map { "\(reason)\n\($0) [libssh2 \(code)]" } ?? "\(reason) [libssh2 \(code)]")
+        }
+        return (false, banner.map { String(cString: $0) })
     }
 
     func takeResult() throws -> SSHAuthenticatedConnection {

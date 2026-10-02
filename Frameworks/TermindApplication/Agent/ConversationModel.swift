@@ -2672,7 +2672,7 @@ public final class ConversationModel: Identifiable {
                     request, at: index ?? pendingSSHAuthentications.endIndex
                 )
                 setToolState(request.invocationID, .waitingForUser)
-                if request.keyboardInteractive?.prompts.isEmpty == true {
+                if request.keyboardInteractive?.isInformational == true {
                     Task { [weak self] in
                         await Task.yield()
                         self?.respondToSSHAuthentication(.keyboardInteractive([]), requestID: request.id)

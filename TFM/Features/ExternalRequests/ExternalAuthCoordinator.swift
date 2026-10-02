@@ -132,7 +132,7 @@ final class ExternalAuthCoordinator {
                 }
                 sshWaiters[request.id] = continuation
                 append(.ssh(request), clientName: clientName, runID: runID)
-                if request.keyboardInteractive?.prompts.isEmpty == true {
+                if request.keyboardInteractive?.isInformational == true {
                     Task { [weak self] in
                         await Task.yield()
                         self?.respondSSH(.keyboardInteractive([]), requestID: request.id)

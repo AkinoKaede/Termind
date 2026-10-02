@@ -9,6 +9,11 @@ import struct TermindDomain.Host
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func host(_ id: Host.ID) -> Host?
+    func networkConfigurationStamp(for host: Host) -> Data
+    func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)?
+    func savedTailscaleUsername(for host: Host) -> String?
+    func tailscaleUsername(for host: Host) -> String
+    @discardableResult func saveTailscaleUsername(_ username: String, hostID: Host.ID) -> Bool
     func snippet(_ id: Snippet.ID) -> Snippet?
     func identity(_ id: Identity.ID) -> Identity?
     func identity(for host: Host) -> Identity?
@@ -70,6 +75,15 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func savedTailscaleUsername(for host: Host) -> String? { nil }
+    public func tailscaleUsername(for host: Host) -> String { "root" }
+    public func saveTailscaleUsername(_ username: String, hostID: Host.ID) -> Bool { false }
+    public func networkConfigurationStamp(for host: Host) -> Data { Data() }
+    public func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)? {
+        guard !host.isTailscaleManaged else { throw TailscaleConfigurationError.unavailable }
+        return nil
+    }
+
     public func saveKeyPassphrase(_ passphrase: String, for keyID: SSHKeyRef.ID) throws {
         throw TermindSSHError.missingCredential
     }
@@ -184,6 +198,12 @@ extension RemoteSessionHostStore {
         _ submission: SSHAuthenticationSubmission, for host: Host,
         selectedIdentity: Identity?, suppliedPassword: String?
     ) throws -> Host {
+        if host.isTailscaleManaged {
+            guard saveTailscaleUsername(submission.username, hostID: host.id) else {
+                throw TailscaleConfigurationError.unavailable
+            }
+            return host
+        }
         let identity: Identity
         if let selectedIdentity {
             if let suppliedPassword {
@@ -301,10 +321,8 @@ extension RemoteSessionHostStore {
             id: configuration.hostID, name: configuration.host,
             host: configuration.host, port: configuration.port,
             authentication: configuration.authenticationReference,
-            expectedHostKeys: keys(
-                id: configuration.hostID, hostname: configuration.host,
-                port: configuration.port
-            ),
+            expectedHostKeys: configuration.tailscaleNodeID == nil
+                ? keys(id: configuration.hostID, hostname: configuration.host, port: configuration.port) : [],
             proxy: proxy(configuration.proxy)
         )
         let jumps = configuration.jumps.map { hop in
@@ -315,7 +333,10 @@ extension RemoteSessionHostStore {
                 proxy: proxy(hop.proxy)
             )
         }
-        return SSHAdditionalConnectionSnapshot(target: target, jumps: jumps)
+        var result = SSHAdditionalConnectionSnapshot(target: target, jumps: jumps)
+        result.tailscaleNodeID = configuration.tailscaleNodeID
+        result.requiresTailscale = configuration.network != nil
+        return result
     }
 
     /// Resolves current Identity/Key contents immediately before a silent open.
@@ -426,7 +447,7 @@ extension RemoteSessionHostStore {
                 authenticationReference: node.authentication
             )
         }
-        let configuration = SSHConnectionConfiguration(
+        var configuration = SSHConnectionConfiguration(
             hostID: snapshot.target.id, host: snapshot.target.host,
             port: snapshot.target.port, username: targetAuthentication.username,
             credentials: targetAuthentication.credentials,
@@ -435,6 +456,12 @@ extension RemoteSessionHostStore {
             charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication
         )
+        configuration.tailscaleNodeID = snapshot.tailscaleNodeID
+        if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {
+            configuration.network = try tailscaleNetwork(for: first)
+        } else if snapshot.requiresTailscale {
+            throw TailscaleConfigurationError.unavailable
+        }
         completed = true
         return SSHConnectionRequest(
             configuration: configuration, interactionPolicy: .forbidden

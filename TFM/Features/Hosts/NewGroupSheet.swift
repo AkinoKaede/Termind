@@ -19,6 +19,11 @@ struct NewGroupSheet: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
+    @State private var showsTailscaleLogin = false
+    @State private var exitNodeID = ""
+    @State private var hostname = ""
+    @State private var saveError: String?
+    @State private var isSaving = false
     @State private var name = ""
     @State private var parentID: HostGroup.ID?
 
@@ -58,6 +63,7 @@ struct NewGroupSheet: View {
             footer
         }
         .onAppear(perform: load)
+
     }
 
     // MARK: - Pieces
@@ -78,8 +84,48 @@ struct NewGroupSheet: View {
                     }
                 }
             }
+            Section(AppStrings.Tailscale.title.swiftUIKey) {
+                if let configuration = group?.tailscale {
+                    LabeledContent(AppStrings.Tailscale.network.swiftUIKey, value: configuration.network.dnsSuffix)
+                    if let group {
+                        TailscaleExitNodeField(model: app.tailscale, groupID: group.id, selection: $exitNodeID)
+                    }
+                    if let group, app.tailscale.runningGroups.contains(group.id) {
+                        TailscaleDeviceFields(model: app.tailscale, groupID: group.id, hostname: $hostname) { value in
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(value, forType: .string)
+                        }
+                    } else if !showsTailscaleLogin {
+                        Button(AppStrings.Tailscale.login.swiftUIKey) {
+                            if app.proAccess.require(.tailscale) { showsTailscaleLogin = true }
+                        }
+                    }
+                } else {
+                    Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: tailscaleEnabled)
+                }
+                if showsTailscaleLogin {
+                    TailscaleLoginFields(
+                        model: app.tailscale, name: trimmedName, parentID: parentID, group: group
+                    ) { _ in close() }
+                }
+            }
         }
         .formStyle(.grouped)
+        .disabled(isSaving)
+        .overlay(alignment: .bottom) { if let saveError { Text(saveError).foregroundStyle(.red) } }
+    }
+
+    private var tailscaleEnabled: Binding<Bool> {
+        Binding(
+            get: { showsTailscaleLogin },
+            set: { enabled in
+                if enabled {
+                    showsTailscaleLogin = app.proAccess.require(.tailscale)
+                } else {
+                    app.tailscale.cancelLogin()
+                    showsTailscaleLogin = false
+                }
+            })
     }
 
     private var footer: some View {
@@ -91,7 +137,7 @@ struct NewGroupSheet: View {
 
             Button(isEditing ? AppStrings.Common.save.swiftUIKey : AppStrings.Common.add.swiftUIKey, action: add)
                 .keyboardShortcut(.defaultAction)
-                .disabled(trimmedName.isEmpty)
+                .disabled(trimmedName.isEmpty || showsTailscaleLogin)
         }
         .padding(Metrics.Space.l)
     }
@@ -110,6 +156,8 @@ struct NewGroupSheet: View {
 
     private func load() {
         if let group {
+            hostname = app.tailscale.savedHostname(groupID: group.id) ?? ""
+            exitNodeID = app.tailscale.exitNodeID(groupID: group.id)
             name = group.name
             parentID = group.parentID
         } else {
@@ -123,15 +171,30 @@ struct NewGroupSheet: View {
     /// which the store then numbers against the new group's siblings — knowledge
     /// this sheet does not have.
     private func add() {
-        if var edited = group {
-            edited.name = trimmedName
-            edited.parentID = parentID
-            create(edited)
-        } else {
-            create(HostGroup(name: trimmedName, parentID: parentID))
+        guard !isSaving else { return }
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                if var edited = group {
+                    if edited.tailscale != nil, app.tailscale.savedHostname(groupID: edited.id) != nil {
+                        try await app.tailscale.saveHostname(hostname, groupID: edited.id)
+                    }
+                    if edited.tailscale != nil {
+                        try app.tailscale.saveExitNode(exitNodeID, groupID: edited.id)
+                        edited.tailscale = app.hostLibrary.group(edited.id)?.tailscale
+                    }
+                    edited.name = trimmedName
+                    edited.parentID = parentID
+                    create(edited)
+                } else {
+                    create(HostGroup(name: trimmedName, parentID: parentID))
+                }
+                close()
+            } catch { saveError = error.localizedDescription }
         }
-        close()
     }
+
 }
 
 #Preview {

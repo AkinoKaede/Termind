@@ -25,6 +25,7 @@ public struct HostSessionSection: View {
     @Binding private var agentForwardingEnabled: Bool
     @Binding private var startupSnippetID: Snippet.ID?
     @Binding private var environmentVariables: [HostEnvironmentVariable]
+    private let allowsAgentForwarding: Bool
     private let snippets: [Snippet]
     private let snippetPackagePath: (SnippetPackage.ID?) -> String?
     private let editEnvironmentVariable: (Int?) -> Void
@@ -34,6 +35,7 @@ public struct HostSessionSection: View {
         sftpInitialPath: Binding<String>,
         startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
         agentForwardingEnabled: Binding<Bool> = .constant(false),
+        allowsAgentForwarding: Bool = true,
         environmentVariables: Binding<[HostEnvironmentVariable]> = .constant([]),
         snippets: [Snippet] = [],
         snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil },
@@ -42,6 +44,7 @@ public struct HostSessionSection: View {
         _charset = charset
         _sftpInitialPath = sftpInitialPath
         _startupSnippetID = startupSnippetID
+        self.allowsAgentForwarding = allowsAgentForwarding
         _agentForwardingEnabled = agentForwardingEnabled
         _environmentVariables = environmentVariables
         self.snippets = snippets
@@ -69,8 +72,8 @@ public struct HostSessionSection: View {
             }
             .pickerStyle(.menu)
             .menuOrder(.fixed)
-            Toggle(isOn: $agentForwardingEnabled) {
-                Text(AppStrings.Connections.agentForwarding)
+            if allowsAgentForwarding {
+                Toggle(isOn: $agentForwardingEnabled) { Text(AppStrings.Connections.agentForwarding) }
             }
             LabeledContent("SFTP Initial Path") {
                 TextField("SFTP Initial Path", text: $sftpInitialPath.singleLineText, prompt: Text("~"))

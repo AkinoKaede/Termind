@@ -44,6 +44,27 @@ struct SSHKeyboardInteractiveQueueTests {
         #expect(queue.pending.isEmpty)
     }
 
+    @Test func tailscaleApprovalWaitsInTheJourneyAndCancelsWithItsConnection() async throws {
+        let controller = RemoteSessionConnectionController()
+        var challenge = challenge()
+        challenge.prompts = []
+        challenge.isTailscaleApproval = true
+        challenge.instruction = "Approve at https://login.example/ssh/check"
+        let host = Host(id: challenge.hostID, name: "Host", host: challenge.hostname)
+        controller.journey.begin(host: host, route: [host], purpose: .sshSession, username: challenge.username)
+        let task = Task { try await controller.answerKeyboardInteractive(challenge) }
+        defer { task.cancel() }
+        await wait(controller.keyboardAuthentication, count: 1)
+        for _ in 0..<10 { await Task.yield() }
+        #expect(controller.keyboardAuthentication.current?.id == challenge.id)
+        #expect(controller.journey.phase == .waiting)
+        #expect(challenge.tailscaleApprovalURL?.absoluteString == "https://login.example/ssh/check")
+        #expect(!controller.journey.plainTextLog.contains(challenge.instruction))
+        controller.disconnect()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(controller.keyboardAuthentication.pending.isEmpty)
+    }
+
     @Test func disconnectCancelsTheJourneyWithoutLoggingChallenges() async throws {
         let controller = RemoteSessionConnectionController()
         let challenge = challenge()

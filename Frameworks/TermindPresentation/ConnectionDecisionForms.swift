@@ -53,6 +53,7 @@ public struct SSHAuthenticationForm: View {
         self.cancel = cancel
         self.usesContainerChrome = usesContainerChrome
         let initialIdentityID = prompt.selectedIdentityID.flatMap { id -> Identity.ID? in
+            guard !prompt.usernameOnly else { return nil }
             guard let identity = library.identity(id) else { return nil }
             if identity.isHostCustom { return nil }
             switch library.passwordAvailability(for: identity) {
@@ -70,7 +71,8 @@ public struct SSHAuthenticationForm: View {
     }
 
     private var canContinue: Bool {
-        !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if prompt.usernameOnly { return !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (!needsPassphrase || !passphrase.isEmpty)
             && (!prompt.isProxy || !password.isEmpty)
             && !selectedIdentityPasswordIsUnavailable
@@ -93,7 +95,9 @@ public struct SSHAuthenticationForm: View {
 
     public var body: some View {
         Group {
-            if let challenge = prompt.keyboardInteractive, let respondKeyboardInteractive {
+            if prompt.usernameOnly {
+                usernameForm
+            } else if let challenge = prompt.keyboardInteractive, let respondKeyboardInteractive {
                 SSHKeyboardInteractiveForm(
                     challenge: challenge, submit: respondKeyboardInteractive, cancel: cancel, keyboard: keyboard
                 )
@@ -114,9 +118,30 @@ public struct SSHAuthenticationForm: View {
             passphrase = ""
         }
         .onAppear {
+            if prompt.usernameOnly {
+                focusedField = .username
+                return
+            }
             if identityID != nil, selectedIdentity == nil { identityID = nil }
             loadPassword(for: selectedIdentity ?? initialCustomIdentity)
             updateFocusForRequirement()
+        }
+    }
+
+    private var usernameForm: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let message = prompt.failureMessage {
+                Text(message).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+            }
+            LabeledContent(AppStrings.Vault.username.swiftUIKey) {
+                TextField(AppStrings.Vault.username.swiftUIKey, text: $username.singleLineText)
+                    .singleLinePaste().lineLimit(1)
+                    .focused($focusedField, equals: .username)
+                    #if os(iOS)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    #endif
+            }
+            actions
         }
     }
 
@@ -300,6 +325,10 @@ public struct SSHAuthenticationForm: View {
 
     private func commit(save: Bool) {
         let save = save && prompt.allowsSaving
+        if prompt.usernameOnly {
+            submit(nil, username.trimmingCharacters(in: .whitespacesAndNewlines), nil, nil, nil, save)
+            return
+        }
         let submittedPassword = needsPassphrase ? nil : (save ? password : (password.isEmpty ? nil : password))
         let submittedPassphrase = passphrase.isEmpty ? nil : passphrase
         password = ""

@@ -29,6 +29,7 @@
 		6DF0C216374DA144B1FC2030 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		6FB449BC0FE9518E6E22B442 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		76535271991F0D93E7277E6F /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		7A115CA1E000000000000001 /* TailscaleKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7A115CA1E000000000000002 /* TailscaleKit */; };
 		7B23538CFDAF459CA4CB4351 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		7B51DD6FD59A860DDA7F80EE /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
@@ -646,6 +647,7 @@
 				LOGG00000000000000000103 /* Logging in Frameworks */,
 				ABCDEF020000000000000002 /* AgentKitScrubber in Frameworks */,
 				0C77A0D7A810A78DA1F6CD93 /* CSSH2 in Frameworks */,
+				7A115CA1E000000000000001 /* TailscaleKit in Frameworks */,
 				0D54DF6508C7918D7D5B9D5A /* OpenSSL in Frameworks */,
 				0861B3AA103F736DEE93983B /* TermindInfrastructure.framework in Frameworks */,
 				88E7F9CE7BC5631B487E2BC5 /* TermindDomain.framework in Frameworks */,
@@ -1133,6 +1135,7 @@
 			);
 			name = TermindRemoteInfrastructure;
 			packageProductDependencies = (
+				7A115CA1E000000000000002 /* TailscaleKit */,
 				LOGG00000000000000000002 /* Logging */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
 				TRMD00000000000000100011 /* CSSH2 */,
@@ -1385,6 +1388,7 @@
 			mainGroup = TRMD00000000000000000030;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				7A115CA1E000000000000003 /* XCRemoteSwiftPackageReference "libtailscale-spm" */,
 				C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */,
@@ -2890,6 +2894,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7A115CA1E000000000000003 /* XCRemoteSwiftPackageReference "libtailscale-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AkinoKaede/libtailscale-spm.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.0;
+			};
+		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
@@ -2997,6 +3009,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7A115CA1E000000000000002 /* TailscaleKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A115CA1E000000000000003 /* XCRemoteSwiftPackageReference "libtailscale-spm" */;
+			productName = TailscaleKit;
+		};
 		BAAD00000000000000000002 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;

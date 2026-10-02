@@ -46,7 +46,7 @@ public nonisolated enum MetricsRecordPayload: Codable, Hashable, Sendable {
 }
 
 public nonisolated struct MetricsEnvelope: Codable, Hashable, Sendable {
-    public static let currentFormatVersion = 1
+    public static let currentFormatVersion = 2
     public var formatVersion = Self.currentFormatVersion
     public var key: MetricsRecordKey
     public var version: VaultVersion
@@ -66,7 +66,7 @@ public nonisolated struct MetricsEnvelope: Codable, Hashable, Sendable {
     }
 
     public var isValid: Bool {
-        formatVersion == Self.currentFormatVersion
+        (1...Self.currentFormatVersion).contains(formatVersion)
             && MetricsRecordKey(recordName: key.recordName) == key
             && (isDeleted ? payload == nil : payload?.key == key)
     }

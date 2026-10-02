@@ -329,6 +329,20 @@ public final class MetricsSyncPersistence: MetricsConfigurationStoring {
             }
             try journal.acceptRemote(merge.accepted)
             snapshot = try materialize()
+            // A Metrics record can arrive after the Host/Group deletion from the
+            // separate Vault zone. Only explicit tombstones justify removal;
+            // absence of a locally discovered Tailscale node never does.
+            let vault = VaultSyncJournal(context: context)
+            let retained = try snapshot.selections.filter { selection in
+                let key =
+                    selection.tailscaleGroupID.map { VaultRecordKey(kind: .hostGroup, id: $0) }
+                    ?? VaultRecordKey(kind: .host, id: selection.id)
+                return try vault.envelope(for: key)?.isDeleted != true
+            }
+            let cleaned = MetricsSyncSnapshot(selections: retained)
+            let removals = try journal.recordLocalChanges(from: snapshot, to: cleaned)
+            merge.needsUpload.formUnion(removals.keys)
+            snapshot = cleaned
             try journal.markNeedsUpload(merge.needsUpload)
         }
         return (snapshot, Set(merge.accepted.map(\.key)), merge.needsUpload)

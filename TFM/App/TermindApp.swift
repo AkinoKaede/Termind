@@ -178,6 +178,7 @@ struct TermindApp: App {
                         sourceDeviceID: connectionHistoryDeviceID
                     ),
                     devices: devices,
+                    tailscaleStore: SwiftDataTailscaleLocalStore(context: ModelContext(container)),
                     externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,

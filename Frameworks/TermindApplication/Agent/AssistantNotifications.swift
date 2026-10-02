@@ -33,7 +33,7 @@ extension ConversationModel {
                 let secret = request.questions.contains { if case .secret = $0.kind { true } else { false } }
                 return .init(id: request.id, kind: secret ? .secret : .questions)
             case .sshAuthentication(let request):
-                if request.keyboardInteractive?.prompts.isEmpty == true { return nil }
+                if request.keyboardInteractive?.isInformational == true { return nil }
                 return .init(id: request.id, kind: request.requiresPassphrase ? .passphrase : .authentication)
             case .sshHostKey(let request):
                 return .init(id: request.id, kind: .hostKey)

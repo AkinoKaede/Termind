@@ -390,6 +390,13 @@ final class MobileWorkspace: Identifiable {
                 authenticationPrompt?.failureMessage = error.localizedDescription
                 return
             }
+        } else if host.isTailscaleManaged {
+            if save, !hosts.saveTailscaleUsername(name, hostID: host.id) {
+                connectionFailure = TailscaleConfigurationError.unavailable.localizedDescription
+                authenticationPrompt = makeAuthenticationPrompt()
+                return
+            }
+            submissions[host.id] = SSHAuthenticationSubmission(username: name)
         } else {
             let chosenKey = identity?.keyID ?? keyID
             if save {
@@ -665,6 +672,19 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
             username: usernameHint ?? hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
+        if host.isTailscaleManaged, submissions[host.id] == nil, usernameHint == nil,
+            hosts.savedTailscaleUsername(for: host) == nil
+        {
+            authenticationRequired = true
+            authenticationIsProxy = false
+            authenticationMode = .localIdentity
+            authenticationHostID = host.id
+            username = hosts.tailscaleUsername(for: host)
+            authenticationPrompt = makeAuthenticationPrompt()
+            journey.waitForTailscaleUsername(at: host.id)
+            busy = false
+            return
+        }
         if let proxyHost = proxySubmissions.firstHostRequiringProxyPassword(in: route) {
             authenticationRequired = true
             authenticationIsProxy = true
@@ -865,9 +885,21 @@ final class MobileWorkspace: Identifiable {
                 connectionFailure =
                     error is CancellationError
                     ? String(localized: AppStrings.Connections.authenticationCancelled) : error.localizedDescription
+                let managedSFTPFailure =
+                    host.isTailscaleManaged && descriptor.kind == .sftp
+                    && !(error is CancellationError)
+                if managedSFTPFailure {
+                    connectionFailure = String(
+                        localized: AppStrings.Tailscale.sftpFailure(
+                            username: submissions[host.id]?.username ?? usernameHint
+                                ?? hosts.tailscaleUsername(for: host),
+                            address: host.host, detail: error.localizedDescription))
+                    authenticationRequired = false
+                    authenticationPrompt = nil
+                }
                 var requiresUserInteraction = false
-                var preventsAutomaticReconnect = error is CancellationError
-                if let sshError = error as? TermindSSHError {
+                var preventsAutomaticReconnect = error is CancellationError || managedSFTPFailure
+                if let sshError = error as? TermindSSHError, !managedSFTPFailure {
                     switch sshError {
                     case .missingCredential, .missingUsername, .keyPassphraseRequired, .authenticationFailed:
                         authenticationRequired = true
@@ -891,6 +923,9 @@ final class MobileWorkspace: Identifiable {
                             journey.waitForProxyAuthentication(
                                 at: authenticationHostID ?? descriptor.hostID,
                                 failure: error.localizedDescription)
+                        } else if authenticationPrompt?.usernameOnly == true {
+                            journey.waitForTailscaleUsername(
+                                at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)
                         } else if authenticationPrompt?.requiresPassphrase == true {
                             journey.waitForLocalPassphrase(
                                 at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)

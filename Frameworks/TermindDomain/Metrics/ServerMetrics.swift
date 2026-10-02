@@ -2,6 +2,8 @@ import Foundation
 
 public nonisolated struct MetricsSelection: Codable, Hashable, Identifiable, Sendable {
     public var id: UUID
+    public var tailscaleGroupID: UUID?
+    public var displayName: String?
     public var enabled = true
     /// nil selects all default devices; an empty set deliberately selects none.
     public var disks: Set<String>?

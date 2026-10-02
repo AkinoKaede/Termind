@@ -10,6 +10,10 @@ import struct TermindDomain.Host
 /// types for the views. Previews can still construct an in-memory store directly.
 @Observable
 public final class HostLibraryModel: RemoteSessionHostStore {
+    @ObservationIgnored public weak var tailscaleConnections: (any TailscaleConnectionProviding)?
+    @ObservationIgnored public var didChangeTailscaleGroups: (() -> Void)?
+    @ObservationIgnored public var didDeleteTailscaleGroups: ((Set<UUID>, Set<UUID>) -> Void)?
+    private var tailscalePeers: [UUID: [TailscalePeer]] = [:]
     public private(set) var hosts: [Host] = [] {
         didSet {
             for old in oldValue where old.agentForwardingEnabled {
@@ -347,7 +351,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func identity(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> Identity? {
-        host.identityID(for: connectionProtocol).flatMap { identity($0) }
+        guard !host.isTailscaleManaged else { return nil }
+        return host.identityID(for: connectionProtocol).flatMap { identity($0) }
     }
 
     /// `user@host:port` — what the UI shows almost everywhere a host is named.
@@ -361,7 +366,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func loginAddress(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> String {
         let address = host.displayAddress(for: connectionProtocol)
-        guard let username = identity(for: host, protocol: connectionProtocol)?.username, !username.isEmpty else {
+        guard
+            let username = host.isTailscaleManaged
+                ? savedTailscaleUsername(for: host) : identity(for: host, protocol: connectionProtocol)?.username,
+            !username.isEmpty
+        else {
             return address
         }
         return "\(username)@\(address)"
@@ -381,7 +390,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// The pinned host keys for a saved host, matched the way OpenSSH matches:
     /// hostname plus port. Newest keys are shown first in the host's details.
     public func knownHosts(for host: Host) -> [KnownHostEntry] {
-        knownHosts
+        guard !host.isTailscaleManaged else { return [] }
+        return
+            knownHosts
             .filter { $0.matches(hostname: host.host, port: host.port) }
             .sorted {
                 if $0.addedAt != $1.addedAt { return $0.addedAt > $1.addedAt }
@@ -526,11 +537,18 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
         let submissions = route.submissions(merging: submissions)
         return SSHConnectionPreparation(
-            nodes: route.hosts.map { node in
+            nodes: try route.hosts.map { node in
+                if node.isTailscaleManaged {
+                    var prepared = SSHConnectionPreparation.Node(
+                        host: node, identity: nil, key: nil, submission: nil, trustedKeys: [], proxyIdentity: nil)
+                    prepared.network = try tailscaleNetwork(for: node)
+                    prepared.tailscaleUsername = submissions[node.id]?.username ?? tailscaleUsername(for: node)
+                    return prepared
+                }
                 let submission = submissions[node.id]
                 let identity = submission?.identityID.flatMap { self.identity($0) } ?? identity(for: node)
                 let keyID = submission != nil ? submission?.keyID : identity?.keyID
-                return SSHConnectionPreparation.Node(
+                var prepared = SSHConnectionPreparation.Node(
                     host: node, identity: identity,
                     key: keyID.flatMap { key($0) },
                     submission: submission,
@@ -540,6 +558,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         .flatMap { self.identity($0) },
                     proxySubmission: proxySubmissions[node.id]
                 )
+                prepared.network = try tailscaleNetwork(for: node)
+                return prepared
             },
             secrets: keychain
         )
@@ -552,6 +572,19 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> SSHConnectionConfiguration {
+        if host.isTailscaleManaged {
+            let username = (submissions[host.id]?.username ?? tailscaleUsername(for: host))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !username.isEmpty else { throw TailscaleConfigurationError.unavailable }
+            var configuration = SSHConnectionConfiguration(
+                hostID: host.id, host: host.host, port: 22, username: username,
+                credentials: [], expectedHostKeys: [], charset: host.charset,
+                authenticationReference: SSHAuthenticationReference(username: username, permitsNone: true)
+            )
+            configuration.network = try tailscaleNetwork(for: host)
+            configuration.tailscaleNodeID = host.tailscale?.stableNodeID
+            return configuration
+        }
         let username: String
         let credentials: [SSHCredentials]
         if let submission = submissions[host.id] {
@@ -579,7 +612,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             trustPolicy: trustPolicy
         )
 
-        return SSHConnectionConfiguration(
+        var configuration = SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials,
             expectedHostKeys: expectedHostKeys,
@@ -594,6 +627,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host: host, submission: submissions[host.id]
             )
         )
+        configuration.network = try tailscaleNetwork(for: route(for: host).first ?? host)
+        return configuration
     }
 
     public func sshJumpConfigurations(
@@ -907,11 +942,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func hosts(matching query: String, for useCase: HostUseCase) -> [Host] {
-        hosts(matching: query, requiring: useCase.protocolRequirement)
+        hosts(matching: query, requiring: useCase.protocolRequirement).filter { isEligible($0, for: useCase) }
     }
 
     public func isEligible(_ host: Host, for useCase: HostUseCase) -> Bool {
-        host.supports(useCase.protocolRequirement)
+        if host.isTailscaleManaged && [.jumpHost, .keyExport, .portForwarding].contains(useCase) { return false }
+        return host.supports(useCase.protocolRequirement)
     }
 
     public func require(_ host: Host, for useCase: HostUseCase) throws {
@@ -950,6 +986,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func saveHost(_ host: Host) -> Bool {
+        if self.host(host.id)?.isTailscaleManaged == true || host.isTailscaleManaged {
+            return saveTailscaleHost(host)
+        }
         var host = host
         host.name = SavedName.resolve(host.name, default: host.defaultName)
         host.portForwardingMaxConnections = Host.normalizedPortForwardingMaxConnections(
@@ -994,6 +1033,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// The repository is the only writer; this keeps legacy views in sync until
     /// they consume `HostLibraryModel` directly.
     public func projectHostDeletion(_ hostID: Host.ID) {
+        guard host(hostID)?.isTailscaleManaged != true else { return }
         let owned = identities.filter { $0.ownerHostID == hostID }
         for identity in owned where !identity.credentialRef.isEmpty {
             do {
@@ -1048,8 +1088,23 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         else { return }
 
         guard hosts[index].detectedDistribution != next else { return }
-        hosts[index].detectedDistribution = next
-        persistCore()
+        if hosts[index].isTailscaleManaged {
+            guard let groupIndex = groups.firstIndex(where: { $0.id == hosts[index].groupID }),
+                groups[groupIndex].tailscale != nil
+            else { return }
+            let previous = groups
+            var preferences = groups[groupIndex].tailscale!.hostPreferences[hostID] ?? TailscaleHostPreferences()
+            preferences.detectedDistribution = next
+            groups[groupIndex].tailscale!.hostPreferences[hostID] = preferences
+            guard persistCore() else {
+                groups = previous
+                return
+            }
+            rebuildTailscaleHosts()
+        } else {
+            hosts[index].detectedDistribution = next
+            persistCore()
+        }
     }
 
     private func refreshStatus(for hostID: Host.ID) {
@@ -1653,6 +1708,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// rather than at the end of the flat array — `sortIndex` is per-parent, so
     /// a child of Production has to be numbered against Production's children.
     public func upsert(_ group: HostGroup) {
+        if let configuration = group.tailscale,
+            groups.contains(where: { $0.id != group.id && $0.tailscale?.network == configuration.network })
+        {
+            storageError = TailscaleConfigurationError.duplicateNetwork.localizedDescription
+            return
+        }
+        let previous = groups
         if let index = groups.firstIndex(where: { $0.id == group.id }) {
             groups[index] = group
         } else {
@@ -1660,7 +1722,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             new.sortIndex = nextSortIndex(under: group.parentID)
             groups.append(new)
         }
-        persistCore()
+        guard persistCore() else {
+            groups = previous
+            return
+        }
+        rebuildTailscaleHosts()
+        didChangeTailscaleGroups?()
     }
 
     /// Deletes a group and every group beneath it.
@@ -1669,12 +1736,24 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// for any hosts they do not intend to keep.
     public func deleteGroupProjection(_ groupID: HostGroup.ID) {
         let doomed = Set([groupID] + descendantGroups(of: groupID).map(\.id))
+        let tailnets = Set(groups.filter { doomed.contains($0.id) && $0.tailscale != nil }.map(\.id))
+        let managed = Set(hosts.filter { $0.tailscale.map { doomed.contains($0.groupID) } == true }.map(\.id))
+        let previousHosts = hosts
+        let previousGroups = groups
+        hosts.removeAll { managed.contains($0.id) }
         for index in hosts.indices where hosts[index].groupID.map(doomed.contains) ?? false {
             hosts[index].groupID = nil
         }
         groups.removeAll { doomed.contains($0.id) }
+        guard persistCore() else {
+            hosts = previousHosts
+            groups = previousGroups
+            return
+        }
+        for id in doomed { tailscalePeers[id] = nil }
         reconcileExpansionState()
-        persistCore()
+        didDeleteTailscaleGroups?(tailnets, managed)
+        didChangeTailscaleGroups?()
     }
 
     public func upsert(_ snippet: Snippet) {
@@ -1827,6 +1906,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         var visited: Set<Host.ID> = []
         while let current = cursor {
             guard current.sshEnabled else { return nil }
+            if current.isTailscaleManaged && (current.id != proposed.id || current.jumpHostID != nil) { return nil }
             guard visited.insert(current.id).inserted, route.count < 8 else { return nil }
             route.append(current)
             guard let jumpID = current.jumpHostID else { break }
@@ -2003,6 +2083,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Updating every host before persisting makes a multi-selection one logical
     /// drag instead of a series of partially saved moves.
     public func move(hostIDs: [Host.ID], into group: HostGroup.ID?, before next: Host.ID? = nil) {
+        guard hostIDs.allSatisfy({ host($0)?.isTailscaleManaged != true }) else { return }
         if let group, self.group(group) == nil { return }
         guard
             let placement = manualOrderPlacement(
@@ -2079,6 +2160,17 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         authenticationHostID: Host.ID? = nil, suppliedPassword: String? = nil
     ) throws -> SSHConnectionRoute {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        if let managed = route.hosts.first(where: \.isTailscaleManaged) {
+            guard route.hosts.count == 1, host(managed.id)?.tailscale == managed.tailscale else {
+                throw TailscaleConfigurationError.managedHost
+            }
+            if let username = authentication?.username ?? route.usernames[managed.id],
+                !saveTailscaleUsername(username, hostID: managed.id)
+            {
+                throw TailscaleConfigurationError.unavailable
+            }
+            return route
+        }
         var batch = SSHImportBatch()
         var saved: [Host] = []
         var usernames: [Host.ID: String] = [:]
@@ -2260,7 +2352,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         do {
             try vault.save(
                 VaultSnapshot(
-                    hosts: hosts, groups: groups, identities: identities,
+                    hosts: hosts.filter { !$0.isTailscaleManaged }, groups: groups, identities: identities,
                     keys: keys, knownHosts: knownHosts, snippets: snippets,
                     snippetPackages: snippetPackages, portForwardings: portForwardings,
                     workspaceTemplates: workspaceTemplates
@@ -2277,8 +2369,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Applies a CloudKit-imported projection without writing it back as a new
     /// local edit. Runtime connection and transfer state intentionally remain.
     public func replacePersistedSnapshot(_ snapshot: VaultSnapshot) {
+        let removedTailnets = Set(groups.filter { $0.tailscale != nil }.map(\.id))
+            .subtracting(snapshot.groups.filter { $0.tailscale != nil }.map(\.id))
+        let removedManaged = Set(
+            hosts.filter { $0.tailscale.map { removedTailnets.contains($0.groupID) } == true }.map(\.id))
+
         hosts = snapshot.hosts
         groups = snapshot.groups
+        rebuildTailscaleHosts()
         identities = normalizedManualOrder(
             snapshot.identities, sortIndex: \Identity.sortIndex, name: \Identity.name
         )
@@ -2297,6 +2395,119 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         reconcileExpansionState()
         storageError = nil
         vault.didApplyRemoteSnapshot()
+        didDeleteTailscaleGroups?(removedTailnets, removedManaged)
+        didChangeTailscaleGroups?()
+    }
+
+    public func tailscaleGroup(for host: Host) -> HostGroup? {
+        var next = (self.host(host.id) ?? host).groupID
+        var visited = Set<UUID>()
+        while let id = next, visited.insert(id).inserted, let group = group(id) {
+            if group.tailscale != nil { return group }
+            next = group.parentID
+        }
+        return nil
+    }
+
+    public func networkConfigurationStamp(for host: Host) -> Data {
+        guard let group = tailscaleGroup(for: host) else { return Data() }
+        return (try? JSONEncoder().encode(group.tailscale)) ?? Data()
+    }
+
+    public func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)? {
+        guard let group = tailscaleGroup(for: host) else {
+            if host.isTailscaleManaged { throw TailscaleConfigurationError.unavailable }
+            return nil
+        }
+        guard let tailscaleConnections else { throw TailscaleConfigurationError.unavailable }
+        return try tailscaleConnections.connection(for: group.id)
+    }
+
+    public func tailscaleUsername(for host: Host) -> String {
+        savedTailscaleUsername(for: host) ?? "root"
+    }
+
+    public func savedTailscaleUsername(for host: Host) -> String? {
+        guard let configuration = tailscaleGroup(for: host)?.tailscale else { return nil }
+        let override = configuration.hostPreferences[host.id]?.username ?? ""
+        let username = (override.isEmpty ? configuration.username : override)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return username.isEmpty ? nil : username
+    }
+
+    public func replaceTailscalePeers(_ peers: [TailscalePeer], groupID: UUID) {
+        tailscalePeers[groupID] = peers
+        rebuildTailscaleHosts()
+    }
+
+    private func rebuildTailscaleHosts() {
+        var projected = hosts.filter { !$0.isTailscaleManaged }
+        var ids = Set(projected.map(\.id))
+        for group in groups {
+            guard let configuration = group.tailscale else { continue }
+            for peer in tailscalePeers[group.id] ?? [] where !peer.stableID.isEmpty && peer.supportsSSH {
+                let id = configuration.network.hostID(stableNodeID: peer.stableID)
+                guard ids.insert(id).inserted else { continue }
+                let preferences = configuration.hostPreferences[id] ?? TailscaleHostPreferences()
+                var host = Host(id: id, name: peer.name, host: peer.dnsName, groupID: group.id)
+                host.tailscale = TailscaleHostReference(groupID: group.id, stableNodeID: peer.stableID)
+                host.detectedDistribution = preferences.detectedDistribution
+                host.tags = preferences.tags
+                host.colorTag = preferences.colorTag
+                host.sshCharset = preferences.charset
+                host.sftpChannelInitialPath = preferences.sftpInitialPath
+                host.shellIntegrationMode = preferences.shellIntegrationMode
+                host.startupSnippetID = preferences.startupSnippetID
+                host.environmentVariables = preferences.environmentVariables
+                projected.append(host)
+            }
+        }
+        hosts = projected
+    }
+
+    public func saveTailscaleHost(_ host: Host, username: String? = nil) -> Bool {
+        guard let existing = self.host(host.id), existing.isTailscaleManaged,
+            host.tailscale == existing.tailscale, host.groupID == existing.groupID,
+            host.name == existing.name, host.host == existing.host, host.port == 22,
+            host.identityID == nil, host.jumpHostID == nil, host.proxy == nil,
+            !host.telnetEnabled, !host.agentForwardingEnabled,
+            let index = groups.firstIndex(where: { $0.id == host.groupID }), groups[index].tailscale != nil
+        else {
+            storageError = TailscaleConfigurationError.managedHost.localizedDescription
+            return false
+        }
+        let previous = groups
+        var preferences = groups[index].tailscale!.hostPreferences[host.id] ?? TailscaleHostPreferences()
+        if let username { preferences.username = username.trimmingCharacters(in: .whitespacesAndNewlines) }
+        preferences.tags = host.tags
+        preferences.colorTag = host.colorTag
+        preferences.charset = host.sshCharset
+        preferences.sftpInitialPath = host.sftpChannelInitialPath
+        preferences.shellIntegrationMode = host.shellIntegrationMode
+        preferences.startupSnippetID = host.startupSnippetID
+        preferences.environmentVariables = host.environmentVariables
+        groups[index].tailscale!.hostPreferences[host.id] = preferences
+        guard persistCore() else {
+            groups = previous
+            return false
+        }
+        rebuildTailscaleHosts()
+        return true
+    }
+
+    public func saveTailscaleUsername(_ username: String, hostID: UUID) -> Bool {
+        guard let host = host(hostID), let index = groups.firstIndex(where: { $0.id == host.groupID }),
+            groups[index].tailscale != nil
+        else { return false }
+        let previous = groups
+        var preferences = groups[index].tailscale!.hostPreferences[hostID] ?? TailscaleHostPreferences()
+        preferences.username = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        groups[index].tailscale!.hostPreferences[hostID] = preferences
+        guard persistCore() else {
+            groups = previous
+            return false
+        }
+        return true
     }
 }
 

@@ -27,6 +27,8 @@ struct MobileHostEditor: View {
     let app: MobileAppModel
     private var library: HostLibraryModel { app.library }
     let original: Host
+    @State private var tailscaleUsername = ""
+    @State private var originalTailscaleUsername = ""
     @State private var draft: Host
     @State private var editorRoute: EditorRoute?
     @State private var customIdentity = HostCustomIdentityDraft()
@@ -46,10 +48,13 @@ struct MobileHostEditor: View {
             : String(localized: AppStrings.Vault.editHost)
     }
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         MobileEditorSheet(
             title: editorTitle,
-            isDirty: draft != original || !customIdentity.sshUsername.isEmpty
+            isDirty: tailscaleUsername != originalTailscaleUsername || draft != original
+                || !customIdentity.sshUsername.isEmpty
                 || !customIdentity.sshPassword.isEmpty || customIdentity.sshKeyID != nil
                 || !customIdentity.telnetUsername.isEmpty || !customIdentity.telnetPassword.isEmpty
                 || !customIdentity.telnetProxyPassword.isEmpty,
@@ -57,14 +62,22 @@ struct MobileHostEditor: View {
                 && draft.preferredTerminalProtocol != nil
                 && (!draft.sshEnabled || (1...65_535).contains(draft.sshPort))
                 && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
-                && customIdentity.isSSHValid(for: draft)
+                && (draft.isTailscaleManaged || customIdentity.isSSHValid(for: draft))
                 && customIdentity.isProxyValid(for: draft)
                 && customIdentity.isTelnetValid(for: draft)
                 && customIdentity.isTelnetProxyValid(for: draft)
                 && (!draft.sshEnabled || draft.environmentVariablesAreValid),
-            topBar: AnyView(HostProtocolProfileControls(protocol: $selectedProtocol)),
+            topBar: AnyView(
+                HostProtocolProfileControls(protocol: $selectedProtocol).disabled(draft.isTailscaleManaged)),
             save: {
-                try customIdentity.save(into: &draft, using: library)
+                if draft.isTailscaleManaged {
+                    guard library.saveTailscaleHost(draft, username: tailscaleUsername) else {
+                        throw MobileEditorError.message(
+                            library.storageError ?? TailscaleConfigurationError.unavailable.localizedDescription)
+                    }
+                } else {
+                    try customIdentity.save(into: &draft, using: library)
+                }
             },
             content: {
                 HostOrganizationSection(host: $draft) {
@@ -82,117 +95,124 @@ struct MobileHostEditor: View {
                         MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
-                HostConnectionFields(host: $draft, protocol: $selectedProtocol)
+                HostConnectionFields(host: $draft, protocol: $selectedProtocol).disabled(draft.isTailscaleManaged)
                 if selectedProtocol == .ssh && draft.sshEnabled {
-                    Section(AppStrings.Vault.authentication.swiftUIKey) {
-                        Picker(AppStrings.Vault.identity.swiftUIKey, selection: identityChoice) {
-                            Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.unset)
-                            Divider()
-                            ForEach(library.reusableIdentities) { identity in
-                                Text(identity.name).tag(Choice.existing(identity.id))
-                            }
-                            Divider()
-                            Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
-                        }
-                        if usesCustomIdentity {
-                            LabeledContent(AppStrings.Vault.username.swiftUIKey) {
-                                TextField(
-                                    AppStrings.Vault.username.swiftUIKey,
-                                    text: $customIdentity.sshUsername.singleLineText
-                                )
+                    if draft.isTailscaleManaged {
+                        Section {
+                            TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-                                .multilineTextAlignment(.trailing)
-                            }
-                            LabeledContent(AppStrings.Vault.password.swiftUIKey) {
-                                RevealableSecretField(AppStrings.Common.optional, text: $customIdentity.sshPassword)
-                                    .multilineTextAlignment(.trailing)
-                                    .disabled(!customIdentity.sshPasswordIsEditable)
-                            }
-                            Picker(AppStrings.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
-                                Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
-                                ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
-                            }
                         }
-                    }
-                    Section(AppStrings.Vault.routing.swiftUIKey) {
-                        Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
-                            Text(AppStrings.Common.none).tag(UUID?.none)
-                            ForEach(library.hosts.filter { $0.id != draft.id && $0.sshEnabled }) {
-                                Text($0.name).tag(Optional($0.id))
-                            }
-                        }
-                        Picker(AppStrings.Vault.proxy.swiftUIKey, selection: proxyKind) {
-                            Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
-                            ForEach(HostProxy.ProtocolKind.allCases) { kind in
-                                Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
-                            }
-                        }
-                        if draft.proxy != nil {
-                            LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
-                                TextField(
-                                    AppStrings.Vault.hostname.swiftUIKey,
-                                    text: proxyString(\.hostname).singleLineText, axis: .horizontal
-                                )
-                                .singleLinePaste()
-                                .lineLimit(1)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.URL)
-                                .multilineTextAlignment(.trailing)
-                            }
-                            .accessibilityLabel(AppStrings.Vault.proxyHostname.swiftUIKey)
-                            LabeledContent(AppStrings.Common.port.swiftUIKey) {
-                                TextField(
-                                    AppStrings.Common.port.swiftUIKey, value: proxyInt(\.port),
-                                    format: .number.grouping(.never)
-                                ).lineLimit(
-                                    1
-                                )
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                            }
-                            .accessibilityLabel(AppStrings.Vault.proxyPort.swiftUIKey)
-                            Picker(AppStrings.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
-                                Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
-                                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
+                    } else {
+                        Section(AppStrings.Vault.authentication.swiftUIKey) {
+                            Picker(AppStrings.Vault.identity.swiftUIKey, selection: identityChoice) {
+                                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.unset)
                                 Divider()
-                                ForEach(proxyIdentities) { identity in
-                                    Text("\(identity.name) · \(identity.username)")
-                                        .tag(Choice.existing(identity.id))
+                                ForEach(library.reusableIdentities) { identity in
+                                    Text(identity.name).tag(Choice.existing(identity.id))
                                 }
                                 Divider()
                                 Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                             }
-                            .accessibilityLabel(AppStrings.Vault.proxyIdentity.swiftUIKey)
-                            if customIdentity.usesCustomProxy {
+                            if usesCustomIdentity {
                                 LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                                     TextField(
                                         AppStrings.Vault.username.swiftUIKey,
-                                        text: proxyString(\.username).singleLineText
+                                        text: $customIdentity.sshUsername.singleLineText
                                     )
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)
                                 }
                                 LabeledContent(AppStrings.Vault.password.swiftUIKey) {
-                                    RevealableSecretField(
-                                        AppStrings.Vault.required, text: $customIdentity.proxyPassword
-                                    )
-                                    .multilineTextAlignment(.trailing)
-                                    .disabled(!customIdentity.proxyPasswordIsEditable)
+                                    RevealableSecretField(AppStrings.Common.optional, text: $customIdentity.sshPassword)
+                                        .multilineTextAlignment(.trailing)
+                                        .disabled(!customIdentity.sshPasswordIsEditable)
                                 }
-                            } else if draft.proxy?.identityID != nil {
-                                LabeledContent(AppStrings.Vault.username.swiftUIKey) {
+                                Picker(AppStrings.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
+                                    Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
+                                    ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
+                                }
+                            }
+                        }
+                        Section(AppStrings.Vault.routing.swiftUIKey) {
+                            Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
+                                Text(AppStrings.Common.none).tag(UUID?.none)
+                                ForEach(library.hosts.filter { $0.id != draft.id && $0.sshEnabled }) {
+                                    Text($0.name).tag(Optional($0.id))
+                                }
+                            }
+                            Picker(AppStrings.Vault.proxy.swiftUIKey, selection: proxyKind) {
+                                Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
+                                ForEach(HostProxy.ProtocolKind.allCases) { kind in
+                                    Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
+                                }
+                            }
+                            if draft.proxy != nil {
+                                LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
                                     TextField(
-                                        AppStrings.Vault.username.swiftUIKey,
-                                        text: proxyString(\.username).singleLineText, axis: .horizontal
+                                        AppStrings.Vault.hostname.swiftUIKey,
+                                        text: proxyString(\.hostname).singleLineText, axis: .horizontal
                                     )
                                     .singleLinePaste()
                                     .lineLimit(1)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
+                                    .keyboardType(.URL)
                                     .multilineTextAlignment(.trailing)
                                 }
-                                .accessibilityLabel(AppStrings.Vault.proxyUsername.swiftUIKey)
+                                .accessibilityLabel(AppStrings.Vault.proxyHostname.swiftUIKey)
+                                LabeledContent(AppStrings.Common.port.swiftUIKey) {
+                                    TextField(
+                                        AppStrings.Common.port.swiftUIKey, value: proxyInt(\.port),
+                                        format: .number.grouping(.never)
+                                    ).lineLimit(
+                                        1
+                                    )
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                }
+                                .accessibilityLabel(AppStrings.Vault.proxyPort.swiftUIKey)
+                                Picker(AppStrings.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
+                                    Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
+                                    Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
+                                    Divider()
+                                    ForEach(proxyIdentities) { identity in
+                                        Text("\(identity.name) · \(identity.username)")
+                                            .tag(Choice.existing(identity.id))
+                                    }
+                                    Divider()
+                                    Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                                }
+                                .accessibilityLabel(AppStrings.Vault.proxyIdentity.swiftUIKey)
+                                if customIdentity.usesCustomProxy {
+                                    LabeledContent(AppStrings.Vault.username.swiftUIKey) {
+                                        TextField(
+                                            AppStrings.Vault.username.swiftUIKey,
+                                            text: proxyString(\.username).singleLineText
+                                        )
+                                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                        .multilineTextAlignment(.trailing)
+                                    }
+                                    LabeledContent(AppStrings.Vault.password.swiftUIKey) {
+                                        RevealableSecretField(
+                                            AppStrings.Vault.required, text: $customIdentity.proxyPassword
+                                        )
+                                        .multilineTextAlignment(.trailing)
+                                        .disabled(!customIdentity.proxyPasswordIsEditable)
+                                    }
+                                } else if draft.proxy?.identityID != nil {
+                                    LabeledContent(AppStrings.Vault.username.swiftUIKey) {
+                                        TextField(
+                                            AppStrings.Vault.username.swiftUIKey,
+                                            text: proxyString(\.username).singleLineText, axis: .horizontal
+                                        )
+                                        .singleLinePaste()
+                                        .lineLimit(1)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled()
+                                        .multilineTextAlignment(.trailing)
+                                    }
+                                    .accessibilityLabel(AppStrings.Vault.proxyUsername.swiftUIKey)
+                                }
                             }
                         }
                     }
@@ -201,6 +221,7 @@ struct MobileHostEditor: View {
                         sftpInitialPath: $draft.sftpChannelInitialPath,
                         startupSnippetID: startupSnippetChoice,
                         agentForwardingEnabled: $draft.agentForwardingEnabled,
+                        allowsAgentForwarding: !draft.isTailscaleManaged,
                         environmentVariables: $draft.environmentVariables,
                         snippets: library.snippets,
                         snippetPackagePath: library.snippetPackagePath,
@@ -522,7 +543,12 @@ struct MobileHostEditor: View {
     private func loadCustomOnce() {
         guard !didLoadCustom else { return }
         didLoadCustom = true
-        customIdentity = HostCustomIdentityDraft(host: draft, library: library)
+        if draft.isTailscaleManaged {
+            tailscaleUsername = library.tailscaleUsername(for: draft)
+            originalTailscaleUsername = tailscaleUsername
+        } else {
+            customIdentity = HostCustomIdentityDraft(host: draft, library: library)
+        }
     }
 
 }

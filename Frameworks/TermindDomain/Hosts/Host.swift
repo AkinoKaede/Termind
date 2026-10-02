@@ -123,6 +123,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
 
     public var id: UUID = UUID()
     public var name: String
+    /// Present only on the device-local projection of a discovered Tailscale peer.
+    public var tailscale: TailscaleHostReference?
+    public var isTailscaleManaged: Bool { tailscale != nil }
     /// Where to connect: an IP literal (v4 or v6) or a DNS name. Named `host`
     /// rather than `hostname` because an IP address is not a hostname, and the
     /// field accepts either.
@@ -315,7 +318,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, host, port, identityID, jumpHostID, proxy
+        case id, name, host, port, identityID, jumpHostID, proxy, tailscale
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
@@ -326,6 +329,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)
+        tailscale = try values.decodeIfPresent(TailscaleHostReference.self, forKey: .tailscale)
         name = try values.decode(String.self, forKey: .name)
         host = try values.decode(String.self, forKey: .host)
         sshEnabled = try values.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? true
@@ -364,6 +368,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public func encode(to encoder: any Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(id, forKey: .id)
+        try values.encodeIfPresent(tailscale, forKey: .tailscale)
         try values.encode(name, forKey: .name)
         try values.encode(host, forKey: .host)
         try values.encode(sshPort, forKey: .port)
@@ -409,6 +414,7 @@ public nonisolated struct HostGroup: Identifiable, Codable, Hashable, Sendable {
     public var parentID: HostGroup.ID?
     public var sortIndex: Double = 0
     public var isExpanded: Bool = true
+    public var tailscale: TailscaleGroupConfiguration?
     public init(
         id: UUID = UUID(), name: String, parentID: HostGroup.ID? = nil, sortIndex: Double = 0, isExpanded: Bool = true
     ) {

@@ -15,6 +15,7 @@ struct RuntimeVersionsTests {
         #expect(!RuntimeVersions.ghostty.isEmpty)
         #expect(RuntimeVersions.libssh2 != RuntimeVersions.unknown)
         #expect(!RuntimeVersions.libssh2.isEmpty)
+        #expect(RuntimeVersions.tailscale != RuntimeVersions.unknown)
         #expect(RuntimeVersions.openSSL.split(separator: ".").count == 3)
     }
 

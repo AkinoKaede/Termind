@@ -118,6 +118,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         jumps: [SSHRouteHopConfiguration], timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil,
         authorizeHostKey: SSHHostKeyAuthorizer?,
+        network: (any SSHNetworkDialing)? = nil,
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
         securityKeySigning: SecurityKeySigningHandler? = nil,
         interactionPolicy: SSHInteractionPolicy = .allowed,
@@ -134,13 +135,29 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         )
         return try await withTaskCancellationHandler {
             do {
-                let firstProxy = jumps.first?.proxy ?? proxy
+                let firstProxy = jumps.isEmpty ? proxy : jumps[0].proxy
                 if let id = firstProxy?.ownerHostID { progress?(.proxyConnecting(id)) }
-                try await queue.perform {
-                    try state.openFirst(
-                        destinationHost: host, destinationPort: port,
-                        destinationProxy: proxy, jumps: jumps, timeout: timeout
-                    )
+                if let network {
+                    let endpointHost = firstProxy?.hostname ?? jumps.first?.host ?? host
+                    let endpointPort = firstProxy?.port ?? jumps.first?.port ?? port
+                    let socket = try await network.open(host: endpointHost, port: endpointPort, timeout: timeout)
+                    await queue.perform { state.adopt(socket) }
+                    try Task.checkCancellation()
+                    if let firstProxy {
+                        try await queue.perform {
+                            try SSHSocketConnector.negotiate(
+                                socket: socket, host: jumps.first?.host ?? host,
+                                port: jumps.first?.port ?? port, proxy: firstProxy
+                            )
+                        }
+                    }
+                } else {
+                    try await queue.perform {
+                        try state.openFirst(
+                            destinationHost: host, destinationPort: port,
+                            destinationProxy: proxy, jumps: jumps, timeout: timeout
+                        )
+                    }
                 }
                 if let id = firstProxy?.ownerHostID { progress?(.proxyConnected(id)) }
                 for index in jumps.indices {
@@ -270,6 +287,11 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
     private var cancellableSocket: Int32 = -1
     private var bridges: [SSHChannelSocketBridge] = []
     private var pendingSession: OpaquePointer?
+
+    func adopt(_ socket: Int32) {
+        currentSocket = socket
+        setCancellableSocket(socket)
+    }
 
     func openFirst(
         destinationHost: String, destinationPort: Int,

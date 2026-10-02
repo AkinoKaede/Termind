@@ -181,6 +181,15 @@
       }
     },
     {
+      "identity" : "libtailscale-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AkinoKaede/libtailscale-spm.git",
+      "state" : {
+        "revision" : "c4cdb3fb91231ab6997bb00ec69bb74898324ac2",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "listviewkit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/ListViewKit",

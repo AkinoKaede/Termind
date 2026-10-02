@@ -59,6 +59,7 @@ public final class ConnectionJourney {
 
     public enum LocalRequirement: Equatable {
         case identity
+        case tailscaleUsername
         case telnetPassword
         case passphrase
         case proxyAuthentication
@@ -331,6 +332,11 @@ public final class ConnectionJourney {
             endpoint: endpoints[index].name,
             message: failure ?? String(localized: "Waiting for an Identity")
         )
+    }
+
+    public func waitForTailscaleUsername(at hostID: Host.ID, failure: String? = nil) {
+        waitForLocalIdentity(at: hostID, failure: failure ?? String(localized: "Username"))
+        localRequirement = .tailscaleUsername
     }
 
     public func waitForLocalPassphrase(at hostID: Host.ID, failure: String? = nil) {

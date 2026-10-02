@@ -14,6 +14,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         public var trustedKeys: Set<SSHHostKeyIdentity>
         public var proxyIdentity: Identity?
         public var proxySubmission: SSHProxyAuthenticationSubmission?
+        public var network: (any SSHNetworkDialing)?
+        public var tailscaleUsername: String?
         public init(
             host: Host, identity: Identity?, key: SSHKeyRef?, submission: SSHAuthenticationSubmission?,
             trustedKeys: Set<SSHHostKeyIdentity>, proxyIdentity: Identity?,
@@ -73,6 +75,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         for (offset, node) in nodes.dropLast().enumerated() {
             do {
                 try Task.checkCancellation()
+                guard !node.host.isTailscaleManaged else { throw TailscaleConfigurationError.managedHost }
                 let material = try credentials(node)
                 resolvedCredentials += material.1
                 let resolvedProxy = try proxy(node)
@@ -108,20 +111,27 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         resolvedCredentials += material.1
         let resolvedProxy = try proxy(target)
         if let password = resolvedProxy?.password { resolvedProxies.append(password) }
-        if !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty {
+        if !target.host.isTailscaleManaged, !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty
+        {
             throw TermindSSHError.untrustedHost
         }
         completed = true
-        return SSHConnectionConfiguration(
+        var configuration = SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
             proxy: resolvedProxy, jumps: jumps,
             charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
+        configuration.network = nodes.first?.network
+        configuration.tailscaleNodeID = target.host.tailscale?.stableNodeID
+        return configuration
     }
 
     private func authenticationReference(for node: Node) -> SSHAuthenticationReference {
+        if node.host.isTailscaleManaged {
+            return SSHAuthenticationReference(username: node.tailscaleUsername ?? "", permitsNone: true)
+        }
         if let identity = connectionIdentity(for: node) {
             return SSHAuthenticationReference(
                 identityID: identity.id,
@@ -141,6 +151,12 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     }
 
     private func credentials(_ node: Node) throws -> (String, [SSHCredentials]) {
+        if node.host.isTailscaleManaged {
+            guard let username = node.tailscaleUsername, !username.isEmpty else {
+                throw TailscaleConfigurationError.unavailable
+            }
+            return (username, [])
+        }
         let username = (node.submission?.username ?? node.identity?.username ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }

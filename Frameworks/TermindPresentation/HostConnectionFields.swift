@@ -22,7 +22,8 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
     public var body: some View {
         Section(AppStrings.Vault.host.swiftUIKey) {
             VaultNameField(text: $host.name, prompt: Text(verbatim: host.defaultName))
-            groupField
+                .disabled(host.isTailscaleManaged)
+            groupField.disabled(host.isTailscaleManaged)
             tagsField
             VaultColorField(selection: $host.colorTag)
         }

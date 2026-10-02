@@ -83,9 +83,10 @@ nonisolated enum VaultDestination: Hashable, Sendable {
 }
 
 /// A deliberate task opened in Vault's third column. Card selection remains a
-/// middle-column concern; only explicit New, Edit, Export and Execute actions
-/// create a work route.
+/// middle-column concern; explicit editing, diagnostics, export and execution
+/// actions create a work route.
 nonisolated enum VaultWorkRoute: Hashable, Sendable {
+    case tailscaleDetails(Host.ID)
     case hostEditor(Host.ID?, groupID: HostGroup.ID? = nil)
     case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
     case forwardingEditor(PortForwardingRule.ID?)

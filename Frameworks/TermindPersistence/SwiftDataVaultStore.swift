@@ -23,7 +23,7 @@ public final class HostPersistence {
 
     private func fetchSnapshot() throws -> VaultSnapshot {
         let hosts = try context.fetch(FetchDescriptor<PersistentHost>()).map(\.value)
-        let groups = try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.value)
+        let groups = try Self.groups(in: context)
         let identities = try context.fetch(FetchDescriptor<PersistentIdentity>()).map(\.value)
         let keys = try context.fetch(FetchDescriptor<PersistentSSHKey>()).map(\.value)
         let knownHosts = try context.fetch(FetchDescriptor<PersistentKnownHost>()).map(\.value)
@@ -139,6 +139,12 @@ public final class HostPersistence {
     }
 
     private func persist(_ snapshot: VaultSnapshot) throws {
+        guard snapshot.hosts.allSatisfy({ !$0.isTailscaleManaged }) else {
+            throw TailscaleConfigurationError.managedHost
+        }
+        let networks = snapshot.groups.compactMap { $0.tailscale?.network }
+        guard Set(networks).count == networks.count else { throw TailscaleConfigurationError.duplicateNetwork }
+        try persistTailscaleGroups(snapshot.groups)
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHost>()), with: snapshot.hosts,
             rowID: \.id, valueID: \.id,

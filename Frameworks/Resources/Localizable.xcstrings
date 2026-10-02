@@ -3805,6 +3805,23 @@
         }
       }
     },
+    "Auth Key" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "认证密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驗證金鑰"
+          }
+        }
+      }
+    },
     "Authenticating" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7272,6 +7289,23 @@
         }
       }
     },
+    "Controlplane URL" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制平面URL"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制平面URL"
+          }
+        }
+      }
+    },
     "Conversation Name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7999,6 +8033,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自訂"
+          }
+        }
+      }
+    },
+    "DERP region" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DERP区域"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DERP區域"
+          }
+        }
+      }
+    },
+    "DERP-relayed connection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DERP中继连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DERP中繼連線"
           }
         }
       }
@@ -9433,6 +9501,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未在%2$@上執行「%1$@」"
+          }
+        }
+      }
+    },
+    "Direct" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直连"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直連"
+          }
+        }
+      }
+    },
+    "Direct connection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接連線"
           }
         }
       }
@@ -10911,6 +11013,23 @@
         }
       }
     },
+    "Enter a valid HTTPS Controlplane URL." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的HTTPS控制平面URL。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入有效的HTTPS控制平面URL。"
+          }
+        }
+      }
+    },
     "Enter a valid project and location to configure Vertex AI." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11259,6 +11378,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "執行破壞性指令？"
+          }
+        }
+      }
+    },
+    "Exit Node" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出口节点"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出口節點"
           }
         }
       }
@@ -13600,6 +13736,40 @@
         }
       }
     },
+    "IPv4" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv4"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv4"
+          }
+        }
+      }
+    },
+    "IPv6" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPv6"
+          }
+        }
+      }
+    },
     "Identities" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14274,6 +14444,23 @@
         }
       }
     },
+    "Interactive Login" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交互式登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "互動式登入"
+          }
+        }
+      }
+    },
     "Interactive authentication" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14643,6 +14830,23 @@
         }
       }
     },
+    "Key Expiry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密钥到期"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金鑰到期"
+          }
+        }
+      }
+    },
     "Key Size" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14951,6 +15155,23 @@
         }
       }
     },
+    "Last Seen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最后在线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後上線"
+          }
+        }
+      }
+    },
     "Last Workspace" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14981,6 +15202,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次連線%@"
+          }
+        }
+      }
+    },
+    "Latency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "延迟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "延遲"
           }
         }
       }
@@ -15427,6 +15665,23 @@
         }
       }
     },
+    "Log out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登出"
+          }
+        }
+      }
+    },
     "Logging" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15440,6 +15695,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日誌記錄"
+          }
+        }
+      }
+    },
+    "Login" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入"
           }
         }
       }
@@ -15559,6 +15831,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "MCP端點URL"
+          }
+        }
+      }
+    },
+    "MagicDNS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MagicDNS"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MagicDNS"
           }
         }
       }
@@ -16486,6 +16775,23 @@
         }
       }
     },
+    "Network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "網路"
+          }
+        }
+      }
+    },
     "Network Interfaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17395,6 +17701,23 @@
         }
       }
     },
+    "No data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無資料"
+          }
+        }
+      }
+    },
     "No description" : {
       "comment" : "A placeholder text to display when a skill doesn't have a description.",
       "extractionState" : "manual",
@@ -18264,6 +18587,23 @@
         }
       }
     },
+    "OS" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作系统"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業系統"
+          }
+        }
+      }
+    },
     "Octal permissions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18328,6 +18668,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在助手模型選擇器和/model指令中提供此模型。"
+          }
+        }
+      }
+    },
+    "Offline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "離線"
           }
         }
       }
@@ -18467,6 +18824,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1個工作區"
+          }
+        }
+      }
+    },
+    "Online" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "線上"
           }
         }
       }
@@ -18889,6 +19263,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SSH開啟目前目錄—右鍵檢視更多操作"
+          }
+        }
+      }
+    },
+    "Open login page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开登录页面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟登入頁面"
           }
         }
       }
@@ -19883,6 +20274,40 @@
         }
       }
     },
+    "Peer Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "节点中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "節點中繼"
+          }
+        }
+      }
+    },
+    "Peer relay connection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "节点中继连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "節點中繼連線"
+          }
+        }
+      }
+    },
     "Pending" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20083,6 +20508,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "置頂"
+          }
+        }
+      }
+    },
+    "Ping" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ping"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ping"
           }
         }
       }
@@ -23457,6 +23899,23 @@
         }
       }
     },
+    "SFTP connection to %@@%@ failed: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接到%1$@@%2$@的SFTP失败：%3$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線至%1$@@%2$@的SFTP失敗：%3$@"
+          }
+        }
+      }
+    },
     "SFTP text transfer mode is not supported." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24650,6 +25109,23 @@
         }
       }
     },
+    "Selected exit node is unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选出口节点不可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選出口節點無法使用"
+          }
+        }
+      }
+    },
     "Send" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25561,6 +26037,23 @@
         }
       }
     },
+    "Sign in on this device to use this Tailnet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在此设备上登录以使用此Tailnet。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在此裝置上登入以使用此Tailnet。"
+          }
+        }
+      }
+    },
     "Sign in to iCloud to sync." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26407,6 +26900,23 @@
         }
       }
     },
+    "Stop Ping" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止Ping"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止Ping"
+          }
+        }
+      }
+    },
     "Stop Reconnecting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26932,6 +27442,142 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標籤"
+          }
+        }
+      }
+    },
+    "Tailnet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailnet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailnet"
+          }
+        }
+      }
+    },
+    "Tailnet settings are being applied. Try connecting again in a moment." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在应用Tailnet设置，请稍后重新连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在套用Tailnet設定，請稍後重新連線。"
+          }
+        }
+      }
+    },
+    "Tailscale" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale"
+          }
+        }
+      }
+    },
+    "Tailscale SSH approval" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH授權"
+          }
+        }
+      }
+    },
+    "Tailscale SSH approval timed out. Connect again to request approval." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH授权已超时。请重新连接以请求授权。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH授權已逾時。請重新連線以要求授權。"
+          }
+        }
+      }
+    },
+    "Tailscale SSH authentication failed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH认证失败。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale SSH認證失敗。"
+          }
+        }
+      }
+    },
+    "Tailscale manages this host’s address, authentication, and SSH host keys." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此主机的地址、认证和SSH主机密钥由Tailscale管理。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此主機的位址、驗證和SSH主機金鑰由Tailscale管理。"
+          }
+        }
+      }
+    },
+    "Tailscale requires Termind Pro." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用Tailscale需要Termind Pro。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用Tailscale需要Termind Pro。"
           }
         }
       }
@@ -27681,6 +28327,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH握手超時。"
+          }
+        }
+      }
+    },
+    "The SSH host key does not match the keys provided by Tailscale." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主机密钥与Tailscale提供的密钥不匹配。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主機金鑰與Tailscale提供的金鑰不符。"
           }
         }
       }
@@ -29849,6 +30512,40 @@
         }
       }
     },
+    "This Tailnet already belongs to another group." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此Tailnet已属于其他分组。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此Tailnet已屬於其他群組。"
+          }
+        }
+      }
+    },
+    "This Tailscale connection is unavailable. Check the Tailnet login, SSH policy, and username." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此Tailscale连接不可用。请检查Tailnet登录状态、SSH策略和用户名。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此Tailscale連線無法使用。請檢查Tailnet登入狀態、SSH原則和使用者名稱。"
+          }
+        }
+      }
+    },
     "This Vault record requires sync format %lld." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30129,6 +30826,23 @@
         }
       }
     },
+    "This device is not connected to the Tailnet. Log in from the group editor." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备尚未连接到Tailnet。请在分组编辑页登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此裝置尚未連線至Tailnet。請在群組編輯頁登入。"
+          }
+        }
+      }
+    },
     "This file cannot be uploaded back to its original path." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30366,6 +31080,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此包及其子包包含%lld個片段。"
+          }
+        }
+      }
+    },
+    "This peer is not advertising Tailscale SSH host keys. Enable Tailscale SSH on the peer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此节点未提供Tailscale SSH主机密钥。请在该节点上启用Tailscale SSH。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此節點未提供Tailscale SSH主機金鑰。請在該節點上啟用Tailscale SSH。"
           }
         }
       }
@@ -31759,6 +32490,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未知的MCP使用者端"
+          }
+        }
+      }
+    },
+    "Unknown Route" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知路由"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知路由"
           }
         }
       }

@@ -35,6 +35,7 @@ final class MobileAppModel {
     let container: ModelContainer
     let hosts: any HostRepository
     let library: HostLibraryModel
+    let tailscale: TailscaleModel
     let credentials: CredentialLibraryModel
     let keyExportServices: KeyExportServices
     let snippets: SnippetLibraryModel
@@ -304,6 +305,13 @@ final class MobileAppModel {
             persistence: persistence, secrets: secrets,
             localDefaults: memoryOnly ? nil : settingsDefaults
         )
+        let tailscaleDevices = devices
+        let tailscaleAccess = pro
+        tailscale = TailscaleModel(
+            library: library, store: SwiftDataTailscaleLocalStore(context: ModelContext(container)),
+            factory: LibTailscaleNodeSession.factory,
+            hostname: { tailscaleDevices.currentDeviceName }, hasAccess: { tailscaleAccess.canUse(.tailscale) }
+        )
         let forwardingRouter = agentForwardingRouter
         connectionCoordinator.updateAgentForwarding(
             VaultSSHAgent.factory(
@@ -398,7 +406,20 @@ final class MobileAppModel {
         sftpSettings.didChange = { [weak self] _ in
             self?.reconcileConnectionPreferences()
         }
+        library.didDeleteTailscaleGroups = { [weak self] groups, hostIDs in
+            guard let self else { return }
+            self.metrics.core.removeTailscaleGroups(groups)
+            for id in hostIDs {
+                self.closeWorkspaces(for: id)
+                self.sftpEdits.invalidate(hostID: id)
+                self.transfers.cancelAll(for: id)
+                self.metrics.core.remove(id)
+            }
+        }
+        tailscale.start()
         pro.accessDidChange = { [weak self] in
+            self?.tailscale.reconcile()
+            self?.metrics.core.reconcile()
             self?.reconcileConnectionPreferences()
         }
         sshSettings.didChange = { preferences in
@@ -479,6 +500,7 @@ final class MobileAppModel {
 
     @discardableResult
     func deleteHost(_ id: UUID) -> Bool {
+        guard library.host(id)?.isTailscaleManaged != true else { return false }
         do {
             assistant.disconnectHost(id)
             closeWorkspaces(for: id)
@@ -499,7 +521,7 @@ final class MobileAppModel {
 
     func deleteHostGroup(_ id: HostGroup.ID, keepHosts: Bool) {
         if !keepHosts {
-            let hosts = library.hosts(inTreeOf: id)
+            let hosts = library.hosts(inTreeOf: id).filter { !$0.isTailscaleManaged }
             guard hosts.allSatisfy({ deleteHost($0.id) }) else { return }
         }
         library.deleteGroupProjection(id)
@@ -507,6 +529,7 @@ final class MobileAppModel {
     }
 
     func duplicateHost(_ host: Host) {
+        guard !host.isTailscaleManaged else { return }
         var copy = host
         if host.identityID.flatMap(library.identity)?.isHostCustom == true { copy.identityID = nil }
         if host.telnetIdentityID.flatMap(library.identity)?.isHostCustom == true { copy.telnetIdentityID = nil }
@@ -629,6 +652,10 @@ final class MobileAppModel {
     }
 
     func applyRemoteVault(_ snapshot: VaultSnapshot, keys: Set<VaultRecordKey>) {
+        let retainedHostIDs = Set(snapshot.hosts.map(\.id))
+        for key in keys where key.kind == .host && !retainedHostIDs.contains(key.id) {
+            metrics.core.remove(key.id)
+        }
         let plan = VaultRemoteChangePlan.make(
             currentHosts: library.hosts,
             snapshot: snapshot,

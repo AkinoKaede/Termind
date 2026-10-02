@@ -9,6 +9,7 @@ nonisolated enum RuntimeVersions {
         return decode(info.version, length: Int(info.version_len)) ?? unknown
     }
 
+    static var tailscale: String { LibTailscaleNodeSession.version }
     static var libssh2: String { SSHRuntimeVersions.libssh2 }
     static var openSSL: String { SSHRuntimeVersions.openSSL }
 
