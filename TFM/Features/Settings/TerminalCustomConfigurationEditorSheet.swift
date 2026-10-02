@@ -34,6 +34,7 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
 
 struct TerminalCustomConfigurationEditorPage: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var typeSize
     let scheme: TerminalCustomConfigurationScheme
 
     @TerminalFontSettings private var font
@@ -74,27 +75,44 @@ struct TerminalCustomConfigurationEditorPage: View {
             .padding(.vertical, Metrics.Space.s)
             Divider()
 
-            ScrollView {
-                Text(AppStrings.Settings.terminalConfigurationExplanation)
-                    .font(.caption).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-                TerminalConfigurationEditorLayout {
-                    TextEditor(text: $content)
-                        .font(.system(.body, design: .monospaced))
-                        .textContentType(.none)
-                        .autocorrectionDisabled()
-                        .frame(minHeight: 360)
-                        .accessibilityLabel(AppStrings.Settings.customConfiguration.swiftUIKey)
-                } preview: {
-                    TerminalConfigurationPreview(
-                        themeName: scheme == .dark
-                            ? app.terminalSettings.preferences.darkTheme : app.terminalSettings.preferences.lightTheme,
-                        text: content, isDark: scheme == .dark,
-                        font: font.resolvingFamily(in: TerminalFontCatalog.shared.families))
+            Text(AppStrings.Settings.terminalConfigurationExplanation)
+                .font(.caption).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Metrics.Space.m)
+
+            GeometryReader { geometry in
+                let sideBySide = geometry.size.width >= 700 && !typeSize.isAccessibilitySize
+                let editorHeight = sideBySide ? max(360, geometry.size.height) : 360
+                let layout =
+                    sideBySide
+                    ? AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+                    : AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+
+                // Bound the editor before the scroll view proposes an unlimited content height.
+                // Keep the same children when resizing so selection and the preview surface survive.
+                ScrollView {
+                    layout {
+                        TextEditor(text: $content)
+                            .font(.system(.body, design: .monospaced))
+                            .textContentType(.none)
+                            .autocorrectionDisabled()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: editorHeight)
+                            .accessibilityLabel(AppStrings.Settings.customConfiguration.swiftUIKey)
+                        TerminalConfigurationPreview(
+                            themeName: scheme == .dark
+                                ? app.terminalSettings.preferences.darkTheme
+                                : app.terminalSettings.preferences.lightTheme,
+                            text: content, isDark: scheme == .dark,
+                            font: font.resolvingFamily(in: TerminalFontCatalog.shared.families)
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: sideBySide ? editorHeight : nil)
+                    }
                 }
-                .padding(Metrics.Space.m)
             }
+            .padding(Metrics.Space.m)
         }
         .onAppear {
             content = app.terminalSettings.preferences[keyPath: scheme.preferenceKeyPath]

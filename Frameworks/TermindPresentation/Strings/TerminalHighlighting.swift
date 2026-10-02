@@ -10,9 +10,7 @@ extension AppStrings {
         public static var text: LocalizedStringResource { "Plain Text" }
         public static var regex: LocalizedStringResource { "Regular Expression" }
         public static var caseSensitive: LocalizedStringResource { "Case Sensitive" }
-        public static var explanation: LocalizedStringResource {
-            "Earlier rules take priority. Built-in log keywords skip lowercase words such as error and warn."
-        }
+        public static var explanation: LocalizedStringResource { "Earlier rules take priority." }
         public static var invalidPattern: LocalizedStringResource { "The match pattern is invalid." }
         public static var limits: LocalizedStringResource { "Use a name up to 256 bytes and a pattern up to 16 KB." }
         public static var ruleLimit: LocalizedStringResource { "You can add up to 58 custom highlight rules." }

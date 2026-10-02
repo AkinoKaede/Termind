@@ -11,10 +11,19 @@ struct MobileTerminalHighlightSettingsView: View {
 
     var body: some View {
         Form {
-            TerminalHighlightSettingsSection(model: model, showsTitle: false) { editingRule = $0 }
+            TerminalHighlightSettingsSection(model: model, showsTitle: false, showsAddRule: false) { editingRule = $0 }
         }
         .formStyle(.grouped)
         .navigationTitle(AppStrings.TerminalHighlighting.title.swiftUIKey)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(AppStrings.TerminalHighlighting.addRule.swiftUIKey, systemImage: "plus") {
+                    editingRule = TerminalHighlightRule()
+                }
+                .labelStyle(.iconOnly)
+                .disabled(model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount)
+            }
+        }
         .sheet(item: $editingRule) { rule in
             MobileTerminalHighlightRuleEditor(rule: rule, model: model)
         }

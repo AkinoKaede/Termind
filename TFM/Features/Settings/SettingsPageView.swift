@@ -645,6 +645,7 @@ private struct TerminalSettings: View {
                     }
                 }
             }
+            TerminalHighlightSettingsSection(model: app.terminalHighlightSettings, edit: editHighlighting)
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
@@ -661,7 +662,6 @@ private struct TerminalSettings: View {
                     AppStrings.Settings.showTerminalTitleInMenuBar.swiftUIKey,
                     isOn: binding(\.remoteWindowTitleInMenuBar))
             }
-            TerminalHighlightSettingsSection(model: app.terminalHighlightSettings, edit: editHighlighting)
         }
         .onAppear {
             TerminalFontCatalog.shared.refresh()

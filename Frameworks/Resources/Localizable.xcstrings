@@ -10448,19 +10448,19 @@
         }
       }
     },
-    "Earlier rules take priority. Built-in log keywords skip lowercase words such as error and warn." : {
+    "Earlier rules take priority." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "靠前的规则优先。内置日志关键词规则会跳过error和warn等全小写单词。"
+            "value" : "靠前的规则优先。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "靠前的規則優先。內建日誌關鍵字規則會略過error和warn等全小寫單字。"
+            "value" : "靠前的規則優先。"
           }
         }
       }

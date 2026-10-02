@@ -5,14 +5,16 @@ import TermindDomain
 public struct TerminalHighlightSettingsSection: View {
     private let model: TerminalHighlightSettingsModel
     private let showsTitle: Bool
+    private let showsAddRule: Bool
     private let edit: (TerminalHighlightRule) -> Void
 
     public init(
-        model: TerminalHighlightSettingsModel, showsTitle: Bool = true,
+        model: TerminalHighlightSettingsModel, showsTitle: Bool = true, showsAddRule: Bool = true,
         edit: @escaping (TerminalHighlightRule) -> Void
     ) {
         self.model = model
         self.showsTitle = showsTitle
+        self.showsAddRule = showsAddRule
         self.edit = edit
     }
 
@@ -46,9 +48,11 @@ public struct TerminalHighlightSettingsSection: View {
             }
             .onMove { indices, destination in update { $0.rules.move(fromOffsets: indices, toOffset: destination) }
             }
-            FormNavigationAction(title: AppStrings.TerminalHighlighting.addRule) {
-                edit(TerminalHighlightRule())
-            }.disabled(model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount)
+            if showsAddRule {
+                FormNavigationAction(title: AppStrings.TerminalHighlighting.addRule) {
+                    edit(TerminalHighlightRule())
+                }.disabled(model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount)
+            }
             if model.preferences.rules.count >= TerminalHighlightPreferences.maximumCustomRuleCount {
                 Text(AppStrings.TerminalHighlighting.ruleLimit).font(.caption).foregroundStyle(.secondary)
             }
@@ -68,11 +72,7 @@ public struct TerminalHighlightSettingsSection: View {
             )
             .foregroundStyle(rule.color.color ?? rule.backgroundColor.color ?? .secondary)
             .frame(width: 14, height: 14)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(TerminalKeywordHighlighting.name(rule)).foregroundStyle(.primary)
-                Text(rule.pattern).font(.caption.monospaced()).foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            Text(TerminalKeywordHighlighting.name(rule)).foregroundStyle(.primary)
             Spacer()
         }.contentShape(.rect)
     }
