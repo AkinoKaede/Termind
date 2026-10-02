@@ -27,26 +27,39 @@ final class MobileTerminalView: TerminalView {
     var canUploadFiles: (() -> Bool)?
 
     override func touchMenuItems(for context: TerminalTouchMenuContext) -> [UIMenuElement] {
-        localizedTouchMenuItems(super.touchMenuItems(for: context)) + uploadMenuItems()
+        customizedTouchMenuItems(super.touchMenuItems(for: context))
     }
 
     override func touchSelectionMenuItems(for context: TerminalTouchSelectionMenuContext) -> [UIMenuElement] {
-        localizedTouchMenuItems(super.touchSelectionMenuItems(for: context)) + uploadMenuItems()
+        customizedTouchMenuItems(super.touchSelectionMenuItems(for: context))
     }
 
-    private func localizedTouchMenuItems(_ items: [UIMenuElement]) -> [UIMenuElement] {
-        for case let action as UIAction in items {
+    private func customizedTouchMenuItems(_ items: [UIMenuElement]) -> [UIMenuElement] {
+        var editingActions: [UIMenuElement] = []
+        var otherItems: [UIMenuElement] = []
+        for item in items {
+            guard let action = item as? UIAction else {
+                otherItems.append(item)
+                continue
+            }
             let title: LocalizedStringResource
             switch action.identifier.rawValue {
             case "terminal.copy": title = AppStrings.Common.copy
             case "terminal.paste": title = AppStrings.Common.paste
             case "terminal.select": title = AppStrings.Common.select
             case "terminal.selectAll": title = AppStrings.Common.selectAll
-            default: continue
+            default:
+                otherItems.append(item)
+                continue
             }
             action.title = String(localized: title)
+            editingActions.append(action)
         }
-        return items
+        let trailingItems = uploadMenuItems() + otherItems
+        guard !editingActions.isEmpty else { return trailingItems }
+        let editingMenu = UIMenu(options: .displayInline, children: editingActions)
+        editingMenu.preferredElementSize = .medium
+        return [editingMenu] + trailingItems
     }
 
     func uploadMenuItems() -> [UIMenuElement] {
