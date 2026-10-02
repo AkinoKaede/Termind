@@ -10896,13 +10896,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已启用"
+            "value" : "启用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已啟用"
+            "value" : "啟用"
           }
         }
       }
