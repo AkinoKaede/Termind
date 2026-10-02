@@ -91,6 +91,7 @@ struct SettingsNavigationTests {
         #expect(SettingsRoute.localMCPServer.parent == .category(.ai))
         #expect(SettingsRoute.terminalConfiguration(.dark).parent == .terminalThemes(.dark))
         #expect(SettingsRoute.terminalThemes(.dark).parent == .category(.terminal))
+        #expect(SettingsRoute.terminalHighlightRule(.init()).parent == .category(.terminal))
         #expect(SettingsRoute.logging.parent == .index)
     }
 

@@ -5,8 +5,14 @@ import TermindPresentation
 
 struct MobileTerminalSettingsView: View {
     let model: TerminalSettingsModel
+    let highlightModel: TerminalHighlightSettingsModel
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
+
+    init(model: TerminalSettingsModel, highlightModel: TerminalHighlightSettingsModel = .init()) {
+        self.model = model
+        self.highlightModel = highlightModel
+    }
 
     var body: some View {
         Form {
@@ -14,6 +20,13 @@ struct MobileTerminalSettingsView: View {
             themeSection(dark: true)
             Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
+            }
+            Section {
+                NavigationLink {
+                    MobileTerminalHighlightSettingsView(model: highlightModel)
+                } label: {
+                    Text(AppStrings.TerminalHighlighting.title)
+                }
             }
             Section(AppStrings.Settings.integration.swiftUIKey) {
                 Toggle(AppStrings.Settings.shellIntegration.swiftUIKey, isOn: binding(\.shellIntegration))

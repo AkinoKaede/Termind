@@ -2943,7 +2943,7 @@
 			repositoryURL = "https://github.com/AkinoKaede/libghostty-spm.git";
 			requirement = {
 				kind = revision;
-				revision = 2260cb098dfb7feba0e52789d7d88234bc36626d;
+				revision = 08062f4791ac11785db665d21b50fa8b293fcc74;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {

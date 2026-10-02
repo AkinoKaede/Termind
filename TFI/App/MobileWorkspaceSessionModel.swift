@@ -182,6 +182,7 @@ final class MobileWorkspaceSessionModel {
             descriptor: MobileWorkspaceDescriptor(
                 hostID: host.id, title: host.name, kind: kind),
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings, commandHistory: app.commandHistory,
             sftpHistory: app.sftpHistory, connectionServices: app.workspaceConnectionServices,
             transientHost: host,
@@ -295,6 +296,7 @@ final class MobileWorkspaceSessionModel {
         }
         let workspace = MobileWorkspace(
             descriptor: descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings, commandHistory: app.commandHistory, sftpHistory: app.sftpHistory,
             connectionServices: app.workspaceConnectionServices)
         addWorkspaces([workspace])
@@ -334,6 +336,7 @@ final class MobileWorkspaceSessionModel {
             descriptor: MobileWorkspaceDescriptor(
                 hostID: host.id, title: title, kind: kind),
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings,
             commandHistory: app.commandHistory, sftpHistory: app.sftpHistory,
             connectionServices: app.workspaceConnectionServices,

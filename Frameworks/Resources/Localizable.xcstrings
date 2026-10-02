@@ -2335,6 +2335,23 @@
         }
       }
     },
+    "Add Highlight Rule" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加高亮规则"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入醒目提示規則"
+          }
+        }
+      }
+    },
     "Add Host" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4330,6 +4347,29 @@
         }
       }
     },
+    "Background" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景色"
+          }
+        }
+      }
+    },
     "Basics" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4959,6 +4999,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已取消"
+          }
+        }
+      }
+    },
+    "Case Sensitive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区分大小写"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "區分大小寫"
           }
         }
       }
@@ -10391,6 +10448,23 @@
         }
       }
     },
+    "Earlier rules take priority. Built-in log keywords skip lowercase words such as error and warn." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靠前的规则优先。内置日志关键词规则会跳过error和warn等全小写单词。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靠前的規則優先。內建日誌關鍵字規則會略過error和warn等全小寫單字。"
+          }
+        }
+      }
+    },
     "Earlier turns are summarized for the model. Nothing was deleted." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10506,6 +10580,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯組"
+          }
+        }
+      }
+    },
+    "Edit Highlight Rule" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑高亮规则"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯醒目提示規則"
           }
         }
       }
@@ -12371,6 +12462,29 @@
         }
       }
     },
+    "Foreground" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foreground"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前景色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前景色"
+          }
+        }
+      }
+    },
     "Fork" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13660,6 +13774,23 @@
         }
       }
     },
+    "IP address & MAC" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP地址与MAC地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IP位址與MAC位址"
+          }
+        }
+      }
+    },
     "IP address or hostname" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14909,6 +15040,23 @@
         }
       }
     },
+    "Keyword Highlighting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关键词高亮"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關鍵字醒目提示"
+          }
+        }
+      }
+    },
     "Kind" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15703,6 +15851,40 @@
         }
       }
     },
+    "Match Mode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配方式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比對方式"
+          }
+        }
+      }
+    },
+    "Match Pattern" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配模式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比對模式"
+          }
+        }
+      }
+    },
     "Matches a fork-bomb pattern." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16215,6 +16397,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "滑鼠"
+          }
+        }
+      }
+    },
+    "Move Rule Down" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下移规则"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下移規則"
+          }
+        }
+      }
+    },
+    "Move Rule Up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上移规则"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上移規則"
           }
         }
       }
@@ -20149,6 +20365,23 @@
         }
       }
     },
+    "Plain Text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "普通文本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "純文字"
+          }
+        }
+      }
+    },
     "Plan" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22020,6 +22253,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新整理"
+          }
+        }
+      }
+    },
+    "Regular Expression" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正则表达式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "規則運算式"
           }
         }
       }
@@ -28712,6 +28962,23 @@
         }
       }
     },
+    "The match pattern is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配模式无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比對模式無效。"
+          }
+        }
+      }
+    },
     "The metrics response is incomplete or too large." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32504,6 +32771,23 @@
         }
       }
     },
+    "Use a name up to 256 bytes and a pattern up to 16 KB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称最多256字节，匹配模式最多16KB。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名稱最多256位元組，比對模式最多16KB。"
+          }
+        }
+      }
+    },
     "Use an installed skill" : {
       "comment" : "Command to use an installed skill.",
       "extractionState" : "manual",
@@ -33773,6 +34057,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "黃色"
+          }
+        }
+      }
+    },
+    "You can add up to 58 custom highlight rules." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多可添加58条自定义高亮规则。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最多可加入58條自訂醒目提示規則。"
           }
         }
       }

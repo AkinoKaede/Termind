@@ -103,10 +103,12 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 private struct DesktopTerminalChrome: ViewModifier {
     let state: TerminalViewState
     @TerminalAppearanceSettings private var appearance
+    @Environment(AppModel.self) private var app
 
     func body(content: Content) -> some View {
         content
             .background { TerminalBackground(state: state) }
+            .terminalKeywordHighlighting(state: state, model: app.terminalHighlightSettings)
             .onAppear {
                 state.applyPreferences(appearance.preferences, font: appearance.font)
             }

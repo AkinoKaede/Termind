@@ -66,6 +66,7 @@ enum SettingsRoute: Hashable {
     case mcpServer(MCPServer.ID, isNew: Bool)
     case localMCPServer
     case skill(AgentSkill.ID, isNew: Bool)
+    case terminalHighlightRule(TerminalHighlightRule)
     case terminalThemes(TerminalCustomConfigurationScheme)
     case terminalConfiguration(TerminalCustomConfigurationScheme)
     case logging
@@ -86,7 +87,7 @@ enum SettingsRoute: Hashable {
             .category(.ai)
         case .skill:
             .category(.ai)
-        case .terminalThemes:
+        case .terminalHighlightRule, .terminalThemes:
             .category(.terminal)
         case .terminalConfiguration(let scheme):
             .terminalThemes(scheme)
@@ -147,6 +148,10 @@ struct SettingsPageView: View {
             SettingsFormPage { MCPServerSettings() }
         case .skill(let id, _):
             SkillEditorPage(skillID: id, deleted: { navigate(to: .category(.ai)) })
+        case .terminalHighlightRule(let rule):
+            TerminalHighlightRuleEditorPage(rule: rule, model: app.terminalHighlightSettings) {
+                navigate(to: .category(.terminal))
+            }.id(rule.id)
         case .terminalThemes(let scheme):
             TerminalThemePage(scheme: scheme, editConfiguration: { navigate(to: .terminalConfiguration(scheme)) })
         case .terminalConfiguration(let scheme):
@@ -175,7 +180,8 @@ struct SettingsPageView: View {
         case .terminal:
             SettingsFormPage {
                 TerminalSettings(
-                    chooseTheme: { navigate(to: .terminalThemes($0)) }
+                    chooseTheme: { navigate(to: .terminalThemes($0)) },
+                    editHighlighting: { navigate(to: .terminalHighlightRule($0)) }
                 )
             }
         case .connections:
@@ -583,6 +589,7 @@ private struct ConnectionSettings: View {
 
 private struct TerminalSettings: View {
     let chooseTheme: (TerminalCustomConfigurationScheme) -> Void
+    let editHighlighting: (TerminalHighlightRule) -> Void
     @Environment(AppModel.self) private var app
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
@@ -654,6 +661,7 @@ private struct TerminalSettings: View {
                     AppStrings.Settings.showTerminalTitleInMenuBar.swiftUIKey,
                     isOn: binding(\.remoteWindowTitleInMenuBar))
             }
+            TerminalHighlightSettingsSection(model: app.terminalHighlightSettings, edit: editHighlighting)
         }
         .onAppear {
             TerminalFontCatalog.shared.refresh()

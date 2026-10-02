@@ -485,6 +485,9 @@ struct MobileWorkspaceView: View {
             ZStack {
                 VStack(spacing: 0) {
                     TerminalSurfaceView(context: workspace.terminal)
+                        .terminalKeywordHighlighting(
+                            state: workspace.terminal, model: workspace.terminalHighlightSettings
+                        )
                         .modifier(
                             MobileTerminalInitialFocus(
                                 terminal: workspace.terminal,

@@ -15,6 +15,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     // Older clients filter by record type before decoding, so they can ignore newer preferences safely.
     public nonisolated static let sshRecordType = "SSHPreferencesItem"
     public nonisolated static let sftpRecordType = "SFTPPreferencesItem"
+    public nonisolated static let terminalHighlightRecordType = "TerminalHighlightPreferencesItem"
     public nonisolated static let notificationRecordType = "NotificationPreferencesItem"
     public nonisolated static let workspaceRecordType = "WorkspacePreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
@@ -235,7 +236,11 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 return SettingsRecordKey(recordName: record.recordID.recordName) != nil
             },
             decode: Self.validatedEnvelope,
-            quarantine: { try CloudSyncRecordCoding.quarantine($0, error: $1, in: safety) },
+            quarantine: {
+                try CloudSyncRecordCoding.quarantine(
+                    $0, error: $1, in: safety,
+                    nativeFields: $0.recordType == Self.terminalHighlightRecordType)
+            },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
         let result = try applyRemote(
             decoded.map { $0.1.canonicalized }, deletions: deletedKeys,
@@ -308,7 +313,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
         type == recordType || type == sshRecordType || type == sftpRecordType || type == workspaceRecordType
-            || type == notificationRecordType
+            || type == notificationRecordType || type == terminalHighlightRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
@@ -317,6 +322,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         case .sftp: sftpRecordType
         case .workspace: workspaceRecordType
         case .notifications: notificationRecordType
+        case .terminalHighlighting: terminalHighlightRecordType
         default: recordType
         }
     }
@@ -330,11 +336,15 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         guard record.recordType == recordType(for: envelope.key.kind), record.recordID == recordID else {
             throw SettingsSyncPersistenceError.invalidEnvelope(recordID.recordName)
         }
-        let payload = try SettingsSyncCodec.encode(envelope)
         CloudSyncRecordCoding.setMetadata(
             on: record, formatVersion: envelope.formatVersion, kind: envelope.key.kind.rawValue,
             entityID: envelope.key.id, version: envelope.version, isDeleted: envelope.isDeleted)
-        try CloudSyncRecordCoding.setPayload(payload, on: record, assetURL: assetURL(for: envelope.key))
+        if envelope.key.kind == .terminalHighlighting {
+            try TerminalHighlightCloudRecordCoding.encode(envelope, into: record)
+        } else {
+            let payload = try SettingsSyncCodec.encode(envelope)
+            try CloudSyncRecordCoding.setPayload(payload, on: record, assetURL: assetURL(for: envelope.key))
+        }
         return record
     }
 
@@ -343,6 +353,9 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     private nonisolated static func validatedEnvelope(from record: CKRecord) throws -> SettingsEnvelope {
+        if record.recordType == terminalHighlightRecordType {
+            return try TerminalHighlightCloudRecordCoding.decode(record)
+        }
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         try CloudSyncRecordCoding.validateFormat(in: data, supported: SettingsEnvelope.currentFormatVersion)
