@@ -4,6 +4,7 @@
 [submodule "libssh2-spm"]
 	path = libssh2-spm
 	url = https://github.com/AkinoKaede/libssh2-spm.git
+	branch = termind
 [submodule "libghostty-spm"]
 	path = libghostty-spm
 	url = https://github.com/AkinoKaede/libghostty-spm.git

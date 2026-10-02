@@ -30,6 +30,17 @@ separate subclass hooks, `touchMenuItems(for:)` and
 `touchSelectionMenuItems(for:)`, before and after selection. Override them on
 the platform view, with grouping and localization owned by Termind.
 
+`libssh2-spm/` is the maintenance checkout of `AkinoKaede/libssh2-spm`,
+tracking `termind`. Xcode consumes its remote exact-version package. Native
+libssh2 comes from the official upstream commit in `Libssh2.ref` plus numbered
+`Patches/libssh2/` patches; `Vendor/libssh2` is the committed generated source
+snapshot, not a nested fork or submodule. Change the pin or patches and run
+`python3 Script/vendor-libssh2.py` in the package, then verify with `--check`,
+`python3 Script/test-vendoring.py`, native CMake/CTest, and the package's Apple
+build/test matrix. Never hand-edit the snapshot. Publish a new package tag before
+updating the Termind submodule gitlink, Xcode exact version and `Package.resolved`
+together. Keep the `CSSH2` external-signature API and its native regression tests.
+
 ## Architecture Records
 
 Treat `openwiki/` as durable just-in-time engineering context. Start with `openwiki/quickstart.md` before changing dependencies, navigation ownership, state lifetimes, persistence, agent execution, permissions, secret handling, or release operations, then follow its topic-specific page to current source and tests. Source code and tests remain authoritative. Refresh invalidated OpenWiki content through the OpenWiki lifecycle and keep `ArchitectureBoundaryTests` aligned; do not maintain a parallel refactoring log.

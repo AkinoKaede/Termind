@@ -176,8 +176,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/libssh2-spm.git",
       "state" : {
-        "revision" : "c2df1cacae38d3bd8dcdd5bd9290f668b88f4257",
-        "version" : "2.0.3-termind-1"
+        "revision" : "7e8706b3b923a557cb93d87323e2659b3fcd47f2",
+        "version" : "2.0.3-termind-2"
       }
     },
     {
