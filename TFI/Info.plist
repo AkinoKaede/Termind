@@ -2,16 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>TermindRevenueCatAPIKey</key>
-	<string>$(REVENUECAT_API_KEY)</string>
-	<key>TermindRevenueCatEntitlementID</key>
-	<string>$(REVENUECAT_ENTITLEMENT_ID)</string>
-	<key>FirebaseCrashlyticsCollectionEnabled</key>
-	<false/>
-	<key>FirebaseDataCollectionDefaultEnabled</key>
-	<false/>
-	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
-	<true/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -37,6 +27,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
+	<true/>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
+	<key>FirebaseDataCollectionDefaultEnabled</key>
+	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -50,6 +46,10 @@
 	<string>$(ICLOUD_CONTAINER_ENVIRONMENT)</string>
 	<key>TermindKeychainAccessGroup</key>
 	<string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>TermindRevenueCatAPIKey</key>
+	<string>$(REVENUECAT_API_KEY)</string>
+	<key>TermindRevenueCatEntitlementID</key>
+	<string>$(REVENUECAT_ENTITLEMENT_ID)</string>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
