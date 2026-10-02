@@ -1099,7 +1099,10 @@ final class SFTPChannelModel: Identifiable {
         }
     }
 
-    func enqueuePending(policy: TransferConflictPolicy, coordinator: SFTPTransferCoordinator) async {
+    func enqueuePending(
+        policy: TransferConflictPolicy, coordinator: SFTPTransferCoordinator,
+        uploadedPaths: (([String]) -> Void)? = nil
+    ) async {
         bindTransfers(to: coordinator)
         if let batch = pendingUploadBatch {
             guard let connection = transferConnection, let client else { return }
@@ -1112,7 +1115,8 @@ final class SFTPChannelModel: Identifiable {
                     connection: connection,
                     homeDirectory: homeResolution.resolvedDirectory,
                     client: client,
-                    coordinator: coordinator
+                    coordinator: coordinator,
+                    uploadedPaths: uploadedPaths
                 ) { [weak self] state in
                     if state == .completed { self?.scheduleSilentRefresh() }
                 }

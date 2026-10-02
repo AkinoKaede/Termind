@@ -2,6 +2,8 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Terminal {
+        public static var uploadFile: LocalizedStringResource { "Upload File" }
+
         public static var armed: LocalizedStringResource {
             "Armed"
         }

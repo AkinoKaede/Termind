@@ -19,6 +19,29 @@ private nonisolated let terminalMouseHasDisplay: Bool = {
     .requiresVisibleWindow, .serialized, .disabled(if: !terminalMouseHasDisplay, "Ghostty requires an active display"))
 @MainActor
 struct TerminalMouseInteractionTests {
+    @Test func uploadMenuPresentsFilePickerOnThePersistentTerminalWindow() async throws {
+        let fixture = try await TerminalMouseFixture.make()
+        defer { fixture.close() }
+        // The custom mount bypasses Ghostty's SwiftUI representable.
+        #expect(fixture.state.attachedPlatformView == nil)
+        fixture.owner.configureUpload(
+            action: { fixture.owner.chooseUploadFiles { _ in Issue.record("Cancelled picker must not upload") } },
+            isAvailable: { true })
+        defer { fixture.owner.configureUpload(action: nil) }
+        let title = String(localized: AppStrings.Terminal.uploadFile)
+        let item = try #require(fixture.view.selectionContextMenu().item(withTitle: title))
+        #expect(!title.contains("…"))
+        _ = fixture.view.perform(item.action, with: item)
+        for _ in 0..<100 where fixture.window.attachedSheet == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let panel = try #require(fixture.window.attachedSheet as? NSOpenPanel)
+        #expect(panel.canChooseFiles)
+        #expect(panel.canChooseDirectories)
+        #expect(panel.allowsMultipleSelection)
+        panel.cancel(nil)
+    }
+
     @Test func statusBarPathReachesTerminalThroughWorkspaceOverlays() async throws {
         let fixture = try await TerminalMouseFixture.make()
         defer { fixture.close() }

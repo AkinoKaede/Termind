@@ -1234,7 +1234,15 @@ struct SFTPFeatureTests {
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
         await sftpChannel.prepareUpload([upload])
-        await sftpChannel.enqueuePending(policy: .keepBoth, coordinator: coordinator)
+        var uploadedPaths: [[String]] = []
+        await sftpChannel.enqueuePending(
+            policy: .keepBoth, coordinator: coordinator,
+            uploadedPaths: { uploadedPaths.append($0) })
+        for _ in 0..<200 {
+            if !uploadedPaths.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(uploadedPaths == [["/incoming/bundle.2"]])
 
         #expect(coordinator.sftpTransfers.map(\.remotePath) == ["/incoming/bundle.2/nested/payload.txt"])
         #expect(

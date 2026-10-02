@@ -6,6 +6,25 @@ import Testing
 
 @Suite @MainActor
 struct TerminalContextMenuTests {
+    @Test func uploadActionAppearsOnlyWhenBoundAndUsesLiveAvailability() throws {
+        let view = TermindTerminalView(frame: .zero)
+        let title = String(localized: AppStrings.Terminal.uploadFile)
+        #expect(view.selectionContextMenu().item(withTitle: title) == nil)
+        var available = false
+        var requests = 0
+        view.uploadFiles = { requests += 1 }
+        view.canUploadFiles = { available }
+        #expect(view.selectionContextMenu().item(withTitle: title)?.isEnabled == false)
+        available = true
+        let item = try #require(view.selectionContextMenu().item(withTitle: title))
+        #expect(item.isEnabled)
+        _ = view.perform(item.action, with: item)
+        #expect(requests == 1)
+        available = false
+        _ = view.perform(item.action, with: item)
+        #expect(requests == 1)
+    }
+
     @Test func defaultMenuValidatesPasteAndOptionBypassesAutomaticPaste() throws {
         let pasteboard = NSPasteboard.general
         let saved = (pasteboard.pasteboardItems ?? []).map { item in

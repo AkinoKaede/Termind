@@ -2,7 +2,6 @@ import Foundation
 
 public nonisolated enum ProFeature: String, CaseIterable, Hashable, Sendable {
     case assistant
-    case terminalFileUpload
     case remoteMCP
     case mcpServer
     case vaultSync

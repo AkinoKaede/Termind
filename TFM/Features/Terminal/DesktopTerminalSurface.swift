@@ -16,6 +16,7 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
     private static let deferredWriteWindowNanoseconds: UInt64 = 100_000_000
     private let lock = NSLock()
     private var depth = 0
+    private var localPasteDepth = 0
     private var writeGeneration: UInt64 = 0
     private var deferredWriteDeadline: UInt64?
     private var bracketedPaste: (tail: Data, deadline: UInt64)?
@@ -46,6 +47,17 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
         return try operation()
     }
 
+    /// A completed upload inserts into its original session even during broadcast.
+    func withLocalPaste<T>(_ operation: () throws -> T) rethrows -> T {
+        lock.withLock {
+            localPasteDepth += 1
+            deferredWriteDeadline = nil
+            bracketedPaste = nil
+        }
+        defer { lock.withLock { localPasteDepth -= 1 } }
+        return try operation()
+    }
+
     /// Classifies the backend callback while it still has the input event's
     /// provenance. Ordinarily Ghostty writes synchronously. The short-lived
     /// deferred ticket covers callbacks it schedules just after AppKit returns.
@@ -55,6 +67,7 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
     func classifyWrite(_ data: Data = Data()) -> Bool {
         lock.withLock {
             writeGeneration &+= 1
+            guard localPasteDepth == 0 else { return false }
             let now = DispatchTime.now().uptimeNanoseconds
             if let paste = bracketedPaste, now > paste.deadline {
                 bracketedPaste = nil

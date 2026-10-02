@@ -331,6 +331,12 @@ final class SSHSessionModel: Identifiable {
     /// Clears the shell's edit buffer through the installed line-editor widget,
     /// then inserts one literal command as a bracketed paste. There is
     /// intentionally no carriage return in this payload.
+    func insertUploadedPaths(_ paths: [String]) {
+        let text = paths.map(RemoteShellCommand.escapeArgument).joined(separator: " ") + " "
+        // Write only to this session: broadcast input must not copy local upload paths.
+        terminalViewOwner.pasteUploadedText(text)
+    }
+
     func replaceCurrentDraft(with command: String) {
         writeInputDirectly(commandDraft.replacementPayload(for: command))
     }

@@ -28,6 +28,42 @@ final class MobileTerminalSurface {
 /// input away from Ghostty. Escape is replaced only while Find is presented.
 @MainActor
 final class MobileTerminalView: TerminalView {
+    var uploadFiles: (() -> Void)?
+    var uploadPhotos: (() -> Void)?
+    var canUploadFiles: (() -> Bool)?
+
+    override func touchMenuItems(for context: TerminalTouchMenuContext) -> [UIMenuElement] {
+        super.touchMenuItems(for: context) + uploadMenuItems()
+    }
+
+    override func touchSelectionMenuItems(for context: TerminalTouchSelectionMenuContext) -> [UIMenuElement] {
+        super.touchSelectionMenuItems(for: context) + uploadMenuItems()
+    }
+
+    func uploadMenuItems() -> [UIMenuElement] {
+        guard uploadFiles != nil else { return [] }
+        let attributes: UIMenuElement.Attributes = canUploadFiles?() == true ? [] : .disabled
+        let photos = UIAction(
+            title: String(localized: AppStrings.Assistant.photos),
+            image: UIImage(systemName: "photo.on.rectangle"), attributes: attributes
+        ) { [weak self] _ in
+            guard self?.canUploadFiles?() == true else { return }
+            self?.uploadPhotos?()
+        }
+        let files = UIAction(
+            title: String(localized: AppStrings.Assistant.files),
+            image: UIImage(systemName: "folder"), attributes: attributes
+        ) { [weak self] _ in
+            guard self?.canUploadFiles?() == true else { return }
+            self?.uploadFiles?()
+        }
+        return [
+            UIMenu(
+                title: String(localized: AppStrings.Terminal.uploadFile),
+                image: UIImage(systemName: "paperclip"), children: [photos, files])
+        ]
+    }
+
     weak var findController: TerminalFindController?
 
     override func inputAccessoryAccessibilityLabel(for item: TerminalInputAccessoryItem) -> String? {

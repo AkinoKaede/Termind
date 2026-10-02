@@ -12,7 +12,7 @@ struct RemoteShellCommandTests {
         ("/srv/it's live", #"/srv/it\'s\ live"#),
         (#"/srv/"quoted"\file"#, #"/srv/\"quoted\"\\file"#),
         (#"/srv/$HOME/$(pwd)/`pwd`"#, #"/srv/\$HOME/\$\(pwd\)/\`pwd\`"#),
-        (#"/srv/*?[abc]{a,b}!~#;&|<>()^="#, #"/srv/\*\?\[abc\]\{a\,b\}\!\~\#\;\&\|\<\>\(\)\^\="#),
+        ("/srv/*?[abc]{a,b}!~#;&|<>()^=", "/srv/\\*\\?\\[abc\\]\\{a\\,b\\}\\!\\~\\#\\;\\&\\|\\<\\>\\(\\)\\^\\="),
         (" /srv/with trailing space ", #"\ /srv/with\ trailing\ space\ "#),
         ("/srv/a\tb", "/srv/a\\\tb"),
         ("", "''"),

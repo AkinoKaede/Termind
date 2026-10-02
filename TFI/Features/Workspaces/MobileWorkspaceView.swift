@@ -32,6 +32,15 @@ struct MobileWorkspaceView: View {
     let closeOtherWorkspaces: (UUID) -> Void
     @State private var terminalSheet: TerminalSheet?
     @State private var importing = false
+    @State private var importingTerminalFiles = false
+    @State private var importingTerminalPhotos = false
+    @State private var terminalUploadTarget: TerminalUploadTarget?
+
+    private struct TerminalUploadTarget {
+        let workspaceID: UUID
+        let generation: UUID
+        let destination: String
+    }
     @State private var directoryName = ""
     @State private var creatingDirectory = false
     @State private var deleting: RemoteFile?
@@ -76,23 +85,31 @@ struct MobileWorkspaceView: View {
                     isTargeted: $uploadDropTargeted,
                     isEnabled: workspaceIsVisible && scenePhase == .active,
                     terminalView: workspace.uploadTerminalView,
-                    receive: receiveUploadProviders
+                    receive: { receiveUploadProviders($0) }
                 )
                 .id(workspace.id)
             }
-            .onAppear { workspaceIsVisible = true }
+            .onAppear {
+                workspaceIsVisible = true
+                bindTerminalUploadMenu()
+            }
             .onDisappear {
                 openWithPresenter.isEnabled = false
                 workspaceIsVisible = false
+                workspace.configureTerminalUpload(files: nil)
+                terminalUploadTarget = nil
                 uploadDropTargeted = false
                 cancelDropLoading()
             }
             .onChange(of: workspace.id) { _, _ in
                 openWithPresenter.invalidate()
+                terminalUploadTarget = nil
+                bindTerminalUploadMenu()
                 uploadDropTargeted = false
                 cancelDropLoading()
             }
             .onChange(of: workspace.uploadDestination) { _, _ in cancelDropLoading() }
+            .onChange(of: workspace.uploadConnectionGeneration) { _, _ in cancelDropLoading() }
             .onChange(of: workspace.pendingExternalPreviewURL, initial: true) { _, url in
                 guard url != nil, let preview = workspace.consumePendingExternalPreviewURL() else { return }
                 presentPreview(preview)
@@ -328,6 +345,26 @@ struct MobileWorkspaceView: View {
                     }
                     .padding()
                     .mobileSheetPresentation(compact: true)
+                }
+            }
+            .sheet(isPresented: $importingTerminalPhotos) {
+                MobileTerminalPhotoPicker { providers in
+                    importingTerminalPhotos = false
+                    receiveTerminalUpload(providers)
+                }
+            }
+            .fileImporter(
+                isPresented: $importingTerminalFiles,
+                allowedContentTypes: [.data, .folder], allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    receiveTerminalUploadFiles(urls)
+                case .failure(let error):
+                    terminalUploadTarget = nil
+                    if (error as NSError).code != NSUserCancelledError {
+                        workspace.reportUploadFailure(error.localizedDescription)
+                    }
                 }
             }
             .fileImporter(
@@ -572,19 +609,52 @@ struct MobileWorkspaceView: View {
         )
     }
 
-    private func receiveUpload(_ urls: [URL]) -> Bool {
-        if workspace.descriptor.kind == .ssh,
-            !pro.require(.terminalFileUpload)
-        {
-            return false
-        }
-        return workspace.prepareUpload(urls)
+    private func bindTerminalUploadMenu() {
+        workspace.configureTerminalUpload(
+            files: { beginTerminalUpload(photos: false) },
+            photos: { beginTerminalUpload(photos: true) })
     }
 
-    private func receiveUploadProviders(_ providers: [NSItemProvider]) -> Bool {
+    private func beginTerminalUpload(photos: Bool) {
+        guard workspaceIsVisible, workspace.uploadTargetProblem == nil,
+            let destination = workspace.uploadDestination
+        else { return }
+        terminalUploadTarget = TerminalUploadTarget(
+            workspaceID: workspace.id, generation: workspace.uploadConnectionGeneration,
+            destination: destination)
+        if photos { importingTerminalPhotos = true } else { importingTerminalFiles = true }
+    }
+
+    private var terminalUploadTargetIsCurrent: Bool {
+        guard let target = terminalUploadTarget, workspaceIsVisible else { return false }
+        return target.workspaceID == workspace.id
+            && target.generation == workspace.uploadConnectionGeneration
+            && target.destination == workspace.uploadDestination
+    }
+
+    private func receiveTerminalUploadFiles(_ urls: [URL]) {
+        defer { terminalUploadTarget = nil }
+        guard terminalUploadTargetIsCurrent else { return }
+        // Keep the original security-scoped URLs, as in the SFTP file importer.
+        _ = workspace.prepareUpload(urls, insertPaths: true)
+    }
+
+    private func receiveTerminalUpload(_ providers: [NSItemProvider]) {
+        defer { terminalUploadTarget = nil }
+        guard terminalUploadTargetIsCurrent else { return }
+        _ = receiveUploadProviders(providers, insertPaths: true)
+    }
+
+    private func receiveUpload(_ urls: [URL]) -> Bool {
+        workspace.prepareUpload(urls)
+    }
+
+    private func receiveUploadProviders(_ providers: [NSItemProvider], insertPaths: Bool = false) -> Bool {
         guard MobileDropPayloadLoader.acceptsUpload(providers) else { return false }
         uploadDropTask?.cancel()
         workspace.cancelPendingUpload()
+        let targetWorkspace = workspace
+        let generation = workspace.uploadConnectionGeneration
         let destination = workspace.uploadDestination
         uploadDropTask = Task {
             let payload = await MobileDropPayloadLoader.load(
@@ -592,18 +662,21 @@ struct MobileWorkspaceView: View {
                 kinds: [.files],
                 fileMode: .staged
             )
-            guard !Task.isCancelled, workspace.uploadDestination == destination else {
+            guard !Task.isCancelled, workspace.id == targetWorkspace.id,
+                targetWorkspace.uploadConnectionGeneration == generation,
+                targetWorkspace.uploadDestination == destination
+            else {
                 if let stagedRoot = payload.stagedRoot { try? FileManager.default.removeItem(at: stagedRoot) }
                 return
             }
             if !payload.fileURLs.isEmpty {
-                let accepted = receiveUpload(payload.fileURLs)
+                let accepted = targetWorkspace.prepareUpload(payload.fileURLs, insertPaths: insertPaths)
                 if !accepted, let stagedRoot = payload.stagedRoot {
                     try? FileManager.default.removeItem(at: stagedRoot)
                 }
             }
             if let error = payload.failures.first {
-                workspace.reportUploadFailure(error)
+                targetWorkspace.reportUploadFailure(error)
             }
         }
         return true

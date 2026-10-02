@@ -92,6 +92,8 @@
     /// seeing the event. Registered Termind shortcuts fall through; every other
     /// key still uses Ghostty's input path.
     final class TermindTerminalView: TerminalView {
+        var uploadFiles: (() -> Void)?
+        var canUploadFiles: (() -> Bool)?
         var inputCapture: TerminalInteractiveInputCapture?
         var copyOnSelect = false
         var pasteOnRightClick = false
@@ -238,7 +240,21 @@
                 action: #selector(selectAll(_:)), keyEquivalent: "")
             selectAllItem.target = self
             menu.addItem(selectAllItem)
+            if uploadFiles != nil {
+                menu.addItem(.separator())
+                let upload = NSMenuItem(
+                    title: String(localized: AppStrings.Terminal.uploadFile),
+                    action: #selector(uploadFromContextMenu(_:)), keyEquivalent: "")
+                upload.target = self
+                upload.isEnabled = canUploadFiles?() == true
+                menu.addItem(upload)
+            }
             return menu
+        }
+
+        @objc private func uploadFromContextMenu(_: Any?) {
+            guard canUploadFiles?() == true else { return }
+            uploadFiles?()
         }
 
         private var canPasteFromClipboard: Bool {
@@ -316,6 +332,31 @@
         private var appliedVisibility: Bool?
         private var wantsFocus = false
         private var nextMountOrdinal: UInt64 = 0
+
+        func configureUpload(action: (() -> Void)?, isAvailable: (() -> Bool)? = nil) {
+            terminalView.uploadFiles = action
+            terminalView.canUploadFiles = isAvailable
+        }
+
+        func chooseUploadFiles(completion: @escaping ([URL]) -> Void) {
+            guard isUploadSurfaceVisible, let window = terminalView.window else { return }
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = true
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = true
+            panel.beginSheetModal(for: window) { [weak self] response in
+                guard response == .OK, self?.isUploadSurfaceVisible == true else { return }
+                completion(panel.urls)
+            }
+        }
+
+        var isUploadSurfaceVisible: Bool {
+            appliedVisibility == true && terminalView.window != nil && !terminalView.isHiddenOrHasHiddenAncestor
+        }
+
+        func pasteUploadedText(_ text: String) {
+            terminalView.inputCapture?.withLocalPaste { _ = state.paste(text: text) }
+        }
 
         private var ownerIdentifier: ObjectIdentifier { ObjectIdentifier(self) }
 

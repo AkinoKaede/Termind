@@ -28,6 +28,7 @@ private struct MobilePendingUpload {
     var ownsClient: Bool
     var context: SFTPTransferContext
     var connectionGeneration: UUID
+    var insertPaths: Bool
 }
 
 private struct MobilePendingDownload {
@@ -145,6 +146,14 @@ final class MobileWorkspace: Identifiable {
     private let commandDraft = TerminalCommandDraftController()
     private var workingDirectoryObservation: AnyCancellable?
     private let surfaceOwner = MobileTerminalSurface()
+    var uploadConnectionGeneration: UUID { generation }
+
+    func configureTerminalUpload(files: (() -> Void)?, photos: (() -> Void)? = nil) {
+        surfaceOwner.view.uploadFiles = descriptor.kind == .ssh ? files : nil
+        surfaceOwner.view.uploadPhotos = descriptor.kind == .ssh ? photos : nil
+        surfaceOwner.view.canUploadFiles = { [weak self] in self?.uploadTargetProblem == nil && self != nil }
+    }
+
     var uploadTerminalView: UIView? { descriptor.kind == .ssh ? surfaceOwner.view : nil }
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
@@ -1332,7 +1341,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     @discardableResult
-    func prepareUpload(_ urls: [URL]) -> Bool {
+    func prepareUpload(_ urls: [URL], insertPaths: Bool = false) -> Bool {
         let urls = urls.filter(\.isFileURL)
         guard !urls.isEmpty else { return false }
         cancelPendingUpload()
@@ -1417,7 +1426,8 @@ final class MobileWorkspace: Identifiable {
                     client: client,
                     ownsClient: ownsClient,
                     context: context,
-                    connectionGeneration: connectionGeneration
+                    connectionGeneration: connectionGeneration,
+                    insertPaths: insertPaths
                 )
                 if batch.conflictCount > 0 {
                     if uploadNotice?.isRejected != true { uploadNotice = nil }
@@ -1606,7 +1616,15 @@ final class MobileWorkspace: Identifiable {
                     connection: .context(pendingUpload.context),
                     homeDirectory: pendingUpload.homeDirectory,
                     client: pendingUpload.client,
-                    coordinator: transfers
+                    coordinator: transfers,
+                    uploadedPaths: pendingUpload.insertPaths
+                        ? { [weak self] paths in
+                            guard let self, self.connected,
+                                self.generation == pendingUpload.connectionGeneration
+                            else { return }
+                            let text = paths.map(RemoteShellCommand.escapeArgument).joined(separator: " ") + " "
+                            _ = self.terminal.paste(text: text)
+                        } : nil
                 ) { [weak self] state in
                     guard state == .completed else { return }
                     Task { @MainActor in

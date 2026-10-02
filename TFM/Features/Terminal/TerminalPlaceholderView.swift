@@ -95,6 +95,7 @@ struct TerminalPlaceholderView: View {
     @FocusState private var terminalFocused: Bool
     @State private var pendingUploadChannel: SFTPChannelModel?
     @State private var pendingUploadItemCount = 0
+    @State private var insertUploadedPaths = false
     @State private var uploadConflictPresented = false
     @State private var uploadNotice: WorkspaceUploadNotice?
     @State private var uploadNoticeTask: Task<Void, Never>?
@@ -127,8 +128,16 @@ struct TerminalPlaceholderView: View {
                 sshSession.inputRouter = workspace
                 terminalFocused = requestsFocus
                 TerminalFontCatalog.shared.refresh()
+                sshSession.terminalViewOwner.configureUpload(
+                    action: chooseUploadFiles,
+                    isAvailable: { isVisible && uploadTargetProblem == nil })
                 sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
+            }
+            .onChange(of: isVisible) {
+                sshSession.terminalViewOwner.configureUpload(
+                    action: chooseUploadFiles,
+                    isAvailable: { isVisible && uploadTargetProblem == nil })
             }
             .onChange(of: requestsFocus) { _, focused in
                 terminalFocused = focused
@@ -145,6 +154,7 @@ struct TerminalPlaceholderView: View {
             .onChange(of: sshSession.connectionAttemptID) { cancelPendingUpload() }
             .onDisappear {
                 terminalFocused = false
+                sshSession.terminalViewOwner.configureUpload(action: nil)
                 cancelPendingUpload()
             }
             .onChange(of: scenePhase) { _, phase in
@@ -228,17 +238,25 @@ struct TerminalPlaceholderView: View {
         return String(localized: AppStrings.SFTP.existingItemsMessage(count: count))
     }
 
+    private func chooseUploadFiles() {
+        guard uploadTargetProblem == nil else { return }
+        let generation = sshSession.connectionAttemptID
+        let destination = sshSession.workingDirectory
+        sshSession.terminalViewOwner.chooseUploadFiles { urls in
+            guard sshSession.connectionAttemptID == generation,
+                sshSession.workingDirectory == destination, uploadTargetProblem == nil
+            else { return }
+            _ = prepareTerminalTransfer(.local(urls), insertPaths: true)
+        }
+    }
+
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
-        // Only this terminal convenience is Pro. SFTPBrowserView keeps its own
-        // upload flow and remains free.
-        guard app.proAccess.require(.terminalFileUpload) else { return false }
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return false }
         return prepareTerminalTransfer(.local(files))
     }
 
     private func receiveRemoteDrop(_ data: Data) -> Bool {
-        guard app.proAccess.require(.terminalFileUpload) else { return false }
         guard let request = TerminalTransferRequest.remote(data: data, coordinator: app.sftpTransfers) else {
             showUploadNotice(.rejected(String(localized: AppStrings.SFTP.theCopiedSftpItemsAreInvalid)))
             return false
@@ -246,8 +264,9 @@ struct TerminalPlaceholderView: View {
         return prepareTerminalTransfer(request)
     }
 
-    private func prepareTerminalTransfer(_ request: TerminalTransferRequest) -> Bool {
+    private func prepareTerminalTransfer(_ request: TerminalTransferRequest, insertPaths: Bool = false) -> Bool {
         cancelPendingUpload()
+        insertUploadedPaths = insertPaths
         guard uploadTargetProblem == nil,
             let snapshot = sshSession.transferSnapshot,
             let workingDirectory = sshSession.workingDirectory
@@ -342,6 +361,7 @@ struct TerminalPlaceholderView: View {
         let itemCount = pendingUploadItemCount
         let destination = uploadChannel.path
         let generation = sshSession.connectionAttemptID
+        let insertPaths = insertUploadedPaths
         uploadConflictPresented = false
         uploadEnqueueTask = Task {
             if uploadChannel.pendingRemoteCopyBatch != nil {
@@ -352,7 +372,14 @@ struct TerminalPlaceholderView: View {
             } else {
                 await uploadChannel.enqueuePending(
                     policy: policy,
-                    coordinator: app.sftpTransfers
+                    coordinator: app.sftpTransfers,
+                    uploadedPaths: insertPaths
+                        ? { [weak session = sshSession] paths in
+                            guard let session, session.status == .connected,
+                                session.connectionAttemptID == generation
+                            else { return }
+                            session.insertUploadedPaths(paths)
+                        } : nil
                 )
             }
             let error = uploadChannel.operationError

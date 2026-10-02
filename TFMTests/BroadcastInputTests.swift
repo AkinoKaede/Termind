@@ -41,6 +41,18 @@ private final class WorkspaceCommandGeneratorStub: CommandGenerating {
 
 @MainActor
 struct BroadcastInputTests {
+    @Test func uploadPasteDoesNotConsumeAnInteractiveBroadcastTicket() {
+        let capture = TerminalInteractiveInputCapture()
+        capture.withInteraction(allowsDeferredWrite: true) {}
+        capture.withLocalPaste {
+            #expect(!capture.classifyWrite(Data("uploaded-path".utf8)))
+        }
+        #expect(!capture.classifyWrite(Data("deferred-upload".utf8)))
+        capture.withInteraction {
+            #expect(capture.classifyWrite(Data("typed".utf8)))
+        }
+    }
+
     @Test
     func deferredBracketedPasteKeepsEveryChunkInteractiveUntilItsClosingMarker() {
         let capture = TerminalInteractiveInputCapture()

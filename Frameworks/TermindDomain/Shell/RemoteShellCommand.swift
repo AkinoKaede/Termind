@@ -7,7 +7,7 @@ public nonisolated enum RemoteShellCommand {
     /// backslash followed by a newline would remove both characters.
     public static func escapeArgument(_ value: String) -> String {
         guard !value.isEmpty else { return "''" }
-        if value.contains("\n") || value.contains("\r") {
+        if value.unicodeScalars.contains(where: { $0.value == 0x0A || $0.value == 0x0D }) {
             return "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
         }
         var escaped = ""
