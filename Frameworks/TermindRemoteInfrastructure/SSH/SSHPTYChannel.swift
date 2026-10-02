@@ -36,6 +36,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         public var shell: String?
         public var systemInfo: RemoteSystemInfo?
         public var homeDirectory: String?
+        public var historySource: ShellHistorySource?
         public var homeResolutionUnavailable = false
         var diagnostic: Diagnostic?
     }
@@ -240,17 +241,31 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var visible = preservedOutput
         visible.append(Data(buffer[buffer.index(after: lineEnd)...]))
         let homeDirectory = parseHomeDirectory(in: buffer)
+        let historySource = parseHistorySource(in: buffer)
         finish()
         return Update(
             visibleOutput: visible, isComplete: true,
             integrationInstalled: true, shell: detectedShell,
             systemInfo: detectedSystemInfo,
-            homeDirectory: homeDirectory,
+            homeDirectory: homeDirectory, historySource: historySource,
             diagnostic: .installed(
                 late: installationStartedLate, homeResolved: homeDirectory != nil,
                 systemInfoAvailable: detectedSystemInfo != nil
             )
         )
+    }
+
+    private func parseHistorySource(in data: Data) -> ShellHistorySource? {
+        guard let shell = detectedShell.flatMap(ShellHistorySource.Shell.init(rawValue:)) else { return nil }
+        let prefix = Data("__TRMD_\(token)_HISTORY__".utf8)
+        guard let start = data.range(of: prefix)?.upperBound,
+            let end = data[start...].firstIndex(of: 0x0A)
+        else { return nil }
+        var payload = Data(data[start..<end])
+        if payload.last == 0x0D { payload.removeLast() }
+        let path = RemoteCommandEventFilter.decodePercentEncoded(payload, charset: charset)
+        guard !path.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else { return nil }
+        return ShellHistorySource(shell: shell, path: path)
     }
 
     private mutating func parseHomeDirectory(in data: Data) -> String? {
@@ -367,7 +382,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             isComplete: update.isComplete,
             integrationInstalled: update.integrationInstalled,
             shell: update.shell, systemInfo: update.systemInfo,
-            homeDirectory: update.homeDirectory,
+            homeDirectory: update.homeDirectory, historySource: update.historySource,
             homeResolutionUnavailable: update.homeResolutionUnavailable,
             diagnostic: update.diagnostic
         )
@@ -429,6 +444,8 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private func installationCommand(for shell: String?) -> Data? {
         let marker =
             "builtin printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' \"$(__termind_encode \"$HOME\")\"; builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
+        let historyMarker =
+            "__termind_history_path=\"${HISTFILE-}\"; if [[ -n \"$__termind_history_path\" && \"$__termind_history_path\" != /* ]]; then __termind_history_path=\"$PWD/$__termind_history_path\"; fi; builtin printf '\\n__TRMD_%s_HISTORY__%s\\n' '\(token)' \"$(__termind_encode \"$__termind_history_path\")\"; unset __termind_history_path; "
         let command: String
         switch shell {
         case "bash":
@@ -463,17 +480,17 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
                     "fi;",
                     "fi;",
                     "fi;",
-                    "\(marker);",
+                    "\(historyMarker)\(marker);",
                     "__termind_report_prompt",
                 ].joined(separator: " ") + "\n"
         case "zsh":
             // Unlike bash, zsh reserves `status` as a read-only special parameter.
             // Assigning it aborts this function and the remaining prompt hooks.
             command =
-                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then typeset -g __termind_integration_token=\"\(token)\"; function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { builtin local command_status=$? duration=0; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$command_status\" \"$duration\"; unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return \"$command_status\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; typeset -g __termind_command_active=1; typeset -g __termind_command_started_seconds=$SECONDS; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; (( ${preexec_functions[(Ie)__termind_report_command]} )) || add-zsh-hook preexec __termind_report_command; precmd_functions=(__termind_report_prompt ${precmd_functions:#__termind_report_prompt}); (( ${chpwd_functions[(Ie)__termind_report_cwd]} )) || add-zsh-hook chpwd __termind_report_cwd; fi; \(marker); __termind_report_prompt\n"
+                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then typeset -g __termind_integration_token=\"\(token)\"; function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { builtin local command_status=$? duration=0; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$command_status\" \"$duration\"; unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return \"$command_status\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; typeset -g __termind_command_active=1; typeset -g __termind_command_started_seconds=$SECONDS; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; (( ${preexec_functions[(Ie)__termind_report_command]} )) || add-zsh-hook preexec __termind_report_command; precmd_functions=(__termind_report_prompt ${precmd_functions:#__termind_report_prompt}); (( ${chpwd_functions[(Ie)__termind_report_cwd]} )) || add-zsh-hook chpwd __termind_report_cwd; fi; \(historyMarker)\(marker); __termind_report_prompt\n"
         case "fish":
             command =
-                " if not set -q __termind_integration_token; or test \"$__termind_integration_token\" != \"\(token)\"; set -g __termind_integration_token \"\(token)\"; function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); set -g __termind_command_active 1; end; function __termind_report_finished --on-event fish_postexec; set -l command_status $status; set -l command_duration $CMD_DURATION; if set -q __termind_command_active; printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' $command_status $command_duration; set -e __termind_command_active; end; end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; end; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
+                " if not set -q __termind_integration_token; or test \"$__termind_integration_token\" != \"\(token)\"; set -g __termind_integration_token \"\(token)\"; function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); set -g __termind_command_active 1; end; function __termind_report_finished --on-event fish_postexec; set -l command_status $status; set -l command_duration $CMD_DURATION; if set -q __termind_command_active; printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' $command_status $command_duration; set -e __termind_command_active; end; end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; end; set -l __termind_hname fish; if set -q fish_history; set __termind_hname \"$fish_history\"; end; set -l __termind_hbase \"$HOME/.local/share\"; if set -q XDG_DATA_HOME; and test -n \"$XDG_DATA_HOME\"; set __termind_hbase \"$XDG_DATA_HOME\"; end; set -l __termind_hpath ''; if test -n \"$__termind_hname\"; set __termind_hpath \"$__termind_hbase/fish/$__termind_hname\"_history; end; printf '\\n__TRMD_%s_HISTORY__%s\\n' '\(token)' (string escape --style=url -- \"$__termind_hpath\"); set -e __termind_hname __termind_hbase __termind_hpath; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
         default:
             return nil
         }
@@ -765,6 +782,19 @@ public actor SSHPTYChannel {
         try await worker.openSFTPChannel()
     }
 
+    public func executeHistoryRead(_ command: String, outputLimit: Int) async throws -> SSHExecResult {
+        let cancellation = TransferCancellationToken()
+        return try await withTaskCancellationHandler {
+            try await worker.executeHistoryRead(command, outputLimit: outputLimit, cancellation: cancellation)
+        } onCancel: {
+            cancellation.cancel()
+        }
+    }
+
+    public func historySource() async throws -> ShellHistorySource? {
+        try await worker.historySource()
+    }
+
     public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {
         worker.resize(
             columns: columns, rows: rows,
@@ -806,6 +836,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var workingDirectoryFilter: RemoteOSC7CharsetFilter?
     private var didReportExit = false
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
+    private var execChannelOwner: SSHMultiplexedExecChannelOwner!
+    private var detectedHistorySource: ShellHistorySource?
 
     init(
         output: @escaping SSHPTYChannel.OutputHandler,
@@ -821,6 +853,26 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         self.logger = logger
         shellIntegrationLifecycleLogger = RemoteShellIntegrationLifecycleLogger(logger: logger)
         self.maxSessionsPolicy = maxSessionsPolicy
+        execChannelOwner = SSHMultiplexedExecChannelOwner(
+            queue: queue, logger: logger, requestsAgentForwarding: false,
+            context: { [weak self] in
+                guard let self, let connection = self.connection, let buffer = self.buffer,
+                    let channelBudget = self.channelBudget
+                else { return nil }
+                return .init(
+                    connection: connection, buffer: buffer, channelBudget: channelBudget,
+                    charset: self.charset, hostID: self.hostID)
+            },
+            schedulePump: { [weak self] in self?.pump() },
+            connectionFailed: { [weak self] error in
+                guard let self else { return }
+                self.reportExit(.failure((error as? TermindSSHError) ?? .disconnected))
+                self.cleanup()
+            },
+            didCloseLastChannel: { [weak self] in
+                guard let self, self.ptyChannel == nil, self.sftpChannelOwner.isEmptyOnQueue else { return }
+                self.cleanup()
+            })
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
@@ -836,7 +888,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
             },
             didCloseLastChannel: { [weak self] in
-                guard let self, self.ptyChannel == nil else { return }
+                guard let self, self.ptyChannel == nil, self.execChannelOwner.isEmptyOnQueue else { return }
                 self.cleanup()
             })
     }
@@ -1568,6 +1620,12 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             socketEvents?.update(read: false, write: true)
             return
         }
+        execChannelOwner.wakeAllOnQueue()
+        let execProgress = execChannelOwner.advanceOnQueue(
+            deadline: min(
+                deadline, DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds / 4))
+        guard self.connection != nil else { return }
+        if execProgress { queue.async { [weak self] in self?.pump() } }
         var agentProgress =
             buffer.agentChannels?.advance(
                 deadline: min(
@@ -1680,6 +1738,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         if let command = update.command {
             pendingWrites.append(command)
         }
+        if let source = update.historySource { detectedHistorySource = source }
         if update.integrationInstalled {
             shellIntegrationHandler(
                 .available(
@@ -1756,6 +1815,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func closeTerminalSession() {
+        execChannelOwner.cancelAllOnQueue()
+        detectedHistorySource = nil
         buffer?.agentChannels?.shutdown()
         finishCharsetOutput()
         pendingWrites.removeAll()
@@ -1775,7 +1836,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             ptyChannelLease?.release()
             ptyChannelLease = nil
         }
-        if sftpChannelOwner.isEmptyOnQueue { cleanup() }
+        if sftpChannelOwner.isEmptyOnQueue, execChannelOwner.isEmptyOnQueue {
+            cleanup()
+        } else {
+            queue.async { [weak self] in self?.pump() }
+        }
     }
 
     private func cleanup() {
@@ -1799,6 +1864,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             _ = libssh2_channel_free(ptyChannel)
             self.ptyChannel = nil
         }
+        execChannelOwner.closeAllOnQueue(error: CancellationError())
+        detectedHistorySource = nil
         sftpChannelOwner.closeAllOnQueue()
         ptyChannelLease?.release()
         ptyChannelLease = nil
@@ -1959,6 +2026,27 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 }
 
 nonisolated extension SSHPTYChannelWorker {
+    fileprivate func executeHistoryRead(
+        _ command: String, outputLimit: Int, cancellation: TransferCancellationToken
+    ) async throws -> SSHExecResult {
+        try await execChannelOwner.execute(
+            command, workingDirectory: nil, stdin: nil, timeout: 10,
+            outputLimit: outputLimit, cancellation: cancellation, onOutput: nil, usesLoginShell: false)
+    }
+
+    fileprivate func historySource() async throws -> ShellHistorySource? {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(6))
+        while true {
+            try Task.checkCancellation()
+            let (source, pending) = try await queue.perform { [self] in
+                guard connection != nil else { throw TermindSSHError.disconnected }
+                return (detectedHistorySource, shellIntegration != nil)
+            }
+            if !pending || source != nil || ContinuousClock.now >= deadline { return source }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
     fileprivate func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         try await sftpChannelOwner.openChannel()
     }

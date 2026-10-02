@@ -10,7 +10,7 @@ public nonisolated struct SFTPHistoryEntry: Identifiable, Hashable, Sendable {
     }
 
     public var id: UUID = UUID()
-    public var hostID: Host.ID
+    public var sessionID: UUID
     public var kind: Kind
     public var path: String
     public var visitedAt: Date = Date()
@@ -19,9 +19,9 @@ public nonisolated struct SFTPHistoryEntry: Identifiable, Hashable, Sendable {
         if path == "/" { return "/" }
         return (path as NSString).lastPathComponent
     }
-    public init(id: UUID = UUID(), hostID: Host.ID, kind: Kind, path: String, visitedAt: Date = Date()) {
+    public init(id: UUID = UUID(), sessionID: UUID, kind: Kind, path: String, visitedAt: Date = Date()) {
         self.id = id
-        self.hostID = hostID
+        self.sessionID = sessionID
         self.kind = kind
         self.path = path
         self.visitedAt = visitedAt

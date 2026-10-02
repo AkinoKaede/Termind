@@ -113,18 +113,6 @@ final class WindowModel {
             }
         }
     }
-    weak var commandHistoryStore: CommandHistoryModel? {
-        didSet {
-            guard let commandHistoryStore else { return }
-            for workspace in workspaces { workspace.configureCommandHistory(using: commandHistoryStore) }
-        }
-    }
-    weak var sftpHistoryStore: SFTPHistoryModel? {
-        didSet {
-            guard let sftpHistoryStore else { return }
-            for workspace in workspaces { workspace.configureSFTPHistory(using: sftpHistoryStore) }
-        }
-    }
     var assistantCommands: AssistantConversationCommands?
     var assistantOperationError: String?
     var workspaceTemplateNotice: String?
@@ -865,12 +853,6 @@ final class WindowModel {
         if let connectionCoordinator {
             workspace.configureConnections(using: connectionCoordinator)
         }
-        if let commandHistoryStore {
-            workspace.configureCommandHistory(using: commandHistoryStore)
-        }
-        if let sftpHistoryStore {
-            workspace.configureSFTPHistory(using: sftpHistoryStore)
-        }
         workspaces.append(workspace)
         if shouldSelect { select(workspace.id) }
         return workspace
@@ -1024,7 +1006,6 @@ final class WindowModel {
         let pane = Pane.sftpChannel(host: host, initialPath: initialPath)
         configureConnectionHistory(pane)
         if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
-        if let sftpHistoryStore { pane.configureSFTPHistory(using: sftpHistoryStore) }
 
         if placement == .currentWorkspace,
             let workspace = selectedWorkspace,

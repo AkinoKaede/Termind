@@ -159,23 +159,23 @@ struct MobileSettingsPortTests {
         app.library.upsert(host)
         let workspace = MobileWorkspace(
             descriptor: .init(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: app.library, terminalSettings: app.terminalSettings, commandHistory: app.commandHistory)
+            hosts: app.library, terminalSettings: app.terminalSettings)
         workspace.receiveShellEvent(.commandStarted("not-authenticated"))
-        #expect(app.commandHistory.entries(for: host.id).isEmpty)
+        #expect(workspace.commandHistory.entries().isEmpty)
         workspace.receiveShellEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: nil))
         workspace.receiveShellEvent(
             .commandStarted("echo hello \\\n                world\nprintf retained")
         )
         workspace.receiveShellEvent(.commandFinished(0, duration: 1.25))
         workspace.receiveShellEvent(.commandFinished(1, duration: 9))
-        let entry = try #require(app.commandHistory.entries(for: host.id).first)
+        let entry = try #require(workspace.commandHistory.entries().first)
         #expect(entry.command == "echo hello world\nprintf retained")
         #expect(entry.exitStatus == 0)
         #expect(entry.duration == 1.25)
         workspace.receiveShellEvent(.commandStarted("interrupted"))
         workspace.disconnect()
         workspace.receiveShellEvent(.commandFinished(0, duration: 1))
-        #expect(app.commandHistory.entries(for: host.id).first?.exitStatus == nil)
+        #expect(workspace.commandHistory.entries().first?.exitStatus == nil)
     }
 
     @Test func findQuerySurvivesDismissalAndNavigationReopensSearch() throws {
@@ -201,10 +201,12 @@ struct MobileSettingsPortTests {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
-        app.commandHistory.record("test", for: host.id)
+        let id = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        let workspace = try #require(app.workspaces.first { $0.id == id })
+        workspace.commandHistory.record("test")
         app.applyRemoteVault(.init(), keys: [VaultRecordKey(kind: .host, id: host.id)])
         #expect(app.library.host(host.id) == nil)
-        #expect(app.commandHistory.entries(for: host.id).isEmpty)
+        #expect(workspace.commandHistory.entries().isEmpty)
     }
 }
 

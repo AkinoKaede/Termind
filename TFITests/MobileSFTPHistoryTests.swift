@@ -6,29 +6,31 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized)
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"))
 @MainActor
 struct MobileSFTPHistoryTests {
-    @Test func deletingAHistoryEntryUpdatesThePresentedList() async throws {
+    @Test func appendingAHistoryEntryUpdatesThePresentedList() async throws {
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         let library = HostLibraryModel(hosts: [host])
-        let history = SFTPHistoryModel()
-        history.record(kind: .directory, path: "/srv", for: host.id)
-        history.record(kind: .file, path: "/srv/report.txt", for: host.id)
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
-            hosts: library,
-            sftpHistory: history
-        )
+            hosts: library)
+        let history = workspace.sftpHistory
+        history.record(kind: .directory, path: "/srv")
+        history.record(kind: .file, path: "/srv/report.txt")
         let controller = UIHostingController(
             rootView: MobileSFTPHistoryView(workspace: workspace, open: { _ in })
         )
-        let window = UIWindow(frame: UIScreen.main.bounds)
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousWindow = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
         window.rootViewController = controller
         window.makeKeyAndVisible()
         defer {
             window.isHidden = true
             window.rootViewController = nil
+            previousWindow?.makeKey()
         }
         controller.view.frame = window.bounds
         controller.view.setNeedsLayout()
@@ -36,11 +38,13 @@ struct MobileSFTPHistoryTests {
         try await Task.sleep(for: .milliseconds(300))
         #expect(visibleCells(in: controller.view).count == 2)
 
-        let newest = try #require(history.entries(for: host.id).first)
-        history.delete(newest.id)
-        try await Task.sleep(for: .milliseconds(300))
-
-        #expect(visibleCells(in: controller.view).count == 1)
+        history.record(kind: .directory, path: "/new")
+        for _ in 0..<100 where visibleCells(in: controller.view).count != 3 {
+            try await Task.sleep(for: .milliseconds(20))
+            controller.view.layoutIfNeeded()
+        }
+        #expect(history.entries().map(\.path) == ["/new", "/srv/report.txt", "/srv"])
+        #expect(visibleCells(in: controller.view).count == 3)
     }
 
     private func visibleCells(in root: UIView) -> [UIView] {

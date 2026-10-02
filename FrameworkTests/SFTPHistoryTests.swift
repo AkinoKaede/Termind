@@ -1,108 +1,43 @@
 import Foundation
-import SwiftData
 import TermindApplication
 import TermindDomain
-import TermindPersistence
 import Testing
 
-@Suite
-@MainActor
+@Suite @MainActor
 struct SFTPHistoryTests {
-    @Test func memoryStoreNormalizesDeduplicatesSearchesAndScopesByHost() throws {
-        let firstHost = UUID()
-        let secondHost = UUID()
+    @Test func visitsAreNormalizedDeduplicatedAndScopedToSession() {
+        let first = SFTPHistoryModel()
+        let second = SFTPHistoryModel()
+        first.record(kind: .directory, path: "/srv/app/")
+        first.record(kind: .file, path: "/srv/app/config.json")
+        first.record(kind: .directory, path: "/srv/app")
+        second.record(kind: .directory, path: "/var/log")
+        #expect(first.entries().map(\.path) == ["/srv/app", "/srv/app/config.json"])
+        #expect(first.entries(matching: "CONFIG").map(\.kind) == [.file])
+        #expect(second.entries().map(\.path) == ["/var/log"])
+        first.close()
+        #expect(first.entries().isEmpty)
+        #expect(second.entries().count == 1)
+    }
+
+    @Test func closedHistoryRejectsLateTransferCallbacks() {
+        let history = SFTPHistoryModel()
+        history.record(kind: .file, path: "/before")
+        history.close()
+        history.record(kind: .file, path: "/late")
+        #expect(history.entries().isEmpty)
+        let reopened = SFTPHistoryModel()
+        #expect(reopened.entries().isEmpty)
+        #expect(reopened.sessionID != history.sessionID)
+    }
+
+    @Test func trimRetainsNewestPaths() throws {
         let model = SFTPHistoryModel()
-
-        model.record(
-            kind: .directory, path: "/srv/../srv/app", for: firstHost,
-            at: Date(timeIntervalSince1970: 1)
-        )
-        model.record(
-            kind: .file, path: "/srv/app/config.json", for: firstHost,
-            at: Date(timeIntervalSince1970: 2)
-        )
-        model.record(
-            kind: .directory, path: "/srv/app", for: firstHost,
-            at: Date(timeIntervalSince1970: 3)
-        )
-        model.record(
-            kind: .directory, path: "/var/log", for: secondHost,
-            at: Date(timeIntervalSince1970: 4)
-        )
-
-        #expect(model.entries(for: firstHost).map(\.kind) == [.directory, .file])
-        #expect(model.entries(for: firstHost).map(\.path) == ["/srv/app", "/srv/app/config.json"])
-        #expect(model.entries(for: firstHost, matching: "CONFIG").map(\.kind) == [.file])
-        #expect(model.entries(for: secondHost).map(\.path) == ["/var/log"])
-    }
-
-    @Test func memoryStoreTrimsDeletesAndClearsPerHost() throws {
-        let hostID = UUID()
-        let otherHostID = UUID()
-        let model = SFTPHistoryModel()
-
-        for index in 0...SFTPHistoryModel.perHostLimit {
-            model.record(
-                kind: .directory, path: "/directory-\(index)", for: hostID,
-                at: Date(timeIntervalSince1970: TimeInterval(index))
-            )
+        for index in 0...SFTPHistoryModel.perSessionLimit {
+            model.record(kind: .directory, path: "/directory-\(index)")
         }
-        model.record(kind: .file, path: "/keep.txt", for: otherHostID)
-
-        let entries = model.entries(for: hostID)
-        #expect(entries.count == SFTPHistoryModel.perHostLimit)
-        #expect(entries.first?.path == "/directory-\(HistoryLimits.retainedEntries)")
-        #expect(entries.last?.path == "/directory-1")
-
-        let removed = try #require(entries.first)
-        model.delete(removed.id)
-        #expect(!model.entries(for: hostID).contains { $0.id == removed.id })
-        model.clear(for: hostID)
-        #expect(model.entries(for: hostID).isEmpty)
-        #expect(model.entries(for: otherHostID).map(\.path) == ["/keep.txt"])
-    }
-
-    @Test func loadedSFTPHistoryImmediatelyTrimsEveryHostToTheSharedLimit() {
-        let hosts = [UUID(), UUID()]
-        let entries = hosts.flatMap { hostID in
-            (0...HistoryLimits.retainedEntries).map { index in
-                SFTPHistoryEntry(
-                    hostID: hostID, kind: .directory, path: "/directory-\(index)",
-                    visitedAt: Date(timeIntervalSince1970: TimeInterval(index))
-                )
-            }
-        }
-
-        let model = SFTPHistoryModel(entries: entries)
-
-        for hostID in hosts {
-            let retained = model.entries(for: hostID)
-            #expect(retained.count == HistoryLimits.retainedEntries)
-            #expect(retained.first?.path == "/directory-\(HistoryLimits.retainedEntries)")
-            #expect(retained.last?.path == "/directory-1")
-        }
-    }
-
-    @Test func swiftDataRepositoryPersistsAndClearsPerHost() throws {
-        let container = try TermindPersistence.makeContainer(inMemory: true)
-        let hostID = UUID()
-        let otherHostID = UUID()
-        let model = SFTPHistoryModel(
-            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container))
-        )
-
-        model.record(kind: .directory, path: "/var/log", for: hostID)
-        model.record(kind: .file, path: "/tmp/a.txt", for: otherHostID)
-        #expect(model.storageError == nil)
-
-        let reloaded = SFTPHistoryModel(
-            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container))
-        )
-        #expect(reloaded.entries(for: hostID).map(\.path) == ["/var/log"])
-        #expect(reloaded.entries(for: otherHostID).map(\.path) == ["/tmp/a.txt"])
-
-        reloaded.clear(for: hostID)
-        #expect(reloaded.entries(for: hostID).isEmpty)
-        #expect(reloaded.entries(for: otherHostID).map(\.path) == ["/tmp/a.txt"])
+        let values = model.entries()
+        #expect(values.count == SFTPHistoryModel.perSessionLimit)
+        #expect(values.last?.path == "/directory-1")
     }
 }

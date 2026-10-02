@@ -30,7 +30,8 @@ protocol SSHSessionInputRouting: AnyObject {
 /// terminal backend to one SSH session and exposes connection state to SwiftUI.
 @Observable
 final class SSHSessionModel: Identifiable {
-    let id = UUID()
+    let commandHistory = CommandHistoryModel()
+    var id: UUID { commandHistory.sessionID }
     /// Never optional. Termind ships no local terminal — the App Sandbox has no
     /// route to a login shell worth having, and shipping a crippled one would be
     /// worse than shipping none — so a sshSession is always a sshSession *on* a host.
@@ -66,10 +67,6 @@ final class SSHSessionModel: Identifiable {
     let commandMonitor = TerminalCommandMonitor()
     private var commandObservation: TerminalCommandObservation?
     var hasUnreadOutput: Bool = false
-    /// History for an unsaved Quick Connect destination. Saved Hosts use the
-    /// app-wide CommandHistoryModel instead so every window sees the same list.
-    private(set) var transientCommandHistory: [CommandHistoryEntry] = []
-
     /// Find stays with this terminal's scrollback rather than with the transient
     /// SwiftUI pane mounting it, so moving a terminal between panes carries its
     /// open search and retained query along with the buffer they search. Closing
@@ -138,14 +135,16 @@ final class SSHSessionModel: Identifiable {
     /// rather than the transient SwiftUI branch that currently displays it.
     var terminalViewOwner: PersistentTerminalViewOwner { terminalSurface }
     private weak var statusStore: (any RemoteSessionHostStore)?
-    weak var commandHistoryStore: CommandHistoryModel?
     private var ssh: SSHPTYChannel?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
     private(set) var connectionAttemptID: UUID? {
         didSet {
-            if connectionAttemptID != oldValue { terminalUpload.cancelPendingUpload() }
+            if connectionAttemptID != oldValue {
+                terminalUpload.cancelPendingUpload()
+                commandHistory.cancelLoading()
+            }
         }
     }
     @ObservationIgnored lazy var terminalUpload = TerminalUploadModel(session: self)
@@ -774,6 +773,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        commandHistory.cancelLoading()
         terminalUpload.cancelPendingUpload()
         commandMonitor.endConnection()
         startsOnMount = false
@@ -886,6 +886,7 @@ final class SSHSessionModel: Identifiable {
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
             status = .connected
+            commandHistory.load(using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
             if presentsConnectionJourney {
                 connectionJourney.succeed()
             } else {
@@ -1084,7 +1085,6 @@ final class SSHSessionModel: Identifiable {
         copy.connectionRoute = connectionRoute
         copy.connectionOrigin = connectionOrigin
         copy.connectionCoordinator = connectionCoordinator
-        copy.commandHistoryStore = commandHistoryStore
         return copy
     }
 
@@ -1233,18 +1233,7 @@ final class SSHSessionModel: Identifiable {
             commandExcludedFromHistory = nil
             return nil
         }
-        if statusStore?.host(hostID) != nil {
-            return commandHistoryStore?.record(command, for: hostID)?.id
-        } else {
-            let entry = CommandHistoryEntry(hostID: hostID, command: command)
-            transientCommandHistory.insert(entry, at: 0)
-            if transientCommandHistory.count > CommandHistoryModel.perHostLimit {
-                transientCommandHistory.removeLast(
-                    transientCommandHistory.count - CommandHistoryModel.perHostLimit
-                )
-            }
-            return entry.id
-        }
+        return commandHistory.record(command)?.id
     }
 
     private func recordCommandCompletion(
@@ -1253,26 +1242,9 @@ final class SSHSessionModel: Identifiable {
         guard let active = activeShellCommand else { return }
         activeShellCommand = nil
         guard let historyID = active.historyID else { return }
-        if statusStore?.host(hostID) != nil {
-            commandHistoryStore?.recordCompletion(
-                for: historyID, hostID: hostID,
-                exitStatus: exitStatus, duration: reportedDuration
-            )
-        } else if let index = transientCommandHistory.firstIndex(where: {
-            $0.id == historyID
-        }) {
-            transientCommandHistory[index].exitStatus = exitStatus
-            transientCommandHistory[index].duration = reportedDuration
-        }
+        commandHistory.recordCompletion(for: historyID, exitStatus: exitStatus, duration: reportedDuration)
     }
 
-    func deleteTransientHistory(_ id: CommandHistoryEntry.ID) {
-        transientCommandHistory.removeAll { $0.id == id }
-    }
-
-    func clearTransientHistory() {
-        transientCommandHistory.removeAll()
-    }
 }
 
 private final class SSHSessionRelay: @unchecked Sendable {

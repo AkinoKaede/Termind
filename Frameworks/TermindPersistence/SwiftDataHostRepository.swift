@@ -116,14 +116,6 @@ public final class SwiftDataHostRepository: HostRepository {
             snippet.targetHostIDs.removeAll { $0 == hostID }
         }
         for rule in try forwardingRules(for: hostID) { context.delete(rule) }
-        try context.delete(
-            model: PersistentCommandHistoryEntry.self,
-            where: #Predicate { $0.hostID == hostID }
-        )
-        try context.delete(
-            model: PersistentSFTPHistoryEntry.self,
-            where: #Predicate { $0.hostID == hostID }
-        )
         try HistorySyncJournal(context: context).bootstrapIfNeeded()
         try context.delete(
             model: PersistentConnectionHistoryEntry.self,

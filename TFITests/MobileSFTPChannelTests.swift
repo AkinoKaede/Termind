@@ -165,31 +165,29 @@ struct MobileSFTPChannelTests {
         #expect(mobileSFTPListItems(path: "/", files: sorted).count == sorted.count)
     }
 
-    @Test func successfulDirectoriesRefreshPersistentHistoryAndFailuresDoNot() async throws {
-        let hostID = UUID()
+    @Test func successfulDirectoriesRefreshSessionHistoryAndFailuresDoNot() async throws {
         let history = SFTPHistoryModel()
         let fileSystem = MobileBrowserFileSystem(
             listings: [
                 "/home": [],
                 "/srv": [],
             ])
-        let channel = MobileSFTPChannelModel(hostID: hostID, history: history)
+        let channel = MobileSFTPChannelModel(history: history)
         try await attach(channel, to: fileSystem, path: "/home/")
 
         await channel.openDirectory("/srv")
         await channel.reload()
-        #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
+        #expect(history.entries().map(\.path) == ["/srv", "/home"])
 
         await channel.openDirectory("/missing")
-        #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
+        #expect(history.entries().map(\.path) == ["/srv", "/home"])
     }
 
     @Test func staleDirectoryResponseDoesNotCreateHistory() async throws {
-        let hostID = UUID()
         let history = SFTPHistoryModel()
         let staleFileSystem = MobileDeferredFileSystem()
         let currentFileSystem = MobileBrowserFileSystem(listings: ["/current": []])
-        let channel = MobileSFTPChannelModel(hostID: hostID, history: history)
+        let channel = MobileSFTPChannelModel(history: history)
         let staleGeneration = UUID()
 
         let staleAttach = Task {
@@ -213,7 +211,7 @@ struct MobileSFTPChannelTests {
         await staleAttach.value
 
         #expect(channel.path == "/current")
-        #expect(history.entries(for: hostID).map(\.path) == ["/current"])
+        #expect(history.entries().map(\.path) == ["/current"])
     }
 
     private func attach(

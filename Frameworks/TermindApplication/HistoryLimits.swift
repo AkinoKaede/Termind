@@ -1,3 +1,3 @@
-public enum HistoryLimits {
+public nonisolated enum HistoryLimits {
     public static let retainedEntries = 250
 }

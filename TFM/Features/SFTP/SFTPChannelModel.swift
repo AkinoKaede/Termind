@@ -86,7 +86,8 @@ private struct SFTPDirectoryPresentation {
 
 @Observable
 final class SFTPChannelModel: Identifiable {
-    let id = UUID()
+    var history = SFTPHistoryModel()
+    var id: UUID { history.sessionID }
     let hostID: Host.ID
     let initialPath: String
     var homeResolution: RemoteHomeResolutionState = .pending
@@ -169,7 +170,6 @@ final class SFTPChannelModel: Identifiable {
     weak var navigationRouter: (any SFTPChannelNavigationRouting)?
     private weak var statusStore: (any RemoteSessionHostStore)?
     private weak var transferCoordinator: SFTPTransferCoordinator?
-    weak var historyStore: SFTPHistoryModel?
     private var didResolveHomeForConnection = false
     private let automaticRefreshInterval: Duration
     var connectionCoordinator: RemoteConnectionCoordinator?
@@ -304,6 +304,7 @@ final class SFTPChannelModel: Identifiable {
     }
 
     func prepareForReopen() {
+        history = SFTPHistoryModel()
         startsOnMount = true
     }
 
@@ -847,6 +848,8 @@ final class SFTPChannelModel: Identifiable {
     func reload(silently: Bool = false) async {
         guard let client, status == .connected else { return }
         let requestedPath = path
+        let requestedHistory = history
+        let requestedAttempt = connectionAttemptID
         if !silently {
             isLoading = true
             hint = String(localized: AppStrings.SFTP.loading)
@@ -854,10 +857,12 @@ final class SFTPChannelModel: Identifiable {
         defer { if !silently { isLoading = false } }
         do {
             let snapshot = try await client.listDirectory(at: requestedPath)
-            guard status == .connected, path == requestedPath else { return }
+            guard status == .connected, path == requestedPath, connectionAttemptID == requestedAttempt,
+                history === requestedHistory
+            else { return }
             replaceDirectoryContents(with: snapshot)
             if !silently {
-                historyStore?.record(kind: .directory, path: requestedPath, for: hostID)
+                history.record(kind: .directory, path: requestedPath)
             }
             hint = String(localized: AppStrings.SFTP.items(snapshot.count))
         } catch let error as SFTPError {
@@ -1067,9 +1072,7 @@ final class SFTPChannelModel: Identifiable {
     }
 
     func recordOpenedFile(at path: String) {
-        if connectionOrigin.allowsPersistence {
-            historyStore?.record(kind: .file, path: path, for: hostID)
-        }
+        history.record(kind: .file, path: path)
     }
 
     func reopenHistoryFile(

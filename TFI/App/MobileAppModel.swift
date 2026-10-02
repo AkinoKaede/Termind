@@ -125,8 +125,6 @@ final class MobileAppModel {
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
     let workspaceSettings: WorkspaceSettingsModel
-    let commandHistory: CommandHistoryModel
-    let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
     let devices: DeviceDirectoryModel
     let vaultSync: VaultSyncCoordinator?
@@ -247,10 +245,6 @@ final class MobileAppModel {
         sftpSettings = SFTPSettingsModel(persistence: settingsPersistence)
         workspaceSettings = WorkspaceSettingsModel(persistence: settingsPersistence)
         connectionCoordinator.updateSSHPreferences(sshSettings.preferences)
-        commandHistory = CommandHistoryModel(
-            repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
-        sftpHistory = SFTPHistoryModel(
-            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container)))
         let historyPersistence = HistorySyncPersistence(context: vaultContext)
         try historyPersistence.prepare()
         let connectionHistoryRepository = SwiftDataConnectionHistoryRepository(context: vaultContext)
@@ -378,8 +372,6 @@ final class MobileAppModel {
             closeWorkspaces: { [weak self] payload in
                 guard let self else { return }
                 closeWorkspaces(for: payload.hostID)
-                commandHistory.clear(for: payload.hostID)
-                sftpHistory.clear(for: payload.hostID)
                 connectionHistory.clear(for: payload.hostID)
                 library.projectHostDeletion(payload.hostID)
             },
@@ -672,8 +664,6 @@ final class MobileAppModel {
             }
             if change.isRemoved {
                 closeWorkspaces(for: change.id)
-                commandHistory.clear(for: change.id)
-                sftpHistory.clear(for: change.id)
                 connectionHistory.clear(for: change.id)
                 metrics.remove(change.id)
             }

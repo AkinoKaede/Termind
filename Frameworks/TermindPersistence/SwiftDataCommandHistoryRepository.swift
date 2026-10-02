@@ -12,11 +12,10 @@ public enum TermindSchemaV9Models {
         public var command = ""
         public var executedAt = Date(timeIntervalSince1970: 0)
 
-        public init(_ value: CommandHistoryEntry) {
-            id = value.id
-            hostID = value.hostID
-            command = value.command
-            executedAt = value.executedAt
+        public init(hostID: UUID, command: String, executedAt: Date) {
+            self.hostID = hostID
+            self.command = command
+            self.executedAt = executedAt
         }
     }
 }
@@ -30,23 +29,9 @@ public final class PersistentCommandHistoryEntry {
     public var exitStatus: Int32?
     public var duration: TimeInterval?
 
-    public init(_ value: CommandHistoryEntry) {
-        apply(value)
-    }
-
-    public func apply(_ value: CommandHistoryEntry) {
-        id = value.id
-        hostID = value.hostID
-        command = value.command
-        executedAt = value.executedAt
-        exitStatus = value.exitStatus
-        duration = value.duration
-    }
-
-    public var value: CommandHistoryEntry {
-        CommandHistoryEntry(
-            id: id, hostID: hostID, command: command, executedAt: executedAt,
-            exitStatus: exitStatus, duration: duration
-        )
+    public init(hostID: UUID, command: String, executedAt: Date) {
+        self.hostID = hostID
+        self.command = command
+        self.executedAt = executedAt
     }
 }

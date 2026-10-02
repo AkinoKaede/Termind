@@ -10,11 +10,10 @@ public nonisolated enum CommandHistoryPresentation {
     }
 
     public static func subtitle(for entry: CommandHistoryEntry, locale: Locale) -> String {
-        var parts = [
-            entry.executedAt.formatted(
-                .relative(presentation: .numeric).locale(locale)
-            )
-        ]
+        var parts: [String] = []
+        if let date = entry.executedAt {
+            parts.append(date.formatted(.relative(presentation: .numeric).locale(locale)))
+        }
         if let duration = entry.duration, let formatted = formattedDuration(duration) {
             parts.append(formatted)
         }

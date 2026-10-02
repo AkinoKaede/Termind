@@ -455,14 +455,6 @@ extension Workspace {
         for pane in panes { pane.configureConnections(using: coordinator) }
     }
 
-    func configureCommandHistory(using store: CommandHistoryModel) {
-        for pane in panes { pane.configureCommandHistory(using: store) }
-    }
-
-    func configureSFTPHistory(using store: SFTPHistoryModel) {
-        for pane in panes { pane.configureSFTPHistory(using: store) }
-    }
-
     /// A host is required: there is no local terminal to open without one.
     static func sshSession(host: Host, usernameHint: String? = nil) -> Workspace {
         Workspace(pane: .sshSession(host: host, usernameHint: usernameHint))

@@ -179,10 +179,6 @@ extension AppStrings {
             "Choose an edited copy with the same file format as the original."
         }
 
-        public static var clearFileHistoryForThisHostConfirmation: LocalizedStringResource {
-            "Clear File History for this Host?"
-        }
-
         public static var clearFinished: LocalizedStringResource {
             "Clear Finished"
         }

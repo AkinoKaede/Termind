@@ -133,7 +133,7 @@ struct ListViewMigrationTests {
 
     @Test
     func sidebarHistoryKeepsIdentityWhileInlineEditingChanges() {
-        let entry = CommandHistoryEntry(hostID: UUID(), command: "pwd")
+        let entry = CommandHistoryEntry(sessionID: UUID(), command: "pwd")
         let normal = SidebarListItem.history(entry, isNaming: false)
         let naming = SidebarListItem.history(entry, isNaming: true)
 
@@ -152,9 +152,9 @@ struct ListViewMigrationTests {
         let hostID = UUID()
         let connection = ConnectionHistoryEntry(hostID: hostID, kind: .ssh)
         let items: [SidebarListItem] = [
-            .history(CommandHistoryEntry(hostID: hostID, command: "pwd"), isNaming: false),
+            .history(CommandHistoryEntry(sessionID: hostID, command: "pwd"), isNaming: false),
             .sftpHistory(
-                SFTPHistoryEntry(hostID: hostID, kind: .directory, path: "/var/log")
+                SFTPHistoryEntry(sessionID: hostID, kind: .directory, path: "/var/log")
             ),
             .connection(
                 connection,
@@ -307,38 +307,35 @@ struct ListViewMigrationTests {
         #expect(disabledSnippetEntries.map(\.title) == ["Copy", "Insert"])
         #expect(disabledSnippetEntries.allSatisfy { !$0.isEnabled })
 
-        let history = CommandHistoryEntry(hostID: UUID(), command: "whoami")
+        let history = CommandHistoryEntry(sessionID: UUID(), command: "whoami")
         let historyEntries = TerminalSidebarMenuBuilder.history(
-            entry: history, canInsert: true, canClear: true, locale: locale,
-            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in },
-            remove: { _ in }, clear: {}
+            entry: history, canInsert: true, locale: locale,
+            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in }
         )
         #expect(
             historyEntries.map(\.title)
                 == [
-                    "Copy", "Insert", "Save as Snippet", "Delete", "", "Clear All",
+                    "Copy", "Insert", "Save as Snippet",
                 ]
         )
-        #expect(historyEntries[4].isSeparator)
+        #expect(!historyEntries.contains { $0.isSeparator })
 
         let blankHistoryEntries = TerminalSidebarMenuBuilder.history(
-            entry: nil, canInsert: false, canClear: true, locale: locale,
-            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in },
-            remove: { _ in }, clear: {}
+            entry: nil, canInsert: false, locale: locale,
+            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in }
         )
         #expect(
             blankHistoryEntries.map(\.title)
-                == ["Copy", "Insert", "Save as Snippet", "", "Clear All"]
+                == ["Copy", "Insert", "Save as Snippet"]
         )
         #expect(blankHistoryEntries.prefix(3).allSatisfy { !$0.isEnabled })
-        #expect(blankHistoryEntries.last?.isEnabled == true)
     }
 }
 
 @Test
 func sftpHistoryDisplayPathParticipatesInRowContentUpdates() {
     let entry = SFTPHistoryEntry(
-        hostID: UUID(), kind: .directory, path: "/home/deploy/project"
+        sessionID: UUID(), kind: .directory, path: "/home/deploy/project"
     )
 
     let absolute = SidebarListItem.sftpHistory(entry)

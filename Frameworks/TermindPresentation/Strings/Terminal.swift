@@ -12,10 +12,6 @@ extension AppStrings {
             "Charset Error"
         }
 
-        public static var clearHistoryConfirmation: LocalizedStringResource {
-            "Clear History?"
-        }
-
         public static var connectionLog: LocalizedStringResource {
             "Connection Log"
         }
@@ -189,19 +185,12 @@ extension AppStrings {
             "Write serial port"
         }
 
-        public static var clearCommandHistoryWarning: LocalizedStringResource {
-            "This permanently removes all saved commands for the current Host."
-        }
-
         public static var commandHistoryRequirement: LocalizedStringResource {
-            "This session is not recording history. Enable Shell Integration and use bash, zsh, or fish."
+            "Enable Shell Integration to add commands to this session’s history in real time."
         }
 
-        public static var clearCommandHistoryForThisHostConfirmation: LocalizedStringResource {
-            "Clear command history for this Host?"
-        }
         public static var commandsConfirmedByTheRemoteShellAppearHere: LocalizedStringResource {
-            "Commands confirmed by the remote shell appear here."
+            "Shell history and commands from this session appear here."
         }
         public static var copyLogs: LocalizedStringResource {
             "Copy Logs"

@@ -125,16 +125,6 @@ final class Pane: Identifiable {
         }
     }
 
-    func configureCommandHistory(using store: CommandHistoryModel) {
-        guard case .sshSession(let session) = content else { return }
-        session.commandHistoryStore = store
-    }
-
-    func configureSFTPHistory(using store: SFTPHistoryModel) {
-        guard case .sftpChannel(let session) = content else { return }
-        session.historyStore = store
-    }
-
     func configureConnectionHistory(
         entryID: ConnectionHistoryEntry.ID,
         end: @escaping (ConnectionHistoryEntry.ID) -> Void
@@ -207,9 +197,13 @@ final class Pane: Identifiable {
             endConnectionHistory = nil
         }
         switch content {
-        case .sshSession(let sshSession): sshSession.disconnect()
+        case .sshSession(let sshSession):
+            sshSession.commandHistory.close()
+            sshSession.disconnect()
         case .telnetSession(let telnetSession): telnetSession.disconnect()
-        case .sftpChannel(let sftpChannel): sftpChannel.disconnect()
+        case .sftpChannel(let sftpChannel):
+            sftpChannel.history.close()
+            sftpChannel.disconnect()
         case .serialSession(let serialSession): serialSession.disconnect()
         default: break
         }

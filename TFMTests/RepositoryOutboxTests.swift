@@ -192,15 +192,6 @@ struct RepositoryOutboxTests {
         }
         context.insert(PersistentSnippet(snippet))
         context.insert(PersistentPortForwardingRule(rule))
-        context.insert(
-            PersistentCommandHistoryEntry(
-                CommandHistoryEntry(hostID: doomed.id, command: "uptime")
-            )
-        )
-        context.insert(
-            PersistentSFTPHistoryEntry(
-                SFTPHistoryEntry(hostID: doomed.id, kind: .directory, path: "/srv")
-            ))
         let connectionHistory = ConnectionHistoryEntry(hostID: doomed.id, kind: .ssh)
         context.insert(PersistentConnectionHistoryEntry(connectionHistory))
         try context.save()
@@ -236,8 +227,6 @@ struct RepositoryOutboxTests {
                 == [dependent.id]
         )
         #expect(try context.fetch(FetchDescriptor<PersistentPortForwardingRule>()).isEmpty)
-        #expect(try context.fetch(FetchDescriptor<PersistentCommandHistoryEntry>()).isEmpty)
-        #expect(try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).isEmpty)
         let connectionHistoryEnvelope = try #require(
             try HistorySyncJournal(context: context).envelope(

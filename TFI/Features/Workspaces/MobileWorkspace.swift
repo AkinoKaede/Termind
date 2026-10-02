@@ -167,7 +167,9 @@ final class MobileWorkspace: Identifiable {
     private var sshEventContinuation: AsyncStream<MobileSSHSessionEvent>.Continuation?
     private var sshEventTask: Task<Void, Never>?
     private var attempt: Task<Void, Never>?
-    private var generation = UUID()
+    private var generation = UUID() {
+        didSet { commandHistory.cancelLoading() }
+    }
     private let hosts: any RemoteSessionHostStore
     private let connectionServices: MobileWorkspaceConnectionServices
     var securityKeySigning: SecurityKeySigningCoordinator { connection.securityKeySigning }
@@ -248,8 +250,6 @@ final class MobileWorkspace: Identifiable {
         sftpEdits: SFTPEditService? = nil,
         terminalHighlightSettings: TerminalHighlightSettingsModel = TerminalHighlightSettingsModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
-        commandHistory: CommandHistoryModel = CommandHistoryModel(),
-        sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionServices: MobileWorkspaceConnectionServices = .live,
         reconnectController: SessionReconnectController = SessionReconnectController(),
         initialCommand: String? = nil,
@@ -265,9 +265,9 @@ final class MobileWorkspace: Identifiable {
     ) {
         self.terminalHighlightSettings = terminalHighlightSettings
         self.terminalSettings = terminalSettings
-        self.commandHistory = commandHistory
-        self.sftpHistory = sftpHistory
-        sftpChannel = MobileSFTPChannelModel(hostID: descriptor.hostID, history: sftpHistory)
+        commandHistory = CommandHistoryModel(sessionID: descriptor.id)
+        sftpHistory = SFTPHistoryModel(sessionID: descriptor.id)
+        sftpChannel = MobileSFTPChannelModel(history: sftpHistory)
         self.transfers = transfers
         self.sftpEdits = sftpEdits
         self.descriptor = descriptor
@@ -606,7 +606,7 @@ final class MobileWorkspace: Identifiable {
                 commandExcludedFromHistory = nil
                 activeHistoryID = nil
             } else {
-                activeHistoryID = commandHistory.record(command, for: descriptor.hostID)?.id
+                activeHistoryID = commandHistory.record(command)?.id
             }
         case .commandFinished(let status, let duration):
             // CommandFinished is emitted from the prompt hook immediately before
@@ -620,7 +620,7 @@ final class MobileWorkspace: Identifiable {
             submitPendingInitialCommandIfReady()
             guard let id = activeHistoryID else { return }
             commandHistory.recordCompletion(
-                for: id, hostID: descriptor.hostID, exitStatus: status, duration: duration)
+                for: id, exitStatus: status, duration: duration)
             activeHistoryID = nil
         case .draft(let draft):
             commandDraft.receive(draft)
@@ -864,6 +864,10 @@ final class MobileWorkspace: Identifiable {
                 proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
+                if let ssh {
+                    commandHistory.load(
+                        using: RemoteShellHistoryLoader(channel: ssh, charset: host.charset), source: nil)
+                }
                 status = String(localized: AppStrings.Connections.connected)
                 journey.succeed()
                 if wasReconnecting, descriptor.kind == .ssh {
@@ -1241,7 +1245,14 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    func close() {
+        commandHistory.close()
+        sftpHistory.close()
+        disconnect()
+    }
+
     func disconnect() {
+        commandHistory.cancelLoading()
         commandMonitor.endConnection()
         cancelPendingUpload()
         stopSSHEventConsumer()
@@ -1601,9 +1612,9 @@ final class MobileWorkspace: Identifiable {
                     connection: .context(transferContext),
                     homeDirectory: sftpChannel.homeDirectory,
                     coordinator: transfers
-                ) { [sftpHistory, hostID = descriptor.hostID] path, state in
+                ) { [sftpHistory] path, state in
                     guard state == .completed else { return }
-                    sftpHistory.record(kind: .file, path: path, for: hostID)
+                    sftpHistory.record(kind: .file, path: path)
                 }
             } catch { operationError = error.localizedDescription }
             return
@@ -1741,7 +1752,7 @@ final class MobileWorkspace: Identifiable {
                         file, hostID: descriptor.hostID, connection: .context(transferContext), client: sftp,
                         homeDirectory: sftpChannel.homeDirectory)
                     if connectionOrigin.allowsPersistence {
-                        sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
+                        sftpHistory.record(kind: .file, path: file.path)
                     }
                     completion(url)
                 } catch { operationError = error.localizedDescription }
@@ -1761,10 +1772,10 @@ final class MobileWorkspace: Identifiable {
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
                 connection: .context(transferContext), scopedRoot: directory, overwrite: false,
                 homeDirectory: sftpChannel.homeDirectory
-            ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
+            ) { [sftpHistory, path = file.path] state in
                 guard state == .completed else { return }
                 if self.connectionOrigin.allowsPersistence {
-                    sftpHistory.record(kind: .file, path: path, for: hostID)
+                    sftpHistory.record(kind: .file, path: path)
                 }
                 completion(localURL)
             }

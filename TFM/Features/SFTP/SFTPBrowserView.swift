@@ -1018,20 +1018,22 @@ struct SFTPBrowserView: View {
         if file.isDirectory {
             sftpChannel.navigate(to: file.path)
         } else {
-            sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
+            sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) {
+                [history = sftpChannel.history] localURL in
                 if NSWorkspace.shared.open(localURL) {
-                    sftpChannel.recordOpenedFile(at: file.path)
+                    history.record(kind: .file, path: file.path)
                 }
             }
         }
     }
 
     private func open(_ file: RemoteFile, with application: URL) {
-        sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
+        sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) {
+            [history = sftpChannel.history] localURL in
             Task {
                 do {
                     try await SFTPApplicationOpener.open(localURL, with: application)
-                    sftpChannel.recordOpenedFile(at: file.path)
+                    history.record(kind: .file, path: file.path)
                 } catch { sftpChannel.operationError = error.localizedDescription }
             }
         }

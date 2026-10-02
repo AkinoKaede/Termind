@@ -1,81 +1,37 @@
 import Foundation
 import TermindDomain
 
-import struct TermindDomain.Host
-
-/// Incremental persistence boundary for SFTP browse history.
-///
-/// Preview and focused-test instances use the in-memory projection. Each app
-/// supplies a persistent repository so successful directory visits and file
-/// downloads remain available across sessions without entering Vault sync.
+/// Successful browse/open operations from one live SFTP session only.
 @MainActor
 @Observable
 public final class SFTPHistoryModel {
-    public static let perHostLimit = HistoryLimits.retainedEntries
-
-    private let repository: any SFTPHistoryRepository
+    public static let perSessionLimit = HistoryLimits.retainedEntries
+    public let sessionID: UUID
     public private(set) var revision: UInt64 = 0
-    public private(set) var storageError: String?
+    private var values: [SFTPHistoryEntry]
+    private var isClosed = false
 
-    public init(
-        entries: [SFTPHistoryEntry] = [],
-        repository: (any SFTPHistoryRepository)? = nil
-    ) {
-        self.repository = repository ?? InMemorySFTPHistoryRepository(entries: entries)
-        do {
-            try self.repository.trim(to: Self.perHostLimit)
-        } catch {
-            storageError = error.localizedDescription
-        }
+    public init(sessionID: UUID = UUID(), entries: [SFTPHistoryEntry] = []) {
+        self.sessionID = sessionID
+        values = Array(entries.filter { $0.sessionID == sessionID }.prefix(Self.perSessionLimit))
     }
 
-    public func entries(for hostID: Host.ID, matching query: String = "") -> [SFTPHistoryEntry] {
-        let values: [SFTPHistoryEntry]
-        do {
-            values = try repository.entries(for: hostID)
-            storageError = nil
-        } catch {
-            storageError = error.localizedDescription
-            return []
-        }
-        guard !query.isEmpty else { return values }
-        return values.filter { $0.path.localizedCaseInsensitiveContains(query) }
+    public func entries(matching query: String = "") -> [SFTPHistoryEntry] {
+        query.isEmpty ? values : values.filter { $0.path.localizedCaseInsensitiveContains(query) }
     }
 
-    public func record(
-        kind: SFTPHistoryEntry.Kind, path: String, for hostID: Host.ID,
-        at date: Date = Date()
-    ) {
+    public func record(kind: SFTPHistoryEntry.Kind, path: String, at date: Date = Date()) {
+        guard !isClosed else { return }
         let path = RemotePath.normalized(path)
-        do {
-            try repository.upsert(
-                SFTPHistoryEntry(hostID: hostID, kind: kind, path: path, visitedAt: date),
-                limit: Self.perHostLimit
-            )
-            storageError = nil
-            revision &+= 1
-        } catch {
-            storageError = error.localizedDescription
-        }
+        values.removeAll { $0.kind == kind && $0.path == path }
+        values.insert(SFTPHistoryEntry(sessionID: sessionID, kind: kind, path: path, visitedAt: date), at: 0)
+        if values.count > Self.perSessionLimit { values.removeLast(values.count - Self.perSessionLimit) }
+        revision &+= 1
     }
 
-    public func delete(_ id: SFTPHistoryEntry.ID) {
-        do {
-            try repository.delete(id)
-            storageError = nil
-            revision &+= 1
-        } catch {
-            storageError = error.localizedDescription
-        }
-    }
-
-    public func clear(for hostID: Host.ID) {
-        do {
-            try repository.clear(for: hostID)
-            storageError = nil
-            revision &+= 1
-        } catch {
-            storageError = error.localizedDescription
-        }
+    public func close() {
+        isClosed = true
+        values.removeAll()
+        revision &+= 1
     }
 }

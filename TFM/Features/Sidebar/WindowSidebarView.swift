@@ -485,14 +485,12 @@ enum TerminalSidebarMenuBuilder {
     }
 
     static func history(
-        entry: CommandHistoryEntry?, canInsert: Bool, canClear: Bool, locale: Locale,
+        entry: CommandHistoryEntry?, canInsert: Bool, locale: Locale,
         copy: @escaping (CommandHistoryEntry) -> Void,
         insert: @escaping (CommandHistoryEntry) -> Void,
-        saveAsSnippet: @escaping (CommandHistoryEntry) -> Void,
-        remove: @escaping (CommandHistoryEntry) -> Void,
-        clear: @escaping () -> Void
+        saveAsSnippet: @escaping (CommandHistoryEntry) -> Void
     ) -> [NativeMenuEntry] {
-        var entries = [
+        let entries = [
             NativeMenuEntry(
                 title: localized(AppStrings.Common.copy, locale: locale),
                 symbol: MenuSymbol.copy,
@@ -515,25 +513,6 @@ enum TerminalSidebarMenuBuilder {
                 if let entry { saveAsSnippet(entry) }
             },
         ]
-        if let entry {
-            entries.append(
-                NativeMenuEntry(
-                    title: localized(AppStrings.Common.delete, locale: locale),
-                    symbol: MenuSymbol.delete,
-                    imageVisibility: .visible
-                ) {
-                    remove(entry)
-                })
-        }
-        entries.append(.separator)
-        entries.append(
-            NativeMenuEntry(
-                title: localized(AppStrings.Common.clearAll, locale: locale),
-                symbol: MenuSymbol.clearHistory,
-                imageVisibility: .visible,
-                isEnabled: canClear,
-                action: clear
-            ))
         return entries
     }
 
@@ -815,7 +794,6 @@ private struct SSHCommandHistorySidebar: View {
 
     @State private var query = ""
     @State private var destructiveEntry: CommandHistoryEntry?
-    @State private var confirmsClear = false
     @State private var namingEntryID: CommandHistoryEntry.ID?
     @State private var snippetName = ""
     @State private var selectedID: CommandHistoryEntry.ID?
@@ -824,25 +802,10 @@ private struct SSHCommandHistorySidebar: View {
         window.selectedWorkspace?.focusedPane.sshSession
     }
 
-    private var isSavedHost: Bool {
-        guard let hostID = sshSession?.hostID else { return false }
-        return app.hostLibrary.host(hostID) != nil
-    }
-
     private var allEntries: [CommandHistoryEntry] {
         guard let sshSession else { return [] }
-        _ = app.commandHistory.revision
-        if isSavedHost {
-            return DesktopHistoryPresentation.limited(
-                app.commandHistory.entries(for: sshSession.hostID, matching: query)
-            )
-        }
-        let entries = sshSession.transientCommandHistory
-        let matches =
-            query.isEmpty
-            ? entries
-            : entries.filter { $0.command.localizedCaseInsensitiveContains(query) }
-        return DesktopHistoryPresentation.limited(matches)
+        _ = sshSession.commandHistory.revision
+        return DesktopHistoryPresentation.limited(sshSession.commandHistory.entries(matching: query))
     }
 
     var body: some View {
@@ -896,16 +859,6 @@ private struct SSHCommandHistorySidebar: View {
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            AppStrings.Terminal.clearCommandHistoryForThisHostConfirmation,
-            isPresented: $confirmsClear,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive, action: clearHistory)
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
-        } message: {
-            Text(AppStrings.Terminal.clearCommandHistoryWarning)
-        }
-        .confirmationDialog(
             AppStrings.Assistant.executeADestructiveCommandConfirmation,
             isPresented: Binding(
                 get: { destructiveEntry != nil },
@@ -922,9 +875,7 @@ private struct SSHCommandHistorySidebar: View {
         }
     }
 
-    /// The blank area offers the same menu a row does, with everything that
-    /// needs a row greyed out. Clear All is not one of those — it is about
-    /// the list, so it stays live where there is nothing under the pointer.
+    /// The blank area offers the row menu with entry-specific actions disabled.
     private var globalMenu: [NativeMenuEntry] {
         historyMenu(for: nil)
     }
@@ -957,8 +908,7 @@ private struct SSHCommandHistorySidebar: View {
         } else {
             CommandHistoryCard(
                 entry: entry,
-                isSelected: selectedID == entry.id,
-                delete: { delete(entry) }
+                isSelected: selectedID == entry.id
             )
             .onTapGesture(count: 2) {
                 selectedID = entry.id
@@ -978,13 +928,10 @@ private struct SSHCommandHistorySidebar: View {
         TerminalSidebarMenuBuilder.history(
             entry: entry,
             canInsert: canInsert,
-            canClear: !allEntries.isEmpty,
             locale: locale,
             copy: { copyToPasteboard($0.command) },
             insert: insert,
-            saveAsSnippet: beginSnippetNaming,
-            remove: delete,
-            clear: { confirmsClear = true }
+            saveAsSnippet: beginSnippetNaming
         )
     }
 
@@ -1037,23 +984,6 @@ private struct SSHCommandHistorySidebar: View {
         destructiveEntry = nil
     }
 
-    private func delete(_ entry: CommandHistoryEntry) {
-        if isSavedHost {
-            app.commandHistory.delete(entry.id)
-        } else {
-            sshSession?.deleteTransientHistory(entry.id)
-        }
-    }
-
-    private func clearHistory() {
-        guard let sshSession else { return }
-        if isSavedHost {
-            app.commandHistory.clear(for: sshSession.hostID)
-        } else {
-            sshSession.clearTransientHistory()
-        }
-    }
-
     private func beginSnippetNaming(_ entry: CommandHistoryEntry) {
         snippetName = ""
         namingEntryID = entry.id
@@ -1082,7 +1012,6 @@ private struct SFTPBrowseHistorySidebar: View {
 
     @State private var query = ""
     @State private var selectedID: SFTPHistoryEntry.ID?
-    @State private var confirmsClear = false
 
     private var session: SFTPChannelModel? {
         window.selectedWorkspace?.focusedPane.sftpChannel
@@ -1090,8 +1019,8 @@ private struct SFTPBrowseHistorySidebar: View {
 
     private var entries: [SFTPHistoryEntry] {
         guard let session else { return [] }
-        _ = app.sftpHistory.revision
-        let values = app.sftpHistory.entries(for: session.hostID)
+        _ = session.history.revision
+        let values = session.history.entries()
         let matches =
             query.isEmpty
             ? values
@@ -1135,37 +1064,9 @@ private struct SFTPBrowseHistorySidebar: View {
 
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
-        .confirmationDialog(
-            AppStrings.SFTP.clearFileHistoryForThisHostConfirmation, isPresented: $confirmsClear,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
-                if let session { app.sftpHistory.clear(for: session.hostID) }
-            }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
-        }
     }
 
-    private var globalMenu: [NativeMenuEntry] {
-        [
-            NativeMenuEntry(
-                title: AppStrings.Common.open, symbol: MenuSymbol.open, isEnabled: false
-            ),
-            NativeMenuEntry(
-                title: AppStrings.Common.delete,
-                symbol: MenuSymbol.delete,
-                imageVisibility: .visible,
-                isEnabled: false
-            ),
-            .separator,
-            NativeMenuEntry(
-                title: AppStrings.Common.clearAll,
-                symbol: MenuSymbol.clearHistory,
-                imageVisibility: .visible,
-                isEnabled: !entries.isEmpty,
-            ) { confirmsClear = true },
-        ]
-    }
+    private var globalMenu: [NativeMenuEntry] { [] }
 
     private func row(_ entry: SFTPHistoryEntry, displayedPath: String) -> some View {
         SidebarCard(
@@ -1183,18 +1084,7 @@ private struct SFTPBrowseHistorySidebar: View {
             [
                 NativeMenuEntry(title: AppStrings.Common.open, symbol: MenuSymbol.open) {
                     reopen(entry)
-                },
-                NativeMenuEntry(
-                    title: AppStrings.Common.delete,
-                    symbol: MenuSymbol.delete,
-                    imageVisibility: .visible,
-                ) { app.sftpHistory.delete(entry.id) },
-                .separator,
-                NativeMenuEntry(
-                    title: AppStrings.Common.clearAll,
-                    symbol: MenuSymbol.clearHistory,
-                    imageVisibility: .visible,
-                ) { confirmsClear = true },
+                }
             ]
         }
     }
@@ -1206,8 +1096,9 @@ private struct SFTPBrowseHistorySidebar: View {
             session.navigate(to: entry.path)
         case .file:
             session.reopenHistoryFile(at: entry.path, coordinator: app.sftpTransfers, edits: app.sftpEdits) {
+                [history = session.history] in
                 if NSWorkspace.shared.open($0) {
-                    session.recordOpenedFile(at: entry.path)
+                    history.record(kind: .file, path: entry.path)
                 }
             }
         }
@@ -1400,45 +1291,24 @@ extension View {
 private struct CommandHistoryCard: View {
     let entry: CommandHistoryEntry
     let isSelected: Bool
-    let delete: () -> Void
-
     @Environment(\.locale) private var locale
-    @State private var isHovering = false
 
     var body: some View {
+        let subtitle = CommandHistoryPresentation.subtitle(for: entry, locale: locale)
         SidebarCard(
             symbol: nil,
             title: CommandHistoryPresentation.title(for: entry),
             titleIsMonospaced: true,
             titleLineLimit: 1,
-            subtitle: CommandHistoryPresentation.subtitle(for: entry, locale: locale),
+            subtitle: subtitle.isEmpty ? nil : subtitle,
             subtitleIsMonospaced: false,
             isSelected: isSelected
         ) {
-            ZStack {
-                if isHovering {
-                    Button(action: delete) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18, height: 18)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .help(AppStrings.Common.delete.swiftUIKey)
-                    .accessibilityLabel(AppStrings.Common.delete.swiftUIKey)
-                } else {
-                    RiskBadge(
-                        assessment: CommandRiskClassifier.assess(entry.command),
-                        compact: true
-                    )
-                }
-            }
-            .frame(width: 18, height: 18, alignment: .center)
+            RiskBadge(assessment: CommandRiskClassifier.assess(entry.command), compact: true)
+                .frame(width: 18, height: 18, alignment: .center)
         }
-        .onHover { isHovering = $0 }
         .help(Text(entry.command))
     }
-
 }
 
 /// A native borderless field whose editor remains transparent inside a Sidebar

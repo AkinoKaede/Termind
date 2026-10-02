@@ -19,18 +19,18 @@ struct CommandHistoryTests {
     func historyNormalizesExplicitContinuationsAndPreservesRealLineBreaks() throws {
         let hostID = UUID()
         let legacy = CommandHistoryEntry(
-            hostID: hostID,
+            sessionID: hostID,
             command: "printf legacy \\\r\n\t value\nprintf retained"
         )
-        let store = CommandHistoryModel(entries: [legacy])
+        let store = CommandHistoryModel(sessionID: hostID, entries: [legacy])
 
         let newCommand =
             "printf new \\\n                value \\\n                  again\nprintf retained"
-        let recorded = try #require(store.record(newCommand, for: hostID))
+        let recorded = try #require(store.record(newCommand))
 
         #expect(recorded.command == "printf new value again\nprintf retained")
         #expect(
-            store.entries(for: hostID).map(\.command) == [
+            store.entries().map(\.command) == [
                 "printf new value again\nprintf retained",
                 "printf legacy value\nprintf retained",
             ]
@@ -44,12 +44,12 @@ struct CommandHistoryTests {
 
     @Test
     func historyTitleShowsOneLogicalLineWithoutChangingTheCommand() {
-        let single = CommandHistoryEntry(hostID: UUID(), command: "uptime")
+        let single = CommandHistoryEntry(sessionID: UUID(), command: "uptime")
         let multiline = CommandHistoryEntry(
-            hostID: UUID(), command: "printf first\nprintf second"
+            sessionID: UUID(), command: "printf first\nprintf second"
         )
         let windowsMultiline = CommandHistoryEntry(
-            hostID: UUID(), command: "printf first\r\nprintf second"
+            sessionID: UUID(), command: "printf first\r\nprintf second"
         )
 
         #expect(CommandHistoryPresentation.title(for: single) == "uptime")
@@ -58,118 +58,31 @@ struct CommandHistoryTests {
         #expect(multiline.command == "printf first\nprintf second")
     }
 
-    @Test
-    func memoryStoreKeepsDuplicatesSearchesAndScopesByHost() throws {
-        let firstHost = UUID()
-        let secondHost = UUID()
-        let store = CommandHistoryModel()
-
-        store.record("uptime", for: firstHost, at: Date(timeIntervalSince1970: 1))
-        let duplicate = try #require(
-            store.record("uptime", for: firstHost, at: Date(timeIntervalSince1970: 2))
-        )
-        store.record("系统状态", for: firstHost, at: Date(timeIntervalSince1970: 3))
-        store.record("other", for: secondHost, at: Date(timeIntervalSince1970: 4))
-
-        #expect(store.entries(for: firstHost).map(\.command) == ["系统状态", "uptime", "uptime"])
-        #expect(store.entries(for: firstHost, matching: "TIME").count == 2)
-        #expect(store.entries(for: secondHost).map(\.command) == ["other"])
-
-        store.delete(duplicate.id)
-        #expect(store.entries(for: firstHost).map(\.command) == ["系统状态", "uptime"])
-        store.clear(for: firstHost)
-        #expect(store.entries(for: firstHost).isEmpty)
-        #expect(store.entries(for: secondHost).count == 1)
+    @Test func memoryStoresKeepDuplicatesAndIsolateSessions() {
+        let first = CommandHistoryModel()
+        let second = CommandHistoryModel()
+        first.record("uptime")
+        first.record("uptime")
+        second.record("other")
+        #expect(first.entries(matching: "TIME").map(\.command) == ["uptime", "uptime"])
+        #expect(second.entries().map(\.command) == ["other"])
+        first.close()
+        #expect(first.entries().isEmpty)
+        #expect(second.entries().count == 1)
     }
 
     @Test
     func completionEnrichesExistingHistoryWithoutCreatingAnotherRow() throws {
-        let hostID = UUID()
         let store = CommandHistoryModel()
-        let entry = try #require(store.record("false", for: hostID))
+        let entry = try #require(store.record("false"))
 
         let completed = store.recordCompletion(
-            for: entry.id, hostID: hostID, exitStatus: 1, duration: 0.25
+            for: entry.id, exitStatus: 1, duration: 0.25
         )
 
         #expect(completed?.exitStatus == 1)
         #expect(completed?.duration == 0.25)
-        #expect(store.entries(for: hostID).count == 1)
-    }
-
-    @Test
-    func swiftDataStorePersistsIncrementally() throws {
-        let container = try makeContainer("CommandHistoryPersistence")
-        let hostID = UUID()
-        let entryID: UUID
-        do {
-            let store = CommandHistoryModel(modelContext: container.mainContext)
-            entryID = try #require(store.record("echo 持久化", for: hostID)).id
-            store.recordCompletion(
-                for: entryID, hostID: hostID, exitStatus: 7, duration: 1.5
-            )
-            #expect(store.storageError == nil)
-            #expect(
-                try container.mainContext.fetch(
-                    FetchDescriptor<PersistentCommandHistoryEntry>()
-                ).count == 1
-            )
-        }
-
-        let reloaded = CommandHistoryModel(modelContext: container.mainContext)
-        #expect(reloaded.entries(for: hostID).map(\.id) == [entryID])
-        #expect(reloaded.entries(for: hostID).map(\.command) == ["echo 持久化"])
-        #expect(reloaded.entries(for: hostID).map(\.exitStatus) == [7])
-        #expect(reloaded.entries(for: hostID).map(\.duration) == [1.5])
-        #expect(reloaded.storageError == nil)
-    }
-
-    @Test
-    func schemaV9HistoryMigratesWithUnknownCompletion() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TermindCommandHistoryV10Migration-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(
-            at: directory, withIntermediateDirectories: true
-        )
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let storeURL = directory.appendingPathComponent("Termind.store")
-        let legacySchema = Schema(versionedSchema: TermindSchemaV9.self)
-        let value = CommandHistoryEntry(
-            hostID: UUID(), command: "uptime",
-            executedAt: Date(timeIntervalSince1970: 123)
-        )
-
-        var legacyContainer: ModelContainer? = try ModelContainer(
-            for: legacySchema,
-            configurations: [
-                localModelConfiguration(
-                    "CommandHistoryMigration", schema: legacySchema, url: storeURL
-                )
-            ]
-        )
-        legacyContainer?.mainContext.insert(
-            TermindSchemaV9Models.PersistentCommandHistoryEntry(value)
-        )
-        try legacyContainer?.mainContext.save()
-        legacyContainer = nil
-
-        let migrated = try ModelContainer(
-            for: HostPersistence.schema,
-            migrationPlan: TermindMigrationPlan.self,
-            configurations: [
-                localModelConfiguration(
-                    "CommandHistoryMigration", schema: HostPersistence.schema,
-                    url: storeURL
-                )
-            ]
-        )
-        let entries = try migrated.mainContext.fetch(
-            FetchDescriptor<PersistentCommandHistoryEntry>()
-        ).map(\.value)
-
-        #expect(entries.map(\.command) == ["uptime"])
-        #expect(entries.first?.exitStatus == nil)
-        #expect(entries.first?.duration == nil)
+        #expect(store.entries().count == 1)
     }
 
     @Test
@@ -187,10 +100,10 @@ struct CommandHistoryTests {
         session.recordExecutedCommand(command)
 
         #expect(String(decoding: submitted, as: UTF8.self) == "\(command)\r")
-        #expect(session.transientCommandHistory.isEmpty)
+        #expect(session.commandHistory.entries().isEmpty)
 
         session.recordExecutedCommand(command)
-        #expect(session.transientCommandHistory.map(\.command) == [command])
+        #expect(session.commandHistory.entries().map(\.command) == [command])
     }
 
     @Test
@@ -206,7 +119,7 @@ struct CommandHistoryTests {
         session.submitPendingInitialCommand()
         session.recordExecutedCommand(reportedCommand)
 
-        #expect(session.transientCommandHistory.isEmpty)
+        #expect(session.commandHistory.entries().isEmpty)
     }
 
     @Test
@@ -219,7 +132,7 @@ struct CommandHistoryTests {
         session.submitPendingInitialCommand()
         session.recordExecutedCommand("uptime")
 
-        #expect(session.transientCommandHistory.map(\.command) == ["uptime"])
+        #expect(session.commandHistory.entries().map(\.command) == ["uptime"])
     }
 
     @Test
@@ -247,7 +160,7 @@ struct CommandHistoryTests {
         session.receiveShellIntegrationEvent(.commandStarted("false"))
         session.receiveShellIntegrationEvent(.commandFinished(1, duration: 5))
 
-        let entry = try #require(session.transientCommandHistory.first)
+        let entry = try #require(session.commandHistory.entries().first)
         #expect(entry.command == "false")
         #expect(entry.exitStatus == 1)
         #expect(entry.duration == 5)
@@ -261,8 +174,43 @@ struct CommandHistoryTests {
             .commandStarted("printf first \\\n                second\nprintf retained")
         )
 
-        let entry = try #require(session.transientCommandHistory.first)
+        let entry = try #require(session.commandHistory.entries().first)
         #expect(entry.command == "printf first second\nprintf retained")
+    }
+
+    @Test func sessionsOnTheSameHostAreIndependentAndClosingPreventsLateCommands() {
+        let host = Host(name: "Shared", host: "example.invalid")
+        let first = SSHSessionModel(host: host)
+        let second = SSHSessionModel(host: host)
+        first.recordExecutedCommand("first")
+        second.recordExecutedCommand("second")
+        first.disconnect()
+        #expect(first.commandHistory.entries().map(\.command) == ["first"])
+        let clone = first.copyForReconnect()
+        #expect(clone.commandHistory.entries().isEmpty)
+        let pane = Pane(.sshSession(first))
+        pane.disconnectConnection()
+        first.recordExecutedCommand("late")
+        #expect(first.commandHistory.entries().isEmpty)
+        #expect(second.commandHistory.entries().map(\.command) == ["second"])
+        pane.prepareForReopen()
+        #expect(pane.sshSession?.commandHistory.entries().isEmpty == true)
+        #expect(pane.sshSession?.id != first.id)
+    }
+
+    @Test func reopenedSFTPPaneCannotReceiveOldTransferHistory() {
+        let channel = SFTPChannelModel(hostID: UUID())
+        let pane = Pane(.sftpChannel(channel))
+        let oldHistory = channel.history
+        oldHistory.record(kind: .file, path: "/before")
+        pane.disconnectConnection()
+        pane.prepareForReopen()
+        oldHistory.record(kind: .file, path: "/late")
+        #expect(oldHistory.entries().isEmpty)
+        #expect(channel.history.entries().isEmpty)
+        #expect(channel.history.sessionID != oldHistory.sessionID)
+        channel.recordOpenedFile(at: "/current")
+        #expect(channel.history.entries().map(\.path) == ["/current"])
     }
 
     private func makeContainer(_ name: String) throws -> ModelContainer {

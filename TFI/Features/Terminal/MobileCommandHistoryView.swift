@@ -18,14 +18,13 @@ struct MobileCommandHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var query = ""
-    @State private var clearing = false
     @State private var snippetEntry: CommandHistoryEntry?
     @State private var snippetName = ""
 
     private var entries: [CommandHistoryEntry] {
         _ = workspace.commandHistory.revision
         return MobileHistoryPresentation.limited(
-            workspace.commandHistory.entries(for: workspace.descriptor.hostID, matching: query)
+            workspace.commandHistory.entries(matching: query)
         )
     }
 
@@ -56,50 +55,17 @@ struct MobileCommandHistoryView: View {
                             Button(AppStrings.Snippets.saveAsSnippet.swiftUIKey, systemImage: "curlybraces") {
                                 beginSavingSnippet(entry)
                             }
-                            Divider()
-                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
-                                workspace.commandHistory.delete(entry.id)
-                            }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
-                                workspace.commandHistory.delete(entry.id)
-                            }
                         }
                     }
                     .listStyle(.insetGrouped)
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .safeAreaInset(edge: .bottom) {
-                if let error = workspace.commandHistory.storageError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .background(.bar)
-                }
-            }
             .searchable(text: $query.singleLineText)
             .navigationTitle(AppStrings.Common.history.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(AppStrings.Common.clear.swiftUIKey, systemImage: "trash", role: .destructive) {
-                        clearing = true
-                    }.labelStyle(.iconOnly)
-                }
-            }
-            .confirmationDialog(
-                AppStrings.Terminal.clearHistoryConfirmation, isPresented: $clearing,
-                titleVisibility: .visible
-            ) {
-                Button(AppStrings.Common.clear.swiftUIKey, role: .destructive) {
-                    workspace.commandHistory.clear(for: workspace.descriptor.hostID)
                 }
             }
             .alert(
@@ -133,10 +99,10 @@ struct MobileCommandHistoryView: View {
                     .font(.body.monospaced())
                     .lineLimit(1)
                     .textSelection(.enabled)
-                Text(CommandHistoryPresentation.subtitle(for: entry, locale: locale))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                let subtitle = CommandHistoryPresentation.subtitle(for: entry, locale: locale)
+                if !subtitle.isEmpty {
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
             }
             Spacer(minLength: 8)
             MobileTerminalRiskIndicator(assessment: CommandRiskClassifier.assess(entry.command))

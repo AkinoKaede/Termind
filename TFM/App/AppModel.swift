@@ -61,8 +61,6 @@ final class AppModel {
     let snippets: SnippetLibraryModel
     let forwardings: ForwardingLibraryModel
     let transfers: TransferLibraryModel
-    let commandHistory: CommandHistoryModel
-    let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
     let devices: DeviceDirectoryModel
     private let externalToolCalls: ToolAuditModel
@@ -185,8 +183,6 @@ final class AppModel {
         sshSettings: SSHSettingsModel = SSHSettingsModel(),
         sftpSettings: SFTPSettingsModel = SFTPSettingsModel(),
         workspaceSettings: WorkspaceSettingsModel = WorkspaceSettingsModel(),
-        commandHistory: CommandHistoryModel = CommandHistoryModel(),
-        sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
         devices: DeviceDirectoryModel? = nil,
         tailscaleStore: (any TailscaleLocalStoring)? = nil,
@@ -232,8 +228,6 @@ final class AppModel {
         snippets = SnippetLibraryModel(library: hosts)
         forwardings = ForwardingLibraryModel(library: hosts)
         transfers = TransferLibraryModel(library: hosts)
-        self.commandHistory = commandHistory
-        self.sftpHistory = sftpHistory
         self.connectionHistory = connectionHistory
         let devices = devices ?? DeviceDirectoryModel(currentDeviceID: connectionHistory.sourceDeviceID)
         self.devices = devices
@@ -514,8 +508,6 @@ final class AppModel {
                 sftpTransfers.cancelAll(for: change.id)
                 externalAuthentication.cancel(hostID: change.id)
                 mcpServer.tools.revokeHost(change.id)
-                commandHistory.clear(for: change.id)
-                sftpHistory.clear(for: change.id)
                 connectionHistory.clear(for: change.id)
             }
         }
@@ -723,8 +715,6 @@ final class AppModel {
         window.metricsModel = serverMetrics
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
-        window.commandHistoryStore = commandHistory
-        window.sftpHistoryStore = sftpHistory
         window.assistantLibrary.adopt(assistantConversations)
         window.assistantLibrary.modelSelections = assistantModelSelections
         window.assistantCommands = AssistantConversationCommands(
@@ -897,8 +887,6 @@ final class AppModel {
             serverMetrics.remove(hostID)
             forwarding.hostConfigurationChanged(hostID)
             forwarding.remove(hosts.portForwardings(for: hostID).map(\.id))
-            commandHistory.clear(for: hostID)
-            sftpHistory.clear(for: hostID)
             connectionHistory.clear(for: hostID)
             hosts.projectHostDeletion(hostID)
             return true
@@ -1137,9 +1125,10 @@ final class AppModel {
                         localized: AppStrings.SFTP.executableFileWarning)
                     return
                 }
-                channel.open(file, coordinator: self.sftpTransfers, edits: self.sftpEdits) { localURL in
+                channel.open(file, coordinator: self.sftpTransfers, edits: self.sftpEdits) {
+                    [history = channel.history] localURL in
                     if NSWorkspace.shared.open(localURL) {
-                        channel.recordOpenedFile(at: file.path)
+                        history.record(kind: .file, path: file.path)
                     }
                 }
             }
@@ -1174,8 +1163,6 @@ final class AppModel {
     func clearAllHistory(for hostIDs: [Host.ID]) {
         for hostID in Set(hostIDs) {
             connectionHistory.clear(for: hostID)
-            commandHistory.clear(for: hostID)
-            sftpHistory.clear(for: hostID)
         }
     }
 

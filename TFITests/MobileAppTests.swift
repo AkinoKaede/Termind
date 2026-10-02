@@ -92,21 +92,20 @@ struct MobileAppTests {
         #expect(first.assistant.conversation.composer.draft.isEmpty)
     }
 
-    @Test func historyModelsUseTheSharedSwiftDataContainer() throws {
+    @Test func historyBelongsToWorkspaceAndIsReleasedOnClose() throws {
         let app = try MobileAppModel(inMemory: true)
-        let hostID = UUID()
-        app.commandHistory.record("echo persisted", for: hostID)
-        app.sftpHistory.record(kind: .directory, path: "/srv/app", for: hostID)
-
-        let commands = CommandHistoryModel(
-            repository: SwiftDataCommandHistoryRepository(context: ModelContext(app.container))
-        )
-        let files = SFTPHistoryModel(
-            repository: SwiftDataSFTPHistoryRepository(context: ModelContext(app.container))
-        )
-
-        #expect(commands.entries(for: hostID).map(\.command) == ["echo persisted"])
-        #expect(files.entries(for: hostID).map(\.path) == ["/srv/app"])
+        let host = TermindDomain.Host(name: "Host", host: "example.invalid")
+        let first = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
+        let second = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
+        first.commandHistory.record("pwd")
+        first.sftpHistory.record(kind: .directory, path: "/srv")
+        #expect(second.commandHistory.entries().isEmpty)
+        #expect(second.sftpHistory.entries().isEmpty)
+        first.close()
+        #expect(first.commandHistory.entries().isEmpty)
+        #expect(first.sftpHistory.entries().isEmpty)
     }
 
     @Test func clearingRecentsPreservesCommandAndFileHistory() throws {
@@ -115,14 +114,16 @@ struct MobileAppTests {
         let host = TermindDomain.Host(name: "Recent", host: "recent.example.invalid")
         app.library.upsert(host)
         _ = app.connectionHistory.record(kind: .ssh, for: host.id)
-        app.commandHistory.record("pwd", for: host.id)
-        app.sftpHistory.record(kind: .directory, path: "/srv", for: host.id)
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
+        workspace.commandHistory.record("pwd")
+        workspace.sftpHistory.record(kind: .directory, path: "/srv")
 
         app.connectionHistory.clear(for: host.id)
 
         #expect(app.connectionHistory.entries(for: host.id).isEmpty)
-        #expect(app.commandHistory.entries(for: host.id).map(\.command) == ["pwd"])
-        #expect(app.sftpHistory.entries(for: host.id).map(\.path) == ["/srv"])
+        #expect(workspace.commandHistory.entries().map(\.command) == ["pwd"])
+        #expect(workspace.sftpHistory.entries().map(\.path) == ["/srv"])
     }
 }
 

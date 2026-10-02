@@ -1,24 +1,21 @@
 import Foundation
 
-/// One command the remote shell confirmed it was about to execute.
-///
-/// History is deliberately its own entity rather than a field on `Host`: a
-/// busy terminal can append frequently without rewriting host configuration.
+/// A command in one live terminal session. File records may have no execution timestamp.
 public nonisolated struct CommandHistoryEntry: Identifiable, Hashable, Sendable {
     public var id: UUID = UUID()
-    public var hostID: Host.ID
+    public var sessionID: UUID
     public var command: String
-    public var executedAt: Date = Date()
+    public var executedAt: Date?
     /// `nil` means the shell never reported a completion event, including rows
     /// written by versions that predate command lifecycle reporting.
     public var exitStatus: Int32?
     public var duration: TimeInterval?
     public init(
-        id: UUID = UUID(), hostID: Host.ID, command: String, executedAt: Date = Date(), exitStatus: Int32? = nil,
+        id: UUID = UUID(), sessionID: UUID, command: String, executedAt: Date? = nil, exitStatus: Int32? = nil,
         duration: TimeInterval? = nil
     ) {
         self.id = id
-        self.hostID = hostID
+        self.sessionID = sessionID
         self.command = command
         self.executedAt = executedAt
         self.exitStatus = exitStatus

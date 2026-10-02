@@ -44,15 +44,13 @@ final class MobileSFTPChannelModel {
     }
 
     @ObservationIgnored private var fileSystem: (any RemoteFileSystem)?
-    @ObservationIgnored private let hostID: Host.ID?
     @ObservationIgnored private let history: SFTPHistoryModel?
     @ObservationIgnored private var connectionGeneration: UUID?
     @ObservationIgnored private var directoryRequest = UUID()
     @ObservationIgnored private var handlesConnectionError: ((any Error) -> Bool)?
     @ObservationIgnored private var didChangePath: (() -> Void)?
 
-    init(hostID: Host.ID? = nil, history: SFTPHistoryModel? = nil) {
-        self.hostID = hostID
+    init(history: SFTPHistoryModel? = nil) {
         self.history = history
     }
 
@@ -239,7 +237,6 @@ final class MobileSFTPChannelModel {
     }
 
     private func recordDirectory(_ path: String) {
-        guard let hostID else { return }
-        history?.record(kind: .directory, path: path, for: hostID)
+        history?.record(kind: .directory, path: path)
     }
 }

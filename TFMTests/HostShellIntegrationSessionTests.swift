@@ -18,8 +18,7 @@ struct HostShellIntegrationSessionTests {
         var host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: mode)
         let library = HostLibraryModel(hosts: [host])
         let session = SSHSessionModel(hostID: host.id, title: host.name)
-        let history = CommandHistoryModel()
-        session.commandHistoryStore = history
+        let history = session.commandHistory
         defer { session.disconnect() }
         // The missing identity holds connection setup at authentication without opening a socket.
         session.connect(using: library)
@@ -41,7 +40,7 @@ struct HostShellIntegrationSessionTests {
         #expect(session.canGenerateFromCurrentDraft == expected)
         session.receiveShellIntegrationEvent(.commandStarted("pwd"))
         session.receiveShellIntegrationEvent(.commandFinished(0, duration: 0.1))
-        #expect(history.entries(for: host.id).count == (expected ? 1 : 0))
+        #expect(history.entries().count == (expected ? 1 : 0))
         library.replacePersistedSnapshot(VaultSnapshot(hosts: [host]))
         #expect(session.isShellIntegrationEnabled == expected)
 

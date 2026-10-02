@@ -104,11 +104,10 @@ struct MobileCommandGeneratorTests {
         let settings = TerminalSettingsModel()
         #expect(settings.set(global, for: \.shellIntegration))
         let connections = MobileSSHCommandConnectionBox()
-        let history = CommandHistoryModel()
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: library, terminalSettings: settings, commandHistory: history,
-            connectionServices: connections.services)
+            hosts: library, terminalSettings: settings, connectionServices: connections.services)
+        let history = workspace.commandHistory
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected })
@@ -125,7 +124,7 @@ struct MobileCommandGeneratorTests {
         #expect((workspace.sameDirectoryLaunch != nil) == expected)
         workspace.receiveShellEvent(.commandStarted("pwd"))
         workspace.receiveShellEvent(.commandFinished(0, duration: 0.1))
-        #expect(history.entries(for: host.id).count == (expected ? 1 : 0))
+        #expect(history.entries().count == (expected ? 1 : 0))
         #expect(connections.sessionCount == 1)
 
         workspace.disconnect()
@@ -352,8 +351,8 @@ struct MobileCommandGeneratorTests {
         ])
 
         #expect(await eventually { connections.writes.contains(Data((command + "\r").utf8)) })
-        #expect(await eventually { app.commandHistory.entries(for: host.id).count == 1 })
-        #expect(app.commandHistory.entries(for: host.id).first?.command == "pwd")
+        #expect(await eventually { workspace.commandHistory.entries().count == 1 })
+        #expect(workspace.commandHistory.entries().first?.command == "pwd")
         #expect(workspace.pendingInitialCommand == nil)
     }
 
@@ -430,13 +429,12 @@ struct MobileCommandGeneratorTests {
     @Test func productionCallbacksStayOrderedAndIgnoreAnOldSession() async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
-        let history = CommandHistoryModel()
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
             hosts: library,
-            commandHistory: history,
             connectionServices: connections.services
         )
+        let history = workspace.commandHistory
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected && connections.sessionCount == 1 })
@@ -448,7 +446,7 @@ struct MobileCommandGeneratorTests {
             .commandStarted("pwd"),
         ])
 
-        #expect(await eventually { history.entries(for: host.id).count == 1 })
+        #expect(await eventually { history.entries().count == 1 })
         #expect(!workspace.canGenerateFromCurrentDraft)
 
         await connections.sendShellEvents([
@@ -456,7 +454,7 @@ struct MobileCommandGeneratorTests {
         ])
 
         #expect(await eventually { workspace.canGenerateFromCurrentDraft })
-        let entry = try #require(history.entries(for: host.id).first)
+        let entry = try #require(history.entries().first)
         #expect(entry.command == "pwd")
         #expect(entry.exitStatus == 0)
         #expect(entry.duration == 0.25)
@@ -474,7 +472,7 @@ struct MobileCommandGeneratorTests {
             ], session: 1)
 
         #expect(await eventually { workspace.canGenerateFromCurrentDraft })
-        #expect(!history.entries(for: host.id).contains { $0.command == "stale" })
+        #expect(!history.entries().contains { $0.command == "stale" })
     }
 
     @Test func disabledIntegrationIsPassedToTheTransportAndRemainsUnavailable() async throws {
@@ -506,13 +504,12 @@ struct MobileCommandGeneratorTests {
     @Test func unsupportedShellRemainsUnavailableAfterOrderedPromptEvents() async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
-        let history = CommandHistoryModel()
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
             hosts: library,
-            commandHistory: history,
             connectionServices: connections.services
         )
+        let history = workspace.commandHistory
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected })
@@ -525,7 +522,7 @@ struct MobileCommandGeneratorTests {
             .promptReady,
         ])
 
-        #expect(await eventually { history.entries(for: host.id).count == 1 })
+        #expect(await eventually { history.entries().count == 1 })
         #expect(!workspace.canGenerateFromCurrentDraft)
         let generator = MobileCommandGeneratorStub(command: "echo generated")
         workspace.generateCommand(using: generator)
@@ -1079,14 +1076,13 @@ struct MobileUploadBatchTests {
             connectSFTP: { _, _, _ in sessionClient },
             writeSSH: { _, _ in }
         )
-        let history = SFTPHistoryModel()
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
             hosts: library,
             transfers: transfers,
-            sftpHistory: history,
             connectionServices: services
         )
+        let history = workspace.sftpHistory
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected })
@@ -1094,7 +1090,7 @@ struct MobileUploadBatchTests {
         #expect(await workspace.reopenHistoryFile(at: report.path))
         #expect(
             await eventually {
-                history.entries(for: host.id).contains { $0.kind == .file && $0.path == report.path }
+                history.entries().contains { $0.kind == .file && $0.path == report.path }
             })
 
         #expect(await workspace.reopenHistoryFile(at: broken.path))
@@ -1105,12 +1101,12 @@ struct MobileUploadBatchTests {
                 if case .failed = state { return true }
                 return false
             })
-        #expect(!history.entries(for: host.id).contains { $0.path == broken.path })
+        #expect(!history.entries().contains { $0.path == broken.path })
 
         #expect(transfers.sftpTransfers.allSatisfy { $0.sourceHomeDirectory == "/home/test" })
         #expect(!(await workspace.reopenHistoryFile(at: "/srv/missing.txt")))
         #expect(!(await workspace.reopenHistoryFile(at: changedDirectory.path)))
-        #expect(!history.entries(for: host.id).contains { $0.path == changedDirectory.path })
+        #expect(!history.entries().contains { $0.path == changedDirectory.path })
     }
 
     @Test func sharedUploadPlannerDoesNotFollowASymlinkOutsideTheSelectedFolder() async throws {

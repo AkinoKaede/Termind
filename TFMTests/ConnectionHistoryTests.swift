@@ -19,8 +19,8 @@ struct ConnectionHistoryTests {
     @Test
     func sharedHistoryModelsUseTheSameRetentionLimit() {
         #expect(ConnectionHistoryModel.limit == HistoryLimits.retainedEntries)
-        #expect(CommandHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
-        #expect(SFTPHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
+        #expect(CommandHistoryModel.perSessionLimit == HistoryLimits.retainedEntries)
+        #expect(SFTPHistoryModel.perSessionLimit == HistoryLimits.retainedEntries)
     }
 
     @Test
@@ -287,15 +287,12 @@ struct ConnectionHistoryTests {
                 ConnectionHistoryEntry(hostID: other.id, kind: .ssh, sourceDeviceID: localID),
             ],
             sourceDeviceID: localID)
-        let commands = CommandHistoryModel(entries: [
-            CommandHistoryEntry(hostID: host.id, command: "uptime")
-        ])
-        let files = SFTPHistoryModel(entries: [
-            SFTPHistoryEntry(hostID: host.id, kind: .directory, path: "/srv")
-        ])
+        let session = SSHSessionModel(host: host)
+        session.commandHistory.record("uptime")
+        let files = SFTPHistoryModel()
+        files.record(kind: .directory, path: "/srv")
         let app = AppModel(
             hosts: HostLibraryModel(hosts: [host, other]),
-            commandHistory: commands, sftpHistory: files,
             connectionHistory: connections
         )
 
@@ -303,8 +300,8 @@ struct ConnectionHistoryTests {
 
         #expect(app.hostLibrary.host(host.id) != nil)
         #expect(connections.entries(for: host.id).isEmpty)
-        #expect(commands.entries(for: host.id).isEmpty)
-        #expect(files.entries(for: host.id).isEmpty)
+        #expect(session.commandHistory.entries().map(\.command) == ["uptime"])
+        #expect(files.entries().map(\.path) == ["/srv"])
         #expect(connections.entries(for: other.id).count == 1)
         #expect(connections.recentLocalHosts(in: app.hostLibrary, limit: 5).map(\.id) == [other.id])
     }

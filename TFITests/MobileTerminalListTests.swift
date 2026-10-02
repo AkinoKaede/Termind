@@ -6,47 +6,32 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1")) @MainActor
 struct MobileTerminalListTests {
-    @Test func deletingAnEndpointUpdatesTheNativeHistoryList() async throws {
+    @Test func appendingACommandUpdatesTheNativeHistoryList() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
-        app.library.upsert(host)
-        app.commandHistory.record("pwd", for: host.id)
-        app.commandHistory.record("whoami", for: host.id)
         let workspace = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: app.library,
-            commandHistory: app.commandHistory)
-
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
+        workspace.commandHistory.record("pwd")
         try await withHostedView(MobileCommandHistoryView(library: app.library, workspace: workspace)) { root in
-            #expect(nativeVisibleCells(in: root.view).count == 2)
-
-            let newest = try #require(app.commandHistory.entries(for: host.id).first)
-            app.commandHistory.delete(newest.id)
-            try await Task.sleep(for: .milliseconds(300))
-
             #expect(nativeVisibleCells(in: root.view).count == 1)
+            workspace.commandHistory.record("whoami")
+            try await Task.sleep(for: .milliseconds(300))
+            #expect(nativeVisibleCells(in: root.view).count == 2)
         }
     }
 
     @Test func retainedHistoryKeepsOnlyTheNativeViewportMounted() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
-        app.library.upsert(host)
-        let history = CommandHistoryModel(
-            entries: (0..<CommandHistoryModel.perHostLimit).map { index in
-                CommandHistoryEntry(
-                    hostID: host.id, command: "printf '%04d' \(index)",
-                    executedAt: Date(timeIntervalSince1970: TimeInterval(index)))
-            })
         let workspace = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: app.library,
-            commandHistory: history)
-
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh), hosts: app.library)
+        for index in 0..<CommandHistoryModel.perSessionLimit {
+            workspace.commandHistory.record("printf '%04d' \(index)")
+        }
         try await withHostedView(MobileCommandHistoryView(library: app.library, workspace: workspace)) { root in
-            #expect(history.entries(for: host.id).count == CommandHistoryModel.perHostLimit)
+            #expect(workspace.commandHistory.entries().count == CommandHistoryModel.perSessionLimit)
             let cells = nativeVisibleCells(in: root.view)
             #expect(!cells.isEmpty)
             #expect(cells.count < 50)

@@ -5406,23 +5406,6 @@
         }
       }
     },
-    "Clear File History for this Host?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除此主机的文件历史？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除此主機的檔案歷史？"
-          }
-        }
-      }
-    },
     "Clear Filter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5491,23 +5474,6 @@
         }
       }
     },
-    "Clear History?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清空历史记录？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除歷史？"
-          }
-        }
-      }
-    },
     "Clear Key" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5572,23 +5538,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除所選主機的所有歷史？"
-          }
-        }
-      }
-    },
-    "Clear command history for this Host?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除此主机的命令历史？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除此主機的指令歷史？"
           }
         }
       }
@@ -6308,23 +6257,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "指令"
-          }
-        }
-      }
-    },
-    "Commands confirmed by the remote shell appear here." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "远程shell确认的命令会显示在这里。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "遠端shell確認的指令會顯示在這裡。"
           }
         }
       }
@@ -10852,6 +10784,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "儲存此主機前，請啟用SSH或Telnet。"
+          }
+        }
+      }
+    },
+    "Enable Shell Integration to add commands to this session’s history in real time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Shell Integration to add commands to this session’s history in real time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用Shell集成以实时添加当前会话的命令历史。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟用Shell整合以即時加入目前工作階段的指令歷史。"
           }
         }
       }
@@ -25630,6 +25585,29 @@
         }
       }
     },
+    "Shell history and commands from this session appear here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shell history and commands from this session appear here."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shell历史和当前会话的命令会显示在这里。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shell歷史和目前工作階段的指令會顯示在這裡。"
+          }
+        }
+      }
+    },
     "Shift" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31135,23 +31113,6 @@
         }
       }
     },
-    "This permanently removes all saved commands for the current Host." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这将永久删除当前主机所有保存的命令。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這將永久刪除目前主機所有儲存的指令。"
-          }
-        }
-      }
-    },
     "This permanently removes connection, command, and File History without deleting the Hosts." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31250,23 +31211,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此伺服器需要互動式驗證。"
-          }
-        }
-      }
-    },
-    "This session is not recording history. Enable Shell Integration and use bash, zsh, or fish." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此会话未记录历史。请启用Shell集成，并使用bash、zsh或fish。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此工作階段未記錄歷史。請啟用Shell整合，並使用bash、zsh或fish。"
           }
         }
       }

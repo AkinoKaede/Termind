@@ -158,38 +158,17 @@ struct SettingsPortTests {
 
     @Test func historyRetainsTheNewestSharedLimitAndUnknownCompletion() {
         let model = CommandHistoryModel()
-        let host = UUID()
-        #expect(model.record(" \n\t ", for: host) == nil)
-        for index in 0...CommandHistoryModel.perHostLimit {
-            model.record("command \(index)", for: host, at: Date(timeIntervalSince1970: Double(index)))
+        #expect(model.record(" \n\t ") == nil)
+        for index in 0...CommandHistoryModel.perSessionLimit {
+            model.record("command \(index)")
         }
-        let values = model.entries(for: host)
-        #expect(values.count == CommandHistoryModel.perHostLimit)
+        let values = model.entries()
+        #expect(values.count == CommandHistoryModel.perSessionLimit)
         #expect(values.first?.command == "command \(HistoryLimits.retainedEntries)")
         #expect(values.last?.command == "command 1")
         #expect(values.allSatisfy { $0.exitStatus == nil && $0.duration == nil })
     }
 
-    @Test func loadedCommandHistoryImmediatelyTrimsEveryHostToTheSharedLimit() {
-        let hosts = [UUID(), UUID()]
-        let entries = hosts.flatMap { hostID in
-            (0...HistoryLimits.retainedEntries).map { index in
-                CommandHistoryEntry(
-                    hostID: hostID, command: "command \(index)",
-                    executedAt: Date(timeIntervalSince1970: TimeInterval(index))
-                )
-            }
-        }
-
-        let model = CommandHistoryModel(entries: entries)
-
-        for hostID in hosts {
-            let retained = model.entries(for: hostID)
-            #expect(retained.count == HistoryLimits.retainedEntries)
-            #expect(retained.first?.command == "command \(HistoryLimits.retainedEntries)")
-            #expect(retained.last?.command == "command 1")
-        }
-    }
 }
 
 @MainActor private final class FailingTerminalPreferences: TerminalPreferencesPersisting {

@@ -923,6 +923,16 @@ public enum TermindSchemaV48: VersionedSchema {
     }
 }
 
+/// Removes local command and SFTP history; history now lives with each active session.
+public enum TermindSchemaV49: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(49, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV48.models.filter {
+            $0 != PersistentCommandHistoryEntry.self && $0 != PersistentSFTPHistoryEntry.self
+        }
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -938,7 +948,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV34.self, TermindSchemaV35.self, TermindSchemaV36.self, TermindSchemaV37.self,
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
-            TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self,
+            TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
         ]
     }
 
@@ -1046,6 +1056,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV45.self, toVersion: TermindSchemaV46.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV46.self, toVersion: TermindSchemaV47.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV47.self, toVersion: TermindSchemaV48.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV48.self, toVersion: TermindSchemaV49.self),
         ]
     }
 }

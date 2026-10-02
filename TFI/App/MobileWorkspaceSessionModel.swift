@@ -183,8 +183,7 @@ final class MobileWorkspaceSessionModel {
                 hostID: host.id, title: host.name, kind: kind),
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
             terminalHighlightSettings: app.terminalHighlightSettings,
-            terminalSettings: app.terminalSettings, commandHistory: app.commandHistory,
-            sftpHistory: app.sftpHistory, connectionServices: app.workspaceConnectionServices,
+            terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
             transientHost: host,
             connectionRoute: request.kind == .telnet ? nil : route,
             usernameHint: request.username,
@@ -238,7 +237,7 @@ final class MobileWorkspaceSessionModel {
         if let workspace = workspaces.first(where: { $0.id == id }) {
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
-            workspace.disconnect()
+            workspace.close()
         }
         workspaces.removeAll { $0.id == id }
         savedWorkspaceDescriptors.removeAll { $0.id == id }
@@ -264,7 +263,7 @@ final class MobileWorkspaceSessionModel {
             app.workspaceDidClose(workspace.id)
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
-            workspace.disconnect()
+            workspace.close()
         }
     }
 
@@ -280,7 +279,7 @@ final class MobileWorkspaceSessionModel {
             app.workspaceDidClose(workspace.id)
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
-            workspace.disconnect()
+            workspace.close()
         }
     }
 
@@ -297,8 +296,7 @@ final class MobileWorkspaceSessionModel {
         let workspace = MobileWorkspace(
             descriptor: descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
             terminalHighlightSettings: app.terminalHighlightSettings,
-            terminalSettings: app.terminalSettings, commandHistory: app.commandHistory, sftpHistory: app.sftpHistory,
-            connectionServices: app.workspaceConnectionServices)
+            terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices)
         addWorkspaces([workspace])
         return workspace
     }
@@ -338,7 +336,6 @@ final class MobileWorkspaceSessionModel {
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
             terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings,
-            commandHistory: app.commandHistory, sftpHistory: app.sftpHistory,
             connectionServices: app.workspaceConnectionServices,
             initialCommand: initialCommand,
             recordsInitialCommandInHistory: recordsInitialCommandInHistory,
