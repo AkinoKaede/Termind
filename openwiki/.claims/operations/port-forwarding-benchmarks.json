@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1b8bcd5f1f6e72f369a729f7861528304f9aeeb063abcdc590394a4d7172ae70",
+  "pageVersion": "sha256:419c80d1f1fe6487ac488f81690e5d44962bd2d2fa0f3b232e033fbf3aacf5a2",
   "claims": [
     {
       "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
@@ -11,7 +11,7 @@
           "version": "repo-lines-v1:sha256:e683751ebf2662bdfa0efec90cc9c9cf679bac1a5e2e06e7cf1e4ee57e2880e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OGEyZDdmYzIzNTUyOWMzYWJiMjVmNmUzZDA4N2I2NGE1YmJkMGRkZTU5OTgxMTMzNGU3NDkzNTAyMmQxMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkYzA1YWYyY2IxN2U1ZDgxYWNiNjkxMzE3YzNkOGFiYWM1NDBhZmE3ODQ4MzBlZTI2NjE2YTJmNTViOTYyZDIifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1091-L1105",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1148-L1162",
           "version": "repo-lines-v1:sha256:81e3f410bb7eb9cdc22c2c82d861c5efde12dcfeef5f65505fda733bcc11955e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNGJkM2U1MzkyMzUwMzkzYmQxYmQyYjI0MjdmNjMwZGU2OTUzNjFkNjY2ODMzYzE5ZTE2NzEzYTRiMWZkNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwNTIwN2U2NTMzOWUxM2E1NTIzZjFlMDhkZGJiNTllMTYzMDY3NjI4NGZmOTdiNzY3NGE4YjFkNzIzMGY5NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiOWFlYjQyMDRmZmM1Nzc0MjY2NGY2NDQ3NjcyZWRjZmIyM2IzNDAwYzhhODkwNmFiNmMyODhkZTg5OGVjMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmZDUyNjJjZjUxZmQ4ODBkNjgxZWFiYTkzY2VlYzM2MTkzMzhjMzU4MmNlYzhhZWU3OTliODY4YWFhMTlhZDgifQ"
         }
       ]
@@ -62,7 +62,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-10-02T08:42:40.505Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-03T06:43:09.891Z"
   }
 }

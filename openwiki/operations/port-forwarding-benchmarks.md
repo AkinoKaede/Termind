@@ -3,6 +3,9 @@ type: benchmark-operations
 title: Port Forwarding Benchmark Design, Results, and Reproduction
 description: Historical forwarding measurements, workload semantics, retained transport decisions, comparison limits, and reproducible loopback commands.
 tags: [ssh, port-forwarding, benchmark, performance, openssh]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
@@ -16,10 +19,7 @@ sources:
     resource: repo://Scripts/ssh-forwarding-openssh-fixture.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Port Forwarding Benchmark Design, Results, and Reproduction
@@ -150,4 +150,6 @@ python3 Scripts/benchmark-external-port-forwarding.py \
 
 The deliberately delayed remote-listener case uses a temporary environment with `paramiko==4.0.0` and `python Scripts/ssh-authentication-fixture.py --metadata /tmp/ssh-fixture.json`, substituting that metadata path. Other wire/lifecycle cases run against both fixtures.
 
+<!-- openwiki: broken internal link [/openwiki/concepts/remote-services-and-forwarding.md] link "/openwiki/concepts/remote-services-and-forwarding.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 See [Remote Services: Terminal, Metrics, and Port Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) for current runtime behavior and [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for authentication and transport ownership.

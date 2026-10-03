@@ -3,6 +3,9 @@ type: workflow
 title: SFTP Transfer, Scheduling, and External Edit Workflow
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
@@ -54,14 +57,12 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 ## Scope and operating model
 
+<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 For native drag events, mobile provider staging, SSH versus SFTP drop destinations, and desktop remote-file payloads, start with [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md). That guide follows the gesture up to the transfer preparation and queue boundaries described here.
 
 SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^client-channel]
@@ -232,10 +233,13 @@ Do not copy browser-context assumptions wholesale into the Agent pool: browser a
 
 ## From a file lease to libssh2 turns
 
+<!-- openwiki: broken internal link [/openwiki/concepts/ssh-multiplexing-and-scheduling.md] link "/openwiki/concepts/ssh-multiplexing-and-scheduling.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 A sibling channel shares the same driver's transport identity. `SSHMultiplexedSFTPChannelOwner` serializes each raw libssh2 call on its SSH owner's queue, uses the encrypted buffer's bounded pass/backpressure, and returns to an async 2 ms retry sleep on EAGAIN. File fairness above does not imply strict round-robin ordering for every SFTP packet below. See [SSH Multiplexing and Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md).
 
 Copy's topology check is driver identity, **not merely equal Host IDs**. If both concrete `SFTPChannel` endpoints share it, `copyOnSharedTransport` alternates reads of at most 64 KiB with destination writes on the shared owner. Otherwise the socket-pair relay runs producer and consumer tasks concurrently; failure cancels the group and stops the relay. Stable lease acquisition order, the shared-driver fast path, and file-admission accounting solve different problems and should not be collapsed.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/port-forwarding-pool-and-dispatch.md] link "/openwiki/workflows/port-forwarding-pool-and-dispatch.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/concepts/shell-integration.md] link "/openwiki/concepts/shell-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 To compare with port forwarding, use [Forwarding Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md): forwarding prewarms a Host-level target and assigns accepted TCP flows to retained workers, rather than creating a connection-per-file lease. For terminal-to-SFTP cwd/availability prerequisites, use [Shell Integration](/openwiki/concepts/shell-integration.md).
 
 ## Transfer state, resume, cleanup, and ownership
@@ -375,3 +379,5 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^context-tests]: `TFMTests/SFTPTransferContextTests.swift#L129-L364`.
 [^resolver-tests]: `FrameworkTests/SFTPRemoteConflictResolverTests.swift#L9-L167`.
 [^edit-tests]: `TFMTests/SFTPEditTests.swift#L12-L269`.
+
+Browser history belongs to one live session in memory. Successful fresh listings and local opens record into that session’s `SFTPHistoryModel`; closing clears it and late transfer callbacks are ignored. Tailscale extra connections use the captured group-bound dialer, with no system-network fallback. `SFTPTransferContext` additionally retains a weak host-store reference so current authentication material can be resolved for silent extra connections without storing secret bytes.

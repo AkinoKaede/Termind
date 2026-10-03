@@ -3,6 +3,9 @@ type: asset-production-operations
 title: Marketing Assets and App Icons
 description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and hand off platform, website, and paywall icon artwork.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-ea04d3d10088e2d554646adf
     resource: repo://Design/Brand/README.md
@@ -56,10 +59,10 @@ sources:
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-407fd8a7c64006c458cce603
     resource: repo://TFI/Resources/AppIcon.icon/icon.json
-  - id: openwiki-source-030dddd97c4034e7a030866e
-    resource: repo://TFITests/MobileIconRenderingTests.swift
-  - id: openwiki-source-8c7b256852880c8ff72e5882
-    resource: repo://TFITests/MobileMarketingScreenshotTests.swift
+  - id: openwiki-source-dbfe0c5498e1996abef752c2
+    resource: repo://TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift
+  - id: openwiki-source-5a1bb33feb7c647b6d7ec714
+    resource: repo://TFITests/Screenshots/MobileIconRenderingTests.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
     resource: repo://TFM/App/ScreenshotDemo.swift
   - id: openwiki-source-e1c0d18fcc5998ccfebc8ff5
@@ -72,14 +75,11 @@ sources:
     resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
   - id: openwiki-source-6477f7482bee83060dc1667d
     resource: repo://TFM/Resources/AppIcon.icon/icon.json
-  - id: openwiki-source-e2813ac17589f2155998862e
-    resource: repo://TFMTests/MacMarketingScreenshotTests.swift
-  - id: openwiki-source-d32f5321ec392c768391e314
-    resource: repo://TFMTests/ScreenshotDemoTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+  - id: openwiki-source-6dffacb05c6053dcaab19d80
+    resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
+  - id: openwiki-source-8ff78bfef9c925b442eff0f2
+    resource: repo://TFMTests/Screenshots/Marketing/ScreenshotDemoTests.swift
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Marketing Assets and App Icons
@@ -97,7 +97,7 @@ Marketing fixtures may mount real views with in-memory data, but must never chan
 
 ## Mobile capture workflow
 
-`TFITests/MobileMarketingScreenshotTests.swift` is opt-in: without `TERMIND_MARKETING_SCREENSHOTS=1`, its serialized capture test returns without producing images. It selects all five scenes by default or the comma-separated `TERMIND_MARKETING_SCENES` subset, then mounts production feature views in system windows with in-memory services. With `TERMIND_MARKETING_SYSTEM_CAPTURE=1`, ready/ack markers coordinate simulator capture; a unique `TERMIND_MARKETING_CAPTURE_ID` prevents stale markers from satisfying the runner. The test times out if no acknowledgment arrives. The runner stages output in DerivedData and copies it into the source tree only after that device/locale test and its expected image-count check succeed. A direct test invocation without system capture instead writes rendered PNGs to its app Documents directory, not to `Marketing/Screenshots/Captures`.
+`TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift` is opt-in: without `TERMIND_MARKETING_SCREENSHOTS=1`, its serialized capture test returns without producing images. It selects all five scenes by default or the comma-separated `TERMIND_MARKETING_SCENES` subset, then mounts production feature views in system windows with in-memory services. With `TERMIND_MARKETING_SYSTEM_CAPTURE=1`, ready/ack markers coordinate simulator capture; a unique `TERMIND_MARKETING_CAPTURE_ID` prevents stale markers from satisfying the runner. The test times out if no acknowledgment arrives. The runner stages output in DerivedData and copies it into the source tree only after that device/locale test and its expected image-count check succeed. A direct test invocation without system capture instead writes rendered PNGs to its app Documents directory, not to `Marketing/Screenshots/Captures`.
 
 ```mermaid
 sequenceDiagram
@@ -146,7 +146,7 @@ Recapture an affected scene in every locale and regenerate only its matching fra
 
 `ScreenshotDemoConfiguration` is a **DEBUG-only app launch mode**, not a replacement view or an XCTest-only fixture. `--termind-demo=<scene>:<en|zh-Hans|zh-Hant>` is parsed as one scene/language pair; missing argument means ordinary launch, while malformed, duplicate, or unsupported values abort demo launch. `Scripts/run-screenshot-demo.sh` opens a debug app for manual review; the automated runner passes the same argument into the TFM test launch. Only the runner's five supported marketing scenes are exported; `metrics-detail` and `app-settings` remain available for development review.
 
-On demo launch, `TermindApp.init()` selects the requested language and an in-memory SwiftData container even outside XCTest. It builds demo hosts, AI, unrestricted test access, frozen metrics, and one `WindowModel`, then **returns before normal persisted settings, Keychain-backed secrets, sync/coordinator and live model assembly**. Startup still sets up the scrubber and cleans the previous attachment session before this return; the isolation guarantee applies to the store and live model assembly, not every launch side effect. No demo argument means the ordinary startup path (subject to the separate XCTest in-memory branch); screenshot data does not become a user's saved workspace. `makeWindow(requestID:)` supplies that same demo window to the real `RootView` in `WindowGroup(id: "main")` for the initial nil request; explicit new-window requests use normal window creation. In DEBUG, the main scene stays auto-launchable for the demo even under XCTest and disables restoration for tests or demos. `AppDelegate` centers and sizes the visible window, applies light appearance and emits a `TERMIND_DEMO_READY` window diagnostic. This is not the capture-ready signal: `TFMTests/MacMarketingScreenshotTests.swift` independently waits for the production window, prepares it and writes `TERMIND_MAC_MARKETING_READY` only after focused rendering.
+On demo launch, `TermindApp.init()` selects the requested language and an in-memory SwiftData container even outside XCTest. It builds demo hosts, AI, unrestricted test access, frozen metrics, and one `WindowModel`, then **returns before normal persisted settings, Keychain-backed secrets, sync/coordinator and live model assembly**. Startup still sets up the scrubber and cleans the previous attachment session before this return; the isolation guarantee applies to the store and live model assembly, not every launch side effect. No demo argument means the ordinary startup path (subject to the separate XCTest in-memory branch); screenshot data does not become a user's saved workspace. `makeWindow(requestID:)` supplies that same demo window to the real `RootView` in `WindowGroup(id: "main")` for the initial nil request; explicit new-window requests use normal window creation. In DEBUG, the main scene stays auto-launchable for the demo even under XCTest and disables restoration for tests or demos. `AppDelegate` centers and sizes the visible window, applies light appearance and emits a `TERMIND_DEMO_READY` window diagnostic. This is not the capture-ready signal: `TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift` independently waits for the production window, prepares it and writes `TERMIND_MAC_MARKETING_READY` only after focused rendering.
 
 ```mermaid
 sequenceDiagram
@@ -232,14 +232,14 @@ Icon Composer and Xcode own padding, masks, and compatibility output. Do not rei
 
 The website's `LandingPage/public/app-icon.png` is a **separate exported rendition**, not the app's icon source. `Design/Brand/README.md` documents an `ictool --export-image` command, but its example still points at `Termind/Resources/AppIcon.icon`, a legacy path: select the current `TFM/Resources/AppIcon.icon` instead and check the output visually after export. Keep website brand marks and favicon in `LandingPage/public` distinct from both this exported PNG and the runtime distribution icons. For RevenueCat's remote Pro paywall image component, run `swift Scripts/render-pro-paywall-icon.swift` from the repository root; its SwiftUI renderer writes light/dark `pro-hero-*.png` into `Design/Brand/ProPaywall` at 4× an 80×72 point canvas. These are **handoff assets for remote paywall authoring**, not layered app icons, not marketing screenshot captures, and not images loaded by the native `ProPaywallView` or `MobileProView` (those host `RevenueCatUI.PaywallView`). Re-export/re-upload intentionally after changing the symbol or colors; generating the files does not publish a RevenueCat paywall.
 
-`TFITests/MobileIconRenderingTests.swift` is a separate opt-in **in-app icon and UI-label rendering** check, not the layered app-icon asset compiler or the App Store marketing capture pipeline. Set `TERMIND_ICON_SCREENSHOTS` to `en`, `zh-Hans`, or `zh-Hant` in the test environment to emit temporary `icon-screenshots` PNGs for light/dark navigation, pickers, forms, and large-type cases; without it, the screenshot-producing tests return early. Its terminal keyboard height and SF Symbol availability assertions still run independently of that environment variable. Do not count these temporary images toward the 30 mobile marketing captures or 54 App Store boards.
+`TFITests/Screenshots/MobileIconRenderingTests.swift` is a separate opt-in **in-app icon and UI-label rendering** check, not the layered app-icon asset compiler or the App Store marketing capture pipeline. Set `TERMIND_ICON_SCREENSHOTS` to `en`, `zh-Hans`, or `zh-Hant` in the test environment to emit temporary `icon-screenshots` PNGs for light/dark navigation, pickers, forms, and large-type cases; without it, the screenshot-producing tests return early. The suite’s screenshot opt-in controls all of its cases. Do not count these temporary images toward the 30 mobile marketing captures or 54 App Store boards.
 
 ## Verification and historical caveats
 
 ```sh
 (cd LandingPage && npm run build)
 Scripts/check-zh-localization.sh
-xcrun swift-format lint --strict TFITests/MobileMarketingScreenshotTests.swift TFMTests/MacMarketingScreenshotTests.swift
+xcrun swift-format lint --strict TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
 zsh -n Scripts/run-mobile-marketing-screenshots.sh Scripts/run-mac-marketing-screenshots.sh
 python3 -m py_compile Scripts/generate-mockuphone-assets.py
 git diff --check
@@ -251,4 +251,7 @@ The 2026-09-22 macOS 27 refresh recorded 15 recaptured Mac sources, three regene
 
 Local `.build/marketing-forwarding-refresh/` and `.build/marketing-topbar-refresh/` directories, when present, are disposable history rather than repository evidence. The earlier 2026-09-19 topbar record counted 45 captures, 33 frames, and 54 JPGs; 23 untouched baseline JPGs lacked ICC profiles. Its capture/build/localization/format checks passed, but TFM and TFI full suites each retained one unrelated failure and Xcode diagnostic collection required stopping a stalled `simctl diagnose` child. Rerun affected checks and perform a fresh profile audit before making current blanket claims.
 
+<!-- openwiki: broken internal link [/openwiki/concepts/commerce-localization-and-product-surfaces.md] link "/openwiki/concepts/commerce-localization-and-product-surfaces.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 See [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for runtime ownership, [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md) for storefront metadata, and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the ordinary build gates.

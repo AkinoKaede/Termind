@@ -3,6 +3,9 @@ type: assistant runtime concept
 title: Agent runtime and assistant ownership
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -18,6 +21,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-ce9687e1e441c1da9a8f908a
     resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
+  - id: openwiki-source-473020b86058efef90cbb715
+    resource: repo://Frameworks/TermindApplication/Agent/CommandGeneratorService.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-b62626c07828480fcd2b71b7
@@ -108,10 +113,7 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Agent runtime and assistant ownership
@@ -140,6 +142,7 @@ flowchart TD
 
 Native assistant composition: app targets inject device services, while the shared controller creates an AgentKit runtime and the separate macOS MCP server exports a restricted tool surface.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md).
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. When configured, `AssistantModelSelectionController.prepareForSend` first persists a valid per-conversation chat-model choice (or replaces an unavailable choice with the current default); a write error refuses capture without consuming the draft. Drafts are seeded with a model in memory, while restore backfills durable choices, and later Chat-role changes do not silently switch an existing valid choice. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
@@ -158,7 +161,7 @@ The shared `AssistantChatCoordinator` implements AgentKit's chat catalog and coo
 
 ### Catalog, run mode, and surface availability
 
-`TermindAgentTools` is the shared static registration point. Its injected environment supplies host resolution, metrics, connection/authentication pools, background commands, and optional scratch workspace **and live pane access**. Dependencies determine which capabilities can be constructed: `scratch_pull` and `scratch_push` need the workspace; `list_panes` and `read_pane` need `AgentPaneAccess`. `AssistantToolRegistry` returns an empty registry for a model without `toolCall`. A sending-surface Boolean is not a registration input: desktop and mobile use the same definitions, but their run captures may inject different live capabilities. Pane access is run-scoped, not stored on the conversation: app adapters enumerate open terminal panes across windows/scenes, expose only connected panes with a readable viewport in listings, and report a closed, disconnected or missing-surface pane instead of creating a connection. `list_panes` returns metadata (including active-window and originating-window-current flags), not text. `read_pane` reads a visible viewport without typing or changing focus; without `pane_id` it resolves the originating window's current pane **at call time**, while an explicit ID can select another open pane. It refuses missing/invalid/closed/unreadable targets rather than falling back and limits the returned UTF-8 text to 65,536 bytes at a character boundary, marking source truncation. Pane text is model-facing tool output, but the tool-card detail deliberately shows only pane name and ID, not the captured text. This read-only capability does not confer SSH/SFTP execution or terminal input.
+`TermindAgentTools` is the shared static registration point. Its injected environment supplies host resolution, metrics, connection/authentication pools, background commands, and optional scratch workspace **and live pane access**. Dependencies determine which capabilities can be constructed: `scratch_pull` and `scratch_push` need the workspace; `list_panes` and `read_pane` need `AgentPaneAccess`. `AssistantToolRegistry` returns an empty registry for a model without `toolCall`. A sending-surface Boolean is not a registration input: desktop and mobile use the same definitions, but their run captures may inject different live capabilities. Pane access is run-scoped, not stored on the conversation: app adapters enumerate open terminal panes across windows/scenes, expose only connected panes with a readable viewport in listings, and report a closed, disconnected or missing-surface pane instead of creating a connection. `list_panes` returns metadata (including active-window and originating-window-current flags), not text. `read_pane` reads a visible viewport without typing or changing focus; `pane_id` is required and can identify another open pane. Use the intended ID captured in session context or a prior result; list panes only to discover an unknown or unavailable target. It refuses missing/invalid/closed/unreadable targets rather than falling back and limits the returned UTF-8 text to 65,536 bytes at a character boundary, marking source truncation. Pane text is model-facing tool output, but the tool-card detail deliberately shows only pane name and ID, not the captured text. This read-only capability does not confer SSH/SFTP execution or terminal input.
 
 ```mermaid
 flowchart TD
@@ -170,7 +173,7 @@ flowchart TD
     Injected -->|Yes| Pane["Register list_panes and read_pane"]
     Pane --> Call{"Tool call"}
     Call -->|List| Metadata["List readable pane metadata"]
-    Call -->|Read| Resolve["Resolve current or explicit pane ID"]
+    Call -->|Read| Resolve["Validate required pane ID"]
     Resolve --> Readable{"Open connected readable surface"}
     Readable -->|No| Refuse["Return tool error"]
     Readable -->|Yes| Viewport["Return bounded viewport to model"]
@@ -448,7 +451,7 @@ The focused tests establish behavior that is important when changing this area:
 - `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Blocked and failing saves verify that captured failure keeps preparation owned through stop and archive/delete until save completion and only adopts staging on success. `FrameworkTests/AssistantModelSelectionTests.swift` checks draft model seeding, restored choices, unavailable-model repair, and persistence-first model selection.
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order/edit mutations, invalid edit rejection before repository calls, failed edits leaving the live prefix unchanged, and activity guards. Immediate `stopAndWait()` also verifies a persisted cancelled prestart snapshot with captured prompt and context but no provider/tool calls; a gated-save test verifies the join.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
-- `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets **without injected pane access**, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions. `TFMTests/AgentPaneToolsTests.swift` checks conditional pane registration by mode, call-time default and explicit-ID reads, disconnected/absent-surface refusal, source-byte truncation, and cards that omit viewport text; `TFITests/MobileWorkspaceSessionTests.swift` exercises pane access across mobile scenes.
+- `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets **without injected pane access**, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions. `TFMTests/AgentPaneToolsTests.swift` checks conditional pane registration by mode, required-ID validation and explicit-ID reads, disconnected/absent-surface refusal, source-byte truncation, and cards that omit viewport text; `TFITests/MobileWorkspaceSessionTests.swift` exercises pane access across mobile scenes.
 - `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
 - `FrameworkTests/AgentUserInputTests.swift` checks timeout schema and defaults, question validation, navigation, head-only deadlines, skip/null semantics, cancellation and dedicated secret drafts. `FrameworkTests/AssistantTranscriptPresentationTests.swift` checks direct-approval/event races, denial display, structured presenter output and bounded previews; `FrameworkTests/HermesMemoryTests.swift` checks suspension/revocation, stale writes/reviews, index catch-up, destroy retry and lazy disabled storage.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
@@ -456,3 +459,5 @@ The focused tests establish behavior that is important when changing this area:
 ## Change guidance
 
 For runtime-ordering or AgentKit-owned retry/secret lifecycle changes, inspect the *resolved AgentKit package revision*, not the empty sibling directory; the Termind tests verify observable integration behavior, not all internal sequencing. For cross-chat changes, keep the AgentKit generic chat-tool interface separate from Termind's coordinator and preserve receipt atomicity, deduplication and per-target composer isolation. When adding a tool, define a strict schema, choose an explicit tool policy and planning registration, validate/normalize inputs in preflight, and ensure the tool returns bounded/redacted data. Register Termind-specific definitions and durable card presenters in `TermindAgentTools`, assemble them beside AgentKit built-ins in `AssistantToolRegistry`, and explicitly review the desktop MCP export allowlist rather than assuming an Assistant tool is externally available. For a live-device feature such as pane inspection, inject a run-scoped capability from each app adapter rather than persisting a view or assuming SSH host access implies a readable terminal viewport. Keep the model-incompatible catalog empty for models without `.toolCall`; if the feature requires new neutral runtime behavior, release and pin AgentKit before depending on it. Host mutations must remain behind the same authorization and trust checks whether invoked directly, through MCP, a skill, or a scratch workflow. Do not add a shortcut that serializes SSH credentials, secret input, raw scratch/remote file contents, or unredacted provider data to a transcript, event, log, SwiftData, or Hermes index.
+
+Submission and steering capture the intended `pane_id` in session context. Command generation separately includes a bounded visible viewport (64 KiB, character-safe truncation) as untrusted context, excluding scrollback; the non-viewport context and response each retain an 8 KiB budget. It generates a command without executing it. Pane read/list card summaries preserve action and failure state, including older descriptors.

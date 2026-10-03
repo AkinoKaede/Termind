@@ -3,6 +3,9 @@ type: implementation workflow
 title: "Port Forwarding: Multi-Connection Pool and Flow Dispatch"
 description: "Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
@@ -22,10 +25,7 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Port Forwarding: Multi-Connection Pool and Flow Dispatch
@@ -124,6 +124,7 @@ The worker keeps separate control queues for remote-listen requests and channel 
 
 This post-I/O sweep is why a reply already buffered inside libssh2 does not have to wait for a new OS socket-read edge. Conversely, when unsolicited bytes are present but no channel/listener operation can consume them, the worker parks read interest to avoid repeatedly waking on the same packet. The one-second timer serves keepalive and pending control/retirement work, not regular data throughput.
 
+<!-- openwiki: broken internal link [/openwiki/concepts/ssh-multiplexing-and-scheduling.md] link "/openwiki/concepts/ssh-multiplexing-and-scheduling.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 `SSHStreamPump` applies per-flow 2 MiB high/1 MiB low watermarks, bounded directional turns and stable write chunks. Socket EOF sends channel EOF only after pending outbound bytes drain; channel EOF shuts down local writes only after returned bytes drain. Both directions can therefore finish independently. The worker reaps a retired channel only after dealing with any pending libssh2 write; a zero-window write can be abandoned without waiting indefinitely for a peer that will never read. See [SSH Multiplexing and Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) for buffer details.
 
 ## Failure and recovery: distinguish the two levels
@@ -140,6 +141,8 @@ Auxiliary retry delays are **1, 2, 5, 10, 30 seconds**, capped at 30. A publishe
 
 Whole-context recovery is a separate path. The controller only recovers after a rule has made the context ready (`markConnected`) and a reusable snapshot exists. It closes the old transport, hides the Journey, marks remaining intent reconnecting, and delegates delay handling to `SessionReconnectController`. It waits for prior Host cleanup before opening the replacement and reinstalls the still-active rules. A listener-local failure can fail that rule without erasing peers' recovery intent.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/concepts/ssh-security-key-authentication.md] link "/openwiki/concepts/ssh-security-key-authentication.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 The first connect may ask for host trust/credentials or Security Key signing. Recovery and auxiliary opens use `SSHAdditionalConnectionSnapshot` and requests with interaction forbidden. The controller captures the snapshot after successful interactive connection, removes one-shot submissions and temporary host keys, and supplies a resolver for later physical opens. “Continue once” trust, temporary passwords, key passphrases, and Security Key presence are not reusable recovery authority; needing them ends silent recovery/degrades the pool instead of reopening a form. An explicit Retry is the new interactive boundary. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) and [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md).
 
 ## Teardown ordering and stale-result guards
@@ -160,4 +163,5 @@ This is not stream failover: recovery restores listeners and future connection o
 - `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering.
 - `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. Source presence or a default suite pass does not mean these wire tests ran.
 
+<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 When investigating low throughput, first inspect whether the pool is actually above one connected slot, whether the rule is local/dynamic, and whether silent extra opens can authenticate. Then inspect stream backpressure and pump progress; increasing the target cannot make one stream span workers. For benchmark fixture setup and interpretation, use [Port Forwarding Benchmarks](/openwiki/operations/port-forwarding-benchmarks.md). The pool code and current test seams do not establish an exhaustive actor-interleaving proof or a WAN performance guarantee.

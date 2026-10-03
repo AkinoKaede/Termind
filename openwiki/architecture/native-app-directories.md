@@ -3,6 +3,9 @@ type: architecture directory guide
 title: Native app ownership guide
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -142,10 +145,7 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Native App Responsibilities
@@ -183,7 +183,7 @@ App-level services outlive a window or scene's navigation selection; **both desk
 
 ### Desktop navigation, native windows and termination
 
-`RootView` mounts `WindowSidebarView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers rather than destroys the deck and its session views. The window-local sidebar offers Navigator, compact Assistant, Snippets and History. History uses command history when an SSH pane is focused, SFTP browse history for an SFTP pane, and connection history otherwise. Serial/Telnet focus disables History and reconciles an invalid History selection to Snippets. Activating the Assistant mode outside a workspace also opens the full Assistant destination; activating Navigator from Assistant restores its remembered destination. Programmatically setting the sidebar mode is presentation-only.
+`RootView` mounts `WindowSidebarView` beside a persistent workspace deck. Switching to Vault, Assistant, Metrics or Settings covers rather than destroys the deck and its session views. The window-local sidebar offers Navigator, compact Assistant, Snippets and History. History uses session-local memory-only command history when an SSH pane is focused, session-local browse history for an SFTP pane, and connection history otherwise. Serial/Telnet focus disables History and reconciles an invalid History selection to Snippets. Activating the Assistant mode outside a workspace also opens the full Assistant destination; activating Navigator from Assistant restores its remembered destination. Programmatically setting the sidebar mode is presentation-only.
 
 `MainWindowCoordinator` is the process-owned AppKit bridge, not a second workspace store. `RootView` registers its native `NSWindow` with its `WindowModel`; a UUID-tagged scene request carries layout and an optional workspace/pane move until the destination registers. Only then does the coordinator take the live workspace from the source and open it in the destination, preserving session identity; a restored scene without a request retains its system-restored frame. Closing a native window unregisters and closes its window model. It saves usable size/sidebar presentation from the most recently used main window as a fallback for future windows; auxiliary windows do not participate. `AppModel` retains this coordinator, and app commands, Dock reopening, toolbar actions and menu-bar Metrics can request or activate windows through it. The menu-bar status item and popover instead belong to `MetricsMenuBarController` across window lifetimes: the preference can remove them without stopping `ServerMetricsModel`, and selecting a server closes the popover before routing to the most recent main window or requesting a new Metrics window. The last-window quit decision also considers whether menu-bar Metrics is enabled or monitoring keeps running.
 
@@ -258,3 +258,5 @@ The desktop MCP path is a useful placement example: `App/MCPServerController` ow
 - **`Features/Sidebar` and `Workspaces`:** Desktop Sidebar is a per-window column, not an app-global navigator. Desktop Workspaces manages window layout and panes; closing a workspace disconnects its connections and retains at most ten closed workspaces for reopening, while closing a window disconnects every workspace and clears that stack. Mobile `Features/Workspaces` provides the runtime and list/detail, but scene-local `App/MobileWorkspaceSessionModel` owns the collection, reconnection and descriptor mutations; `MobileAppModel` aggregates across sessions for background work and host deletion. Moving session ownership across those boundaries changes native-window lifetime, not just file organization.
 
 The native `UI/Managed` grids and `UI/Components` interaction helpers do not acquire resource ownership merely by rendering a manager. For deeper behavior, see [Desktop UI](desktop-ui.md), [Mobile UI](mobile-ui.md), and [Platform Runtime](platform-runtime.md); return to the [Module Map](module-map.md) for dependencies.
+
+Tailscale node lifetime is app-owned through `TailscaleModel`; native group and peer forms render shared Presentation content. Managed Hosts disable direct duplication/deletion. Closing a terminal or browser clears its memory-only history, while disconnect/reconnect preserves it.

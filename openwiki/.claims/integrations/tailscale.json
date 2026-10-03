@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:ac8b1f0022788589d9ef3b886a6c1a2a4d8b0043134581025b1d8c6f6e563276",
+  "claims": [
+    {
+      "id": "claim_2995a0e9234344e9a73843aeaeb9e9b2",
+      "statement": "Both apps own an embedded userspace node through TailscaleModel and injected native factory/store; memory-only compositions disable profile storage, and losing Pro blocks retained dialers without closing existing nodes.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleIntegrationTests.swift#L32-L57",
+          "version": "repo-lines-v1:sha256:7d2e6c01864eef9387894da3c31f6570c3bf1e56ef71f8829205e21c699100a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxOTM1MTJlNWU2MGE2YzllMDAzZTVhNjhmMjhmNjhmZDY2MTVkMDFmOGZiZGVmYWFiMzQ2MDE2NTA1NmJlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlNzFjOTI4Mjg2OWI1MDNjNjcxOGZmYmRhZDFjODUzM2U3MTdlMmU1NGJjYWJhNGYzNjI5OTdjMzcyMjczZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5OGQxMDUxMzIxMDljYjJmOTllMzMwMDU4OTk5OTM4ODI1ZjM1YjZkNTgwNTYzNThiMDA5N2U4MWIzNDYwZDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L7-L40",
+          "version": "repo-lines-v1:sha256:32f1d31b595ef4f362dd6ca7ad40b5f034c73fc5a8e795cd0a4ccfc01b213051:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ZGY2YTc5NjEzZDM4MzFhYjI1NzQ4MzliNTYyMTg2YzMzYTg5ODZkMjUwZTMxOTM5ODgyNzM3M2U0YTZjNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2ODYzZTM0OTc2MjhmNzI3MmEwZThhOGExYzQxYzc5MjQ5YzQ2ZDY4YzQyZTQzMDI1NTRmNTVkMmI0YTI1OTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4ZmQ5M2Q5Njg3NWRhZGM5ZTg0YmZiOWU1NTRkM2JmOGVlMDIyNWNhNWVjYzk4ZmJiODdjMWVlMjFmZDVkZDUifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L299-L314",
+          "version": "repo-lines-v1:sha256:4dfd4334b59d9e6c4b8b592ec378bb741318d2f0c647c5ee180b73fdba5c28bb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTUxNmY2Yzg5OTI1ODczZTFjM2M3MTVmNTgwMWVlYjljM2ViNjUzYzA0NTQ1OTMwNzYwZDQyYjhmNWFmYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhYmNjNDA3YmE0YTk1Mzk0ZjgwOGJiMDVlNWQ1NGY0YTg1NTVhNGVkMTgxMjcwMTk2MzVlZjMxOGQyNTE1ZmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmYjBkMjQ3MzY5ZTVkYjQ5M2FmZGI4NDk3OThmOTlmOTZiM2RhMzgxOWYwMDIxN2Y0YWRhZjJiMzJiYjRjZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2MWE3NWRjMDEwNDI3MDRjYWU1MWY1OWZjODcyYmYyNTFhMDJiNTcxZWRkZjVjOTY4ODc1MDQ1YmNiZjg4NzMifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L178-L183",
+          "version": "repo-lines-v1:sha256:504aa7ecd10af6a55edff113125b3274bff4a9385b0b6bd1b6544b72532bc4ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZlZDU5MWYyZDYyZjQxZTQ4Nzg0N2ExNzFjNjM5NWJhMDhhZjlhNDI0YjU4MjEyNTMwNWUzZTQwZjkxZTFjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTc5OGFhYWVlMGFlZGQzMzY0ZjQ3Yzc2ZWJhMTU2OTU1YjM1YmI2M2VkZmFjNGU0ZDJmNzgzZDE4NGFlYmY1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU0Y2Q2MTc1M2MyNmQxMzE2MmUxODIyMmU4NjMxYWUzMTcwYmE2NWMzOGRjMWU0YmJkZmYwNjdkMTczMGQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFiMTYxNDVjMDA0OWU4Y2Y2MjM5YmVkZGQ0YmE3ZTIxNDQ2ZjZkYWUyZjVlNmU3NWM0ZWY2NGYyYjU2ODVjZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_439e18b6ab3e4116b1d06ee0e064067b",
+      "statement": "Control-service URLs require HTTPS without credentials/query/fragment, are canonicalized with DNS suffix normalization, and invalid bindings fail.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L5-L37",
+          "version": "repo-lines-v1:sha256:24661e137c4e2a4576c776d64f0f714fe06c512a436f78c921f7b1b3bffbc3b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiY2QwZTcyYjVjZWEzMWFjZGMzNjcxN2Y5ZDg3YjM0MmM4ZGUxYjVkNDBkZWIwZWEwYTg1MmZmNTU4OTM1YzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1MmYzMzUyMzYxODI1NTFjZjA3NjFkYjViNDRkYWFhMzcyZTE3MWU5OWMwNzIzZWE1YmI0NGY3N2U0ZWYxODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwZDc5NDVkYzI5ZmZiOGMyM2YxOTFhNzNkOGY2Njg3YTRiZmQxZTExNDJmNWJiOTI3Nzc1YmIyNjYyMDgwMWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a77d1db65dce47df847530d2a1ffe7e7",
+      "statement": "Login creates an editor-owned candidate and pending login without saving a group; explicit Save commits public group before local activation, preserves a candidate on activation failure, and rechecks generation/access/binding after suspension.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L88-L164",
+          "version": "repo-lines-v1:sha256:be78483b136af722ee70c2bc8f41a0a8498476f609843f656f95dc7884c3f376:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwMWVmMWUwNDNmOTQ5YjJmYTUzOWI1NWQ2ZDBmZmJlNjhmZGY0YzA2ZmNlNTYyZDBmZmEzZjExNmQ4MjZjNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhNWM0YWQ2NTBjMTdlYThiNzYwM2Y0ZDJmNjQ5ZTMzZjQwNDAxZTUwYzQwYjE3YjFlMjFhMzQwNTkxZWE2YzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L317-L481",
+          "version": "repo-lines-v1:sha256:453cfb9aa80eb3baadb426b88a24e9f6d810d62d961daa40d8ab2371c68657e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1YmY1ZWFhODUwZGM4MDg5ZWQ2MzQ4YzAxYmMwM2U1MzI5YjBjZjcyNTlkOWNkYzVhYzg3OWIxMDA4Zjg3NmQ5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2ViZDVkZTgyOGI0NDQ5NGYyYjlhNTJlZDY0Y2E0ZmFlOGYzNzY2NTdhZmQ2M2E1YWJkZjE3NjAwMjg3ZDBiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhMTc4ZjM5MDU4MjA0MWYzYTc3MDRkMjJmZGIyYTg0MWJhMmI1MWRlMzBjMTNmMzU0MTA3NmUzZDcwMDMzNGMzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YjdmMjBmOGU0YTQ5YzFmNWYyNzBjNDY0ZTk2YzMzZTYxMGNiNDAxNmE0NmQ1NDhkYjQ4ZTU5MmUzMjAyNDg5In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_8dd6fd7a93c94842a1782145e6fb2921",
+      "statement": "Saved enrollment logout remains a draft until Save; Cancel keeps the original enrollment, while cancelling an unsaved candidate retires it and profile-ID guards protect newer enrollments.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L249-L302",
+          "version": "repo-lines-v1:sha256:b32b3fe427fd28b51a3788bcce44e8b19987338f464e89fa97a1872d67e11dfe:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlN2RlNTRkMmM3NTkxNThlYWM1OWRkMjc4ZTFkOTUyYzA5MzM3ZmY2NTk3MjExN2U2YThkOTRhOGJjOTNiNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNGRiZmJlODYxMjBjODliMTk5YzEwZGY3NjU0OTliYmRkMjUzN2ExZmUzNzA2ZmJmMjk5NWUzN2ExNmY2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMDZmYzhkNGZjYWMzNGRhMzFhMDI2ODAyYzkzMDJlOTNhYzEwZDlkN2ZkNmVjNzc4ZmY0ZTJkMjYzMTBmNzYifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/TailscaleGroupEditorTests.swift#L436-L455",
+          "version": "repo-lines-v1:sha256:120d2f7f8f732f0b26a8b30284328700c4612bf9a3e791f373529eb4bdbaafb4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyZmE2NGY4NTNmYjkxNzk4NzY3MjI3NWEwYjA1ZmIyZTllMWQyYjkwODIyZWY1OTRjMjMxNzA1ZjY2MjIwOGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNGRiZmJlODYxMjBjODliMTk5YzEwZGY3NjU0OTliYmRkMjUzN2ExZmUzNzA2ZmJmMjk5NWUzN2ExNmY2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlZGIzYjQwZGE4MzVlYzQyM2U1ZDZlOTcwMDM4ZWI5NjJkMzUyMDEyOTQyMDlhNDRiMjMyYjI4YjNkZTI1NDMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleGroupEditor.swift#L106-L164",
+          "version": "repo-lines-v1:sha256:49d487d76da0f7755084e75d7f4da134c9a7b59926618a29e99685028573e778:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjNWZkOWJiMjMzMDFmZWViMTc2NmNhN2E1N2QwNzQ3YWY2NmQ1MjFhNjk3MGI2YTQ3NWUxMDEyNWU3MzhjMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L503-L566",
+          "version": "repo-lines-v1:sha256:96ae8ea8f8be300fd43f32a77a193b930d111dccd1229845075625562a51b022:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYmJiNTJmNDJiYzU5ZGNhZjEwOTU0NzQwZDQ3ODFhZDJiMGI1ZWQ0ZDk1ZDExNWU2ZTU2ODFiYzE4YTA5N2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMDFmNTdkY2NkMWIxN2NhMzJlYmFhOTk2NmVmYjA0NWNkM2NkZjFjMTUxNmNiMGQyYjA5NTg2MjU5NGZiYzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyMjg5YzgzMGQ1YjQ5ZDQ2ZTQzZWUzMWFhNGFlNGM5MGYzNGY3ZDc4MTY3OGE5YzRjZDlkMmM2MTg5MTc4ZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlZDc1ZmFjNjI1MDdlOGU4YTUxMWI2NjNhZWUyOGJiYWIzMGQzNTJiOTI4OWJiNzNiNWU1MjI3NGU1YzJjYmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_240e818d121b40c6a4ca6b04c29f65b2",
+      "statement": "Managed Host identity is UUIDv5 in the URL namespace over the UTF-8 length-delimited prefix termind.tailscale.v1: and components groupHostV2, lowercase group UUID, normalized DNS suffix and stable node ID; hostname/IP/control URL/profile UUID do not identify that Host.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L8-L35",
+          "version": "repo-lines-v1:sha256:b2f81de5342926018ab4f37805e9853f49e591a2fdecebe92ecfc1208f24b463:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExY2I1YTBmM2M3Yjk5MjE0MzdjZGI4ZDI5ZmE1MDVjZmU1ODIxOGMxYjJhOTk5M2VhYzNiOWRhODZhNGYwNDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0YTRiMGU3MjY1Yjg2MWU4OGMyNmViZGUzOTAxZjU2OWY2ODkyZjljNThlMGEyMzliYzIwZjJkOGU2ZTVkYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2ZjN2UxYTZlYTI2YjVhODU2MjM2MDRhOTc0YjE4OTFkYjMyYTdlNTZiMmU0ZmNiY2RjY2ViNzJmNjg1MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExZDk5ZGIwOGU4NmQ4NDM4MDE3ODcxMmFkMzFjNzNiNWUzNmFhNjg3ZDhhODVhYWZhOGU5ODVkZWI1NWU1ZGYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L122-L171",
+          "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L39-L66",
+          "version": "repo-lines-v1:sha256:d4cab30e54977012bacf98efd2c1cd41a9c68ecc79bafc1ecc6b1a58eac69495:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjNTk4OWYzOGEzYTI2OTRlMDFjNGVjOWNiMDNhZDc3NjIyY2VmYWNmOTEzY2Y5MGY0NWRiOGQzM2UyM2U4M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkMjk3NzliMDE4MWI5ZWU2ZjU5OWZjZmRkZTFlYTU5ZDYyNTc0NTZkMDY5M2IwNjA5YTMyOTdkOWJjOWYxZWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkNWQ5ZjdlZDI2ZTc0OTQxYzg4Y2QzMzRiNmYzYWRmMTYyMTQwNjI5MDM1M2M4NzY4MTRkZjEyYTRhMDBlNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliNDdmMTgwM2QwODA0NzAwN2I5NmNjMGNmMjI4MDJlNGUyNGE4OWFkODJjOGJiMzk5Y2RiNGJhNWY5OWQ3NGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_068a24bb494a43e3adfd148edbfaa412",
+      "statement": "Rename preserves managed Host UUID; group/suffix/node changes isolate identities, switching back restores the original UUID and history association, and canonical lowercase hostPreferences UUID keys plus explicit groupScopedV2 identity version are wire contracts.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleHostIdentityTests.swift#L24-L65",
+          "version": "repo-lines-v1:sha256:f6c77889cf276dc0d36ee6b2ce50c6fb67ef2f077d9e16b20c84d3b6feddb635:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3NGVjZmM0MmZhMzg1NDY5NTk2ZWVmOTNlMmU5NGI3MDg5Nzk4N2NhYjIxY2JhMWIzYWM5MjE5YmJhYWFmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjYWU3YmExOTIzMTFlMzhiY2JkMWQ5MTk2Y2FkMGVjMTgwZjE3NTVmMTQ4MWExZGE5YzE0ZDFjOGY3ZGZiZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Nzg4Y2E1OGViMzgwZjE5N2I0OGQ2Y2VhZjk4YzJlNWRmOTQ5MTJiYzRiYzkwZTU2OWY0MDIwNDIxMjU1ZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MmIzNGQwNjkwNDllMDVmODQ4MDcwYTY5ODI1ZTJiYzMyZTExMDg2NmRkODM4MDg4Y2E5YWViOGY3ZDBhMjMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/TailscaleHost.swift#L122-L171",
+          "version": "repo-lines-v1:sha256:cc66f9ad954ee23e7bd7cc5602bca663973e8784afe46441e62940678ba98f16:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NjZmMzgyZTM0MzdmODE2NWMwNjkwNTU2ZDVkYTU3ODgyM2I2ZTc2MjZjYWVmM2ZlNDUxZjQwZjU3MWZlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwYzhmNjQwYjhhMDZjN2M1NzExZWE5N2Q0YjYxNjdkOTlmMTAwM2JjZjY3OTQyMTZjOWVlNjI0MDUwMzEwMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2VmMDFmMDA5NTIwMjEzNjI0MTQ2ZDk5ZTdiODlkZjJkNTg0MmE2NDYxN2Q0OGM1N2I3MDM1NDdjOGNjZTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_81912939e0394aa89e38cbff261c1bbb",
+      "statement": "Native status requires a Peer field and retains offline diagnostic peers; only peers with stable IDs/DNS names in the network map and outside sharee nodes are accepted, and the library projects only SSH-advertising peers as managed Hosts.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2489-L2517",
+          "version": "repo-lines-v1:sha256:4b5080fd513215a0659f304f111c125151b137e2382195fe2424999583fdf6e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZTk5OTkzYTNiMGExMGZjMjQ2ZWNlZjg4ODk1ZDZlN2E0NGI4NDQwZGI5ZTM5OTU1MzM4NjM4ZTNiYzk0N2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3Nzc3ZjhmM2I4MWEzYTgzOWNlOTE0Mjk1ZjMxZTAxMjIwMDQwMTgzODZjNTdkZTBiNTBkZTFmYWM1NjM4NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1ZTg1MWI0MzIyMmRjNTk4MmQ3OTU5YWNmMjVmNzNiMDc4NDA4YWY4ZTlhZWY3MTEzZjMzNGZhYTJiN2JiZDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L218-L234",
+          "version": "repo-lines-v1:sha256:ec7e9f670a2c593f85ff52a93304c25a7fb556b17f735595b9e85799701f11c3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2YTI4ODk2Yjg4YzJiMGFhZjczMGUxOGI0OGJmNmYyNDgxZmU3YzllMGUyMTY4Y2EzNWI0NTU0NDQ5MzNlMmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3MzI2YmYwNGY2MDY1NDdhMzkxNDI1OTA0N2U1NTc4ZWE2NTVkNjhjMzljOGZiOTFhNjk3ODBlNzk0YzY5NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhMDExZjRhYWIxZmExMThjNWIwMGM0ZDNmYTA5Zjg0MWFlY2I2Y2Q0MjU5ZjNlYTk5YzhiNTU1NGU2OGI5ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4ODI3YTEzN2JiZTM2NWFhOWVmNWE4MTE4MWJhMTEyYmY5ZWEwOTdmOTE0MzhlZTlkZjY1MjAwM2FhZGRmY2IifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L76-L96",
+          "version": "repo-lines-v1:sha256:f016ca7dd6542c94ba2a682c0832d14e69960835abc5e56e34c9bd740b809b97:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMDcxNGVjNzMwMTEwNmZhOTI4ZjYwNzNiNmJkNDZkYTdhZjQxMzg0MDE3ZTI1MTM1OTY1MzdiMzAzMzgyNjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxZTkzNzllNmFlOGU2YjUwOTdlNmQxYTIzZDBkYzEwMGUxOTc4YWI0NjZkYTcxMGNiZDRlMmVkZGIyOTM2ODUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1OTRkZjAyMTNkOGU2N2Y0ZWY4YWQ1OTFjZWVkODhjMzMxMzYyZGNkMzUxZDc4NTM1MmU2NGMwMDFiYjczNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4ZWQyMWM0YWFmZDRmODE1MDgzODNjOGMyZGU3MjQ3OWNiMTIwNTI1ZjRkOTE5NWM2NmQxM2I2NDQ2MGViMmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3fecea90397e4b898e01635e20055dad",
+      "statement": "Managed Host saves modify group preferences while preserving managed address/name/port/authentication; ordinary identities/proxy/jumps/Telnet/agent forwarding are rejected, and managed targets cannot be jump, key-export or forwarding targets.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2519-L2547",
+          "version": "repo-lines-v1:sha256:a2a3282d3eff15d07821fe83870cd09b02826fb52629ab1ebfad6f52465af2fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1MzczMGE2Mzc5M2Q0YTA0YzVlOWI4MDkyYTdkNWU3ODdlMzUxMWQ4NzJhN2EzYzIxOGQwMDc3ZjIwNmZlNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkZGFmMDcxMTg1MmJmNzFlMDEzY2RjYjc1MWQ3NzgwZDVkOTdlZThmYzZhM2RmYjMyZjg5MjEyNWMwYmU3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzM2JjYjMwNWNhNDQ5YTY2NTA5NDhjNTQ5OTc2ZWRlN2E1NGJlMWQ0NGUzZjA2MmUzYmY5ZTEzMTE4NDQ3OGIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L920-L929",
+          "version": "repo-lines-v1:sha256:9e85b8be78770bd523da8806421adf2b28730f37434638aaf8f0dfc8aceb0127:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhMDc2ZDIyZDE1YTg5MmMzYzc1NDBhNGE5NDFiMmI3YmVmM2NkOTZhMDk5NTUzOTc0YTUzN2VlODE3Yzk5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwYWNjYTBiMmQzOGIxMjcxM2Y2MzRhZDU1Y2I0OTAwOGM5N2E5NzcwYWY4N2YzYzkzZDMzZmU2ODUxYTMyODkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f267861cf0254ebbbe7053101b080e48",
+      "statement": "Ordinary Hosts inherit the nearest configured ancestor's Tailnet dialer while keeping ordinary SSH authentication; managed peers use group-bound dialers, remote username and no ordinary credential list. Retained dialers recheck Pro/profile/network/applied Exit Node and never fall back to system networking.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L151-L159",
+          "version": "repo-lines-v1:sha256:2811fa44c9b01718a1743dd656ce4359b9c665f49f41ee3b43239aa97b9c3759:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTdlZWZiMDIzZjEwZTNiNDA4NjJmMzZlODQyOWZhMzFhODI5MjgwYWQ2NmYyYTNjYWJmY2Y0Njc0ZGQzZmViMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzEwODkwMTg4YWQ1OWY3NjE4ZGVlNTA4NjZiYTU2YzQ1OWYwMWMzYzg1ZTM0NGEwYmM0ZTVlMjUxZmM3NjI5ZCJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift#L4-L13",
+          "version": "repo-lines-v1:sha256:4a824789662cc256de3524cb56d3384789385a00122bd7a2e0ae87ded6d1ae40:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NTJiNTkzZWE2ZjAxNzhlZTlhN2M1MWYxNGZkNWZmOGVkZDg1NTBkZWFhYWVhYzg2MmFlOWU5N2ZlNzcxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMWNmNDM1YmU0YmM0M2E4NjljZTI4OGViODAyMjI4OGRlZjYzNTAyY2ViYTA4Zjg4YTg2MmJkNGZmMThlZDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2442-L2487",
+          "version": "repo-lines-v1:sha256:35dff10766b2c0fe57c14c1f2b1d4303f00180066cd367cd61a280218e4bdc70:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NzdkODU3ZGM2NWZmMGVmMGIzYTUzMDk0N2IyMjhlZjkwZmQyYmE3OTAwNmFjMjEwMGQ3OTVmYmRlNGEwMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOTRlNDM3ZTBiMzU0ODQ0MTNmZmU0ZjhhMGViMzdhYzNmYTA1ZDZiZjhjZDA0ZGI5NGM0NDdhMTc0MTM5OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3YzA5NTVhNWU4ZmUzMTBhZDJlOTFmYzY5MDY0NDhmMzUyNzEzYjNmZGEwMTcyMDBjMDQwMDJmYTRlNDcxMDMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L568-L592",
+          "version": "repo-lines-v1:sha256:65485d42c3abd962ee4c9206353715bc5e73206e2a567b0d67b59372b2b76e2d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNjNiNWQ3Yzk3YmEyZjhmYzFiZDZhODYxN2Y5OGFlM2MzZDk4ZDIxOGVlNTE1NWZlYjBmNWE5OWE2MzdkODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyMjdmZjU5NDVlNGY1MDM1MjYyZWU0NDM4MmE0Y2U1MDlkNTVlZWQzNzE2MTMyMDcyZDc2MGJhZTI3MGU4YTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwMTA3ZWRmOThiMTNiMWY4ZGNkNDRjYjFiMjhlNmQ4ZmNkNDc0ZDA2NWVmYjdlN2VlODVmN2RlMjAyOGRiOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmMmQzODEzZmQ0MDUxMjVkNTg5NmE4NzgzNTRhMmViZjQxOWMzMGExOTZmMWEwZDlkMjdiOTk5MDM5ODE1YzkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L692-L703",
+          "version": "repo-lines-v1:sha256:7b2d961d3b4cf358c460b22a47e14e95d574c7474baed966b1ad006bacc0868c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhYjNkZWEzYTQzNTg1MjNkNThjYTU2MjE4NDE3ZmJmNDQ0ZTQ1MWFjOTU5NDM3M2RhNGM3MjYwZjkwZTc2NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1676e6c28a3c48cfb680615b17085ffc",
+      "statement": "Managed SSH refreshes advertised peer keys and rejects handshake mismatch; Tailscale none-authentication can present distinct browser-approval banners once with a 600-second deadline, and forbidden interaction refuses required approval.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHKeyboardInteractiveChallenge.swift#L27-L39",
+          "version": "repo-lines-v1:sha256:53381b7fa0900e2e7b7ef2c30e58d77c29cbd991d26a72fea2227dc010b236b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZjlhNGZhMTdkOWJiNzQ4MmVmZmQ4M2EyNmI2ODc3OWRlOTNlYWMwYjgzZGFlMDAxMmY1OWUyYjk4YjRmOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Mzg5YzgyN2Q5NTE4MzNmNTA0OTEwNDhlODYzOTU4ZWMyZjEwODM3ZDc3OWJmZWQ2YmQyOTZhNzE0MmI4ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiZWZiMjJhNzliOGIxMTRjODYyODMzMGZjYWE1NjI1MTUzMDZlODVlNzFjYzU2Y2U5MzUyMmNjMmE5OGE0MmEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1036-L1067",
+          "version": "repo-lines-v1:sha256:75663736af797c0afbc77fa63d1747e0aa5bc23ae65973d740a0f3ddccaffbad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0OTE0ODdkNDdmMGM3ZDdlNjU2NzdlNmNmNzBlYjZmMTMwNDU1Y2Q0YzRkMjQ2MjI5YWE5YTNjYzkxNzdiMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDJmNzMzYzk3OWYxOWJkNTE4OWM1OGNkZjk5MzZjNWEwZTJjMDRkZDM0ZjU5NWQ0ODAzNzAwZWZmNTNiYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2Zjg2YmQ3OTIzZjkzYThlMzhmZjMzNzNhMjBlNDlkMDRlMDMzOGE4ZTI5Yjg0MzQ5Y2E1NTg5YmY2YmZlMzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4YzZiYmYzNmQyNjRiNGM4NjRhNzk1ZWRmYmFmMjAwNDUyZTI5MTNkMzNmZWQ0OTFkY2E4MzM1Y2U2ZmY2OTAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L994-L1001",
+          "version": "repo-lines-v1:sha256:c10653ff913a7ca3624e0fadcc5d7a7fe53f7f654f5caa3fb67ee43c9c9e28e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM5NjhiNTQ3ZDM2MmE1Njk0OWQxNjUxNmFiZTQyNDVjZWUwZmE3ZjYwOWM0MDNkNWVkM2Y3NjU0MTcxODBiOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzE5OTg1ZjI4NDViZWM5Y2NhNTAzNzI2YWFlNWQ3NGIwOWNiYjNhZjNlNDIwM2QwNGIzYTkxN2EyODU3ZTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzgzN2Y0OTE5ZDYzNTNmZTkzN2RkZDQ0ODcwNDYyNzU5NjVjM2JiZjZhZTlkOWJmODU1MWI5OTM0MTgyZDA4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJiZmQ4YTMzYjQ3OGM2Mjg5ZTkzYjI3NWUxZmU5NGRlMDAyNGZmYTIxYjAwZDAxYjFkYzNiNzdmMmZjNDhhNyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L187-L198",
+          "version": "repo-lines-v1:sha256:df9b1869789751f8c4ea4d4ff7be3b5f7651514e92f949554f456dff3e2c9953:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjMWUzMDVjNGMxZTQzZTFmMWIwZTRjZjhlZDc2YzM2ZGQyNTdmN2JmYTFlZmY1ODBkZWVjZTg0YTkzNDdkZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZDJmMmQ1Yzc2MWI3M2IwMGZkYjVkODEwZjA4ZTVmN2JiNDlmYzFlY2U3NTA1YjVkZmRlMDUwZTgxMzdlOTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiYzU3YmRjYzg2YzkyNDBiODZjYWQzNzU3ZDNjOGJkN2IyZmU4OGUxNTE2MzYyNzRhN2FlMjk0YjNkZGUyM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0MTNiZGZhYTE0MDc3YWMyNGIyMjI4YTY2MzhmZjM4YTg5NDIxNzI0NjQwODI0MGNjYmIwODE0ODY4MjcxMmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2fd16786cd0743d78d3b7233c12dd909",
+      "statement": "HostGroup Tailscale configuration syncs through Vault V3 while managed Host projections, local profile/hostname/cache and cleanup remain device-local; Metrics V2 retains V1 readers and capability upgrades refetch quarantined records.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleSyncSafetyTests.swift#L13-L80",
+          "version": "repo-lines-v1:sha256:00f3ae55786e6a6726f6b2b5fd731e0c11c4823d23c7eed5d352cfb0610ddd41:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYTJhZTdiNTFiNWUxNDQ3ODg1NWE0MTUwNzViZjU2Yzg5ZmIxNjViNWY4NWU1NDU0NjhkYzZmNjFiMWFjODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiN2RlYWRkNzU0MjZmYTU4NjcwZGYyOTk5N2I0ODIzY2Y5YWU4ZGVkZmQxNTE2Yzc3NjVkNGQ0MjI2YjdkYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4M2E0ZDU4MTlmMmNlZGNjZTIyMzkyYzUwYWI4NmMyZDJkNGE3NTg4NjBjODE4MjgxZmNhNDcxN2U0NDIyMzkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58",
+          "version": "repo-lines-v1:sha256:c3bd24cff79dfed965f281b956602bdd595262c704681fa909952632a2464c5b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift#L6-L26",
+          "version": "repo-lines-v1:sha256:d52d6268c08f4398c37503968607dc8944421ff030951d06e31edb0a0646b491:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyYTQ3NzA3NzFhMTM4ZTIzYjdmYTQzZDYyODNmMmZhMjNiZjg0OTlmODVkMDcyMzcxZjI2MGQzOGM4MjBkOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4NDg5OTJkZWY0M2I2NzUzZWU5NGM0MWUwYzgyYjJkMzAxZGQzYTY3ZTM1M2Q2MjBjZDgxZjI5M2VhMGM4OTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4MGYyMDk4YTkzOTA1ZGQ2ODViOWU3NTVkNmEzZjc0MjA3ZjhjYTA2YjhmZTliOWJkZjViOGJlNjEwOWZjMjAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L60-L73",
+          "version": "repo-lines-v1:sha256:e500f3dde174abec328254c2f945bba386527ee88175abacc8dc560c89536b65:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNTQ0YjkxY2NiZDZkYTgzYThkYmJmZGJiZDUzMGM0MTE2YWI5YWNlNTU5Nzg2MjAyZjBhNzIwYWQ5NGNmNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ZWZkYjI1ZDk2MjYzNzNjOTIzOTIzZWQwZjYyZWZhODQyYzkyMWY5OWI1ZTc0YjM4ODcwYmU0OTc1MDUzMDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyYjAzMDYzZjk2NDIxOTdiMmQwNjFjM2MwYTlhMzZjY2VmOTRiZjIzOTY4MDg4MzIxMjU2ZmUxODQ4ZDRmNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmNjljZTFlNmQ3YTUyM2NhOTBhYmMzMzZlMDc3NjY1MmVjMTA0MGZmYzY5YmNmNWQwNWMzYWQzOTdhYmIyMWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a429230dedfa4e1ea03befd25856d2cf",
+      "statement": "Profile retirement atomically removes local enrollment and journals cleanup before runtime release; cleanup excludes in-use/active profiles and clears markers only after native erasure, so failures survive reopen and can retry without Pro.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleProfileCleanupTests.swift#L12-L52",
+          "version": "repo-lines-v1:sha256:c98d9ba9034d3fc688574308850d6ff542d6ac71cb4329a8be2da4d36c9b1014:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOTI3MWMxYjk1Mjk2MDFhZmExYmRmNzlkYjhlZGJjZGFmZjAwODY3YmUwYTg3NjFhZGJkMDk1ODA5YWU2ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4MzVmMjkwOTk3MWFmODIzNjc3NjZhNDhiMGFkNTc0Mzg2OWYwNjI2YzJlZGZiNTM3NGNlYzMzYWYzYmQyNDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkNjI2NDhkMTQ1YWRkNmNjNmU2NTFjNDM4YWRlOWZhZDQ1NmRlMzdhYWNhODM4MTA2ZTcwZDQ4ZTQ1ZWQ3YjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L265-L315",
+          "version": "repo-lines-v1:sha256:d31d920a77280fb9fa3aaf0c55e01c70f9a44ed4687ea8745ea63bc10af1b689:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWE1MmJhMTk2MTcyZDUyNjY5YmYyMjIzNmQwMWI1YTMzNGJjMmM3MzIyNmU4MTI0MWVlNTlmOWJlMTU5M2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjM2RmY2I1M2ExYTFlNjU1YTNmYTQxY2FkZjFkNGJlZDM4M2NlOTkxZjg0MGI0NzIxNGI0M2JjYzY5ODBhNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwODcyMjEzMjY0MmY5YjMyZTAxODA5OTY1N2FhMDc2Yzk4NWUwNjA0YmRhY2UwZGU3MThlOGMwY2NkMzg5MGEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TailscalePersistence.swift#L68-L112",
+          "version": "repo-lines-v1:sha256:e808022ed3a84b85e16d56caaa3df6717caa17965b2e94c7c3d539b9de2a0ea0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMzJkZmZlZGEwMWExODllZDY1YWEwYzcwM2Q1OWY2NDc0Zjg1ZjM5MzI2MWQzNTFhNjEwOTU1NmMyZTUwNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMTg2YWY3ODdmZDA1NGE2ODA2NWNkMjYzZWY5MTYxMDljYjQ5Y2I3MmUzZjM3N2ZkMDZlZDA0YjExOTJmODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlODgyYjVjNTU4OTg1YWFmZmZkNDUwZjQwOTgwMjY1YjI4ZjcyMDhkOGQyZGU1MzlmOGY0ZDVhOWRhZjI0NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhZmYwZTYwNjFjNmI2ZDA5Nzc2Y2ZmZjNiOTE5OTgyMGMzZDZkMWNkMWFiYzQ0OGE5YTZiNjdkZDg3NjRhOTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7b823c9710e344ddaa83e7e1e4a5ee63",
+      "statement": "Startup orphan enumeration accepts only canonical UUID nonsymlink directories and rechecks active profiles after enumeration; app shutdown closes nodes without erasing saved enrollment.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L265-L276",
+          "version": "repo-lines-v1:sha256:ae2c0f9d5ca39bd9bd524669cdcf560a6f5e2bf80c4be770ed67c8ea2ea5ff88:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0OWVlYmQzNDg3OWMyMDM5NzQyYmJkMjdmZmMzNWE4MTE1NzgzZmM1N2NlZTg1NzFkOGY5YThkODcxNTQ0MTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjM2RmY2I1M2ExYTFlNjU1YTNmYTQxY2FkZjFkNGJlZDM4M2NlOTkxZjg0MGI0NzIxNGI0M2JjYzY5ODBhNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1Y2YzNGIzYmZkNGNhMzRiMzVlN2IxY2YyYjAxM2RkZDAwZDgzMmQxZTg3YjI0Njk5ZDhhZmYyY2Q4M2QzMDkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L609-L624",
+          "version": "repo-lines-v1:sha256:f200a7128af52f918200e177a5575736395ef85e17b494fd7eb4337b399558e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNGFkODcwMDA4ZmM5NzU5ZmNiYTRiYzFjMTlmYmE3ZDc2NTQyM2FlNDVjZThjMjg1OWExNmViZDcxZjUwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZGVhNmQwMzk1YmJiMzVhMGM0NDY4NDE5ZDQ1NmY3MmY2ZmM2OGVhNzViZWIxZjAxODkyNzMxYWExNDVjNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3ZDQxY2Y2ZDBlMTUxODk4NzhhMzZjYWRkOGM5NWU1M2NjOTVmZjA2MDA0NWVhNzA0Y2MzZWYzOTZkMzJkOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyNjExZWQ2NjRlYWM2MTJlYWQzNGM3MWNlYzIwOGUyNzY3ODRkNDlhMmViNmM1MDFhZTgxNTYxMGQ0NjFhNTUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L43-L68",
+          "version": "repo-lines-v1:sha256:6b777b0501cf5d63b080f98aebae011dc4504d818812b5ef2e6d77565bfc33f7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkNDM3YjU1OTUzMzczMzQ1NjQ4ZThlM2Q5ZGE2M2ViMTU0ZWFiYzIyOWY3ZmRmYzQxMWEyODQ3NDRhNjZkZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4YzkyYjlkNzNlMTI2MWIxNGE3MGNlYTRiZDlhYWNmYzVjZjMwNTY1NTdiMjAwYjZkZTFiMjJhY2VlOWYwMGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyMGY2NmUzMTg0MzQ1MmY5ZDMyODhmNjZmY2VhNWQ0ZmM2YjQ4MTRjZjBlZDRjOWE0NjRhZThjZTQ5ZmIxNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiMzhmOWIzZTYwZjg2YmQ3Mjc2Y2I1MzliMDlmOTZhNzYwZDM0ZGJlZTQwMGYwZTExM2NhNGQ1NGNkMTliODQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e6cd9f0018c34241b39e8973de45e1fe",
+      "statement": "Node monitoring polls every three seconds and applies Exit Node before availability; presented peer diagnostics own cancellable once-per-second ping and 30 samples, distinguishing direct, peer relay, DERP and unknown routes.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TailscaleModel.swift#L626-L689",
+          "version": "repo-lines-v1:sha256:34df7de08624f336319fa57c1f887b0a619fe9f9b52f169b2cddd5c2a31d395f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzN2RmMmM2YmFiY2U0NDY1Mzk3Y2NlMjg5MjU4ZWE3NGViNWZiMjEzYTIxNzkwYmQzMWFhMDczZTU1ODkzOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzMTg5ZmJkZTNhZWM1YmY1N2NkMTg1OWU0YjI3OTczNzcyOGUyZmI2NzZhYzY4YTVkZTlhNjY5YTVhZjU1ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlNjNjYmRiYTlhNjgxMThlNjNmNzAwODhlOTExZmZhZDg0Y2E3MzhkMzVkMGYxODgzZTY4NDgxMzI5NWFlYzAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Tailscale/TailscalePeerForm.swift#L63-L83",
+          "version": "repo-lines-v1:sha256:8dae138d3daf5594791a1f94473e578ab907ae1449bd00912babbeac709d2233:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZTIxMWVkYzFlNmU5MGIyNTEzMDYzZTQ5ZTdkYmViYTc4YTc0ZTljMTdhNjdkMjNhNjY3OTUyM2VhYmQzNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBlNzg0YzliNzU1ZDcxOWJhYmU2OTM5MDk5ZmVjODM2NDJiMzAwYjZmZmFmMWNiODExYzdjOWVhODE1ZWM5YTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L142-L177",
+          "version": "repo-lines-v1:sha256:3664a01513de91db6b805927c726ef8d671845d1ce8b5dfadccc122f5de8f056:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYTBjZDgyZTRlOTNhYTZjNzkyZDI0N2UyMDY2MmQyNDVlMzY4ZDdlMTI0NTI5YTc4MDg2MDllNjU4MWY5ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxYjY2MzA2Y2ZkNmYwMmUxYzA3NTg5MmQ4YjhiNmYyZjllNGI5NWRlNzgyNWVlYzc5MWE3ZDIwYmZlYTBmNDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjZjZmMmRhYjMxNDcyN2VkM2Y1ZWZhZDUxYThjMDcyM2NjMzU5ODkyODM2NDUxMmYwMWQxY2VmZmZiNWIyZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzZTc5N2RlZWM4ZWIzMGI2NGViMThjZDNmMmJmZTRiMDQxOTFhODc2OTcwNmQyYzhhMzQ4NjZjMjJlY2ZiNjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b039b91af9a44474b1758d327e6b42d8",
+      "statement": "TailscaleSSHWireTests is an opt-in real SSH/SFTP fixture through an injected loopback dialer, proving neither live Tailnet enrollment nor WireGuard/DERP or browser policy approval.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TailscaleSSHWireTests.swift#L8-L43",
+          "version": "repo-lines-v1:sha256:a94d11204078ceac1b2972c6539e5e832ae5cd2c8e22848b878f40c7e99ea308:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0Y2YzOTYyZWRlMmU0MTkwMDg1OTk5Njg4MThmYTg1ZjNhNjIxOTU0YjZkZmMyMjJmMWNiNDhjYzgxMTg3MjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3NThlMDYyYjU1YTg3MDA1YzM0NTFkNTYxMDZiYWM4NTA4YmQ4MGIxZGQ2YmE4YmUyNDYzZmNhYTRjYjAzNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNGM2OTVlMTdjOTZiN2U4MjJlYjAyMTAwMDcwZTkxZDgzZjlkNzk5N2Y4YWI2YWQ0YjNiOTk1OGNlNDc1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwOTMxM2JiNjI4Yjg2OGYxMmI1ZmFmZGNmMTkwZjRiODZjMGRmYjFkYTVmMDVlZDNlYTI3MDg5OTQ4M2YyYTgifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-03T16:39:47.431Z"
+  }
+}

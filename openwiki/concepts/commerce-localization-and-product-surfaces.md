@@ -3,6 +3,9 @@ type: product-surface-concept
 title: Commerce, localization and product surfaces
 description: Explains RevenueCat-derived Pro access and remote paywalls, native language and copy ownership, and the separate app, widget, screenshot, and public-site product surfaces.
 tags: [commerce, revenuecat, localization, product-surfaces, marketing, widgets]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -98,10 +101,10 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
-  - id: openwiki-source-7a29627adf93e3da4a56dd5d
-    resource: repo://TFITests/MobileCardRenderingTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-205304536d13b39bf2e7e666
+    resource: repo://TFITests/Screenshots/MobileCardRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -126,21 +129,17 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
-  - id: openwiki-source-0dd012e3740bcc348fc36ccb
-    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
 ---
 
 ## Commerce ownership and configuration
 
+<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 `ProAccessController` is the shared, observable main-actor access gate. Both production app targets construct it with `live()`; test, in-memory and screenshot setups can use unrestricted test access. Its `ProPurchaseService` is a narrow status-and-update interface, not a StoreKit purchasing API. `live()` builds `RevenueCatProPurchaseService` from the bundled `TermindRevenueCatAPIKey` and `TermindRevenueCatEntitlementID`; an absent or invalid configuration yields `.verificationFailed`, **not** free access through a second StoreKit observer. The configuration trims values, rejects unresolved placeholders and private keys, allows `test_` keys only in DEBUG and expects a public `appl_` production key. The configured entitlement (`termind_pro` in the project settings) is the unlock key: product IDs alone do not grant access. Both apps configure RevenueCat's StoreKit 2 mode with informational entitlement verification, an anonymous app user ID, device-identifier collection disabled and a preferred UI locale from the stored app language. See [Storefront Commerce Release Checks](/openwiki/operations/storefront-commerce-release.md) for production dashboard and sandbox checks.
 
-`StoreKit/Termind.storekit` is a **local fixture**, not the live storefront or RevenueCat paywall configuration. It contains the family-shareable lifetime non-consumable `com.akinokaede.termind.pro` and yearly family-shareable subscription `com.akinokaede.termind.pro.annual`, the latter with a two-week free introductory offer and English, Simplified Chinese and Traditional Chinese product descriptions. `CommerceConfigurationTests` and the manually opted-in `TERMIND_STOREKIT_TESTS=1` `StoreKitTrialTests` check fixture metadata; they do **not** run the removed StoreKit entitlement/purchase integration suite or establish actual RevenueCat offerings, eligibility, price, purchase, restore or deadline behavior. Never infer a guaranteed trial or a price for every user from the fixture.
+`StoreKit/Termind.storekit` is a **local fixture**, not the live storefront or RevenueCat paywall configuration. It contains the family-shareable lifetime non-consumable `com.akinokaede.termind.pro` and yearly family-shareable subscription `com.akinokaede.termind.pro.annual`, the latter with a two-week free introductory offer and English, Simplified Chinese and Traditional Chinese product descriptions. The former `CommerceConfigurationTests` and `StoreKitTrialTests` files are removed. The fixture does **not** run the removed StoreKit entitlement/purchase integration suite or establish actual RevenueCat offerings, eligibility, price, purchase, restore or deadline behavior. Never infer a guaranteed trial or a price for every user from the fixture.
 
 ## Entitlement lifecycle and feature boundaries
 
@@ -170,7 +169,7 @@ This is the access-resolution and refresh path, not a guarantee that a remote pa
 
 `RevenueCatEntitlementResolver` rejects failed CustomerInfo or entitlement verification and ignores entitlements other than the configured ID. An active entitlement without an expiration maps to lifetime purchased access (including family-shared ownership); an inactive one is free. A subscription grants access for an active trial or subscription before its deadline, and for an active billing-issue grace period before the **grace** deadline. Refund maps to revoked; after the deadline a billing issue maps to billing retry and otherwise to expiry. Cancellation disables renewal but does not itself withdraw access before expiration. Unlike the previous StoreKit `.subscribed` fallback, a cached `isActive` flag cannot extend access beyond a past deadline. `apply` cancels its prior expiration timer and schedules a re-fetch at a future granting subscription deadline; no timer is installed without a future deadline. iOS scene activation and macOS app activation also refresh access. A refresh failure without cache can retain an established controller status, so neither a timer nor an offline test proves a server-side revocation was observed.
 
-`ProFeature` enumerates Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration. `canUse` reflects the current entitlement and `require` returns false and presents the shared paywall when denied; it does **not** record a requested feature. The basic remote-workspace experience remains free. Protected callers gate Assistant execution, remote MCP operations, built-in macOS MCP availability, iCloud sync, monitoring beyond three free cards and the optional multi-connection acceleration settings. SSH terminal uploads remain available without Pro when the session and destination are ready. The mobile Metrics picker passes current access to `MobileMetricsModel.replaceHosts`; on failure it reports the core storage error, otherwise presents Pro. The shared Metrics model preserves choices outside the edited set, counts net additions and persists a replacement atomically; desktop supplies a live card limit and calls `require(.unlimitedMetrics)` on rejection. Losing access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data; macOS also suspends an enabled built-in MCP server. Mobile synchronization additionally requires an active foreground scene. `RootView` reconciles macOS status changes; `MobileRootView` reconciles mobile access changes and scene activity.
+`ProFeature` enumerates Tailscale, Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics, SFTP multi-connection acceleration and port-forwarding multi-connection acceleration. `canUse` reflects the current entitlement and `require` returns false and presents the shared paywall when denied; it does **not** record a requested feature. The basic remote-workspace experience remains free. Protected callers gate Tailscale node access, Assistant execution, remote MCP operations, built-in macOS MCP availability, iCloud sync, monitoring beyond three free cards and the optional multi-connection acceleration settings. SSH terminal uploads remain available without Pro when the session and destination are ready. The mobile Metrics picker passes current access to `MobileMetricsModel.replaceHosts`; on failure it reports the core storage error, otherwise presents Pro. The shared Metrics model preserves choices outside the edited set, counts net additions and persists a replacement atomically; desktop supplies a live card limit and calls `require(.unlimitedMetrics)` on rejection. Losing access pauses Vault, connection-history, device, Metrics and Settings sync rather than deleting local data; macOS also suspends an enabled built-in MCP server. Mobile synchronization additionally requires an active foreground scene. `RootView` reconciles macOS status changes; `MobileRootView` reconciles mobile access changes and scene activity.
 
 ## Paywall presentation and copy boundary
 
@@ -208,6 +207,7 @@ Ordinary product labels illustrate the split: iOS Vault search opens Snippets an
 
 ## Other product surfaces and public disclosures
 
+<!-- openwiki: broken internal link [/openwiki/operations/marketing-assets-and-app-icons.md] link "/openwiki/operations/marketing-assets-and-app-icons.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 `TermindWidgets` contains a workspace Live Activity, not another workspace engine. The app serializes activity updates, restores at most one active activity, starts only after explicit workspace intent and ends it when workspaces are gone. Its payload excludes credentials and terminal output, bounds focused-first summaries to six, and routes only strict workspace-list and UUID workspace deep links. DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans` or `zh-Hant` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md).
 
 `LandingPage/` is a separately built Astro site (`npm run build` runs `astro check && astro build`); its explicit framed-image allowlist imports directly from Marketing and emits optimized formats rather than serving source screenshots from `public`. English `/`, Simplified `/zh-hans/` and Traditional `/zh-hant/` site copy is selected by its own `i18n.ts` (Traditional conversion plus overrides), not `.xcstrings` or `AppleLanguages`. `FAQPage.astro` owns the public free/Pro and BYOK/third-party AI billing descriptions, Family Sharing and macOS-only built-in MCP disclosure. The homepage Telegram draw offers a **chance** at a redemption code, not another plan or guaranteed trial; Apple determines redemption eligibility. Site FAQ and native gates should be reconciled whenever entitlement behavior changes.
@@ -217,5 +217,8 @@ The site serves security and privacy components through locale wrappers and `Bas
 ## Focused change checklist
 
 - Entitlements: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests and platform-specific gate tests. Check live RevenueCat entitlement configuration, account migration, remote paywall and sandbox purchases separately from the local StoreKit metadata fixture.
+<!-- openwiki: broken internal link [/openwiki/testing/behavioral-boundaries-and-fixtures.md] link "/openwiki/testing/behavioral-boundaries-and-fixtures.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 - Language/copy: run `Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `Scripts/check-zh-localization.sh`, `PresentationCopyTests` and `AppLanguageTests`; review remote RevenueCat dashboard copy and actual screens separately. See [Behavioral Boundaries and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md).
 - Public copy: compare FAQ, privacy policy and storefront disclosures with actual entitlement and sync behavior; build Astro and visually check all languages. Site-only copy and remote paywall content are not validated by native string tests.
+
+Public comparison and pricing pages share `src/lib/comparisons/` and `src/lib/pricing.ts`; the current public USD labels are $2.59 annually and $7.99 lifetime. These marketing values do not establish a live storefront offer. Tailscale disclosures describe the embedded node and external control/network processing; native Pro availability follows the Tailscale feature gate.

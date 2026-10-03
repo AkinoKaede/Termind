@@ -3,6 +3,9 @@ type: interaction workflow
 title: File Drop and Upload Routing
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
@@ -70,16 +73,15 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # File Drop and Upload Routing
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/desktop-drag-and-drop.md] link "/openwiki/workflows/desktop-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 This page follows those events and ownership transitions. [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) covers Workspace/Pane layout moves and Assistant conversation-list sorting, which use different payloads and state. Transfer scheduling and connection leasing are detailed in [SFTP Transfer and External Edit](/openwiki/workflows/sftp-transfer-and-external-edit.md).
 
 ## Supported routes and destination ownership
@@ -95,6 +97,7 @@ This page follows those events and ownership transitions. [TFM Drag and Drop](/o
 | SFTP file → Finder / external file consumer | Lazy promised file. | No corresponding drag exporter in the mobile SFTP browser. | Download when the consumer requests the file representation. |
 | Key file → Key editor | Native file receiver. | No matching Key drag receiver. | Software mode populates private-key/certificate fields; Security Key mode reads a validated FIDO2 reference. Save persists the chosen key type. |
 
+<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 “Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is available without Pro on both platforms; it still requires a connected session, transfer configuration and a usable reported working directory. SFTP browser upload uses its own explicit-directory path. For the separate native Upload File menu actions, see [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md).
 
 Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L457-L549), [mobile destinations](../../TFI/Features/Workspaces/MobileWorkspace.swift#L194-L223), [mobile upload entry](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L560-L594), [desktop SSH availability](../../TFM/Features/Terminal/TerminalUploadModel.swift).
@@ -166,12 +169,14 @@ Both adapters call the shared `ConversationModel.importAttachmentFiles` / `impor
 
 The live `ContextAttachmentLoading` implementation calls `ContextAttachmentImporter`: regular files are read under security-scoped access, with a 25 MiB input limit; text/PDF/modern Office content is extracted and images normalized. Directories, unsupported formats, and legacy Office files fail import. Extracted text is limited to 200,000 characters and normalized image output to 5 MiB. Therefore a native receiver accepting a file URL does not imply that its contents are a supported attachment.
 
+<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Sending is a separate step. `AssistantExecutionController` refuses submission while attachments are pending, then captures and consumes accepted composer attachments with the submitted turn. First-send promotion and persistence follow the [Assistant runtime workflow](/openwiki/concepts/agent-runtime-and-assistant.md).
 
 Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L16-L91), [sidebar target](../../TFM/Features/Assistant/AssistantView.swift#L189-L237), [TFI adapter](../../TFI/Features/AI/MobileAssistantConversation.swift#L9-L83), [TFI gating](../../TFI/Features/AI/MobileAssistantConversation.swift#L556-L560), [pending imports](../../Frameworks/TermindApplication/Agent/ConversationModel.swift#L1800-L1873), [file importer](../../Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift#L9-L83).
 
 ## SSH uploads: shell directory → SFTP preparation → queue
 
+<!-- openwiki: broken internal link [/openwiki/concepts/shell-integration.md] link "/openwiki/concepts/shell-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Shell Integration emits the working directory through OSC 7. Ghostty parses it; desktop `SSHSessionModel` and mobile `MobileWorkspace` observe that terminal state. `TerminalUploadAvailability.problem` requires a connected session, a transfer configuration, and a resolved nonempty working directory. It asks the user to wait for the shell prompt when the directory is unavailable; the transfer does not guess `/` or the user's home. The actual gate checks this state, rather than a separate “integration enabled” Boolean. See [Shell Integration](/openwiki/concepts/shell-integration.md) for hook installation and reporting.
 
 On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered SFTP token becomes `.remote`. After the upload-availability checks, `prepareTerminalTransfer` cancels prior preparation and captures the normalized directory, connection-attempt ID, and a new preparation ID. It prefers an independent SFTP connection from the SSH connection snapshot. If opening it fails while the attempt is still current, `TerminalUploadConnectionResolver` can open an SFTP channel on the PTY connection; cancellation must not trigger that fallback.

@@ -3,6 +3,9 @@ type: architecture ownership guide
 title: Supporting systems ownership guide
 description: Ownership and integration boundaries for external Swift packages, the MCP bridge, Live Activities, tests, forwarding benchmarks, the Astro site, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -20,6 +23,8 @@ sources:
     resource: repo://FrameworkTests/Fixtures/README.md
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
+  - id: openwiki-source-c76cbada020604024adadb22
+    resource: repo://LandingPage/README.md
   - id: openwiki-source-f894c24280d3caaaf2b6dcdf
     resource: repo://LandingPage/src/components/ScreenshotPicture.astro
   - id: openwiki-source-d2984266929be0fa570924e0
@@ -72,14 +77,11 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-  - id: openwiki-source-e2813ac17589f2155998862e
-    resource: repo://TFMTests/MacMarketingScreenshotTests.swift
+  - id: openwiki-source-6dffacb05c6053dcaab19d80
+    resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Supporting systems ownership guide
@@ -92,7 +94,7 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
-The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-1`, and `libghostty-spm` at an exact revision recorded in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
+The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-4`, and `libghostty-spm` with an up-to-next-major requirement from `2.2.2026100303`, selected in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
 
 ## MCP bridge and desktop server
 
@@ -224,3 +226,5 @@ The App Store branch represents a separate artwork workflow, not a claim that th
 Local dependency/build caches such as `node_modules`, `.build`, `build`, and website output are excluded from the source architecture map. Git internals and user-specific IDE state are also not product modules. Generated OpenWiki indexes, Claims, and lifecycle metadata are maintained through OpenWiki rather than edited as source files.
 
 Return to the [Module Map](module-map.md) or the [Engineering Quickstart](../quickstart.md).
+
+The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot tests now live under `TFMTests/Screenshots/Marketing/` and `TFITests/Screenshots/Marketing/`; runners still select suites by their Swift type.

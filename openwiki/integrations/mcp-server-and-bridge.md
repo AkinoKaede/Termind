@@ -3,6 +3,9 @@ type: integration guide
 title: MCP server and bridge integration
 description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
 tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-3118dfa7dfade14baaccd202
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
@@ -64,10 +67,7 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # MCP server and bridge integration
@@ -301,9 +301,15 @@ Missing token disables all generated commands; a missing bundled bridge disables
 
 ## Related pages
 
+<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [Platform runtime](/openwiki/architecture/platform-runtime.md) — desktop and mobile composition and shutdown ownership.
+<!-- openwiki: broken internal link [/openwiki/architecture/system-boundaries.md] link "/openwiki/architecture/system-boundaries.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [System boundaries](/openwiki/architecture/system-boundaries.md) — inbound desktop integration versus embedded outbound client ownership.
+<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) — tool execution, approval, and secret-handle semantics.
+<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [Persistence and secrets](/openwiki/concepts/persistence-and-secrets.md) — Keychain and local-secret ownership.
+<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [SFTP transfer and external edit](/openwiki/workflows/sftp-transfer-and-external-edit.md) — shared SFTP channel and transfer behavior.
+<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 * [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) — SSH authentication, trust, and pooled connection lifecycle.

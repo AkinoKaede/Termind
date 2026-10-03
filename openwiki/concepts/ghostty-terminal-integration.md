@@ -4,8 +4,8 @@ title: Ghostty Terminal Integration
 description: Trace how Termind hosts Ghostty surfaces and extends native terminal menus on macOS and iOS, including selection, localization, upload availability, and package boundaries.
 tags: [ghostty, terminal, menus, macos, ios, integration]
 verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
@@ -37,11 +37,12 @@ sources:
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Ghostty Terminal Integration
 
+<!-- openwiki: broken internal link [/openwiki/operations/ghostty-fork-maintenance.md] link "/openwiki/operations/ghostty-fork-maintenance.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Termind uses the pinned remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves. See [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md) for the package revision and binary release boundary.
 
 ## Native menu ownership
@@ -56,9 +57,9 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 ### iPhone and iPad touch menus
 
-`MobileTerminalSurface` opts its retained `MobileTerminalView` into Ghostty's inline text selection. In the fork, a long press opens the touch menu, a double tap selects a word, a triple tap selects a row, and selection gestures stay inside the terminal view. On iOS 16 and later, Ghostty presents a `UIEditMenuInteraction`; it chooses **one of two hooks** according to whether `touchSelection.text` exists. With no selection, the baseline actions are Paste when pasteboard content exists, Select and Select All. With a selection, they are Copy, optional Paste and Select All. UIKit owns compact layout and, on iOS 17+, any AutoFill menu. The iOS 15 fallback uses `UIMenuController` and the responder chain, so the newer hook-built Upload File submenu is an iOS 16+ path.
+`MobileTerminalSurface` retains one `MobileTerminalView`; the app no longer sets a separate inline-selection flag. In the fork, a long press opens the touch menu, a double tap selects a word, a triple tap selects a row, and selection gestures stay inside the terminal view. On iOS 16 and later, Ghostty presents a `UIEditMenuInteraction`; it chooses **one of two hooks** according to whether `touchSelection.text` exists. With no selection, the baseline actions are Paste when pasteboard content exists, Select and Select All. With a selection, they are Copy, optional Paste and Select All. UIKit owns compact layout and, on iOS 17+, any AutoFill menu. The iOS 15 fallback uses `UIMenuController` and the responder chain, so the newer hook-built Upload File submenu is an iOS 16+ path.
 
-`MobileTerminalView` calls the matching superclass hook, then maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It leaves the package's action handlers intact and appends one localized Upload File `UIMenu` with Photos and Files actions. `MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement.
+`MobileTerminalView` calls the matching superclass hook, then maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It preserves the package handlers, places editing actions in a medium-sized inline group, and places localized Upload File actions in a separate inline group before other inherited items. `MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement.
 
 The touch hooks do not build every possible UIKit menu. The fork's indirect-pointer `UIContextMenuInteraction` uses `selectionContextMenuElements()` for its selection menu, which currently returns Ghostty's Copy action; Termind's touch-hook overrides do not add its Upload File submenu to that pointer path. A menu change should explicitly choose which interaction it targets and test both selection states. The package keeps terminal action semantics; group titles, localization and upload authorization belong in the Termind subclass.
 
@@ -80,4 +81,6 @@ Shared Presentation maps Termind palettes and the Ghostty theme catalog into lig
 - `TFITests/MobileTerminalUploadMenuTests.swift` checks the native Photos/Files group, absent handlers and enabled/disabled children. The fork's `GhosttyKitTest/Input/TerminalTouchSelectionTests.swift` covers its selection mechanics; inspect both hook implementations when changing menu construction.
 - `TFMTests/TerminalKeywordHighlightingTests.swift`, `TFITests/MobileTerminalHighlightingTests.swift` and `FrameworkTests/TerminalHighlightPreferencesTests.swift` cover rule validation, rendering and preference persistence. Use the resolved-only Xcode build for either app; package changes also need the fork's own tests and release sequence.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/concepts/ui-design-principles.md] link "/openwiki/concepts/ui-design-principles.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 For upload destination and drop behavior, continue with [File Drag and Drop](/openwiki/workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md).

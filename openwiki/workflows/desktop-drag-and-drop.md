@@ -4,8 +4,8 @@ title: Desktop workspace drag and drop
 description: Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 verified:
-  - by: openwiki/0.5.2
-    at: 2026-10-01T23:39:56.631Z
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -57,15 +57,18 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Desktop workspace drag and drop
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 
+<!-- openwiki: broken internal link [/openwiki/architecture/desktop-ui.md] link "/openwiki/architecture/desktop-ui.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Start with [Desktop UI Architecture](/openwiki/architecture/desktop-ui.md) for the window shell and persistent deck. This page explains internal layout and conversation-list dragging. File uploads and remote-file transfers have separate payloads and owners; see [SFTP Transfer and External Edit](/openwiki/workflows/sftp-transfer-and-external-edit.md).
 
+<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 For Assistant file attachments, SSH terminal uploads, SFTP file drops, Key import, and the shared Overlay UI, use [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md).
 
 ## Interaction matrix
@@ -268,4 +271,6 @@ TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -quiet \
   '-only-testing:TFMTests/WorkspaceNavigatorDropTests/draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout()' test
 ```
 
+<!-- openwiki: broken internal link [/openwiki/testing/behavioral-boundaries-and-fixtures.md] link "/openwiki/testing/behavioral-boundaries-and-fixtures.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/quickstart.md] link "/openwiki/quickstart.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 When changing Workspace dragging, keep the row source and preview intact, inspect live callback timing before changing geometry, and verify cancellation independently of an outside release. When changing transfer ownership, use the coordinator request boundary and existing live objects. When changing Assistant presentation, test both visible and retained hidden native lists. Complete the repository's default test and formatting/localization gates after focused regressions; see [Testing Strategy](/openwiki/testing/behavioral-boundaries-and-fixtures.md) and [Quickstart](/openwiki/quickstart.md).

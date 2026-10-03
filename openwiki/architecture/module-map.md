@@ -3,6 +3,9 @@ type: architecture map
 title: Module map and composition roots
 description: Maps Termind's native products, six shared framework dependency targets, composition lifetimes, supporting products and pinned external package inputs.
 tags: [architecture, modules, products, dependencies, ownership]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -74,10 +77,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Module and Product Map
@@ -154,7 +154,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 
 **AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMajorVersion` requirement starting at `0.18.1`, and `Package.resolved` pins version `0.18.1` at revision `e21235d8647a780e16a1c2c3b19cc00db5c82cb7`. Use `-onlyUsePackageVersionsFromResolvedFile` when building to require that committed pin rather than silently re-resolving. A local checkout edit alone will not change the Xcode build; release the package change, update the project requirement, and re-resolve the pin together. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. Do not substitute the sibling working tree's version for the resolved Xcode revision.
 
-**Other local checkout boundaries:** `.gitmodules` also lists `libssh2-spm/` and `libghostty-spm/`, but Xcode references remote `AkinoKaede` package URLs rather than either checkout. `libssh2-spm` is required at exact version `2.0.3-termind-1` (resolved revision `c2df1cacae38d3bd8dcdd5bd9290f668b88f4257`); `libghostty-spm` is required at revision `f4cc2d064baef32e2ab92b455b03b1a46880338b`, which is also its resolved revision. Changing local fork source or a submodule gitlink alone is not a change to the Xcode package input: update the remote release/revision, project requirement and resolution as appropriate. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) and [Build, Test, and Release](../operations/build-test-and-release.md)).
+**Other local checkout boundaries:** `.gitmodules` also lists `libssh2-spm/` and `libghostty-spm/`, but Xcode references remote `AkinoKaede` package URLs rather than either checkout. `libssh2-spm` is required at exact version `2.0.3-termind-4` (resolved revision `7ca39b8bcaf408351e8b6e4f449d2a39959bab49`); `libghostty-spm` uses an up-to-next-major requirement starting at `2.2.2026100303`, resolved to that version at `fc5444ea40e9d7c6204bd5dd46d23a884e987181`. Changing local fork source or a submodule gitlink alone is not a change to the Xcode package input: update the remote release/revision, project requirement and resolution as appropriate. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) and [Build, Test, and Release](../operations/build-test-and-release.md)).
 
 ## How responsibilities meet
 
@@ -199,7 +199,7 @@ Composition and navigation lifetimes: desktop windows own workspaces; mobile sce
 - **Desktop window:** navigation, workspace collection, pane selection, searches, and transcript caches.
 - **Mobile UIKit session:** its app-retained `MobileWorkspaceSessionModel` owns connection intent, live workspaces and persisted descriptors; the scene model owns selection, navigation, conversation and transient presentations. Backgrounding or view disappearance does not discard the session. Explicit native-session discard closes only its workspaces.
 - **Session/workspace:** transport and terminal/browser runtime state. Disappearing views are not a general disconnect signal.
-- **Durable storage:** metadata, histories, configuration, and separately governed memory; not live transports or transient credentials. Mobile restoration saves descriptors per session, not live connections.
+- **Durable storage:** metadata, connection history, configuration, and separately governed memory; not live transports or transient credentials. Mobile restoration saves descriptors per session, not live connections.
 
 On mobile, `workspaceSession(for:)` consolidates saved descriptors into the first bound window on a new process launch without opening connections. Later sessions start with their own collections. A disconnected scene can still be a restorable native session, so reconciliation against UIKit open-session IDs precedes recovery of orphaned live workspaces into an active session; the snapshot is saved before transferring the live instances. If saving fails, recovery is skipped and an error is reported instead of silently duplicating ownership. An explicit discard closes that session's workspaces (including any previously recovered from it). `TFITests/MobileWorkspaceSessionTests.swift` covers independent windows, cold-launch consolidation, reclaim versus discard, recovery, and activity-link routing; `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows only when `TERMIND_MOBILE_UI_TESTS=1` with parallel testing disabled.
 

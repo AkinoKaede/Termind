@@ -1,26 +1,26 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0b10353bd7a4844b5f90ddaf4ce8c98e24578b5e88888b598df46b1f18ca92c1",
+  "pageVersion": "sha256:6441343b133be17bee0d7e28598de3a1eaf4908d78e1949a1434892808be285f",
   "claims": [
     {
       "id": "claim_5ca6241ea6cc4ebbb915ccbe304f8430",
       "statement": "SFTP transfer responsibilities are separated so `SFTPTransferCoordinator` owns queued transfer runtime and admission, `SFTPTransferContext` owns a generation-scoped primary connection and lease topology, while `SFTPClient` is a connect/disconnect facade and `SFTPChannel` performs the file operations.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L120-L160",
-          "version": "repo-lines-v1:sha256:90b011ae02e3bee10bcf09a48d4f9819fcca02e9e11cbcf34e581456a40567ff:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjMWVlZmFhYWRhNDYyNWFiN2IyZTQwNzk5YWQ2ZDRiY2YyZGE2OThhZjJkNjgwMTg2MjBhNTlmZmU1MDFmMGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNzhlZGQ4OTljZjYzZTBiZTcyNjJmMzk3MjYxZTlkNjkyYjFiYWJmNzVmNjcwN2ZmZTE4YTMzOGE2MDhiZWYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift",
+          "version": "repo-file-v1:sha256:508b0f166c37050bca2ebd5b50e778d90abcd6426dca20422be86f442027684f"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L293-L387",
-          "version": "repo-lines-v1:sha256:d13284698bb7d87512d5e22228faad7cb963f3a537c313e3f5b404680c3f4ae1:eyJzZWxlY3RlZExpbmVDb3VudCI6OTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhMjJkYmQyNGZjYzQ5MmI1NTU2YmIyN2M0NThhNTdhMzc2YjFkYjNmYjgxMGRmZThlZjE1YzEzZjMyY2YzNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYzNjgwZjc0ZmIwMThlNmYzN2ZlOTdmMzhkOTUzOTY0ZjhhZTBkNzdkNDAxYzQyNDg0NzNmYzhmMmRkZjViZGQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift",
+          "version": "repo-file-v1:sha256:dc40c6ba4879bdef7835a720e26ea3fafb27552daf783e73bdfe8c99d62ff095"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L12-L53",
-          "version": "repo-lines-v1:sha256:5d74ca0ee69c46d8e1bab2567619d54fc9a4b65da1dc6ddc4532cc8b83262a2b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyODc0OTcxOGI0MGQ4ZDY3NzliYThjNzg1MzFiYmZhNzEzYWM4MjE4YzA1NjJmOTUzZTZiZDUwYmM0YmRlMTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhZTFhOWUzMzQyMjE5YzZiMWE3MGQ4MzAyNTllZDZmNjg0NTdlMDQ4OTg1Y2FmMDQ2NWI0MjYzNzVlYmU5NmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhMjg1N2RjODAzMzBjNGMwOWNlZGI2ODU2OGE1OTVhNmU5ZmQxMWQ3YTg2ZTMyYmJlODViMDdkZjI5Y2IzYWYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift",
+          "version": "repo-file-v1:sha256:d0e9ad4aaf6e46045f5ea7eefc0658f60d5386a62c4ff99061a1fe8704a8a2dd"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L77-L147",
-          "version": "repo-lines-v1:sha256:9fde17f24c66b4dc9e257e67453dd6559a5eac2de6793dd3ce326c83deb05821:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5NmFiZTAwOGM2OTQ0YjBhMzJiZTcyZDM2Y2ZmMjNkMDc0MmE0MDEwMDIzY2I4NmFhNjYwNjAxMGFmMWM3NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhMGVkMjg2YjQ5ZDIxZWU3MWU4MTkxZTMwZWFlZGNjZmZjMjY1MjYyNDYyNzJhMTA1OGViYTI1ZTdlMWFmZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0N2RiZjRlZWMyNjY3YjEzNjllNTU1ZWNkZGNiNGFjYmJjMzY2Mjk3NzQyNTQ4ZTY1ODhhYThlNGIxMmJmODEifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift",
+          "version": "repo-file-v1:sha256:d8336664755aa54bfcb1cc8f29c374b547e98cd31a62f34c7ac18501cd91c933"
         }
       ]
     },
@@ -61,7 +61,7 @@
       "statement": "Local uploads and remote copies preflight destination directories and targets before enqueueing; only after a conflict policy is selected do they resolve directory and target conflicts and enqueue resulting jobs.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L88-L161",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L93-L190",
           "version": "repo-lines-v1:sha256:7051ad170250c1628f9b8b23c46a12642fc5e29c9fb978ee99c265bbf2d339b9:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5OWQ0ZmJlNDdmYTFkZjE5ZTUyMjA4ZTIxNDNiMDA1YTY1Y2MyNWNkMTVlOGY2ZDY3Yzg2YmY1NTlhYTk4MzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhOWY4NmQyOGU3ODRmOWZkMzFmYjcyZDE1ZjYwY2JjZWFhZmRkNjY5Y2JkNWI2ZGE3ODg4YTAyMzMyMWViYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQifQ"
         },
         {
@@ -115,7 +115,7 @@
           "version": "repo-lines-v1:sha256:e5766ed7530d7a126f5332f4983aadc634531286238a47a13c533136d8359095:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MzMxZDIxZmVjZDMyZTdkMTUyOTg5OTZjMDkxOGJhZDVhNGViNGMyNzE3OGJmMzRlZTA4ZmU1OTk2YWU3YTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDQ5NTAwMmM4MWJiMDZiMjkxYzJiZTgzMzljM2NjZWRkZjdiYzVkZWIxZmMxNjgyYzU0ZTlhMjEzNjdlNDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNzEwZTdkOWVmMjI4ZGE0YzUxYTcyY2Q4NGMyOTIyMDU5NGNmZWI2ZDQwZTgyNGRiNjI4MTQ4N2Y5YzAwOTcifQ"
         },
         {
-          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L32-L113",
+          "resource": "repo://TFMTests/SFTPConcurrencySchedulerTests.swift#L55-L136",
           "version": "repo-lines-v1:sha256:48d1b351f0acf522015965eecb894a9e957f2210826b1795916a34310cb405a3:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzYjgwZmU4NzVkYWJkOGI0NzcxMGYzNTlhZTZjZWJiYjU0M2UyODNiYmI3YzE1N2ZlY2FjNmEzZDk2YjIxMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZmVkYzgxYmM2OTM2MTY4ZGNlODA0NGEzMmQ3NDg0NDVhZjI3MjFlYTcxYWFjOTkwNTc3NzE3NDU3N2I5YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3MmQ1MzlmYTY4MmY3YjM3OGQ4YmUwMDAwOTFlODNhNTc2OTRiMmIyMmNkNWI5MzI5ZGQ1NWM4OWFjZWRiZWMifQ"
         }
       ]
@@ -143,11 +143,11 @@
       "statement": "A transfer context keeps browser control channels independent where possible: channel-only work uses sibling channels or serializes the primary, connection-preferred work silently probes an additional connection and falls back to channels on non-cancellation failure, while cancelled probes do not cache the fallback capability.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L212-L233",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L208-L229",
           "version": "repo-lines-v1:sha256:1bb24096c7f97226882d922be0e39f04a07e285d60f97213b22e2de68750b12f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0MGY2MjA1OGZiNTRiY2Q2NzkyYWZhMWJhMWQyNDYyOTI4NTA3ZmQ1NzczZjljYzQzOTM4MzBmOTY4NzNjNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjYjQ3ZGIxYzczMmI0YTcxYTBhYzE4NmE0ZDMzNTQ1ZGM4NTAyMjE3MTgzMDhiNDY3MTQwM2ZiYTEyMzhmZmIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L99-L188",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L95-L184",
           "version": "repo-lines-v1:sha256:66bc442c33d6cd347e25766a912d6e5aa904ff35fbd79cb65d9b0da8bdef9739:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDUwN2Y4NGExN2EwZDY2Zjc1NzU0ZGJmZmEyZjJhODNmZmYwODg4NWUyMmEyNDI5ZmRlNmQzNTljNzVmMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYmRlNWRjNDUwMWI5ZTk1NWQxN2ZjZThlMmZkMGEyYTIwNzkwMTQwYjNhYWVjNTQwYTJhNmYyMGZhY2M1MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMjMzODU2ZGRmZDZjYmUwMzUyNmJmZTEwMjcwYWYwMDc5MGZjZTQ4YTgwODQ0MzdmN2MwZGE4YzJhMTJmODcifQ"
         },
         {
@@ -201,7 +201,7 @@
           "version": "repo-lines-v1:sha256:8303a901336ebc76ffbaa2775eb10d0d77d93b001b1a87f2991336ad7c0e49ec:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGJlMTBlZTcwNmU0YTgxYWMyZjIxZjEwMWNjYTczYjM4MTdmZGVmZDUxZmE0NmZhYWM0MjZkNGRjN2MxN2E1OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmYzZTM3ZjY3OWNkNjY3MDJiNzFmM2Y5OGQ3YjJiNjJlMDAwYTMzYWRiNDg5MTU0N2M2NmE5MmQ0MTI0YjE3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTkzMDI3MjVlYWQwNTQwMmU3MDEwMjRmMGMwY2YwZTU0YWY1MzA3OTBmMDVlMmZiMDEyZTUwNjBlYzg2YmQ3NCJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L415-L440",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L418-L443",
           "version": "repo-lines-v1:sha256:d1194bac20219edfbf617bd4c2615e62c73d6437f669dd4258ef044e22bf8adf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlNTNjNzVjNWM1NGUzNmNiNmUyMGUyYzhkYzkyZjhjNmM5NzhiM2ZiOWRjZjQ0ZjllMjBkZjY2MDlhYWYyMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwNmM3ZDc1YWZmZTJhMzQ5MDM0MzlkYjZiMTNkOGI4ZDRkNzNhYWMyMjBkZjdkYjEyOThmZGZmNDUyYTUwMjUifQ"
         },
         {
@@ -215,11 +215,11 @@
       "statement": "Closing a pane releases only its transfer-context ownership: queued or active transfers retain the primary connection until references and slots drain; pausing a detached transfer permits closing that unused primary and explicit resume reacquires silently.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L266-L272",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L262-L268",
           "version": "repo-lines-v1:sha256:83641429cf561bea741854d35b409eee62288b4d33bb0daa419add169f40555b:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzI5ZGY4NjM2NjEwZWE3NTQ0MDhkOTMyYmNlM2ZjOWY1YTEwNGJmZDRjOTQ4YjRjZTk2YjNmZTJkMzA0YTI0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDUxZjYwM2ViMDM1M2U0MGUxMjg4OWQ2MTk1Mzc2OWFlODQwYjc3ZDFmYTUxZGY3YzNiYWZlNmFmZjIzY2NhYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmM0ZjYxZDRhYTM3OTExNDhhNTI0ZmY3MDZhYTlhODYyNDAwNmQ0Y2ExMjNlYzc1ZThiNDM5NGViZmRiN2E5ZSJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L64-L97",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L60-L93",
           "version": "repo-lines-v1:sha256:4079f40db8b76586216a89ad208f08b158862900934c18f558b6547325807aef:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyYjcyNTVhOWE4ZDA5ZDUyNDU5OWFjZDY5NjhkMThmNjZiNmUwMTAxYzk5MDU3MGU1MzlkOWIwOTkwNmI5ZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0OGNiM2Y1NzQ0MjU2YTYzYjRhYzFiY2M0MTUyNzYyYmI5NGE0N2JkOTI1ZjBjZTJlZjAyYzVhYzBkNzY3ZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5NTc0YzEyODZmY2ZjNDZlODQ0NTdiNWUxNTc2NzliNDQyNDhiZGYyNWIzYTg5ODNjMjhhM2QyNzY4NGRmZTIifQ"
         },
         {
@@ -347,7 +347,7 @@
       "statement": "Control, donated-preflight and PTY-fallback primaries have different leasing priorities; admitted overlap can choose extra connections or siblings, and context fallback waiters are resumed together rather than implementing source FIFO.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L235-L264",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L231-L260",
           "version": "repo-lines-v1:sha256:c59536190b14a619d2cbc8842c2f28d75f693399c7824349ffc9721415ed3b10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NmJiZjM4ZDBlNTg1YjU0MGM1OTg2ZmIyODdiMmRjNGYxZmE2YTVmZjI4NjFkMmY0OTY3YzZiNmJlNjgxZWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyZDI0Y2NjMGY3MDRlMTMzOGQzYzIwZmUxODk1ZDExYzljNjliNDA5N2UzM2NkYzk0NWExNWViMmEzZWE1ZGYifQ"
         },
         {
@@ -355,7 +355,7 @@
           "version": "repo-lines-v1:sha256:6b5d94cf17943dce56b7c6117c9da0ea0be3b8698da3a4a64bb8243caea2bf76:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliOTRiMTE2Zjg4NmViMmNkMTY5OGY1MWM0NjkzZThmNTFiZjg5OWUzZjcyZGMyMTgxNTU2MWNmZmFkMDliZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMDg2NTgzMmRjYTA5MjkzMmZlZDRhMWFkYWM2Zjg2OTczZGYxNDRhNDNmMTQzNWEyODVmYjdhYzE1NDMyMTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMmM0NDA0ZWY5YjA0MWRiOTc1MDVhNDVlYjFkODFiNTVhZTJmMzBiYjNjZTcyMDY2OTZlNzkwZGU2YjZiM2MifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L99-L210",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L95-L206",
           "version": "repo-lines-v1:sha256:08689c752caaebfd4a69fd5c73f49795a3af788fe65bc46dad372c010f1d3f38:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNTQ1MDdmODRhMTdhMGQ2NmY3NTc1NGRiZmZhMmYyYTgzZmZmMDg4ODVlMjJhMjQyOWZkZTZkMzU5Yzc1ZjIyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4M2JkZTVkYzQ1MDFiOWU5NTVkMTdmY2U4ZTJmZDBhMmEyMDc5MDE0MGIzYWFlYzU0MGEyYTZmMjBmYWNjNTEzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3ZmZjYjVhNzQxZGIyNDM2NDQzOWUwMzU3NTdlNDUyNzM3NDA5MmQyZGViMzAzOGMxZGM0YWUxYTg5YzY1NGM5In0"
         }
       ]
@@ -365,11 +365,11 @@
       "statement": "Managed browser-context extra connections and siblings disconnect on operation lease release rather than staying warm; saved and borrowed transfer forms bypass context topology selection, and a detached context can recreate an absent primary silently on explicit resume.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L266-L272",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L262-L268",
           "version": "repo-lines-v1:sha256:83641429cf561bea741854d35b409eee62288b4d33bb0daa419add169f40555b:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzI5ZGY4NjM2NjEwZWE3NTQ0MDhkOTMyYmNlM2ZjOWY1YTEwNGJmZDRjOTQ4YjRjZTk2YjNmZTJkMzA0YTI0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDUxZjYwM2ViMDM1M2U0MGUxMjg4OWQ2MTk1Mzc2OWFlODQwYjc3ZDFmYTUxZGY3YzNiYWZlNmFmZjIzY2NhYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmM0ZjYxZDRhYTM3OTExNDhhNTI0ZmY3MDZhYTlhODYyNDAwNmQ0Y2ExMjNlYzc1ZThiNDM5NGViZmRiN2E5ZSJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L99-L188",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L95-L184",
           "version": "repo-lines-v1:sha256:66bc442c33d6cd347e25766a912d6e5aa904ff35fbd79cb65d9b0da8bdef9739:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDUwN2Y4NGExN2EwZDY2Zjc1NzU0ZGJmZmEyZjJhODNmZmYwODg4NWUyMmEyNDI5ZmRlNmQzNTljNzVmMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYmRlNWRjNDUwMWI5ZTk1NWQxN2ZjZThlMmZkMGEyYTIwNzkwMTQwYjNhYWVjNTQwYTJhNmYyMGZhY2M1MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMjMzODU2ZGRmZDZjYmUwMzUyNmJmZTEwMjcwYWYwMDc5MGZjZTQ4YTgwODQ0MzdmN2MwZGE4YzJhMTJmODcifQ"
         },
         {
@@ -387,7 +387,7 @@
       "statement": "Agent SFTP data admission is conditional on schedulesDataTransfer, uses an agentRun identity, respects an externally supplied permit without double ownership, and obtains the authentication/channel lease within the admitted operation.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L907-L972",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1017-L1082",
           "version": "repo-lines-v1:sha256:5a410580423c6394bb0fab63097f1a9e1221d426db79714aac378eb51ccfe9a5:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1M2Y1MzM4NzkzNzlhMzZjMTYwNDNjMmI2OWM2Zjg1Nzk4MmY5OTJhM2Y5Y2YxM2IxYzdjMmQ1Zjg0MTlkY2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMmMxM2EyZWU2Yjk4NTNjYWMxZDRkNzgwY2I4MDU0YmU5OGNlZGUxZjFiMzgzM2E0MmM2YWFlYjBjY2RiMzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyZmQ2NjcwOTZlMGU5YmE1ZGQxMjBlYzJjYjg2YTEwZGFmZWI3NjZlMmIxODdiMzM0ZjU4OTI5NzJmNTNiZWIifQ"
         }
       ]
@@ -397,15 +397,15 @@
       "statement": "Agent SFTP reuses eligible idle pooled records, retains them on release and disconnects ephemeral siblings; its initial shared-probe catch records channel capability before rethrowing cancellation, unlike browser-context cancellation-before-downgrade behavior.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1142-L1281",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1274-L1413",
           "version": "repo-lines-v1:sha256:a74b4b9874f3af6c4bad312db35d3bea98c783a92c75f2a115129e3c5deaece8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzZmNmODFjZTljZWNjN2Q4ZjljNmRmMDQzNzUxZDgwYjczMDZmZjU2ZTQ1NjEwZWQ0NzIyY2RlMDVlMGIzODJkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0Mjc3YWVmZGU3NDQ5MDFhNTUwOWUxYzc4ODBmYWJlODE1YzJhZjk3YjRjOTdjZjg4NjVkMWQ5YmZmZWRjNTQxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyODQ1MjdlZGQ5NGRjZTBjNjE1MThjYTY3YmIzYWYwZjA0NTM4OWE5MTYxMDc2OTk0MjMzMTZjNTM0NzlmM2FkIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1473-L1501",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1660-L1688",
           "version": "repo-lines-v1:sha256:a29aed0a932d052ae3d487dccf8eea7d4c071dd34fc8e24e8b3c3fd40184704a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhN2MwNmNiNzQyNDdlNDJlNWU0YWNkYTY5MjZlMzg1YzE1NDRmOTBiZDFjOWJkMTI3MDkyZmZhMzViYTRiM2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3NjYzYjliMDQyNzJkYWJiNWQ4YjIxMDc0ODM0MGRmY2ZiZTc5MDIwMTY1NjAwZTE3ZWMwNjYxNGQwMzU5MmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4ODhhNWZlZmE0ZGEyMTBjNGY5M2ZhZWNjYWM0ZGE0NjM3MTA1MGNlYmYyZWFiYTE1NmJjM2M5NzRlYjY0NWYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L123-L146",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L119-L142",
           "version": "repo-lines-v1:sha256:3f76dfb0dcee6ff882714420a066b08856e768567b67f368801f020051ef7a9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3YTIyNmI4M2YzYzY1MDc5ZWU2MzA4ZDdhMTFiZDg3Y2NhNTRlNmY2OGQ4YTFhNWVlZjVlNmQ2ZmE5YzdkMjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyOWZmMjIyOTVlZWJhMWQwNjlmYjEwNDY0MjQ2Y2JmMWEzMjVkODRiOTkyNTEwNTA2NDRjZjY1MWE0MjM4YmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYzYThkYjgxYmYyYjFiYzkzODYxODNkOTM3MDg3ZTliYWNkYTYzZTA2N2I2MjcxZjIyZTIwNWY5YjI0NGQ1MjkifQ"
         }
       ]
@@ -447,7 +447,7 @@
       "statement": "Agent authentication acquires a scheduler permit before authenticating and leasing a channel for requested data work; it owns and releases only permits it acquired itself, and connection/authentication retries occur before, never after, the SFTP operation starts.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L999-L1107",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1014-L1122",
           "version": "repo-lines-v1:sha256:0ab3b2e6ebd8affb39b458a5fb24061c70660fe6a46b65ae43ffc68a6e25fd7f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMGExNWY2MmI0OGM1NzUyOGYwMTE4YjM3MGRiZWQwODgwMjQwZTU5NzMzNGQ5N2VhYWVjOGUxMTNjY2M3Yzk2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxZmEyN2EyNDFhYjVjMGFkNjc0MDNjODAwMzZiNDM4ZDQyNDU1YzVlOTQ2YzBjMzg1NGI0ZTVkNDdmNjVmMmU0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJkM2RlYjQ1ODYwZmE4ZTNmOWYxMDQzNWU4MGFmMDllOWFkODQ0OTRjODhlMzUxMmIzMWM0YTRiYTlmODE2ZjI4In0"
         }
       ]
@@ -457,15 +457,15 @@
       "statement": "The Agent connection pool shares its Host-keyed primary SSH transport between exec and the primary SFTP subsystem across tool calls, joins concurrent primary opens, and invalidates reused connections on route changes or disappearance rather than reusing a connection to a different destination.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1147-L1160",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1162-L1175",
           "version": "repo-lines-v1:sha256:d4ce392b6f94873cd2b7707f71bb5dd2812ec0108fb0372360fb63a4faa270ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiMTk4OGU0NWVhZDYxNGVmNzU4ZTJhNjRlYWQzMzg0Yjc1NDEwOTdhNmNkYWE2MTFlZWFkZDZkNWZhOTZjNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDg4YWU4OGM4MWRmYjkwODk0OWE4OTNiMWYxMDdkYmJjNTdmM2Q1MDYzN2E4MzRkNjc0ZTJmOTllYjEwODUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkYTc3YzM5ZTVlMTNkZjhjMzU5Y2VkYzUwY2JkZmRjMzZkMTBmOThiN2MwOGIyZmYxMDRkMDkyMjlkNzdkOTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5NjZmM2VlNzY4YTRiMDQ5ZTY4MGE3OWMzOTBmZTU4YWI3OWNjZWZiOWRkOWEyNzE5ZTViMzA2OThjNTQzMjMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1534-L1598",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1549-L1613",
           "version": "repo-lines-v1:sha256:9040b718907f607a4597fdacd208963aee17064fabaec9b66903a6f9f43673fb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExOGY5MmJhNDU4MmI4MmYyZGZhMGY2ZTQxM2U1MDQ1MzY5MGY0ZGFhYmNiODFlM2MzZGMxOWEzNzY4YjdmNjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MGY0MWY4ZjA2ZjE3MWUwZmM2ZWNhZTZiZDJlZjhjYWYzMTcwNDA0OGRlMjU2NTRmYmNmMzc1OTM3ODE1MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMGZiYjQ1ZWNlZTdmYzAxZjc0NmJkZTY4MmUxMTRiOTJjNTU5OWRkOWUwNTE2ZDIyZDNjMzI1ZWQwMzc0NmYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1681-L1705",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1696-L1720",
           "version": "repo-lines-v1:sha256:73789fa5a63af5cca1939c29cc88af9e4b2212c1f8f9777c1388c5d48c7caf0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMDM0ODFjNTdkMGYwZGMwZjc2Y2QyY2M4YjM2MDRjNGU4Mjk2ZGE0MTIyYWRkMTllODE3NDVkYzdlMzMxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5Zjk1YzQ5MTkzZjU5NjcyZjY5NmU2YjQ1Y2E5ZDNhMjY1NzZhMWUyMDFmMThkMmU5Y2QzNjZkYWJmMDFlM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjYzQzYTdlM2E5ZWI4MjQxYTc2NTBlNGI3OWVlNjMzODE5ODM4OTZjNGJmODIyNWJlNjFlZDg4NGQ4MWQwNzQifQ"
         },
         {
@@ -479,11 +479,11 @@
       "statement": "Agent route fingerprints describe destination, hops, identity, proxy, host-key trust and charset without reading Keychain secrets, so credential rotation alone does not retire an authenticated connection while removal of a temporary pane-backed target prevents further reuse.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1607-L1635",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1699-L1727",
           "version": "repo-lines-v1:sha256:568cb2a46d89fa8d7c5f2691e4a096038f7c096aa72887ce91eb25f6ea52238f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMWZmZmIwODk3NWE2MWVlOThkY2NhMTQxODE5YjZiZjJhZTA2MjdiZmM1OThlYTBhZmVkOWI1NGQ2ZmJlMzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0MWZlNzViNTUyMjBiMTk1ZDE3ZDQ4NGNlY2Y2ZDEzZjZjOTgzOThiY2RmOWQ5N2UyNDA0ZDk3YTAzMGFlMTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzZTZlMjQ4MzhhNTIxMzQxNzA1OTIxOGEwN2UzNWUyZjFjNmNkZTk0Mjg3NDZhZGNlOWVhNmI4ZTFmN2Y2M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4MWUzMzFkZmNmYTQyZTgxMzlhMWZjYjQ1NTZhODhlZWRiYjQzZGMzNjg3NGVkNDViOTA0ZjliZWNlZjE1YjgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L492-L527",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L510-L545",
           "version": "repo-lines-v1:sha256:5a4404eed27a5160465ec868dcc98d3be6f3c52233d195a323b10fc3fdd25597:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYThmMzBjODI1ZjMwNzNlNGE3NGI2MWI0MzEzYjkwNWZlNDJlMmNhYjA3MTk5YmU5ZjRkN2E4YmJiZTVkZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0NTFjODUzOTdkOTc1ZGJmOGI5OTZjZDE3MzhjMTk1NGUyMWU5OTRmYmJhZDY3ZTZhM2QzZGZlZDljNjA5ZTcifQ"
         }
       ]
@@ -493,7 +493,7 @@
       "statement": "Agent channel-only overlap leases siblings on the primary and, if sibling opening fails for a non-cancellation reason, waits for an idle primary; connection-preferred overlap probes silent extra connections and downgrades to sibling channels when silent setup fails, but propagates sibling failure on that path.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1259-L1365",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1296-L1402",
           "version": "repo-lines-v1:sha256:77343b5e024d771fec726d0b4f9c3ffa6d4b9ec7f869804c06e9a352a206cbea:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjOTQ3MDA2YTA4ZmQ2OTZmYWNmMGY5MzYwMTM5YTA1NTAzNmUwZTk1ODg3NGVmODE1YzBlN2U2YWE5NDAwNmJhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwZDM3NzY4NDNiZWIzZDM1MTI5NWEyZThkM2RjM2M1NDZjMTIxMGQ0YzM4ZTQ0YjVkNjc4YjAwYWIzYjU4NTE5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxMjhmMWU2YWQ1MDhlNGRiODE2YjI2NGZlZWM5YTlmM2QzYmM2ODZkY2UyMTM3NzJiYTlkNmNlMzVlNjJjOWMyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMDJiZGY0Y2JjYzc2N2MyNzkzZGRmYzYyMzFmYjE1MTNiOGQyNjg1MTA2YWJmNjVmYWI1YmU1MjUxZmU4NTFjIn0"
         }
       ]
@@ -503,11 +503,11 @@
       "statement": "Agent pooled SFTP primary and auxiliary records become reusable on lease release while ephemeral siblings disconnect; idle sweeping removes idle auxiliaries and closes the primary with its exec connection only after no active leases remain and the idle timeout expires.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1368-L1386",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1405-L1423",
           "version": "repo-lines-v1:sha256:a2203615454935a552f3040c108eee51e54961b96ae97197a8b55ddfb8867e11:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4ODY1MmY4ZDViOTNkMTIyM2IzZTM5YTQyMGY4NjQ3ZTIzMjVkY2JmZGVhNTMwNTk4N2JlNmIzNmE0YTI3YWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyNzIxOGFjYjI5OWUxZGEwOTk5MTJlYThlN2E5MDdmNjg2MjcwMzNmYjUwZTJmODE4MDYxYmVhYjliYWQyNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiMmE0NDM5NTdlMTViMzIzZWJlMjQ2NjM1ZWNmMDU5ZjRhZTQzMTlkODdkMDNhMzc1ZmMzMjI0OGI1YmYzOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExMjMyNjI1MGIyOGY3Yzg0NmRmODVkODZhMWM1MmM1MjBhNjM1Y2Y5ZGIzMTY3MjFhNTE1MDdjY2E2NjE4NGYifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1564-L1605",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1656-L1697",
           "version": "repo-lines-v1:sha256:ccfbf3556875d3cb477f6208aec0c4a88c874e1d6ba9eb322ef61ad999005749:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MDZjYTI5YmVjMjdhMGQzNTFiNGVjZGVjMTg0YWQyNmY3ODM5ODM0MWIyYjM4OWNhMzUxMzcwYTAzZDI3NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE1MDU5MDUwMWE4YjVhYzQ5YmJkOTc5NzZjZTJkYTk1MDRhNDQzNzE2ZmNjNjgzYTllNGQ3YzQyZGY5ZGE4MTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2OTFiYmExNWI2Zjg2ZjVjOGZlNDNjY2ZjNTBmNmY5MjcyYTVmMWMxYWNiYWFhNjcyZjU5YmM1ZmNhYzE3MDgifQ"
         }
       ]
@@ -517,11 +517,11 @@
       "statement": "Disconnecting or invalidating an Agent Host cancels active SFTP lease tokens and disconnects channels and SSH transport; connection-loss errors after an operation evict the Host but do not replay the operation.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1042-L1059",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1057-L1074",
           "version": "repo-lines-v1:sha256:99d019334acde91f49c85e1ace959d516be4a8ba2a1d7e8b7ef3ac32c2b9f493:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmNzE4ZGViYTYzNmE3NWQ1ZjM4MGI5OTYwNzM2OWM3MTM5NGI4ZDNiM2ZmYWRhNTcyMTQzY2YxNzU0Y2QzYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3MWU4NjI1OGY0NDVhNWQzZjIzM2RiMjczYjM1ODYxZGNmY2ZjMDQ5ZDU2MjYzMDM5Y2Y0NzcwMDE5YjIyMzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0ZmY4MTYwZmU2ZTUyZGIzOTE0ZTA1MzA3ZTQ2OTI2NWFkZmUwNWRjNzgyNzAzOGRkZGY1YTVhY2I2NTk1MzgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1600-L1628",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1615-L1643",
           "version": "repo-lines-v1:sha256:f2f3e2e1212f2052ef751e5c287cb7dedc4d8c13b68d69f87a1ed829f995ee9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwNGM2YTlkZDY3YzA4MTliYTRkZGE5YTBhYWYzYTc1ZGU2OTYyZGQ4MDVjZTJjMjYwNDY5NjY1MDI2ZjEzZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyYmU3MWUwOTZmNDA3MjJhZTI1ZWUzMzVhZDJhMDZhYmM3NTZjODkzMzBhYzU5ODY3NzM5MTRjMTU4MGYyZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4MWJlNGJjNTIyMzdmOTBkYTVlMDE2NWY3NGExNzI4OGVkMzA2YTlkOThhMGJlYzk3YmNhNDc2ODY0YTRhZTAifQ"
         }
       ]
@@ -531,7 +531,7 @@
       "statement": "Agent authentication contexts are shared only among overlapping attempts for a Host and discarded with the last lease, allowing interactive authentication retries during connection setup without turning custom credentials into a persistent pool cache.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1068-L1140",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1083-L1155",
           "version": "repo-lines-v1:sha256:098f410585fc8cce4104274126c82eb7db776a3989d05aae9640fb39e5530b07:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2OTgyNTE3OTI0ZmU4ZDNlMTU2NjcxMTViMWY1YTIwMThlMGQ1NWNlNWEwMDFiMWUyZDVlMzFiOGIyNDEyMmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYmI3ODg1NDc1NTg1ZDkzMGE4MDJkNzM2NWNmY2NiZTc5ZDk5NDY3ZDYwYWI5ZTdjMWYzMzhhYTU0ZDQyODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwYTBlODM1ODYwOTA0NmY2ZmJhODRjNWNiOTg2ZjgwMmMwMTBmMmE3NzlkZGVlNTJkZTVlZGYxYTY2MTliYzUifQ"
         }
       ]
@@ -587,26 +587,26 @@
           "version": "repo-lines-v1:sha256:91712fe3b3dba9502a1d723835c5d37681c7d9e64dced250a2c00ea492f226ab:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMzYzNzJhM2ZjODliMWI4MTk5ZTlhODBkMDVkYzhmY2MyNzI3OWJiNmUxNjZhYjFlM2YxZjM1ZjZjZTc0MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxYzg4MjM3MzlkNGQ2OTJmMmQ5M2Q0OGZjYmFiMzVlN2YzZGI4OGQ0NTBhYTkzZTNiMmJiODNhYzU1MjdlOWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L319-L351",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L325-L357",
           "version": "repo-lines-v1:sha256:41d06da2dab8716c9c055776eb34c433680f53ddbe8af9d7100a72600963b9b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiY2FjZjZhODEyOGVlYzA4ZmU5MjQwNWU1YzllMzViOTA4YTk3OGVmZWU4Mjg5OGJiZDY3ZjUwMDQ5NGEyNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1MWQyNTU5NTYxMjM3MzAyNzM3YTg4MGFkY2FmYjYzODk4ODNjMzA3ZDcyYzcwYTFhMDE2ZDhjMDQ4OTQ3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MWJiYTA1NTZmMTVlZjgzOTg3ZTEyODAyNDcwYWI2NTMyNzEwNjU5Mjk5ZTgzNWFlOTJkMzJmZmUzNDEzYjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxNWRlNTRjYTcyZTQ4Y2U0YWU3NDJhMGFkNWNiM2ZhNmViNzk4ZTA3YWJjNWQ3NWI4NTUzMDNlZDdlMzhkM2IifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L436-L440",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L453-L457",
           "version": "repo-lines-v1:sha256:82e986a85daa483fa01658731a612ccd9a96e10068df0a791e71d81178dd4ece:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWMxNzdlZTNlZGY2ZWIzOGFjZDQ0ZTRlMWI1NGU1NWI2ZmM3NTBmOWUwNzY5MzA5ZmVlNjg2MjkyZWQ4NWI2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmFhMDIyNWY0MWUxMTU1NWMzNDUxMTVhMDdiMzY0YjBiZjc0ZjQyNDMwYWZiZjQ3OTM1Y2M1NjY1ZjU1OWIwMiJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L245-L276",
+          "resource": "repo://TFM/App/AppModel.swift#L251-L282",
           "version": "repo-lines-v1:sha256:c1bb61145d8cea255d2888e3cd9bf4c3a60be715270a53f75d6976ea50f36004:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5N2IwNWQyZGJlZTdlOWI3ZDBkYTk1NWQzYmFmZjhmYWJiMzFiYzYyMDdmYjEwMDAxNWMyYTdlMWJjYTQzNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1MWQyNTU5NTYxMjM3MzAyNzM3YTg4MGFkY2FmYjYzODk4ODNjMzA3ZDcyYzcwYTFhMDE2ZDhjMDQ4OTQ3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0NTdlZjQwZmMzZTcxNTBiNDZmNmZmNGI0ZWY5ZWRlYjk3YmIzOGMyNzRiNjUzMzFlZGYxMTE3ODhhMjg3Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2MzY5ZDQ5YTU1YzgzODlkMmM3OTVjMjY0ZWRmMjk2ZGZiNmFmOGNiOGNjMDM2NmViZTkwODE1YTQzNjIzOTQifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L437-L441",
+          "resource": "repo://TFM/App/AppModel.swift#L456-L460",
           "version": "repo-lines-v1:sha256:4f712a18e105810cd91bdaf587887f3190df250f4eaee7fd2ea20ddfe83aef17:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDM1NzNmMjU1NmM3MjdmOWZkYmZlZTU5YTg5ZmIxMjlhY2Y1OTk1OTFiZTc2ZjI2MzY0OGVmMGJlMmE4NDkxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTU5ZDE0ZTg1NjMzYjFkNjI1YWUzZGVmMDc2MmRlMTNhM2ExNWYzNTcyY2Q3YmE4MGRlMTEyN2RhMmVhOGEwYyJ9"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-10-02T08:42:40.505Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-03T06:43:09.891Z"
   }
 }

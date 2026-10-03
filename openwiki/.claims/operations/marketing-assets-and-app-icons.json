@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:398718ce35787cc5f526668d8d14793cbccd982cc8f630cd8bc90b110e7d6a79",
+  "pageVersion": "sha256:36f3e6f6d4c00cb76a430bfcfcaf495465e04209d5c72957a3fb86dda06675dd",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -22,15 +22,15 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:f1be0a4b84b28c64f24ed1f81401785a75ffe5b7b095834f571900d9f93a58f0"
+          "version": "repo-file-v1:sha256:7ad22d8d48ae519c98427d6e552f7b78bb971026b3c8855c073f40ab9cf27ea5"
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:21313b339a8c961deb9b6535e9c3953e0d0d6be1ead4fc74ae6d0d155b40739e"
+          "version": "repo-file-v1:sha256:ceb51d267929f0f808e786ef9126aa279313732225244c9ae8d667f13cb514ce"
         },
         {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:40bb834f73c234625457ce19bcd4913e763c3d07ade888c89d96b89a415fd77a"
+          "resource": "repo://TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:887dafdf9993c003c48b80e77111fdeb7bc40fa06645d8d54ba05237cf6ba0d9"
         }
       ]
     },
@@ -39,16 +39,16 @@
       "statement": "The Mac screenshot runner uses resolved packages on macOS 27, captures production-window scenes serially by locale, requires the app and window to remain active/key through the 2× system capture, validates output dimensions, and backs up replaced captures.",
       "evidence": [
         {
-          "resource": "repo://Marketing/README.md#L15-L54",
-          "version": "repo-lines-v1:sha256:6d201b189b1eb9b8993a0138a6b913fc24fcf792109ea4c1bf3b609be48f54fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZGZmNDIxOTMxNDE2ZWQ2MjcyYzhiMmEwZDVlZTgyMDAwYjFlYmNiZTAyNzNmZWVkZmM2MDhkMTdhNjZkMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNzQxMDZhNjMxMzJjOWVlNjQ5YzI2ZjJhZjhhNmQ1ODk1NmQ4Y2ZlZGY5Y2NjNTk0MTI0M2E4YmUwYThiNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMzc1ZDE4ZDVhNjU2NzMxNzE1ZTlkMzc5MjZhYjIyOGQ2YjIyN2M0MzI1YzFkNDk5ZmYyNjM0MTUzMWFlNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTA0OWU3ZWFkNjEwOGU1YThmY2ViYmQwZGFiM2QyN2UzM2VmYmExYjkyZmZiZmZmYjZiMzFiNDI3MzE1NWMifQ"
+          "resource": "repo://Marketing/README.md",
+          "version": "repo-file-v1:sha256:7ad22d8d48ae519c98427d6e552f7b78bb971026b3c8855c073f40ab9cf27ea5"
         },
         {
-          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L10-L159",
-          "version": "repo-lines-v1:sha256:e98495cd0c42fee9bcd7717eb301a7ebf5aa09374b9a1a59287dc5dd9ddd7b8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNjljMzAzNjMwNzQ4ZmYxZDQ4ZWI3MjRmYjkwMTk0MzRjY2ZkMDRiMDMxZmY3ZWNlZjM1YTc0NGE1MWU4NzE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxNjIyNWU1MDNiYWY1MDlhZjc4OGExNTVkMDFiODFmNTU4OTlkYzE2MDVmODdhZDBiNWI3NWFkMzAwMmFhMmUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTE2ZTIyMTdmZWQyOWU5YzM5MTFjYzM1OWQzYjljMjc5ZWE0MzA0ZjExZTNhYzc3YzE3YTljNzliOGI5NWVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:4cb9d7d9fd01a6cec7140df431c3e9c8c20744b37174ccb50f0c07372a9a46f6"
         },
         {
-          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L11-L69",
-          "version": "repo-lines-v1:sha256:f22575081daea3c1f763a5575443886e69c4434b70635d00e394b85719f88ec1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1OTI5Njk2NDllYmI0N2QyODcxYTQ2ZDU3MWY5OWE4YmVhNTk3NjJiZWY2MGU5OWFiZmViODRkYjFkNzRiZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNzI3ODYyMTFjN2MzMjliNWViNGQ4ZmQ5Y2NiMmNkMDc5MzNmYTFiNGRjMWRjNTc5OThkNmE1OTBhYTMyMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
+          "resource": "repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:ff3ba03002a85301b84b7afa30d5ce4851e30c179b8ab1f1725d05a412bac75d"
         }
       ]
     },
@@ -131,19 +131,19 @@
       "statement": "The Xcode project selects `AppIcon` as the compiled asset-catalog icon name for the application targets.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1909-L1909",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2026-L2026",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2220-L2220",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2338-L2338",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2469-L2469",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2592-L2592",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2506-L2506",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2630-L2630",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         }
       ]
@@ -158,7 +158,7 @@
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:21313b339a8c961deb9b6535e9c3953e0d0d6be1ead4fc74ae6d0d155b40739e"
+          "version": "repo-file-v1:sha256:ceb51d267929f0f808e786ef9126aa279313732225244c9ae8d667f13cb514ce"
         }
       ]
     },
@@ -167,11 +167,11 @@
       "statement": "Mobile marketing captures use a deterministic 9:41 status bar with 80% battery in the discharging state and fixed Wi-Fi and cellular signal levels.",
       "evidence": [
         {
-          "resource": "repo://Marketing/README.md#L43-L51",
-          "version": "repo-lines-v1:sha256:f92d51456e45df6b063af175df7f0a8246cf946240a076deb9c834fe192077da:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjAwYjE2ZTE0Y2E2OWM4NDUxOTAxYzM2MDhkNTAwMDI1OGIxMGQyYjg5ODFlMzlhMDFkYWQ3Y2Y4MzNmMmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDgxOWUyZTNkYzY0MTViMjRhMDhhODQ1MDJiYTFhNjFkY2FiNjhkMDg4ZmM1NjlhZGVlNDI4ZGFjNGQ0MDNiYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDE4YWQ4YTM1YjAyZTMxOTM5MzE1YmIzYjk0M2UwN2U5YjA5OWFlZWEyOWNlNjM1ODhhMmE5MjY2ZjE1ZmE3MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGRlODM0MGM5MjNlZjIwMjY0NWY0NjlmZjBhMmExYTFkNGQ5OTlmYTgwZWRmZjJlMDZiZDU4NThlM2JhODJmYyJ9"
+          "resource": "repo://Marketing/README.md#L48-L70",
+          "version": "repo-lines-v1:sha256:320fca266545ff58b0a2b050600e187d8b00798f9b6885e7f72dca2cfee30dd5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwMGIxNmUxNGNhNjljODQ1MTkwMWMzNjA4ZDUwMDAyNThiMTBkMmI4OTgxZTM5YTAxZGFkN2NmODMzZjJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZWM4MWFhZWRmM2Y3NDYyODE1ODBkYTU4YmY5MDM3NDhiMmUwZmEyMjA2MWQ1ZTgxNzQ2MDAxMWVjNDJiOWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxOGFkOGEzNWIwMmUzMTkzOTMxNWJiM2I5NDNlMDdlOWIwOTlhZWVhMjljZTYzNTg4YTJhOTI2NmYxNWZhNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkZTgzNDBjOTIzZWYyMDI2NDVmNDY5ZmYwYTJhMWExZDRkOTk5ZmE4MGVkZmYyZTA2YmQ1ODU4ZTNiYTgyZmMifQ"
         },
         {
-          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L52-L61",
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L53-L62",
           "version": "repo-lines-v1:sha256:06693b57256643e759640076fbb3d93cd9f3f5ecf813c3ed5f5543415491d377:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjZTkyMDRiZWMyMzE2MDg2YmRhMmYwMGQ0MmNlNjdhODhlYjA2OGI2NDk2ZTA1YTkwYzk4ZGVhMjgxMzVlMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYmVmOGYwMjZjMDlhYTlhNTBlNTRmMTliODllNWE5Mzg5YzE4NmEyNTYxODRmNmQ4NDI5YmYxNDdhY2NjYjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3NzlmY2Y4Y2U1YTdkMWE1ZGM1YWRjODBiMzFiNGJjMWU4MzAwZjBmZjAyOWEyM2I0OWZjZGNjYjU4NTc5MmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlZTg4ZjM1MmFkZjU1ZGM5NWVhODlmZDM2ZWFkZDg2ZmQ4ODlhYzU5YjgxZDZiMjhlYjhhNGEwYzY0ZGExZWMifQ"
         }
       ]
@@ -181,16 +181,16 @@
       "statement": "The Mac Workspace marketing fixture keeps the navigation sidebar visible, splits the content 50/50 between two vertically stacked terminals and one full-height SFTP browser, focuses the top-left terminal, and populates the selected nginx configuration view with eleven deterministic entries without a live client.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/ScreenshotDemo.swift#L156-L231",
-          "version": "repo-lines-v1:sha256:fb2d459aa0f006a28537db3976e138da0a891738bdfc559c53501faa07f56332:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjViNWE4MjA1OWU2YTc1MDIwOWI3N2FlYzA5NDY5YWQzNDg2OTZkMjZkYzFjNzBkOWI3MmQ4MDI0MGNlYzVjZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTNhOTEyMzk5NDFjMDQzYzEyZmJlM2JhNzZkMTcyMGNkNjM2MWJhOGY5Y2JlNzk2ZGZlY2I2NzRiN2Q4NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzZGEzMTVlN2EyOTJkMjIwZGY1NmVjZWYzZGI1OWQ4NzQ3ZTI0MjA5ODliM2FjYzM3NDk2NWRhYTcyOGYzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4YjdkYzQyYTNhZDk2YzE2MzVjN2QyOGJhNmNkZDhlZmQzZjA5NWMwMDhhMDlkYWY1ZGZmYzNiMGNhZmFiMDAifQ"
+          "resource": "repo://TFM/App/ScreenshotDemo.swift",
+          "version": "repo-file-v1:sha256:d591d89f1f84ab8484408a8537b25118faf7ad9059f8cf52cbc02052ce49c517"
         },
         {
-          "resource": "repo://TFM/Features/SFTP/SFTPChannelModel.swift#L1275-L1342",
-          "version": "repo-lines-v1:sha256:13db123ccb6ca8bc3527b3ecd2af4bebf60e101e45b63e102a6d244741308806:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5NDhjMzVhZDJhMGUzMTM1Y2U5MDkwMDA4MzkyMGZlMjU0ZjdmNTA5NzAyNWMwZTMyZmY0ZWMwOTMxZWEyYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://TFM/Features/SFTP/SFTPChannelModel.swift",
+          "version": "repo-file-v1:sha256:0b5a8a4d10c6ab2ed7f33f67b33d1d32082415437309ad2a9e6f16158f85a118"
         },
         {
-          "resource": "repo://TFMTests/ScreenshotDemoTests.swift#L108-L159",
-          "version": "repo-lines-v1:sha256:4671d9078217d05cd31d816db64336338463b15a907acf4ed5afbaff64ca141a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNDBhOTAwNmVlZjIwNzFhYjExMjY4ZjI4YTlmNjA2NGYzMmU3NzEwZDhiM2U0OTFlMGYxYTdiNTA2MTQwNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNzRjYmVjNDNkMmM0ZmNkMDFlMDMzZGMzMWQ4MjdjYmFiODViY2MyMmNjMjc0YTkxODllYjhhMjdmM2EzMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzY2ZiZmQ4OTZkOTViNmViYjQyMzMwZTQxZTQyMmQ0ZmQ5ZmYyYTFlMzUwNzdjMmQ3NzBlMDQyYzljNWQ4OGYifQ"
+          "resource": "repo://TFMTests/Screenshots/Marketing/ScreenshotDemoTests.swift",
+          "version": "repo-file-v1:sha256:df90e645d73eb64313f504fd5587df9835e693f5d67affe152029152a3feb0b4"
         }
       ]
     },
@@ -199,16 +199,12 @@
       "statement": "Mobile marketing capture tests are opt-in via `TERMIND_MARKETING_SCREENSHOTS=1`; by default they capture five scenes, while `TERMIND_MARKETING_SCENES` filters the scene set.",
       "evidence": [
         {
-          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L178-L188",
-          "version": "repo-lines-v1:sha256:3f4e88a88c3c4c8f2f6c1cb74428a67370e2e3db28e0f60f3ff38bb0a67439ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkNzE0MDc4Y2NhMTFlNzZmZDBlZGNlMGE3ZDQxNmQxZDU4OTcwOTVjYzljY2RhYTFlZTY0OTA0MmIxMjI2ZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NjlkMjM3Y2Q0MjBiOWQzOGI5ODFhMGE0ZjY3NzAxOTBhNGE4M2RjYTFmZTU2YzRmNWJhMWUyY2JjMGVmNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxZjk4ODQzMTU3Y2NkM2M4NDgwMDM1NGQyMDIzYjY1NzgyNzY2MzJjY2Y1Y2U5MjAyNjdjOTBmNzk1MTZmODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlYjc1NTYyMDkwNzdkNzNmYmFhNzIxOGIzYzQwMTUyYTg2ZjI2ZjY3NzdjNGJlZWM3ZDk0M2UxZWRlOTg1ZjEifQ"
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:ceb51d267929f0f808e786ef9126aa279313732225244c9ae8d667f13cb514ce"
         },
         {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L13-L32",
-          "version": "repo-lines-v1:sha256:6456816fab7f7b44fea336be90f363fa1dbcd559ce8e7dacdadf1b39edb41262:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhNTI5MTU2MjRmNGQ4YWI0MDM1NTEzMTA1M2JiZjQwMjRmN2UzNDM5MDBmMGUzOTA0NTM3NmEyMzc3OTk4NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYjU1MjA0M2VkZjU1NTMzODY5MmVkMGE3NDhhODM2YTYwY2YxZTQxZTQxMmE4OWYzNTMyYjI5NTA2MDQ5MTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViYjAyMTQ2ZmY1MWYxNjI2ZDBiNGJjOTdlNzk3NzNhNDU5MzU2OGUwYzJjMGI2NTRmOTdhN2YxYWIzODk2OTgifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L32-L101",
-          "version": "repo-lines-v1:sha256:f92c3dd1f8917b596eda757b65f24498f6a59803e6422526a7aa0cb3e688a3b6:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYjU1MjA0M2VkZjU1NTMzODY5MmVkMGE3NDhhODM2YTYwY2YxZTQxZTQxMmE4OWYzNTMyYjI5NTA2MDQ5MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxMGM2MmUxODc1OGZhZTE2ODEyMjYyMDdkODUwYzNmNGQxZjViOTE3NGVmOTMyNjJkZWVjMGFiMmI0YjllYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMWE0N2JlODQ0YWFhMjk1YWQ2N2Y5YjljMWFlMTM3ZTY5YjVlZDgyYWVlMjU1MzMyM2NmOTE1NTBmMTI0NjMifQ"
+          "resource": "repo://TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:887dafdf9993c003c48b80e77111fdeb7bc40fa06645d8d54ba05237cf6ba0d9"
         }
       ]
     },
@@ -217,16 +213,12 @@
       "statement": "In system-capture mode the mobile marketing test presents each view in a key window, writes a ready marker containing a unique run capture ID and token, and waits for an acknowledgment; the runner ignores stale or repeated tokens, stages simulator screenshots, and promotes them only after test success and expected-count validation, while the test times out on missing acknowledgment.",
       "evidence": [
         {
-          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L68-L147",
-          "version": "repo-lines-v1:sha256:afcbb8c937f699e1e64ec62445dfae8a217c2b9cf5b05e908ff0063b71d86331:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmYjQzNmJmNTRjMjdkMzM0MjE4Mzg2OTI4YTM2NzQwMWY3YzkyNmI3MjI2YTMwM2U3OTE0ODZiMmMzOTRjYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3YzA3ZDViNjk2NWFiNWNlOTMxMjI5ZGVjNDA0ZmExMmMwZDljMDQxN2Y3NmNmZmEzZmIxOTc0MDVlOTc5MjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxYTk4MjVlYWQ4MmM4OGY3M2M1NTliZWYxMjJjZmZmMmU5NTdiMjYxMDY3OGJiYmI0YWVlYjdkMmZlNWRhYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzMWZmZGRlMjgzZjg0ZWRjM2IwOTE0NGE3ZjQ5ZGJhYjk4ZTAwYmE2MWEwZmI4YzkzYjgwYmUzOTY0NDJiMWQifQ"
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:ceb51d267929f0f808e786ef9126aa279313732225244c9ae8d667f13cb514ce"
         },
         {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L213-L258",
-          "version": "repo-lines-v1:sha256:720b85fcc846dc4e6c8577aadca429ac66ef2d5e2d505e9adc2a8801c9526f58:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllZGU5ODFmYzdhMjljMDI1NzE1ZmRhOWQzOWJmZDZiNTI1NWQyNGE0ZjlmZGE1NjZiZDA0N2JjYWY3NzY0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L287-L309",
-          "version": "repo-lines-v1:sha256:446ddb60216a49995138620061b9291e60873c61bcae57b733d28a50e110c357:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2Y2I4NWZmMTAwMDhjYzRkYWE5NDBkMjNhNmJkZDI4ZmM3NTQ1MjI5OTM0MzQzZGQ3OTAzODFkMjllNjdlMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlNWEyNDAwODkyOGNhNzhjYThmNzViYjc4MjdjN2E5NmVlNGE4OGRiMTRjN2M4NDZlZTZjMDQ4OTI2ZTJjNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMWIyMzQyOWIzZTNlYjM2YTVkMDc0OTgwNGIyMTVkZjljYmFmMjRkZjE1ZTU1YTdlZWJhZDAzNDBiNDE5MjAifQ"
+          "resource": "repo://TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:887dafdf9993c003c48b80e77111fdeb7bc40fa06645d8d54ba05237cf6ba0d9"
         }
       ]
     },
@@ -235,34 +227,26 @@
       "statement": "Without system-capture mode a direct mobile marketing test writes rendered PNGs to the app's Documents/marketing-screenshots directory rather than to repository captures.",
       "evidence": [
         {
-          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift#L256-L280",
-          "version": "repo-lines-v1:sha256:621f415a249eb7bb0d1b4a2eacff7587956582a51bc58a0ce9801d1f5381cb7b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlYmE4ZmUxZDcwZTEyNjgzMDUyYzdlYjEzOGQ0ZmQyZmMwZjZkN2E4MjU3N2EzYzU4YTU1ZmUxYjNmMzIyMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxMGY3NTFjMmEwODNmY2ViNTUyZTAwYmRjZWViODM2M2RkMWY3MGJjZWJlMTkxNGY3N2NkOWFiMmY3NTJkY2YifQ"
+          "resource": "repo://TFITests/Screenshots/Marketing/MobileMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:887dafdf9993c003c48b80e77111fdeb7bc40fa06645d8d54ba05237cf6ba0d9"
         }
       ]
     },
     {
       "id": "claim_9f6ae2eb07b24d708bef7d4cdd749c26",
-      "statement": "`MobileIconRenderingTests` is a separate opt-in in-app UI/icon-label rendering check: `TERMIND_ICON_SCREENSHOTS` selects a language for temporary light/dark and large-type PNGs, while its terminal keyboard size and SF Symbol assertions run even without that variable; these images are not marketing captures or layered app-icon sources.",
+      "statement": "MobileIconRenderingTests is a separate screenshot-gated in-app icon/UI rendering suite; its outputs are separate from marketing captures and layered app-icon sources.",
       "evidence": [
         {
-          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L81-L86",
-          "version": "repo-lines-v1:sha256:69eb59b46f3e2b9527c0e1f49db6f4a2a87ec000235c76ad25225cd0a6ace7b3:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQ4MWUwMmM5MWE3ZTRmMThmM2MwNGEwYjg5MmRmOTM2YWJmYTQ5N2FmY2M2MDVlYzg1ZmI3YzgzZWZmYTQzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWZkNzdjZmI1NzAxNGRmYzkxYjc1YmQ4ZmM4ZTY0ZDg0MTQ3YWEwYjlmNjIyOTZkZTRjYTI2ZjYwODg3ZDFiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTgwMjE2ZDFlNGEyOTRkZmJlNWM1NTJhMWY5YTFlNTY1MWNhYmZjNjQ4OGU0ZjE1NGNmMDg1ZWY1ZDNjMGNhNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVhM2M3Y2Y3MzMzMjRkNzI5MTZlM2EwODEwMGIxMDJmMmJiZWNhMTdkOTE4YTM4NTcyMzU5NmY0MGNiMWY2NyJ9"
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:ceb51d267929f0f808e786ef9126aa279313732225244c9ae8d667f13cb514ce"
         },
         {
-          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json#L5-L89",
-          "version": "repo-lines-v1:sha256:fe731b5e0d9f5f682b8bc999b8e11fff1ac6d374746bd41f44e5507aaaf2364e:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwZjhmMDUyNzliY2M3NjU4NzNhMTczZGJkMGMyMDU1OWE4YjE5OGVlNTBlMTU3NjM2MmJhY2NlZDBiOTg2ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MzNjNTdjMjQ5ZjllMjExNjA3OWZhNDQ3ZDkxZjA5ZDM1NGQ4NmQyMmMwY2M3N2NiMDhkMWM3YjhmOWFjMDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
         },
         {
-          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L14-L60",
-          "version": "repo-lines-v1:sha256:fcb620e8aa0db754acd9cb3571a66e073f7c9d383afa57f98edff4483c38ef83:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwYmEwNjRlZjBiNmFjNWEwMzc3OGRiNDZiNTlkNzM0NWY3ZTVlMTZmMjY2ZjRmYzA5ZDY3YzRjNzViYTQyZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyZmY0OTU5NmNkOTE4MzZkYTk5OTFlMzY4M2VkOGMyMjcyMjU3ZjkzOGRiNmZkMDNmNDQ1ZjYzYTY5ODgyOWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YmRiOWVlNWU4MDQ4MzEzYTUxN2QwYTA2MDcwMWU3NGU4MDQyMTkwYTI3YzM2YzM0OWE3ODE3MDRlNzhmMzkifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L207-L275",
-          "version": "repo-lines-v1:sha256:a9a22a009d5f812be31c75a63ec5a6e8a3a4a8e4f2e99b7c4b88f7af7474d1d4:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZmY5Y2JiZGZiNTAxZWQ4YTA5NmQwOGZiMDBlZTZkYjIwN2UxMTgyMjA3MmUyOTM1YWJkYTZlOTAyN2NjYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiOWYzOTJmZWYzMzE5NjYwNWY2YzBkMWViZjM2OTU0ZmQxNjI1NWFiOTNhNjE1NGJlZTY3NWUxYTA1ZTlhMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileIconRenderingTests.swift#L84-L95",
-          "version": "repo-lines-v1:sha256:9afcaeadab4158fc5d15c2db2911342e079e26be9e0dbf0c0bb2432bbbfd0080:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkMjZjMTk3ZWRjNDQwMjY3YmQ5NmE2NDQ3Y2QxYThiMjkzZTRiOTUyMTZhMDM2NzBkYTQ5OTg5YzZkNzg5MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMjNhYTIxZjE1NTlmZDcwMTQxOGI3OWVlZDAzMDUzZmY4ZGMyNjA2YzBlMzIwMGRkNzViNDUxMjFlYjZjNjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmZTYzMzA1ZTE0NTdhMzc0YzYyNGMwMWIwNjNmY2Q1NDZkYmM1ZGRmZWEwYWQyOWU4MmMwYzU1M2U3ZDk2NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNzZjYTJlMDliZmRkMmEwMDgxMTUwOGQ3MjY5YWFmYmIxN2YxMmJmYTA4YTFkMGExOTYxNjNjMWE1MTZmY2YifQ"
+          "resource": "repo://TFITests/Screenshots/MobileIconRenderingTests.swift",
+          "version": "repo-file-v1:sha256:1c24e835b7c09c728d5a731c11694fe6f9d1ab1c6145c3dc3ac9eab8828627b8"
         }
       ]
     },
@@ -271,16 +255,12 @@
       "statement": "The Mac debug screenshot launch uses an in-memory store and demo models rather than ordinary persisted app data; the capture test prepares a centered light production window, moves the pointer off content and ignores mouse events to avoid hover highlights during the focused capture interval.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L332-L360",
-          "version": "repo-lines-v1:sha256:fdebc4718991d4aab5791e74e0cb2dd9c97860c9d21b005ad2b8ad39c8f88f94:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlZGNlMDY4NGFmOTI4NmM1NzhmZTkxOTRkMmUwZTE2N2VjMjkyODQzOTNhYzdjYWZkYjVmOTA1NzQ4M2U1ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzYmY5ZTZiODQ1MDUwMDRhZjdiNzA1NTA3MzFjMzVmMjIzODI0YWI5OTBiNDY4ZDUyMTQ1ZDc4YzU0MGJjZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0YzU1OGZhNDM0OWI1ZDVmZTE3OWNjNTU3ZDc3Y2Y5NWUyYWQ5ZGE0MTQ4NzA3MmYxMzM4YWUwOTdmZGQ0MjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhY2YyMzViMTRiMzEyNmRmYmIxOTkzN2FhZjFmNTk0Y2IwYzhlNjg5ZTBlMDRhMjEwM2JkNDVmNGI2ZWQ0OTEifQ"
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:9626c7897ccaf8095af34f8633e2f46cf3dd21d5011e9bb9798c23c3c1679e2f"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L44-L74",
-          "version": "repo-lines-v1:sha256:ce619523b0b8d2b586172ca222314c01e61c8d1f34f47ab70be5d9cd076a684c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNWU1MzZjNGQ3N2U0MTM0YmYyMDg2YThjZjRmN2Q2ZGQwMWFjNTg1ZGNhZDI1MDJiNGVmMDllMWJmMzE4YWUifQ"
-        },
-        {
-          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L15-L98",
-          "version": "repo-lines-v1:sha256:5dcd86af40e684795522ee54b09fe9f3426bb444a2d6cc70466194a9de67e6a1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYmVmN2M0M2JhYTIxZDJhNDVlNWNkOWY5MjNjMjlmN2FkOWMzMGE0Mjk1ZWE1MzgzOWUzYjYyNDVmNDVkNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2ODc0ZjNmZmZlYzQ2NjlmOTFlYTUwZGU1NWRjZmNjOTVmMGU5NDI2NmI0OWM3Y2NkYjliNTgyMWEyNjI4OGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
+          "resource": "repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:ff3ba03002a85301b84b7afa30d5ce4851e30c179b8ab1f1725d05a412bac75d"
         }
       ]
     },
@@ -335,7 +315,7 @@
           "version": "repo-lines-v1:sha256:c017ea0c6802155ec81b809d7c89e95d020d66ae382623da5e7eea403cf0bcb0:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwZTBmZjYzY2I1NTE0NjU3Yzc4ZDY1M2VhZTMzOTgxZjFjYjIyMDczZjIwMjA2ZWM3YWFmY2U1MjEyMThlMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjNTUzYmU2ZjhmZTYxZmY0ZDg3ODQyYWM0NjEzMjZhMDVhNGQ0ZGFhYWQxM2UwNzMyNWU0ZGU3YmU3MDI1Y2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM1NGU1MTlmODRmMzgwZWFjZGYyYWFlZjA5ODljZTg4YjExNzFjNjhiMWE2ZDliODcwYzkwOWU0OTMzOTk0MmUifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L44-L51",
+          "resource": "repo://TFM/App/TermindApp.swift#L45-L52",
           "version": "repo-lines-v1:sha256:faf21d08ae5fbbbc43b6fac60b08193d82194d28aebef6382a37c7def4b8873a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGJjYzYxMWFmMjNhOTFjM2I3MjdkMGFjZTRkZTIyMjQyZmM0OTA2YzcxOTRhNjM0OTE5YjY1ZDcwM2RkMDBiMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2NkMTc4ODdkOGI5YWNiMmVmNzhkZGRmYmI1MmQxYTMzZTBlYjYwNGUyZTU0NzMyMjk4ZmE2ZTIyODIyNzc3ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTkwZDc2Y2M3MDRjNTU3OWJiNzhhNTlmZDg5ODIwOTM4ZjNmNTViZGE4NWVmNmFlOGQwOGE4MzlmNzY3NzJkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDc5ZDlhNmMyNzljNmI2OWI4M2U1OGZmYTljNzIzYTFmYzljZDMxMmQwZGJiMjBiNWYyZWI5YTQ0OTM0NWYwMCJ9"
         }
       ]
@@ -349,11 +329,11 @@
           "version": "repo-lines-v1:sha256:277102a8a8ccd33df2b82ee088965744a4047de3db57fa779cf25545d868faec:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGJhM2I5NGI3MThmNTUxNGI2ZTA4YWMyOTljNWM5ZDI5Mjg4NzE5MDFlNjgwYjA5MmExMmM4MDk3NDQ4OGUzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTI3YTljNmMxZjlkNmM0MTc2MWQ1NTk3M2Q1MzYzMjNkYjJhYTYxYTc4MTlhOTJkMDNjMjUwNzVmODEyNmU3MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzhhNzM5ODFkZGY5ZDk2NzllZjM0ZDFhZjA0ZTQ1NjIwMTQ3ODIxNWNhODA3ZTljZjAzYmM1NmFlMTMwYWMwZCJ9"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L16-L22",
+          "resource": "repo://TFM/App/TermindApp.swift#L17-L23",
           "version": "repo-lines-v1:sha256:5383266e29c54e8811432a17570cd59e6ed3742ae2a18e1c9d9632dedde6b1f3:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTdjNmQ0ZTMxY2UxNDA5MjIwZWY2NTIwNzEzZDJiM2MwNjc4MWVhOTQwYmRjNTVkYWNhMzE0Mzc1MjUwMTQzZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTM5YzQwNzgyNWM2YWE4YWQzYjExMzRhODU0Mjg1ZDMzZjVkNDY2ZjM4ZGQzZDVjY2JmMDQ2NWYwODU5M2ZmMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzEwYmYxOWZlNGNjNzhjZDE3MWFjOGMxOWVlYmUzNzUwNzhiNGY4Yjg5NjI5MDAwOTY4NGU5OWEyZWIzNjkyNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTZiMWY2MDRhMzM3OTVmNzJjNTQyN2U5MjAzYTcwNzU4Mzc4NzZjYTZhOGZmNjE3ZDgzNzJjZDlkYWRjMjE1NSJ9"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L44-L100",
+          "resource": "repo://TFM/App/TermindApp.swift#L45-L105",
           "version": "repo-lines-v1:sha256:82a79bfcfd5b58e5ce9e5492c442f62e4b0e61fd661bdf59bb5dc9364b2dba85:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NTQzNmY2MWI3YzE3ZDI0OTQ0ZTdhYTNkZTM1MzU4YWQ2ZjFjZDE0MmM5YzIxOTFjN2NiOTFmYjA0OWJiODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExNDk3NTM5NDVkZDY0NjEwY2IwZTdlNGY1YjFiZGRiMGZhNmY0OTM0YjhiOGE2MDhhNDFlMjRhMWQ1NzgzMTkifQ"
         }
       ]
@@ -363,11 +343,11 @@
       "statement": "The initial Mac debug demo window is supplied to the real RootView in the production WindowGroup for a nil request ID, while explicitly requested windows use normal window creation; the demo or XCTest disables main-window restoration, and demos under XCTest are not suppressed as ordinary automatic test windows are.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L216-L250",
+          "resource": "repo://TFM/App/TermindApp.swift#L226-L267",
           "version": "repo-lines-v1:sha256:0e7ecf72cfdfa6e5ba24a7ea583033eae0266399d02c4cd0b631575a16dbdab2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZThjZDVkNTA2ZmYwYjY4ODQ3MTFjMmMxNTI1YjdiY2UwMmY0NDMxMDU2YTk3Y2E0ZDQ1NWY3N2Y5MTg4MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiOTZhMjE0MmNhYWZkMTdiNGEzYzMwYjI3MDMzZWIxMDMxOWZjNzEwOTFhMTc5NzY4YWQ3YTVjNmU3NmE2YjAifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L24-L33",
+          "resource": "repo://TFM/App/TermindApp.swift#L25-L34",
           "version": "repo-lines-v1:sha256:885f3d9ad4ecf5f68ecbc79357f5d99d7350076b5db84f5942179995c1725a91:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOGZkMDU3ZmYxMDg5ZWQ5NzJiZDYxNzZhNzc5MmI0MjI0NThmMDdmN2RhY2ZhZDA5MDExM2U1MTU4Y2E0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3M2ZkN2I1OTVlNjU3OGFkMDhjZWIyZjgxY2U3NDU5OTEzNzBhNWU4MDE3ODkyZGJmZjk2YzAwY2ZiNzQ0OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwNGE1NDQyNzMwZjkzNjk5ZjI1YzU0MTNiZDc0NTViMzZiYWNiYzNkMmVmZTU3MDA0MmFmMTdhNDU5OTUwNDMifQ"
         }
       ]
@@ -377,16 +357,16 @@
       "statement": "The Mac app delegate sizes, centers and lights the visible demo window and emits a demo diagnostic, but the capture test separately requires a focused native window and emits the marketing-ready marker; the runner uses the latter marker to perform system capture, waits for test success and dimension checks, then backs up and promotes the source image.",
       "evidence": [
         {
-          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L94-L150",
-          "version": "repo-lines-v1:sha256:c9119ee277a72d17f2f483211b04c2f04f615170e762daa80601ce61b45a5f85:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MzYyZDc1ZWNlN2I1YTM0MjQwMTU3ZmNkYzUzMjgwMDIwZDFhNDNjNzIzOTE3OGFhMDFjZjBlMTM1ZmRlYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwN2E2YTMyZDQ4MjQ4MzhiZjM4YzNjNDA4OTFjNjUxYzYwZmQzYmFjYTdjMWI3Yjk2MDA5ZjQzOTZmMWVjYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwMmI3ODZlYjEwMGEwZTZlNGZmMDIzYTk3YjFmN2EyYjMxMjVhMTMxNjIzNGI5NzMzMjgyYjRjYjI4M2FjNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZDRhMWI5Mzk2NTkwY2MzN2FhNGQyZDU4ODAwYTBmMWRhZDVlYWFjYWYzYzY5YmM5ZTgzNTZjOTM0YWVkNzUifQ"
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:4cb9d7d9fd01a6cec7140df431c3e9c8c20744b37174ccb50f0c07372a9a46f6"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L339-L374",
-          "version": "repo-lines-v1:sha256:b379a95eaf460bf6faf1229876b1200e478fbb34e069751b78fb1590612bbf33:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlZGNlMDY4NGFmOTI4NmM1NzhmZTkxOTRkMmUwZTE2N2VjMjkyODQzOTNhYzdjYWZkYjVmOTA1NzQ4M2U1ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0YzU1OGZhNDM0OWI1ZDVmZTE3OWNjNTU3ZDc3Y2Y5NWUyYWQ5ZGE0MTQ4NzA3MmYxMzM4YWUwOTdmZGQ0MjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmYjE0YjkwMjlkNDk4NTJjYmFlNWQzZDI3NzNiNjUwNTRhY2E1NDViNjQyOTJmYzVmOTFhMmI1NjBkOTA1NjgifQ"
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:9626c7897ccaf8095af34f8633e2f46cf3dd21d5011e9bb9798c23c3c1679e2f"
         },
         {
-          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L15-L98",
-          "version": "repo-lines-v1:sha256:5dcd86af40e684795522ee54b09fe9f3426bb444a2d6cc70466194a9de67e6a1:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYmVmN2M0M2JhYTIxZDJhNDVlNWNkOWY5MjNjMjlmN2FkOWMzMGE0Mjk1ZWE1MzgzOWUzYjYyNDVmNDVkNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMjdkYWVjZjNlZjA0NDEzZTViZTkwODQxYzQ5YTQ1NzA1MzliYTQwMTJiMWJlMjY0NzdiNzExZDFhZDkwYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2ODc0ZjNmZmZlYzQ2NjlmOTFlYTUwZGU1NWRjZmNjOTVmMGU5NDI2NmI0OWM3Y2NkYjliNTgyMWEyNjI4OGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
+          "resource": "repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:ff3ba03002a85301b84b7afa30d5ce4851e30c179b8ab1f1725d05a412bac75d"
         }
       ]
     },
@@ -395,7 +375,7 @@
       "statement": "The Mac demo path still runs scrubber setup and previous-session attachment cleanup before returning from in-memory demo model assembly; it skips the ordinary persistent settings, Keychain and sync/model wiring rather than all startup side effects.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L44-L80",
+          "resource": "repo://TFM/App/TermindApp.swift#L45-L81",
           "version": "repo-lines-v1:sha256:92db665184aa45237e4298efcb6b5d2de7ff91bce8f37539f26162c8b2730184:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0N2Y4YTRmZDhlNjlhM2FiY2ZlYzY3NWY2YjI0OThiNzJmNWFhNTEzOTllZjcyOGRhMTNmZTdiNjkxMTM5OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4Y2E4ZDY0YjZmMjMzMTkyOGYyYWU4Y2E4ZDhiMTY0N2IxNjg0MmExNTQzNjBmMjQ4YjU4NmI1M2JiMTAxYzgifQ"
         }
       ]
@@ -438,7 +418,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.6.0",
-    "at": "2026-10-02T08:42:40.505Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-03T06:43:09.891Z"
   }
 }

@@ -3,6 +3,9 @@ type: implementation guide
 title: SSH Multiplexing, Channel Admission, and I/O Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
@@ -20,6 +23,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHExclusiveConnectionAdapter.swift
   - id: openwiki-source-d371db64770fd2fcc301086b
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift
+  - id: openwiki-source-485aed7d2b2c06cef38fcfdd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift
   - id: openwiki-source-f3c300fe43c8f1ceb0906ed3
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -40,10 +45,7 @@ sources:
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "codex", at: "2026-09-26T04:29:20.893Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-09-26T04:29:20.893Z
+generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling
@@ -82,7 +84,7 @@ This is a conceptual layering diagram, not a claim that every owner supports eve
 
 ## Serial ownership is not serial completion
 
-`SSHConnection` is an actor facade, but `SSHConnectionWorker.queue` is the actual libssh2 owner. Async callers can have several outstanding exec commands; they do not each receive a blocking thread that independently enters the shared session. The worker keeps per-command state and advances it on a serial queue. SFTP drivers submit short operations to that same queue. The PTY worker constructs the same `SSHMultiplexedSFTPChannelOwner` with its own context/queue instead of creating a second libssh2 owner for the terminal transport. Worker destruction also obeys that boundary: a last reference released on the owning queue cleans up there, while release elsewhere synchronously enters that queue; it must not synchronously reenter the queue that is already executing it.
+`SSHConnection` is an actor facade, but `SSHConnectionWorker.queue` is the actual libssh2 owner. Async callers can have several outstanding exec commands; they do not each receive a blocking thread that independently enters the shared session. The worker delegates per-command state and progression to `SSHMultiplexedExecChannelOwner` on its serial queue. The PTY worker uses the same exec owner for non-PTY requests such as remote history reads. SFTP drivers submit short operations to that same queue. The PTY worker constructs the same `SSHMultiplexedSFTPChannelOwner` with its own context/queue instead of creating a second libssh2 owner for the terminal transport. Worker destruction also obeys that boundary: a last reference released on the owning queue cleans up there, while release elsewhere synchronously enters that queue; it must not synchronously reenter the queue that is already executing it.
 
 Metrics deliberately opts out of concurrent operations: `SSHExclusiveConnectionAdapter.withConnection` uses a busy flag and FIFO continuations to serialize complete operations on its owned connection. That adapter has no topology/fallback policy. Similar-looking SSH usage does not authorize merging Metrics, terminal, Agent, and forwarding lifetimes.
 
@@ -100,7 +102,7 @@ PTY setup retains one lease for the shell; exec retains one in its command objec
 
 ## Exec: opening → starting → running → closing → freeing
 
-`SSHConnectionWorker.execute` rejects an empty command, gets the current budget, acquires a lease, and checks on the queue that the connection still uses that same budget. It then creates `SSHExecChannel` and enqueues its ID in `pendingOpens`. The post-acquire identity check prevents admission on an old budget from attaching to a replacement connection.
+`SSHConnectionWorker.execute` delegates to `SSHMultiplexedExecChannelOwner`, which rejects an empty command, gets the current budget, acquires a lease, and checks on the queue that the connection still uses that same budget. It then creates `SSHExecChannel` and enqueues its ID in `pendingOpens`. The post-acquire identity check prevents admission on an old budget from attaching to a replacement connection.
 
 Each command owns:
 
@@ -137,6 +139,7 @@ if anything progressed or receive budget yielded: wake another sweep
 
 This is important when reasoning about fairness: SFTP does **not** live in the exec worker's `ready` dictionary. Queue confinement and short retry turns allow PTY/exec and other channel calls to interleave; the SFTP path currently uses async retry sleeps rather than a single unified readiness queue for all operations. Do not describe every transport user as fully event-driven or as receiving a common weighted scheduling guarantee.
 
+<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 For file-level fairness, extra physical connections, and fallback after silent authentication failure, continue with [SFTP Transfer Scheduling](/openwiki/workflows/sftp-transfer-and-external-edit.md). Those choices happen above this channel owner.
 
 ## Bounded turns, immutable retry bytes, and backpressure
@@ -156,6 +159,7 @@ The encrypted buffer is not merely a throughput optimization: its source comment
 
 ## Wakeups and retirement are correctness mechanisms
 
+<!-- openwiki: broken internal link [/openwiki/workflows/port-forwarding-pool-and-dispatch.md] link "/openwiki/workflows/port-forwarding-pool-and-dispatch.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Any libssh2 read can decode packets for another channel. The forwarding worker therefore services opens/listeners both before and after stream I/O, checks already-buffered channel data/EOF, and schedules another sweep on progress or budget exhaustion instead of requiring a new socket edge. A zero-window writer can be rescheduled after a window update even if no payload was read. See the exact forwarding algorithm in [Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md).
 
 Socket dispatch sources are queue-confined. `SSHSocketEvents.cancel` resumes suspended sources after cancellation and runs the descriptor-close completion only after **both** cancellation handlers have retired. The exec worker increments its generation on cleanup, clears queued work, closes SFTP and the channel budget, and rejects stale scheduled pumps/events. Transport errors report connection failure once and fail outstanding commands; one command's channel-local error follows its own close/free path instead.
@@ -200,4 +204,5 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Why does closing the terminal not close SSH yet? | PTY `closeTerminalSession` and last-sibling callback; an SFTP subsystem can still own the transport. |
 | Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, in-flight join, active leases and idle sweep; `AgentConnectionPoolTests`. |
 
+<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Tests cited here are implementation evidence; they are not a performance guarantee for arbitrary servers/routes. Keep the pinned dependency graph when validating changes, and do not turn the [historical forwarding benchmarks](/openwiki/operations/port-forwarding-benchmarks.md) into general WAN latency claims.

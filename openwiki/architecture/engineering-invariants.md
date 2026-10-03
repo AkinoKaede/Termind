@@ -3,6 +3,9 @@ type: engineering-contract
 title: Engineering invariants
 description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -212,22 +215,19 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
-  - id: openwiki-source-0dd012e3740bcc348fc36ccb
-    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-10-02T08:42:40.505Z" }
-verified:
-  - by: openwiki/0.6.0
-    at: 2026-10-02T08:42:40.505Z
+generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
 ---
 
 # Engineering invariants
 
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
+<!-- openwiki: broken internal link [/openwiki/architecture/system-boundaries.md] link "/openwiki/architecture/system-boundaries.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 Use [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
 
 ## Modules and persistence
@@ -244,7 +244,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V46 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V50 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -253,10 +253,11 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   surface. Both apps reuse semantic `AppStrings` entries and shared formatting; platform-specific wording uses explicit
   variants. Keep protocol values, identifiers and diagnostic codes with their existing owners. The string catalog remains
   in `Frameworks/Resources/Localizable.xcstrings`, not in the framework bundle. See
+<!-- openwiki: broken internal link [/openwiki/concepts/commerce-localization-and-product-surfaces.md] link "/openwiki/concepts/commerce-localization-and-product-surfaces.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V46 schema/plan; each app composition root retains its startup container
+  migration. `makeContainer` fixes the complete V50 schema/plan; each app composition root retains its startup container
   for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
   app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
   store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
@@ -268,25 +269,26 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   location; mobile uses Application Support/in-memory tests. Both apps share the CloudKit container and bundle-derived
   Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
+<!-- openwiki: broken internal link [/openwiki/architecture/system-boundaries.md] link "/openwiki/architecture/system-boundaries.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
-- The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); manual StoreKit tests use `TERMIND_STOREKIT_TESTS=1`. Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
+- The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V46 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V50 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
   asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
   retaining scoped quarantine), V41 (shared notification preferences), V42 (agent-message provenance, chat creation
   relations and durable collaboration delivery receipts), V43 (public MCP OAuth settings), V44 (Host model fields), and
-  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
 ### Notification ownership and delivery
 
-`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V46 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
+`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V50 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
 
 ```mermaid
 sequenceDiagram
@@ -337,6 +339,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
   outside the source window. Escape and accepted drops do not create a window. Ownership transfers only when the
   destination's native window registers; native close disconnects only owned sessions and cancels pending moves.
   Independent transfers/services survive. Mounting never repeats authentication; explicit retry/reopen may.
+<!-- openwiki: broken internal link [/openwiki/workflows/desktop-drag-and-drop.md] link "/openwiki/workflows/desktop-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
   Preserve the source and receiver contracts in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md).
 - Desktop Vault/Assistant, Metrics, dynamic Workspaces and Settings routes are window-local. Settings data is app-wide;
   closing it restores the replaced destination. Width changes may adapt panels, never routes/editor identity/session
@@ -436,8 +439,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.
-- Exporting several authorized Keys resolves credentials immediately before work, authenticates once per Host and opens
-  one exec Channel per Key on that connection. Local validation completes before the remote account is changed.
+- Key export selects one Key and one saved SSH Host. It resolves or derives the public key before remote execution, authenticates through the connection journey, and distinguishes remote export success from a subsequent local Host attachment failure. Changing the destination cancels the current operation. Local validation completes before the remote account is changed.
 - Welcome parses bounded SSH grammar without shell/OpenSSH config execution. Exact aliases supply metadata; overrides
   create session route snapshots, never replaced with saved endpoints. Routes cap at eight Hosts and reject cycles.
   Connect saves nothing. Explicit Save copies changed records/prerequisites in one Vault transaction, rolling back new
@@ -476,6 +478,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
   forwarding rather than sessions and never consume this budget.
 - Public send/receive adapters accept complete encrypted packets and apply bounded backpressure outside library calls,
   avoiding pinned libssh2's lost forwarded-tcpip confirmation on EAGAIN. Teardown discards writes/returns EOF; descriptors
+<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
   close after cancellation handlers. See [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md) for budgets, rationale and measurement
   limits; buffers are per flow/session, never a global memory cap.
 
@@ -527,13 +530,13 @@ The shared coordinators decide eligibility and the native routers navigate witho
 - Host Startup Snippet is a Vault-synced optional Snippet ID (V26). Every interactive SSH shell resolves the current body and
   submits it once at the authenticated prompt boundary, including automatic reconnects; explicit launch commands override only
   until submitted. Missing/empty Snippets are no-ops. SFTP, forwarding, Metrics, Agent and route connections never run it.
-- History starts after authenticated start, retains optional remote status/duration (never receive-time inference), normalizes
-  backslash continuation only and caps at the shared 250 rows/Host. Both UIs show first line plus ellipsis.
+- Each live terminal owns a memory-only history snapshot loaded after authentication plus subsequent shell events. It retains optional remote status/duration (never receive-time inference), normalizes
+  backslash continuations and caps at 250 rows per session. Reconnect keeps the snapshot; close clears it. Both UIs show first line plus ellipsis.
 
 ### SFTP and external edits
 
 - Domain owns `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPChannelModel`, Remote Infrastructure libssh2 protocols,
-  Presentation symbols/kinds. Device-local History changes only after fresh successful listings/downloads, never stale/failed/
+  Presentation symbols/kinds. Session-local memory-only History changes only after fresh successful listings/downloads, never stale/failed/
   cancelled/type-changed work.
 - `SFTPClient` is the connect/disconnect facade and owns its authenticated `SSHConnection`; `SFTPChannel` is the sole
   file-operation implementation. Standalone SFTP, Agent primary SFTP and terminal fallback therefore
@@ -688,11 +691,13 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
   search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
   follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
   attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.
+<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
 - Preparation is distinct from streaming and from terminal-failure persistence. For a still-`preparing` capture, `stop`, global cancellation and mobile background expiration request cancellation immediately on the MainActor: the identity becomes noncurrent before async work joins, so a stale edit cannot enter history mutation or start a run. The cancellation task waits for tracked edit/history and preparation tasks, then attempts to save an interrupted snapshot before projecting interruption and retiring preparation. `stop()` itself does **not** wait for that save; use `stopAndWait()` or await `cancelPendingRuns().value` at a drain boundary. A failed interrupted save reports an error instead of claiming durable interruption. Archive/delete await preparation cancellation; manual compaction refuses active preparation, and selection alone does not cancel it. Once missing-model/credential handling enters `savingFailure`, cancellation instead joins the in-flight failure save without replacing it with an interrupted snapshot: the failure is projected only after successful persistence; a failed save leaves an error and retires preparation. Tests block memory, truncation and save independently, so do not generalize the interruption guarantee across these phases. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md).
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
   user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
   summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
   and opening-title preservation. The repository rejects an edit if the removed suffix contains tool messages or tool cards, or if the
+<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
   selected user message has agent-message provenance; do not silently erase executed work or collaboration-origin turns. See [Persistent Data](/openwiki/concepts/persistence-and-secrets.md) for graph cleanup and rollback.
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
@@ -766,7 +771,8 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 
 ## Commerce, review invitations and metrics
 
-- `ProAccessController` is app-wide and receives access from `RevenueCatProPurchaseService`, not a separate StoreKit transaction observer. The service configures anonymous RevenueCat StoreKit 2, requests current customer info, observes updates, and may sync pre-integration purchases once when access is absent; on a fetch error it uses cached customer info if available. The configured RevenueCat entitlement alone unlocks Pro: failed verification does not unlock, lifetime purchases grant access, and active trial/subscription/grace phases grant access only through their deadlines; billing retry, expiration and revocation do not. A failed refresh preserves previously resolved status except when still loading; newer customer-info updates outrank older refresh responses. The controller schedules a refresh at the current entitlement deadline; mobile also refreshes on foreground. An absent or invalid bundled RevenueCat configuration fails closed. The StoreKit fixture test is a manually gated **catalog metadata** check, not a runtime entitlement or purchase-flow proof; `FrameworkTests/RevenueCatCommerceTests.swift` exercises configuration, resolver and controller behavior with fixtures/fakes. Presentation derives values and native paywalls navigate. Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement. Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
+<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+- `ProAccessController` is app-wide and receives access from `RevenueCatProPurchaseService`, not a separate StoreKit transaction observer. The service configures anonymous RevenueCat StoreKit 2, requests current customer info, observes updates, and may sync pre-integration purchases once when access is absent; on a fetch error it uses cached customer info if available. The configured RevenueCat entitlement alone unlocks Pro: failed verification does not unlock, lifetime purchases grant access, and active trial/subscription/grace phases grant access only through their deadlines; billing retry, expiration and revocation do not. A failed refresh preserves previously resolved status except when still loading; newer customer-info updates outrank older refresh responses. The controller schedules a refresh at the current entitlement deadline; mobile also refreshes on foreground. An absent or invalid bundled RevenueCat configuration fails closed. `StoreKit/Termind.storekit` is a manual development fixture; live products, trial eligibility and purchases require RevenueCat and App Store Sandbox validation; `FrameworkTests/RevenueCatCommerceTests.swift` exercises configuration, resolver and controller behavior with fixtures/fakes. Presentation derives values and native paywalls navigate. Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement. Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
 
 ```mermaid
 sequenceDiagram
@@ -869,6 +875,7 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
 - `AISecretStore` migration needs verified account/cloud copy/durable local marker; reads never cache, deletion markers prevent resurrection.
   Custom MCP headers/terminal text are ordinary synced settings, explicit credentials never CloudKit. Tombstones/unresolved references survive
   partial fetch; cloud beats baseline. Duplicate skill names/MCP namespaces retain all data but only lowest UUID executes. Metrics hides records
+<!-- openwiki: broken internal link [/openwiki/operations/cloudkit-release-readiness.md] link "/openwiki/operations/cloudkit-release-readiness.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
   awaiting their Vault Host. Signed-device and deployment checks are in [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md).
 
 ## Mobile boundaries
