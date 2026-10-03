@@ -68,6 +68,9 @@ public nonisolated enum MetricsSyncPersistenceError: LocalizedError {
 }
 
 public nonisolated enum MetricsSyncCodec {
+    /// Replay records rejected by the cloud reader that required the writing version.
+    public static let capabilityID = SyncRecordFormats.metrics.capabilityID + ";cloud-reader:2"
+
     public static func encode(_ envelope: MetricsEnvelope) throws -> Data {
         guard envelope.isValid else {
             throw MetricsSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
@@ -78,6 +81,13 @@ public nonisolated enum MetricsSyncCodec {
     }
 
     public static func decode(_ data: Data) throws -> MetricsEnvelope {
-        try JSONDecoder().decode(MetricsEnvelope.self, from: data)
+        struct Header: Decodable {
+            struct Key: Decodable { var kind: String }
+            var formatVersion: Int
+            var key: Key
+        }
+        let header = try JSONDecoder().decode(Header.self, from: data)
+        try SyncRecordFormats.metrics.validate(kind: header.key.kind, version: header.formatVersion)
+        return try JSONDecoder().decode(MetricsEnvelope.self, from: data)
     }
 }

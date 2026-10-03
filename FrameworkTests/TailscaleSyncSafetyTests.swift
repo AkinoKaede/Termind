@@ -130,7 +130,7 @@ struct TailscaleSyncSafetyTests {
         fixture.network.nextEngine.fetchBody = { try fixture.receive([record], []) }
         try await fixture.start()
         #expect(fixture.network.serializations.last! == nil)
-        #expect(try safety.capability().capabilityID == SyncRecordFormats.metrics.capabilityID)
+        #expect(try safety.capability().capabilityID == MetricsSyncCodec.capabilityID)
         #expect(try !safety.isUploadBlocked(recordName: record.recordID.recordName))
         let journal = MetricsSyncJournal(context: fixture.container.mainContext)
         #expect(

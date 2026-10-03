@@ -88,7 +88,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
                 pendingChanges: {
                     try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
                 },
-                safety: .persistent(context: context, capabilityID: SyncRecordFormats.metrics.capabilityID),
+                safety: .persistent(context: context, capabilityID: MetricsSyncCodec.capabilityID),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },
@@ -249,7 +249,6 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public nonisolated static func envelope(from record: CKRecord) throws -> MetricsEnvelope {
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
-        try CloudSyncRecordCoding.validateFormat(in: data, supported: MetricsEnvelope.currentFormatVersion)
         let envelope = try MetricsSyncCodec.decode(data)
         guard record.recordType == recordType, envelope.key.recordName == record.recordID.recordName, envelope.isValid
         else {

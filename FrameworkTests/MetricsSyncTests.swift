@@ -3,12 +3,67 @@ import Foundation
 import SwiftData
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPersistence
 import Testing
 
+@testable import TermindInfrastructure
+
 @Suite @MainActor
 struct MetricsSyncTests {
+    @Test(arguments: [false, true])
+    func historicalV1CloudRecordsRemainReadable(isDeleted: Bool) throws {
+        let record = try historicalRecord(isDeleted: isDeleted)
+        let envelope = try MetricsSyncCoordinator.envelope(from: record)
+        #expect(envelope.formatVersion == 1)
+        #expect(envelope.isDeleted == isDeleted)
+        if !isDeleted {
+            guard case .selection(let value) = envelope.payload else {
+                Issue.record("Historical Metrics selection was lost")
+                return
+            }
+            #expect(!value.selection.enabled)
+            #expect(value.selection.disks == ["sda"])
+            #expect(value.selection.interfaces == [])
+            #expect(value.selection.tailscaleGroupID == nil)
+        }
+    }
+
+    @Test
+    func readerUpgradeRefetchesQuarantinedV1WithoutLosingPendingLocalEdits() async throws {
+        let fixture = try CloudSyncSafetyFixture(category: .metrics, seed: false)
+        defer { fixture.stop() }
+        try await fixture.start()
+        let record = try historicalRecord()
+        let old = try MetricsSyncCodec.decode(
+            CloudSyncRecordCoding.payloadData(from: record, invalidEnvelope: CocoaError(.coderReadCorrupt)))
+        let persistence = MetricsSyncPersistence(context: fixture.container.mainContext, defaults: fixture.defaults)
+        try persistence.save([MetricsSelection(id: old.key.id, interfaces: ["en0"])])
+        let journal = persistence.journal
+        let local = try #require(try journal.envelope(for: old.key))
+        let safety = try fixture.safety()
+        try safety.quarantine(
+            recordName: record.recordID.recordName,
+            payloadData: CloudSyncRecordCoding.payloadData(
+                from: record, invalidEnvelope: CocoaError(.coderReadCorrupt)),
+            reason: "Previous reader rejected V1", reasonCode: .invalidRecord)
+        try safety.capability().capabilityID = SyncRecordFormats.metrics.capabilityID
+        try safety.recovery().requiresRefetch = false
+        try fixture.container.mainContext.save()
+        #expect(fixture.batch([.saveRecord(record.recordID)]) == nil)
+
+        fixture.stop()
+        fixture.network.nextEngine = LifecycleEngine()
+        fixture.network.nextEngine.fetchBody = { try fixture.receive([record], []) }
+        try await fixture.start()
+
+        #expect(fixture.network.serializations.last! == nil)
+        #expect(try safety.blockedRecordNames().isEmpty)
+        #expect(try safety.capability().capabilityID == MetricsSyncCodec.capabilityID)
+        #expect(try journal.envelope(for: old.key) == local)
+        let batch = try #require(fixture.batch([.saveRecord(record.recordID)]))
+        #expect(try MetricsSyncCoordinator.envelope(from: #require(batch.recordsToSave.first)) == local)
+    }
+
     @Test
     func legacySelectionsMigrateOnceWithCompleteConfigurationAndOrder() throws {
         let defaults = UserDefaults(suiteName: "MetricsSyncTests.\(UUID())")!
@@ -115,6 +170,30 @@ struct MetricsSyncTests {
         let store = MetricsSyncPersistence(context: container.mainContext, defaults: defaults)
         try store.prepare()
         return (container, store)
+    }
+
+    private func historicalRecord(isDeleted: Bool = false) throws -> CKRecord {
+        let id = "30000000-0000-0000-0000-000000000001"
+        let payload =
+            isDeleted
+            ? ""
+            : """
+            ,"payload":{"selection":{"_0":{"selection":{
+            "id":"\(id)","enabled":false,"disks":["sda"],"interfaces":[]},"sortIndex":0}}}
+            """
+        let data = Data(
+            """
+            {"formatVersion":1,"key":{"kind":"selection","id":"\(id)"},
+            "version":{"modifiedAt":100,"counter":1,"writerID":"11111111-1111-1111-1111-111111111111"},
+            "isDeleted":\(isDeleted)\(payload)}
+            """.utf8)
+        let record = CKRecord(
+            recordType: MetricsSyncCoordinator.recordType,
+            recordID: CKRecord.ID(
+                recordName: "v1/selection/\(id)",
+                zoneID: CKRecordZone.ID(zoneName: MetricsSyncCoordinator.zoneName)))
+        try CloudSyncRecordCoding.setPayload(data, on: record, assetURL: FileManager.default.temporaryDirectory)
+        return record
     }
 }
 
