@@ -837,6 +837,7 @@ private struct SoftwareKeyEditor: View {
                 return true
             }
             let passphrase = passphrase.isEmpty ? nil : passphrase
+            let savesPassphrase = savePassphrase && passphrase != nil
             let inspected = try SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
             if !normalizedCertificate.isEmpty {
                 _ = try SSHUserCertificate.parse(
@@ -845,8 +846,9 @@ private struct SoftwareKeyEditor: View {
             }
             _ = try await save(
                 name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, storage,
-                privateKey, passphrase, savePassphrase, normalizedCertificate, inspected
+                privateKey, passphrase, savesPassphrase, normalizedCertificate, inspected
             )
+            savePassphrase = savesPassphrase
             isWorking = false
             return true
         } catch {
@@ -1244,12 +1246,14 @@ private struct GenerateKeySheet: View {
                 try credentials.upsert(key)
                 selectKey(key)
             } else {
+                let savesPassphrase = savePassphrase && !passphrase.isEmpty
                 _ = try await generate(
                     label.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, generation,
                     storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
-                    savePassphrase, cipher, rounds, storage,
+                    savesPassphrase, cipher, rounds, storage,
                     storage == .secureEnclave && requiresUserPresence
                 )
+                savePassphrase = savesPassphrase
             }
             passphrase = ""
             confirmation = ""

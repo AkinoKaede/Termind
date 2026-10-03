@@ -13,15 +13,42 @@ struct MobileKeyExportTests {
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: "secret")
         let editor = MobileKeyEditorModel(mode: .importKey, credentials: CredentialLibraryModel(library: library))
         editor.privateKey = material.privateKey
-        #expect(editor.canSave)
+        #expect(editor.canSave && editor.savePassphrase)
         try await editor.save()
+        #expect(!editor.savePassphrase)
         let key = try #require(library.keys.first)
         #expect(key.hasPassphrase && key.publicKey.isEmpty && key.fingerprint.isEmpty)
         #expect(key.algorithm == .unknown)
         #expect(library.requiresPassphraseEntry(for: key))
+        let reopened = MobileKeyEditorModel(
+            mode: .edit, credentials: CredentialLibraryModel(library: library), key: key)
+        await reopened.loadPrivateKey()
+        #expect(!reopened.savePassphrase && reopened.passphrase.isEmpty)
         let export = KeyExportModel(
             key: key, library: library, services: RemoteConnectionCoordinator().keyExportServices())
         #expect(export.needsExportPassphrase && export.authenticationPrompt == nil)
+    }
+
+    @Test func clearingASavedPassphraseTurnsSavingOffButKeepsTheKeyEncrypted() async throws {
+        let library = HostLibraryModel()
+        let credentials = CredentialLibraryModel(library: library)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: credentials)
+        generator.passphrase = "secret"
+        generator.confirmation = "secret"
+        try await generator.save()
+        let original = try #require(library.keys.first)
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: credentials, key: original)
+        await editor.loadPrivateKey()
+        #expect(editor.savePassphrase && editor.passphrase == "secret")
+        editor.passphrase = ""
+        try await editor.save()
+        let saved = try #require(library.key(original.id))
+        #expect(saved.hasPassphrase && !editor.savePassphrase)
+        #expect(!credentials.hasSavedPassphrase(for: saved))
+        #expect(library.requiresPassphraseEntry(for: saved))
+        let reopened = MobileKeyEditorModel(mode: .edit, credentials: credentials, key: saved)
+        await reopened.loadPrivateKey()
+        #expect(!reopened.savePassphrase && reopened.passphrase.isEmpty)
     }
 
     @Test func manuallyEnteredPublicKeyCanBeChangedAndClearedWithoutUnlocking() async throws {

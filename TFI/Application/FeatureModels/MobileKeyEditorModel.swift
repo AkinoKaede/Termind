@@ -239,6 +239,7 @@ final class MobileKeyEditorModel: Identifiable {
             nil
     ) async throws {
         guard canSave else { throw CocoaError(.coderInvalidValue) }
+        let savesPassphrase = savePassphrase && !passphrase.isEmpty
         if usesWebAuthn {
             var credential: SecurityKeyCredential
             if mode == .generate, let registerSecurityKey {
@@ -300,8 +301,9 @@ final class MobileKeyEditorModel: Identifiable {
             try credentials.upsert(
                 key,
                 credential: .software(
-                    SSHPrivateKeySecret(privateKey: input, passphrase: savePassphrase ? enteredPassphrase : nil))
+                    SSHPrivateKeySecret(privateKey: input, passphrase: savesPassphrase ? enteredPassphrase : nil))
             )
+            savePassphrase = savesPassphrase
             clearSensitiveDrafts()
             return
         }
@@ -349,9 +351,10 @@ final class MobileKeyEditorModel: Identifiable {
                 hasPassphrase: try SSHKeyMaterial.privateKeyMetadata(material.privateKey).isEncrypted, createdAt: .now,
                 colorTag: colorTag)
             secret = .software(
-                SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: savePassphrase ? passphrase : nil))
+                SSHPrivateKeySecret(privateKey: material.privateKey, passphrase: savesPassphrase ? passphrase : nil))
         }
         try credentials.upsert(key, credential: secret)
+        savePassphrase = savesPassphrase
         clearSensitiveDrafts()
     }
 
