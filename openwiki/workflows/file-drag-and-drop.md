@@ -1,11 +1,8 @@
 ---
 type: interaction workflow
-title: File Drop and Upload Routing
+title: File Drag and Drop
 description: How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 tags: [drag-and-drop, files, macos, ios, assistant, ssh, sftp, shell-integration, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
@@ -43,6 +40,8 @@ sources:
     resource: repo://TFI/UI/Components/MobileDropPayload.swift
   - id: openwiki-source-d4d621c97707c9d77357829d
     resource: repo://TFI/UI/Components/MobileWindowDropTarget.swift
+  - id: openwiki-source-a58d5ef8fa89aff75e31553b
+    resource: repo://TFITests/MobileCommandGeneratorAndUploadTests.swift
   - id: openwiki-source-2ccf9b5f9aa44bcc4462adbe
     resource: repo://TFITests/MobileDropTests.swift
   - id: openwiki-source-16db5d5459897d40fe080701
@@ -73,16 +72,17 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
-# File Drop and Upload Routing
+# File Drag and Drop
 
 File dragging crosses three boundaries: native event routing chooses a visible receiver, payload loading chooses a representation, and the destination starts an attachment import or a transfer. A native `.copy` proposal or a successful drop callback means the gesture was accepted; asynchronous loading, validation, conflict resolution, and transfer can still fail afterward.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/desktop-drag-and-drop.md] link "/openwiki/workflows/desktop-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-This page follows those events and ownership transitions. [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) covers Workspace/Pane layout moves and Assistant conversation-list sorting, which use different payloads and state. Transfer scheduling and connection leasing are detailed in [SFTP Transfer and External Edit](/openwiki/workflows/sftp-transfer-and-external-edit.md).
+This page follows those events and ownership transitions. [TFM Drag and Drop](desktop-drag-and-drop.md) covers Workspace/Pane layout moves and Assistant conversation-list sorting, which use different payloads and state. Transfer scheduling and connection leasing are detailed in [SFTP Transfer and External Edit](sftp-transfer-and-external-edit.md).
 
 ## Supported routes and destination ownership
 
@@ -97,10 +97,9 @@ This page follows those events and ownership transitions. [TFM Drag and Drop](/o
 | SFTP file → Finder / external file consumer | Lazy promised file. | No corresponding drag exporter in the mobile SFTP browser. | Download when the consumer requests the file representation. |
 | Key file → Key editor | Native file receiver. | No matching Key drag receiver. | Software mode populates private-key/certificate fields; Security Key mode reads a validated FIDO2 reference. Save persists the chosen key type. |
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-“Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is available without Pro on both platforms; it still requires a connected session, transfer configuration and a usable reported working directory. SFTP browser upload uses its own explicit-directory path. For the separate native Upload File menu actions, see [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md).
+“Terminal upload” here means **SSH terminal upload**, dependent on the current directory reported through Shell Integration. Telnet cannot use this path. SFTP browser uploads already have an explicit directory and do not require Shell Integration. The SSH convenience is available without Pro on both platforms; it still requires a connected session, transfer configuration and a usable reported working directory. SFTP browser upload uses its own explicit-directory path. For the separate native Upload File menu actions, see [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
 
-Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L457-L549), [mobile destinations](../../TFI/Features/Workspaces/MobileWorkspace.swift#L194-L223), [mobile upload entry](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L560-L594), [desktop SSH availability](../../TFM/Features/Terminal/TerminalUploadModel.swift).
+Evidence: [desktop pane routing](../../TFM/Features/Workspaces/WorkspaceContentView.swift#L457-L549), [mobile destinations](../../TFI/Features/Workspaces/MobileWorkspace.swift#L214-L243), [mobile upload entry](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L643-L674), [desktop SSH availability](../../TFM/Features/Terminal/TerminalUploadModel.swift).
 
 ## TFM: AppKit events and representation priority
 
@@ -147,7 +146,9 @@ Workspace uploads use `MobileWindowDropTarget`, with a noninteractive marker vie
 
 Ghostty also owns a drop interaction. `MobileTerminalDropTarget` temporarily replaces that interaction with a forwarder: uploadable providers go to the Workspace coordinator, while ordinary text and web links go to Ghostty's original delegate. Uninstall restores the original interaction. Reattaching a retained terminal first removes an earlier forwarder rather than wrapping it again.
 
-Two guards handle overlapping window and terminal callbacks: `activeInteraction` prevents a late exit from the old interaction from clearing the new target, and `performedSession` prevents the same native session from being uploaded twice. Leaving, ending, disabling, detaching, or moving between windows clears target state and removes/restores the relevant interactions.
+Two guards handle overlapping window and terminal callbacks: `activeInteraction` prevents a late exit from the old interaction from clearing the new target, and `performedSession` prevents the same native session from being uploaded twice. Leaving, ending, or disabling clears targeting; disabling gates callbacks but does **not** uninstall the interactions. Detaching or moving between windows removes the old window interaction and restores the terminal's original interaction; dismantling the representable uninstalls both routes.
+
+`MobileWorkspaceView` enables the receiver only while `workspaceIsVisible && scenePhase == .active`, and `.id(workspace.id)` gives a changed Workspace a distinct native destination lifecycle. Disappearance clears targeting, unbinds terminal upload-menu callbacks and cancels provider loading; changing Workspace identity clears the captured picker target and cancels loading too. Scene inactivity disables native acceptance, but is not itself a call to `cancelDropLoading()`. These are presentation lifetimes, not instructions to disconnect the Workspace or cancel admitted transfers. See [Mobile UI and Scene Ownership](../architecture/mobile-ui.md) for the session owner.
 
 ### Loading files before UIKit releases them
 
@@ -155,11 +156,31 @@ Two guards handle overlapping window and terminal callbacks: `activeInteraction`
 
 For staged files, copying occurs **inside** `loadFileRepresentation`'s callback, before UIKit can remove its temporary URL. Security-scoped access and `NSFileCoordinator` protect the read. Each item gets its own subdirectory, preserving same-named files independently; suggested names are reduced to a last path component, with a type-derived extension when needed. File URLs are copied through the same staging mechanism.
 
-`MobileWorkspaceView.receiveUploadProviders` cancels earlier loading and pending preparation, captures `uploadDestination`, loads providers, then rechecks cancellation and destination identity before calling `prepareUpload`. Disappearance, Workspace changes, or destination changes cancel loading. Cancelled, empty, or immediately rejected payloads remove their staging root. Successful staging must survive navigation because queued transfers still read those files; staging creation also prunes old roots after seven days. Do not describe this as immediate cleanup on transfer completion.
+`MobileWorkspaceView.receiveUploadProviders` cancels earlier loading and pending preparation, captures the receiving Workspace object, `uploadConnectionGeneration` and `uploadDestination`, then loads staged providers. Before calling that captured Workspace's `prepareUpload`, it rechecks task cancellation, current Workspace ID, connection generation and destination equality. Disappearance, Workspace changes, destination changes, or connection-generation changes cancel loading, so reconnecting to the same directory cannot reuse a retired load. Cancelled, empty, or immediately rejected payloads remove their staging root. Successful staging must survive navigation because queued transfers still read those files; staging creation also prunes old roots after seven days. Do not describe this as immediate cleanup on transfer completion.
+
+`cancelDropLoading()` only cancels and clears the view's provider-loading task. It does not call `cancelPendingUpload()` and does not cancel a transfer already admitted to the coordinator. A new accepted provider batch explicitly cancels pending Workspace preparation before loading; subsequent preparation and queue ownership are described below.
 
 A failed provider does not discard other successfully loaded files: the payload returns files and failures separately. The view can start the readable uploads and report the first provider failure. Assistant loading uses its own referenced file/image path and collects all provider failures into the composer error.
 
-Evidence: [window delegate and deduplication](../../TFI/UI/Components/MobileWindowDropTarget.swift#L46-L192), [terminal forwarder](../../TFI/Platform/MobileTerminalDropTarget.swift#L4-L69), [payload selection/staging](../../TFI/UI/Components/MobileDropPayload.swift#L29-L229), [view cancellation and handoff](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L73-L93), [provider completion](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L569-L600).
+```mermaid
+flowchart TD
+    Native["Window or terminal file drop"] --> Visible{"Visible active receiver and pointer inside?"}
+    Visible -->|No| Decline["Decline upload"]
+    Visible -->|Yes| Capture["Cancel prior pending work and capture Workspace, generation, destination"]
+    Capture --> Stage["Load providers and copy within callbacks"]
+    Stage --> Current{"Task and captured target still current?"}
+    Current -->|No| Discard["Remove staged root"]
+    Current -->|Yes| Files{"Readable files?"}
+    Files -->|Yes| Prepare["Prepare upload on captured Workspace"]
+    Prepare -->|Immediate rejection| Discard
+    Files -->|No| Empty["Loader removes empty staging"]
+    Current -->|Yes| Failure["Report first provider failure separately"]
+    Prepare -->|Accepted| Retain["Keep staged files for transfer consumers"]
+```
+
+Mobile payload loading precedes preflight; partial provider failures do not discard readable files.
+
+Evidence: [window delegate and deduplication](../../TFI/UI/Components/MobileWindowDropTarget.swift#L57-L190), [terminal forwarder](../../TFI/Platform/MobileTerminalDropTarget.swift#L4-L69), [payload selection/staging](../../TFI/UI/Components/MobileDropPayload.swift#L29-L229), [view visibility and cancellation](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L73-L119), [provider completion and handoff](../../TFI/Features/Workspaces/MobileWorkspaceView.swift#L643-L679).
 
 ## Assistant: dropping creates composer attachments
 
@@ -169,15 +190,13 @@ Both adapters call the shared `ConversationModel.importAttachmentFiles` / `impor
 
 The live `ContextAttachmentLoading` implementation calls `ContextAttachmentImporter`: regular files are read under security-scoped access, with a 25 MiB input limit; text/PDF/modern Office content is extracted and images normalized. Directories, unsupported formats, and legacy Office files fail import. Extracted text is limited to 200,000 characters and normalized image output to 5 MiB. Therefore a native receiver accepting a file URL does not imply that its contents are a supported attachment.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Sending is a separate step. `AssistantExecutionController` refuses submission while attachments are pending, then captures and consumes accepted composer attachments with the submitted turn. First-send promotion and persistence follow the [Assistant runtime workflow](/openwiki/concepts/agent-runtime-and-assistant.md).
+Sending is a separate step. `AssistantExecutionController` refuses submission while attachments are pending, then captures and consumes accepted composer attachments with the submitted turn. First-send promotion and persistence follow the [Assistant runtime workflow](../concepts/agent-runtime-and-assistant.md).
 
 Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L16-L91), [sidebar target](../../TFM/Features/Assistant/AssistantView.swift#L189-L237), [TFI adapter](../../TFI/Features/AI/MobileAssistantConversation.swift#L9-L83), [TFI gating](../../TFI/Features/AI/MobileAssistantConversation.swift#L556-L560), [pending imports](../../Frameworks/TermindApplication/Agent/ConversationModel.swift#L1800-L1873), [file importer](../../Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift#L9-L83).
 
 ## SSH uploads: shell directory → SFTP preparation → queue
 
-<!-- openwiki: broken internal link [/openwiki/concepts/shell-integration.md] link "/openwiki/concepts/shell-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Shell Integration emits the working directory through OSC 7. Ghostty parses it; desktop `SSHSessionModel` and mobile `MobileWorkspace` observe that terminal state. `TerminalUploadAvailability.problem` requires a connected session, a transfer configuration, and a resolved nonempty working directory. It asks the user to wait for the shell prompt when the directory is unavailable; the transfer does not guess `/` or the user's home. The actual gate checks this state, rather than a separate “integration enabled” Boolean. See [Shell Integration](/openwiki/concepts/shell-integration.md) for hook installation and reporting.
+Shell Integration emits the working directory through OSC 7. Ghostty parses it; desktop `SSHSessionModel` and mobile `MobileWorkspace` observe that terminal state. `TerminalUploadAvailability.problem` requires a connected session, a transfer configuration, and a resolved nonempty working directory. It asks the user to wait for the shell prompt when the directory is unavailable; the transfer does not guess `/` or the user's home. The actual gate checks this state, rather than a separate “integration enabled” Boolean. See [Shell Integration](../concepts/shell-integration.md) for hook installation and reporting.
 
 On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered SFTP token becomes `.remote`. After the upload-availability checks, `prepareTerminalTransfer` cancels prior preparation and captures the normalized directory, connection-attempt ID, and a new preparation ID. It prefers an independent SFTP connection from the SSH connection snapshot. If opening it fails while the attempt is still current, `TerminalUploadConnectionResolver` can open an SFTP channel on the PTY connection; cancellation must not trigger that fallback.
 

@@ -3,9 +3,6 @@ type: release-readiness
 title: CloudKit Release Readiness
 description: Release gates for CloudKit schema deployment, historical SwiftData store upgrades, scoped sync recovery, physical deletion and signed-device compatibility.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -105,14 +102,17 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
 # CloudKit Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
-Both target entitlement templates declare CloudKit and `iCloud.com.akinokaede.termind`; their iCloud-container environment and push environment are build-setting substitutions. The project sets the iCloud environment to Development in Debug and Production in Release for each target. Inspect the **signed artifact's** effective entitlements and the actual deployment environment rather than inferring them from a source plist or a local build. The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
+Both target entitlement templates ([TFI](../../TFI/TFI.entitlements), [TFM](../../TFM/TFM.entitlements)) declare CloudKit and `iCloud.com.akinokaede.termind`; their iCloud-container environment and push environment are build-setting substitutions. The [project source settings](../../Termind.xcodeproj/project.pbxproj) select `ICLOUD_CONTAINER_ENVIRONMENT = Development` for Debug and `Production` for Release in each target. These are configuration inputs, not proof of effective signed entitlements or deployed Production schema. Inspect the **signed artifact's** effective entitlements separately from verifying the actual CloudKit schema deployment with authorized management credentials. The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
 
 ## Schema inventory
 
@@ -270,9 +270,6 @@ Release sign-off should record, separately:
 6. the SFTP preference and mixed-version safety matrices; and
 7. the published privacy-policy version and effective date.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/settings-and-cloud-sync.md] link "/openwiki/workflows/settings-and-cloud-sync.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-See [Settings, Vault, Metrics, and Cloud Sync Workflow](/openwiki/workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for ordinary build gates.
+See [Settings, Vault, Metrics, and Cloud Sync Workflow](../workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](../concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](build-test-and-release.md) for ordinary build gates.
 
 Current compatibility gates are per kind: Host reads/writes V2 (also reads V1); HostGroup and SSHKey write V3 and read V1/V2/V3; Metrics selection writes V2 and reads V1/V2. Tailscale group configuration is part of HostGroup, while managed peer Hosts, sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history and V50 adds profile cleanup. Validate mixed-version group/key/metrics edits, quarantine and refetch independently of the V50 local migration.

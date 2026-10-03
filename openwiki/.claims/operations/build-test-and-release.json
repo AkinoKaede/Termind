@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:045cd249a21468a12c93d772602de3113f9ee8c827539a1e601a6fc1a609e4ba",
+  "pageVersion": "sha256:cebf2e4b259e02e0aa4bb78d70cb5e06163b48116eeb61873ae22f130cc06151",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -401,7 +401,7 @@
           "version": "repo-lines-v1:sha256:f22fbfa4d5570d9fe8bf74baf50551b7bfd6f451a59d19c595a7b0f212353726:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYjQ1NmZhZTIzNTk4ZGIzZDdlMzFlMjc4YjI5MjFiMjhkNzMyNDQ0YWVhNjg3MWJhNmEzYWVlYjZhNzE2NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjZTY5Njc0MzFiNGQwZmEwMTVjNDJiYTc0M2JkNDljYWZlMzU0M2JiY2M2OWI4ZTZkOGZjOGFkMjFlMjQwNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRjMDQ0NzBmNTdjMjg5ZTUwOTA2ZDk5M2EwOWFhZDc2YTY1MGZiODdmYmQ2ODBiNWM0OGE4ZTRiMTM2N2MxMDgifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L283-L290",
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L265-L272",
           "version": "repo-lines-v1:sha256:0d6bb0b37fb554e8b9302d093a9af0fa520208839a95725d345524f93da30995:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTFkM2Q5N2NmMzcxYzJjNjRmMzIxNTczOTk0MDgyNmNlNTE4YzZlMmZiMjVmNWY4ZjAzZWM3YWExNDgyMDJhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWJlMWZhODIzNjNlN2Y1MDhhNmU4YzdiZWU4ODg4OTlkZWVmZGZiNTI4MjQyMDM3NjBmN2NmMWEwMzY3MjQxZSJ9"
         }
       ]
@@ -554,11 +554,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f11c003304f9de6db10f85dedf047f6de6d62c2d9321baec11a3c4c97ed5a6f2"
+          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:0ec4aa2360f005d5bd1318908b36f7777ffcf63e45c8caf05ff3d8aa4b167147"
+          "version": "repo-file-v1:sha256:274e8acd520af1b174ba4071547b76fcf6e8f4e0acdf075455c8bf2963570c34"
         }
       ]
     },
@@ -571,10 +571,102 @@
           "version": "repo-file-v1:sha256:277ec4f365386b57ffecf33e7a1ab88fb84975ed3381be0e7e152898a4ce0e7c"
         }
       ]
+    },
+    {
+      "id": "claim_bc99198720944c0683f37f65c58c9139",
+      "statement": "The headless TerminalFindControllerTests suite verifies retained-query restart, navigation requiring a query, idempotent end-search dismissal, and the distinction between default terminal-focus restoration and native dismissal with restoringFocus: false.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalFindControllerTests.swift",
+          "version": "repo-file-v1:sha256:f30d05cd59d536870f2a5ee2d92d1c97107aa544acb78a541a3d85436a9fc3ca"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift",
+          "version": "repo-file-v1:sha256:19592329ca36a71a6e27cb040204122ada57d5789b1c83e127035a2891ab21cd"
+        }
+      ]
+    },
+    {
+      "id": "claim_a726c03cdd4849c4bc67cefe5c5d1ac6",
+      "statement": "MobileTerminalSearchTests.swift declares MobileTerminalSearchIntegrationTests, a serialized suite gated by TERMIND_MOBILE_UI_TESTS; repository guidance requires command-line TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1, parallel testing disabled, and a narrow TFITests suite filter on an available simulator.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L54-L78",
+          "version": "repo-lines-v1:sha256:0e6c146fd362771f2cca3a2647acf347858131cade127701e45e6663f0a18c32:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjQ2YzJkMzc4MDg5NzhhODM3MjA4ODAyMzhhMzIxMzNlNzk5ZDJiZTRkMDFkM2I1MjdiMTY4NjU4YjFiMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZjcwZjgxYzI5ZjcyY2ViM2I4YzBkMGVkNzEwZTQzM2JiYzA4MDQzZjUwZjhmYTE3ZDc1NDRkYmQwNjcwOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MmNlZmUxNGFjNWEwZjU2YzQ0MDM0MTI5OTVhMDIwZmJiMWZjZWI5MTczNGViZjllNjJiZWEyYzQ1NWNiMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L11",
+          "version": "repo-lines-v1:sha256:fe517ac2d4e3671eac0a5a9e34d74015174cf061504a64f44f4bed4f565a052d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzNiNGM4ZTY2NGY1M2YyOTQyZmJiY2Y1MWE1MGU5MzEyZTgwYzM2MWJmMTcyZTE3ZDZjNDM3YTJiNzEyMmQ3YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjljMDhhMjUxODVkODRjMDFkYWU5YjNmZDY1ZGZmNmI1NTY1MGIwZTQ5NDgxM2MxOGQ4Mjk2OTI3ZTQxNjY0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThmMWNlNjFjODhmOGRiNGU0NDA2ZjY1NzZkNzRiOTU2NzY0YjMxODk1OGM5NzlkYTI5Mzc2NjYwMTE0MTRjNiJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme#L25-L52",
+          "version": "repo-lines-v1:sha256:df271653446a88ce49df6c4f146b94acea68146f3d12fbf80e894e3e2f694fce:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMzMxZTFiY2RkOThjODFhN2FhZDMzZDZkOGMwOTNlMTE1NzYyODE5MGM2ZjQzNDUyZGJhNDBhYjI0YjczZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5YTdhNzM3ZGMxMzZkMzFkNzUyYjFjY2U0N2VhNTBkMWQ1OWUwODIxZWQyYTU0ZTc5MmUxMWI2M2QxNzU0ZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzZGFjYjcyYzhjZmVjMjI2MmMxNGI1ZmEwNWQ0YmI4OWU5MTk1ZjAwZTBlNjA5NWJkMDM2YTU3MjBjOTU5OWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlYWMxYzY4YzUwNDExNWM3OGZmOWM3NGY4NTdiZGI1ODJlNjNkMmFkMjk4ZTM3ZDRjMmI3M2U4YjY1MmJmNTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6bdf9cfef9c14574a3b807b7be04199f",
+      "statement": "MobileTerminalSearchIntegrationTests checks repeated terminal search reopening with retained queries after native, terminal-focus-then-native, and programmatic dismissal, empty-query editing, SFTP filter retention, and search-controller continuity across SSH/SFTP journey overlays with SSH terminal-view identity preserved.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L12-L127",
+          "version": "repo-lines-v1:sha256:887d866deb56a6003e4572834ad937d3e0a58b1b141543e08787f075a10f0514:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0NzE5ZjZiMDE0YjVjMWM1NzkyODI4OTUzMDE1NjkyMjIwMDcyMWU1Yzg2OTdlZWMwZTZhMTM3NTUwYWUwMTA2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmZTUxN2FjMmQ0ZTM2NzFlYWMwYTVhOWUzNGQ3NDAxNTE3NGNmMDYxNTA0YTY0ZjQ0ZjRiZWQ0ZjU2NWEwNTJkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMjY0ZDUxMTcwNzJhNDc1NTU4ZDFmOGQ5ZjhhNzczNzcxYjkyMzliYTk1OWVmMTllMWQ4MTVlNmQyY2RkZWNmIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_877a07d6721b42fbbc466eb7bce3b44e",
+      "statement": "The mobile search integration fixture is local UIKit validation using an in-memory MobileAppModel and temporary key window; cleanup ends editing, removes the hosting controller, restores the prior key window, and disconnects the workspace rather than validating a live remote connection.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L129-L203",
+          "version": "repo-lines-v1:sha256:54ddddaf5d12d8186bb5ea696dd945c5c065ea520ee5b34d54b76c6bc2fa718a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1b5e931e7f6541c8a1dd106ede8d6920",
+      "statement": "MobileWorkspaceSearchModifier maps native terminal search dismissal to find.dismiss(restoringFocus: false), while MobileToolbarSearch lets UIKit own presentation and blocks synchronization and input callbacks during dismissal to prevent reopening mid-transition.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift#L9-L27",
+          "version": "repo-lines-v1:sha256:57a70cee441a2078fc95549d3d81f7057c33c090870bb558b44029b7e81cac35:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyNDY4MzAwYTI4ZTI1NjM5ZjFkOWRhMGU4OTE0MjY4ZWE2MDM4Y2VhMjgwYzE0MjU2YWU1MjM2MDIwNGRkZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4OTA1YTkwMjljODA0MTBhZjg3NzE3MTM0ZGVlZThkOGE1ZTNlYzUxMDAyMWI3N2JmODAyNjgwODRlMjVjNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjMjgwNGEyZGNmOGQ1NDNiN2RiOTE3ZmI4YjhjYTgzZjNjZGYwMDBjMWJiNjBiNWNiYzkwMzRlN2VkMjlmMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YTM2NWE5MGVjMTFlOTA0MzI3NTJjZjkzNzZlYzVlZDM2YjgwYmE1ZThlNjg1NGZjZjk4OTcwZDMwNDQ0NjkifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L101-L193",
+          "version": "repo-lines-v1:sha256:60dcb13c8c7f5c296cec575a4ee695f1477e30ce2052af1afa8214cc6f2046f2:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNGNjYTJlMmVmNmJkY2FiZmE0OTZjOTRiNWJkY2E5ZTMwOWRlZjcyMzVlZGIzOTJhYmVmZjgwZTc4YTM4MmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4YWNlOWI3NWYyZWQ5ZTRiMDk4NTZlNGJjYjFhMDJiMzVjNzY1MzRjNzhiZjM0MjZlYjllYWQxNWM2YmUyYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L44-L54",
+          "version": "repo-lines-v1:sha256:bed07b95c9b1473ba35496bd1ee773af3ed85f81a4f37ace1f12b04b3dd2230f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmYWU1MmMxN2FhNGQ5NTUzNjE5MWVkMjNjYjI2NmRmODczNGFiM2FkY2Y4NDcxYjZjZjYwNjgwZTdhMTc2ZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMmM3YzJkY2JlYzVjMmUxMGQ2Mjk5MjU2MDRkMDFkMWZjOTRmM2M1ZGViZjliOGNmZjljNDMyMjYzNzU4MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImExMzFjMTExMDcyN2UzOTg0YWQ0NjM1OWI4ZmVjNTQ4ZWYxMTQxOWVkZjk0ODRjNzAxNzk3NDM1NjYxZWE3N2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e091aed598f442048fd29c019a3ae64b",
+      "statement": "prepare-local-ghostty-workspace.sh creates an explicit development override at build/KeywordHighlighting/Termind.xcworkspace without changing committed app pins: it requires an already-built local GhosttyKit.xcframework Info.plist, stages Package.local.swift as Package.swift, symlinks Sources/Tests/BinaryTarget, copies the app lockfile, and refuses to replace non-symlink staging entries. Verification through this workspace is distinct from ordinary resolved remote-project builds and from publishing a fork binary release.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L20-L29",
+          "version": "repo-lines-v1:sha256:1594fbe93be141b563e612e21290d25c40383cf050d688b3f2007fe2f3b02b53:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyMDY4MTg4ODg0YWQzYjJmMTk3MTgxYzAxNDM1ODdlNGE5ODJiMDY3ZTNhYmY2ZGI3MmQzNjJkYTFhNjBjMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0MDg5NDQ1M2ZkYWJiN2NlNDI3MTkxMTczMjE0Yzc3OGI0MmQwOTc4NmIzNTc0OWNlM2E3YzNhNWMwMGQ4YjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MDNlOTNiOTIwZGNjMjVjNGFmODJjZTE3NGI3M2QxODcyOTUxMGM2ZGExNTEwZjU4MGE0MDE3NzZkN2M2NTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMTU0OWExMDQ4NDY0MTI1MTBiOTc3NGEzYjYyYzg4ODVjNGMzYjhhMzhiMGQ0N2JhYjgxNWNiYjAxYmM5NTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/prepare-local-ghostty-workspace.sh",
+          "version": "repo-file-v1:sha256:4ed069472ec0a371fc0f1c8c88c046262f37dc9f3ec87643df5745466d977f1b"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2953-L2959",
+          "version": "repo-lines-v1:sha256:7b78d39291c545cf1f88008f5b4be1300fe7f531329f9a4a49407cfc759868e9:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIyMmU4M2Y3NjViMmQ0MjdkMjkyZDIxZmYxZTM1MDY2MTg5YjFjN2ZhNWNkMWU4NTc2NWZjNTBiMGFkMDgzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGM4NTQ5NDBjMTlmYjEwMDZhMTc2ZDFhNDAyZjcxZDI0YThkNTBlZGYwOWQzNjU0MjE2YWJiOGNlY2ZlZDVmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWIzNTU0NDczNjcxZTMyZmQ0Y2E1YzBkMWUxOGQ4NDQzYTNmY2RjYWQ4YjE4Y2YxMDEwMGI3MmYyZDVhZDEyYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzhlNDIzNTVhMGMzYWI1NTNlNzhhNWFkM2MzMzc3ZGI5ZjFhMzdiMDA4MDZjYzZmMGY3ZDg3NmExYTdjNjNlYSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L157-L165",
+          "version": "repo-lines-v1:sha256:146562db12c5f444c9cc919e2cf10be631171f5f1dcfab36cdcc20e60a2f7440:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhhNWI3NGY4MGQ0OTdmZWQzMjJiYmVlYWJjNmYwMDdiMGY0NWRiMGVlNDdlNDU2MjEyMzk2NzZmMGE4ZmY5ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTZkZTA5NmFmZTlkMzgwMDk3NWQwMjA4NmQyMjhlYzA3Y2M2M2E1NWI5NDVmMWI1ZjM2ODhiZTY1NmI4ZGMzMiJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-03T22:38:13.888Z"
   }
 }

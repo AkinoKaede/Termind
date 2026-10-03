@@ -3,9 +3,6 @@ type: architecture guide
 title: iOS and iPadOS UI and Scene Ownership
 description: "How iOS and iPadOS scenes own navigation and workspace routes while shared services own connection journeys and Metrics; covers native presentation continuity and key-window test boundaries."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -13,6 +10,10 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/LibraryExpansionState.swift
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
+  - id: openwiki-source-1e3a2ac8356020fd3ea569c9
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFind.swift
   - id: openwiki-source-131881b779429a1d1d605e52
     resource: repo://Frameworks/TermindPresentation/ConnectionJourneyRouteView.swift
   - id: openwiki-source-9a8e4b8df311efa27f706ca7
@@ -37,6 +38,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-deb061208994fd7d84d4f029
+    resource: repo://TFI/Application/Transfers/MobileSFTPChannelModel.swift
   - id: openwiki-source-851edcded7143bb79a41f6c6
     resource: repo://TFI/Application/Workspaces/MobileConnectionHistory.swift
   - id: openwiki-source-99e98ad50ba8a7c6df018977
@@ -59,12 +62,16 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-5503f969776cb509a7d69160
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
+  - id: openwiki-source-a88ccceb978a169c1cce67ac
+    resource: repo://TFI/Features/Terminal/MobileTerminalInitialFocus.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
   - id: openwiki-source-d34ac3e852773901d0566033
@@ -83,6 +90,8 @@ sources:
     resource: repo://TFI/UI/Components/MobileEditorSheet.swift
   - id: openwiki-source-9e1ad4464fb43a1ffe1283c7
     resource: repo://TFI/UI/Components/MobileNotificationMenuLabel.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
@@ -101,6 +110,8 @@ sources:
     resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
   - id: openwiki-source-2c7245a9a1462a5a8d09b739
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
     resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
@@ -111,16 +122,17 @@ sources:
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
   - id: openwiki-source-cc27a76170a8c672a70e388a
     resource: repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
 # iOS and iPadOS UI and Scene Ownership
 
 TFI is not a scaled-down copy of the desktop split-pane window. It uses system-adaptive top-level tabs/sidebar, a navigation stack for each registered feature, and scene-local routing. Application services are shared, but terminal workspaces and their saved descriptors belong to persistent window sessions, not to one global workspace collection. Adaptation changes presentation without automatically replacing the conversation, terminal or connection being presented.
 
-<!-- openwiki: broken internal link [/openwiki/architecture/desktop-ui.md] link "/openwiki/architecture/desktop-ui.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/ui-design-principles.md] link "/openwiki/concepts/ui-design-principles.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Read [TFM Desktop UI Architecture](/openwiki/architecture/desktop-ui.md) for the desktop contrast and [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for shared presentation boundaries.
+Read [TFM Desktop UI Architecture](desktop-ui.md) for the desktop contrast and [UI Design Principles](../concepts/ui-design-principles.md) for shared presentation boundaries.
 
 ## Code structure and ownership
 
@@ -194,7 +206,7 @@ Host activation and explicit connection actions are different:
 
 - `activateHost` prefers this scene's most recently selected matching terminal workspace, then another matching live workspace **in this window's session**, before creating one. The same Host in another window is not reused.
 - Explicit SSH, Telnet and SFTP connection actions call the session open path and can create independent workspaces. Connect presents a scene-local picker; Batch Startup holds a single pending selection until picker dismissal and then rechecks current protocol compatibility, creating new ordered workspaces only in this session without changing another scene's route. Opening Connect cancels an unfinished batch request.
-- The workspace title switcher replaces the pushed detail by workspace identity. This resets detail-specific state such as SFTP search without treating the owned terminal/session as a newly created runtime.
+- The workspace title switcher replaces the pushed detail in place with `.id(workspace.id)` in `MobileWorkspaceListView`. The old detail and its UIKit search bridge are dismantled before the new detail mounts, preventing an SFTP search presentation from leaking into an SSH detail. This resets **presentation** state, not the workspace-owned `sftpChannel.query`, Find query, connection or native terminal. `MobileWorkspace` supplies the retained native view through `terminal.makePlatformView`; replacing the SwiftUI detail identity is not recreating that view or reconnecting the runtime.
 
 Unavailable saved workspace IDs produce an explicit unavailable state; a stale route does not silently open some other Host. Root-level deep links, quick actions and focused scene commands dispatch through that scene's model.
 
@@ -293,23 +305,28 @@ Production reserved-region and vertical-toolbar queries require both the `TERMIN
 
 ## Connection journeys are runtime state, not scene navigation
 
-`ConnectionJourney` belongs to the active operation (`MobileWorkspace`, a Metrics `ServerMetric`, or a port-forwarding connection), not to `MobileSceneModel`. The scene selects a feature or workspace route; the detail chooses between its journey and its normal content. Thus changing tabs, popping a Metrics detail, or resizing does not itself answer or cancel a pending authentication challenge. The shared `TermindPresentation` header, route and status sections render the purpose-specific destination and connection phase; `MobileConnectionJourneyView` supplies mobile scrolling, a bounded content width, inline forms and logs. The route visualizes endpoints/checkpoints and scrolls toward activity except under Reduce Motion; its output is a view of the journey, not a second connection state machine.
+`ConnectionJourney` belongs to the active operation (`MobileWorkspace`, a Metrics `ServerMetric`, or a port-forwarding connection), not to `MobileSceneModel`. The scene selects a feature or workspace route; each detail decides how to present its runtime's journey. In `MobileWorkspaceView`, `showsJourney` is true for a presented journey, required authentication or a host-key prompt. For **SSH and Telnet**, the terminal stays mounted in a `ZStack` beneath an opaque journey overlay: its container has opacity zero, hit testing disabled and accessibility hidden while covered. Workspace chrome, title switcher, toolbar and `MobileWorkspaceSearchModifier` remain outside this changing content and keep their identity. For **SFTP**, the journey and `MobileSFTPBrowser` are alternative branches: browser retention is not promised. Metrics likewise branches between journey and normal panels; its stable panel layout applies only within normal content. Thus changing tabs, popping a Metrics detail, or resizing does not itself answer or cancel a pending authentication challenge. The shared `TermindPresentation` header, route and status sections render the purpose-specific destination and connection phase; `MobileConnectionJourneyView` supplies mobile scrolling, a bounded content width, inline forms and logs. The route visualizes endpoints/checkpoints and scrolls toward activity except under Reduce Motion; its output is a view of the journey, not a second connection state machine.
 
 ```mermaid
 flowchart TD
-    Scene["Scene selects detail route"] --> Detail["Workspace, Metrics or forwarding detail"]
-    Runtime["Operation owns journey and pending prompts"] --> Detail
-    Detail --> Journey{"Journey or prompt visible?"}
-    Journey -->|yes| Shared["MobileConnectionJourneyView with shared header and route"]
-    Journey -->|no| Content["Normal detail content"]
-    Shared --> Inline["Logs, authentication, host key, failure or status"]
-    Inline --> Runtime
+    Scene["Scene selects workspace detail"] --> Chrome["Stable workspace chrome and UIKit search bridge"]
+    Chrome --> Kind{"Workspace kind"}
+    Kind -->|SSH or Telnet| Stack["Terminal remains mounted in ZStack"]
+    Runtime["Workspace owns journey and prompts"] --> Visible{"Journey or prompt visible?"}
+    Visible -->|yes| Overlay["Opaque inline journey over gated terminal"]
+    Stack --> Overlay
+    Visible -->|no| Exposed["Terminal visible and interactive"]
+    Stack --> Exposed
+    Kind -->|SFTP| Branch["Browser or journey branch"]
+    Runtime --> Branch
+    Overlay --> Decisions["Submit, trust, retry or explicit close"]
+    Branch --> Decisions
+    Decisions --> Runtime
 ```
 
-The detail routes runtime-owned prompts into an inline connection surface and forwards user decisions back to the owning operation.
+SSH/Telnet retain the mounted terminal beneath a journey; SFTP branches its content while sharing stable workspace chrome and search.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-The mobile content priority matters: logs (when toggled) replace the form, then pending security-key signing, keyboard-interactive challenge, ordinary SSH authentication, host-key confirmation, failure with Retry/Cancel/Copy Logs, reconnect countdown/actions, and finally phase status. Challenge and authentication forms use prompt IDs as view identity; keyboard-interactive cancel checks that the challenge is still current. Logs can be copied to the pasteboard. The header compresses its log button for accessibility sizes, while the failure actions stack for large text and animation respects Reduce Motion. A refactor should not turn the journey into a modal sheet or a scene-global prompt: each caller supplies its own submit, trust, retry and cancel closures. Workspace Cancel closes its workspace; Metrics Cancel disables monitoring and dismisses detail; forwarding Cancel stops the rule and dismisses detail. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for connection-side behavior.
+The mobile content priority matters: logs (when toggled) replace the form, then pending security-key signing, keyboard-interactive challenge, ordinary SSH authentication, host-key confirmation, failure with Retry/Cancel/Copy Logs, reconnect countdown/actions, and finally phase status. Challenge and authentication forms use prompt IDs as view identity; keyboard-interactive cancel checks that the challenge is still current. Logs can be copied to the pasteboard. The header compresses its log button for accessibility sizes, while the failure actions stack for large text and animation respects Reduce Motion. A refactor should not turn the journey into a modal sheet or a scene-global prompt: each caller supplies its own submit, trust, retry and cancel closures. Workspace Cancel closes its workspace; Metrics Cancel disables monitoring and dismisses detail; forwarding Cancel stops the rule and dismisses detail. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection-side behavior.
 
 ### Metrics detail and monitoring boundary
 
@@ -328,12 +345,50 @@ The Metrics destination reads `app.metrics.servers` (one application-wide monito
 
 These are not all enabled merely because the menu exists. Connection state, available history, refresh state and operation capability control individual actions.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal view even when SwiftUI navigates away. The adapter binds the workspace Find controller, and appends F3/Shift-F3 Find key commands to Ghostty's existing commands. It replaces unmodified and Shift-Escape equivalents with Find dismissal only while Find is presented; ordinary terminal key handling remains with Ghostty otherwise. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the native menu hooks, backend and appearance flow.
+Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal view even when SwiftUI navigates away. The adapter binds the workspace Find controller, and appends F3/Shift-F3 Find key commands to Ghostty's existing commands. It replaces unmodified and Shift-Escape equivalents with Find dismissal only while Find is presented; ordinary terminal key handling remains with Ghostty otherwise. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the native menu hooks, backend and appearance flow.
 
-Presentation cleanup is narrower than session shutdown: workspace view disappearance disables external Open With presentation and window drop handling, clears drop targeting and cancels drop loading. It is not itself the instruction to disconnect the workspace. Drop handling is also gated by scene activity and destination changes, so an invisible detail does not accept a late upload as though it were foreground.
+Presentation cleanup is narrower than session shutdown: workspace view disappearance disables external Open With presentation and window drop handling, unbinds terminal upload-menu callbacks, clears the captured upload target and drop targeting, and cancels drop loading. UIKit search teardown separately calls `disconnect()` on its bridge. Neither is itself the instruction to disconnect the workspace: session `close` explicitly calls `workspace.close()` and removes its runtime and descriptor. Drop handling requires a visible detail and an active scene; destination or connection-generation changes cancel loading so an invisible or changed detail does not accept a late upload as though it were foreground. See [File Drag and Drop](../workflows/file-drag-and-drop.md) for payload and upload boundaries.
 
 Command-generation and upload notices are overlays in the usable region; they do not take over hit testing. File previews, edit-copy export, transfer sheets and conflict alerts remain explicit temporary presentations over the workspace rather than new session owners.
+
+### Native toolbar search lifecycle
+
+[`MobileWorkspaceSearchModifier`](../../TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift) binds SSH/Telnet search text to `workspace.find.query` via `updateQuery`, presentation to `present()` / `dismiss(restoringFocus: false)`, and Submit to `navigate(.previous)` (toward older terminal output). The workspace's `TerminalFindController` sends `search:<query>`, `navigate_search:<direction>` and `end_search` through `terminal.performBindingAction`. Presenting again reissues a nonempty retained query; clearing text updates the search without closing it. Dismiss ends highlighting but does not erase the query. Ordinary programmatic `find.dismiss()` defaults to restoring terminal focus; **native UIKit dismissal deliberately does not**.
+
+SFTP uses the same bridge with text bound to `workspace.sftpChannel.query`, but no model presentation binding or terminal Find action. That query filters already-loaded file names case-insensitively after hidden-file filtering, before sorting; it is not a remote search request. Closing search retains the filter in the workspace model even though the UIKit presentation is inactive.
+
+[`mobileToolbarSearch`](../../TFI/UI/Components/MobileToolbarSearch.swift) mounts a background `UIViewControllerRepresentable` anchor with a single-line text binding. Its controller owns `UISearchController` and walks ancestors to find the child directly inside a `UINavigationController`. It attaches search to that child's `navigationItem`, captures and enables `definesPresentationContext`, and uses `.integratedButton` on iOS 26 or `.inline` on older systems. It does not obscure background content or hide the navigation bar. On owner change or dismantling it removes its own search controller and restores the captured presentation-context flag only if that navigation item still holds its controller.
+
+Configuration from a SwiftUI update schedules synchronization on the next main-queue turn: UIKit delegate callbacks can publish back to the model, so they must not run synchronously inside the update. Parent attachment and appearance also synchronize. Synchronization attaches the navigation owner, copies retained text, and honors an optional model presentation request; activating Find makes the search bar first responder. The dismissal fence is essential: `isDismissing` blocks text synchronization, reactivation, edits and Submit callbacks until `didDismissSearchController` clears it. Do not replace this bridge with competing SwiftUI searchable/focus bindings that can reopen the integrated search mid-dismissal.
+
+```mermaid
+sequenceDiagram
+    participant Model as Workspace Find controller
+    participant Bridge as MobileToolbarSearchController
+    participant Nav as Navigation owner
+    participant Search as UISearchController
+    Model->>Model: present with retained query
+    Bridge->>Bridge: configure then defer synchronize
+    Bridge->>Nav: attach search and save presentation context
+    Bridge->>Search: copy query and activate first responder
+    Search->>Bridge: willPresent
+    Bridge->>Model: publish presented true
+    Search->>Bridge: textDidChange or Submit
+    Bridge->>Model: updateQuery or navigate previous
+    Search->>Bridge: native Cancel or willDismiss
+    Bridge->>Bridge: set isDismissing fence
+    Bridge->>Model: publish false via dismiss without focus restoration
+    Model->>Model: end_search and retain query
+    Bridge->>Search: Cancel resigns responder and deactivates
+    Search->>Bridge: didDismiss
+    Bridge->>Bridge: clear dismissal fence
+    Note over Model,Search: Later presentation reuses retained query
+    Bridge->>Nav: dismantle removes owned search and restores context
+```
+
+Native search delegates coordinate model state and UIKit responder transitions without clearing the workspace query or forcing terminal focus during dismissal.
+
+Initial terminal focus is separate: `MobileTerminalInitialFocus` requests it on entry or readiness changes only when the detail is visible, the scene active, the workspace connected and no journey is showing—not on every ordinary view update. Keep layout retention, search responder ownership and connection readiness as separate responsibilities. These lifetime rules complement [Engineering Invariants](engineering-invariants.md).
 
 ## Assistant: stable transcript/input, independent run ownership
 
@@ -393,17 +448,16 @@ Implemented principles:
 5. **Keep app work out of transient view lifetimes.** Scene routes select shared work; they do not own every connection or Agent run.
 6. **Hide covered interaction as well as pixels.** Hit testing and accessibility must follow the visible region.
 
-<!-- openwiki: broken internal link [/openwiki/testing/behavioral-boundaries-and-fixtures.md] link "/openwiki/testing/behavioral-boundaries-and-fixtures.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Native-window coverage has two different execution contracts. `MobileMetricsJourneyTests` is a serialized, **not environment-gated** UIKit-hosted integration suite: it installs a temporary high-level **key** window, restores the previous key window in `defer`, and uses an injected Metrics sampler to create a real keyboard-interactive challenge without a network connection. Across en/zh-Hans/zh-Hant, 430/600/1024-point widths and accessibility text, it checks the challenge ID and two input fields survive detail pop/push and resizing, with no segmented control or presented sheet; entering the answer leads to live Metrics with one connection attempt and no extra modal. `MobileConnectionJourneyRenderingTests` lives under `TFITests/Screenshots/` and its entire suite, including keyboard-interactive rendering, requires `TERMIND_JOURNEY_SCREENSHOTS=1`. The forwarded-connection journey rendering suite is separately gated by `TERMIND_MOBILE_UI_TESTS=1` and asks for parallel testing to be disabled. Do not infer from the opt-in suite that every test which steals the key window is opt-in, or from the default-running Metrics test that an offscreen `UIHostingController` alone proves focus, native navigation or sheet behavior. See [Behavioral Boundaries and Fixtures](/openwiki/testing/behavioral-boundaries-and-fixtures.md) for the broader test strategy.
+Native-window coverage has two different execution contracts. `MobileMetricsJourneyTests` is a serialized, **not environment-gated** UIKit-hosted integration suite: it installs a temporary high-level **key** window, restores the previous key window in `defer`, and uses an injected Metrics sampler to create a real keyboard-interactive challenge without a network connection. Across en/zh-Hans/zh-Hant, 430/600/1024-point widths and accessibility text, it checks the challenge ID and two input fields survive detail pop/push and resizing, with no segmented control or presented sheet; entering the answer leads to live Metrics with one connection attempt and no extra modal. `MobileConnectionJourneyRenderingTests` lives under `TFITests/Screenshots/` and its entire suite, including keyboard-interactive rendering, requires `TERMIND_JOURNEY_SCREENSHOTS=1`. The forwarded-connection journey rendering suite is separately gated by `TERMIND_MOBILE_UI_TESTS=1` and asks for parallel testing to be disabled. Do not infer from the opt-in suite that every test which steals the key window is opt-in, or from the default-running Metrics test that an offscreen `UIHostingController` alone proves focus, native navigation or sheet behavior. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test strategy.
 
 `MobileAdaptiveLayoutTests` mounts `MobileRootView` in a UIKit window and checks the same native `UITabBarController` with five selectable destinations over simulated 1024/600/375/320-point widths, regular/compact traits, large/accessibility Dynamic Type, and English, Simplified and Traditional Chinese locales. In compact mode it asserts all five tab labels are visible; on regular iPad widths the system bar can scroll. Other tests retain Assistant conversation/draft and Metrics navigation through resizing, check title-menu/icon switchers and Settings edit sheets, and isolate two scene models. Injected division and occlusion changes verify Metrics keeps the same native list and scroll offset and Assistant keeps its conversation, transcript `ListScrollView`, focused composer and Chinese marked text; a save-in-flight test preserves a sheet and failure feedback through width changes. These are simulated layout and injected-geometry tests, not proof of every physical device or SDK availability branch.
 
+`MobileTerminalSearchIntegrationTests` (in `MobileTerminalSearchTests.swift`) is also serialized and gated by `TERMIND_MOBILE_UI_TESTS=1`. Its temporary key-window fixture tests repeated Find presentation after native, terminal-then-native and programmatic dismissal, retained queries and empty-query editing, and SFTP filter close/reopen. Its journey test checks the same search controller across journey begin/hide, retained SFTP query, and the same attached terminal for SSH. The fixture uses the production search modifier but a simplified content overlay, not the full `MobileWorkspaceView`; the production SSH/Telnet mount-and-gate behavior is established by the view implementation, not generalized from the fixture to SFTP browser retention.
+
 `MobileAppTests` covers descriptor order after restoring, opening and renaming live/dormant workspaces, transient external entries, single-connect restoration routed to the owner session, explicit retry after failed connection, corrupt snapshot preservation, and local/remote Host deletion removing both open and unopened descriptors while retaining unrelated Hosts. `MobileWorkspaceSessionTests` specifically verifies independent terminal instances and close actions for two windows, first-bind consolidation, owner-window link routing, live handoff without reconnecting after loss of a native session, system-reclaim retention and explicit discard semantics; the optional serialized `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows when `TERMIND_MOBILE_UI_TESTS=1` with parallel tests disabled. The adaptive suite also checks localized compact/regular Workspace rows and that choosing a dormant row restores only that runtime without moving the row.
 
-`MobileWorkspaceSessionTests` also exercises native notification routing: it checks that a tap waits for an active scene, a command tap returns to its own window without changing a different window, Assistant prefers a scene already showing or selecting the chat and honors the latest click, transfer taps consume once, stale activation failures do not erase newer requests, and unread command state stays with its window through recovery. `MobileStartupViewTests` checks a transfer tap received during startup is not applied before scene activation. `MobileWorkspaceMenuTests` covers unread badge removal from native Assistant menus. `MobileHomeScreenQuickActionTests` checks the three unique local Host shortcuts, host-ID-only payload decoding (including legacy kind payloads), malformed-item rejection and single consumption by the scene delegate. `MobileBatchStartupTests` checks protocol fallback/filtering, separate workspace/history creation, confirmation revalidation, deferred once-only dismissal and scene isolation. `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` checks capability-filtered Host context-menu policy, duplication of a Host whose fixture has a non-custom identity (preserving the rest of its configuration), keep/delete group-tree behavior and proxy validation; the Host-custom identity stripping rule is implemented in `MobileAppModel.duplicateHost` but is not exercised by that duplication fixture. `MobileCardTests` verifies collapsed group projection/search and confirms toggling no longer changes the persisted Vault group's legacy `isExpanded` field; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
+`MobileWorkspaceSessionTests` also exercises native notification routing: it checks that a tap waits for an active scene, a command tap returns to its own window without changing a different window, Assistant prefers a scene already showing or selecting the chat and honors the latest click, transfer taps consume once, stale activation failures do not erase newer requests, and unread command state stays with its window through recovery. `MobileStartupViewTests` checks a transfer tap received during startup is not applied before scene activation. `MobileWorkspaceMenuTests` is serialized and gated by `TERMIND_MOBILE_UI_TESTS=1`; it mounts a temporary key window and restores the previous one. It checks ordered opened/dormant descriptors in both icon and title menus, unread badge removal from native Assistant menus, and Close Others appearing only when multiple workspaces can close (not Close All in the detail lifecycle menu). `MobileHomeScreenQuickActionTests` checks the three unique local Host shortcuts, host-ID-only payload decoding (including legacy kind payloads), malformed-item rejection and single consumption by the scene delegate. `MobileBatchStartupTests` checks protocol fallback/filtering, separate workspace/history creation, confirmation revalidation, deferred once-only dismissal and scene isolation. `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` checks capability-filtered Host context-menu policy, duplication of a Host whose fixture has a non-custom identity (preserving the rest of its configuration), keep/delete group-tree behavior and proxy validation; the Host-custom identity stripping rule is implemented in `MobileAppModel.duplicateHost` but is not exercised by that duplication fixture. `MobileCardTests` verifies collapsed group projection/search and confirms toggling no longer changes the persisted Vault group's legacy `isExpanded` field; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
 
-<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For a change, inspect scene routing tests for navigation, region/layout tests for geometry, workspace/terminal tests for session continuity, and Assistant tests for run-versus-selection ownership. See [Platform Runtime Composition](/openwiki/architecture/platform-runtime.md) and [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) before changing the lifetime boundary.
+For a change, inspect scene routing tests for navigation, region/layout tests for geometry, workspace/terminal tests for session continuity, and Assistant tests for run-versus-selection ownership. See [Platform Runtime Composition](platform-runtime.md) and [Build, Test, and Release Operations](../operations/build-test-and-release.md) and [Engineering Invariants](engineering-invariants.md) before changing the lifetime boundary.
 
 Command history and SFTP browse history belong to individual live Workspaces in memory. Reconnect retains their snapshots; explicit close clears them. Command-W closes the active Workspace, or requests native scene destruction when none is active; UIKit discard owns cleanup and a failed close request preserves the session.

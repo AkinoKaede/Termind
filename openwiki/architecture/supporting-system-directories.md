@@ -1,11 +1,8 @@
 ---
 type: architecture ownership guide
-title: Supporting systems ownership guide
+title: Supporting Systems Ownership Guide
 description: Ownership and integration boundaries for external Swift packages, the MCP bridge, Live Activities, tests, forwarding benchmarks, the Astro site, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -19,6 +16,8 @@ sources:
     resource: repo://Design/Brand/README.md
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-23be2440342b8fbbefe69214
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift
   - id: openwiki-source-581eed02dfaf161420cc4d9d
     resource: repo://FrameworkTests/Fixtures/README.md
   - id: openwiki-source-103853faf6b28763354a1c79
@@ -45,6 +44,8 @@ sources:
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
+  - id: openwiki-source-caa5d720c9123cdab2a47976
+    resource: repo://Scripts/prepare-local-ghostty-workspace.sh
   - id: openwiki-source-6a4176e7d97bf05b3983882c
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
@@ -61,12 +62,16 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-cd81b8b97e761c0120fdfccb
+    resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme
   - id: openwiki-source-60081fe11e88625a130dd44c
     resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
+  - id: openwiki-source-8d34d9ba6456e86e57933569
+    resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -81,10 +86,13 @@ sources:
     resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
-# Supporting systems ownership guide
+# Supporting Systems Ownership Guide
 
 Not every top-level directory is an app module. This guide distinguishes separately built products, a package reference checkout, source-sharing groups, test targets, and development assets. It complements [Shared Framework Directories](shared-module-directories.md) and [Native App Directories](native-app-directories.md).
 
@@ -95,6 +103,14 @@ Not every top-level directory is an app module. This guide distinguishes separat
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
 The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-4`, and `libghostty-spm` with an up-to-next-major requirement from `2.2.2026100303`, selected in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
+
+### Maintenance checkouts versus build inputs
+
+The maintenance submodules are uninitialized in the inspected checkout: their source is unavailable here, **not absent from the resolved remote build**. `.gitmodules`, the Xcode package requirements, and `Package.resolved` establish the integration boundary; they do not verify fork manifests, patches, binary contents, or internal tests. Initialize the relevant checkout before inspecting or changing those internals. Keep Ghostty fork internals and release operations in [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md), and app build/release procedures in [Build and Release](../operations/build-test-and-release.md).
+
+`libtailscale-spm` follows the same separation: `.gitmodules` declares a checkout tracking `main`, while Xcode requires the remote package at exact version `1.0.1` and records its revision in `Package.resolved`. Its `TailscaleKit` product is linked by `TermindRemoteInfrastructure`; Termind's `LibTailscaleNodeSession` is the app-side adapter that owns the embedded node. The checkout is not a native feature owner or the default source of that product.
+
+There is one explicit Ghostty development override: [prepare-local-ghostty-workspace.sh](../../Scripts/prepare-local-ghostty-workspace.sh) creates `build/KeywordHighlighting/Termind.xcworkspace` with a staged local package, without changing the committed project requirements or pins. It requires an already-built `libghostty-spm/BinaryTarget/GhosttyKit.xcframework/Info.plist`, copies `Package.local.swift` as the staged `Package.swift`, links `Sources`, `Tests`, and `BinaryTarget`, and copies the app's resolution file into the workspace. It fails if the binary is missing or an existing staging entry would require replacing a non-symlink. This opt-in workspace is distinct from ordinary `-project Termind.xcodeproj` builds; preparing it does not publish a fork release or advance the app's remote dependency.
 
 ## MCP bridge and desktop server
 
@@ -138,6 +154,8 @@ flowchart TB
 The diagram shows how shared ActivityKit content connects app-owned updates, widget rendering, and workspace navigation.
 
 Here solid arrows are updates/navigation and dashed arrows are shared type contracts. The payload has bounded session summaries and excludes credentials and terminal output. The extension displays state; it does not keep an SSH connection alive. The app controller restores one active or stale activity and ends duplicates, serializes start/update/end, ends when no workspaces remain, and only starts a missing activity after an explicit open intent and permission to start; ordinary updates cannot resurrect one dismissed by the user.
+
+`MobileLiveActivityRestorationTests` checks duplicate cleanup and retained focus, non-resurrection after dismissal, and close-last/open-new ordering with a suspended end operation. The shared `TFI` scheme selects both `TFITests` and `FrameworkTests`; run it with an available iOS simulator rather than treating the widget as an independent connection or state owner.
 
 ## Tests, fixtures, benchmarks, and scripts
 

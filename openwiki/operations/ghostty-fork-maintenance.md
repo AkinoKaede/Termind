@@ -1,32 +1,16 @@
 ---
 type: operations guide
 title: Ghostty Fork Maintenance
-description: Maintain Termind's pinned libghostty-spm fork, native XCFramework, Swift menu hooks, local test workspace, and synchronized Xcode dependency records.
+description: Maintain Termind's remote libghostty-spm dependency, native XCFramework release boundary, local development override, and coordinated dependency records.
 tags: [ghostty, dependency, submodule, xcframework, release, menus]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
+    at: 2026-10-03T22:38:13.888Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-50812a769fc99155abb6d582
-    resource: repo://libghostty-spm/.github/workflows/release.yml
-  - id: openwiki-source-34833edd0cee17db9fea8637
-    resource: repo://libghostty-spm/Package.local.swift
-  - id: openwiki-source-e1fc8cf726195ecc8e9ab874
-    resource: repo://libghostty-spm/Package.swift
-  - id: openwiki-source-fb125d5a34ed2ed61b600bcb
-    resource: repo://libghostty-spm/Patches/ghostty/README.md
-  - id: openwiki-source-57c7298b2f5de364df677135
-    resource: repo://libghostty-spm/Script/apply-patches.sh
-  - id: openwiki-source-a323a8a3504f40a6da6e0088
-    resource: repo://libghostty-spm/Script/build-ghostty.sh
-  - id: openwiki-source-24ff6f74c9f115e9e04ac0c4
-    resource: repo://libghostty-spm/Script/verify-release.sh
-  - id: openwiki-source-9e7915b5fd54b91e430607e2
-    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView.swift
   - id: openwiki-source-caa5d720c9123cdab2a47976
     resource: repo://Scripts/prepare-local-ghostty-workspace.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -35,40 +19,104 @@ sources:
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
+  - id: openwiki-source-4be25dd014939527fac996f5
+    resource: repo://TFITests/MobileTerminalUploadMenuTests.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+  - id: openwiki-source-835d474e3dc193359dcfbb0b
+    resource: repo://TFMTests/TerminalContextMenuTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
 # Ghostty Fork Maintenance
 
-Termind has **three different Ghostty inputs**. `libghostty-spm/` is a maintenance Git submodule tracking the public fork's `termind` branch. Xcode builds the remote `AkinoKaede/libghostty-spm` Swift package using a version range in `Termind.xcodeproj/project.pbxproj` and the selected release/revision in `Package.resolved`, rather than reading uncommitted files from that submodule. The package's `Package.swift` separately downloads a prebuilt `GhosttyKit.xcframework.zip` for its `libghostty` binary target. Current Xcode minimum and resolved release are `2.2.2026100303`, resolved to `fc5444ea40e9d7c6204bd5dd46d23a884e987181`. The fork manifest owns the separately published XCFramework URL/checksum; inspect it when updating a native patch.
+## Maintenance checkout versus app input
 
-| Change | Source owner | App consumption boundary |
+Termind has **three distinct Ghostty boundaries**:
+
+- **Maintenance source:** `libghostty-spm/` is a Git submodule of the public `AkinoKaede/libghostty-spm` fork, tracking `termind`; upstream is `Lakr233/libghostty-spm`.
+- **Released Swift package:** Xcode consumes that fork remotely with an up-to-next-major version requirement in `Termind.xcodeproj/project.pbxproj`. `Package.resolved` locks the release and revision, not the maintenance working tree. Uncommitted submodule edits are not app inputs in the normal project build.
+- **Native binary:** Native patch changes cross a separate XCFramework release boundary. Updating source or the app's package pin alone is insufficient: the fork needs a released XCFramework and a matching `Package.swift` URL/checksum.
+
+The current project minimum and resolved version are both **`2.2.2026100303`**, with resolved revision **`fc5444ea40e9d7c6204bd5dd46d23a884e987181`**. This is the existing pin, not a proposed bump. See the [project requirement](../../Termind.xcodeproj/project.pbxproj), [lockfile](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), and [repository dependency rules](../../AGENTS.md).
+
+**Checkout limitation:** `libghostty-spm/` is empty in this checkout. Initialize it with:
+
+```sh
+git submodule update --init libghostty-spm
+```
+
+Then inspect the fork's own guidance, manifests, build scripts and tests before modifying it. The release rules below are grounded in `AGENTS.md` and the local helper. This checkout does not establish the fork's patch-application algorithm, release workflow ordering, verification scripts, exact manifest contents, or UIKit implementation details.
+
+| Change | Ownership boundary | Required consumption step |
 | --- | --- | --- |
-| Ghostty engine, C API or Zig patch | Fork's `Ghostty.ref`, `Patches/ghostty/`, native build and XCFramework release | Update the binary asset URL/checksum in the fork manifest, publish the fork revision, then advance all three Termind pins. |
-| Swift terminal view or menu hook | Fork's `Sources/GhosttyTerminal/` | Test and push the Swift fork change, then advance all three Termind pins. A Swift-only hook change can reuse the current XCFramework if its C API is unchanged. |
-| Termind menu labels, grouping, upload choices and availability | `TFM/Features/Terminal/` or `TFI/Platform/` and shared `AppStrings` | Change the app's native subclass and catalogs; a fork release is needed only if the package's extension seam itself changes. |
+| Native changes in `Patches/ghostty/` | Fork native build and XCFramework release | Release a new fork XCFramework and update the manifest URL/checksum before advancing the app pin. |
+| Swift terminal API or menu hook | Fork package | Publish the package change from `termind`, then update Termind's three dependency records together. |
+| Menu localization, grouping and upload choices | Termind platform subclasses and shared `AppStrings` | Change and test the app layer; change the fork only when its extension seam needs to change. |
 
-## Menu extension boundary
+## Release boundary and coordinated update
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-The pinned fork exposes separate iOS 16+ hooks on `UITerminalView`: `touchMenuItems(for:)` before selection and `touchSelectionMenuItems(for:)` while selected. Their baseline actions retain Ghostty's copy/paste/selection behavior and stable `terminal.*` identifiers. Termind overrides **both** in `MobileTerminalView` to localize inherited titles and append its grouped Photos/Files upload choices. Keep the fork host-neutral: Termind's upload closures, translated copy, capability check and grouping belong to the app. The fork's indirect-pointer context menu uses a different `selectionContextMenuElements()` seam, so a change intended for pointer secondary-clicks must be evaluated there separately. macOS extends `selectionContextMenu()` on its own `TermindTerminalView`; no iOS touch hook affects that AppKit path. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the current actions, fallback behavior and focused tests.
+```mermaid
+flowchart TD
+    Maintenance["Maintenance checkout on termind"] --> Kind{"Native patch change?"}
+    Kind -->|Yes| Binary["Release fork XCFramework"]
+    Binary --> Manifest["Match Package.swift URL and checksum"]
+    Manifest --> Publish["Publish fork package changes"]
+    Kind -->|No| Publish
+    Publish --> Records["Update maintenance gitlink and project minimum"]
+    Records --> Resolve["Re-resolve Package.resolved"]
+    Resolve --> App["Build normal project using committed resolution"]
+    Maintenance -.-> LocalBinary["Locally built GhosttyKit.xcframework"]
+    LocalBinary --> Helper["Prepare local workspace"]
+    Helper --> LocalApp["Development override only"]
+```
+*The release path synchronizes maintenance source, the remote package requirement and its resolution; the local workspace is a separate development path, not evidence that the released binary or package is correct.*
 
-For a menu API change in the fork, run `swift test` and the package's relevant `GhosttyKitTest/Input` suites against the proposed Swift sources, then test Termind's desktop and mobile menu suites after updating its pin. The fork's `Script/check-licenses.sh` is a required package check because its resource bundle ships inside host apps. If a change touches native Ghostty source or resources, run the fork's platform build/test matrix and verify the published binary consumer before the app pin advances.
+The required update boundary is:
 
-## Native patch and binary path
+1. **Publish fork changes from `termind`.** Test the proposed change using the initialized fork's current instructions. For native patches, first satisfy the new XCFramework release and matching manifest URL/checksum requirement. Do not infer that a local binary proves the released artifact matches.
+2. **Update the maintenance gitlink and project requirement.** Move the Termind submodule gitlink to the published change and update `minimumVersion` in `project.pbxproj` to the release the app needs.
+3. **Re-resolve the lockfile.** Ensure `Package.resolved` records the intended released version and revision. Keep the gitlink, project requirement and lockfile together with the app-side change that consumes them.
 
-The fork pins upstream Ghostty in `Ghostty.ref`. `Script/build-ghostty.sh` calls `Script/apply-patches.sh` before each target's Zig build. That script walks `Patches/ghostty/` in name order: `.patch` files use `git apply` with a three-way fallback, `.sh` patches must be repeatable, Markdown is ignored, and an unsupported or conflicting patch stops the build. The host-managed I/O patch is skipped if the pinned upstream header already provides its C API. Build-cache input stamps include the source revision, Zig version and patch contents, so a patch edit invalidates the cached native build. Patch changes need a new fork XCFramework release and a corresponding manifest URL/checksum; changing the submodule source alone cannot change the binary Xcode downloads.
+For normal app validation, retain `-onlyUsePackageVersionsFromResolvedFile` so Xcode uses the committed resolution rather than silently advancing dependencies:
 
-The fork's `release.yml` cuts a **Swift package tag** only after the `upstream.<sha12>` binary release exists. It downloads that asset, generates the release `Package.swift` URL/checksum, verifies an XCFramework consumer, runs its package matrix and Swift tests with the local binary, then verifies that the final manifest digest matches the release asset. These package tags and upstream binary asset tags are distinct. Current Xcode uses an up-to-next-major version requirement; record the released tag and selected revision together.
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
+xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
+```
 
-## Local development and app pin update
+These builds validate normal remote-package consumption; they do not replace the fork's native release validation. General commands and UI-test opt-ins are in [Build, Test, and Release](build-test-and-release.md).
 
-1. Initialize the maintenance checkout with `git submodule update --init libghostty-spm`; inspect its own guidance and source before changing its menu hooks or native patch stack. Test a Swift-only fork edit in that checkout with `swift test` and its relevant package tests.
-2. For a local app build against a **locally built native XCFramework**, first build `libghostty-spm/BinaryTarget/GhosttyKit.xcframework` through the package build flow, then run `Scripts/prepare-local-ghostty-workspace.sh`. The helper stages `build/KeywordHighlighting/Termind.xcworkspace`, copies `Package.local.swift` as its local package manifest and links the fork's sources, tests and binary without changing the committed Xcode pin. This workspace is a development override, not release evidence.
-3. For an engine/patch change, publish the XCFramework asset and update the fork's release manifest URL/checksum before advancing the app. For a Swift-only menu hook change, reuse the existing binary when its native API is unchanged. Push the fork change to `termind` and verify the revision is available remotely.
-4. Move the Termind submodule gitlink to that pushed revision, update the released minimum version in `Termind.xcodeproj/project.pbxproj`, and re-resolve so `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` matches. Commit those three records with the app change that consumes the new hook. Build with `-onlyUsePackageVersionsFromResolvedFile` to prove Xcode used the committed resolution.
+## Local development override
 
-<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-`TFMTests/TerminalContextMenuTests.swift` checks AppKit menu composition, availability and stale pane teardown. `TFITests/MobileTerminalUploadMenuTests.swift` checks the UIKit upload group and its enabled state. The package's touch-selection tests check its terminal-local selection mechanics. If a menu change alters the actual interaction, inspect both selection states, iOS fallback and pointer behavior in addition to the unit tests. [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) holds the general app test commands and opt-in rules.
+[Scripts/prepare-local-ghostty-workspace.sh](../../Scripts/prepare-local-ghostty-workspace.sh) stages a local SPM override without editing the committed project requirement. Its comment directs maintainers to build the native framework using the package's `build.sh` first; inspect that script after initializing the checkout rather than assuming its implementation here.
+
+Concrete prerequisites are Bash and `python3`, the maintenance package's `Package.local.swift`, the project's existing `Package.resolved`, and a locally built framework at `libghostty-spm/BinaryTarget/GhosttyKit.xcframework`. The helper specifically checks for `Info.plist` inside that framework. The package's `Sources`, `Tests` and `BinaryTarget` are linked into staging; they must be usable for the subsequent local build.
+
+Run from the repository:
+
+```sh
+Scripts/prepare-local-ghostty-workspace.sh
+```
+
+The helper:
+
+- Exits with `Build the local GhosttyKit.xcframework before preparing the workspace.` if the framework's `Info.plist` is absent, before creating staging.
+- Copies `Package.local.swift` to `build/KeywordHighlighting/libghostty-spm/Package.swift`.
+- Replaces existing symlinks for `Sources`, `Tests` and `BinaryTarget`, but exits with `Refusing to replace non-symlink: ...` if any of those staging paths exists as a non-symlink. It can already have copied the manifest or replaced earlier links when this refusal occurs; preparation is not transactional.
+- Copies the committed resolution into `build/KeywordHighlighting/Termind.xcworkspace/xcshareddata/swiftpm`, writes a workspace referencing the original project and staged local package, and prints the workspace path.
+
+The helper prepares files only: it does not build the framework, resolve a release, run tests, or validate the binary's platform slices. Missing copy inputs fail during preparation, and linked source-directory existence is not explicitly checked. Use `build/KeywordHighlighting/Termind.xcworkspace` for development; successful local preparation or a local build is **not release evidence**.
+
+## Menu extension boundary and focused tests
+
+The repository guidance identifies separate native touch-menu hooks before and after selection: `touchMenuItems(for:)` and `touchSelectionMenuItems(for:)`. Termind overrides **both** in [MobileTerminalView](../../TFI/Platform/MobileTerminalSurface.swift), passing superclass items through the same customization function. It localizes recognized `terminal.copy`, `terminal.paste`, `terminal.select` and `terminal.selectAll` actions, groups editing actions first, appends an inline upload group, then preserves other inherited items. Grouping, localization, upload closures and availability remain app responsibilities.
+
+The upload menu is absent without `uploadFiles`. When bound, Photos and Files actions are disabled unless `canUploadFiles` returns true; their handlers recheck availability before invoking the closures. macOS uses its own `TermindTerminalView.selectionContextMenu()` override, independently of these UIKit hooks. Do not infer pointer-menu or UIKit fallback internals from the touch overrides alone. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and [Module Map](../architecture/module-map.md) for wider integration context.
+
+Focused app regression coverage:
+
+- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both selection states with and without pasteboard text, editing-row identifiers and sizing, upload placement before system AutoFill, the no-upload case, and Photos/Files enabled state.
+- [TerminalContextMenuTests](../../TFMTests/TerminalContextMenuTests.swift) checks AppKit upload composition and live availability, action-time refusal after availability changes, stale pane teardown, paste validation and Option bypass of automatic right-click paste.
+
+These tests cover app-facing menu behavior, not the absent fork's native build or release pipeline. For an interaction change, also review actual selection and pointer behavior on the affected platform. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test-boundary model.

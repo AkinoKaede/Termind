@@ -4,7 +4,7 @@ okf_version: "0.2"
 
 # Files
 
-- [Quickstart and task routing](quickstart.md) - Start here to route Termind changes to their owners, preserve platform lifetimes and dependency pins, and choose focused build and test gates.
+- [Termind Engineering Quickstart](quickstart.md) - Route Termind coding tasks to system owners, focused workflows, and safe validation commands. Start with the changed boundary, then follow its guide to authoritative source and behavioral tests.
 
 # Directories
 

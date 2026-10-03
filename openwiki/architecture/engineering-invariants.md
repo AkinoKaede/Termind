@@ -1,11 +1,11 @@
 ---
 type: engineering-contract
-title: Engineering invariants
+title: Engineering Invariants
 description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
+    at: 2026-10-03T22:38:13.888Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -41,6 +41,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-a6d04eaf0b5dc762d077f17e
     resource: repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift
   - id: openwiki-source-1b008d375c28ace3a9684717
@@ -137,6 +139,8 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-91ab1bac45c855f8665d0f25
     resource: repo://FrameworkTests/SystemNotificationsTests.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
     resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
@@ -165,6 +169,10 @@ sources:
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
+  - id: openwiki-source-4c2de67bfdb2238d765a642a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
@@ -173,6 +181,8 @@ sources:
     resource: repo://TFI/Platform/MobileNotificationRouter.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
@@ -183,6 +193,8 @@ sources:
     resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -219,16 +231,14 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
 # Engineering invariants
 
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
-<!-- openwiki: broken internal link [/openwiki/architecture/system-boundaries.md] link "/openwiki/architecture/system-boundaries.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Use [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
+Use [System Boundaries and Dependency Ownership](system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
 
 ## Modules and persistence
 
@@ -253,8 +263,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   surface. Both apps reuse semantic `AppStrings` entries and shared formatting; platform-specific wording uses explicit
   variants. Keep protocol values, identifiers and diagnostic codes with their existing owners. The string catalog remains
   in `Frameworks/Resources/Localizable.xcstrings`, not in the framework bundle. See
-<!-- openwiki: broken internal link [/openwiki/concepts/commerce-localization-and-product-surfaces.md] link "/openwiki/concepts/commerce-localization-and-product-surfaces.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-  [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
+  [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
   migration. `makeContainer` fixes the complete V50 schema/plan; each app composition root retains its startup container
@@ -269,8 +278,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   location; mobile uses Application Support/in-memory tests. Both apps share the CloudKit container and bundle-derived
   Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
-<!-- openwiki: broken internal link [/openwiki/architecture/system-boundaries.md] link "/openwiki/architecture/system-boundaries.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md).
+- The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](system-boundaries.md).
 - App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
@@ -339,8 +347,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
   outside the source window. Escape and accepted drops do not create a window. Ownership transfers only when the
   destination's native window registers; native close disconnects only owned sessions and cancels pending moves.
   Independent transfers/services survive. Mounting never repeats authentication; explicit retry/reopen may.
-<!-- openwiki: broken internal link [/openwiki/workflows/desktop-drag-and-drop.md] link "/openwiki/workflows/desktop-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-  Preserve the source and receiver contracts in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md).
+  Preserve the source and receiver contracts in [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md).
 - Desktop Vault/Assistant, Metrics, dynamic Workspaces and Settings routes are window-local. Settings data is app-wide;
   closing it restores the replaced destination. Width changes may adapt panels, never routes/editor identity/session
   composition/monitor ownership; covered panels retain last size, native table identity, sorting and scroll.
@@ -478,8 +485,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
   forwarding rather than sessions and never consume this budget.
 - Public send/receive adapters accept complete encrypted packets and apply bounded backpressure outside library calls,
   avoiding pinned libssh2's lost forwarded-tcpip confirmation on EAGAIN. Teardown discards writes/returns EOF; descriptors
-<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-  close after cancellation handlers. See [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md) for budgets, rationale and measurement
+  close after cancellation handlers. See [Port Forwarding Benchmark Design, Results, and Reproduction](../operations/port-forwarding-benchmarks.md) for budgets, rationale and measurement
   limits; buffers are per flow/session, never a global memory cap.
 
 ### Terminal behavior
@@ -509,6 +515,34 @@ The shared coordinators decide eligibility and the native routers navigate witho
   retired auth cannot install a PTY/clear replacement dimensions. Ghostty computes grid. Resize failure is diagnostic only.
 - Application owns `TerminalCommandDraftController`, `CommandGenerationCoordinator` and `TerminalFindController`; apps
   provide context/validity/insertion. Generated commands are inserted, never submitted.
+- **Find dismissal is idempotent and query-preserving.** `TerminalFindController.dismiss(restoringFocus:)` ends the active
+  Ghostty search once and clears presentation, not the query; repeated dismissal does nothing. Reopening restarts a retained
+  nonempty query. The default restores terminal focus, but a native search host calls `dismiss(restoringFocus: false)` so
+  the platform owns responder dismissal without a competing terminal-focus request. Query edits dispatch search only when
+  changed; match navigation requires both presentation and a nonempty query. These shared semantics belong to the controller,
+  not a platform-specific toolbar. See [Terminal Find controller](../../Frameworks/TermindApplication/Terminal/TerminalFindController.swift)
+  and [its focused tests](../../FrameworkTests/TerminalFindControllerTests.swift).
+
+```mermaid
+sequenceDiagram
+    participant Native as Native search host
+    participant Find as TerminalFindController
+    participant Surface as Terminal surface
+    Native->>Find: dismiss with restoringFocus false
+    alt search is presented
+        Find->>Surface: end search binding
+        Find->>Find: clear presentation and retain query
+    else already dismissed
+        Find-->>Native: no action
+    end
+    Native->>Native: complete responder dismissal
+    Native->>Find: present again
+    opt retained query is nonempty
+        Find->>Surface: restart search binding
+    end
+```
+Native dismissal ends search without handing responder ownership to the terminal; reopening reuses the query.
+
 - Font family/size/follow-theme-size are device-local, outside `TerminalPreferences`, Settings journal and CloudKit. Seed
   missing local size from pre-upgrade local data before remote materialization; existing mirrors win. Ignore legacy remote
   font fields and omit outgoing fields. Themes/custom text (including authored fonts) still sync. Missing fonts fall back
@@ -691,14 +725,12 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
   search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
   follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
   attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.
-<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- Preparation is distinct from streaming and from terminal-failure persistence. For a still-`preparing` capture, `stop`, global cancellation and mobile background expiration request cancellation immediately on the MainActor: the identity becomes noncurrent before async work joins, so a stale edit cannot enter history mutation or start a run. The cancellation task waits for tracked edit/history and preparation tasks, then attempts to save an interrupted snapshot before projecting interruption and retiring preparation. `stop()` itself does **not** wait for that save; use `stopAndWait()` or await `cancelPendingRuns().value` at a drain boundary. A failed interrupted save reports an error instead of claiming durable interruption. Archive/delete await preparation cancellation; manual compaction refuses active preparation, and selection alone does not cancel it. Once missing-model/credential handling enters `savingFailure`, cancellation instead joins the in-flight failure save without replacing it with an interrupted snapshot: the failure is projected only after successful persistence; a failed save leaves an error and retires preparation. Tests block memory, truncation and save independently, so do not generalize the interruption guarantee across these phases. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md).
+- Preparation is distinct from streaming and from terminal-failure persistence. For a still-`preparing` capture, `stop`, global cancellation and mobile background expiration request cancellation immediately on the MainActor: the identity becomes noncurrent before async work joins, so a stale edit cannot enter history mutation or start a run. The cancellation task waits for tracked edit/history and preparation tasks, then attempts to save an interrupted snapshot before projecting interruption and retiring preparation. `stop()` itself does **not** wait for that save; use `stopAndWait()` or await `cancelPendingRuns().value` at a drain boundary. A failed interrupted save reports an error instead of claiming durable interruption. Archive/delete await preparation cancellation; manual compaction refuses active preparation, and selection alone does not cancel it. Once missing-model/credential handling enters `savingFailure`, cancellation instead joins the in-flight failure save without replacing it with an interrupted snapshot: the failure is projected only after successful persistence; a failed save leaves an error and retires preparation. Tests block memory, truncation and save independently, so do not generalize the interruption guarantee across these phases. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md).
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
   user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
   summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
   and opening-title preservation. The repository rejects an edit if the removed suffix contains tool messages or tool cards, or if the
-<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-  selected user message has agent-message provenance; do not silently erase executed work or collaboration-origin turns. See [Persistent Data](/openwiki/concepts/persistence-and-secrets.md) for graph cleanup and rollback.
+  selected user message has agent-message provenance; do not silently erase executed work or collaboration-origin turns. See [Persistent Data](../concepts/persistence-and-secrets.md) for graph cleanup and rollback.
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
   the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
@@ -771,8 +803,7 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 
 ## Commerce, review invitations and metrics
 
-<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- `ProAccessController` is app-wide and receives access from `RevenueCatProPurchaseService`, not a separate StoreKit transaction observer. The service configures anonymous RevenueCat StoreKit 2, requests current customer info, observes updates, and may sync pre-integration purchases once when access is absent; on a fetch error it uses cached customer info if available. The configured RevenueCat entitlement alone unlocks Pro: failed verification does not unlock, lifetime purchases grant access, and active trial/subscription/grace phases grant access only through their deadlines; billing retry, expiration and revocation do not. A failed refresh preserves previously resolved status except when still loading; newer customer-info updates outrank older refresh responses. The controller schedules a refresh at the current entitlement deadline; mobile also refreshes on foreground. An absent or invalid bundled RevenueCat configuration fails closed. `StoreKit/Termind.storekit` is a manual development fixture; live products, trial eligibility and purchases require RevenueCat and App Store Sandbox validation; `FrameworkTests/RevenueCatCommerceTests.swift` exercises configuration, resolver and controller behavior with fixtures/fakes. Presentation derives values and native paywalls navigate. Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement. Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
+- `ProAccessController` is app-wide and receives access from `RevenueCatProPurchaseService`, not a separate StoreKit transaction observer. The service configures anonymous RevenueCat StoreKit 2, requests current customer info, observes updates, and may sync pre-integration purchases once when access is absent; on a fetch error it uses cached customer info if available. The configured RevenueCat entitlement alone unlocks Pro: failed verification does not unlock, lifetime purchases grant access, and active trial/subscription/grace phases grant access only through their deadlines; billing retry, expiration and revocation do not. A failed refresh preserves previously resolved status except when still loading; newer customer-info updates outrank older refresh responses. The controller schedules a refresh at the current entitlement deadline; mobile also refreshes on foreground. An absent or invalid bundled RevenueCat configuration fails closed. `StoreKit/Termind.storekit` is a manual development fixture; live products, trial eligibility and purchases require RevenueCat and App Store Sandbox validation; `FrameworkTests/RevenueCatCommerceTests.swift` exercises configuration, resolver and controller behavior with fixtures/fakes. Presentation derives values and native paywalls navigate. Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement. Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](../operations/storefront-commerce-release.md).
 
 ```mermaid
 sequenceDiagram
@@ -875,8 +906,7 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
 - `AISecretStore` migration needs verified account/cloud copy/durable local marker; reads never cache, deletion markers prevent resurrection.
   Custom MCP headers/terminal text are ordinary synced settings, explicit credentials never CloudKit. Tombstones/unresolved references survive
   partial fetch; cloud beats baseline. Duplicate skill names/MCP namespaces retain all data but only lowest UUID executes. Metrics hides records
-<!-- openwiki: broken internal link [/openwiki/operations/cloudkit-release-readiness.md] link "/openwiki/operations/cloudkit-release-readiness.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-  awaiting their Vault Host. Signed-device and deployment checks are in [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md).
+  awaiting their Vault Host. Signed-device and deployment checks are in [CloudKit Schema Deployment and Signed-Device Release Readiness](../operations/cloudkit-release-readiness.md).
 
 ## Mobile boundaries
 
@@ -887,6 +917,17 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
   Metrics is independent; Vault shortcuts select it. Layout follows actual placement/container width, never device idiom.
 - Toolbar policy derives once from tab placement/system vertical edge. Peer switchers are distinct from app tabs; search remains native/minimized
   without focus claims on pose/sidebar change. Save/duplicate guards/dirty dismissal/errors and stable sheets survive layout changes.
+- **Connecting must not unmount an SSH/Telnet terminal or replace its search host.** `MobileWorkspaceView` keeps the terminal
+  mounted under the Journey/authentication/host-key overlay, hiding it and disabling interaction/accessibility while covered.
+  Its native search modifier stays on the stable Workspace chrome, outside the connection-state branch; SFTP can replace its
+  browser with Journey without replacing that search host. Native search owns responder dismissal and must not reopen itself
+  from model feedback during the dismissal transition or clear the retained terminal query/SFTP filter on Cancel. Keep native
+  implementation details in [Mobile UI](mobile-ui.md), and shared Find semantics in the controller contract above. The
+  [mobile search integration tests](../../TFITests/MobileTerminalSearchTests.swift) exercise repeated native/programmatic
+  dismissal, retained queries and search-host identity across Journey presentation; terminal identity is checked for SSH,
+  while the production terminal branch also covers Telnet. Run this key-window suite with
+  `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, `-parallel-testing-enabled NO` and
+  `-only-testing:TFITests/MobileTerminalSearchIntegrationTests`; do not infer Telnet-specific integration coverage from the SSH/SFTP fixture cases.
 - With iOS 27.1 SDK/runtime, read division/occlusion ReservedRegions after safe-area/keyboard layout, including margins/RTL. Terminal uses largest
   unobstructed rectangle (top/leading ties), resizes existing Ghostty PTY and rejects invalid sizes. Assistant keeps transcript and interaction
   surfaces mounted across regions; Metrics retains panel sizes/table/sort/scroll, using fold regions or selected page. Pose never changes ownership.
@@ -947,3 +988,6 @@ The finite UIKit lease ends after synchronous cancellation requests, not after a
   transports, never replays or auto-approves on return.
 - Window drop interaction covers visible Workspaces: terminal routes files to uploads, text/links retain Ghostty behavior. Leaving restores original
   interaction/targets. File-provider data is copied inside callbacks into staging retained by queued transfers after navigation.
+vigation.
+.
+on.

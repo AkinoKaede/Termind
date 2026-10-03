@@ -1,16 +1,15 @@
 ---
 type: testing strategy
-title: Behavioral boundaries and test fixtures
-description: Focused regression seams for shared frameworks and platform targets, distinguishing asserted architecture, RevenueCat commerce, mobile scene routing, persistent compatibility, and explicitly opted-in UI coverage.
+title: Behavioral Tests and Fixtures
+description: Map observable shared and platform contracts to deterministic regression fixtures, including terminal Find and mobile search lifecycle coverage. Distinguish native presentation opt-ins, historical-store migration, network seams, and external-package validation.
 tags: [testing, regression, fixtures, architecture, persistence, commerce, navigation, ui]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
@@ -55,26 +54,34 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
     resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
-  - id: openwiki-source-ab7ea6a2193a63e03a2638b3
-    resource: repo://libghostty-spm/Tests/GhosttyKitTest/Input/TerminalTouchSelectionTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
     resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-cd81b8b97e761c0120fdfccb
+    resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-9c78befae6b387426c603305
     resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
     resource: repo://TFI/Platform/MobileBackgroundController.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
@@ -93,10 +100,14 @@ sources:
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-282855f9369e6dc0c3447dc8
     resource: repo://TFITests/MobileSettingsPortTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-4be25dd014939527fac996f5
     resource: repo://TFITests/MobileTerminalUploadMenuTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
     resource: repo://TFITests/MobileVaultFeatureTests.swift
+  - id: openwiki-source-11c91698354a4f95be3c4654
+    resource: repo://TFITests/MobileWorkspaceMenuTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
@@ -141,10 +152,13 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
-# Behavioral boundaries and test fixtures
+# Behavioral Tests and Fixtures
 
 Termind uses Swift Testing to test a behavior at the layer that owns it, rather than treating the test tree as a second implementation. `FrameworkTests/` protects portable framework contracts; `TFMTests/` exercises macOS composition, native interaction, and remote-session behavior; `TFITests/` protects iPhone/iPad composition, scene behavior, and mobile presentation. The targets use `@Suite`, `@Test`, and `#expect`.
 
@@ -278,8 +292,9 @@ Those tests are intentionally actor-driven and use polling only to wait for obse
 
 For tool-card changes use `AgentToolPresentationTests`: the registered tool's argument projection appears in approval detail (including submitted command/input, not a claimed secret-redaction guarantee), while unknown tools get generic fields. Check the composed AgentKit-plus-Termind presenter ID catalog for collisions, restored and legacy cards for equivalent detail, and old descriptor metadata for safe defaults before relying on a new presentation field. Batch and long-output fixtures cover mixed lifecycle states, Unicode preview bounds and full-copy content; avoid replacing structured detail with an untested JSON string.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For Ghostty menu changes, test both layers: `TFMTests/TerminalContextMenuTests.swift` checks AppKit blank-space and selection menus, Paste on Right Click/Option behavior, live upload availability and late pane teardown; `TFITests/MobileTerminalUploadMenuTests.swift` checks the native Photos/Files group and disabled states. The fork's touch-selection tests cover its selection mechanics, while Termind's iOS subclass owns localized grouping; inspect the iOS direct-touch and indirect-pointer paths separately. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md).
+For Ghostty menu changes, test the app seams: `TFMTests/TerminalContextMenuTests.swift` checks AppKit blank-space and selection menus, Paste on Right Click/Option behavior, live upload availability and late pane teardown; `TFITests/MobileTerminalUploadMenuTests.swift` checks the native Photos/Files group and disabled states. The mobile suite also checks localized editing actions before Upload and system AutoFill, for both unselected and selected menus. It is serialized but constructs menus offscreen, without a key window or the mobile UI gate.
+
+Fork touch-selection validation is a separate **external-package step**, not locally inspected or executed coverage here: this repository's `libghostty-spm/` maintenance directory is uninitialized. Run `git submodule update --init libghostty-spm` before locating and validating the fork's touch-selection tests (the referenced path is `Tests/GhosttyKitTest/Input/TerminalTouchSelectionTests.swift` within that checkout). Inspect direct-touch and indirect-pointer behavior there; Termind owns grouping and localization through `touchMenuItems(for:)` and `touchSelectionMenuItems(for:)`. Xcode builds the remotely pinned release, not maintenance working-tree edits, so package validation and release/pin updates remain distinct from app tests. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) and [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md).
 
 For MCP upload changes use `MCPUploadTests` with the real coordinator and streaming operation, a fake SFTP client and controlled clock. Protect ticket/run scope and capacity, acknowledged-offset resume and full digest, bounded streaming/backpressure, timeout/cancellation and cleanup residue, revocation on disable, conflict policy and queryable terminal status. `actualHTTPRouteStreamsAboveTheMCPBodyLimit` additionally runs a loopback HTTP server for fresh and resumed bodies larger than the ordinary MCP limit; a passing fake SFTP upload does not establish interoperability with a real remote server.
 
@@ -311,11 +326,47 @@ The restoration fixture tests the save-before-ownership boundary separately from
 
 `MobileCardTests` exercises card policy offscreen: adaptive column thresholds and accessibility sizing, bounded tag display and stable card heights measured with `UIHostingController.sizeThatFits`, plus in-memory app/repository checks for saved-host timestamps and host/identity/key draft-color persistence. These tests do not call `makeKeyAndVisible`. Use the separately serialized `MobileCardRenderingTests` for screenshot output: its `TERMIND_CARD_SCREENSHOTS` guard returns without capture by default, and the capture path creates and restores a key `UIWindow` across English/Chinese locales and light/dark appearances. Run that suite only with its screenshot opt-in and parallel testing disabled; offscreen sizing is not a substitute for key-window interaction coverage.
 
+### Terminal Find and mobile search: cancellation is a lifecycle contract
+
+Start with always-on `FrameworkTests/TerminalFindControllerTests.swift`. It injects binding-action and focus closures rather than Ghostty or UIKit. The retained-query test checks the actual search/navigation/end action sequence and one focus return across dismiss/reopen. Empty-query navigation opens Find without issuing a navigation action. The shared native-dismissal regression calls `dismiss(restoringFocus: false)` twice: Find closes, emits exactly one `end_search`, and never requests terminal focus. Reopening restarts the retained query; a later ordinary dismissal returns focus once. This protects idempotence and responder ownership, not just fixture values.
+
+The production seam is `TerminalFindController`: it retains query independently of presentation, restarts a nonempty query on a closed-to-open transition, and ignores dismissal when already closed. `MobileWorkspaceSearchModifier` binds SSH/Telnet search to that controller and translates native closure into `dismiss(restoringFocus: false)`; SFTP binds directly to `sftpChannel.query` instead. The workspace supplies Ghostty binding execution and terminal focus through closures.
+
+UIKit's `MobileToolbarSearchController` owns one `UISearchController`. Configuration defers synchronization out of the SwiftUI update; during dismissal it blocks presentation synchronization and text/submission callbacks until `didDismissSearchController`. Cancel resigns the search responder and publishes closed presentation before deactivation. This prevents a SwiftUI update from reopening the integrated toolbar mid-dismissal or erasing the retained query. Keep that lifecycle boundary intact rather than replacing search controllers to reset them.
+
+```mermaid
+sequenceDiagram
+    participant Native as Native search UI
+    participant Bridge as Toolbar search bridge
+    participant Find as Terminal Find controller
+    participant Surface as Terminal surface
+    Native->>Bridge: Cancel search
+    Bridge->>Bridge: Mark dismissing and resign responder
+    Bridge->>Find: Publish closed without restoring focus
+    Find->>Surface: end_search once
+    Bridge->>Native: Deactivate search
+    Native->>Bridge: didDismissSearchController
+    Bridge->>Bridge: Allow synchronization again
+    Find->>Surface: Restart retained query on next presentation
+```
+
+Native dismissal owns the responder transition; shared Find ends search without competing for terminal focus.
+
+Run the separately **serialized, opt-in** `MobileTerminalSearchIntegrationTests` (declared in `TFITests/MobileTerminalSearchTests.swift`) only for the UIKit seam:
+
+- SSH Find is opened and closed three times for native Cancel, programmatic dismissal, and terminal-focus-then-native Cancel. Assertions check active state, first responder, retained text and model presentation; clearing text must leave Find presented before re-entering the query.
+- SFTP filtering closes and reopens three times with its retained filter. Clearing the filter must not deactivate search, and cancellation must release the responder without clearing `sftpChannel.query`.
+- SSH and SFTP journey begin/hide transitions keep the **same** search controller, active text while the journey appears, and closed state after cancellation. SSH additionally retains the same attached terminal view and can reopen Find with its query after the journey hides.
+
+Its fixture uses an in-memory app, a standalone workspace and a key `UIWindow`, mounts the production search modifier and SSH terminal surface, restores the prior key window and disconnects on teardown. Journey visibility is simulated with an overlay; SFTP content is a text projection, not the full file browser. Cancel is invoked through the search-bar delegate and UIKit settling uses timed waits. These are native presentation regressions, not real SSH/SFTP connection or physical button-tap tests.
+
+`MobileWorkspaceMenuTests` is also serialized and gated by `TERMIND_MOBILE_UI_TESTS`. It resolves native menus in a key window to verify opened/dormant workspace order in title and icon switchers, removal of conversation unread indicators after reading, and lifecycle actions: Rename is nondestructive, Close is destructive, and a separately grouped Close Others appears only when multiple workspaces can close; Close All is absent. Use it for observable menu changes, not as a substitute for search lifecycle or scene-routing tests. See [Mobile UI](../architecture/mobile-ui.md) for presentation ownership and [Engineering Invariants](../architecture/engineering-invariants.md) for safe-change rules.
+
 ### Native Metrics connection journey: distinguish policy from presentation
 
 For a keyboard-interactive Metrics change, run the shared `FrameworkTests/MetricsJourneyTests.swift` and `MetricsKeyboardInteractiveTests.swift` for connection/prompt ownership before spending a native window run. `TFITests/MobileMetricsJourneyTests.swift` instead mounts the real `MobileRootView` and Metrics detail in a **key** `UIWindow`, using an injected actor `MetricsSampling` implementation to issue a two-field PAM-style challenge without opening SSH. It checks that the prompt stays in Metrics across detail navigation and compact/regular widths, does not become a segmented control or a separately presented controller, retains its challenge through navigation, survives accessibility text, and on field submission returns to live Metrics with exactly one connect and the submitted answers. It captures English and both Chinese locales at multiple widths and large type into attachments and a temporary directory. The corresponding macOS `MetricsJourneyRenderingTests` is explicitly `.requiresVisibleWindow` and checks the local Metrics route versus external authentication, detail resizing and Escape cancellation in a key `NSWindow`.
 
-The mobile Metrics suite is `.serialized` but has **no** `TERMIND_MOBILE_UI_TESTS` condition; its body calls `makeKeyAndVisible` for each locale. Do not treat it as a default-skipped model fixture or run the whole `TFI` suite as a quiet check for a Metrics-only change. First use deterministic shared tests, then filter specifically to `TFITests/MobileMetricsJourneyTests` on a simulator with parallel testing disabled, in a host where key-window interaction and screenshots are intended. `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the repository convention for opted-in mobile UI runs, but this suite does not currently read that flag: add a conditional trait or explicit guard before claiming opt-in skip semantics. `MobileConnectionJourneyRenderingTests` also uses a key window for its ungated interactive-authentication capture; only its bulk state-capture test checks `TERMIND_JOURNEY_SCREENSHOTS`. These native tests validate presentation and injected challenge handoff, not real SSH/CloudKit delivery.
+The mobile Metrics suite is `.serialized` but has **no** `TERMIND_MOBILE_UI_TESTS` condition; its body calls `makeKeyAndVisible` for each locale. Do not treat it as a default-skipped model fixture or run the whole `TFI` suite as a quiet check for a Metrics-only change. First use deterministic shared tests, then filter specifically to `TFITests/MobileMetricsJourneyTests` on a simulator with parallel testing disabled, in a host where key-window interaction and screenshots are intended. `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the repository convention for opted-in mobile UI runs, but this suite does not currently read that flag: add a conditional trait or explicit guard before claiming opt-in skip semantics. `MobileConnectionJourneyRenderingTests` uses key windows but gates the entire serialized suite, including interactive authentication, with its separate `TERMIND_JOURNEY_SCREENSHOTS` opt-in. These native tests validate presentation and injected challenge handoff, not real SSH/CloudKit delivery.
 
 ### Mobile settings ports: prove propagation and rollback without a cloud engine
 
@@ -358,6 +409,9 @@ The desktop `ProPaywallView` and mobile `MobileProView` mount RevenueCatUI `Payw
 | Assistant message-boundary edits or replacement provenance | Agent persistence/replay, conversation operations/controller, composer and mobile Assistant fixtures | Same-run prefix and graph survive, suffix backing is removed, staging adopts once, chronology remains stable, live/restore agree, and late retired writes cannot resurrect history. |
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety, physical-deletion and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data; stale deletion acknowledgements cannot erase a new incarnation. |
 | Notification authorization or synced preferences | `NotificationPreferencesTests` and affected platform settings tests | Concurrent initial authorization is coalesced, disabled/bell-only settings avoid unwanted permission, failed load does not use defaults, remote updates do not echo, and V40 preferences survive V41 migration/reopen. |
+| Terminal Find cancellation, retained query, SFTP filter, or search during connection journeys | Always-on `TerminalFindControllerTests`, then opt-in `MobileTerminalSearchIntegrationTests` | Repeated dismissal ends once, native dismissal avoids terminal focus, empty queries stay presented, retained queries reopen, and journey overlays do not replace search or the SSH terminal. |
+| Mobile workspace/conversation switchers or lifecycle menus | Opt-in `MobileWorkspaceMenuTests` | Opened/dormant ordering, unread-state updates, destructive action semantics and conditional Close Others remain correct in native menus. |
+| Ghostty touch menu customization | Offscreen `MobileTerminalUploadMenuTests` and desktop `TerminalContextMenuTests`; external fork validation after checkout initialization | Editing/Upload/AutoFill order and live availability hold; app tests do not establish fork touch-selection mechanics. |
 | Metrics keyboard-interactive navigation or native layout | Shared Metrics journey/prompt tests, then narrowly filtered native Metrics journey suite | Prompt ownership survives navigation/size changes, secure challenge stays inline, single connection submits answers, and key-window runs are deliberate, serialized and nonparallel. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |
@@ -376,7 +430,15 @@ Start with the smallest deterministic regression named in the matrix (for exampl
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test
 ```
 
-For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO` only for a narrow gated key-window suite such as `-only-testing:TFITests/MobileHardwareKeyEditorRenderingTests`; the currently ungated picker-toolbar and Metrics journey tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
+For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Keep ordinary framework tests separate from key-window opt-ins. For example, run `-only-testing:FrameworkTests/TerminalFindControllerTests` without a UI environment flag first, then deliberately opt in to the native search suite:
+
+```sh
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,id=<SIMULATOR-UDID>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileTerminalSearchIntegrationTests
+```
+
+Replace `<SIMULATOR-UDID>` with an installed simulator's identifier. Use the same narrow invocation for `TFITests/MobileWorkspaceMenuTests`, `TFITests/MobileEditorToolbarTests`, or `TFITests/MobileHardwareKeyEditorRenderingTests` when their interaction contract changes. `AGENTS.md` documents the `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS` invocation convention; the suites read `TERMIND_MOBILE_UI_TESTS` in the test host. The checked-in `TFI.xcscheme` includes TFITests and FrameworkTests and uses launch-scheme arguments/environment, but contains **no explicit environment-forwarding entry** for this flag. In Xcode, set `TERMIND_MOBILE_UI_TESTS=1` in the test action environment; verify host visibility if an intended opted-in run skips.
+
+Serialization is suite-local, not permission to run all native suites concurrently. Keep `-parallel-testing-enabled NO` and narrow filters: the currently ungated picker-toolbar and Metrics journey tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
 
 ```sh
 xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge

@@ -1,11 +1,8 @@
 ---
 type: architecture directory guide
-title: Native app ownership guide
+title: Native App Responsibilities
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -51,6 +48,10 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
+  - id: openwiki-source-4c2de67bfdb2238d765a642a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-e74324c5f606995238d16c29
@@ -69,6 +70,8 @@ sources:
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-de285e30d853611503042782
     resource: repo://TFI/Platform/MobileWorkspaceSceneRouting.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-c9618f94f83d3b529a9860e1
@@ -77,6 +80,8 @@ sources:
     resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-282855f9369e6dc0c3447dc8
     resource: repo://TFITests/MobileSettingsPortTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
@@ -145,7 +150,10 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
 # Native App Responsibilities
@@ -248,6 +256,21 @@ Scene registration and entitlement gate app-owned services independently of whic
 `Application` expresses app-local policy and contracts, not the view hierarchy or the SwiftData schema. `ArchitectureBoundaryTests` prohibit SwiftUI/UIKit/SwiftData/GRDB/Persistence imports in mobile Application, implementation-framework imports and concrete construction in desktop Application, concrete implementation tokens in both apps' Features, and direct storage/transport imports in desktop Features. They also ensure `@Model` types and `SwiftData*Repository` declarations stay in `TermindPersistence`. `TFM/Infrastructure/Database` supplies convenience constructors using those shared repositories without owning another schema. Native UI and platform adapters may consume shared `TermindPresentation` content, but focus, AppKit/UIKit mounting and drag/drop policy remain native.
 
 The desktop MCP path is a useful placement example: `App/MCPServerController` owns Pro gating, configuration, start/stop, port and token rotation; `Application/MCPServer/MCPServerTools` defines tool operations and upload/download policy. `Infrastructure/Networking` handles loopback HTTP bytes, `Infrastructure/MCP` handles protocol sessions and `Infrastructure/Security` stores tokens. An upload ticket is run-bound: `MCPUploadCoordinator.prepare` verifies origin, bearer upload token, method, headers, remaining length and acknowledged resume offset before claiming capacity or doing audit/transfer work. Interrupted or recoverable transfers may retry from the acknowledged offset; integrity failure, cancellation or expiry cannot. Commit follows remote streaming completion, and session/host revocation or server shutdown drains tickets. The Settings screen configures this service but does not own its lifetime; `TFMTests/MCPUploadTests.swift` exercises resume, digest, revocation, timeouts and early rejection. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+
+### Mobile search: reusable UIKit bridge versus feature bindings
+
+UIKit code does not automatically belong in `Platform`. The reusable [`UI/Components/MobileToolbarSearch.swift`](../../TFI/UI/Components/MobileToolbarSearch.swift) owns `UISearchController` mounting and native presentation; its inputs are text, an optional presentation binding, a localized prompt and a submit callback. It has no workspace or connection-kind dependency. Keep navigation-item attachment, responder coordination and dismissal guards in this UI bridge rather than duplicating them in each feature. See [Mobile UI](mobile-ui.md#native-toolbar-search-lifecycle) for detailed presentation and dismissal mechanics.
+
+[`Features/Workspaces/MobileWorkspaceSearchModifier.swift`](../../TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift) supplies **feature policy**:
+
+- SSH/Telnet bind text and presentation to the workspace's `TerminalFindController`; submit navigates `.previous`. Native dismissal calls `dismiss(restoringFocus: false)`, leaving the UIKit responder transition to the search host.
+- SFTP binds only `sftpChannel.query`, with no terminal presentation binding or navigation callback. A file filter is not terminal Find.
+
+The workspace constructs Find with callbacks into its `TerminalViewState` for binding actions and focus. Separately, [`Platform/MobileTerminalSurface.swift`](../../TFI/Platform/MobileTerminalSurface.swift) owns the native terminal view: the workspace retains this surface and returns the same view through `makePlatformView`. Its terminal subclass adds F3/Shift-F3 Find navigation and replaces Escape/Shift-Escape only while Find is presented, preserving ordinary terminal input otherwise. Keep Ghostty-specific native adaptation here, not in the generic search controller. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the terminal boundary and binding behavior.
+
+`MobileWorkspaceView` applies the search modifier to stable workspace chrome, outside the connection-journey branch. SSH/Telnet keep their terminal mounted beneath that journey overlay; SFTP may replace browser content, but not the search host. A change to connection progress must not accidentally recreate search or the terminal surface.
+
+For this seam, `TFITests/MobileTerminalSearchTests.swift` provides serialized, opt-in UIKit integration coverage (`TERMIND_MOBILE_UI_TESTS=1`): repeated native and programmatic dismissal/reopening retains the terminal query, SFTP retains its filter, and connection-journey presentation preserves search-controller identity and the SSH terminal view. These are ownership/lifecycle regressions, not just visual checks.
 
 ## Where feature work belongs
 

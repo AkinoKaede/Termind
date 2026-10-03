@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4e3e2cd2658e91baa1054400be3fbdf26baa45478b77c806e987df40dee431da",
+  "pageVersion": "sha256:86ad6a32526a6653b47961debedce0d94add513b04f1533752fc2b50b40b6eb1",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -880,8 +880,12 @@
     },
     {
       "id": "claim_57982e129b9e453195a0b68f8161ba6f",
-      "statement": "Ghostty menu regressions cross package and app seams: desktop TerminalContextMenuTests covers blank-space and selected menus, paste/right-click behavior, dynamic upload availability and stale binding teardown; mobile MobileTerminalUploadMenuTests checks the Photos/Files group and availability, while the fork has touch-selection tests for its own selection mechanics.",
+      "statement": "App-level Ghostty menu regressions cover desktop blank-space/selection menus, paste/right-click behavior, live upload availability and stale binding teardown, and mobile Photos/Files availability plus editing/Upload/AutoFill ordering. Fork touch-selection validation is an external-package step requiring an initialized libghostty-spm maintenance checkout, not locally inspected or executed coverage; Xcode consumes the remote pinned release rather than maintenance edits.",
       "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L20-L32",
+          "version": "repo-lines-v1:sha256:a5f9a3df7cb4f3087b5a68d2206ca478a109a41966f4e4ec0a21beb5e28c980e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyMDY4MTg4ODg0YWQzYjJmMTk3MTgxYzAxNDM1ODdlNGE5ODJiMDY3ZTNhYmY2ZGI3MmQzNjJkYTFhNjBjMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5NmZlNzRhYjM3OTEyOGQ2NzhlMmNkOTlmYjhhMzQ1Y2Q3ODJlYjQyZDhjZWUwM2ZjM2U0YzY2MTliM2U2NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MDNlOTNiOTIwZGNjMjVjNGFmODJjZTE3NGI3M2QxODcyOTUxMGM2ZGExNTEwZjU4MGE0MDE3NzZkN2M2NTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3NWQyZjRkYzFmYjQ3ODM5ZTE3NGM1NDM5NjliNjdiMGNlMDdjOGY2YWE3MjczYmM2MjhkZDU1NTVkNTQ3MzQifQ"
+        },
         {
           "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift",
           "version": "repo-file-v1:sha256:90a5f051f972aa425febb49d994b4ffac67c24bdc897de82204d9233e28a8bd2"
@@ -889,16 +893,126 @@
         {
           "resource": "repo://TFMTests/TerminalContextMenuTests.swift",
           "version": "repo-file-v1:sha256:624404c844613d1a8b0228ce7ee51e593cd6dcdb9b66f33571b671dcd40fa2bb"
+        }
+      ]
+    },
+    {
+      "id": "claim_19899471cae94838b2580efe6dce9683",
+      "statement": "Always-on TerminalFindControllerTests checks retained-query search/navigation/end ordering, empty-query navigation opening Find without actions, and repeated native dismissal ending search once without requesting terminal focus; reopening restarts the retained query and ordinary dismissal restores focus.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/TerminalFindControllerTests.swift",
+          "version": "repo-file-v1:sha256:f30d05cd59d536870f2a5ee2d92d1c97107aa544acb78a541a3d85436a9fc3ca"
+        }
+      ]
+    },
+    {
+      "id": "claim_e01c1bcc3caf4c83a9eabd7a11a7c5c8",
+      "statement": "TerminalFindController retains query separately from presentation, restarts nonempty search on closed-to-open transitions and ignores already-closed dismissals; mobile SSH/Telnet search binds to it and native closure suppresses focus restoration, while SFTP binds directly to its channel query and the workspace supplies terminal execution/focus closures.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift",
+          "version": "repo-file-v1:sha256:19592329ca36a71a6e27cb040204122ada57d5789b1c83e127035a2891ab21cd"
         },
         {
-          "resource": "repo://libghostty-spm/Tests/GhosttyKitTest/Input/TerminalTouchSelectionTests.swift",
-          "version": "repo-file-v1:sha256:0bef60e1acb0d126e9f1b0307ff2df73244b7be8ae3528b3c2d973c0eb503187"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L105-L108",
+          "version": "repo-lines-v1:sha256:5de0e323412692253818de8c7c536cafb12900b849be2d4556fcb076a0102b0d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2QzZGIxMzkwMmVjNDJkZjcyNGM0YTMzMzkwZGQ5NWY1ZDg2M2FjMjZhOTFkYzNjODE5ZGQzMGQ0OGY2YmQwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzBjMWYxODhmMTQyZWQ3YTgyNDY4MGIyMDcxNzJjNTUxOWJjNjE0YTQ4ZmRhN2NmMTY3ZWRiOGRkZjc5OTU2YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI4YzIzMmEwOWFmMmJlNGI3NmZhNGZhN2Y5NWE3MWViYWQ2NWY2YTFhODZkZTk3MzZhZmZiNDIzZDM3NDNjMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWYyZDM1MjE4ZjZiMjNkMmU3YTMzOGI2OWZhMGU0Yzc5Mjc5ZjZjZjM0NjBlNWRlNGRiNDk2NDdhZDlmNzU1NCJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift",
+          "version": "repo-file-v1:sha256:514766e31824b9dc42052eec4e38a6b1fbd1adc9fedfff0a0e4cb4b4bf28e8e1"
+        }
+      ]
+    },
+    {
+      "id": "claim_7a3b52a78b7d48a592d8945fcb47df87",
+      "statement": "MobileToolbarSearchController owns one UISearchController, defers synchronization out of SwiftUI updates, blocks synchronization and text/submission callbacks during dismissal until UIKit completes it, and resigns the search responder and publishes closed state before deactivation to avoid reopening search or erasing retained text during native dismissal.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L44-L194",
+          "version": "repo-lines-v1:sha256:59b528613b725627f503ceef241a977be0d4534feef2677ba9f42a5c73c1e746:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZmFlNTJjMTdhYTRkOTU1MzYxOTFlZDIzY2IyNjZkZjg3MzRhYjNhZGNmODQ3MWI2Y2Y2MDY4MGU3YTE3NmRmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_89e57a970562444082ea049e9571b7f9",
+      "statement": "MobileTerminalSearchIntegrationTests is serialized and gated by TERMIND_MOBILE_UI_TESTS; its SSH regression repeats native, programmatic and terminal-focus-then-native cancellation three times and asserts active/responder/model state and retained query, including that an empty query leaves Find presented.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L57",
+          "version": "repo-lines-v1:sha256:cc85346aeedf4cbb39a4c744121d57b41e9cb81061e22271a747d236a5ef946f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzYjRjOGU2NjRmNTNmMjk0MmZiYmNmNTFhNTBlOTMxMmU4MGMzNjFiZjE3MmUxN2Q2YzQzN2EyYjcxMjJkN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExMDVmZWYzY2ZiNDcyMmQ5NjVmODY4NzFjN2Y1NzRiODgyMzc3ZTAxODI3YWFjMjk4OTBiOTM0YWI2NGVkYWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d7b263f9e72b41a7a0a69e713d46a826",
+      "statement": "MobileTerminalSearchIntegrationTests verifies repeated SFTP filter cancellation/reopening retains the query and releases the responder, and clearing the filter leaves search active; SSH/SFTP journey visibility transitions preserve search-controller identity, while SSH also preserves the attached terminal view and retained-query reopening after journey dismissal.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L59-L126",
+          "version": "repo-lines-v1:sha256:db34bbd97e7c5e2075deab162bc96ab96578a758cf7bf919e5ad92b31da75085:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlMGMwN2ZkMTc4NDk4NmMwOGMyMzJlNWU2YmUyNzc2MzgwMzFlYjlhNzJmM2ZjZGQyMmQ5ZmVmMTQ0MmNkNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c2d43e1b3f92477d924272c2a5af3c63",
+      "statement": "The mobile search integration fixture uses an in-memory app and standalone workspace in a key window with the production search modifier and SSH surface, restores the previous key window and disconnects on teardown; journey visibility is a simulated overlay, SFTP content a text projection, cancellation a delegate callback and settling timed waits rather than live transport or physical button-tap coverage.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L129-L203",
+          "version": "repo-lines-v1:sha256:54ddddaf5d12d8186bb5ea696dd945c5c065ea520ee5b34d54b76c6bc2fa718a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3d85d58681b04dea8be9ae8af2eef0b8",
+      "statement": "MobileWorkspaceMenuTests is serialized and mobile-UI-gated, resolving native menus in a key window to test opened/dormant workspace ordering across title/icon switchers, read-state removal of unread conversation icons, and nondestructive Rename versus destructive Close and conditionally separately grouped Close Others without Close All.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileWorkspaceMenuTests.swift#L8-L142",
+          "version": "repo-lines-v1:sha256:8f7c8e4d2c6586bbc919af05593593df67409f28e62a4141b7be3cc47045cbb9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyZTRjZmIxM2UxNTZjNDI1MWUwM2U2YjdiOTE3MGEyOWVkNmIwNzBhYjc0OTEwYjdkZTM2YzVlMmZmZGUwN2VjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyZmUwM2I0MjdkOTg1Y2FkOTIyNmRkNDY3ZjRlODAzMWM1YzU4YzU0Nzk1ZTgyMThjYzlhZDFiMWFlZmRkNGQ5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzOTY0YmZmYjFhMmVhZmNlOWZjNDM0MzM3NWRkN2RhZGVkYzY0MGU5OWUwMzE5YTZmMGM4MjliM2MyZTM5NTUzIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_6af03782764a4588ad8a9060c53a26ed",
+      "statement": "MobileTerminalUploadMenuTests constructs native menu elements offscreen without a key window or TERMIND_MOBILE_UI_TESTS gate, despite being serialized; it checks both selected/unselected editing groups, Upload before system AutoFill, absence of unbound upload groups and disabled/enabled Photos/Files actions.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift",
+          "version": "repo-file-v1:sha256:90a5f051f972aa425febb49d994b4ffac67c24bdc897de82204d9233e28a8bd2"
+        }
+      ]
+    },
+    {
+      "id": "claim_2d9fc534de6d41ae83385fd39c346638",
+      "statement": "AGENTS.md prescribes TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1, disabled parallel testing and narrow TFITests suite filters for opted-in key-window validation; the search, workspace-menu and editor-toolbar suites read TERMIND_MOBILE_UI_TESTS in the host, while the checked-in TFI scheme includes TFITests/FrameworkTests and launch-scheme environment use but no explicit environment-forwarding entry for this flag.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L78-L78",
+          "version": "repo-lines-v1:sha256:20f70f81c29f72ceb3b8c0d0ed710e433bbc08043f50f8fa17d7544dbd06708d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkzZWE4Y2ZiY2Y1YWVmY2JhNDU4MWE0ZWY2NDljNDcwYjFkYWE0NGM3MjIzN2U1ZTBmOTkyMGJjYjIxZDViMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileEditorToolbarTests.swift#L8-L14",
+          "version": "repo-lines-v1:sha256:9840e4f16e3feb35c895f5df5137cf37c074d60727cd0f68497f1620f220baa8:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWY5MjllMmY3NmM4ZjhlNDUyZWZlMTVlMGUzNzY4ODVlYTEyMmY2NzA3ZmRiZjk0NmQzNDZhNmI3MGZkMzVkNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2U1NmQ3MWMzNzQ3MjBmMjJhNGUwZDViNzVhNWY2YTZjYzEzMWQ2YWM5ODA2N2QwZWYwNjc3NzVkOTNmMmMzYyJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L11",
+          "version": "repo-lines-v1:sha256:fe517ac2d4e3671eac0a5a9e34d74015174cf061504a64f44f4bed4f565a052d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzNiNGM4ZTY2NGY1M2YyOTQyZmJiY2Y1MWE1MGU5MzEyZTgwYzM2MWJmMTcyZTE3ZDZjNDM3YTJiNzEyMmQ3YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjljMDhhMjUxODVkODRjMDFkYWU5YjNmZDY1ZGZmNmI1NTY1MGIwZTQ5NDgxM2MxOGQ4Mjk2OTI3ZTQxNjY0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThmMWNlNjFjODhmOGRiNGU0NDA2ZjY1NzZkNzRiOTU2NzY0YjMxODk1OGM5NzlkYTI5Mzc2NjYwMTE0MTRjNiJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileWorkspaceMenuTests.swift#L8-L9",
+          "version": "repo-lines-v1:sha256:329cbd46a4643f358883515b12cdb2e86eb43cab2b22b4ef84a26ad9aca88e1e:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmU0Y2ZiMTNlMTU2YzQyNTFlMDNlNmI3YjkxNzBhMjllZDZiMDcwYWI3NDkxMGI3ZGUzNmM1ZTJmZmRlMDdlYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGFjNDg1NTU5OWFmNzczMTFiNmExM2Y5MjVmMGEwN2Y5Zjg3MjY5YmU3MTc2NzY1MzljNTg4MjNiMjYyMzNiOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzUyNjA3ZTMwYTljYTUzY2M2MDYzZjhmNWY3MWViOGIwMmViNWE2NmM4N2ZjNmZlODhkZDExYmZiYjc4YTMzMiJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme",
+          "version": "repo-file-v1:sha256:877c0c2396559671fcca02c76263f44b07cf723ca0c48d50ab361c306d7bdb6b"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-03T22:38:13.888Z"
   }
 }

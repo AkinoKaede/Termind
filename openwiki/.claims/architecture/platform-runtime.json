@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:eac75c26bb53a5996fad8ffd431fb8a8b03e7d3731e53889abd405bb277ede35",
+  "pageVersion": "sha256:7a321159f0eb0e1e2ed1f91ace0b7788939d2b4fdbf12836ec971f6d1aa73ec6",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
@@ -20,7 +20,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f11c003304f9de6db10f85dedf047f6de6d62c2d9321baec11a3c4c97ed5a6f2"
+          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
         }
       ]
     },
@@ -821,10 +821,48 @@
           "version": "repo-lines-v1:sha256:504aa7ecd10af6a55edff113125b3274bff4a9385b0b6bd1b6544b72532bc4ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZlZDU5MWYyZDYyZjQxZTQ4Nzg0N2ExNzFjNjM5NWJhMDhhZjlhNDI0YjU4MjEyNTMwNWUzZTQwZjkxZTFjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTc5OGFhYWVlMGFlZGQzMzY0ZjQ3Yzc2ZWJhMTU2OTU1YjM1YmI2M2VkZmFjNGU0ZDJmNzgzZDE4NGFlYmY1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU0Y2Q2MTc1M2MyNmQxMzE2MmUxODIyMmU4NjMxYWUzMTcwYmE2NWMzOGRjMWU0YmJkZmYwNjdkMTczMGQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFiMTYxNDVjMDA0OWU4Y2Y2MjM5YmVkZGQ0YmE3ZTIxNDQ2ZjZkYWUyZjVlNmU3NWM0ZWY2NGYyYjU2ODVjZSJ9"
         }
       ]
+    },
+    {
+      "id": "claim_e159afced62b499c8876b16f46b87564",
+      "statement": "Mobile workspace detail identity and native search presentation have a shorter lifetime than the session-owned workspace runtime: switching the pushed detail by workspace ID dismantles its UIKit search controller, while search queries bind to workspace Find/SFTP state and the existing workspace, connection journey and retained native terminal remain independent of that presentation teardown; teardown does not itself save descriptors or start a connection.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L286-L301",
+          "version": "repo-lines-v1:sha256:dade7efc6a5a1e510fa4bcdbc41f4f740ed7b2ebb0bc43f2d9e4f01320a50058:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZTZjZDRmM2UxZDUwNmViYjcyOGNjZDk1OGNjNGE2ZjUyOTIwZGJkNWQxZGVkNTFkMTQ2NGQ5NzQxMTY4YjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkYjA3M2QzMWE1OTVlMzgyNDUwNDczYjY4YTUzNzZiNjRkN2M1MjU5ZGVkYzE1ODc1ODdiY2JmNDhmNTk1ZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMjljZDAwMGRlMzFlNjk1NzdlZTdmMGUxYWZmNzJjZGE4OThhMWJkZTg2ZmVjNDA1N2MxMGI4NzM4MTU3OWYifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L345-L361",
+          "version": "repo-lines-v1:sha256:78eb8f2c1c6b6477a7681dab56309c4584b13b589e5273208b0324beebf32615:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxODI4YWZmNmM2MDJhZDBjNDkzM2FhYjA1ZmQzZTgzOTVmYmI4ZjY3NTI1OGU4NzBiMmE4MGY5MjhjYzhmZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5YmZhMTRhYWRlOGE1OGNjNTMwMzA1N2IzMmEyNDk1NjdmNzI3NDFhMTJjZDJjNjRjYzAwMzZjNzlkZGRmOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNzhhMmQzMGFkYTcwNjU3OTM0MDdhOGM1ODY5NmMxMmM3NjAyZTc0OTVlM2IwZmE5MDRmMDE3NmI0YzY5NmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxY2ViNzRiYzA1Nzg0ZmI3ZDI4ZjU1NzU2NWQyNGU3N2Q4ZDBkMDBiZWZhNDZlNWQ0YTk5YzA1ZTEwMzhhYTkifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L295-L309",
+          "version": "repo-lines-v1:sha256:9f071efb7b2f7f9a0ca0102e52b908a3a3213ef3c3a88639b76c34a3f5cc8b0f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5YjY3ZjU5MDliMzYwNjNmNTgzYmY5MmQyOTE5MTY2YWJiYzExZjkwZmI5NzdhNjYxMjNmNjI3OGNlNGE0MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmNjhlNzZhMTNjZGIzY2I4ZjMzM2E2ZGIzMThhZTJkMzM3MmQzZjZkNDEzNWU0ZDM5MzhiZTFkODI5MzYxMzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjOGRjYjMyNThmZjk4NTVkZDAyMGU1NDE1N2E4YmVhNWNlZDFkYjUwOTFlNDgzNTJmN2M4YTIxMzRmMDMyY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYTVlYmRhNDQ1NDU4NWI4MmVjYWI4ZDUwOWY5MjA3MzE0MDE3YjU4NjhjMjZmMGM0ODFlNzUyY2UzZTFkZDUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L49-L70",
+          "version": "repo-lines-v1:sha256:6252706551ee704d05c6985b53ed82bc9ed2274dd685d79774f83bf6973fa851:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiOGM0YTEwNDY0ODc5ZDFjZjYxM2Q2ZTYzMTkzNGQ0OWI3ZGY4MjU3N2E5Zjc5NDcyN2Y3ODlmZjU0ZDcwNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyOWFiYTE3YzNjYjIwYzE4NDYxM2VkMWY4NDY2MGZjYzkwNmU2NDI2ZWYwNzgyNWRmMGM2YjQxMjA2NWIzMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4YjUxYmJlZGIzZGM0YTMzMmZhZjA5ODk3MDc2Y2UwMmQ0MzJmMjg1NmY0NDU3NTEyNjE2MDljMTA2ODQ0ZDUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift#L64-L80",
+          "version": "repo-lines-v1:sha256:93fcb16b8ebc10400a7083a2d3c70a3de100e9c2e2b8ed8a73a93f85679fa406:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMTcwZDgwNGM3OGE1OWFlZGM1NDE3Njk4MmYyMGQ0NjI3NDAwNDVkMjQ1MDBhMzAzMDNmZmUwZTFkZGZlMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiMTI4YzRmOGM1NjY2NzZlMDBkZjlmMmRkYjdmMzkwMDU4ZTJjYWQ1Yzk3ODJiYTMzZGM2YWNlYjRhN2ZmMzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNTk0YjE3NzNhZjBhMTFiMDI3MGExYmZmZThhZmE5NDIwZDY2MjMyMzMwNWI1YjgxNWU1ZWI3YWRhMjlkNTMifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift#L4-L28",
+          "version": "repo-lines-v1:sha256:364b48c41081c4b05284d7cea0032957803a62a3ccf4b4fc04512c5de2bf96b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmZGI5ZjlhZTA1YzkyYjE1ODdjYjBhZWMwNTE5OGEzNDhlMjVhM2MwNGY2NGRlNzIwMmIzYzc1MGRmMWY1NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3ZmYyYjcxMGUxMzQ2NWEzZmU1MjE2MzA1YjkzODIxZDZkMzNmNTJmZTI5NTBjMzdhYzgwYjJlOGQyZDAwYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L136-L148",
+          "version": "repo-lines-v1:sha256:845d7a4a053106a4df15aa2f81971a1e5c1043d4139c73e5f7ecd0c028b7ff42:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2FiODhkNDVhNzE1Njg3ODJkZTlhYTMxNTI5OWM1NzUwYmM5NmI1OGI5MWU2ZDUyMDc1MTUzMGFlYWZjZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2ZDA0NDY3OTU0MDM5YzlmZmJiYWY2ZDZiNWQxNGUyMWViY2ZlYjlkMzU3ZmM1OGIzMjFiYzA0YjIzYThjOWUifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L20-L50",
+          "version": "repo-lines-v1:sha256:f43ea5d73c64a03e814a6697d5b63bdf583f535b897ac057788804eee8f737c6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhOTlkNjNlNjBiOWFlNTdmYjgwMDhiYWQ3NWMwYzY2OTZkMDM4YWU3MTVmMzVjMTBhMjJkNDI2ODc5MzA5YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxOWEwNDk2MmQ2NTNlZGRhZjJiNTU1YzU0NWUyYmIyZGIyN2M1MWY4NDM4MTE1YjZlN2I2NmIxMjUwYjk3NjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjMDMyZmMxNjMyZmMwZDE0NGQ2ZmYwZGJiY2NkMWQ0MDNkN2MyNTQzN2IwNjE3ZWJiOTQ2NDJjNjY4N2Q1MmYifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-03T22:38:13.888Z"
   }
 }

@@ -3,9 +3,6 @@ type: architecture boundaries
 title: System boundaries and dependency direction
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:35:16.908Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -17,6 +14,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift
   - id: openwiki-source-6f388236eaa573c3c2ba7706
     resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e4f5ea9b30063cdc7d027956
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
@@ -41,6 +40,8 @@ sources:
     resource: repo://FrameworkTests/HistoryRenderingSnapshotTests.swift
   - id: openwiki-source-ad1a1eea0aea739f2004d93a
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
     resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -55,8 +56,18 @@ sources:
     resource: repo://TFI/App/MobileStartupView.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
+  - id: openwiki-source-4c2de67bfdb2238d765a642a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-a7d4f0957a52ddd59cd45344
+    resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-c52cd56852d12b2dee153082
     resource: repo://TFM/App/AppDependencies.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -69,7 +80,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "codex", at: "2026-10-03T16:35:16.908Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
 # System boundaries and dependency direction
@@ -126,7 +140,7 @@ The diagram shows consumer-to-dependency arrows for explicit shared-framework Xc
 | Mobile `TFI/Application` | `SwiftUI`, `UIKit`, `SwiftData`, `GRDB`, `TermindPersistence`. |
 | Mobile `TFI/UI` | `SwiftData`, `GRDB`, `TermindPersistence`, `TermindRemoteInfrastructure`. Mobile `TFI/Features` gets only the concrete-symbol guard. |
 
-The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. A separate diagnosis rule rejects `FirebaseCore`, `FirebaseCrashlytics`, and `FirebaseAnalytics` in Domain, Application, Presentation, and Persistence (but not Infrastructure or Remote Infrastructure), and checks both app plists default crash/analytics collection off. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. These are **source-root checks**, not blanket rules for all of `TFM` or `TFI`: desktop `App/TermindApp.swift` and mobile `App/MobileAppModel.swift` composition files can import SwiftData and concrete frameworks. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes; neither proves an exhaustive compiler-enforced boundary or bans all concrete code. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
+The shared non-presentation rule (Domain, Application, Infrastructure, Remote Infrastructure, Persistence) rejects `Termind`, `TermindIOS`, `AppKit`, `UIKit`, `IOKit`, and `ServiceManagement`. A separate embedded-Tailscale rule rejects `TailscaleKit` and `CTailscale` in Domain, Application, Presentation, and Persistence; it does not scan Infrastructure or either app. A separate diagnosis rule rejects `FirebaseCore`, `FirebaseCrashlytics`, and `FirebaseAnalytics` in Domain, Application, Presentation, and Persistence (but not Infrastructure or Remote Infrastructure), and checks both app plists default crash/analytics collection off. Separate tests reject app-local `AppStrings` definitions and constrain imports in Presentation's `Strings` directory. The concrete-symbol guard on shared Application, desktop Application/Features, and mobile Features looks for `ModelContext`, `FetchDescriptor`, `KeychainSecretStore`, `SFTPClient()`, `SSHConnection()`, and `URLSession(`; it does **not** run on mobile Application or UI. These are **source-root checks**, not blanket rules for all of `TFM` or `TFI`: desktop `App/TermindApp.swift` and mobile `App/MobileAppModel.swift` composition files can import SwiftData and concrete frameworks. The import check matches literal `import Module` lines and the token check scans a fixed list after stripping `//` suffixes; neither proves an exhaustive compiler-enforced boundary or bans all concrete code. Use injected ports across a boundary rather than a re-export, forwarding alias, generic “Core” module, or framework-to-app reference.
 
 ## Persistence is a single-owner boundary
 
@@ -164,6 +178,32 @@ Desktop calls `TermindPersistence.makeContainer` with in-memory storage for test
 The app targets are composition roots. `TermindApp` creates the desktop `ModelContainer`, keychain store, sync persistence/coordinators, repositories, connection coordinator, logging, and app-wide `AppModel`; it also supplies `MacDeviceName.current` to the shared device-directory port (trimmed `kern.hostname`, with DeviceKit's `Device.current.safeDescription` as fallback). It injects the shared model and container into its window scenes. `AppDependencies` packages repository, connection, sync, logging, and optional shutdown services for the desktop model and provides an in-memory host repository for tests. On mobile, `MobileAppDependencies.live()` wires logging and one connection coordinator into workspace and metrics services; `testing()` defaults to in-memory storage and replaceable dependencies. `TermindIOSApp` selects one of these at startup and creates one `MobileAppModel`; on success `MobileStartupView` attaches its container to the scene content. The mobile composition uses DeviceKit's description directly for the device-directory port. This is where a concrete implementation or platform value becomes a port supplied to shared feature code.
 
 Do not use this as permission to move live state into the app-wide layer. Durable stores and cross-window coordinators are app-wide; desktop navigation and workspaces are window-owned; mobile navigation is scene-owned; live SSH/SFTP transports remain with the workspace/session that opened them. Refer to [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for the detailed ownership map.
+
+### Mobile Find: policy, presentation, and feature binding
+
+The mobile Find path illustrates the same boundary without moving UIKit into shared code:
+
+- **Shared Application owns query/action policy.** `TerminalFindController` holds the query and logical presentation state and emits `TerminalFindBinding` actions through an injected closure. Query changes trigger search; navigation requires a presented, nonempty query. Dismissal ends search but retains the query so reopening restarts it. Its default dismissal restores terminal focus, while `dismiss(restoringFocus: false)` lets native UI own the responder transition.
+- **Mobile feature composition owns the workspace binding.** `MobileWorkspace` injects its terminal's action and focus callbacks. `MobileWorkspaceView` applies `MobileWorkspaceSearchModifier`, which binds SSH/Telnet search to `workspace.find`, submits `.previous`, and dismisses without requesting terminal focus. For SFTP the same modifier binds to `sftpChannel.query` instead of terminal Find.
+- **Mobile UI owns UIKit presentation.** `MobileToolbarSearch` accepts bindings and a submit callback, installs a `UISearchController` on the navigation owner, and synchronizes delegate changes back through those bindings. It defers synchronization from SwiftUI updates and blocks synchronization, edits, and submission during dismissal to avoid reopening the native search UI mid-transition. On disconnection it removes its search controller and restores the owner's prior presentation-context setting. The bridge imports only `SwiftUI`, `TermindPresentation`, and `UIKit`—neither transport nor persistence implementations. This is a concrete example of the `TFI/UI` import restriction, not a new universal ban on UIKit or a claim that mobile Features cannot import infrastructure.
+
+```mermaid
+sequenceDiagram
+    participant UI as MobileToolbarSearch UIKit bridge
+    participant Feature as MobileWorkspaceSearchModifier
+    participant Policy as TerminalFindController
+    participant Terminal as Workspace terminal
+    UI->>Feature: Query binding changes
+    Feature->>Policy: updateQuery
+    Policy->>Terminal: Injected search action
+    UI->>Feature: Publish dismissal
+    Feature->>Policy: dismiss restoringFocus false
+    Policy->>Terminal: Injected end-search action
+```
+
+The feature binds native search presentation to shared policy; UIKit retains keyboard-dismissal ownership. See [Mobile UI Architecture](mobile-ui.md) and [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for platform details.
+
+`FrameworkTests/TerminalFindControllerTests.swift` covers retained-query restart, navigation without a query, default focus restoration, and idempotent native dismissal without terminal focus. `TFITests/MobileShortcutTests.swift` checks mobile F3 direction and Escape routing through that shared controller. These tests verify the policy and shortcut paths; they are not proof of every UIKit search-controller transition.
 
 ## AgentKit is an external, host-neutral boundary
 

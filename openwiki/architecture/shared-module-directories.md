@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Shared module ownership guide
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -37,6 +34,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
   - id: openwiki-source-ced5c103bc80a375eeb8bcef
     resource: repo://Frameworks/TermindApplication/Repositories/VaultStore.swift
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
@@ -161,6 +160,8 @@ sources:
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
     resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-41a7ded3800c9422f058a3ef
@@ -177,15 +178,26 @@ sources:
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
 ---
 
 # Shared module ownership guide
@@ -210,6 +222,12 @@ Application uses Domain and AgentKit abstractions; concrete stores, sockets and 
 | `Repositories`, `Transfers` | History, device-directory, import and Vault ports, and `RemoteFileSystem`/basic file and remote-edit operations; bulk SFTP scheduling belongs to Remote Infrastructure. |
 
 `HostLibraryModel` projects saved hosts, groups, identities, keys, snippets, forwarding, transfers, Known Hosts and templates through Vault/secret ports. It holds live connection status separately from persisted `Host` values and notifies the app before host/forwarding deletion so runtime listeners can retire. `DeviceDirectoryModel` registers the installation via its repository, caches lookups until reload, and exposes storage errors rather than committing a failed rename. Persistence's device adapter journals directory changes with History and refuses registration that would resurrect a deleted device; clearing connection-event history does not erase the device directory.
+
+### Terminal Find: shared policy, native focus transitions
+
+`TerminalFindController` owns the observable query and presentation state, with injected binding-action and focus callbacks rather than a native terminal view. Changed queries emit search actions; navigation requires an open Find UI and a nonempty query. Dismissal emits `TerminalFindBinding.end` once, closes Find without clearing the query, and reopening restarts a retained nonempty search. This state belongs with the session/workspace owner, not a transient mounted search field.
+
+Focus restoration is also **shared policy**, not responder machinery: `dismiss(restoringFocus: Bool = true)` normally invokes the injected focus callback, while `dismiss(restoringFocus: false)` still ends search but lets the native UI finish its own keyboard dismissal. The mobile workspace search binding uses the latter. UIKit's search activation, `becomeFirstResponder()`/`resignFirstResponder()` transitions and dismissal guard remain in the app-owned `MobileToolbarSearchController`; do not move them into Application or Presentation. `TerminalFindControllerTests` cover default restoration, retained-query restart, empty-query navigation and repeated native dismissal without a terminal-focus request. See [Native App Directories](native-app-directories.md) for platform ownership and [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the terminal surface boundary.
 
 ### Assistant submission boundary
 
@@ -320,7 +338,6 @@ Edit, journal, synchronize and render: the dashed path keeps secret bytes out of
 
 - `ArchitectureBoundaryTests` guard import direction, single SwiftData ownership, shared-copy boundaries and the absence of a direct `StoreKit` import in Infrastructure Commerce.
 - `FrameworkTests` exercise feature policy, migrations, Cloud safety, replay and presentation. `PersistentStoreLockTests` check refusal before opening or migration, same-process shared leases, crash release and independent/in-memory stores. `AssistantExecutionControllerTests` check frozen capture and cancellation/failure-save ordering; `AgentReplayPersistenceTests` check staged edits and tool-result recovery; `AssistantChatCollaborationEdgeTests` cover delivery and wait failures; `RemoteCharsetTests` check chunks, malformed bytes and OSC 7 rewriting. `CloudSyncLifecycleTests` cover the upload fence on failed fetch, account transitions, retired-engine callbacks and batch limits; `CloudSyncSafetyTests` cover quarantine and journal-based upload admission across categories. `RevenueCatCommerceTests` cover configuration, entitlement expiry/verification, customer-info update races and the no-StoreKit-fallback failure path; live purchase and restore behavior requires RevenueCat and App Store Sandbox validation.
-<!-- openwiki: broken internal link [/openwiki/workflows/settings-and-cloud-sync.md] link "/openwiki/workflows/settings-and-cloud-sync.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- Remote/session/transfer suites cover authentication, resource admission, cancellation and recovery; native test targets cover routing and platform lifetimes. Use the [Engineering Quickstart](../quickstart.md) for build/test commands and [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md) for zone-specific behavior.
+- Remote/session/transfer suites cover authentication, resource admission, cancellation and recovery; native test targets cover routing and platform lifetimes. Use the [Engineering Quickstart](../quickstart.md) for build/test commands and [Cloud Sync](../workflows/settings-and-cloud-sync.md) for zone-specific behavior.
 
 V47 introduces Tailscale group/local node models, V48 revises local node state, V49 removes persisted command and SFTP history, and V50 adds profile cleanup. Application owns `TailscaleModel` and group-bound dialer ports; Remote Infrastructure’s `Tailscale` directory implements native node sessions. Presentation’s `Tailscale` forms do not own node lifetime. Command and SFTP history are session-local in memory; connection history remains durable.

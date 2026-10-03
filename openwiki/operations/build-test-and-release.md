@@ -3,9 +3,6 @@ type: release operations
 title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -15,8 +12,12 @@ sources:
     resource: repo://.swift-format
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-103853faf6b28763354a1c79
     resource: repo://LandingPage/package.json
   - id: openwiki-source-c76cbada020604024adadb22
@@ -31,6 +32,8 @@ sources:
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
+  - id: openwiki-source-caa5d720c9123cdab2a47976
+    resource: repo://Scripts/prepare-local-ghostty-workspace.sh
   - id: openwiki-source-6a4176e7d97bf05b3983882c
     resource: repo://Scripts/run-mac-marketing-screenshots.sh
   - id: openwiki-source-9621f35145a32a9f8391084b
@@ -45,6 +48,10 @@ sources:
     resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme
   - id: openwiki-source-60081fe11e88625a130dd44c
     resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
@@ -57,6 +64,8 @@ sources:
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-1068a19b8ad42f734f4b4bb6
     resource: repo://TFITests/MobileSavedNameRenderingTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
@@ -67,7 +76,10 @@ sources:
     resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-03T22:38:13.888Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
 # Build, Test, and Release
@@ -116,6 +128,26 @@ xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' 
 ```
 
 Use the matching mobile scheme and a concrete simulator for `TFITests` work. The `TFM` test action includes `TFMTests` and `FrameworkTests`; `TFI` includes `TFITests` and `FrameworkTests`. Typical focused choices are the test file that names the changed feature, `TFMTests/ArchitectureBoundaryTests.swift` for dependency placement, and `TFMTests/AppLanguageTests.swift` for language-selection/catalog behavior. Do not use an unrelated focused test as a substitute for the affected default suite. Check which suites actually ran: a passing default command does not prove a disabled opt-in suite passed.
+
+### Find-controller and mobile search regression routes
+
+For shared Find state and binding changes, use the headless controller suite first:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:FrameworkTests/TerminalFindControllerTests
+```
+
+`TerminalFindControllerTests` checks that presenting restarts a retained query, navigation without a query emits no binding, and dismissal ends search once. Default dismissal requests terminal focus; native dismissal with `restoringFocus: false` does not, while retaining the query for reopening.
+
+Native mobile search needs a separate, deliberate integration run. The file is `TFITests/MobileTerminalSearchTests.swift`, but the **suite identifier is `MobileTerminalSearchIntegrationTests`**:
+
+```sh
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileTerminalSearchIntegrationTests
+```
+
+Replace the destination placeholder with an available simulator. This serialized suite is disabled unless the test host sees `TERMIND_MOBILE_UI_TESTS=1`; use the `TEST_RUNNER_` prefix on the command line, or set `TERMIND_MOBILE_UI_TESTS=1` in Xcode's Test action. A default passing test run is not evidence for this suite.
+
+It exercises repeated terminal search presentation after native cancellation, terminal-focus-then-native cancellation, and programmatic dismissal; empty-query editing and retained queries; SFTP filter close/reopen; and SSH/SFTP connection-journey overlays without replacing the search controller (or the SSH terminal view). The fixture uses an in-memory app model and a temporary key `UIWindow`, restores the previous key window, and disconnects the workspace on cleanup. These are local UIKit integration checks, not live SSH/SFTP connection tests. Run them when changing `MobileWorkspaceSearchModifier` or `MobileToolbarSearch`: native cancellation maps to `find.dismiss(restoringFocus: false)`, and the UIKit adapter blocks presentation synchronization during dismissal to prevent reopening mid-transition. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for broader fixture guidance.
 
 ### Formatting is a strict check
 
@@ -222,8 +254,21 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 
 ### Ghostty fork is a different pin workflow
 
-<!-- openwiki: broken internal link [/openwiki/operations/ghostty-fork-maintenance.md] link "/openwiki/operations/ghostty-fork-maintenance.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Xcode uses an up-to-next-major version requirement from `2.2.2026100303`, with that release selected in the lockfile, independently of the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project minimum version and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not. See [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md) for patch application, local workspace preparation, package tests and the full release sequence.
+`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Xcode uses an up-to-next-major version requirement from `2.2.2026100303`, with that release selected in the lockfile, independently of the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project minimum version and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not. See [Ghostty Fork Maintenance](ghostty-fork-maintenance.md) for patch application, local workspace preparation, package tests and the full release sequence.
+
+For unreleased native Ghostty work, the explicit local override is a different validation route:
+
+1. Build `libghostty-spm/BinaryTarget/GhosttyKit.xcframework` using the package's `build.sh` first.
+2. Run `Scripts/prepare-local-ghostty-workspace.sh` from the app checkout.
+3. Build through the generated workspace rather than the ordinary project:
+
+   ```sh
+   xcodebuild -workspace build/KeywordHighlighting/Termind.xcworkspace -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
+   ```
+
+The helper requires the local XCFramework's `Info.plist`, copies `Package.local.swift` as the staged `Package.swift`, symlinks `Sources`, `Tests`, and `BinaryTarget`, and copies the app lockfile into `build/KeywordHighlighting/Termind.xcworkspace`. It refuses to replace an existing non-symlink staging entry. This ignored workspace does not change committed app pins: report its results as **local override verification**, not verification of the released remote binary. Ordinary `-project` builds still consume the resolved remote release; publishing and advancing that release remains necessary for delivery.
+
+The project requirement and lockfile were rechecked for this documentation update; their existing Ghostty version agrees. No dependency bump, local binary build, or successful build/test execution is implied by that source inspection.
 
 ## Release-oriented checklist
 
@@ -237,10 +282,12 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files. For Ghostty fork work, align the pushed revision, submodule gitlink, project minimum version and lockfile; refresh the XCFramework URL/checksum first if patches change.
 9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing. A green build or test run is not proof of StoreKit purchase/restore or deployed storefront configuration: record the actual executed suites and follow the separate commerce release verification.
 
-<!-- openwiki: broken internal link [/openwiki/operations/cloudkit-release-readiness.md] link "/openwiki/operations/cloudkit-release-readiness.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/marketing-assets-and-app-icons.md] link "/openwiki/operations/marketing-assets-and-app-icons.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md).
+CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](port-forwarding-benchmarks.md).
 
 `libssh2-spm` consumes clean upstream native source plus numbered patches. Run package source tests and native CMake/CTest, dispatch Release XCFramework, then update maintenance gitlink, Xcode exact version and resolution together. Current exact release is `2.0.3-termind-4`. Never commit generated native snapshots.
+exact version and resolution together. Current exact release is `2.0.3-termind-4`. Never commit generated native snapshots.
+kdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
+CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](port-forwarding-benchmarks.md).
+
+`libssh2-spm` consumes clean upstream native source plus numbered patches. Run package source tests and native CMake/CTest, dispatch Release XCFramework, then update maintenance gitlink, Xcode exact version and resolution together. Current exact release is `2.0.3-termind-4`. Never commit generated native snapshots.
+exact version and resolution together. Current exact release is `2.0.3-termind-4`. Never commit generated native snapshots.

@@ -1,3 +1,3 @@
 # Files
 
-- [Behavioral boundaries and test fixtures](behavioral-boundaries-and-fixtures.md) - Focused regression seams for shared frameworks and platform targets, distinguishing asserted architecture, RevenueCat commerce, mobile scene routing, persistent compatibility, and explicitly opted-in UI coverage.
+- [Behavioral Tests and Fixtures](behavioral-boundaries-and-fixtures.md) - Map observable shared and platform contracts to deterministic regression fixtures, including terminal Find and mobile search lifecycle coverage. Distinguish native presentation opt-ins, historical-store migration, network seams, and external-package validation.

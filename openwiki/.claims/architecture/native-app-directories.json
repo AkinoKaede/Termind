@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2318ffe869a02675abaad4260973143e583538f81e312f314f48afca4b2b062c",
+  "pageVersion": "sha256:69ca2d64c937e271b422a228c819ff454ae530210830fd04b0ab2a9a558a3e00",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -210,7 +210,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f11c003304f9de6db10f85dedf047f6de6d62c2d9321baec11a3c4c97ed5a6f2"
+          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
         }
       ]
     },
@@ -1009,10 +1009,86 @@
           "version": "repo-lines-v1:sha256:504aa7ecd10af6a55edff113125b3274bff4a9385b0b6bd1b6544b72532bc4ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZlZDU5MWYyZDYyZjQxZTQ4Nzg0N2ExNzFjNjM5NWJhMDhhZjlhNDI0YjU4MjEyNTMwNWUzZTQwZjkxZTFjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTc5OGFhYWVlMGFlZGQzMzY0ZjQ3Yzc2ZWJhMTU2OTU1YjM1YmI2M2VkZmFjNGU0ZDJmNzgzZDE4NGFlYmY1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU0Y2Q2MTc1M2MyNmQxMzE2MmUxODIyMmU4NjMxYWUzMTcwYmE2NWMzOGRjMWU0YmJkZmYwNjdkMTczMGQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFiMTYxNDVjMDA0OWU4Y2Y2MjM5YmVkZGQ0YmE3ZTIxNDQ2ZjZkYWUyZjVlNmU3NWM0ZWY2NGYyYjU2ODVjZSJ9"
         }
       ]
+    },
+    {
+      "id": "claim_10fc2512d31e4445a487bfff88631769",
+      "statement": "MobileToolbarSearch is a reusable UI/Components UIKit search bridge whose inputs are text, optional presentation state, localized prompt and submit callback rather than workspace policy; it owns UISearchController navigation-item attachment, responder coordination and dismissal guards.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/UI/Components/MobileToolbarSearch.swift#L5-L194",
+          "version": "repo-lines-v1:sha256:0be2117efb1152b62972bf9e3def41b05b20900539595c1bc36534c276dbf83a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTkwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMGMwZDY5MDFmMTU2Mjk2Mzk2YzhiMjU1ZWU5ODM0MjQxMmMyY2FhNjM3NTZjZjk4NDc0NjRiODAzYTQ1YmZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzZmExOWYyYWFmMjZlNjIxOWRmODJjNDNkMThiNTJlOTliNzM4ZTUyMjQyYjIxOGNlYWZhMzI4NTU4ZDRjY2RhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_0de9c7dd381f4c8fb1cc3ecf7da57660",
+      "statement": "MobileWorkspaceSearchModifier supplies protocol-specific search bindings: SSH/Telnet use TerminalFindController query and presentation, submit navigates previous, and native dismissal avoids restoring terminal focus; SFTP binds only its channel query.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift#L4-L29",
+          "version": "repo-lines-v1:sha256:c6bed5601af84d89b5a68a051fe4ae91860a53d72c641ede1c45ee0be47dfad8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmZGI5ZjlhZTA1YzkyYjE1ODdjYjBhZWMwNTE5OGEzNDhlMjVhM2MwNGY2NGRlNzIwMmIzYzc1MGRmMWY1NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3ZmYyYjcxMGUxMzQ2NWEzZmU1MjE2MzA1YjkzODIxZDZkMzNmNTJmZTI5NTBjMzdhYzgwYjJlOGQyZDAwYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4fd5943f5c344c2fb4acf13b475c49c4",
+      "statement": "MobileWorkspace constructs TerminalFindController with callbacks to its TerminalViewState binding actions and focus, retains MobileTerminalSurface, and supplies that surface's same native view through makePlatformView.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L105-L108",
+          "version": "repo-lines-v1:sha256:5de0e323412692253818de8c7c536cafb12900b849be2d4556fcb076a0102b0d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2QzZGIxMzkwMmVjNDJkZjcyNGM0YTMzMzkwZGQ5NWY1ZDg2M2FjMjZhOTFkYzNjODE5ZGQzMGQ0OGY2YmQwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzBjMWYxODhmMTQyZWQ3YTgyNDY4MGIyMDcxNzJjNTUxOWJjNjE0YTQ4ZmRhN2NmMTY3ZWRiOGRkZjc5OTU2YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI4YzIzMmEwOWFmMmJlNGI3NmZhNGZhN2Y5NWE3MWViYWQ2NWY2YTFhODZkZTk3MzZhZmZiNDIzZDM3NDNjMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWYyZDM1MjE4ZjZiMjNkMmU3YTMzOGI2OWZhMGU0Yzc5Mjc5ZjZjZjM0NjBlNWRlNGRiNDk2NDdhZDlmNzU1NCJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L148-L157",
+          "version": "repo-lines-v1:sha256:7b8646f105f03a9140ca7244dc719b0cef2e41cdc32056e55121d3663caae795:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhOTliYTgxNDBlYjdjNjI4NDI4MjA2ZDU2ZDQ1YjkwMTY3ZDAxYjM3MGI1ZDE1NDg3NmExMzYyNjliNmJhOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4ODc2YTdkMzZhMmE0MDQzZjQ4MzFhYmJlNjE2MjQzZGVlZDQxNmZmNjI5M2NkOGU5NTY5NGM0OThmN2FiYTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5OTA2M2JlMGFhMzBjZjc4NDgyMTJiZDRjZjQ2ZGM1ZGFhODdjODY4MGVmZjhkMjZkMzk1OGNkMzM5MWY0ZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMDJjZWU1MzJkZTA4OTE4M2ViOWYzOTA3NzYwMTQ0YWNiMzVkNzMwNWU0ZTliODJkNzNhYzMxNDQ1OTYxYWQifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L306-L317",
+          "version": "repo-lines-v1:sha256:399ff8a8ad1a2467830e869a23ce0afb3f1157d86c64c2b9f8cdcf0c64728ebb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3YTIyNjczMjRlNDdlYmI4ODUzZWQ3NWFmNWUzZWM4MTEzYzhkYjFiMzM2YjJlZTAxZTFkOWU1ZDFkZGIxOWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYTkyNmFiMjRjMDE0Y2EwODhlNmQxOGViNmY4ZmEwMjlmNWQ4NWUwMWFhMTI3MmRiY2JhMDJkODNiYzlkM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmOWJiY2FkMmUwYzEwMTZkMThmMGQ5YWMyZmE0NDY4NTM5Yjk4MzhmZGViZWI0ZDc0ZGY5ZGUyYTZiYjU0NmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkifQ"
+        },
+        {
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L7-L15",
+          "version": "repo-lines-v1:sha256:208a83734ed144e3534836cea59daa4334d8340b7500c65bd480c2f8632ac1aa:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNmUwMWUxYTQ1ZWFiZWEzNDQ0OTFhZTYzOGFmYWFlN2Q5MjEwMWI1ZWI1ZjdmNWRjZDE5ODk2YTdkNzg1YjhjYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2ZhMTlmMmFhZjI2ZTYyMTlkZjgyYzQzZDE4YjUyZTk5YjczOGU1MjI0MmIyMThjZWFmYTMyODU1OGQ0Y2NkYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzkyNDcxNDFmZDU2MDYxZDM1N2VjYjUyZGUxYjllYjE4OWJlN2FkZjRlM2M1YWYzOTNiZmRiNDhjNjJmYWI2YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9b83972a9d424fe7b5cdb8502ecf1508",
+      "statement": "MobileTerminalView adds F3/Shift-F3 terminal Find navigation and replaces Escape/Shift-Escape only while Find is presented, otherwise retaining ordinary Ghostty terminal key commands.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L88-L136",
+          "version": "repo-lines-v1:sha256:cd94735ffcff0892a97367bd63d89b3c305f1cba28d0a161fbf9fcdf3c3ec6ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxYjliMzgwNThlYWU1Y2JhNGEwYmIxZTJiZmFhYjA4MzA4ZmU4ODY3NWM5NWQ1MDkwZjE2YmNkOTNmM2RiNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d43d813e72294ea48ee34d2b66c21fd6",
+      "statement": "MobileWorkspaceView keeps its search modifier on stable workspace chrome outside connection-journey content; SSH/Telnet terminals remain mounted under the journey overlay while SFTP can replace browser content without replacing the search host.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L121-L176",
+          "version": "repo-lines-v1:sha256:3c04a13c2ee6bbea4bd39fb1a1289aabef4aabdb8ea6246d2c02d4243e0cac4a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMWUwMzMyZjgzNmM4ZWJlYzI0YjBlNGNjY2RkZTljMmEzZjRlNDczODRiZDdmN2VmM2JlZWY2YmJkMGUzNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzZTZlMjQ4MzhhNTIxMzQxNzA1OTIxOGEwN2UzNWUyZjFjNmNkZTk0Mjg3NDZhZGNlOWVhNmI4ZTFmN2Y2M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhZmY4Yzg3ZWQyZGI2ZTAzNTljYTdjOGUwYzlmYjA4MWRlNjI1Y2Y3MGM3ZWU5YWU3NWRkNGM2NzQ0ZDAyMTkifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L470-L525",
+          "version": "repo-lines-v1:sha256:9cc412be7a08262d0a5146cd158c36c0c2c3bc68657fe14237fed21bac550ad3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzZTZlMjQ4MzhhNTIxMzQxNzA1OTIxOGEwN2UzNWUyZjFjNmNkZTk0Mjg3NDZhZGNlOWVhNmI4ZTFmN2Y2M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1M2MwMGMzZDc3MWY5YmZkYWU4MGQ1Y2ZlZjNhM2E3MDg1OGU5MjI4MmVhZTE1Yjk3NjVmMTBkOTQzYTVhNTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b7743e1ba94f4d3db4084d97560afe8e",
+      "statement": "MobileTerminalSearchTests provides serialized UIKit integration tests gated by TERMIND_MOBILE_UI_TESTS=1 for retained terminal queries across repeated native/programmatic dismissal, retained SFTP filters, and search-controller and SSH terminal-view identity across connection-journey presentation.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalSearchTests.swift#L9-L126",
+          "version": "repo-lines-v1:sha256:fbb0355522c5da1d6b935867c7ef2f82e0a2ab9e039ef5a303303ffda32ad217:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjM2I0YzhlNjY0ZjUzZjI5NDJmYmJjZjUxYTUwZTkzMTJlODBjMzYxYmYxNzJlMTdkNmM0MzdhMmI3MTIyZDdjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2YzRmNjFkNGFhMzc5MTE0OGE1MjRmZjcwNmFhOWE4NjI0MDA2ZDRjYTEyM2VjNzVlOGI0Mzk0ZWJmZGI3YTllIn0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-03T22:38:13.888Z"
   }
 }

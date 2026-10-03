@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2910c678dc2f6f8e2eddd56874daa9a7f9c0982d24c697f7fcb68162f8e7e75a",
+  "pageVersion": "sha256:efeb20df6dfda4a07a9fcd7a8201a96d57119436942ea495c98ff084a4854a12",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -596,7 +596,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:f11c003304f9de6db10f85dedf047f6de6d62c2d9321baec11a3c4c97ed5a6f2"
+          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
         }
       ]
     },
@@ -671,6 +671,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T16:33:30.535Z"
+    "at": "2026-10-03T22:38:13.888Z"
   }
 }

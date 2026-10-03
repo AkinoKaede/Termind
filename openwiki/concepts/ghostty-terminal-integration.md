@@ -1,67 +1,132 @@
 ---
 type: integration guide
 title: Ghostty Terminal Integration
-description: Trace how Termind hosts Ghostty surfaces and extends native terminal menus on macOS and iOS, including selection, localization, upload availability, and package boundaries.
+description: Explain the boundary between Ghostty rendering and input and Termind transport, retained native surfaces, Find lifecycle, menu customization, upload policy, and appearance on macOS and iOS.
 tags: [ghostty, terminal, menus, macos, ios, integration]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
+    at: 2026-10-03T22:38:13.888Z
 sources:
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
+  - id: openwiki-source-9b6177e37e7dd97d0cb1adee
+    resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
+  - id: openwiki-source-1e3a2ac8356020fd3ea569c9
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFind.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-76bfec2a5f9d38c73ab870c3
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalKeywordHighlighting.swift
-  - id: openwiki-source-9e7915b5fd54b91e430607e2
-    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView.swift
-  - id: openwiki-source-bad342fc101e73486720b943
-    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView%2BClipboard.swift
-  - id: openwiki-source-8ae52602ed3d3f309e86339b
-    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView%2BTouchMenu.swift
-  - id: openwiki-source-3bbc1dc23d4e59b05f8d5f52
-    resource: repo://libghostty-spm/Sources/GhosttyTerminal/Platform/UIKit/UITerminalView%2BTouchMenuActions.swift
+  - id: openwiki-source-e568ada11d31632da3ad26c7
+    resource: repo://FrameworkTests/TerminalFindControllerTests.swift
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-f7aa24af0100c1767226879a
+    resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
+  - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
+    resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-a7d4f0957a52ddd59cd45344
+    resource: repo://TFITests/MobileShortcutTests.swift
+  - id: openwiki-source-b6fae59344747785dee252f3
+    resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-4be25dd014939527fac996f5
     resource: repo://TFITests/MobileTerminalUploadMenuTests.swift
   - id: openwiki-source-194f038fde2b1218c1c960b2
     resource: repo://TFM/Features/Terminal/DesktopTerminalSurface.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
+  - id: openwiki-source-49f0fac89c69b4a04f428496
+    resource: repo://TFM/Features/Terminal/SerialSessionModel.swift
+  - id: openwiki-source-7e796927b780e67cc73f6a5b
+    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
+  - id: openwiki-source-4c497048b0a8a3a2ca099d4b
+    resource: repo://TFM/Features/Terminal/TelnetSessionModel.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
+  - id: openwiki-source-931aff66b28d38cd69ce2324
+    resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
+  - id: openwiki-source-5e2670d68f19777e2dd312ea
+    resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 ---
 
 # Ghostty Terminal Integration
 
-<!-- openwiki: broken internal link [/openwiki/operations/ghostty-fork-maintenance.md] link "/openwiki/operations/ghostty-fork-maintenance.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Termind uses the pinned remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves. See [Ghostty Fork Maintenance](/openwiki/operations/ghostty-fork-maintenance.md) for the package revision and binary release boundary.
+Termind uses the pinned remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves. See [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the package revision and binary release boundary.
+
+## Shared Find lifecycle and native dismissal
+
+`TerminalFindController` owns query and presentation state separately from the terminal surface. Its host-provided `perform` closure sends Ghostty binding actions, while `focus` requests terminal focus. On mobile these closures call `TerminalViewState.performBindingAction` and `requestFocus`; the retained surface is bound to the workspace's Find controller. Find is a local terminal operation, not text submitted to the remote shell.
+
+- A changed query emits `search:<query>`, including `search:` for an empty query, without changing presentation. Repeating the same query is a no-op.
+- Transitioning from closed to presented reissues the retained nonempty query. Repeated `present()` calls while already open do not restart it.
+- Navigation emits `navigate_search:previous` or `navigate_search:next` only while presented with a nonempty query. `presentAndNavigate` opens first. The app maps Find Next to `.previous`, toward older output, because the search starts at the bottom of the buffer.
+- `dismiss(restoringFocus: Bool = true)` emits `end_search`, closes presentation and retains the query. It is idempotent while closed. The default then invokes the focus closure; `restoringFocus: false` ends the search without requesting terminal focus.
+
+### Mobile UIKit owns search presentation
+
+For SSH and Telnet, `MobileWorkspaceSearchModifier` binds the native search text to `workspace.find.query` and presentation to `workspace.find.isPresented`. Its **false presentation setter** calls `dismiss(restoringFocus: false)`: native cancellation must not request terminal focus during UIKit's responder transition. Submit navigates `.previous`. SFTP uses the same toolbar UI but binds its channel filter instead of Ghostty Find, with no terminal presentation binding.
+
+`mobileToolbarSearch` embeds a `UIViewControllerRepresentable` whose `MobileToolbarSearchController` retains a `UISearchController` and installs it on the enclosing navigation owner's `navigationItem`. UIKit owns activation, first-responder changes and dismissal—not SwiftUI `searchable` focus. Configuration defers synchronization to the main queue so delegate callbacks do not publish model changes during a SwiftUI update. The search bar uses integrated-button placement on iOS 26+, inline placement otherwise.
+
+Cancellation marks `isDismissing`, resigns the search bar, publishes false and deactivates search. `willDismissSearchController` also publishes false; `didDismissSearchController` releases the guard. While dismissing, synchronization cannot reactivate search and text/submit callbacks are ignored, protecting the retained query from dismissal-time changes. Teardown removes the owned search controller and restores the navigation owner's previous presentation-context setting.
+
+```mermaid
+sequenceDiagram
+    participant UI as UIKit search owner
+    participant Bridge as Workspace search bindings
+    participant Find as TerminalFindController
+    participant Surface as TerminalViewState
+    UI->>Bridge: Publish active presentation
+    Bridge->>Find: present()
+    opt Retained nonempty query on reopening
+        Find->>Surface: performBindingAction search query
+    end
+    UI->>Bridge: Changed search text
+    Bridge->>Find: updateQuery(query)
+    Find->>Surface: performBindingAction search query
+    UI->>UI: Cancel and mark isDismissing
+    UI->>UI: Resign search bar first responder
+    UI->>Bridge: Publish presentation false
+    Bridge->>Find: dismiss(restoringFocus: false)
+    Find->>Surface: performBindingAction end_search
+    Note over Find,Surface: Retain query and do not request terminal focus
+    UI->>UI: Deactivate search
+    UI->>UI: didDismiss clears guard
+```
+The mobile binding ends Ghostty search while leaving native keyboard dismissal to UIKit.
+
+This is a **native dismissal exception**, not a universal focus-policy change. Mobile terminal Escape and Shift-Escape still call default `dismiss()` while Find is presented; otherwise ordinary Escape remains Ghostty input. F3 opens/navigates `.previous`, and Shift-F3 `.next`. Desktop toolbar cancel closures for SSH and serial, and active-workspace Escape shortcuts, also still call default `dismiss()`. Desktop SSH, Telnet and serial Find controllers retain terminal-focus closures. Do not change that default to fix a UIKit cancellation problem. See [Desktop UI](../architecture/desktop-ui.md) and [Mobile UI](../architecture/mobile-ui.md) for platform chrome ownership.
 
 ## Native menu ownership
 
 Ghostty defines the platform menu entry points and baseline terminal actions. Termind extends the native view subclass because it owns app commands, localization and SSH upload policy. The two platforms expose different seams:
 
-| Surface | Package entry point | Termind extension |
+| Surface | Package entry point used by the app | Termind extension |
 | --- | --- | --- |
-| iOS direct touch, no selected text | `touchMenuItems(for: TerminalTouchMenuContext)` | `MobileTerminalView` localizes the inherited actions and appends a grouped Upload File menu. |
-| iOS direct touch, selected text | `touchSelectionMenuItems(for: TerminalTouchSelectionMenuContext)` | The separate override applies the same localization and upload menu; its context also carries a snapshot of selected text for future host actions. |
+| iOS touch, no selected text | `touchMenuItems(for: TerminalTouchMenuContext)` | `MobileTerminalView` localizes the inherited actions and appends a grouped Upload File menu. |
+| iOS touch, selected text | `touchSelectionMenuItems(for: TerminalTouchSelectionMenuContext)` | The separate override applies the same localization and upload composition. |
 | macOS secondary click | `selectionMenuPoint(at:)` and `selectionContextMenu()` | `TermindTerminalView` permits a menu without selection and composes Copy, Paste, Select All and conditional Upload File. |
 
 ### iPhone and iPad touch menus
 
-`MobileTerminalSurface` retains one `MobileTerminalView`; the app no longer sets a separate inline-selection flag. In the fork, a long press opens the touch menu, a double tap selects a word, a triple tap selects a row, and selection gestures stay inside the terminal view. On iOS 16 and later, Ghostty presents a `UIEditMenuInteraction`; it chooses **one of two hooks** according to whether `touchSelection.text` exists. With no selection, the baseline actions are Paste when pasteboard content exists, Select and Select All. With a selection, they are Copy, optional Paste and Select All. UIKit owns compact layout and, on iOS 17+, any AutoFill menu. The iOS 15 fallback uses `UIMenuController` and the responder chain, so the newer hook-built Upload File submenu is an iOS 16+ path.
+`MobileTerminalSurface` retains one `MobileTerminalView`. Both app overrides call their matching superclass hook and pass its results through the same customization function. The app tests directly exercise both contexts (including `selectedText` in the selection context), with and without pasteboard text: they expect Copy only in the selected case, Select only in the unselected case, optional Paste, and Select All in both. This is app/test-proven hook composition, not verification of package gesture dispatch.
 
-`MobileTerminalView` calls the matching superclass hook, then maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It preserves the package handlers, places editing actions in a medium-sized inline group, and places localized Upload File actions in a separate inline group before other inherited items. `MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement.
+`MobileTerminalView` maps Ghostty's stable action identifiers (`terminal.copy`, `.paste`, `.select`, `.selectAll`) to shared `AppStrings` resources. It preserves the package handlers, places editing actions in a medium-sized inline group, and places localized Upload File actions in a separate inline group before other inherited items. Tests supply a system AutoFill menu and assert it remains after the upload group; they do not establish when UIKit supplies it.
 
-The touch hooks do not build every possible UIKit menu. The fork's indirect-pointer `UIContextMenuInteraction` uses `selectionContextMenuElements()` for its selection menu, which currently returns Ghostty's Copy action; Termind's touch-hook overrides do not add its Upload File submenu to that pointer path. A menu change should explicitly choose which interaction it targets and test both selection states. The package keeps terminal action semantics; group titles, localization and upload authorization belong in the Termind subclass.
+`MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
+
+**Package evidence boundary:** `libghostty-spm` is uninitialized in this checkout. The repository records the remote package pin and submodule, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the fork's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
 
 ### macOS secondary-click menu
 
@@ -73,14 +138,17 @@ Desktop's **Paste on Right Click** preference changes the gesture: an ordinary s
 
 Desktop `PersistentTerminalViewOwner` creates the in-memory backend, `TerminalViewState` and `TermindTerminalView` once, then mounts the same view in a changing `NSViewRepresentable` container. Mobile `MobileWorkspace` likewise creates a backend and state once and returns its retained `MobileTerminalSurface` view through `makePlatformView`. Both pass remote output into the backend and route keyboard/paste output to their transport. Do not reset surface options on an ordinary view update: replacing the controller or backend can tear down the live surface.
 
+Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for terminal workspaces, hiding it and disabling interaction rather than replacing it. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
+
 Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. It applies the chosen base, optional custom commands and then device-local font overrides; app command notifications force Ghostty's `notify-on-command-finish` to `never` so the Termind notification coordinator owns delivery. The shared keyword-highlighting modifier converts synchronized domain rules into Ghostty runtime rules and applies only rules accepted by the current engine. Domain defines fixed built-in rules plus bounded custom rules; Application persists changes before publishing them, Persistence stores the preferences in V46, and Settings sync distributes them. Both platform surfaces update highlighting in place.
 
 ## Focused checks
 
+- [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.
+- [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys.
+- [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
 - `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All, conditional Copy, right-click-paste with Option bypass, live Upload File availability and stale pane-binding teardown.
-- `TFITests/MobileTerminalUploadMenuTests.swift` checks the native Photos/Files group, absent handlers and enabled/disabled children. The fork's `GhosttyKitTest/Input/TerminalTouchSelectionTests.swift` covers its selection mechanics; inspect both hook implementations when changing menu construction.
+- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both touch contexts, pasteboard-dependent action expectations, editing/upload/system group ordering, absent handlers and enabled/disabled children. Package gesture mechanics require the pinned fork's own source and tests; they are not available in this checkout.
 - `TFMTests/TerminalKeywordHighlightingTests.swift`, `TFITests/MobileTerminalHighlightingTests.swift` and `FrameworkTests/TerminalHighlightPreferencesTests.swift` cover rule validation, rendering and preference persistence. Use the resolved-only Xcode build for either app; package changes also need the fork's own tests and release sequence.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/ui-design-principles.md] link "/openwiki/concepts/ui-design-principles.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For upload destination and drop behavior, continue with [File Drag and Drop](/openwiki/workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](/openwiki/concepts/ui-design-principles.md).
+For upload destination and drop behavior, continue with [File Drag and Drop](../workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](ui-design-principles.md). For test scope, see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).

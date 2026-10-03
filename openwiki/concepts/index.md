@@ -2,7 +2,7 @@
 
 - [Agent runtime and assistant ownership](agent-runtime-and-assistant.md) - How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 - [Commerce, localization and product surfaces](commerce-localization-and-product-surfaces.md) - Explains RevenueCat-derived Pro access and remote paywalls, native language and copy ownership, and the separate app, widget, screenshot, and public-site product surfaces.
-- [Ghostty Terminal Integration](ghostty-terminal-integration.md) - Trace how Termind hosts Ghostty surfaces and extends native terminal menus on macOS and iOS, including selection, localization, upload availability, and package boundaries.
+- [Ghostty Terminal Integration](ghostty-terminal-integration.md) - Explain the boundary between Ghostty rendering and input and Termind transport, retained native surfaces, Find lifecycle, menu customization, upload policy, and appearance on macOS and iOS.
 - [Persistent Data, Migrations, and Secrets](persistence-and-secrets.md) - How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 - [Remote Services and Forwarding](remote-services-and-forwarding.md) - Ownership boundaries among terminal, metrics, Agent SSH/SFTP tools, and TCP forwarding; explains when connections can be reused and which interactions are allowed.
 - [Shell Integration: Bootstrap, OSC Events, and Terminal State](shell-integration.md) - How SSH PTY shell hooks bootstrap and decode command and cwd events, how command completion notifications observe shell hooks or OSC 133, and how charset handling differs from Telnet.

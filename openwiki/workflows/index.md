@@ -1,7 +1,7 @@
 # Files
 
 - [Desktop workspace drag and drop](desktop-drag-and-drop.md) - Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
-- [File Drop and Upload Routing](file-drag-and-drop.md) - How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
+- [File Drag and Drop](file-drag-and-drop.md) - How desktop file URLs and private drag payloads are validated and dispatched to terminal path insertion, SSH/SFTP uploads, or remote copies, alongside mobile and other file-drop destinations.
 - [Port Forwarding: Multi-Connection Pool and Flow Dispatch](port-forwarding-pool-and-dispatch.md) - Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown.
 - [Settings, Vault, Metrics, History, Device, and Cloud Sync](settings-and-cloud-sync.md) - Per-category CloudKit replication, durable journals, compatibility fences, fetch-before-send authorization, account and environment transitions, and recovery for Termind configuration and activity data.
 - [SFTP Transfer, Scheduling, and External Edit Workflow](sftp-transfer-and-external-edit.md) - How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
