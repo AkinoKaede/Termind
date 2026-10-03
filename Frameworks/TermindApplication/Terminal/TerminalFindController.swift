@@ -37,10 +37,12 @@ public final class TerminalFindController {
         navigate(direction)
     }
 
-    public func dismiss() {
+    /// Native search UI can own its keyboard dismissal instead of handing focus
+    /// back to the terminal during the platform's responder transition.
+    public func dismiss(restoringFocus: Bool = true) {
         guard isPresented else { return }
         perform(TerminalFindBinding.end)
         isPresented = false
-        focus()
+        if restoringFocus { focus() }
     }
 }

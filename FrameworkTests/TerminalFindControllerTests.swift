@@ -42,4 +42,26 @@ struct TerminalFindControllerTests {
         #expect(find.isPresented)
         #expect(bindings.isEmpty)
     }
+
+    @Test func nativeDismissalEndsSearchWithoutRequestingTerminalFocus() {
+        var bindings: [String] = []
+        var focusCount = 0
+        let find = TerminalFindController(
+            perform: { bindings.append($0) }, focus: { focusCount += 1 })
+        find.present()
+        find.updateQuery("deploy")
+        bindings.removeAll()
+
+        find.dismiss(restoringFocus: false)
+        find.dismiss(restoringFocus: false)
+
+        #expect(!find.isPresented)
+        #expect(bindings == [TerminalFindBinding.end])
+        #expect(focusCount == 0)
+
+        find.present()
+        #expect(bindings == [TerminalFindBinding.end, TerminalFindBinding.search("deploy")])
+        find.dismiss()
+        #expect(focusCount == 1)
+    }
 }
