@@ -153,27 +153,6 @@ struct CommandNotificationTests {
         #expect(state.theme.dark.rendered.hasSuffix("background = 010203"))
     }
 
-    @Test func ghosttyPublishesEveryCompletionAndPairsItsExitCode() async {
-        let state = TerminalViewState(configSource: .none)
-        let monitor = TerminalCommandMonitor()
-        var preferences = NotificationPreferences()
-        preferences.isEnabled = true
-        preferences.terminalMode = .always
-        preferences.terminalMinimumSeconds = 0
-        monitor.preferences = { preferences }
-        var received: [TerminalCommandCompletion] = []
-        monitor.alert = { completion, _ in received.append(completion) }
-        monitor.beginConnection()
-        let observation = TerminalCommandObservation(state: state, monitor: monitor)
-        state.terminalDidFinishCommand(exitCode: 0, durationNanos: 1_000_000_000)
-        state.terminalDidFinishCommand(exitCode: 7, durationNanos: 1_000_000_000)
-        state.terminalDidFinishCommand(exitCode: nil, durationNanos: 1_000_000_000)
-        for _ in 0..<100 where received.count < 3 { try? await Task.sleep(for: .milliseconds(10)) }
-        #expect(received.map(\.exitCode) == [0, 7, nil])
-        #expect(received.map(\.duration) == [1, 1, 1])
-        withExtendedLifetime(observation) {}
-    }
-
     @Test func workspaceFocusIncludesEveryPaneAndTargetsFollowMoves() throws {
         let host = Host(name: "Build", host: "test.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))

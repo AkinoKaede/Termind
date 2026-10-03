@@ -7,11 +7,7 @@ import UIKit
 /// A workspace owns its native surface even while SwiftUI navigates away from it.
 @MainActor
 final class MobileTerminalSurface {
-    let view: MobileTerminalView = {
-        let view = MobileTerminalView(frame: .zero)
-        view.usesInlineTextSelection = true
-        return view
-    }()
+    let view = MobileTerminalView(frame: .zero)
 
     func bindFind(_ find: TerminalFindController) {
         view.findController = find
