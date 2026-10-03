@@ -145,7 +145,15 @@ struct MobileWorkspaceListView: View {
                         badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false)
                     )
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                        HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
+                            Text(item.descriptor.title)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if scene.workspaceSession.unreadCount(for: item.id) > 0 {
+                                NotificationUnreadDot()
+                            }
+                        }
                         HStack(alignment: .center, spacing: 12) {
                             Text(item.loginAddress)
                                 .font(.caption.monospaced())
@@ -157,9 +165,6 @@ struct MobileWorkspaceListView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    if scene.workspaceSession.unreadCount(for: item.id) > 0 {
-                        NotificationUnreadDot()
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
