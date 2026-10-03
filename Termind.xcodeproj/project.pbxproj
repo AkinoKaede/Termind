@@ -2954,8 +2954,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AkinoKaede/libghostty-spm.git";
 			requirement = {
-				kind = revision;
-				revision = 6402aba571d45fe53fb0be7d1e7cf4e0c9d6b308;
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.2026100303;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {

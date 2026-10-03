@@ -20,9 +20,10 @@ Xcode builds the pinned tag, not the sibling working tree, so an uncommitted cha
 `libghostty-spm/` is a maintenance submodule of the public
 `AkinoKaede/libghostty-spm` fork, tracking `termind`; upstream is
 `Lakr233/libghostty-spm`. Xcode consumes the fork as a remote SPM dependency
-pinned to an exact commit, not the submodule working tree. Push package changes
-to `termind`, then update the submodule gitlink, `project.pbxproj` revision and
-`Package.resolved` together. Run `git submodule update --init libghostty-spm`
+with an up-to-next-major version requirement; `Package.resolved` locks the released
+version and revision, not the submodule working tree. Publish package changes
+from `termind`, then update the submodule gitlink, `project.pbxproj` minimum version
+and `Package.resolved` together. Run `git submodule update --init libghostty-spm`
 to obtain the maintenance checkout. Changes to `Patches/ghostty/` require a new
 fork XCFramework release and a matching URL/checksum in `Package.swift` before
 advancing the app's pin. The package's native iOS touch menus expose
