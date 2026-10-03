@@ -123,6 +123,25 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         }
     }
 
+    public func keyExportServices() -> KeyExportServices {
+        KeyExportServices(
+            derivePublicKey: { key, credential, passphrase in
+                try await SSHKeyExportSession.derivePublicKey(key: key, credential: credential, passphrase: passphrase)
+            },
+            connect: { [self] request, progress in
+                let connection = SSHConnection(
+                    keyboardInteractive: keyboardInteractive, logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+                do {
+                    try await connection.connect(using: request, progress: progress, connectionFailure: nil)
+                    try Task.checkCancellation()
+                    return SSHKeyExportSession(connection: connection)
+                } catch {
+                    await connection.disconnect()
+                    throw error
+                }
+            })
+    }
+
     public func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
         using configuration: SSHConnectionConfiguration

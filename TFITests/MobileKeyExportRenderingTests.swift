@@ -14,95 +14,56 @@ import UIKit
 )
 @MainActor
 struct MobileKeyExportRenderingTests {
-    @Test func exportUsesTheNativeHostPickerAcrossSubmissionStates() async throws {
+    @Test func exportUsesANativeDetailAndShowsTheKeyPassphraseInTheForm() async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         for language in ["en", "zh-Hans"] {
-            let fixture = KeyExportFixture()
-            let recorder = KeyExportRecorder(failingHost: fixture.alpha.id, blocks: true)
-            let model = fixture.model(recorder)
-            let presentation = KeyExportRenderingPresentation()
+            let fixture = try MobileExportFixture(encrypted: true)
+            let model = fixture.model()
+            model.hostID = fixture.host.id
             let previous = scene.keyWindow
             let window = UIWindow(windowScene: scene)
             let controller = UIHostingController(
-                rootView: KeyExportRenderingHost(fixture: fixture, model: model, presentation: presentation)
-                    .environment(\.locale, Locale(identifier: language)))
+                rootView:
+                    NavigationStack {
+                        MobileKeyExportDetailView(library: fixture.library, model: model)
+                    }.environment(\.locale, Locale(identifier: language)))
             window.rootViewController = controller
             window.windowLevel = .alert + 1
             window.makeKeyAndVisible()
             defer {
-                presentation.isPresented = false
                 window.isHidden = true
                 window.rootViewController = nil
                 previous?.makeKey()
             }
-            try await Task.sleep(for: .milliseconds(700))
-            presentation.isPresented = true
-            try await capture(window, language: language, state: "selecting")
-            let sheet = try #require(controller.presentedViewController)
-            let navigation = try #require(descendant(UINavigationController.self, in: sheet))
-            let confirm = try #require(confirmation(in: navigation))
-            #expect(!confirm.isEnabled)
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                let frame = try #require(sheet.presentationController?.frameOfPresentedViewInContainerView)
-                #expect(abs(frame.midX - window.bounds.midX) < 2)
-                #expect(abs(frame.midY - window.bounds.midY) < 2)
-            }
-            let export = Task { await model.export(to: [fixture.alpha.id]) }
-            await recorder.waitUntilStarted()
-            try await capture(window, language: language, state: "running")
-            #expect(try !#require(confirmation(in: navigation)).isEnabled)
-            await recorder.resume()
-            await export.value
-            #expect(model.isFinished)
-            try await capture(window, language: language, state: "failed")
-            #expect(try #require(confirmation(in: navigation)).isEnabled)
+            try await Task.sleep(for: .milliseconds(800))
+            #expect(controller.presentedViewController == nil)
+            #expect(model.needsExportPassphrase && !model.canStart && !model.journey.isPresented)
+            try capture(window, language: language)
+            let passphraseField = try #require(
+                descendants(window).compactMap { $0 as? UITextField }.first { $0.isSecureTextEntry })
+            #expect(passphraseField.becomeFirstResponder())
+            try await Task.sleep(for: .milliseconds(400))
+            try capture(window, language: language, state: "keyboard")
+            window.endEditing(true)
+            model.exportPassphrase = "secret"
+            #expect(model.canStart)
         }
     }
 
-    private func descendant<T: UIViewController>(_ type: T.Type, in controller: UIViewController) -> T? {
-        if let result = controller as? T { return result }
-        return controller.children.lazy.compactMap { descendant(type, in: $0) }.first
+    private func descendants(_ view: UIView) -> [UIView] {
+        [view] + view.subviews.flatMap(descendants)
     }
 
-    private func confirmation(in navigation: UINavigationController) -> UIBarButtonItem? {
-        guard let item = navigation.topViewController?.navigationItem else { return nil }
-        let buttons = item.trailingItemGroups.flatMap(\.barButtonItems) + (item.rightBarButtonItems ?? [])
-        return buttons.first { $0.accessibilityIdentifier == "host-picker.confirm" } ?? buttons.first
-    }
-
-    private func capture(_ window: UIWindow, language: String, state: String) async throws {
+    private func capture(_ window: UIWindow, language: String, state: String = "form") throws {
         window.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(800))
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
-        let data = try #require(image.pngData())
         let directory = FileManager.default.temporaryDirectory.appending(path: "key-export-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
         let output = directory.appending(path: "\(device)-\(language)-\(state).png")
-        try data.write(to: output)
+        try #require(image.pngData()).write(to: output)
         print("Key export snapshot: \(output.path)")
-    }
-}
-
-@MainActor @Observable
-private final class KeyExportRenderingPresentation {
-    var isPresented = false
-}
-
-private struct KeyExportRenderingHost: View {
-    let fixture: KeyExportFixture
-    let model: KeyExportModel
-    @Bindable var presentation: KeyExportRenderingPresentation
-    @Environment(\.horizontalSizeClass) private var sizeClass
-
-    var body: some View {
-        Color.clear
-            .sheet(isPresented: $presentation.isPresented) {
-                MobileKeyExportSheet(library: fixture.library, credentials: fixture.credentials, model: model)
-            }
-            // Match the presenting-window environment established by MobileRootView.
-            .environment(\.mobileLayout, MobileLayout(sizeClass: sizeClass))
     }
 }

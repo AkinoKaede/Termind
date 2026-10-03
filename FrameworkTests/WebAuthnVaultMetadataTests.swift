@@ -54,7 +54,7 @@ struct WebAuthnVaultMetadataTests {
         #expect(reloaded.storage == .external)
         let payload = VaultRecordPayload.sshKey(reloaded)
         let envelope = VaultEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
-        #expect(envelope.formatVersion == 2)
+        #expect(envelope.formatVersion == SyncRecordFormats.vault.writingVersion(for: "sshKey"))
         let decoded = try VaultSyncCodec.decode(VaultSyncCodec.encode(envelope))
         #expect(decoded.payload == payload)
         let remoteContainer = try TermindPersistence.makeContainer(inMemory: true)

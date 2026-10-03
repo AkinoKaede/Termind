@@ -215,37 +215,40 @@ struct MobileVaultFeatureTests {
         try await generator.save()
         let generated = try #require(app.credentials.keys.first)
         #expect(generated.label == "ECDSA")
+        #expect(!generated.publicKey.isEmpty && !generated.fingerprint.isEmpty)
 
         let replacement = try SSHKeyMaterial.generate(.ed25519, comment: "fixture", passphrase: nil)
         let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
         #expect(!importer.canSave)
         #expect(importer.defaultName == "")
         importer.privateKey = replacement.privateKey
-        await importer.derivePublicMaterial()
+        await importer.refreshPublicMaterial()
         #expect(importer.defaultName == "Ed25519")
         #expect(importer.canSave)
         try await importer.save()
         let imported = try #require(app.credentials.keys.first { $0.id != generated.id })
         #expect(imported.label == "Ed25519")
+        #expect(imported.publicKey.isEmpty && imported.fingerprint.isEmpty)
 
         let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: generated)
         await editor.loadPrivateKey()
         editor.label = ""
         editor.privateKey = replacement.privateKey
         #expect(editor.defaultName == "")
-        await editor.derivePublicMaterial()
+        await editor.refreshPublicMaterial()
         #expect(editor.defaultName == "Ed25519")
         #expect(editor.canSave)
         try await editor.save()
         let edited = try #require(app.credentials.key(generated.id))
         #expect(edited.label == "Ed25519")
         #expect(edited.algorithm == .ed25519)
+        #expect(edited.publicKey.isEmpty && edited.fingerprint.isEmpty)
         let reopened = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: edited)
         #expect(reopened.label == "Ed25519")
         await reopened.loadPrivateKey()
         reopened.privateKey = "invalid replacement"
         #expect(reopened.defaultName == "")
-        await reopened.derivePublicMaterial()
+        await reopened.refreshPublicMaterial()
         #expect(reopened.defaultName == "")
         reopened.privateKey = ""
         #expect(reopened.defaultName == "")
@@ -534,7 +537,7 @@ struct MobileVaultFeatureTests {
             return
         }
         #expect(importedSecret.passphrase == nil && imported.hasPassphrase)
-        #expect(imported.publicKey == generated.publicKey)
+        #expect(imported.publicKey.isEmpty)
     }
 
     @Test func replacingPrivateKeyDoesNotReuseItsSavedPassphrase() async throws {
@@ -581,7 +584,7 @@ struct MobileVaultFeatureTests {
 
         let invalid = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
         invalid.label = "Invalid"
-        invalid.privateKey = secret.privateKey
+        invalid.privateKey = "not a private key"
         invalid.passphrase = "wrong"
         await #expect(throws: (any Error).self) { try await invalid.save() }
         #expect(app.credentials.keys.count == 1)
@@ -592,7 +595,8 @@ struct MobileVaultFeatureTests {
         importer.passphrase = "test-only-passphrase"
         try await importer.save()
         #expect(app.credentials.keys.count == 2)
-        #expect(app.credentials.keys.allSatisfy { $0.fingerprint == key.fingerprint })
+        let imported = try #require(app.credentials.keys.first { $0.id != key.id })
+        #expect(imported.publicKey.isEmpty && imported.fingerprint.isEmpty && imported.hasPassphrase)
 
         let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: key)
         await editor.loadPrivateKey()
@@ -627,7 +631,9 @@ struct MobileVaultFeatureTests {
 
         let replacement = try SSHKeyMaterial.generate(.rsa(bits: 2048), comment: "replacement", passphrase: nil)
         editor.privateKey = replacement.privateKey
-        await editor.derivePublicMaterial()
+        #expect(editor.publicKey.isEmpty)
+        editor.publicKey = replacement.publicKey
+        await editor.refreshPublicMaterial()
         #expect(editor.replacesPublicKey)
         #expect(editor.fingerprint == replacement.fingerprint)
         try await editor.save()

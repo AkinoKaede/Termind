@@ -190,9 +190,7 @@ final class MobileAppModel {
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
-        keyExportServices = KeyExportServices { keys, configuration in
-            try await connectionCoordinator.installAuthorizedKeys(keys, using: configuration)
-        }
+        keyExportServices = connectionCoordinator.keyExportServices()
         activateWorkspaceSession = dependencies.activateWorkspaceSession
         closeWorkspaceSession = dependencies.closeWorkspaceSession
         self.background = background

@@ -247,6 +247,9 @@ nonisolated enum VaultWireV2 {
             } else if case .hostGroup(let group) = envelope.payload {
                 payload = .hostGroup(try HostGroup(group))
             } else if case .sshKey(let key) = envelope.payload {
+                guard SSHKeyAlgorithm(rawValue: key.algorithm.rawValue) != nil else {
+                    throw CocoaError(.coderInvalidValue)
+                }
                 guard key.storage != .external || key.algorithm == .securityKey else {
                     throw CocoaError(.coderInvalidValue)
                 }

@@ -4,6 +4,8 @@ extension AppStrings {
     public nonisolated enum Keychain {
         public static var savePassphrase: LocalizedStringResource { "Save Passphrase" }
         public static var saveAndContinue: LocalizedStringResource { "Save and Continue" }
+        public static func keyType(_ name: String) -> LocalizedStringResource { "Type \(name)" }
+        public static var unknownKeyType: LocalizedStringResource { "Type Unknown" }
 
         public static var addAndConnectToAHostBeforeExportingAKeyToIt: LocalizedStringResource {
             "Add and connect to a host before exporting a key to it."
@@ -97,8 +99,8 @@ extension AppStrings {
             "Elliptic Curve"
         }
 
-        public static var exportToHosts: LocalizedStringResource {
-            "Export to Hosts"
+        public static var exportToHost: LocalizedStringResource {
+            "Export to Host"
         }
 
         public static var exported: LocalizedStringResource {

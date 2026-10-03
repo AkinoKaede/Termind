@@ -156,6 +156,11 @@ struct MobileKeyEditor: View {
                     }
                 }
                 if !model.usesWebAuthn && model.mode != .generate && model.storage != .secureEnclave {
+                    Section(AppStrings.Keychain.publicKey.swiftUIKey) {
+                        TextEditor(text: $model.publicKey).font(.caption.monospaced()).frame(minHeight: 90)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        Text(AppStrings.KeyExport.optionalPublicKey).font(.caption).foregroundStyle(.secondary)
+                    }
                     Section(AppStrings.Keychain.sshCertificate.swiftUIKey) {
                         Button(AppStrings.Keychain.chooseFile.swiftUIKey, systemImage: "folder") {
                             choosingCertificate = true
@@ -169,9 +174,9 @@ struct MobileKeyEditor: View {
                 if !model.usesWebAuthn, let warning = model.certificateWarning {
                     Text(warning).font(.caption).foregroundStyle(.orange)
                 }
-                if !model.usesWebAuthn, let publicKey = model.publicKey {
+                if !model.usesWebAuthn, model.storage == .secureEnclave, !model.publicKey.isEmpty {
                     Section(AppStrings.Keychain.publicKey.swiftUIKey) {
-                        Text(publicKey).font(.caption.monospaced()).textSelection(.enabled)
+                        Text(model.publicKey).font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
                 if !model.usesWebAuthn, let fingerprint = model.fingerprint {
@@ -208,7 +213,7 @@ struct MobileKeyEditor: View {
             model.clearSensitiveDrafts()
         }
         .task { await model.loadPrivateKey() }
-        .task(id: model.validationToken) { await model.derivePublicMaterial() }
+        .task(id: model.validationToken) { await model.refreshPublicMaterial() }
     }
 
     private func receiveReference(_ providers: [NSItemProvider]) -> Bool {

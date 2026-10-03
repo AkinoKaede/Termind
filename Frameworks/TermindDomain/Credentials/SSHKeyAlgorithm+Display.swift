@@ -1,6 +1,7 @@
 extension SSHKeyAlgorithm {
     public nonisolated var displayName: String {
         switch self {
+        case .unknown: String(localized: "Pending Identification")
         case .securityKey: "ECDSA-SK P-256"
         case .ed25519: "Ed25519"
         case .ecdsa256: "ECDSA P-256"
@@ -12,6 +13,7 @@ extension SSHKeyAlgorithm {
 
     public nonisolated var typeName: String {
         switch self {
+        case .unknown: String(localized: "Pending Identification")
         case .securityKey: "Security Key"
         case .ed25519: "Ed25519"
         case .ecdsa256, .ecdsa384, .ecdsa521: "ECDSA"

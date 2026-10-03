@@ -72,8 +72,8 @@ struct VaultWorkDetailView: View {
             KeychainImportDetail()
         case .editKey(let id):
             KeychainEditDetail(keyID: id)
-        case .exportKeys(let ids):
-            ExportKeyToHostsSheet(keys: ids.compactMap(app.hostLibrary.key))
+        case .exportKey(let id):
+            KeyExportDetailView(keyID: id)
         case .snippetEditor(let snippetID, let packageID):
             SnippetEditorView(
                 snippet: snippetID.flatMap(app.hostLibrary.snippet), packageID: packageID,

@@ -417,32 +417,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return keys
     }
 
-    /// Why a saved host cannot currently receive a key without stopping for
-    /// another question. Export is deliberately limited to hosts whose login
-    /// and host-key trust have already been established elsewhere in the app.
     public func keyExportUnavailableReason(for host: Host) -> String? {
-        guard isEligible(host, for: .keyExport) else {
-            return HostProtocolUnavailableError(useCase: .keyExport).localizedDescription
-        }
-        guard let identity = identity(for: host) else {
-            return String(localized: "No identity")
-        }
-        guard !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return String(localized: "No username")
-        }
-        let hasAvailablePassword = passwordAvailability(for: identity) == .available
-        let hasUsableKey =
-            identity.keyID.flatMap { key($0) }.map {
-                keyAvailability(for: $0) == .available
-            } == true
-        guard !identity.hasSecret || hasAvailablePassword || hasUsableKey else {
-            return String(localized: "No saved credential")
-        }
-        let knownHosts = knownHosts(for: host)
-        guard !knownHosts.isEmpty else {
-            return String(localized: "Connect once to trust this host")
-        }
-        return nil
+        isEligible(host, for: .keyExport) ? nil : HostProtocolUnavailableError(useCase: .keyExport).localizedDescription
     }
 
     /// Resolves model references and Keychain secrets before work leaves the
@@ -1225,6 +1201,55 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return saved
     }
 
+    /// Commit the destination's private login and host reference together. Reusable
+    /// identities (and their password references) are never changed by an export.
+    public func attachExportedKey(_ keyID: SSHKeyRef.ID, to hostID: Host.ID, username: String) throws {
+        guard let index = hosts.firstIndex(where: { $0.id == hostID }), key(keyID) != nil,
+            isEligible(hosts[index], for: .keyExport), !username.isEmpty
+        else { throw TermindSSHError.missingCredential }
+        let host = hosts[index]
+        let source = identity(for: host)
+        let owned = customIdentity(for: hostID, purpose: .ssh)
+        var destination =
+            owned ?? Identity(name: host.name, username: username, ownerHostID: hostID, customPurpose: .ssh)
+        destination.username = username
+        destination.keyID = keyID
+        var copiedReference: String?
+        if source?.id != owned?.id || owned == nil {
+            destination.credentialRef = ""
+            if let source, source.usesPassword {
+                guard let password = try editablePassword(for: source) else {
+                    throw TermindSSHError.missingCredential
+                }
+                let reference = "termind.password.\(UUID().uuidString)"
+                destination.passwordStorage = source.passwordStorage
+                try keychain.setString(password, for: reference, storage: destination.passwordStorage)
+                destination.credentialRef = reference
+                copiedReference = reference
+            }
+        }
+        let previousIdentities = identities
+        let previousHosts = hosts
+        if let identityIndex = identities.firstIndex(where: { $0.id == destination.id }) {
+            identities[identityIndex] = destination
+        } else {
+            identities.append(destination)
+        }
+        hosts[index].sshIdentityID = destination.id
+        guard persistCore() else {
+            identities = previousIdentities
+            hosts = previousHosts
+            if let copiedReference {
+                try keychain.removePassword(copiedReference, storage: destination.passwordStorage)
+            }
+            throw TermindSSHError.library(storageError ?? String(localized: "Unable to Save"))
+        }
+        if let owned, !owned.credentialRef.isEmpty, owned.credentialRef != destination.credentialRef {
+            try? keychain.removePassword(owned.credentialRef, storage: owned.passwordStorage)
+        }
+        didChangeHostConnection?(hostID)
+    }
+
     /// Updates an Identity and its Keychain password as one operation.
     ///
     /// The editor supplies intent rather than an optional string so a blank
@@ -1547,7 +1572,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             )
         }
         if !key.certificate.isEmpty {
-            _ = try SSHUserCertificate.parse(key.certificate, matching: key.publicKey)
+            _ = try SSHUserCertificate.parse(key.certificate, matching: key.publicKey.isEmpty ? nil : key.publicKey)
         }
         let keySnapshot = keys
         let changesLocation =

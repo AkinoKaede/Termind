@@ -44,7 +44,7 @@ struct SSHAgentForwardingPersistenceTests {
         #expect(try VaultSyncCodec.decode(VaultSyncCodec.encode(envelope)) == envelope)
         envelope.formatVersion = 1
         #expect(throws: (any Error).self) { try VaultSyncCodec.encode(envelope) }
-        #expect(SyncRecordFormats.vault.writingVersion(for: "sshKey") == 2)
+        #expect(SyncRecordFormats.vault.writingVersion(for: "sshKey") == 3)
         #expect(SyncRecordFormats.vault.supports(kind: "host", version: 1))
     }
 }

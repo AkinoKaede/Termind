@@ -216,7 +216,7 @@ struct KnownHostEditorView: View {
                 }
                 Section(AppStrings.KnownHosts.hostKey.swiftUIKey) {
                     Picker(AppStrings.KnownHosts.keyType.swiftUIKey, selection: $draft.algorithm) {
-                        ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
+                        ForEach(SSHKeyAlgorithm.allCases.filter { $0 != .unknown }) { Text($0.displayName).tag($0) }
                     }
                     TextField(
                         AppStrings.KnownHosts.fingerprint.swiftUIKey, text: $draft.fingerprint.singleLineText,

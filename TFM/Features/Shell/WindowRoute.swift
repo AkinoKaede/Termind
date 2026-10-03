@@ -96,7 +96,7 @@ nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case knownHostEditor(KnownHostEntry.ID?)
     case sshImport(knownHostsOnly: Bool)
     case editKey(SSHKeyRef.ID)
-    case exportKeys([SSHKeyRef.ID])
+    case exportKey(SSHKeyRef.ID)
     case snippetEditor(snippetID: Snippet.ID?, packageID: SnippetPackage.ID?)
     case snippetPackageEditor(packageID: SnippetPackage.ID?, parentID: SnippetPackage.ID?)
     case snippetExecutionTargets(SnippetHostChooserRequest)

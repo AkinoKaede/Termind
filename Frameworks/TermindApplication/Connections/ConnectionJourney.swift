@@ -10,6 +10,7 @@ public nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case serialSession
     case metrics
     case portForwarding
+    case keyExport
 }
 
 public nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
@@ -468,6 +469,7 @@ extension ConnectionPurpose {
         case .serialSession: "serial session"
         case .metrics: "metrics"
         case .portForwarding: "port forwarding"
+        case .keyExport: "key export"
         }
     }
 }

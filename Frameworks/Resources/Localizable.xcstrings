@@ -2607,6 +2607,23 @@
         }
       }
     },
+    "Add an SSH host before exporting a key." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先添加SSH主机，再导出密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先新增SSH主機，再匯出金鑰。"
+          }
+        }
+      }
+    },
     "Add and connect to a host before exporting a key to it." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2739,6 +2756,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無位址"
+          }
+        }
+      }
+    },
+    "Advanced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高级"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進階"
           }
         }
       }
@@ -11473,6 +11507,23 @@
         }
       }
     },
+    "Export and Attach" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出并绑定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出並綁定"
+          }
+        }
+      }
+    },
     "Export as SKILL.md" : {
       "comment" : "A button that exports a skill as a `.md` file.",
       "extractionState" : "manual",
@@ -11488,6 +11539,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "匯出為SKILL.md"
+          }
+        }
+      }
+    },
+    "Export to Host" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出到主机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出到主機"
           }
         }
       }
@@ -11596,6 +11664,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "匯出為1主機"
+          }
+        }
+      }
+    },
+    "Exporting public key…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导出公钥…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在匯出公鑰…"
           }
         }
       }
@@ -11904,6 +11989,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檔案無效UTF-8文字"
+          }
+        }
+      }
+    },
+    "Filename — $2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件名—$2"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檔案名稱—$2"
           }
         }
       }
@@ -15582,6 +15684,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "區域"
+          }
+        }
+      }
+    },
+    "Location — $1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目录—$1"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目錄—$1"
           }
         }
       }
@@ -19468,6 +19587,23 @@
         }
       }
     },
+    "Optional. If empty, the public key is derived only when exporting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可选。留空时，仅在导出时派生公钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選填。留空時，僅在匯出時衍生公鑰。"
+          }
+        }
+      }
+    },
     "Orange" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20276,6 +20412,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "待處理"
+          }
+        }
+      }
+    },
+    "Pending Identification" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待确认"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待確認"
           }
         }
       }
@@ -21446,6 +21599,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "公開金鑰"
+          }
+        }
+      }
+    },
+    "Public key exported and attached." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公钥已导出并绑定。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公鑰已匯出並綁定。"
+          }
+        }
+      }
+    },
+    "Public key exported. The host could not be updated." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公钥已导出，但未能更新主机配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公鑰已匯出，但未能更新主機設定。"
           }
         }
       }
@@ -23310,6 +23497,23 @@
         }
       }
     },
+    "Retry Attachment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试绑定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重試綁定"
+          }
+        }
+      }
+    },
     "Retry Now" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24537,7 +24741,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "指令碼"
+            "value" : "指令稿"
           }
         }
       }
@@ -28601,6 +28805,29 @@
         }
       }
     },
+    "The default script supports UNIX systems." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The default script supports UNIX systems."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认脚本适用于UNIX系统。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設腳本適用於UNIX系統。"
+          }
+        }
+      }
+    },
     "The device path does not exist." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28733,6 +28960,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已啟用通訊協定的連接埠必須介於1至65535之間。"
+          }
+        }
+      }
+    },
+    "The export did not complete. Check the remote file before running the script again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出未完成。再次运行脚本前，请检查远程文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出未完成。再次執行指令稿前，請檢查遠端檔案。"
+          }
+        }
+      }
+    },
+    "The export script exited with status %lld." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出脚本以状态码%lld退出。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出指令稿以狀態碼%lld結束。"
           }
         }
       }
@@ -31971,6 +32232,52 @@
         }
       }
     },
+    "Type %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類型：%@"
+          }
+        }
+      }
+    },
+    "Type Unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type Unknown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型未知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類型未知"
+          }
+        }
+      }
+    },
     "Type something at the shell prompt before generating a command." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32502,6 +32809,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解鎖金鑰"
+          }
+        }
+      }
+    },
+    "Unlock this key to derive its public key for this export." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁此密钥，为本次导出派生公钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解鎖此金鑰，為本次匯出衍生公鑰。"
           }
         }
       }

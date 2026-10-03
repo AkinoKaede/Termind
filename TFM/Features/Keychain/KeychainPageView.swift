@@ -275,8 +275,8 @@ struct KeychainPageView: ManagedCardPage {
     }
 
     private func requestExport(_ keys: [SSHKeyRef]) {
-        guard !keys.isEmpty else { return }
-        window.openVaultWork(.exportKeys(keys.map(\.id)), on: .keychain)
+        guard keys.count == 1, let key = keys.first else { return }
+        window.openVaultWork(.exportKey(key.id), on: .keychain)
     }
 
     private func requestDelete(_ items: [Item]) {
@@ -450,7 +450,7 @@ struct KeychainImportDetail: View {
             algorithm: material.algorithm, publicKey: material.publicKey,
             certificate: certificate, fingerprint: material.fingerprint,
             credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
-            keySize: material.keySize, hasPassphrase: passphrase != nil,
+            keySize: material.keySize, hasPassphrase: try SSHKeyMaterial.privateKeyMetadata(privateKey).isEncrypted,
             createdAt: Date(), colorTag: colorTag
         )
         try app.credentials.upsert(
@@ -485,7 +485,8 @@ private struct SoftwareKeyEditor: View {
             _ name: String, _ colorTag: TagColor, _ storage: KeyStorage, _ privateKey: String,
             _ passphrase: String?, _ savePassphrase: Bool, _ certificate: String, _ material: SSHKeyMaterial
         ) async throws -> SSHKeyRef
-    let saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)?
+    let saveMetadata:
+        ((_ name: String, _ colorTag: TagColor, _ certificate: String, _ publicKey: String) throws -> SSHKeyRef)?
     let delete: (() throws -> Void)?
 
     @State private var name: String
@@ -493,6 +494,7 @@ private struct SoftwareKeyEditor: View {
     @State private var storage: KeyStorage
     @State private var privateKey = ""
     @State private var originalPrivateKey = ""
+    @State private var publicKey: String
     @State private var passphrase = ""
     @State private var originalPassphrase = ""
     @State private var savePassphrase = true
@@ -518,7 +520,9 @@ private struct SoftwareKeyEditor: View {
         defaultStorage: KeyStorage = .iCloud,
         saveSecurityKey: ((String, TagColor, SecurityKeyCredential) throws -> Void)? = nil,
         loadPrivateKey: (() throws -> SSHPrivateKeySecret)? = nil,
-        saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
+        saveMetadata: (
+            (_ name: String, _ colorTag: TagColor, _ certificate: String, _ publicKey: String) throws -> SSHKeyRef
+        )? = nil,
         delete: (() throws -> Void)? = nil,
         save:
             @escaping (
@@ -538,6 +542,7 @@ private struct SoftwareKeyEditor: View {
         _colorTag = State(initialValue: existing?.colorTag ?? .none)
         _storage = State(initialValue: existing?.storage ?? defaultStorage)
         _certificate = State(initialValue: existing?.certificate ?? "")
+        _publicKey = State(initialValue: existing?.publicKey ?? "")
         _isLoading = State(initialValue: loadPrivateKey != nil)
     }
 
@@ -615,10 +620,10 @@ private struct SoftwareKeyEditor: View {
 
                     if !usesWebAuthn {
                         Section(AppStrings.Keychain.publicKey.swiftUIKey) {
-                            Text(publicKeyDisplay)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(material == nil ? .secondary : .primary)
-                                .textSelection(.enabled)
+                            keyTextEditor(
+                                text: $publicKey, minHeight: 100, placeholder: AppStrings.KeyExport.optionalPublicKey
+                            )
+                            .accessibilityLabel(AppStrings.Keychain.publicKey.swiftUIKey)
                         }
 
                         Section {
@@ -703,6 +708,9 @@ private struct SoftwareKeyEditor: View {
             }
         }
         .onChange(of: privateKey) { old, value in
+            if !isLoading, !originalPrivateKey.isEmpty, value != originalPrivateKey, publicKey == existing?.publicKey {
+                publicKey = ""
+            }
             if value != originalPrivateKey, old == originalPrivateKey, !originalPassphrase.isEmpty {
                 passphrase = ""
             }
@@ -727,7 +735,7 @@ private struct SoftwareKeyEditor: View {
         } message: {
             Text(AppStrings.Keychain.deleteKeyWarning)
         }
-        .task(id: validationToken) { await derivePublicMaterial() }
+        .task(id: validationToken) { refreshPublicMaterial() }
     }
 
     /// A key blob field drawn on the form's own background.
@@ -786,11 +794,13 @@ private struct SoftwareKeyEditor: View {
 
     @MainActor
     private var isDirty: Bool {
-        guard let existing else { return !name.isEmpty || !privateKey.isEmpty || !certificate.isEmpty }
+        guard let existing else {
+            return !name.isEmpty || !privateKey.isEmpty || !publicKey.isEmpty || !certificate.isEmpty
+        }
         return name != existing.label || colorTag != existing.colorTag || storage != existing.storage
             || privateKey != originalPrivateKey || passphrase != originalPassphrase
             || savePassphrase != originalSavePassphrase
-            || certificate != existing.certificate
+            || publicKey != existing.publicKey || certificate != existing.certificate
     }
 
     private func cancelEditing() {
@@ -815,36 +825,22 @@ private struct SoftwareKeyEditor: View {
                 return true
             }
             let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !canEditPrivateKey, let existing, let saveMetadata {
+            if !canEditPrivateKey, existing != nil, let saveMetadata {
                 if !normalizedCertificate.isEmpty {
-                    _ = try SSHUserCertificate.parse(normalizedCertificate, matching: existing.publicKey)
+                    _ = try SSHUserCertificate.parse(
+                        normalizedCertificate, matching: publicKey.isEmpty ? nil : publicKey)
                 }
                 _ = try saveMetadata(
-                    name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, normalizedCertificate
+                    name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, normalizedCertificate, publicKey
                 )
                 isWorking = false
                 return true
             }
             let passphrase = passphrase.isEmpty ? nil : passphrase
-            let inspected: SSHKeyMaterial
-            if let existing, privateKey == originalPrivateKey {
-                inspected = SSHKeyMaterial(
-                    privateKey: privateKey, publicKey: existing.publicKey,
-                    algorithm: existing.algorithm, fingerprint: existing.fingerprint,
-                    keySize: existing.keySize
-                )
-            } else {
-                let keyText = privateKey
-                let comment = name
-                inspected = try await Task.detached(priority: .userInitiated) {
-                    try SSHKeyMaterial.inspect(
-                        privateKey: keyText, passphrase: passphrase, comment: comment
-                    )
-                }.value
-            }
+            let inspected = try SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
             if !normalizedCertificate.isEmpty {
                 _ = try SSHUserCertificate.parse(
-                    normalizedCertificate, matching: inspected.publicKey
+                    normalizedCertificate, matching: inspected.publicKey.isEmpty ? nil : inspected.publicKey
                 )
             }
             _ = try await save(
@@ -869,7 +865,7 @@ private struct SoftwareKeyEditor: View {
         }
     }
 
-    private var validationToken: String { privateKey + "\u{0}" + passphrase }
+    private var validationToken: String { privateKey + "\u{0}" + publicKey }
 
     private var defaultName: String {
         if usesWebAuthn { return String(localized: AppStrings.SecurityKey.title) }
@@ -892,15 +888,11 @@ private struct SoftwareKeyEditor: View {
         )
     }
 
-    private var publicKeyDisplay: String {
-        material?.publicKey ?? existing?.publicKey ?? String(localized: AppStrings.Keychain.derivedFromThePrivateKey)
-    }
-
     private var certificateWarning: String? {
         guard !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         do {
             return try SSHUserCertificate.parse(
-                certificate, matching: material?.publicKey ?? existing?.publicKey
+                certificate, matching: publicKey.isEmpty ? nil : publicKey
             ).validityWarning
         } catch {
             return error.localizedDescription
@@ -927,25 +919,8 @@ private struct SoftwareKeyEditor: View {
         isLoading = false
     }
 
-    private func derivePublicMaterial() async {
-        guard !privateKey.isEmpty else {
-            material = nil
-            return
-        }
-        do {
-            try await Task.sleep(for: .milliseconds(250))
-            let privateKey = privateKey
-            let passphrase = passphrase.isEmpty ? nil : passphrase
-            let comment = name
-            material = try await Task.detached(priority: .utility) {
-                try SSHKeyMaterial.inspect(
-                    privateKey: privateKey, passphrase: passphrase, comment: comment
-                )
-            }.value
-        } catch is CancellationError {
-        } catch {
-            material = nil
-        }
+    private func refreshPublicMaterial() {
+        material = try? SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
     }
 
     private func receiveReferenceText(_ providers: [NSItemProvider]) -> Bool {
@@ -1321,9 +1296,9 @@ struct KeychainEditDetail: View {
                     existing: key, title: AppStrings.Keychain.editKey, symbol: "pencil",
                     close: window.closeVaultWork,
                     loadPrivateKey: { try loadPrivateKey(key) },
-                    saveMetadata: { name, colorTag, certificate in
+                    saveMetadata: { name, colorTag, certificate, publicKey in
                         try saveSoftwareKeyMetadata(
-                            key, name: name, colorTag: colorTag, certificate: certificate
+                            key, name: name, colorTag: colorTag, certificate: certificate, publicKey: publicKey
                         )
                     },
                     delete: { try delete(key) },
@@ -1370,8 +1345,7 @@ struct KeychainEditDetail: View {
         updated.certificate = certificate
         updated.fingerprint = material.fingerprint
         updated.keySize = material.keySize
-        let keepsOriginalPrivateKey = privateKey == (try loadPrivateKey(original)).privateKey
-        updated.hasPassphrase = passphrase != nil || (keepsOriginalPrivateKey && original.hasPassphrase)
+        updated.hasPassphrase = try SSHKeyMaterial.privateKeyMetadata(privateKey).isEncrypted
         try app.credentials.upsert(
             updated,
             credential: .software(
@@ -1383,11 +1357,18 @@ struct KeychainEditDetail: View {
     }
 
     private func saveSoftwareKeyMetadata(
-        _ original: SSHKeyRef, name: String, colorTag: TagColor, certificate: String
+        _ original: SSHKeyRef, name: String, colorTag: TagColor, certificate: String, publicKey: String
     ) throws -> SSHKeyRef {
         var updated = original
         updated.label = name
         updated.colorTag = colorTag
+        if publicKey != original.publicKey {
+            let material = publicKey.isEmpty ? nil : try SSHKeyMaterial.publicMaterial(publicKey)
+            updated.publicKey = material?.publicKey ?? ""
+            updated.fingerprint = material?.fingerprint ?? ""
+            updated.algorithm = material?.algorithm ?? updated.algorithm
+            updated.keySize = material?.keySize ?? updated.keySize
+        }
         updated.certificate = certificate
         try app.credentials.upsert(updated)
         window.selectVaultItem(.key(updated.id), on: .keychain)
@@ -1526,303 +1507,6 @@ private struct SecureEnclaveKeyEditor: View {
 /// Installs one or more public keys on several saved destinations. A checked row is an
 /// explicit authorization to change that account's `authorized_keys`; opening
 /// the sheet never inherits the Keychain card selection as a host selection.
-struct ExportKeyToHostsSheet: View {
-    let keys: [SSHKeyRef]
-
-    @Environment(AppModel.self) private var app
-    @Environment(WindowModel.self) private var window
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var chooser = ManagedChooserState<Host.ID>(mode: .multiple)
-    @State private var exportModel: KeyExportModel?
-    @FocusState private var searchFocused: Bool
-
-    private var query: String { chooser.query }
-    private var queryBinding: Binding<String> {
-        Binding(get: { chooser.query }, set: { chooser.query = $0 })
-    }
-    private var hosts: [Host] { app.credentials.searchHosts(query) }
-    private var eligibleHosts: [Host] {
-        hosts.filter { app.credentials.keyExportUnavailableReason(for: $0) == nil }
-    }
-    private var states: [Host.ID: KeyExportModel.ExportState] { exportModel?.states ?? [:] }
-    private var isExporting: Bool { exportModel?.isExporting ?? false }
-    private var isFinished: Bool { exportModel?.isFinished ?? false }
-
-    var body: some View {
-        VaultDetailScaffold(title: AppStrings.Keychain.exportToHosts, symbol: "square.and.arrow.up", close: close) {
-            VStack(spacing: 0) {
-                header
-                Divider().opacity(0.7)
-                content
-            }
-        } footer: {
-            footer
-        }
-        .onAppear { searchFocused = true }
-        .onChange(of: chooser.query) {
-            chooser.queryDidChange(
-                visible: hosts.map(\.id), enabled: Set(eligibleHosts.map(\.id))
-            )
-        }
-        .interactiveDismissDisabled(isExporting)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack(spacing: Metrics.Space.m) {
-                CardIcon(symbol: "key.fill", tint: TermindColor.accent)
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text(AppStrings.Keychain.exportToHosts)
-                        .font(.headline)
-                    Text(keySummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            HStack(spacing: Metrics.Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField(
-                    AppStrings.Vault.searchHosts.swiftUIKey, text: queryBinding.singleLineText, axis: .horizontal
-                ).singleLinePaste()
-                    .lineLimit(1)
-                    .textFieldStyle(.plain)
-                    .focused($searchFocused)
-                    .onKeyPress(.upArrow) { moveCursor(-1) }
-                    .onKeyPress(.downArrow) { moveCursor(1) }
-                    .onKeyPress(.space) { toggleCursor() }
-                if !query.isEmpty {
-                    Button {
-                        chooser.query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(AppStrings.Common.clearSearch))
-                }
-            }
-            .padding(Metrics.Space.s)
-            .background(
-                .quaternary.opacity(0.5),
-                in: .rect(cornerRadius: Metrics.Radius.medium)
-            )
-        }
-        .padding(Metrics.Space.xl)
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if app.credentials.hosts.isEmpty {
-            ContentUnavailableView {
-                Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
-            } description: {
-                Text(AppStrings.Keychain.addAndConnectToAHostBeforeExportingAKeyToIt)
-            }
-        } else if hosts.isEmpty {
-            ContentUnavailableView.search(text: query)
-        } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(hosts) { host in
-                            row(for: host)
-                                .frame(height: 52)
-                                .id(host.id)
-                        }
-                    }
-                }
-                .onAppear { scrollCursorIntoView(using: proxy) }
-                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
-                .onChange(of: hosts.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
-            }
-            .padding(.horizontal, Metrics.Space.l)
-            .padding(.vertical, Metrics.Space.s)
-        }
-    }
-
-    private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
-        guard let cursor = chooser.cursor else { return }
-        proxy.scrollTo(cursor)
-    }
-
-    private func row(for host: Host) -> some View {
-        let unavailable = app.credentials.keyExportUnavailableReason(for: host)
-        return Button {
-            chooser.activate(host.id)
-        } label: {
-            HStack(spacing: Metrics.Space.m) {
-                SelectionMark(
-                    mode: .multiple, isSelected: chooser.selected.contains(host.id)
-                )
-
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text(host.name)
-                        .foregroundStyle(unavailable == nil ? .primary : .secondary)
-                        .lineLimit(1)
-                    Text(app.credentials.loginAddress(for: host))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-
-                Spacer(minLength: Metrics.Space.s)
-                stateLabel(for: host, unavailable: unavailable)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(unavailable != nil || isExporting || isFinished)
-        .accessibilityAddTraits(chooser.selected.contains(host.id) ? .isSelected : [])
-    }
-
-    @ViewBuilder
-    private func stateLabel(for host: Host, unavailable: String?) -> some View {
-        switch states[host.id] {
-        case .running:
-            ProgressView()
-                .controlSize(.small)
-        case .succeeded:
-            Label(AppStrings.Keychain.exported.swiftUIKey, systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-                .font(.caption)
-        case .failed(let message):
-            Label(AppStrings.Common.failed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-                .font(.caption)
-                .help(Text(message))
-        case nil:
-            if let unavailable {
-                Text(unavailable)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
-        }
-    }
-
-    private var footer: some View {
-        HStack {
-            if isFinished {
-                let failures = states.values.reduce(into: 0) { count, state in
-                    if case .failed = state { count += 1 }
-                }
-                Text(
-                    failures == 0
-                        ? successSummary(hostCount: states.count)
-                        : String(
-                            localized: AppStrings.Keychain.exportedFailed(
-                                count1: states.count - failures, failures: failures))
-                )
-                .font(.caption)
-                .foregroundStyle(
-                    failures == 0 ? AnyShapeStyle(.secondary) : AnyShapeStyle(.red)
-                )
-                .monospacedDigit()
-            } else {
-                Text(AppStrings.Common.selected(chooser.selected.count))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-
-                Button(
-                    allEligibleChecked
-                        ? AppStrings.Common.deselectAll.swiftUIKey : AppStrings.Common.selectAll.swiftUIKey
-                ) {
-                    toggleAllEligible()
-                }
-                .disabled(eligibleHosts.isEmpty || isExporting)
-            }
-
-            Spacer()
-
-            Button(
-                isFinished ? AppStrings.Common.done.swiftUIKey : AppStrings.Common.cancel.swiftUIKey, action: close
-            )
-            .keyboardShortcut(.cancelAction)
-            .disabled(isExporting)
-
-            if !isFinished {
-                Button(AppStrings.Common.export.swiftUIKey, action: export)
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(chooser.selected.isEmpty || isExporting)
-            }
-        }
-        .padding(Metrics.Space.l)
-    }
-
-    private func close() {
-        if window.selectedDestination == .vault {
-            window.closeVaultWork()
-        } else {
-            dismiss()
-        }
-    }
-
-    private var allEligibleChecked: Bool { chooser.allChecked(in: eligibleHosts.map(\.id)) }
-
-    private var keySummary: String {
-        if keys.count == 1 {
-            return keys[0].label
-        }
-        return String(localized: AppStrings.Keychain.keysNamed(keys.count))
-    }
-
-    private func successSummary(hostCount: Int) -> String {
-        if keys.count == 1 {
-            return hostCount == 1
-                ? String(localized: AppStrings.Keychain.exportedTo1Host)
-                : String(localized: AppStrings.Keychain.exportedToHosts(hostCount))
-        }
-        return hostCount == 1
-            ? String(localized: AppStrings.Keychain.exportedKeysTo1Host(keys.count))
-            : String(localized: AppStrings.Keychain.exportedKeysToHosts(count: keys.count, hostCount: hostCount))
-    }
-
-    /// Select All follows the visible, filtered list, matching the host chooser:
-    /// a filter must never cause an invisible machine to be modified.
-    private func toggleAllEligible() {
-        chooser.toggleAll(in: eligibleHosts.map(\.id))
-    }
-
-    private func moveCursor(_ delta: Int) -> KeyPress.Result {
-        let ids = eligibleHosts.map(\.id)
-        chooser.moveCursor(by: delta, through: ids)
-        return ids.isEmpty ? .ignored : .handled
-    }
-
-    private func toggleCursor() -> KeyPress.Result {
-        guard let cursor = chooser.cursor else { return .ignored }
-        chooser.toggle(cursor)
-        return .handled
-    }
-
-    private func export() {
-        guard !isExporting, !isFinished else { return }
-        let model: KeyExportModel
-        if let exportModel {
-            model = exportModel
-        } else {
-            let connectionCoordinator = app.connections
-            model = KeyExportModel(
-                keys: keys, credentials: app.credentials,
-                services: KeyExportServices { keys, configuration in
-                    try await connectionCoordinator.installAuthorizedKeys(keys, using: configuration)
-                })
-            exportModel = model
-        }
-        let selected = Array(chooser.selected)
-        Task { await model.export(to: selected) }
-    }
-}
-
 // MARK: - Key card
 
 /// The singular actions for one key, shared by its card and editor surfaces.
@@ -1834,17 +1518,17 @@ struct KeyObjectActions: View {
     let export: () -> Void
 
     var body: some View {
-        Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
-            .disabled(key.publicKey.isEmpty)
+        Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: MenuSymbol.export, action: export)
         Divider()
         Menu(AppStrings.Common.copy.swiftUIKey, systemImage: MenuSymbol.copy) {
-            Button(AppStrings.Keychain.copyPublicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
                 copyToPasteboard(key.publicKey)
             }
             .disabled(key.publicKey.isEmpty)
-            Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: MenuSymbol.copy) {
                 copyToPasteboard(key.fingerprint)
             }
+            .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)
         }
         Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
     }
@@ -1883,41 +1567,22 @@ private struct KeyCard: View {
                         tint: key.colorTag.color ?? TermindColor.accent
                     )
 
-                    // The fingerprint is deliberately *not* selectable, and this
-                    // is not a style preference.
-                    //
-                    // A SHA256 fingerprint is wider than the widest card, so it
-                    // has to truncate. `.textSelection(.enabled)` used to be on
-                    // the line below, and it laid out correctly right up until
-                    // someone clicked it: entering selection mode re-lays the
-                    // text out at its full width, and it walked out of the card
-                    // and over its neighbour. That made it look like a rendering
-                    // glitch rather than a layout bug, because no static
-                    // screenshot ever showed it.
-                    //
-                    // Nothing is lost. The whole fingerprint is on the tooltip
-                    // below and one right-click away via Copy Fingerprint, which
-                    // is a better trade than a card that changes size when you
-                    // touch it. The old forwarding manager had the same defect for the
-                    // same reason.
-                    //
-                    // The frame keeps the column to the width it is offered, so
-                    // no future subtitle can push the card wide either.
                     VStack(alignment: .leading, spacing: 1) {
                         Text(key.label)
                             .font(.headline)
                             .lineLimit(1)
-                        Text(key.fingerprint)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                        Text(
+                            key.algorithm == .unknown
+                                ? AppStrings.Keychain.unknownKeyType : AppStrings.Keychain.keyType(keyDisplayName)
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 HStack(spacing: Metrics.Space.xs) {
-                    CardChip(text: keyDisplayName)
                     if key.hasPassphrase {
                         CardChip(
                             text: String(
@@ -1960,9 +1625,6 @@ private struct KeyCard: View {
         .contextMenu {
             if actionKeys.count == 1, actionIdentities.isEmpty {
                 KeyObjectActions(key: key, edit: edit, export: export)
-            } else if actionIdentities.isEmpty {
-                Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
-                    .disabled(actionKeys.isEmpty || actionKeys.contains { $0.publicKey.isEmpty })
             }
             Divider()
             DestructiveMenuButton(AppStrings.Common.delete, action: delete)

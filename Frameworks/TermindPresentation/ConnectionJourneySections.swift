@@ -15,6 +15,7 @@ extension ConnectionPurpose {
         case (.sftpChannel, .routeDestination): "folder.fill"
         case (.serialSession, _): "cable.connector"
         case (.metrics, _): "waveform.path.ecg"
+        case (.keyExport, _): "key.fill"
         case (.portForwarding, _): "arrow.left.arrow.right"
         }
     }
@@ -89,7 +90,7 @@ public struct ConnectionJourneyHeader: View {
     private var detail: String {
         let protocolName: String =
             switch journey.purpose {
-            case .sshSession, .metrics, .portForwarding: String(localized: AppStrings.Vault.ssh)
+            case .sshSession, .metrics, .portForwarding, .keyExport: String(localized: AppStrings.Vault.ssh)
             case .telnetSession: String(localized: AppStrings.Vault.telnet)
             case .sftpChannel: String(localized: AppStrings.SFTP.sftp)
             case .serialSession: String(localized: AppStrings.Vault.serial)
@@ -131,6 +132,7 @@ public struct ConnectionJourneyStatus: View {
             case .sshSession, .telnetSession, .serialSession: String(localized: AppStrings.Connections.terminalReady)
             case .sftpChannel: String(localized: AppStrings.Connections.fileBrowserReady)
             case .metrics: String(localized: AppStrings.Connections.metricsReady)
+            case .keyExport: String(localized: AppStrings.KeyExport.completed)
             case .portForwarding: String(localized: AppStrings.Connections.forwardingReady)
             }
         case .failed(let message): message

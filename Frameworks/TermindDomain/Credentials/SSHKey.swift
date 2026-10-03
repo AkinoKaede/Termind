@@ -12,6 +12,7 @@ public nonisolated enum KeyStorage: String, Codable, Hashable, Sendable, CaseIte
 }
 
 public nonisolated enum SSHKeyAlgorithm: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+    case unknown
     case securityKey = "sk-ecdsa-sha2-nistp256@openssh.com"
     case ed25519 = "ssh-ed25519"
     case ecdsa256 = "ecdsa-sha2-nistp256"

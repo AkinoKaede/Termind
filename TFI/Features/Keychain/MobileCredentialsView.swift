@@ -35,25 +35,24 @@ struct MobileCredentialsView: View {
                     MobileCardGrid {
                         ForEach(keys) { key in
                             MobileActionCard {
-                                if !key.publicKey.isEmpty { exportingKey = key }
+                                exportingKey = key
                             } content: {
                                 MobileKeyCredentialCard(key: key, credentials: app.credentials)
                             } actions: {
-                                Button(AppStrings.Keychain.exportToHosts.swiftUIKey, systemImage: "square.and.arrow.up")
+                                Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: "square.and.arrow.up")
                                 {
                                     exportingKey = key
                                 }
-                                .disabled(key.publicKey.isEmpty)
                                 Divider()
                                 Menu(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
-                                    Button(AppStrings.Keychain.copyPublicKey.swiftUIKey, systemImage: "doc.on.doc") {
+                                    Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "doc.on.doc") {
                                         UIPasteboard.general.string = key.publicKey
                                     }
                                     .disabled(key.publicKey.isEmpty)
-                                    Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: "doc.on.doc")
-                                    {
+                                    Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "doc.on.doc") {
                                         UIPasteboard.general.string = key.fingerprint
                                     }
+                                    .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)
                                 }
                                 Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
                                     if key.algorithm == .securityKey {
@@ -123,10 +122,10 @@ struct MobileCredentialsView: View {
         .sheet(item: $editingSecurityKey) { key in SecurityKeyEditor(credentials: app.credentials, existing: key) }
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
         .sheet(item: $keyEditor) { MobileKeyEditor(model: $0) }
-        .sheet(item: $exportingKey) { key in
-            MobileKeyExportSheet(
-                library: app.library, credentials: app.credentials,
-                model: KeyExportModel(keys: [key], credentials: app.credentials, services: app.keyExportServices))
+        .navigationDestination(item: $exportingKey) { key in
+            MobileKeyExportDetailView(
+                library: app.library,
+                model: KeyExportModel(key: key, library: app.library, services: app.keyExportServices))
         }
         .confirmationDialog(
             AppStrings.Keychain.deleteIdentityConfirmation,
@@ -179,8 +178,11 @@ private struct MobileKeyCredentialCard: View {
                 MobileCardIcon(symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(key.label).font(.headline).lineLimit(1)
-                    Text(key.fingerprint).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        .lineLimit(1).truncationMode(.middle)
+                    Text(
+                        key.algorithm == .unknown
+                            ? AppStrings.Keychain.unknownKeyType : AppStrings.Keychain.keyType(keyDisplayName)
+                    ).font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -197,7 +199,6 @@ private struct MobileKeyCredentialCard: View {
     }
 
     @ViewBuilder private var primaryChips: some View {
-        MobileCardChip(text: keyDisplayName)
         if key.hasPassphrase {
             MobileCardChip(
                 title: credentials.hasSavedPassphrase(for: key)

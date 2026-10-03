@@ -232,10 +232,11 @@ public nonisolated struct SSHKeyMaterial: Sendable {
         }
     }
 
-    private static func inferredKeySize(
+    static func inferredKeySize(
         for algorithm: SSHKeyAlgorithm, publicBlob: Data
     ) -> Int? {
         switch algorithm {
+        case .unknown: nil
         case .ed25519: 256
         case .securityKey, .ecdsa256: 256
         case .ecdsa384: 384
@@ -255,13 +256,18 @@ public nonisolated struct SSHKeyMaterial: Sendable {
         return (bytes.count - 1) * 8 + (8 - first.leadingZeroBitCount)
     }
 
-    private static func readSSHField(_ data: Data, offset: inout Int) -> Data? {
-        guard offset + 4 <= data.count else { return nil }
-        let length = data[offset..<(offset + 4)].reduce(0) { ($0 << 8) | Int($1) }
-        offset += 4
-        guard length >= 0, offset + length <= data.count else { return nil }
-        defer { offset += length }
-        return data[offset..<(offset + length)]
+    static func readSSHField(_ data: Data, offset: inout Int) -> Data? {
+        // Data slices retain their original indices. Offsets in SSH blobs are byte
+        // counts relative to the blob, so translate them from startIndex first.
+        guard offset >= 0, offset <= data.count, data.count - offset >= 4 else { return nil }
+        let headerStart = data.index(data.startIndex, offsetBy: offset)
+        let payloadStart = data.index(headerStart, offsetBy: 4)
+        let length = data[headerStart..<payloadStart].reduce(0) { ($0 << 8) | Int($1) }
+        let payloadOffset = offset + 4
+        guard length <= data.count - payloadOffset else { return nil }
+        let payloadEnd = data.index(payloadStart, offsetBy: length)
+        offset = payloadOffset + length
+        return data.subdata(in: payloadStart..<payloadEnd)
     }
 
     private static func normalizedPassphrase(_ value: String?) -> String? {
