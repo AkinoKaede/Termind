@@ -2979,7 +2979,7 @@
 			repositoryURL = "https://github.com/Lakr233/MarkdownView";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.3.2;
+				minimumVersion = 4.6.7;
 			};
 		};
 		TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
@@ -2987,7 +2987,7 @@
 			repositoryURL = "https://github.com/Lakr233/ListViewKit";
 			requirement = {
 				kind = exactVersion;
-				version = 4.3.3;
+				version = 4.5.0;
 			};
 		};
 		TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */ = {

@@ -137,15 +137,6 @@
       }
     },
     {
-      "identity" : "highlightr",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/raspu/Highlightr",
-      "state" : {
-        "revision" : "05e7fcc63b33925cd0c1faaa205cdd5681e7bbef",
-        "version" : "2.3.0"
-      }
-    },
-    {
       "identity" : "interop-ios-for-google-sdks",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/interop-ios-for-google-sdks.git",
@@ -195,8 +186,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/ListViewKit",
       "state" : {
-        "revision" : "0a110188db78e61a7aa69b47a25b2b3e6eef12f9",
-        "version" : "4.3.3"
+        "revision" : "89dbd39b0ca80ce4a1e30e49ada2cc24c880bd57",
+        "version" : "4.5.0"
       }
     },
     {
@@ -204,8 +195,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/Litext",
       "state" : {
-        "revision" : "097475a348ab4a0aee1d027789307ebf69afbc1f",
-        "version" : "2.2.2"
+        "revision" : "52f114f0110a699a3d22d81190fb9a5670f478a4",
+        "version" : "3.4.2"
       }
     },
     {
@@ -222,17 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/MarkdownView",
       "state" : {
-        "revision" : "4abc4817fa5211f05e25fbf7a6295fb8e9fcfd90",
-        "version" : "4.3.2"
-      }
-    },
-    {
-      "identity" : "msdisplaylink",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Lakr233/MSDisplayLink.git",
-      "state" : {
-        "revision" : "87eb0af130744c8cbe2e31b6e1a5bcd659f1c220",
-        "version" : "2.2.0"
+        "revision" : "ae7ac388911be7089cd95d3bec7427440c533d8c",
+        "version" : "4.6.7"
       }
     },
     {
