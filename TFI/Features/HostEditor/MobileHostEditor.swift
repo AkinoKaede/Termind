@@ -98,7 +98,7 @@ struct MobileHostEditor: View {
                 HostConnectionFields(host: $draft, protocol: $selectedProtocol).disabled(draft.isTailscaleManaged)
                 if selectedProtocol == .ssh && draft.sshEnabled {
                     if draft.isTailscaleManaged {
-                        Section {
+                        Section(AppStrings.Vault.authentication.swiftUIKey) {
                             TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                         }

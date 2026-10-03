@@ -155,7 +155,7 @@ struct HostEditorView: View {
 
             if selectedProtocol == .ssh && draft.sshEnabled {
                 if draft.isTailscaleManaged {
-                    Section {
+                    Section(AppStrings.Vault.authentication.swiftUIKey) {
                         TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
                     }
                 } else {
