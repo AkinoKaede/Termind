@@ -31,15 +31,18 @@ separate subclass hooks, `touchMenuItems(for:)` and
 the platform view, with grouping and localization owned by Termind.
 
 `libssh2-spm/` is the maintenance checkout of `AkinoKaede/libssh2-spm`,
-tracking `termind`. Xcode consumes its remote exact-version package. Native
-libssh2 comes from the official upstream commit in `Libssh2.ref` plus numbered
-`Patches/libssh2/` patches; `Vendor/libssh2` is the committed generated source
-snapshot, not a nested fork or submodule. Change the pin or patches and run
-`python3 Script/vendor-libssh2.py` in the package, then verify with `--check`,
-`python3 Script/test-vendoring.py`, native CMake/CTest, and the package's Apple
-build/test matrix. Never hand-edit the snapshot. Publish a new package tag before
-updating the Termind submodule gitlink, Xcode exact version and `Package.resolved`
-together. Keep the `CSSH2` external-signature API and its native regression tests.
+tracking `termind`. Xcode consumes its remote exact-version package.
+`Vendor/libssh2` is a clean submodule of official `libssh2/libssh2`; its gitlink
+pins native source. CI exports it into ignored `.build/patched-native`, applies
+numbered `Patches/libssh2/` patches, and publishes a checksummed XCFramework.
+Never commit full native snapshots or generated patched source files. The
+handwritten `Source/Exports.swift` re-exports the binary under the existing
+`CSSH2` API. Update the submodule or patches, run `python3 Script/test-source.py` and
+native CMake/CTest, then dispatch the package's Release XCFramework workflow.
+It builds and tests the Apple platform matrix, publishes the binary, and commits
+the manifest URL/checksum and package tag. Update the Termind maintenance gitlink,
+Xcode exact version and `Package.resolved` together after release. Keep the
+external-signature API and its native regression tests.
 
 ## Architecture Records
 

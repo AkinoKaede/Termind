@@ -2947,7 +2947,7 @@
 			repositoryURL = "https://github.com/AkinoKaede/libssh2-spm.git";
 			requirement = {
 				kind = exactVersion;
-				version = "2.0.3-termind-2";
+				version = "2.0.3-termind-4";
 			};
 		};
 		TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
