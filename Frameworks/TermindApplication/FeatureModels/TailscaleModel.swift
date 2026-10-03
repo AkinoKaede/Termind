@@ -42,7 +42,7 @@ public nonisolated struct TailscaleNodeStatus: Sendable {
     }
 }
 
-public nonisolated protocol TailscaleNodeSession: Sendable {
+public nonisolated protocol TailscaleNodeSession: AnyObject, Sendable {
     func status() async throws -> TailscaleNodeStatus
     func login() async throws
     func logout() async throws
@@ -67,12 +67,26 @@ public typealias TailscaleNodeFactory =
         _ profileID: UUID, _ hostname: String, _ controlURL: String, _ authKey: String?
     ) async throws -> any TailscaleNodeSession
 
+/// An authenticated candidate owned by an editor until the user saves it.
+public nonisolated struct TailscalePendingLogin: Sendable, Identifiable {
+    public let id: UUID
+    public let groupID: UUID
+    public let network: TailscaleNetwork
+    public let exitNodeID: String
+    public let suggestedName: String
+    public let hostname: String
+    public let peers: [TailscalePeer]
+    public let device: TailscaleDeviceInfo?
+}
+
 @MainActor
 @Observable
 public final class TailscaleModel: TailscaleConnectionProviding {
     public private(set) var loginURL: URL?
     public private(set) var isLoggingIn = false
     public private(set) var loginCompletedGroupID: UUID?
+    public private(set) var pendingLogin: TailscalePendingLogin?
+    public private(set) var loginOperationID: UUID?
     public private(set) var error: String?
     public private(set) var runningGroups: Set<UUID> = []
     public private(set) var devices: [UUID: TailscaleDeviceInfo] = [:]
@@ -99,6 +113,11 @@ public final class TailscaleModel: TailscaleConnectionProviding {
     @ObservationIgnored private var loginTask: Task<Void, Never>?
     @ObservationIgnored private var loginGeneration: UUID?
     @ObservationIgnored private var loginTargetGroupID: UUID?
+    @ObservationIgnored private var loginOriginalGroup: HostGroup?
+    @ObservationIgnored private var candidateNode: ActiveNode?
+    @ObservationIgnored private var committingProfileID: UUID?
+    private var committingLogin: Bool { committingProfileID != nil }
+    @ObservationIgnored private var knownNetworks: [UUID: TailscaleNetwork] = [:]
     @ObservationIgnored private var started = false
     @ObservationIgnored private var shuttingDown = false
 
@@ -114,6 +133,10 @@ public final class TailscaleModel: TailscaleConnectionProviding {
         self.profileStorage = profileStorage
         self.hostname = hostname
         self.hasAccess = hasAccess
+        knownNetworks = Dictionary(
+            uniqueKeysWithValues: library.groups.compactMap { group in
+                group.tailscale.map { (group.id, $0.network) }
+            })
         library.tailscaleConnections = self
         library.didChangeTailscaleGroups = { [weak self] in self?.reconcile() }
     }
@@ -176,9 +199,31 @@ public final class TailscaleModel: TailscaleConnectionProviding {
 
     public func reconcile() {
         guard !shuttingDown else { return }
-        if let id = loginTargetGroupID, library.group(id) == nil { cancelLogin() }
+        if let id = loginTargetGroupID, !committingLogin {
+            let latest = library.group(id)
+            if (latest == nil) != (loginOriginalGroup == nil)
+                || latest?.tailscale?.network != loginOriginalGroup?.tailscale?.network
+            {
+                cancelLogin()
+            }
+        }
         guard library.storageError == nil else { return }
-        let wanted = Set(library.groups.filter { $0.tailscale != nil }.map(\.id))
+        let networks = Dictionary(
+            uniqueKeysWithValues: library.groups.compactMap { group in
+                group.tailscale.map { (group.id, $0.network) }
+            })
+        let changed = Set(knownNetworks.keys.filter { knownNetworks[$0] != networks[$0] })
+        for id in changed {
+            runningGroups.remove(id)
+            devices[id] = nil
+            peers[id] = nil
+            retireProfile(groupID: id)
+        }
+        // Keep failed retirements retryable even though the public binding has changed.
+        for id in Set(knownNetworks.keys).union(networks.keys) where states[id] == nil || !changed.contains(id) {
+            knownNetworks[id] = networks[id]
+        }
+        let wanted = Set(networks.keys)
         for id in Set(states.keys).union(nodes.keys).subtracting(wanted) {
             retireProfile(groupID: id)
         }
@@ -273,22 +318,24 @@ public final class TailscaleModel: TailscaleConnectionProviding {
         } catch { self.error = error.localizedDescription }
     }
 
+    /// Authentication does not create or update a group. Only commitLogin publishes it.
+    @discardableResult
     public func beginLogin(
-        name: String, parentID: UUID?, controlURL: String, authKey: String?, groupID: UUID? = nil, hostname: String = ""
-    ) {
-        guard hasAccess() else {
-            error = TailscaleConfigurationError.requiresPro.localizedDescription
-            return
-        }
+        controlURL: String, authKey: String?, groupID: UUID = UUID(), hostname: String = ""
+    ) -> UUID {
         cancelLogin()
         let generation = UUID()
-        let connectionID = groupID ?? UUID()
+        loginOperationID = generation
         loginGeneration = generation
         loginTargetGroupID = groupID
-        let originalGroup = groupID.flatMap(library.group)
-        isLoggingIn = true
+        loginOriginalGroup = library.group(groupID)
         loginCompletedGroupID = nil
         error = nil
+        guard hasAccess(), !shuttingDown else {
+            error = TailscaleConfigurationError.requiresPro.localizedDescription
+            return generation
+        }
+        isLoggingIn = true
         let trimmedHostname = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
         let deviceName = trimmedHostname.isEmpty ? self.hostname() : trimmedHostname
         loginTask = Task { [weak self] in
@@ -297,8 +344,9 @@ public final class TailscaleModel: TailscaleConnectionProviding {
             let profileID = UUID()
             self.profilesInUse.insert(profileID)
             defer {
-                self.profilesInUse.remove(profileID)
+                if self.candidateNode?.profileID != profileID { self.profilesInUse.remove(profileID) }
                 self.drainProfileCleanup()
+                if self.loginGeneration == generation { self.isLoggingIn = false }
             }
             do {
                 let canonical = try TailscaleNetwork(controlURL: controlURL, dnsSuffix: "pending.invalid").controlURL
@@ -309,101 +357,183 @@ public final class TailscaleModel: TailscaleConnectionProviding {
                 if authKey == nil { try await node.login() }
                 let deadline = ContinuousClock.now.advanced(by: .seconds(600))
                 while ContinuousClock.now < deadline {
-                    try Task.checkCancellation()
-                    guard self.hasAccess() else { throw TailscaleConfigurationError.requiresPro }
+                    try self.validateLogin(generation)
                     let status = try await node.status()
-                    try Task.checkCancellation()
-                    guard self.loginGeneration == generation else { throw CancellationError() }
-                    if let groupID, self.library.group(groupID) == nil { throw CancellationError() }
+                    try self.validateLogin(generation)
                     self.loginURL = status.authURL
                     if status.running, let network = status.network {
-                        if let groupID, let previous = self.library.group(groupID)?.tailscale?.network,
-                            previous != network
-                        {
-                            throw TailscaleConfigurationError.missingNetworkIdentity
-                        }
-                        var group =
-                            groupID.flatMap(self.library.group)
-                            ?? HostGroup(id: connectionID, name: name, parentID: parentID)
-                        if group.tailscale == nil { group.tailscale = TailscaleGroupConfiguration(network: network) }
-                        try await node.setExitNode(group.tailscale?.exitNodeID)
-                        try Task.checkCancellation()
-                        guard self.loginGeneration == generation else { throw CancellationError() }
-                        guard self.hasAccess() else { throw TailscaleConfigurationError.requiresPro }
-                        if let groupID {
-                            guard let latest = self.library.group(groupID) else { throw CancellationError() }
-                            guard latest.tailscale?.network == originalGroup?.tailscale?.network else {
-                                throw CancellationError()
-                            }
-                            // Exit-node application suspends. Re-read cloud edits before committing
-                            // enrollment, and apply a changed exit node on the next iteration.
-                            if latest.tailscale?.exitNodeID != group.tailscale?.exitNodeID { continue }
-                            group = latest
-                            if group.tailscale == nil {
-                                group.tailscale = TailscaleGroupConfiguration(network: network)
-                            }
-                        } else if self.library.group(group.id) != nil {
-                            throw TailscaleConfigurationError.duplicateNetwork
-                        }
-                        let state = TailscaleLocalState(
-                            groupID: group.id, profileID: profileID, peers: status.peers, hostname: deviceName)
-                        if originalGroup == nil || group.name == originalGroup?.name { group.name = name }
-                        if originalGroup == nil || group.parentID == originalGroup?.parentID {
-                            group.parentID = parentID
-                        }
-                        // Public group configuration is valid without local enrollment.
-                        // Persist it first so activation needs no cross-store rollback.
-                        self.library.upsert(group)
-                        guard self.library.storageError == nil else {
-                            throw TailscaleConfigurationError.unavailable
-                        }
-                        try self.store.save(state)
-                        self.monitors.removeValue(forKey: group.id)?.cancel()
-                        if let old = self.nodes[group.id] {
-                            self.retiringNodes[old.profileID] = old.session
-                        }
-                        self.states[group.id] = state
-                        self.nodes[group.id] = ActiveNode(session: node, profileID: profileID, network: network)
-                        self.appliedExitNodes[group.id] = group.tailscale?.exitNodeID ?? ""
-                        self.library.replaceTailscalePeers(status.peers, groupID: group.id)
-                        self.runningGroups.insert(group.id)
-                        self.devices[group.id] = status.device
-                        self.peers[group.id] = status.peers
-                        self.monitor(group.id, node: node)
+                        let networkName =
+                            status.device?.networkName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        self.candidateNode = ActiveNode(session: node, profileID: profileID, network: network)
+                        self.pendingLogin = TailscalePendingLogin(
+                            id: generation, groupID: groupID, network: network,
+                            exitNodeID: self.library.group(groupID)?.tailscale?.network == network
+                                ? self.exitNodeID(groupID: groupID) : "",
+                            suggestedName: networkName.isEmpty ? network.dnsSuffix : networkName,
+                            hostname: deviceName, peers: status.peers, device: status.device)
                         candidate = nil
                         self.loginURL = nil
-                        self.loginCompletedGroupID = group.id
-                        break
+                        return
                     }
                     try await Task.sleep(for: .seconds(1))
                 }
-                if candidate != nil { throw TailscaleConfigurationError.unavailable }
+                throw TailscaleConfigurationError.unavailable
             } catch {
                 if let candidate {
                     try? await candidate.logout()
                     await candidate.close()
                 }
-                if self.loginGeneration == generation && !(error is CancellationError) {
+                if self.loginGeneration == generation {
                     self.loginURL = nil
-                    self.error = error.localizedDescription
+                    if !(error is CancellationError) { self.error = error.localizedDescription }
                 }
             }
-            if self.loginGeneration == generation {
-                self.isLoggingIn = false
-                self.loginTargetGroupID = nil
-            }
         }
+        return generation
     }
 
-    public func cancelLogin() {
-        loginGeneration = nil
+    private func validateLogin(_ id: UUID) throws {
+        try Task.checkCancellation()
+        guard !shuttingDown, loginGeneration == id, let groupID = loginTargetGroupID else {
+            throw CancellationError()
+        }
+        guard hasAccess() else { throw TailscaleConfigurationError.requiresPro }
+        let latest = library.group(groupID)
+        guard (latest == nil) == (loginOriginalGroup == nil),
+            latest?.tailscale?.network == loginOriginalGroup?.tailscale?.network
+        else { throw TailscaleConfigurationError.unavailable }
+    }
+
+    public func group(_ id: UUID) -> HostGroup? { library.group(id) }
+
+    /// The public binding is saved first. If local activation fails, the candidate
+    /// remains owned by the editor so Save can retry without another browser login.
+    public func commitLogin(
+        _ id: UUID, group draft: HostGroup, hostname: String, exitNodeID: String
+    ) async throws -> HostGroup {
+        try validateLogin(id)
+        guard !committingLogin, let pending = pendingLogin, pending.id == id,
+            pending.groupID == draft.id, let candidate = candidateNode,
+            !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { throw TailscaleConfigurationError.unavailable }
+        committingProfileID = candidate.profileID
+        defer {
+            committingProfileID = nil
+            if candidateNode?.profileID != candidate.profileID { profilesInUse.remove(candidate.profileID) }
+            drainProfileCleanup()
+        }
+        let trimmed = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
+        let deviceName = trimmed.isEmpty ? self.hostname() : trimmed
+        // Re-read all public settings after operations that suspend.
+        try await candidate.session.setHostname(deviceName)
+        try validateLogin(id)
+        func desiredExitNode() -> String {
+            if exitNodeID == pending.exitNodeID, library.group(draft.id)?.tailscale?.network == pending.network {
+                return self.exitNodeID(groupID: draft.id)
+            }
+            return exitNodeID
+        }
+        var status: TailscaleNodeStatus
+        var selectedExitNode: String
+        while true {
+            selectedExitNode = desiredExitNode()
+            try await candidate.session.setExitNode(selectedExitNode.isEmpty ? nil : selectedExitNode)
+            try validateLogin(id)
+            status = try await candidate.session.status()
+            try validateLogin(id)
+            guard status.running, status.network == pending.network else {
+                throw TailscaleConfigurationError.loginRequired
+            }
+            if selectedExitNode == desiredExitNode() { break }
+        }
+        var group = library.group(draft.id) ?? draft
+        if group.tailscale?.network != pending.network {
+            group.tailscale = TailscaleGroupConfiguration(network: pending.network)
+        }
+        if loginOriginalGroup == nil || draft.name != loginOriginalGroup?.name {
+            group.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if loginOriginalGroup == nil || draft.parentID != loginOriginalGroup?.parentID {
+            group.parentID = draft.parentID
+        }
+        group.tailscale?.exitNodeID = selectedExitNode.isEmpty ? nil : selectedExitNode
+        library.upsert(group)
+        if let error = library.storageError { throw TermindSSHError.library(error) }
+        // A retry must compare against the binding we have just durably saved.
+        loginOriginalGroup = group
+        let state = TailscaleLocalState(
+            groupID: group.id, profileID: candidate.profileID, peers: status.peers, hostname: deviceName)
+        do {
+            try store.save(state)
+        } catch {
+            let message = String(
+                localized: "The group was saved, but this device could not finish signing in. Save again to retry.")
+            self.error = message
+            throw TermindSSHError.library(message)
+        }
+        monitors.removeValue(forKey: group.id)?.cancel()
+        if let old = nodes[group.id] { retiringNodes[old.profileID] = old.session }
+        states[group.id] = state
+        nodes[group.id] = candidate
+        knownNetworks[group.id] = pending.network
+        appliedExitNodes[group.id] = selectedExitNode
+        library.replaceTailscalePeers(status.peers, groupID: group.id)
+        runningGroups.insert(group.id)
+        devices[group.id] = status.device
+        peers[group.id] = status.peers
+        candidateNode = nil
+        pendingLogin = nil
+        profilesInUse.remove(candidate.profileID)
         loginTargetGroupID = nil
+        loginGeneration = nil
+        loginOperationID = nil
+        loginCompletedGroupID = group.id
+        self.error = nil
+        monitor(group.id, node: candidate.session)
+        drainProfileCleanup()
+        return group
+    }
+
+    public func saveGroup(
+        _ draft: HostGroup, original: HostGroup?, enabled: Bool, exitNodeID: String? = nil
+    ) throws -> HostGroup {
+        let latest = library.group(draft.id)
+        guard (latest == nil) == (original == nil), latest?.tailscale?.network == original?.tailscale?.network else {
+            throw TailscaleConfigurationError.unavailable
+        }
+        var group = latest ?? draft
+        if original == nil || draft.name != original?.name {
+            group.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard !group.name.isEmpty else { throw TailscaleConfigurationError.unavailable }
+        if original == nil || draft.parentID != original?.parentID { group.parentID = draft.parentID }
+        if !enabled { group.tailscale = nil }
+        if let exitNodeID, enabled { group.tailscale?.exitNodeID = exitNodeID.isEmpty ? nil : exitNodeID }
+        library.upsert(group)
+        if let error = library.storageError { throw TermindSSHError.library(error) }
+        return group
+    }
+
+    public func cancelLogin(operationID: UUID? = nil) {
+        if let operationID, operationID != loginOperationID { return }
+        loginGeneration = nil
+        loginOperationID = nil
+        loginTargetGroupID = nil
+        loginOriginalGroup = nil
         loginTask?.cancel()
         loginTask = nil
         loginURL = nil
         isLoggingIn = false
-        // The login task owns its candidate and performs logout/close once, including
-        // cancellation while factory, status, or preference application is suspended.
+        pendingLogin = nil
+        if let candidate = candidateNode {
+            candidateNode = nil
+            // A Save can be suspended inside the native runtime. Its defer releases
+            // the final profile lease before logout, close and directory erasure.
+            if committingProfileID != candidate.profileID { profilesInUse.remove(candidate.profileID) }
+            retiringNodes[candidate.profileID] = candidate.session
+            drainProfileCleanup()
+        }
+        // The authentication task owns a candidate until it publishes pendingLogin.
     }
 
     public func logout(groupID: UUID) async {
@@ -475,7 +605,9 @@ public final class TailscaleModel: TailscaleConnectionProviding {
 
     public func shutdown() async {
         shuttingDown = true
+        let authentication = loginTask
         cancelLogin()
+        await authentication?.value
         for task in monitors.values { task.cancel() }
         monitors = [:]
         for node in nodes.values { await node.session.close() }
@@ -495,13 +627,23 @@ public final class TailscaleModel: TailscaleConnectionProviding {
                 do {
                     let status = try await node.status()
                     try Task.checkCancellation()
-                    guard let network = self.library.group(id)?.tailscale?.network else { return }
+                    guard self.nodes[id]?.session === node,
+                        let network = self.library.group(id)?.tailscale?.network
+                    else { return }
+                    if status.running, status.network != network {
+                        self.retireProfile(groupID: id)
+                        self.drainProfileCleanup()
+                        return
+                    }
                     if status.running && status.network == network {
                         let desiredExitNode = self.exitNodeID(groupID: id)
                         if self.appliedExitNodes[id] != desiredExitNode {
                             guard self.hasAccess() else { throw TailscaleConfigurationError.requiresPro }
                             try await node.setExitNode(desiredExitNode.isEmpty ? nil : desiredExitNode)
                             try Task.checkCancellation()
+                            guard self.nodes[id]?.session === node,
+                                self.library.group(id)?.tailscale?.network == network
+                            else { return }
                             self.appliedExitNodes[id] = desiredExitNode
                             guard self.exitNodeID(groupID: id) == desiredExitNode else { continue }
                         }

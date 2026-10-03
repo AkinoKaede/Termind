@@ -3,30 +3,25 @@ import TermindApplication
 
 /// Hostname editing and information about this device's active Tailnet session.
 public struct TailscaleDeviceFields: View {
-    private let model: TailscaleModel
-    private let groupID: UUID
-    @Binding private var hostname: String
+    @Bindable private var editor: TailscaleGroupEditor
     private let copy: (String) -> Void
-    @State private var isLoggingOut = false
 
-    public init(model: TailscaleModel, groupID: UUID, hostname: Binding<String>, copy: @escaping (String) -> Void) {
-        self.model = model
-        self.groupID = groupID
+    public init(editor: TailscaleGroupEditor, copy: @escaping (String) -> Void) {
+        self.editor = editor
         self.copy = copy
-        _hostname = hostname
     }
 
     public var body: some View {
         Group {
             LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
                 TextField(
-                    AppStrings.Vault.hostname.swiftUIKey, text: $hostname,
-                    prompt: Text(verbatim: model.defaultHostname)
+                    AppStrings.Vault.hostname.swiftUIKey, text: $editor.hostname,
+                    prompt: Text(verbatim: editor.model.defaultHostname)
                 )
                 .labelsHidden()
                 .multilineTextAlignment(.trailing)
             }
-            if let device = model.devices[groupID] {
+            if let device = editor.device {
                 copyable(AppStrings.Tailscale.magicDNS, value: device.dnsName)
                 ForEach(device.addresses, id: \.self) { address in
                     copyable(
@@ -42,12 +37,8 @@ public struct TailscaleDeviceFields: View {
                 LabeledContent(AppStrings.Tailscale.operatingSystem.swiftUIKey, value: device.operatingSystem)
             }
             Button(AppStrings.Tailscale.logout.swiftUIKey, role: .destructive) {
-                isLoggingOut = true
-                Task {
-                    await model.logout(groupID: groupID)
-                    isLoggingOut = false
-                }
-            }.disabled(isLoggingOut)
+                Task { await editor.logout() }
+            }.disabled(editor.isLoggingOut)
         }
     }
 

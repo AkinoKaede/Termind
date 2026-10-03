@@ -12,6 +12,7 @@ import struct TermindDomain.Host
 public final class HostLibraryModel: RemoteSessionHostStore {
     @ObservationIgnored public weak var tailscaleConnections: (any TailscaleConnectionProviding)?
     @ObservationIgnored public var didChangeTailscaleGroups: (() -> Void)?
+    /// Retires managed sessions when a binding is removed or replaced by another network.
     @ObservationIgnored public var didDeleteTailscaleGroups: ((Set<UUID>, Set<UUID>) -> Void)?
     private var tailscalePeers: [UUID: [TailscalePeer]] = [:]
     public private(set) var hosts: [Host] = [] {
@@ -1739,6 +1740,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             storageError = TailscaleConfigurationError.duplicateNetwork.localizedDescription
             return
         }
+        let invalidated: Set<UUID> =
+            groups.contains {
+                $0.id == group.id && $0.tailscale != nil && $0.tailscale?.network != group.tailscale?.network
+            } ? [group.id] : []
+        let removedManaged = Set(
+            hosts.filter { $0.tailscale.map { invalidated.contains($0.groupID) } == true }.map(\.id))
         let previous = groups
         if let index = groups.firstIndex(where: { $0.id == group.id }) {
             groups[index] = group
@@ -1751,7 +1758,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             groups = previous
             return
         }
+        for id in invalidated { tailscalePeers[id] = nil }
         rebuildTailscaleHosts()
+        if !invalidated.isEmpty { didDeleteTailscaleGroups?(invalidated, removedManaged) }
         didChangeTailscaleGroups?()
     }
 
@@ -2399,11 +2408,18 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Applies a CloudKit-imported projection without writing it back as a new
     /// local edit. Runtime connection and transfer state intentionally remain.
     public func replacePersistedSnapshot(_ snapshot: VaultSnapshot) {
-        let removedTailnets = Set(groups.filter { $0.tailscale != nil }.map(\.id))
-            .subtracting(snapshot.groups.filter { $0.tailscale != nil }.map(\.id))
+        let incomingNetworks = Dictionary(
+            uniqueKeysWithValues: snapshot.groups.compactMap { group in
+                group.tailscale.map { (group.id, $0.network) }
+            })
+        let removedTailnets = Set(
+            groups.filter {
+                $0.tailscale != nil && $0.tailscale?.network != incomingNetworks[$0.id]
+            }.map(\.id))
         let removedManaged = Set(
             hosts.filter { $0.tailscale.map { removedTailnets.contains($0.groupID) } == true }.map(\.id))
 
+        for id in removedTailnets { tailscalePeers[id] = nil }
         hosts = snapshot.hosts
         groups = snapshot.groups
         rebuildTailscaleHosts()

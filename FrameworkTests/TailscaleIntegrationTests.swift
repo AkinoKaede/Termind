@@ -232,7 +232,7 @@ struct TailscaleIntegrationTests {
             library: library, store: store, factory: { _, _, _, _ in node },
             profileStorage: .init(profiles: { [] }, erase: { _ in }),
             hostname: { "device" }, hasAccess: { true })
-        model.beginLogin(
+        model.beginLoginAndSave(
             name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL,
             authKey: nil, groupID: group.id)
         await node.waitForExitNode()

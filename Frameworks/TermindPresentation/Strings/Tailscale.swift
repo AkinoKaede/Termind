@@ -45,6 +45,9 @@ extension AppStrings {
         }
         public static var duplicate: LocalizedStringResource { "This Tailnet already belongs to another group." }
         public static var invalidURL: LocalizedStringResource { "Enter a valid HTTPS Controlplane URL." }
+        public static var partialSave: LocalizedStringResource {
+            "The group was saved, but this device could not finish signing in. Save again to retry."
+        }
         public static var requiresPro: LocalizedStringResource { "Tailscale requires Termind Pro." }
     }
 }

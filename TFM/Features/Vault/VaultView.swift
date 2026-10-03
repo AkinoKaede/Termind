@@ -44,8 +44,7 @@ struct VaultWorkDetailView: View {
         case .hostGroupEditor(let groupID, let parentID):
             NewGroupSheet(
                 group: groupID.flatMap(app.hostLibrary.group), parentID: parentID,
-                create: { group in
-                    app.hostLibrary.upsert(group)
+                create: { _ in
                     window.closeVaultWork()
                 },
                 close: window.closeVaultWork

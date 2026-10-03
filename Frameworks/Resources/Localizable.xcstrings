@@ -29136,6 +29136,23 @@
         }
       }
     },
+    "The group was saved, but this device could not finish signing in. Save again to retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分组已保存，但此设备未能完成登录。请再次保存以重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "群組已儲存，但此裝置未能完成登入。請再次儲存以重試。"
+          }
+        }
+      }
+    },
     "The host could not be saved." : {
       "extractionState" : "manual",
       "localizations" : {

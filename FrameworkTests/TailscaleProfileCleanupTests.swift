@@ -97,7 +97,8 @@ struct TailscaleProfileCleanupTests {
         probe.failFactory = factoryFails
         let model = probe.model(HostLibraryModel(groups: [group]), store: store)
         // Avoid starting the retained profile; beginLogin is also valid before start.
-        model.beginLogin(name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
+        model.beginLoginAndSave(
+            name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
         #expect(await settles { probe.factoryContinuation != nil })
         let candidate = try #require(probe.created.first)
         model.cancelLogin()
@@ -117,7 +118,7 @@ struct TailscaleProfileCleanupTests {
         let model = probe.model(HostLibraryModel(groups: [group]), store: store)
         model.start()
         #expect(await settles { model.runningGroups.contains(group.id) })
-        model.beginLogin(
+        model.beginLoginAndSave(
             name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil,
             groupID: group.id)
         #expect(await settles { model.loginCompletedGroupID == group.id && probe.erased.contains(old) })
@@ -138,7 +139,8 @@ struct TailscaleProfileCleanupTests {
         let model = probe.model(library, store: store)
         model.start()
         for name in ["First", "Second"] {
-            model.beginLogin(name: name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
+            model.beginLoginAndSave(
+                name: name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
             #expect(await settles { model.loginCompletedGroupID != nil })
         }
         let states = try store.load()
@@ -176,7 +178,7 @@ struct TailscaleProfileCleanupTests {
         let independent = try model.connection(for: second.id)
         let old = try #require(probe.nodes[firstProfile])
         old.holdLogout = true
-        model.beginLogin(
+        model.beginLoginAndSave(
             name: first.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil,
             groupID: first.id)
         #expect(await settles { model.loginCompletedGroupID == first.id && old.logoutContinuation != nil })
@@ -211,7 +213,7 @@ struct TailscaleProfileCleanupTests {
         model.start()
         #expect(await settles { model.runningGroups.contains(group.id) })
         store.failSave = true
-        model.beginLogin(
+        model.beginLoginAndSave(
             name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil,
             groupID: group.id)
         #expect(await settles { probe.created.count == 2 && !probe.erased.isEmpty })
@@ -235,7 +237,7 @@ struct TailscaleProfileCleanupTests {
         let writes = store.saveAttempts
         persistence.failSave = true
         store.failSave = true
-        model.beginLogin(
+        model.beginLoginAndSave(
             name: "renamed", parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil,
             groupID: group.id)
         #expect(await settles { probe.created.count == 2 && !probe.erased.isEmpty })
@@ -255,7 +257,8 @@ struct TailscaleProfileCleanupTests {
         let probe = CleanupProbe(network: try #require(group.tailscale?.network))
         let model = probe.model(library, store: store)
         model.start()
-        model.beginLogin(name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
+        model.beginLoginAndSave(
+            name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL, authKey: nil)
         #expect(await settles { !probe.erased.isEmpty })
         #expect(library.groups.first?.tailscale?.network == group.tailscale?.network)
         #expect(model.runningGroups.isEmpty)
@@ -455,6 +458,7 @@ struct TailscaleProfileCleanupTests {
         .init(running: true, network: network, authURL: nil, peers: [])
     }
     func login() async throws {}
+    func setHostname(_ hostname: String) async throws {}
     @MainActor func logout() async throws {
         if holdLogout { await withCheckedContinuation { logoutContinuation = $0 } }
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -19,13 +20,9 @@ struct NewGroupSheet: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showsTailscaleLogin = false
-    @State private var exitNodeID = ""
-    @State private var hostname = ""
+    @State private var editor: TailscaleGroupEditor?
     @State private var saveError: String?
-    @State private var isSaving = false
-    @State private var name = ""
-    @State private var parentID: HostGroup.ID?
+    @State private var saveTask: Task<Void, Never>?
 
     init(
         group: HostGroup? = nil,
@@ -63,69 +60,41 @@ struct NewGroupSheet: View {
             footer
         }
         .onAppear(perform: load)
+        .onDisappear {
+            saveTask?.cancel()
+            editor?.cancel()
+        }
 
     }
 
     // MARK: - Pieces
 
+    @ViewBuilder
     private var form: some View {
-        Form {
-            Section {
-                TextField(AppStrings.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
+        if let editor {
+            @Bindable var editor = editor
+            Form {
+                Section {
+                    TextField(
+                        AppStrings.Common.name.swiftUIKey, text: $editor.draft.name.singleLineText, axis: .horizontal
+                    )
                     .singleLinePaste().lineLimit(1)
-
-                // "Inside", not "Parent": the answer is where the group goes,
-                // and every other row here is phrased as a property of the
-                // group rather than of the tree.
-                Picker(AppStrings.Common.inside.swiftUIKey, selection: $parentID) {
-                    Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
-                    ForEach(parentCandidates) { candidate in
-                        Text(candidate.name).tag(HostGroup.ID?.some(candidate.id))
-                    }
-                }
-            }
-            Section(AppStrings.Tailscale.title.swiftUIKey) {
-                if let configuration = group?.tailscale {
-                    LabeledContent(AppStrings.Tailscale.network.swiftUIKey, value: configuration.network.dnsSuffix)
-                    if let group {
-                        TailscaleExitNodeField(model: app.tailscale, groupID: group.id, selection: $exitNodeID)
-                    }
-                    if let group, app.tailscale.runningGroups.contains(group.id) {
-                        TailscaleDeviceFields(model: app.tailscale, groupID: group.id, hostname: $hostname) { value in
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(value, forType: .string)
-                        }
-                    } else if !showsTailscaleLogin {
-                        Button(AppStrings.Tailscale.login.swiftUIKey) {
-                            if app.proAccess.require(.tailscale) { showsTailscaleLogin = true }
+                    Picker(AppStrings.Common.inside.swiftUIKey, selection: $editor.draft.parentID) {
+                        Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
+                        ForEach(parentCandidates) { candidate in
+                            Text(candidate.name).tag(HostGroup.ID?.some(candidate.id))
                         }
                     }
-                } else {
-                    Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: tailscaleEnabled)
                 }
-                if showsTailscaleLogin {
-                    TailscaleLoginFields(
-                        model: app.tailscale, name: trimmedName, parentID: parentID, group: group
-                    ) { _ in close() }
+                TailscaleGroupFields(editor: editor, requireAccess: { app.proAccess.require(.tailscale) }) { value in
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(value, forType: .string)
                 }
             }
+            .formStyle(.grouped)
+            .disabled(editor.isSaving)
+            .overlay(alignment: .bottom) { if let saveError { Text(saveError).foregroundStyle(.red) } }
         }
-        .formStyle(.grouped)
-        .disabled(isSaving)
-        .overlay(alignment: .bottom) { if let saveError { Text(saveError).foregroundStyle(.red) } }
-    }
-
-    private var tailscaleEnabled: Binding<Bool> {
-        Binding(
-            get: { showsTailscaleLogin },
-            set: { enabled in
-                if enabled {
-                    showsTailscaleLogin = app.proAccess.require(.tailscale)
-                } else {
-                    app.tailscale.cancelLogin()
-                    showsTailscaleLogin = false
-                }
-            })
     }
 
     private var footer: some View {
@@ -134,62 +103,32 @@ struct NewGroupSheet: View {
 
             Button(AppStrings.Common.cancel.swiftUIKey, action: close)
                 .keyboardShortcut(.cancelAction)
+                .disabled(editor?.isSaving == true)
 
             Button(isEditing ? AppStrings.Common.save.swiftUIKey : AppStrings.Common.add.swiftUIKey, action: add)
                 .keyboardShortcut(.defaultAction)
-                .disabled(trimmedName.isEmpty || showsTailscaleLogin)
+                .disabled(editor?.canSave != true)
         }
         .padding(Metrics.Space.l)
     }
 
-    // MARK: - Adding
-
-    /// A group is nothing but its name, so an unnamed one cannot be made — no
-    /// fallback to invent here, unlike a host, which can borrow its address.
-    private var trimmedName: String {
-        name.trimmingCharacters(in: .whitespaces)
-    }
-
     private func close() {
+        guard editor?.isSaving != true else { return }
+        editor?.cancel()
         if let requestedBack { requestedBack() } else if let requestedClose { requestedClose() } else { dismiss() }
     }
 
     private func load() {
-        if let group {
-            hostname = app.tailscale.savedHostname(groupID: group.id) ?? ""
-            exitNodeID = app.tailscale.exitNodeID(groupID: group.id)
-            name = group.name
-            parentID = group.parentID
-        } else {
-            parentID = initialParentID
-        }
+        guard editor == nil else { return }
+        editor = TailscaleGroupEditor(model: app.tailscale, group: group, parentID: initialParentID)
     }
 
-    /// Editing keeps the group's id, `sortIndex`, and expansion state, so
-    /// `HostLibraryModel.upsert(_:)` replaces it in place and the section it is drawn as
-    /// does not jump or spring open. Creating leaves `sortIndex` at its default,
-    /// which the store then numbers against the new group's siblings — knowledge
-    /// this sheet does not have.
     private func add() {
-        guard !isSaving else { return }
-        isSaving = true
-        Task {
-            defer { isSaving = false }
+        guard let editor, editor.canSave else { return }
+        saveTask = Task {
             do {
-                if var edited = group {
-                    if edited.tailscale != nil, app.tailscale.savedHostname(groupID: edited.id) != nil {
-                        try await app.tailscale.saveHostname(hostname, groupID: edited.id)
-                    }
-                    if edited.tailscale != nil {
-                        try app.tailscale.saveExitNode(exitNodeID, groupID: edited.id)
-                        edited.tailscale = app.hostLibrary.group(edited.id)?.tailscale
-                    }
-                    edited.name = trimmedName
-                    edited.parentID = parentID
-                    create(edited)
-                } else {
-                    create(HostGroup(name: trimmedName, parentID: parentID))
-                }
+                let saved = try await editor.save()
+                create(saved)
                 close()
             } catch { saveError = error.localizedDescription }
         }

@@ -483,7 +483,6 @@ struct HostEditorView: View {
             }
         case .group:
             NewGroupSheet(back: closeNestedEditor) { group in
-                app.hostLibrary.upsert(group)
                 draft.groupID = group.id
             }
         case .proxyIdentity:

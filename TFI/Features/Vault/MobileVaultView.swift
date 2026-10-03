@@ -868,13 +868,9 @@ struct MobileVaultView: View {
 
 struct MobileHostGroupEditor: View {
     let app: MobileAppModel
-    let original: HostGroup
     let existing: Bool
     let didSave: (HostGroup) -> Void
-    @State private var showsTailscaleLogin = false
-    @State private var exitNodeID = ""
-    @State private var hostname = ""
-    @State private var draft: HostGroup
+    @State private var editor: TailscaleGroupEditor
     @Environment(\.dismiss) private var dismiss
 
     init(
@@ -882,86 +878,40 @@ struct MobileHostGroupEditor: View {
         didSave: @escaping (HostGroup) -> Void = { _ in }
     ) {
         self.app = app
-        let initial = group ?? HostGroup(name: "", parentID: parentID)
-        original = initial
         existing = group != nil
         self.didSave = didSave
-        _draft = State(initialValue: initial)
-        _hostname = State(initialValue: app.tailscale.savedHostname(groupID: initial.id) ?? "")
-        _exitNodeID = State(initialValue: app.tailscale.exitNodeID(groupID: initial.id))
-    }
-
-    private var trimmedName: String {
-        draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        _editor = State(initialValue: TailscaleGroupEditor(model: app.tailscale, group: group, parentID: parentID))
     }
 
     var body: some View {
+        @Bindable var editor = editor
         MobileEditorSheet(
             title: existing
                 ? String(localized: AppStrings.Vault.editGroup) : String(localized: AppStrings.Vault.newGroup),
-            isDirty: draft != original || hostname != (app.tailscale.savedHostname(groupID: draft.id) ?? "")
-                || exitNodeID != app.tailscale.exitNodeID(groupID: draft.id),
-            canSave: !trimmedName.isEmpty && !showsTailscaleLogin, compact: true,
+            isDirty: editor.isDirty, canSave: editor.canSave, compact: true,
             save: save
         ) {
-            TextField(AppStrings.Common.name.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal)
+            TextField(AppStrings.Common.name.swiftUIKey, text: $editor.draft.name.singleLineText, axis: .horizontal)
                 .singleLinePaste()
                 .lineLimit(1)
-            Picker(AppStrings.Common.inside.swiftUIKey, selection: $draft.parentID) {
+            Picker(AppStrings.Common.inside.swiftUIKey, selection: $editor.draft.parentID) {
                 Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
                 ForEach(parentChoices, id: \.group.id) { choice in
                     Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
                 }
             }
-            Section(AppStrings.Tailscale.title.swiftUIKey) {
-                if let configuration = draft.tailscale {
-                    LabeledContent(AppStrings.Tailscale.network.swiftUIKey, value: configuration.network.dnsSuffix)
-                    TailscaleExitNodeField(model: app.tailscale, groupID: draft.id, selection: $exitNodeID)
-                    if app.tailscale.runningGroups.contains(draft.id) {
-                        TailscaleDeviceFields(model: app.tailscale, groupID: draft.id, hostname: $hostname) { value in
-                            UIPasteboard.general.string = value
-                        }
-                    } else if !showsTailscaleLogin {
-                        Button(AppStrings.Tailscale.login.swiftUIKey) {
-                            if app.pro.require(.tailscale) { showsTailscaleLogin = true }
-                        }.disabled(trimmedName.isEmpty)
-                    }
-                } else {
-                    Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: tailscaleEnabled)
-                }
-                if showsTailscaleLogin {
-                    TailscaleLoginFields(
-                        model: app.tailscale, name: trimmedName, parentID: draft.parentID,
-                        group: existing ? draft : nil
-                    ) { id in
-                        if let group = app.library.group(id) { didSave(group) }
-                        dismiss()
-                    }
-                }
+            TailscaleGroupFields(editor: editor, requireAccess: { app.pro.require(.tailscale) }) { value in
+                UIPasteboard.general.string = value
             }
         }
+        .onDisappear { editor.cancel() }
         .onChange(of: app.library.groups.map(\.id)) {
-            if existing && !app.library.groups.contains(where: { $0.id == original.id }) {
-                dismiss()
-            }
+            if existing && !app.library.groups.contains(where: { $0.id == editor.draft.id }) { dismiss() }
         }
-    }
-
-    private var tailscaleEnabled: Binding<Bool> {
-        Binding(
-            get: { showsTailscaleLogin },
-            set: { enabled in
-                if enabled {
-                    showsTailscaleLogin = app.pro.require(.tailscale)
-                } else {
-                    app.tailscale.cancelLogin()
-                    showsTailscaleLogin = false
-                }
-            })
     }
 
     private var parentChoices: [(group: HostGroup, path: String)] {
-        let forbidden = Set([draft.id] + app.library.descendantGroups(of: draft.id).map(\.id))
+        let forbidden = Set([editor.draft.id] + app.library.descendantGroups(of: editor.draft.id).map(\.id))
         return app.library.groups.filter { !forbidden.contains($0.id) }
             .map { ($0, path(to: $0)) }
             .sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
@@ -979,16 +929,6 @@ struct MobileHostGroupEditor: View {
     }
 
     private func save() async throws {
-        if draft.tailscale != nil, app.tailscale.savedHostname(groupID: draft.id) != nil {
-            try await app.tailscale.saveHostname(hostname, groupID: draft.id)
-        }
-        if draft.tailscale != nil {
-            try app.tailscale.saveExitNode(exitNodeID, groupID: draft.id)
-            draft.tailscale = app.library.group(draft.id)?.tailscale
-        }
-        draft.name = trimmedName
-        app.library.upsert(draft)
-        if let error = app.library.storageError { throw MobileEditorError.message(error) }
-        didSave(draft)
+        didSave(try await editor.save())
     }
 }

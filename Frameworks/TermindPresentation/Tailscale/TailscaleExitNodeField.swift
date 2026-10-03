@@ -2,19 +2,13 @@ import SwiftUI
 import TermindApplication
 
 public struct TailscaleExitNodeField: View {
-    let model: TailscaleModel
-    let groupID: UUID
-    @Binding var selection: String
+    @Bindable var editor: TailscaleGroupEditor
 
-    public init(model: TailscaleModel, groupID: UUID, selection: Binding<String>) {
-        self.model = model
-        self.groupID = groupID
-        _selection = selection
-    }
+    public init(editor: TailscaleGroupEditor) { self.editor = editor }
 
     public var body: some View {
-        let candidates = model.exitNodeCandidates(groupID: groupID)
-        Picker(AppStrings.Tailscale.exitNode.swiftUIKey, selection: $selection) {
+        let candidates = editor.candidates
+        Picker(AppStrings.Tailscale.exitNode.swiftUIKey, selection: $editor.exitNodeID) {
             Text(AppStrings.Settings.disabled).tag("")
             ForEach(candidates, id: \.stableID) { peer in
                 HStack {
@@ -23,10 +17,9 @@ public struct TailscaleExitNodeField: View {
                     if !peer.online { Text(AppStrings.Tailscale.offline).foregroundStyle(.secondary) }
                 }.tag(peer.stableID)
             }
-            if !selection.isEmpty, !candidates.contains(where: { $0.stableID == selection }) {
-                Text(AppStrings.Tailscale.selectedExitNodeUnavailable).tag(selection)
+            if !editor.exitNodeID.isEmpty, !candidates.contains(where: { $0.stableID == editor.exitNodeID }) {
+                Text(AppStrings.Tailscale.selectedExitNodeUnavailable).tag(editor.exitNodeID)
             }
         }
-        if let error = model.error { Text(error).foregroundStyle(.red).font(.caption) }
     }
 }
