@@ -4,7 +4,9 @@ import Testing
 @testable import Termind
 
 #if DEBUG
-    @Suite(.serialized)
+    @Suite(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1"),
+        .serialized)
     @MainActor
     struct MacMarketingScreenshotTests {
         @Test

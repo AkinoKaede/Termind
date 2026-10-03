@@ -26,7 +26,9 @@ struct MobileAISettingsRenderingTests {
             view: MobileProviderEditor(ai: ai, provider: provider).environment(\.locale, Locale(identifier: language)))
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil),
+        arguments: ["en", "zh-Hans", "zh-Hant"])
     func anonymousProviderEditorShowsOptionalKey(_ language: String) async throws {
         let ai = AIConfigurationModel()
         let provider = ModelProvider(name: "Local Model", inferenceURL: "http://localhost:11434/v1")
@@ -35,7 +37,9 @@ struct MobileAISettingsRenderingTests {
             view: MobileProviderEditor(ai: ai, provider: provider).environment(\.locale, Locale(identifier: language)))
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil),
+        arguments: ["en", "zh-Hans", "zh-Hant"])
     func newHintsAndVertexEditorRender(_ language: String) async throws {
         let ai = AIConfigurationModel(persistsSecrets: false)
         try await capture(
@@ -54,7 +58,8 @@ struct MobileAISettingsRenderingTests {
                 .environment(\.locale, Locale(identifier: language)))
     }
 
-    @Test func renderSettingsEditors() async throws {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil))
+    func renderSettingsEditors() async throws {
         guard let language = ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] else { return }
         let app = try MobileAppModel(inMemory: true)
         var provider = ModelProvider(

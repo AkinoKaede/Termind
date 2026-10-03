@@ -13,7 +13,10 @@ import struct TermindDomain.Host
 
 /// Opt-in native rendering coverage for icon labels in every supported language and appearance.
 /// Set TERMIND_ICON_SCREENSHOTS to en, zh-Hans, or zh-Hant in the test runner environment.
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] != nil),
+    .serialized)
+@MainActor
 struct MobileIconRenderingTests {
     @Test func renderNativeTerminalKeyboard() async throws {
         guard let language = ProcessInfo.processInfo.environment["TERMIND_ICON_SCREENSHOTS"] else { return }

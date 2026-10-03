@@ -7,7 +7,11 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(
+    .requiresVisibleWindow,
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1"),
+    .serialized)
+@MainActor
 struct TranscriptRenderingTests {
     @Test func renderTranscriptWorkStates() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }

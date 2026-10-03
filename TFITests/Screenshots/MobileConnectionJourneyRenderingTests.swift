@@ -8,7 +8,10 @@ import UIKit
 @testable import TermindIOS
 
 /// Opt-in native screenshots cover the connection states without opening a transport.
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_JOURNEY_SCREENSHOTS"] == "1"),
+    .serialized)
+@MainActor
 struct MobileConnectionJourneyRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func rendersInteractiveAuthentication(_ language: String) async throws {

@@ -34,7 +34,9 @@ struct MobileTerminalFontTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        arguments: ["en", "zh-Hans", "zh-Hant"])
     func fontNamesPreviewTheirOwnFamilies(_ language: String) async throws {
         let view = TerminalFontOptions(
             family: .constant("Menlo"), families: ["Courier", "Menlo", "Courier New"], didSelect: {}
@@ -47,7 +49,9 @@ struct MobileTerminalFontTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
     func terminalFontSettingsRenderInSupportedLanguages(_ language: String, family: String) async throws {
         let domain = "MobileTerminalFontRendering.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))

@@ -11,6 +11,7 @@ import TermindRemoteInfrastructure
 
     @testable import Termind
 
+    @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1"))
     @MainActor
     struct ScreenshotDemoTests {
         @Test

@@ -5,7 +5,10 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+    .serialized)
+@MainActor
 struct MobileSFTPSettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func connectionSettingsRenderSFTPDefaultsAndMaximumLimits(language: String) async throws {

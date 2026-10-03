@@ -8,7 +8,10 @@ import UIKit
 @testable import TermindIOS
 
 /// Opt-in native screenshots use only in-memory records and never open a connection.
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_CARD_SCREENSHOTS"] != nil),
+    .serialized)
+@MainActor
 struct MobileCardRenderingTests {
     @Test func renderCardsAndTouchPalette() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_CARD_SCREENSHOTS"] != nil else { return }

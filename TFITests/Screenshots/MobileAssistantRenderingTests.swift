@@ -9,7 +9,10 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1"),
+    .serialized)
+@MainActor
 struct MobileAssistantRenderingTests {
     @Test func renderUserImageAlignment() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_ASSISTANT_SCREENSHOTS"] == "1" else { return }

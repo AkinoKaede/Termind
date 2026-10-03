@@ -11,7 +11,10 @@ import UIKit
 @testable import TermindIOS
 
 /// Opt-in marketing captures. Fixtures are entirely in memory and never open a network connection.
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MARKETING_SCREENSHOTS"] == "1"),
+    .serialized)
+@MainActor
 struct MobileMarketingScreenshotTests {
     private var languages: [String] {
         if let language = ProcessInfo.processInfo.environment["TERMIND_MARKETING_LOCALE"] {
