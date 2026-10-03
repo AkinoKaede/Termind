@@ -56,6 +56,44 @@ struct MobileTerminalSearchIntegrationTests {
         }
     }
 
+    @Test(arguments: ["", "deploy", "missing"])
+    func reopeningSearchPreservesTerminalSurfaceAndOutput(query: String) async throws {
+        let fixture = try SearchFixture(kind: .ssh, fullWorkspace: true)
+        defer { fixture.close() }
+        try await fixture.settle()
+        let workspace = fixture.workspace
+        let surface = try #require(workspace.terminal.surface)
+        guard case .inMemory(let backend) = workspace.terminal.configuration.backend else {
+            Issue.record("Expected an in-memory terminal")
+            return
+        }
+        backend.receive("deploy completed\r\nretained terminal output\r\n$ ")
+        backend.waitForPendingOutput()
+        try await fixture.settle()
+        #expect(workspace.readViewportText()?.contains("retained terminal output") == true)
+        let generation = workspace.uploadConnectionGeneration
+
+        for _ in 0..<3 {
+            let search = try #require(fixture.searchController)
+            search.isActive = true
+            try await fixture.settle()
+            search.searchBar.becomeFirstResponder()
+            try await fixture.settle()
+            if workspace.find.query != query { try await fixture.enter(query) }
+            workspace.terminal.requestFocus()
+            try await fixture.settle()
+            search.searchBar.becomeFirstResponder()
+            try await fixture.settle()
+            #expect(workspace.terminal.surface === surface)
+            #expect(workspace.uploadConnectionGeneration == generation)
+            #expect(workspace.readViewportText()?.contains("retained terminal output") == true)
+            try fixture.cancelSearch()
+            try await fixture.settle()
+            #expect(workspace.terminal.surface === surface)
+            #expect(workspace.readViewportText()?.contains("retained terminal output") == true)
+        }
+    }
+
     @Test func sftpSearchCanCloseAndReopenWithTheRetainedFilter() async throws {
         let fixture = try SearchFixture(kind: .sftp)
         defer { fixture.close() }
@@ -134,14 +172,18 @@ private final class SearchFixture {
     let previous: UIWindow?
     let host: UIViewController
 
-    init(kind: ConnectionHistoryEntry.Kind) throws {
+    init(kind: ConnectionHistoryEntry.Kind, fullWorkspace: Bool = false) throws {
         app = try MobileAppModel(inMemory: true)
         workspace = MobileWorkspace(
             descriptor: .init(hostID: UUID(), title: "Search", kind: kind), hosts: app.library)
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         previous = scene.keyWindow
         window = UIWindow(windowScene: scene)
-        host = UIHostingController(rootView: SearchFixtureContent(workspace: workspace))
+        if fullWorkspace {
+            host = UIHostingController(rootView: WorkspaceSearchFixtureContent(app: app, workspace: workspace))
+        } else {
+            host = UIHostingController(rootView: SearchFixtureContent(workspace: workspace))
+        }
         window.rootViewController = host
         window.makeKeyAndVisible()
     }
@@ -177,6 +219,21 @@ private final class SearchFixture {
             if let search = searchController(in: child) { return search }
         }
         return nil
+    }
+}
+
+private struct WorkspaceSearchFixtureContent: View {
+    let app: MobileAppModel
+    let workspace: MobileWorkspace
+
+    var body: some View {
+        NavigationStack {
+            MobileWorkspaceView(
+                library: app.library, commandGenerator: app.commandGenerator,
+                workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
+                renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
+                openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in })
+        }
     }
 }
 

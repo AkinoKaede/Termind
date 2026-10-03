@@ -87,6 +87,30 @@ final class MobileTerminalView: TerminalView {
 
     weak var findController: TerminalFindController?
 
+    private var searchLayoutSize: CGSize?
+    private var resumeSearchTask: Task<Void, Never>?
+
+    override func layoutSubviews() {
+        if searchLayoutSize != bounds.size {
+            searchLayoutSize = bounds.size
+            findController?.suspendSearchForResize()
+            resumeSearchTask?.cancel()
+            // Ghostty coalesces native resizes. Keep search stopped through
+            // that trailing resize and the following rendering frames.
+            let delay = configuration.resizeThrottleMilliseconds / 1000 + 0.1
+            resumeSearchTask = Task { [weak self] in
+                do {
+                    try await Task.sleep(for: .seconds(delay))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                self?.findController?.resumeSearchAfterResize()
+            }
+        }
+        super.layoutSubviews()
+    }
+
     override var keyCommands: [UIKeyCommand]? {
         var commands = super.keyCommands ?? []
         commands.append(findCommand(title: AppStrings.Terminal.findNextInTerminal, modifiers: []))

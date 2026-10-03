@@ -7,6 +7,7 @@ public final class TerminalFindController {
     public private(set) var query = ""
     public private(set) var isPresented = false
 
+    @ObservationIgnored private var searchSuspended = false
     @ObservationIgnored private let perform: (String) -> Void
     @ObservationIgnored private let focus: () -> Void
 
@@ -18,23 +19,38 @@ public final class TerminalFindController {
     public func present() {
         let wasPresented = isPresented
         isPresented = true
-        if !wasPresented, !query.isEmpty { perform(TerminalFindBinding.search(query)) }
+        if !wasPresented, !searchSuspended, !query.isEmpty { perform(TerminalFindBinding.search(query)) }
     }
 
     public func updateQuery(_ query: String) {
         guard self.query != query else { return }
         self.query = query
+        guard !searchSuspended else { return }
         perform(TerminalFindBinding.search(query))
     }
 
     public func navigate(_ direction: TerminalFindDirection) {
-        guard isPresented, !query.isEmpty else { return }
+        guard isPresented, !searchSuspended, !query.isEmpty else { return }
         perform(TerminalFindBinding.navigate(direction))
     }
 
     public func presentAndNavigate(_ direction: TerminalFindDirection) {
         present()
         navigate(direction)
+    }
+
+    /// An active search can interfere with blank-row trimming during native resize.
+    /// Keep the UI state while stopping the engine search for the geometry transition.
+    public func suspendSearchForResize() {
+        guard !searchSuspended else { return }
+        searchSuspended = true
+        if isPresented, !query.isEmpty { perform(TerminalFindBinding.end) }
+    }
+
+    public func resumeSearchAfterResize() {
+        guard searchSuspended else { return }
+        searchSuspended = false
+        if isPresented, !query.isEmpty { perform(TerminalFindBinding.search(query)) }
     }
 
     /// Native search UI can own its keyboard dismissal instead of handing focus

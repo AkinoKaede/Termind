@@ -64,4 +64,39 @@ struct TerminalFindControllerTests {
         find.dismiss()
         #expect(focusCount == 1)
     }
+    @Test func resizeSuspendsEngineSearchWhileRetainingPresentationAndLatestQuery() {
+        var bindings: [String] = []
+        let find = TerminalFindController(perform: { bindings.append($0) }, focus: {})
+        find.present()
+        find.updateQuery("deploy")
+        bindings.removeAll()
+
+        find.suspendSearchForResize()
+        find.suspendSearchForResize()
+        find.updateQuery("release")
+        #expect(find.isPresented)
+        #expect(find.query == "release")
+        #expect(bindings == [TerminalFindBinding.end])
+
+        find.resumeSearchAfterResize()
+        find.resumeSearchAfterResize()
+        #expect(bindings == [TerminalFindBinding.end, TerminalFindBinding.search("release")])
+    }
+
+    @Test func closingDuringResizeDoesNotRestartSearchWhenKeyboardSettles() {
+        var bindings: [String] = []
+        let find = TerminalFindController(perform: { bindings.append($0) }, focus: {})
+        find.present()
+        find.updateQuery("deploy")
+        find.suspendSearchForResize()
+        find.dismiss(restoringFocus: false)
+        bindings.removeAll()
+
+        find.resumeSearchAfterResize()
+
+        #expect(bindings.isEmpty)
+        #expect(!find.isPresented)
+        #expect(find.query == "deploy")
+    }
+
 }
