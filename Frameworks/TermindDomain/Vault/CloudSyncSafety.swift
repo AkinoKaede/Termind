@@ -29,7 +29,6 @@ public nonisolated enum CloudSyncQuarantineReason: String, Codable, Sendable {
     case unsupportedFormat
     case invalidRecord
     case unreadablePayload
-    case duplicateTailscaleNetwork
 }
 
 public nonisolated enum CloudSyncCompatibilityError: LocalizedError {

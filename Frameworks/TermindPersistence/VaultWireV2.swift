@@ -163,68 +163,28 @@ nonisolated enum VaultWireV2 {
             return result
         }
     }
-    /// Shipped V2 has only control-plane-scoped host IDs. Keep its shape frozen.
-    struct TailscaleConfiguration: Codable {
-        var network: TailscaleNetwork
-        var username: String
-        var exitNodeID: String?
-        var hostPreferences: [String: TailscaleHostPreferences]
-
-        init(_ value: TailscaleGroupConfiguration) throws {
-            guard value.hostIdentityVersion == .legacy else { throw CocoaError(.coderInvalidValue) }
-            network = value.network
-            username = value.username
-            exitNodeID = value.exitNodeID
-            hostPreferences = Dictionary(
-                uniqueKeysWithValues: value.hostPreferences.map { ($0.key.uuidString.lowercased(), $0.value) })
-        }
-
-        private enum CodingKeys: String, CodingKey { case network, username, exitNodeID, hostPreferences }
-        init(from decoder: any Decoder) throws {
-            let values = try decoder.container(keyedBy: CodingKeys.self)
-            network = try values.decode(TailscaleNetwork.self, forKey: .network)
-            username = try values.decode(String.self, forKey: .username)
-            exitNodeID = try values.decodeIfPresent(String.self, forKey: .exitNodeID)
-            hostPreferences = try values.decode([String: TailscaleHostPreferences].self, forKey: .hostPreferences)
-            guard hostPreferences.keys.allSatisfy({ UUID(uuidString: $0)?.uuidString.lowercased() == $0 }) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .hostPreferences, in: values, debugDescription: "Invalid host identifier")
-            }
-        }
-
-        var domainValue: TailscaleGroupConfiguration {
-            var value = TailscaleGroupConfiguration(network: network, hostIdentityVersion: .legacy)
-            value.username = username
-            value.exitNodeID = exitNodeID
-            value.hostPreferences = Dictionary(
-                uniqueKeysWithValues: hostPreferences.map { (UUID(uuidString: $0.key)!, $0.value) })
-            return value
-        }
-    }
-
+    /// Ordinary V2 groups remain readable; experimental Tailscale identities are unsupported.
     struct HostGroup: Codable {
         var base: VaultWireV1.HostGroup
-        var tailscale: TailscaleConfiguration?
         enum CodingKeys: String, CodingKey { case tailscale }
         init(_ value: TermindDomain.HostGroup) throws {
+            guard value.tailscale == nil else { throw CocoaError(.coderInvalidValue) }
             base = VaultWireV1.HostGroup(value)
-            tailscale = try value.tailscale.map(TailscaleConfiguration.init)
         }
         init(from decoder: any Decoder) throws {
             base = try VaultWireV1.HostGroup(from: decoder)
-            tailscale = try decoder.container(keyedBy: CodingKeys.self)
-                .decode(TailscaleConfiguration?.self, forKey: .tailscale)
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            guard try container.decodeNil(forKey: .tailscale) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .tailscale, in: container, debugDescription: "Unsupported Tailscale identity version")
+            }
         }
         func encode(to encoder: any Encoder) throws {
             try base.encode(to: encoder)
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(tailscale, forKey: .tailscale)
+            try container.encodeNil(forKey: .tailscale)
         }
-        var domainValue: TermindDomain.HostGroup {
-            var value = base.domainValue
-            value.tailscale = tailscale?.domainValue
-            return value
-        }
+        var domainValue: TermindDomain.HostGroup { base.domainValue }
     }
     enum Payload: Codable {
         case host(Host)

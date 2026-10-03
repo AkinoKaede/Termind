@@ -145,6 +145,8 @@ public final class TailscaleModel: TailscaleConnectionProviding {
 
     public func savedHostname(groupID: UUID) -> String? { states[groupID]?.hostname }
 
+    func profileID(groupID: UUID) -> UUID? { states[groupID]?.profileID }
+
     public func exitNodeID(groupID: UUID) -> String { library.group(groupID)?.tailscale?.exitNodeID ?? "" }
 
     public func exitNodeCandidates(groupID: UUID) -> [TailscalePeer] {
@@ -541,6 +543,21 @@ public final class TailscaleModel: TailscaleConnectionProviding {
         retireProfile(groupID: groupID)
         drainProfileCleanup()
         if let profileID { await cleanupTasks[profileID]?.value }
+    }
+
+    /// A deferred logout belongs to the enrollment selected by that editor.
+    func logout(groupID: UUID, profileID: UUID) async throws {
+        if let current = states[groupID]?.profileID {
+            guard current == profileID else { throw TailscaleConfigurationError.unavailable }
+            error = nil
+            await logout(groupID: groupID)
+            guard states[groupID]?.profileID != profileID else {
+                throw TermindSSHError.library(error ?? TailscaleConfigurationError.unavailable.localizedDescription)
+            }
+        } else {
+            // Disabling the binding can already have queued this profile's cleanup.
+            await cleanupTasks[profileID]?.value
+        }
     }
 
     public func connection(for groupID: UUID) throws -> any SSHNetworkDialing {

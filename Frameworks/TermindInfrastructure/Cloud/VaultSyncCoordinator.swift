@@ -68,41 +68,18 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
 
     public func start() { lifecycle.start() }
     public func pause() { lifecycle.pause() }
-    public func retry() {
-        refreshConflictingTailnets()
-        lifecycle.retry()
-    }
+    public func retry() { lifecycle.retry() }
     public func confirmAccountSwitchMerge() { lifecycle.confirmAccountSwitchMerge() }
 
     public func noteLocalChanges(_ mutations: VaultMutationSet) {
-        if mutations.keys.contains(where: { $0.kind == .hostGroup }) { refreshConflictingTailnets() }
         lifecycle.noteLocalChanges(mutations.keys.map(\.recordName))
-    }
-
-    private func refreshConflictingTailnets() {
-        guard let scope = lifecycle.scope else { return }
-        do {
-            if try CloudSyncSafetyStore(context: context, scope: scope).hasQuarantine(
-                reason: .duplicateTailscaleNetwork)
-            {
-                // Retire the cursor; prepare forces a fresh fetch before uploads. Do not
-                // replay cached conflict bytes that the server may already have deleted.
-                lifecycle.pause()
-            }
-        } catch { lifecycle.failClosed(error) }
     }
 
     private func makeLifecycle() -> CloudSyncLifecycle {
         let journal = journal
         let context = context
-        var safety = CloudSyncLifecycleSafety.persistent(
+        let safety = CloudSyncLifecycleSafety.persistent(
             context: context, capabilityID: SyncRecordFormats.vault.capabilityID)
-        let prepare = safety.prepare
-        safety.prepare = { scope in
-            try prepare(scope)
-                || CloudSyncSafetyStore(context: context, scope: scope).hasQuarantine(
-                    reason: .duplicateTailscaleNetwork)
-        }
         return CloudSyncLifecycle(
             store: CloudSyncLifecycleStore(
                 state: journal.syncState, updateState: journal.updateSyncState,
@@ -211,7 +188,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             excluding: deletions.filter { deletedNames.contains($0.recordName) })
         let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        var decoded: [(record: CKRecord, envelope: VaultEnvelope)] = try decodeCloudSyncRecords(
+        let decoded: [(record: CKRecord, envelope: VaultEnvelope)] = try decodeCloudSyncRecords(
             records.filter { !deletedNames.contains($0.recordID.recordName) },
             included: {
                 $0.recordID.zoneID == zoneID && (isConflict || $0.recordType == Self.recordType)
@@ -220,24 +197,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             decode: Self.envelope,
             quarantine: { try CloudSyncRecordCoding.quarantine($0, error: $1, in: safety) },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
-        let conflicts = try persistence.conflictingTailscaleGroups(in: decoded.map(\.envelope), deletions: deletedKeys)
-        for envelope in conflicts {
-            guard let record = decoded.first(where: { $0.envelope == envelope })?.record else {
-                throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
-            }
-            try cloud.observed(
-                record.recordID.recordName, version: envelope.version,
-                current: journal.cloudRecords().first { $0.mutation.recordName == record.recordID.recordName })
-            try safety.quarantine(
-                recordName: record.recordID.recordName,
-                payloadData: CloudSyncRecordCoding.payloadData(
-                    from: record, invalidEnvelope: TailscaleConfigurationError.duplicateNetwork),
-                systemFieldsData: CloudSyncRecordCoding.systemFields(of: record),
-                reason: TailscaleConfigurationError.duplicateNetwork.localizedDescription,
-                reasonCode: .duplicateTailscaleNetwork)
-        }
-        let conflictingKeys = Set(conflicts.map(\.key))
-        decoded.removeAll { conflictingKeys.contains($0.envelope.key) }
         let result = try persistence.applyRemote(
             decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
@@ -245,12 +204,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                     try journal.noteRemoteRecord(record, envelope: envelope, cloud: cloud, safety: safety)
                 }
                 try journal.acknowledgeRemoteDeletions(deletedKeys, scope: scope)
-                for key in deletedKeys
-                where try safety.entry(recordName: key.recordName)?.reasonCode
-                    == CloudSyncQuarantineReason.duplicateTailscaleNetwork.rawValue
-                {
-                    try safety.clearQuarantine(recordName: key.recordName)
-                }
             })
         try lifecycle.reconcilePendingChanges()
         if !result.acceptedKeys.isEmpty { didApplyRemote?(result.snapshot, result.acceptedKeys) }

@@ -317,16 +317,14 @@ struct TailscaleProfileCleanupTests {
         await model.shutdown()
     }
 
-    @Test func oldStoreMigratesAndOrphanInventoryNeverErasesAnActiveProfile() async throws {
+    @Test func reopenedStoreNeverErasesAnActiveProfileFromOrphanInventory() async throws {
         let root = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appendingPathComponent("Upgrade.store")
-        var group = try group("example.ts.net")
-        group.tailscale = TailscaleGroupConfiguration(
-            network: try #require(group.tailscale?.network), hostIdentityVersion: .legacy)
+        let group = try group("example.ts.net")
         let active = UUID()
         let orphan = UUID()
-        try writeVersion49(url, group: group, profileID: active)
+        try writeStore(url, group: group, profileID: active)
         for _ in 0..<2 {
             let container = try TermindPersistence.makeContainer(url: url)
             let store = SwiftDataTailscaleLocalStore(context: container.mainContext)
@@ -358,26 +356,16 @@ struct TailscaleProfileCleanupTests {
         #expect(try LibTailscaleNodeSession.storedProfiles(in: root.appendingPathComponent("missing")).isEmpty)
     }
 
-    private func writeVersion49(_ url: URL, group: HostGroup, profileID: UUID) throws {
-        let schema = Schema(versionedSchema: TermindSchemaV49.self)
-        let container = try ModelContainer(
-            for: schema,
-            configurations: [ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
-        container.mainContext.insert(PersistentHostGroup(group))
-        let configuration = try PersistentTailscaleGroup(id: group.id, configuration: #require(group.tailscale))
-        var historical = try #require(
-            JSONSerialization.jsonObject(with: configuration.configurationData) as? [String: Any])
-        historical.removeValue(forKey: "hostIdentityVersion")
-        configuration.configurationData = try JSONSerialization.data(withJSONObject: historical)
-        container.mainContext.insert(configuration)
-        container.mainContext.insert(
-            PersistentTailscaleLocalState(groupID: group.id, profileID: profileID, hostname: "saved"))
-        try container.mainContext.save()
+    private func writeStore(_ url: URL, group: HostGroup, profileID: UUID) throws {
+        let container = try TermindPersistence.makeContainer(url: url)
+        _ = try HostPersistence(context: container.mainContext).save(.init(groups: [group]))
+        try SwiftDataTailscaleLocalStore(context: container.mainContext).save(
+            TailscaleLocalState(groupID: group.id, profileID: profileID, hostname: "saved"))
     }
 
     private func group(_ suffix: String) throws -> HostGroup {
         let network = try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: suffix)
-        var group = HostGroup(id: network.groupID, name: suffix)
+        var group = HostGroup(name: suffix)
         group.tailscale = TailscaleGroupConfiguration(network: network)
         return group
     }

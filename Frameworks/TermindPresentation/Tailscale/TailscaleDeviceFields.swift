@@ -36,9 +36,6 @@ public struct TailscaleDeviceFields: View {
                 }
                 LabeledContent(AppStrings.Tailscale.operatingSystem.swiftUIKey, value: device.operatingSystem)
             }
-            Button(AppStrings.Tailscale.logout.swiftUIKey, role: .destructive) {
-                Task { await editor.logout() }
-            }.disabled(editor.isLoggingOut)
         }
     }
 

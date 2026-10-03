@@ -67,52 +67,6 @@ public final class HostPersistence {
         try applyRemote(envelopes, beforeSave: {})
     }
 
-    /// Legacy host IDs cannot distinguish two connections to the same Tailnet.
-    /// Preserve their local owner; group-scoped connections can coexist freely.
-    /// The coordinator quarantines these exact winning envelopes before applying the
-    /// remaining batch. Deletions and unbindings in that batch can release ownership.
-    public func conflictingTailscaleGroups(
-        in envelopes: [VaultEnvelope], deletions: Set<VaultRecordKey>
-    ) throws -> [VaultEnvelope] {
-        let journal = VaultSyncJournal(context: context)
-        let deleted = try journal.deletionEnvelopes(deletions)
-        let accepted = try journal.mergeDecision(
-            for: envelopes.filter { !deletions.contains($0.key) } + deleted
-        ).accepted
-        let original = try fetchSnapshot()
-        var rejected = Set<VaultRecordKey>()
-        while true {
-            var candidate = original
-            for envelope in accepted where !rejected.contains(envelope.key) { try candidate.apply(envelope) }
-            let networks = Dictionary(
-                grouping: candidate.groups.filter { $0.tailscale?.hostIdentityVersion == .legacy }
-            ) {
-                $0.tailscale!.network
-            }
-            var conflicts = Set<VaultRecordKey>()
-            for (network, groups) in networks where groups.count > 1 {
-                let previousOwner = original.groups.first {
-                    $0.tailscale?.hostIdentityVersion == .legacy && $0.tailscale?.network == network
-                }?.id
-                let owner =
-                    groups.first { $0.id == previousOwner } ?? groups.min { $0.id.uuidString < $1.id.uuidString }!
-                for group in groups where group.id != owner.id {
-                    conflicts.insert(VaultRecordKey(kind: .hostGroup, id: group.id))
-                }
-            }
-            let additional = conflicts.subtracting(rejected)
-            guard !additional.isEmpty else {
-                return try accepted.filter { rejected.contains($0.key) }.map { winner in
-                    guard let original = envelopes.first(where: { $0.withoutDeviceLocalMetadata == winner }) else {
-                        throw VaultSyncPersistenceError.invalidEnvelope(winner.key.recordName)
-                    }
-                    return original
-                }
-            }
-            rejected.formUnion(additional)
-        }
-    }
-
     public func applyRemote(
         _ envelopes: [VaultEnvelope], deletions: Set<VaultRecordKey> = [], beforeSave: () throws -> Void
     ) throws -> VaultRemoteApplyResult {
@@ -188,10 +142,6 @@ public final class HostPersistence {
         guard snapshot.hosts.allSatisfy({ !$0.isTailscaleManaged }) else {
             throw TailscaleConfigurationError.managedHost
         }
-        let networks = snapshot.groups.compactMap { group in
-            group.tailscale.flatMap { $0.hostIdentityVersion == .legacy ? $0.network : nil }
-        }
-        guard Set(networks).count == networks.count else { throw TailscaleConfigurationError.duplicateNetwork }
         try persistTailscaleGroups(snapshot.groups)
         try reconcile(
             try context.fetch(FetchDescriptor<PersistentHost>()), with: snapshot.hosts,

@@ -73,15 +73,13 @@ struct TailscaleIntegrationTests {
         }
     }
 
-    @Test func existingTailnetStoreMigratesWithoutLosingEnrollmentOrPreferences() throws {
+    @Test func tailnetStoreReopensWithoutLosingEnrollmentOrPreferences() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("Termind.store")
         var group = try group("example.ts.net")
-        let network = try #require(group.tailscale?.network)
-        group.tailscale = TailscaleGroupConfiguration(network: network, hostIdentityVersion: .legacy)
-        let hostID = network.hostID(stableNodeID: "n123")
+        let hostID = try #require(group.tailscale).hostID(groupID: group.id, stableNodeID: "n123")
         var preferences = TailscaleHostPreferences()
         preferences.username = "deploy"
         preferences.tags = ["production"]
@@ -109,23 +107,10 @@ struct TailscaleIntegrationTests {
     }
 
     private func writeTailnetStore(_ url: URL, group: HostGroup, profileID: UUID, peer: TailscalePeer) throws {
-        let schema = Schema(versionedSchema: TermindSchemaV47.self)
-        let container = try ModelContainer(
-            for: schema,
-            configurations: [
-                ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)
-            ])
-        container.mainContext.insert(PersistentHostGroup(group))
-        let configuration = try PersistentTailscaleGroup(id: group.id, configuration: #require(group.tailscale))
-        var historical = try #require(
-            JSONSerialization.jsonObject(with: configuration.configurationData) as? [String: Any])
-        historical.removeValue(forKey: "hostIdentityVersion")
-        configuration.configurationData = try JSONSerialization.data(withJSONObject: historical)
-        container.mainContext.insert(configuration)
-        container.mainContext.insert(
-            TermindSchemaV47TailscaleModels.PersistentTailscaleLocalState(
-                groupID: group.id, profileID: profileID, peersData: try JSONEncoder().encode([peer])))
-        try container.mainContext.save()
+        let container = try TermindPersistence.makeContainer(url: url)
+        _ = try HostPersistence(context: container.mainContext).save(.init(groups: [group]))
+        try SwiftDataTailscaleLocalStore(context: container.mainContext).save(
+            TailscaleLocalState(groupID: group.id, profileID: profileID, peers: [peer]))
     }
 
     private func writePreviousStore(_ url: URL, group: HostGroup, host: Host) throws {
@@ -142,21 +127,16 @@ struct TailscaleIntegrationTests {
 
     private func group(_ suffix: String, parentID: UUID? = nil) throws -> HostGroup {
         let network = try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: suffix)
-        var group = HostGroup(id: network.groupID, name: suffix, parentID: parentID)
+        var group = HostGroup(name: suffix, parentID: parentID)
         group.tailscale = TailscaleGroupConfiguration(network: network)
         group.tailscale?.username = "operator"
         return group
     }
 
-    @Test func canonicalControlIdentitySurvivesNodeAndGroupRenames() throws {
+    @Test func controlURLsRemainCanonicalConnectionConfiguration() throws {
         let first = try TailscaleNetwork(controlURL: "https://LOGIN.TAILSCALE.COM:443/", dnsSuffix: "Example.TS.NET.")
         let second = try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "example.ts.net")
         #expect(first == second)
-        #expect(first.hostID(stableNodeID: "n123") == second.hostID(stableNodeID: "n123"))
-        let otherTailnet = try TailscaleNetwork(controlURL: first.controlURL, dnsSuffix: "other.ts.net")
-        #expect(first.hostID(stableNodeID: "n123") == otherTailnet.hostID(stableNodeID: "n123"))
-        let headscale = try TailscaleNetwork(controlURL: "https://headscale.example.com", dnsSuffix: first.dnsSuffix)
-        #expect(first.hostID(stableNodeID: "n123") != headscale.hostID(stableNodeID: "n123"))
         #expect(throws: TailscaleConfigurationError.self) {
             try TailscaleNetwork(controlURL: "https://user:secret@example.com", dnsSuffix: "example.com")
         }
@@ -482,7 +462,8 @@ struct TailscaleIntegrationTests {
             makeSampler: { TailscaleTestSampler() })
         metrics.start()
         defer { metrics.shutdown() }
-        #expect(metrics.servers.first?.name == "Offline node")
+        #expect(metrics.servers.isEmpty)
+        #expect(metrics.selections == [selection])
         #expect(metrics.replaceHosts(selectedIDs: [], editableHostIDs: []))
         #expect(preferences.values == [selection])
         metrics.removeTailscaleGroups([group.id])

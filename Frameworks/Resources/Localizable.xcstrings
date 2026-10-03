@@ -30768,23 +30768,6 @@
         }
       }
     },
-    "This Tailnet already belongs to another group." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此Tailnet已属于其他分组。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此Tailnet已屬於其他群組。"
-          }
-        }
-      }
-    },
     "This Tailscale connection is unavailable. Check the Tailnet login, SSH policy, and username." : {
       "extractionState" : "manual",
       "localizations" : {

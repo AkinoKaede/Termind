@@ -17,7 +17,7 @@ public struct TailscaleGroupFields: View {
 
     public var body: some View {
         Section(AppStrings.Tailscale.title.swiftUIKey) {
-            if !editor.model.runningGroups.contains(editor.draft.id) {
+            if editor.canChangeEnabled {
                 Toggle(
                     AppStrings.Common.enabled.swiftUIKey,
                     isOn: Binding(
@@ -36,9 +36,12 @@ public struct TailscaleGroupFields: View {
                     TailscaleLoginFields(editor: editor, requireAccess: requireAccess)
                 }
             }
+            if editor.enabled && editor.isConnected {
+                Button(AppStrings.Tailscale.logout.swiftUIKey, role: .destructive) { editor.logout() }
+            }
             if let error = editor.model.error { Text(error).foregroundStyle(.red).font(.caption) }
         }
-        .disabled(editor.isSaving || editor.isLoggingOut)
+        .disabled(editor.isSaving)
         .onChange(of: editor.pending?.id) { _, _ in editor.receiveLogin() }
     }
 }

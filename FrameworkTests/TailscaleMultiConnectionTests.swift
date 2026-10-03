@@ -11,42 +11,12 @@ struct TailscaleMultiConnectionTests {
         #"{"formatVersion":2,"key":{"kind":"hostGroup","id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"},"version":{"modifiedAt":0,"counter":1,"writerID":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"},"isDeleted":false,"payload":{"hostGroup":{"_0":{"id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","name":"Existing random-ID group","sortIndex":0,"isExpanded":true,"tailscale":{"network":{"controlURL":"https://controlplane.tailscale.com","dnsSuffix":"example.ts.net"},"username":"operator","hostPreferences":{"01bf448f-7943-55d0-96aa-b52f10c25f07":{"username":"deploy","charset":"utf8","sftpInitialPath":"/srv","shellIntegrationMode":"followGlobalSettings","environmentVariables":[]}}}}}}}"#
             .utf8)
 
-    @Test func historicalRandomGroupKeepsItsHostIdentityAndPreferencesAcrossV3Edits() throws {
-        let envelope = try VaultSyncCodec.decode(Self.legacyGroup)
-        guard case .hostGroup(let group) = envelope.payload else { throw CocoaError(.coderReadCorrupt) }
-        let hostID = try #require(UUID(uuidString: "01bf448f-7943-55d0-96aa-b52f10c25f07"))
-        let container = try TermindPersistence.makeContainer(inMemory: true)
-        let persistence = HostPersistence(context: container.mainContext)
-        _ = try persistence.applyRemote([envelope])
-        let journal = VaultSyncJournal(context: container.mainContext)
-        #expect(try journal.pendingEnvelopes().isEmpty)
-        #expect(try journal.envelope(for: envelope.key)?.formatVersion == 2)
-        let library = HostLibraryModel(persistence: persistence)
-        library.replaceTailscalePeers([peer()], groupID: group.id)
-        let host = try #require(library.host(hostID))
-        #expect(library.savedTailscaleUsername(for: host) == "deploy")
-        #expect(host.sftpChannelInitialPath == "/srv")
-        var renamed = group
-        renamed.name = "Renamed"
-        library.upsert(renamed)
-        #expect(library.host(hostID)?.id == host.id)
-        let edited = try #require(try journal.pendingEnvelopes().first)
-        #expect(edited.formatVersion == 3)
-        let remote = try VaultSyncCodec.decode(VaultSyncCodec.encode(edited))
-        guard case .hostGroup(let restored) = remote.payload else { throw CocoaError(.coderReadCorrupt) }
-        #expect(restored.tailscale?.hostIdentityVersion == .legacy)
-        #expect(restored.tailscale?.hostID(groupID: restored.id, stableNodeID: "n123") == hostID)
-    }
-
-    @Test(arguments: [TailscaleGroupConfiguration.HostIdentityVersion.legacy, .groupScoped])
-    func sameNodeInTwoGroupsKeepsPreferencesAndRoutingIndependent(
-        firstIdentity: TailscaleGroupConfiguration.HostIdentityVersion
-    ) throws {
+    @Test func sameNodeInTwoGroupsKeepsPreferencesAndRoutingIndependent() throws {
         let source = try TermindPersistence.makeContainer(inMemory: true)
         let library = HostLibraryModel(persistence: HostPersistence(context: source.mainContext))
         let network = try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "example.ts.net")
         var first = HostGroup(name: "First")
-        first.tailscale = TailscaleGroupConfiguration(network: network, hostIdentityVersion: firstIdentity)
+        first.tailscale = TailscaleGroupConfiguration(network: network)
         var second = HostGroup(name: "Second", parentID: first.id)
         second.tailscale = TailscaleGroupConfiguration(network: network)
         for group in [first, second] {
@@ -79,7 +49,6 @@ struct TailscaleMultiConnectionTests {
             .map { try VaultSyncCodec.decode(VaultSyncCodec.encode($0)) }
         let target = try TermindPersistence.makeContainer(inMemory: true)
         let targetStore = HostPersistence(context: target.mainContext)
-        #expect(try targetStore.conflictingTailscaleGroups(in: envelopes, deletions: []).isEmpty)
         _ = try targetStore.applyRemote(envelopes)
         let otherDevice = HostLibraryModel(persistence: targetStore)
         #expect(otherDevice.hosts.isEmpty)
@@ -107,12 +76,15 @@ struct TailscaleMultiConnectionTests {
         #expect(throws: CloudSyncCompatibilityError.self) { try oldReader.decode(bytes) }
         envelope.formatVersion = 2
         #expect(throws: (any Error).self) { try VaultSyncCodec.encode(envelope) }
-        #expect(
-            try VaultSyncCodec.decode(VaultSyncCodec.encode(VaultSyncCodec.decode(Self.legacyGroup))).formatVersion == 2
-        )
+        #expect(throws: DecodingError.self) { try VaultSyncCodec.decode(Self.legacyGroup) }
+
+        let ordinary = VaultRecordPayload.hostGroup(HostGroup(name: "Ordinary"))
+        let oldEnvelope = VaultEnvelope(
+            key: ordinary.key, version: .baseline(writerID: UUID()), payload: ordinary, formatVersion: 2)
+        #expect(try VaultSyncCodec.decode(VaultSyncCodec.encode(oldEnvelope)) == oldEnvelope)
     }
 
-    @Test(arguments: ["missing", "null", "unknown"])
+    @Test(arguments: ["missing", "null", "legacy", "groupScoped", "future"])
     func v3RejectsInvalidIdentityMarkers(marker: String) throws {
         var value = try #require(JSONSerialization.jsonObject(with: Self.legacyGroup) as? [String: Any])
         value["formatVersion"] = 3
@@ -121,7 +93,11 @@ struct TailscaleMultiConnectionTests {
         var group = try #require(groupCase["_0"] as? [String: Any])
         var configuration = try #require(group["tailscale"] as? [String: Any])
         if marker == "null" { configuration["hostIdentityVersion"] = NSNull() }
-        if marker == "unknown" { configuration["hostIdentityVersion"] = "future" }
+        if !["missing", "null"].contains(marker) { configuration["hostIdentityVersion"] = marker }
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(
+                TailscaleGroupConfiguration.self, from: JSONSerialization.data(withJSONObject: configuration))
+        }
         group["tailscale"] = configuration
         groupCase["_0"] = group
         payload["hostGroup"] = groupCase

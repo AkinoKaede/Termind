@@ -31,7 +31,8 @@ struct TailscaleMetricsDeletionTests {
         let child = HostGroup(name: "Child", parentID: group.id)
         let manual = Host(name: "Manual", host: "server", groupID: child.id)
         let library = HostLibraryModel(hosts: [manual], groups: [group, child])
-        var unseen = MetricsSelection(id: network.hostID(stableNodeID: "n123"), enabled: false)
+        var unseen = MetricsSelection(
+            id: try #require(group.tailscale).hostID(groupID: group.id, stableNodeID: "n123"), enabled: false)
         unseen.tailscaleGroupID = group.id
         unseen.displayName = "Unseen"
         let preferences = DeletionMetricsPreferences([unseen, MetricsSelection(id: manual.id, enabled: false)])

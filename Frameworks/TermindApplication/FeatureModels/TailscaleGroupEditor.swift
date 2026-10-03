@@ -7,7 +7,8 @@ import TermindDomain
 public final class TailscaleGroupEditor {
     public let model: TailscaleModel
     private let initialDraft: HostGroup
-    private let initialHostname: String
+    private var initialHostname: String
+    private var logoutProfileID: UUID?
     public var draft: HostGroup
     public private(set) var original: HostGroup?
     public private(set) var enabled: Bool
@@ -16,7 +17,6 @@ public final class TailscaleGroupEditor {
     public var controlURL: String
     public private(set) var operationID: UUID?
     public private(set) var isSaving = false
-    public private(set) var isLoggingOut = false
 
     public init(model: TailscaleModel, group: HostGroup?, parentID: UUID? = nil) {
         self.model = model
@@ -37,7 +37,9 @@ public final class TailscaleGroupEditor {
         return model.pendingLogin
     }
     public var isLoggingIn: Bool { operationID != nil && model.loginOperationID == operationID && model.isLoggingIn }
-    public var isConnected: Bool { pending != nil || model.runningGroups.contains(draft.id) }
+    public var isLogoutPending: Bool { logoutProfileID != nil }
+    public var canChangeEnabled: Bool { isLogoutPending || !model.runningGroups.contains(draft.id) }
+    public var isConnected: Bool { pending != nil || (!isLogoutPending && model.runningGroups.contains(draft.id)) }
     public var device: TailscaleDeviceInfo? { pending?.device ?? model.devices[draft.id] }
     public var network: TailscaleNetwork? { pending?.network ?? model.group(draft.id)?.tailscale?.network }
     public var candidates: [TailscalePeer] {
@@ -57,19 +59,19 @@ public final class TailscaleGroupEditor {
     }
     public var canSave: Bool {
         !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoggingIn && !isSaving
-            && !isLoggingOut && !requiresLogin
+            && !requiresLogin
     }
     public var isDirty: Bool {
         draft != (original ?? initialDraft)
-            || enabled != (original?.tailscale != nil) || operationID != nil
+            || enabled != (original?.tailscale != nil) || operationID != nil || isLogoutPending
             || hostname != (model.savedHostname(groupID: draft.id) ?? "")
             || exitNodeID != (original?.tailscale?.exitNodeID ?? "")
             || controlURL != (original?.tailscale?.network.controlURL ?? TailscaleNetwork.defaultControlURL)
     }
 
     public func setEnabled(_ value: Bool) {
-        guard !isSaving, !isLoggingOut, !model.runningGroups.contains(draft.id) else { return }
-        if !value { cancel() }
+        guard !isSaving, canChangeEnabled else { return }
+        if !value { cancelLogin() }
         enabled = value
     }
 
@@ -88,14 +90,21 @@ public final class TailscaleGroupEditor {
         exitNodeID = pending.exitNodeID
     }
 
-    public func logout() async {
-        guard !isSaving, !isLoggingOut else { return }
-        isLoggingOut = true
-        defer { isLoggingOut = false }
-        if pending != nil { cancel() } else { await model.logout(groupID: draft.id) }
+    public func logout() {
+        guard !isSaving else { return }
+        if pending != nil {
+            cancelLogin()
+        } else {
+            logoutProfileID = model.profileID(groupID: draft.id)
+        }
     }
 
     public func cancel() {
+        cancelLogin()
+        logoutProfileID = nil
+    }
+
+    private func cancelLogin() {
         if let operationID { model.cancelLogin(operationID: operationID) }
         operationID = nil
     }
@@ -104,6 +113,11 @@ public final class TailscaleGroupEditor {
         guard canSave else { throw TailscaleConfigurationError.unavailable }
         isSaving = true
         defer { isSaving = false }
+        if let logoutProfileID, let currentProfileID = model.profileID(groupID: draft.id),
+            currentProfileID != logoutProfileID
+        {
+            throw TailscaleConfigurationError.unavailable
+        }
         let saved: HostGroup
         if let pending {
             do {
@@ -123,17 +137,28 @@ public final class TailscaleGroupEditor {
             guard model.group(draft.id)?.tailscale?.network == original?.tailscale?.network else {
                 throw TailscaleConfigurationError.unavailable
             }
-            if enabled, model.runningGroups.contains(draft.id) {
+            if enabled, !isLogoutPending, model.runningGroups.contains(draft.id) {
                 try await model.saveHostname(hostname, groupID: draft.id)
             }
             saved = try model.saveGroup(
                 draft, original: original, enabled: enabled,
                 exitNodeID: enabled && isConnected && exitNodeID != (original?.tailscale?.exitNodeID ?? "")
                     ? exitNodeID : nil)
+            if let logoutProfileID {
+                // A committed group edit must remain the baseline if local logout needs a retry.
+                original = saved
+                draft = saved
+                try await model.logout(groupID: saved.id, profileID: logoutProfileID)
+            }
         }
+        logoutProfileID = nil
         let latest = model.group(saved.id) ?? saved
         original = latest
         draft = latest
+        hostname = model.savedHostname(groupID: saved.id) ?? ""
+        initialHostname = hostname
+        controlURL = latest.tailscale?.network.controlURL ?? TailscaleNetwork.defaultControlURL
+        exitNodeID = latest.tailscale?.exitNodeID ?? ""
         return latest
     }
 }

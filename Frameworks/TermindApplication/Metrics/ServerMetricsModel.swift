@@ -514,9 +514,8 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         var nextServers: [ServerMetric] = []
 
         for selection in normalized {
-            let host = hosts.host(selection.id)
-            if host == nil && selection.tailscaleGroupID == nil { continue }
-            let name = host?.name ?? selection.displayName ?? selection.id.uuidString
+            guard let host = hosts.host(selection.id) else { continue }
+            let name = host.name
             if let server = previous[selection.id] {
                 let enabledChanged = server.selection.enabled != selection.enabled
                 let devicesChanged =

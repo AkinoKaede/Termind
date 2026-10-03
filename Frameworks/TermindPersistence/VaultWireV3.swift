@@ -8,7 +8,6 @@ nonisolated enum VaultWireV3 {
         var tailscale: TailscaleGroupConfiguration?
 
         enum CodingKeys: String, CodingKey { case tailscale }
-        enum TailscaleKeys: String, CodingKey { case hostIdentityVersion }
 
         init(_ value: TermindDomain.HostGroup) {
             base = VaultWireV1.HostGroup(value)
@@ -19,13 +18,6 @@ nonisolated enum VaultWireV3 {
             base = try VaultWireV1.HostGroup(from: decoder)
             let values = try decoder.container(keyedBy: CodingKeys.self)
             tailscale = try values.decode(TailscaleGroupConfiguration?.self, forKey: .tailscale)
-            if tailscale != nil {
-                // Only local historical JSON may omit this field. Missing it in V3
-                // could otherwise silently change every projected host's identity.
-                let configuration = try values.nestedContainer(keyedBy: TailscaleKeys.self, forKey: .tailscale)
-                _ = try configuration.decode(
-                    TailscaleGroupConfiguration.HostIdentityVersion.self, forKey: .hostIdentityVersion)
-            }
         }
 
         func encode(to encoder: any Encoder) throws {
@@ -175,45 +167,6 @@ nonisolated enum VaultWireV3 {
             return result
         }
     }
-    /// Shipped V2 has only control-plane-scoped host IDs. Keep its shape frozen.
-    struct TailscaleConfiguration: Codable {
-        var network: TailscaleNetwork
-        var username: String
-        var exitNodeID: String?
-        var hostPreferences: [String: TailscaleHostPreferences]
-
-        init(_ value: TailscaleGroupConfiguration) throws {
-            guard value.hostIdentityVersion == .legacy else { throw CocoaError(.coderInvalidValue) }
-            network = value.network
-            username = value.username
-            exitNodeID = value.exitNodeID
-            hostPreferences = Dictionary(
-                uniqueKeysWithValues: value.hostPreferences.map { ($0.key.uuidString.lowercased(), $0.value) })
-        }
-
-        private enum CodingKeys: String, CodingKey { case network, username, exitNodeID, hostPreferences }
-        init(from decoder: any Decoder) throws {
-            let values = try decoder.container(keyedBy: CodingKeys.self)
-            network = try values.decode(TailscaleNetwork.self, forKey: .network)
-            username = try values.decode(String.self, forKey: .username)
-            exitNodeID = try values.decodeIfPresent(String.self, forKey: .exitNodeID)
-            hostPreferences = try values.decode([String: TailscaleHostPreferences].self, forKey: .hostPreferences)
-            guard hostPreferences.keys.allSatisfy({ UUID(uuidString: $0)?.uuidString.lowercased() == $0 }) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .hostPreferences, in: values, debugDescription: "Invalid host identifier")
-            }
-        }
-
-        var domainValue: TailscaleGroupConfiguration {
-            var value = TailscaleGroupConfiguration(network: network, hostIdentityVersion: .legacy)
-            value.username = username
-            value.exitNodeID = exitNodeID
-            value.hostPreferences = Dictionary(
-                uniqueKeysWithValues: hostPreferences.map { (UUID(uuidString: $0.key)!, $0.value) })
-            return value
-        }
-    }
-
     enum Payload: Codable {
         case sshKey(SSHKeyRef)
         case hostGroup(HostGroup)

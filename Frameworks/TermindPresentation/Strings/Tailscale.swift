@@ -43,7 +43,6 @@ extension AppStrings {
         public static var unavailable: LocalizedStringResource {
             "This Tailscale connection is unavailable. Check the Tailnet login, SSH policy, and username."
         }
-        public static var duplicate: LocalizedStringResource { "This Tailnet already belongs to another group." }
         public static var invalidURL: LocalizedStringResource { "Enter a valid HTTPS Controlplane URL." }
         public static var partialSave: LocalizedStringResource {
             "The group was saved, but this device could not finish signing in. Save again to retry."

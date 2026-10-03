@@ -36,34 +36,33 @@ public nonisolated struct TailscaleNetwork: Codable, Hashable, Sendable {
             dnsSuffix: container.decode(String.self, forKey: .dnsSuffix))
     }
 
-    /// Historical single-entry group identity. New connections use independent group UUIDs.
-    public var groupID: UUID { Self.identifier(["group", controlURL, dnsSuffix]) }
-
-    public func hostID(stableNodeID: String) -> UUID {
-        Self.identifier(["host", controlURL, stableNodeID])
-    }
-
     /// UUIDv5 with the RFC URL namespace and a length-delimited, versioned name.
-    /// The algorithm is a storage contract; DNS names and IPs never identify nodes.
+    /// The algorithm is a storage contract; peer names and IPs never identify nodes.
     fileprivate static func identifier(_ components: [String]) -> UUID {
         let namespace: [UInt8] = [
             0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
             0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
         ]
-        let name = "termind.tailscale.v1:" + components.map { "\($0.utf8.count):\($0)" }.joined()
-        var bytes = Array(Insecure.SHA1.hash(data: Data(namespace) + Data(name.utf8)).prefix(16))
-        bytes[6] = (bytes[6] & 0x0f) | 0x50
-        bytes[8] = (bytes[8] & 0x3f) | 0x80
-        return UUID(
-            uuid: (
-                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-                bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
-            ))
+        let prefix = "termind.tailscale.v1:"
+        // Each length needs at most 19 decimal digits plus its separator on supported 64-bit platforms.
+        let capacity = components.reduce(namespace.count + prefix.utf8.count) { $0 + $1.utf8.count + 20 }
+        var data = Data(capacity: capacity)
+        data.append(contentsOf: namespace)
+        data.append(contentsOf: prefix.utf8)
+        for component in components {
+            data.append(contentsOf: String(component.utf8.count).utf8)
+            data.append(0x3a)
+            data.append(contentsOf: component.utf8)
+        }
+        var bytes = Insecure.SHA1.hash(data: data).withUnsafeBytes { $0.load(as: uuid_t.self) }
+        bytes.6 = (bytes.6 & 0x0f) | 0x50
+        bytes.8 = (bytes.8 & 0x3f) | 0x80
+        return UUID(uuid: bytes)
     }
 }
 
 public nonisolated enum TailscaleConfigurationError: LocalizedError, Sendable {
-    case invalidControlURL, missingNetworkIdentity, duplicateNetwork, managedHost, unavailable, requiresPro,
+    case invalidControlURL, missingNetworkIdentity, managedHost, unavailable, requiresPro,
         hostKeyMismatch, loginRequired, peerSSHUnavailable, approvalTimedOut, settingsPending
     public var errorDescription: String? {
         switch self {
@@ -76,7 +75,6 @@ public nonisolated enum TailscaleConfigurationError: LocalizedError, Sendable {
         case .approvalTimedOut:
             String(localized: "Tailscale SSH approval timed out. Connect again to request approval.")
         case .invalidControlURL: String(localized: "Enter a valid HTTPS Controlplane URL.")
-        case .duplicateNetwork: String(localized: "This Tailnet already belongs to another group.")
         case .requiresPro: String(localized: "Tailscale requires Termind Pro.")
         case .hostKeyMismatch:
             String(localized: "The SSH host key does not match the keys provided by Tailscale.")
@@ -123,7 +121,7 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
 
 public nonisolated struct TailscaleGroupConfiguration: Codable, Hashable, Sendable {
     public enum HostIdentityVersion: String, Codable, Sendable {
-        case legacy, groupScoped
+        case groupScopedV2
     }
 
     public var network: TailscaleNetwork
@@ -131,20 +129,13 @@ public nonisolated struct TailscaleGroupConfiguration: Codable, Hashable, Sendab
     public var username = ""
     public var exitNodeID: String?
     public var hostPreferences: [UUID: TailscaleHostPreferences] = [:]
-    public init(network: TailscaleNetwork, hostIdentityVersion: HostIdentityVersion = .groupScoped) {
+    public init(network: TailscaleNetwork, hostIdentityVersion: HostIdentityVersion = .groupScopedV2) {
         self.network = network
         self.hostIdentityVersion = hostIdentityVersion
     }
 
     public func hostID(groupID: UUID, stableNodeID: String) -> UUID {
-        switch hostIdentityVersion {
-        case .legacy: network.hostID(stableNodeID: stableNodeID)
-        case .groupScoped: TailscaleNetwork.identifier(["groupHost", groupID.uuidString.lowercased(), stableNodeID])
-        }
-    }
-
-    public func conflicts(with other: Self) -> Bool {
-        hostIdentityVersion == .legacy && other.hostIdentityVersion == .legacy && network == other.network
+        TailscaleNetwork.identifier(["groupHostV2", groupID.uuidString.lowercased(), network.dnsSuffix, stableNodeID])
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -153,8 +144,7 @@ public nonisolated struct TailscaleGroupConfiguration: Codable, Hashable, Sendab
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         network = try values.decode(TailscaleNetwork.self, forKey: .network)
-        hostIdentityVersion =
-            try values.decodeIfPresent(HostIdentityVersion.self, forKey: .hostIdentityVersion) ?? .legacy
+        hostIdentityVersion = try values.decode(HostIdentityVersion.self, forKey: .hostIdentityVersion)
         exitNodeID = try values.decodeIfPresent(String.self, forKey: .exitNodeID)
         username = try values.decode(String.self, forKey: .username)
         let encoded = try values.decode([String: TailscaleHostPreferences].self, forKey: .hostPreferences)

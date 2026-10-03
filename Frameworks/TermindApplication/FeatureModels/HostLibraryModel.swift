@@ -1734,12 +1734,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// rather than at the end of the flat array — `sortIndex` is per-parent, so
     /// a child of Production has to be numbered against Production's children.
     public func upsert(_ group: HostGroup) {
-        if let configuration = group.tailscale,
-            groups.contains(where: { $0.id != group.id && $0.tailscale.map(configuration.conflicts) == true })
-        {
-            storageError = TailscaleConfigurationError.duplicateNetwork.localizedDescription
-            return
-        }
         let invalidated: Set<UUID> =
             groups.contains {
                 $0.id == group.id && $0.tailscale != nil && $0.tailscale?.network != group.tailscale?.network

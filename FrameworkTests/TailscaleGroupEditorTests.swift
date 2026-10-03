@@ -87,6 +87,24 @@ struct TailscaleGroupEditorTests {
         await fixture.model.shutdown()
     }
 
+    @Test(arguments: [false, true])
+    func logoutOfAnUnsavedLoginTakesEffectImmediatelyInNewAndEdit(existing: Bool) async throws {
+        let fixture = try EditorFixture(existing: existing)
+        let savedGroups = fixture.library.groups
+        let editor = fixture.editor(savedGroups.first)
+        editor.setEnabled(true)
+        editor.login(authKey: nil)
+        try await fixture.ready(editor)
+        #expect(editor.pending != nil && editor.isConnected)
+        editor.logout()
+        #expect(editor.pending == nil && !editor.isConnected && !editor.isLogoutPending)
+        try await wait { fixture.node.closed }
+        #expect(fixture.node.logouts == 1)
+        #expect(fixture.library.groups == savedGroups)
+        #expect(try fixture.store.load().isEmpty)
+        await fixture.model.shutdown()
+    }
+
     @Test func anOlderEditorCannotCancelAnotherEditorsLogin() async throws {
         let fixture = try EditorFixture()
         let first = fixture.editor()
@@ -115,6 +133,10 @@ struct TailscaleGroupEditorTests {
         #expect(fixture.model.runningGroups.isEmpty)
         let saved = try await editor.save()
         #expect(saved.id == group.id)
+        let before = try #require(group.tailscale).hostID(groupID: group.id, stableNodeID: "exit")
+        let after = try #require(saved.tailscale).hostID(groupID: saved.id, stableNodeID: "exit")
+        #expect((before != after) == switchNetwork)
+        #expect(saved.tailscale?.hostIdentityVersion == .groupScopedV2)
         #expect(saved.tailscale?.network == fixture.node.network)
         #expect(saved.tailscale?.username == (switchNetwork ? "" : "operator"))
         #expect(saved.tailscale?.exitNodeID == (switchNetwork ? nil : "exit"))
@@ -224,23 +246,211 @@ struct TailscaleGroupEditorTests {
         await fixture.model.shutdown()
     }
 
-    @Test func logoutKeepsTheBindingButAllowsDisablingIt() async throws {
+    @Test func logoutRemainsAnEditorDraftUntilSaveAndCancellationKeepsTheConnection() async throws {
         let fixture = try EditorFixture()
-        let editor = fixture.editor()
-        editor.setEnabled(true)
-        editor.login(authKey: nil)
-        try await fixture.ready(editor)
-        let saved = try await editor.save()
+        let saved = try await fixture.connect()
+        let state = try #require(fixture.store.load().first)
+        let editor = fixture.editor(saved)
+        editor.logout()
+        #expect(editor.isLogoutPending && editor.isDirty && editor.canSave)
+        #expect(!editor.isConnected)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(try fixture.store.load().first?.profileID == state.profileID)
+        #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+        #expect(!fixture.library.hosts.isEmpty)
+        editor.cancel()
+        #expect(!editor.isLogoutPending && editor.isConnected && !editor.isDirty)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(fixture.node.logouts == 0)
+        await fixture.model.shutdown()
+    }
+
+    @Test func savingLogoutKeepsTheBindingAndEndsOnlyTheLocalEnrollment() async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let editor = fixture.editor(saved)
+        editor.logout()
+        editor.draft.name = "Renamed while logging out"
+        let updated = try await editor.save()
+        #expect(updated.name == editor.draft.name)
+        #expect(updated.tailscale == saved.tailscale)
+        #expect(fixture.node.logouts == 1 && fixture.node.closed)
+        #expect(fixture.model.runningGroups.isEmpty)
+        #expect(fixture.library.hosts.isEmpty)
+        #expect(try fixture.store.load().isEmpty)
+        #expect(!editor.isLogoutPending && !editor.isDirty)
+        await fixture.model.shutdown()
+    }
+
+    @Test func disablingAfterLogoutRemainsPendingUntilSave() async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let editor = fixture.editor(saved)
         editor.setEnabled(false)
         #expect(editor.enabled)
-        await editor.logout()
-        #expect(!editor.isConnected)
-        #expect(fixture.library.group(saved.id)?.tailscale == saved.tailscale)
-        #expect(try fixture.store.load().isEmpty)
+        editor.logout()
         editor.setEnabled(false)
         #expect(!editor.enabled)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(fixture.node.logouts == 0)
+        let updated = try await editor.save()
+        #expect(updated.tailscale == nil)
+        #expect(!fixture.model.runningGroups.contains(saved.id))
+        #expect(fixture.node.logouts == 1)
+        #expect(try fixture.store.load().isEmpty)
+        await fixture.model.shutdown()
+    }
+
+    @Test(arguments: [false, true])
+    func cancellingTheWholeEditKeepsSavedSettingsRegardlessOfEnabled(enabled: Bool) async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let profileID = try #require(fixture.store.load().first?.profileID)
+        let editor = fixture.editor(saved)
+        let hostname = editor.hostname
+        let controlURL = editor.controlURL
+        let exitNodeID = editor.exitNodeID
+        editor.logout()
+        editor.hostname = "Replacement device"
+        editor.controlURL = "https://another.example.com"
+        editor.exitNodeID = "other-exit"
+        editor.setEnabled(enabled)
+        #expect(editor.isLogoutPending)
         editor.cancel()
+        let persistedGroup = try #require(fixture.library.group(saved.id))
+        let reopened = fixture.editor(persistedGroup)
+        #expect(reopened.enabled && reopened.isConnected && !reopened.isLogoutPending && !reopened.isDirty)
+        #expect(reopened.hostname == hostname && reopened.controlURL == controlURL && reopened.exitNodeID == exitNodeID)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(try fixture.store.load().first?.profileID == profileID)
+        #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+        await fixture.model.shutdown()
+    }
+
+    @Test(arguments: [false, true])
+    func failedLogoutSaveKeepsTheIntentAndTheConnectionForRetry(localFailure: Bool) async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let editor = fixture.editor(saved)
+        editor.draft.name = "Saved edit"
+        editor.logout()
+        fixture.vault.failSave = !localFailure
+        fixture.store.failRemove = localFailure
+        await #expect(throws: (any Error).self) { try await editor.save() }
+        #expect(editor.isLogoutPending && editor.canSave)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+        fixture.vault.failSave = false
+        fixture.store.failRemove = false
+        let updated = try await editor.save()
+        #expect(updated.name == "Saved edit")
+        #expect(!editor.isLogoutPending && !editor.isDirty)
+        #expect(fixture.model.error == nil)
+        #expect(fixture.node.logouts == 1)
+        #expect(try fixture.store.load().isEmpty)
+        await fixture.model.shutdown()
+    }
+
+    @Test(arguments: [false, true])
+    func replacementLoginKeepsTheOriginalConnectionUntilSave(commit: Bool) async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let originalProfile = try #require(fixture.store.load().first?.profileID)
+        let replacement = EditorNode(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "other.ts.net"))
+        fixture.nodes.next = replacement
+        let editor = fixture.editor(saved)
+        editor.logout()
+        editor.login(authKey: nil)
+        try await fixture.ready(editor)
+        #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+        #expect(try fixture.store.load().first?.profileID == originalProfile)
+        #expect(fixture.library.group(saved.id)?.tailscale?.network == fixture.node.network)
+        if commit {
+            let updated = try await editor.save()
+            #expect(updated.tailscale?.network == replacement.network)
+            try await wait { fixture.node.closed }
+            #expect(fixture.node.logouts == 1)
+            #expect(!replacement.closed && replacement.logouts == 0)
+            #expect(try fixture.store.load().first?.profileID != originalProfile)
+            #expect(!editor.isLogoutPending)
+        } else {
+            editor.cancel()
+            try await wait { replacement.closed }
+            #expect(fixture.library.group(saved.id)?.tailscale?.network == fixture.node.network)
+            #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+            #expect(try fixture.store.load().first?.profileID == originalProfile)
+        }
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        await fixture.model.shutdown()
+    }
+
+    @Test func repeatedLogoutAndLoginThenDiscardRetainsTheOriginalAndRetiresEveryCandidate() async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let originalState = try #require(fixture.store.load().first)
+        let originalHosts = fixture.library.hosts.map(\.id)
+        let editor = fixture.editor(saved)
+        let first = EditorNode(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "first.ts.net"))
+        let second = EditorNode(
+            network: try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "second.ts.net"))
+
+        editor.logout()
+        fixture.nodes.next = first
+        editor.login(authKey: nil)
+        try await fixture.ready(editor)
+        first.holdLogout = true
+        editor.logout()
+        try await wait { first.logoutContinuation != nil }
+        #expect(editor.isLogoutPending && !editor.isConnected)
+
+        fixture.nodes.next = second
+        editor.login(authKey: nil)
+        try await fixture.ready(editor)
+        #expect(first.logouts == 1 && !first.closed)
+        #expect(second.logouts == 0 && !second.closed)
         #expect(fixture.library.group(saved.id)?.tailscale == saved.tailscale)
+        #expect(try fixture.store.load().first?.profileID == originalState.profileID)
+
+        editor.cancel()
+        try await wait { second.closed }
+        first.releaseLogout()
+        try await wait { first.closed }
+        try await wait { (try? fixture.store.pendingCleanupProfiles().isEmpty) == true }
+        #expect(first.logouts == 1 && second.logouts == 1)
+        #expect(fixture.node.logouts == 0 && !fixture.node.closed)
+        #expect(fixture.model.pendingLogin == nil)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(try fixture.store.load().first?.profileID == originalState.profileID)
+        #expect(try fixture.store.pendingCleanupProfiles().isEmpty)
+        #expect(fixture.library.hosts.map(\.id) == originalHosts)
+        let persistedGroup = try #require(fixture.library.group(saved.id))
+        let reopened = fixture.editor(persistedGroup)
+        #expect(reopened.isConnected && !reopened.isDirty && !reopened.isLogoutPending)
+        #expect(reopened.network == fixture.node.network)
+        #expect(reopened.hostname == originalState.hostname)
+        await fixture.model.shutdown()
+    }
+
+    @Test func deferredLogoutCannotEndANewerEnrollmentFromAnotherEditor() async throws {
+        let fixture = try EditorFixture()
+        let saved = try await fixture.connect()
+        let older = fixture.editor(saved)
+        older.logout()
+        let newer = fixture.editor(saved)
+        newer.logout()
+        let replacement = EditorNode(network: fixture.node.network)
+        fixture.nodes.next = replacement
+        newer.login(authKey: nil)
+        try await fixture.ready(newer)
+        _ = try await newer.save()
+        let profile = try #require(fixture.store.load().first?.profileID)
+        await #expect(throws: TailscaleConfigurationError.self) { try await older.save() }
+        #expect(try fixture.store.load().first?.profileID == profile)
+        #expect(fixture.model.runningGroups.contains(saved.id))
+        #expect(replacement.logouts == 0 && !replacement.closed)
+        older.cancel()
         await fixture.model.shutdown()
     }
 
@@ -310,6 +520,7 @@ struct TailscaleGroupEditorTests {
     let vault: EditorVaultStore
     let store = EditorLocalStore()
     let node: EditorNode
+    let nodes: EditorNodes
     let model: TailscaleModel
 
     init(existing: Bool = false, otherNetwork: Bool = false) throws {
@@ -324,11 +535,20 @@ struct TailscaleGroupEditorTests {
         group.tailscale?.hostPreferences[UUID()] = TailscaleHostPreferences()
         vault = EditorVaultStore(.init(groups: existing ? [group] : []))
         library = HostLibraryModel(persistence: vault)
-        let node = node
+        nodes = EditorNodes(next: node)
+        let nodes = nodes
         model = TailscaleModel(
-            library: library, store: store, factory: { _, _, _, _ in node },
+            library: library, store: store, factory: { _, _, _, _ in await nodes.next },
             profileStorage: .init(profiles: { [] }, erase: { _ in }), hostname: { "default-device" },
             hasAccess: { true })
+    }
+
+    func connect() async throws -> HostGroup {
+        let editor = editor()
+        editor.setEnabled(true)
+        editor.login(authKey: nil)
+        try await ready(editor)
+        return try await editor.save()
     }
 
     func editor(_ group: HostGroup? = nil) -> TailscaleGroupEditor { TailscaleGroupEditor(model: model, group: group) }
@@ -344,6 +564,11 @@ struct TailscaleGroupEditorTests {
     }
 }
 
+@MainActor private final class EditorNodes {
+    var next: EditorNode
+    init(next: EditorNode) { self.next = next }
+}
+
 @MainActor private final class EditorNode: TailscaleNodeSession {
     let network: TailscaleNetwork
     var networkName = "Test Tailnet"
@@ -351,12 +576,14 @@ struct TailscaleGroupEditorTests {
     var exitNode: String?
     var closed = false
     var logouts = 0
+    var holdLogout = false
+    var logoutContinuation: CheckedContinuation<Void, Never>?
     var holdStatus = false
     var statusContinuation: CheckedContinuation<Void, Never>?
     var peers: [TailscalePeer] {
         [
             TailscalePeer(
-                stableID: "exit", name: "Exit", dnsName: "exit.test.ts.net", online: true,
+                stableID: "exit", name: "Exit", dnsName: "exit.\(network.dnsSuffix)", online: true,
                 sshHostKeys: ["fixture"], exitNodeOption: true)
         ]
     }
@@ -366,7 +593,7 @@ struct TailscaleGroupEditorTests {
         return .init(
             running: true, network: network, authURL: nil, peers: peers,
             device: .init(
-                networkName: networkName, dnsName: "device.test.ts.net", hostname: hostname,
+                networkName: networkName, dnsName: "device.\(network.dnsSuffix)", hostname: hostname,
                 addresses: ["100.64.0.1"], operatingSystem: "macOS", keyExpiry: nil))
     }
     @MainActor func releaseStatus() {
@@ -375,7 +602,15 @@ struct TailscaleGroupEditorTests {
         statusContinuation = nil
     }
     @MainActor func login() async throws {}
-    @MainActor func logout() async throws { logouts += 1 }
+    @MainActor func logout() async throws {
+        logouts += 1
+        if holdLogout { await withCheckedContinuation { logoutContinuation = $0 } }
+    }
+    @MainActor func releaseLogout() {
+        holdLogout = false
+        logoutContinuation?.resume()
+        logoutContinuation = nil
+    }
     @MainActor func close() async { closed = true }
     @MainActor func setHostname(_ value: String) async throws { hostname = value }
     @MainActor func setExitNode(_ value: String?) async throws { exitNode = value }
@@ -386,12 +621,16 @@ struct TailscaleGroupEditorTests {
 @MainActor private final class EditorLocalStore: TailscaleLocalStoring {
     let base = InMemoryTailscaleLocalStore()
     var failSave = false
+    var failRemove = false
     func load() throws -> [TailscaleLocalState] { try base.load() }
     func save(_ state: TailscaleLocalState) throws {
         if failSave { throw CocoaError(.fileWriteUnknown) }
         try base.save(state)
     }
-    func remove(groupID: UUID) throws { try base.remove(groupID: groupID) }
+    func remove(groupID: UUID) throws {
+        if failRemove { throw CocoaError(.fileWriteUnknown) }
+        try base.remove(groupID: groupID)
+    }
     func scheduleCleanup(profileID: UUID) throws { try base.scheduleCleanup(profileID: profileID) }
     func pendingCleanupProfiles() throws -> Set<UUID> { try base.pendingCleanupProfiles() }
     func completeCleanup(profileID: UUID) throws { try base.completeCleanup(profileID: profileID) }
