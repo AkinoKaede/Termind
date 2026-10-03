@@ -32244,13 +32244,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "类型：%@"
+            "value" : "类型 %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "類型：%@"
+            "value" : "類型 %@"
           }
         }
       }
@@ -32267,13 +32267,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "类型未知"
+            "value" : "类型 未知"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "類型未知"
+            "value" : "類型 未知"
           }
         }
       }

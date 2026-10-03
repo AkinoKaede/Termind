@@ -64,6 +64,9 @@ for language in zh-Hans zh-Hant; do
       ]
     | .[]
     | select(
+        # Key-card type subtitles intentionally separate the label and value.
+        (if $entry.key == "Type %@" then sub("^(?<label>类型|類型) (?=%@)"; "\(.label)") else . end)
+        |
         test("\\p{Han}")
         and (
           test("\\p{Han}[ \\t]+[A-Za-z0-9%@`]|[A-Za-z0-9%@`][ \\t]+\\p{Han}")

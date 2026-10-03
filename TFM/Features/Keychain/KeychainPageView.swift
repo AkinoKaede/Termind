@@ -601,13 +601,15 @@ private struct SoftwareKeyEditor: View {
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                             }
-                            RevealableSecretField(
-                                AppStrings.Keychain.passphrase, text: $passphrase,
-                                prompt: Text(AppStrings.Common.optional)
-                            )
-                            .disabled(!canEditPrivateKey)
-                            Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
+                            if privateKeyRequiresPassphrase {
+                                RevealableSecretField(
+                                    AppStrings.Keychain.passphrase, text: $passphrase,
+                                    prompt: Text(AppStrings.Common.optional)
+                                )
                                 .disabled(!canEditPrivateKey)
+                                Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $savePassphrase)
+                                    .disabled(!canEditPrivateKey)
+                            }
                         }
                     } header: {
                         fileSectionHeader(
@@ -836,7 +838,7 @@ private struct SoftwareKeyEditor: View {
                 isWorking = false
                 return true
             }
-            let passphrase = passphrase.isEmpty ? nil : passphrase
+            let passphrase = privateKeyRequiresPassphrase && !passphrase.isEmpty ? passphrase : nil
             let savesPassphrase = savePassphrase && passphrase != nil
             let inspected = try SSHKeyMaterial.imported(privateKey: privateKey, publicKey: publicKey)
             if !normalizedCertificate.isEmpty {
@@ -868,6 +870,10 @@ private struct SoftwareKeyEditor: View {
     }
 
     private var validationToken: String { privateKey + "\u{0}" + publicKey }
+
+    private var privateKeyRequiresPassphrase: Bool {
+        (try? SSHKeyMaterial.privateKeyMetadata(privateKey).isEncrypted) == true
+    }
 
     private var defaultName: String {
         if usesWebAuthn { return String(localized: AppStrings.SecurityKey.title) }
@@ -1525,11 +1531,11 @@ struct KeyObjectActions: View {
         Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: MenuSymbol.export, action: export)
         Divider()
         Menu(AppStrings.Common.copy.swiftUIKey, systemImage: MenuSymbol.copy) {
-            Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "key") {
                 copyToPasteboard(key.publicKey)
             }
             .disabled(key.publicKey.isEmpty)
-            Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "touchid") {
                 copyToPasteboard(key.fingerprint)
             }
             .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)

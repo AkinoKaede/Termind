@@ -14,6 +14,7 @@ struct MobileKeyExportTests {
         let editor = MobileKeyEditorModel(mode: .importKey, credentials: CredentialLibraryModel(library: library))
         editor.privateKey = material.privateKey
         #expect(editor.canSave && editor.savePassphrase)
+        #expect(editor.privateKeyRequiresPassphrase && editor.passphrase.isEmpty)
         try await editor.save()
         #expect(!editor.savePassphrase)
         let key = try #require(library.keys.first)
@@ -75,14 +76,51 @@ struct MobileKeyExportTests {
         #expect(cleared.publicKey.isEmpty && cleared.fingerprint.isEmpty && cleared.hasPassphrase)
     }
 
-    @Test func typedPassphraseDoesNotMakeAnUnencryptedKeyEncrypted() async throws {
+    @Test(arguments: [false, true])
+    func passphraseControlsFollowPrivateKeyEncryptionWhileReplacingKeys(editExisting: Bool) async throws {
+        let fixture = try MobileExportFixture(encrypted: true)
+        let credentials = CredentialLibraryModel(library: fixture.library)
+        let editor = MobileKeyEditorModel(
+            mode: editExisting ? .edit : .importKey, credentials: credentials,
+            key: editExisting ? fixture.key : nil)
+        let encrypted = try #require(try credentials.keyCredential(for: fixture.key))
+        guard case .software(let secret) = encrypted else {
+            Issue.record("Expected software key")
+            return
+        }
+        if editExisting {
+            await editor.loadPrivateKey()
+        } else {
+            #expect(!editor.privateKeyRequiresPassphrase)
+            editor.privateKey = secret.privateKey
+        }
+        #expect(editor.privateKeyRequiresPassphrase && editor.passphrase.isEmpty)
+        let unencrypted = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        editor.privateKey = unencrypted.privateKey
+        #expect(!editor.privateKeyRequiresPassphrase)
+        editor.privateKey = secret.privateKey
+        editor.publicKey = "invalid public key"
+        #expect(editor.privateKeyRequiresPassphrase)
+        editor.privateKey = "-----BEGIN OPENSSH PRIVATE KEY-----"
+        #expect(!editor.privateKeyRequiresPassphrase)
+        editor.privateKey = ""
+        #expect(!editor.privateKeyRequiresPassphrase)
+    }
+
+    @Test func replacingEncryptedPrivateKeyDoesNotSaveHiddenPassphrase() async throws {
         let library = HostLibraryModel()
+        let credentials = CredentialLibraryModel(library: library)
+        let encrypted = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: "secret")
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
-        let editor = MobileKeyEditorModel(mode: .importKey, credentials: CredentialLibraryModel(library: library))
+        let editor = MobileKeyEditorModel(mode: .importKey, credentials: credentials)
+        editor.privateKey = encrypted.privateKey
+        editor.passphrase = "secret"
         editor.privateKey = material.privateKey
-        editor.passphrase = "not-encryption"
+        #expect(!editor.privateKeyRequiresPassphrase)
         try await editor.save()
-        #expect(library.keys.first?.hasPassphrase == false)
+        let key = try #require(library.keys.first)
+        #expect(!key.hasPassphrase && !editor.savePassphrase)
+        #expect(!credentials.hasSavedPassphrase(for: key))
     }
 
     @Test func replacingPrivateKeyPreservesANewManuallyEnteredPublicKey() async throws {

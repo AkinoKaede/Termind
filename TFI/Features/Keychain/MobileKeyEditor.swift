@@ -140,11 +140,13 @@ struct MobileKeyEditor: View {
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                             }
-                            RevealableSecretField(AppStrings.Keychain.passphrase, text: $model.passphrase)
-                                .multilineTextAlignment(.leading)
-                                .disabled(!model.canEditPrivateKey)
-                            Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
-                                .disabled(!model.canEditPrivateKey)
+                            if model.privateKeyRequiresPassphrase {
+                                RevealableSecretField(AppStrings.Keychain.passphrase, text: $model.passphrase)
+                                    .multilineTextAlignment(.leading)
+                                    .disabled(!model.canEditPrivateKey)
+                                Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.savePassphrase)
+                                    .disabled(!model.canEditPrivateKey)
+                            }
                         }
                     }
                 } else {

@@ -45,11 +45,11 @@ struct MobileCredentialsView: View {
                                 }
                                 Divider()
                                 Menu(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
-                                    Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "doc.on.doc") {
+                                    Button(AppStrings.Keychain.publicKey.swiftUIKey, systemImage: "key") {
                                         UIPasteboard.general.string = key.publicKey
                                     }
                                     .disabled(key.publicKey.isEmpty)
-                                    Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "doc.on.doc") {
+                                    Button(AppStrings.KnownHosts.fingerprint.swiftUIKey, systemImage: "touchid") {
                                         UIPasteboard.general.string = key.fingerprint
                                     }
                                     .disabled(key.publicKey.isEmpty || key.fingerprint.isEmpty)

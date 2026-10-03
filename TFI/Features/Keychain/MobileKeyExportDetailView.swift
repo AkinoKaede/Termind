@@ -17,18 +17,20 @@ struct MobileKeyExportDetailView: View {
         }
         .navigationTitle(AppStrings.Keychain.exportToHost.swiftUIKey)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .confirmationAction) {
                 if model.didExport {
                     Button(AppStrings.Common.done.swiftUIKey) { dismiss() }
                 } else if case .failed = model.phase, model.journey.isPresented {
                     Button(AppStrings.Common.edit.swiftUIKey) { model.editOptions() }
                 } else if !model.journey.isPresented {
-                    Button(AppStrings.KeyExport.exportAndAttach.swiftUIKey) { model.start() }
+                    Button(AppStrings.KeyExport.exportAndAttach.swiftUIKey, systemImage: "checkmark") { model.start() }
+                        .labelStyle(.iconOnly)
                         .disabled(!model.canStart)
                 } else if model.phase == .exporting {
                     ProgressView().accessibilityLabel(AppStrings.KeyExport.exporting.swiftUIKey)
                 }
             }
+            .mobileProminentAction()
         }
         .onDisappear { model.cancel() }
     }

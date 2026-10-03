@@ -47,6 +47,8 @@ struct MobileKeyExportRenderingTests {
             window.endEditing(true)
             model.exportPassphrase = "secret"
             #expect(model.canStart)
+            try await Task.sleep(for: .milliseconds(400))
+            try capture(window, language: language, state: "ready")
         }
     }
 

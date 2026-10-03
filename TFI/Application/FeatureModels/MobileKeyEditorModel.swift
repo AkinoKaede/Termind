@@ -167,6 +167,9 @@ final class MobileKeyEditorModel: Identifiable {
         }
     }
     var fingerprint: String? { (try? SSHKeyMaterial.publicMaterial(publicKey))?.fingerprint }
+    var privateKeyRequiresPassphrase: Bool {
+        (try? SSHKeyMaterial.privateKeyMetadata(privateKey).isEncrypted) == true
+    }
     var isEnclave: Bool { original?.storage == .secureEnclave }
     var canSelectThisDevice: Bool { original?.storage != .iCloud }
     var canUseEnclave: Bool { SecureEnclaveKey.isAvailable }
@@ -239,7 +242,8 @@ final class MobileKeyEditorModel: Identifiable {
             nil
     ) async throws {
         guard canSave else { throw CocoaError(.coderInvalidValue) }
-        let savesPassphrase = savePassphrase && !passphrase.isEmpty
+        let savesPassphrase =
+            savePassphrase && !passphrase.isEmpty && (mode == .generate || privateKeyRequiresPassphrase)
         if usesWebAuthn {
             var credential: SecurityKeyCredential
             if mode == .generate, let registerSecurityKey {

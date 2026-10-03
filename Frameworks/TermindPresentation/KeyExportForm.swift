@@ -63,6 +63,7 @@ public struct KeyExportForm: View {
                 if model.needsExportPassphrase {
                     Section {
                         RevealableSecretField(AppStrings.Keychain.passphrase, text: $model.exportPassphrase)
+                            .multilineTextAlignment(.leading)
                         Toggle(AppStrings.Keychain.savePassphrase.swiftUIKey, isOn: $model.saveExportPassphrase)
                         if let error = model.passphraseError { Text(error).font(.caption).foregroundStyle(.red) }
                     } footer: {
