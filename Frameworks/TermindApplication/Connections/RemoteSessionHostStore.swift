@@ -459,7 +459,8 @@ extension RemoteSessionHostStore {
         configuration.tailscaleNodeID = snapshot.tailscaleNodeID
         if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {
             configuration.network = try tailscaleNetwork(for: first)
-        } else if snapshot.requiresTailscale {
+        }
+        if snapshot.requiresTailscale && configuration.network == nil {
             throw TailscaleConfigurationError.unavailable
         }
         completed = true

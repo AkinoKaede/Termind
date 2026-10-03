@@ -136,7 +136,7 @@ extension VaultRecordPayload {
 }
 
 extension VaultEnvelope {
-    fileprivate var withoutDeviceLocalMetadata: Self {
+    var withoutDeviceLocalMetadata: Self {
         var copy = self
         copy.payload = payload?.withoutDeviceLocalMetadata
         return copy

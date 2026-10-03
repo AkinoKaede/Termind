@@ -804,6 +804,7 @@ struct MobileUploadBatchTests {
         client: MobileUploadSFTPClient,
         kind: ConnectionHistoryEntry.Kind = .ssh,
         initialPath: String = "",
+        connectionOrigin: RemoteConnectionOrigin = .library,
         open: (() async throws -> any SFTPClientProtocol)? = nil
     ) -> MobileWorkspace {
         let identity = Identity(name: "Upload", username: "user")
@@ -820,7 +821,7 @@ struct MobileUploadBatchTests {
             }, writeSSH: { _, _ in })
         return MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
-            hosts: library, transfers: transfers, connectionServices: services)
+            hosts: library, transfers: transfers, connectionServices: services, connectionOrigin: connectionOrigin)
     }
 
     @Test func serialUploadSurvivesClosingTheSFTPWorkspace() async throws {
@@ -1035,7 +1036,8 @@ struct MobileUploadBatchTests {
         )
     }
 
-    @Test func successfulFileDownloadsRefreshHistoryWhileInvalidAndFailedFilesDoNot() async throws {
+    @Test(arguments: [false, true])
+    func successfulFileDownloadsRefreshHistoryWhileInvalidAndFailedFilesDoNot(external: Bool) async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         var host = Host(name: "Example", host: "example.invalid")
         host.identityID = identity.id
@@ -1080,7 +1082,8 @@ struct MobileUploadBatchTests {
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
             hosts: library,
             transfers: transfers,
-            connectionServices: services
+            connectionServices: services,
+            connectionOrigin: external ? .externalLink(hostKeyConstraints: [:]) : .library
         )
         let history = workspace.sftpHistory
         defer { workspace.disconnect() }
@@ -1107,6 +1110,24 @@ struct MobileUploadBatchTests {
         #expect(!(await workspace.reopenHistoryFile(at: "/srv/missing.txt")))
         #expect(!(await workspace.reopenHistoryFile(at: changedDirectory.path)))
         #expect(!history.entries().contains { $0.path == changedDirectory.path })
+    }
+
+    @Test func closingTemporaryWorkspacePreventsLatePreviewFromRestoringHistory() async throws {
+        let client = MobileUploadSFTPClient(blocksDownload: true)
+        let workspace = uploadWorkspace(
+            client: client, kind: .sftp, connectionOrigin: .externalLink(hostKeyConstraints: [:]))
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let file = RemoteFile(
+            path: "/report.txt", name: "report.txt", kind: .file, size: 4,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        var completed = false
+        #expect(workspace.preview(file) { _ in completed = true })
+        #expect(await eventuallyAsync { await client.startedDownloads == 1 })
+        workspace.close()
+        await client.finishDownloads()
+        #expect(await eventually { completed })
+        #expect(workspace.sftpHistory.entries().isEmpty)
     }
 
     @Test func sharedUploadPlannerDoesNotFollowASymlinkOutsideTheSelectedFolder() async throws {
@@ -1277,11 +1298,14 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var removedPaths: [String] = []
     private(set) var disconnectCount = 0
     private(set) var startedUploads = 0
+    private(set) var startedDownloads = 0
     private let resolvedHomeDirectory: String?
     private let blocksUpload: Bool
+    private let blocksDownload: Bool
     private let requiresInteraction: Bool
     private let failureStage: UploadFailureStage?
     private var uploadWaiters: [CheckedContinuation<Void, Never>] = []
+    private var downloadWaiters: [CheckedContinuation<Void, Never>] = []
     private let attributes: [String: RemoteFile]
     private let failedDownloadPaths: Set<String>
     private let children: [String: [RemoteFile]]
@@ -1291,11 +1315,12 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         attributes: [String: RemoteFile] = [:],
         failedDownloadPaths: Set<String> = [],
         children: [String: [RemoteFile]] = [:],
-        blocksUpload: Bool = false, requiresInteraction: Bool = false,
+        blocksUpload: Bool = false, blocksDownload: Bool = false, requiresInteraction: Bool = false,
         failureStage: UploadFailureStage? = nil
     ) {
         self.resolvedHomeDirectory = homeDirectory
         self.blocksUpload = blocksUpload
+        self.blocksDownload = blocksDownload
         self.requiresInteraction = requiresInteraction
         self.failureStage = failureStage
         self.attributes = attributes
@@ -1309,6 +1334,11 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     func finishUploads() {
         let pending = uploadWaiters
         uploadWaiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
+    func finishDownloads() {
+        let pending = downloadWaiters
+        downloadWaiters.removeAll()
         for waiter in pending { waiter.resume() }
     }
     func disconnect() async { disconnectCount += 1 }
@@ -1350,6 +1380,8 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
+        startedDownloads += 1
+        if blocksDownload { await withCheckedContinuation { downloadWaiters.append($0) } }
         if failedDownloadPaths.contains(remotePath) {
             throw SFTPError.operation("Download failed")
         }

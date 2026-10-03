@@ -1709,7 +1709,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// a child of Production has to be numbered against Production's children.
     public func upsert(_ group: HostGroup) {
         if let configuration = group.tailscale,
-            groups.contains(where: { $0.id != group.id && $0.tailscale?.network == configuration.network })
+            groups.contains(where: { $0.id != group.id && $0.tailscale.map(configuration.conflicts) == true })
         {
             storageError = TailscaleConfigurationError.duplicateNetwork.localizedDescription
             return
@@ -2415,8 +2415,19 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func networkConfigurationStamp(for host: Host) -> Data {
-        guard let group = tailscaleGroup(for: host) else { return Data() }
-        return (try? JSONEncoder().encode(group.tailscale)) ?? Data()
+        guard let group = tailscaleGroup(for: host), let configuration = group.tailscale else { return Data() }
+        // Only connection inputs belong here; discovery and other peers' preferences
+        // must not restart this host's Metrics worker.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return
+            (try? encoder.encode([
+                "groupID": group.id.uuidString,
+                "controlURL": configuration.network.controlURL,
+                "dnsSuffix": configuration.network.dnsSuffix,
+                "exitNodeID": configuration.exitNodeID ?? "",
+                "username": host.isTailscaleManaged ? tailscaleUsername(for: host) : "",
+            ])) ?? Data()
     }
 
     public func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)? {
@@ -2451,7 +2462,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         for group in groups {
             guard let configuration = group.tailscale else { continue }
             for peer in tailscalePeers[group.id] ?? [] where !peer.stableID.isEmpty && peer.supportsSSH {
-                let id = configuration.network.hostID(stableNodeID: peer.stableID)
+                let id = configuration.hostID(groupID: group.id, stableNodeID: peer.stableID)
                 guard ids.insert(id).inserted else { continue }
                 let preferences = configuration.hostPreferences[id] ?? TailscaleHostPreferences()
                 var host = Host(id: id, name: peer.name, host: peer.dnsName, groupID: group.id)

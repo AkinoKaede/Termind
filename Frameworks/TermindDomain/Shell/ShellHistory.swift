@@ -134,7 +134,7 @@ public nonisolated enum ShellHistoryParser {
             } else {
                 pending?.command += "\n" + line
             }
-            continuing = !trailingBackslashes(line).isMultiple(of: 2)
+            continuing = line.hasSuffix("\\")
             if continuing {
                 // Zsh uses backslash + physical newline to serialize a literal newline.
                 if pending != nil { pending!.command.removeLast() }

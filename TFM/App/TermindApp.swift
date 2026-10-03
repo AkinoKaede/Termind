@@ -2,6 +2,7 @@ import AgentKitScrubber
 import SwiftData
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
@@ -175,6 +176,11 @@ struct TermindApp: App {
                     ),
                     devices: devices,
                     tailscaleStore: SwiftDataTailscaleLocalStore(context: ModelContext(container)),
+                    tailscaleFactory: { profileID, hostname, controlURL, authKey in
+                        guard !usesInMemoryStore else { throw TailscaleConfigurationError.unavailable }
+                        return try await LibTailscaleNodeSession.factory(profileID, hostname, controlURL, authKey)
+                    },
+                    tailscaleProfileStorage: usesInMemoryStore ? .disabled : LibTailscaleNodeSession.profileStorage,
                     externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,

@@ -305,7 +305,11 @@ final class MobileAppModel {
         let tailscaleAccess = pro
         tailscale = TailscaleModel(
             library: library, store: SwiftDataTailscaleLocalStore(context: ModelContext(container)),
-            factory: LibTailscaleNodeSession.factory,
+            factory: { profileID, hostname, controlURL, authKey in
+                guard !memoryOnly else { throw TailscaleConfigurationError.unavailable }
+                return try await LibTailscaleNodeSession.factory(profileID, hostname, controlURL, authKey)
+            },
+            profileStorage: memoryOnly ? .disabled : LibTailscaleNodeSession.profileStorage,
             hostname: { tailscaleDevices.currentDeviceName }, hasAccess: { tailscaleAccess.canUse(.tailscale) }
         )
         let forwardingRouter = agentForwardingRouter

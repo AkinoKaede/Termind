@@ -31,6 +31,27 @@ struct MobileAppTests {
         #expect(features.registrations.map(\.id) == [.vault, .metrics, .workspaces, .assistant, .settings])
     }
 
+    @Test func memoryCompositionCannotStartOrEraseLiveTailscaleProfiles() async throws {
+        var dependencies = MobileAppDependencies.testing()
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        dependencies.container = container
+        let network = try TailscaleNetwork(controlURL: TailscaleNetwork.defaultControlURL, dnsSuffix: "example.ts.net")
+        var group = HostGroup(name: "Tailnet")
+        group.tailscale = TailscaleGroupConfiguration(network: network)
+        _ = try HostPersistence(context: container.mainContext).save(.init(groups: [group]))
+        let store = SwiftDataTailscaleLocalStore(context: container.mainContext)
+        let profileID = UUID()
+        try store.save(.init(groupID: group.id, profileID: profileID))
+        let app = try MobileAppModel(dependencies: dependencies)
+        defer { app.outbox.stop() }
+        for _ in 0..<200 where app.tailscale.error == nil { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(app.tailscale.error != nil)
+        #expect(app.tailscale.runningGroups.isEmpty)
+        await app.tailscale.logout(groupID: group.id)
+        #expect(try store.pendingCleanupProfiles() == [profileID])
+        await app.tailscale.shutdown()
+    }
+
     @Test func startupLoadsVersion28DataAfterMigrationAndRelaunch() throws {
         let source = try #require(
             Bundle(for: MobileMigrationFixtureBundle.self).url(forResource: "V28", withExtension: "store"))

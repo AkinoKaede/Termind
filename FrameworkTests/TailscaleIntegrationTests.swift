@@ -38,6 +38,7 @@ struct TailscaleIntegrationTests {
         let access = TailscaleTestAccess()
         let model = TailscaleModel(
             library: library, store: store, factory: { _, _, _, _ in node },
+            profileStorage: .init(profiles: { [] }, erase: { _ in }),
             hostname: { "Existing device name" }, hasAccess: { access.allowed })
         model.start()
         for _ in 0..<100 where !model.runningGroups.contains(group.id) {
@@ -79,6 +80,7 @@ struct TailscaleIntegrationTests {
         let url = directory.appendingPathComponent("Termind.store")
         var group = try group("example.ts.net")
         let network = try #require(group.tailscale?.network)
+        group.tailscale = TailscaleGroupConfiguration(network: network, hostIdentityVersion: .legacy)
         let hostID = network.hostID(stableNodeID: "n123")
         var preferences = TailscaleHostPreferences()
         preferences.username = "deploy"
@@ -97,6 +99,10 @@ struct TailscaleIntegrationTests {
             #expect(state.hostname == (pass == 0 ? nil : "saved-device"))
             let library = HostLibraryModel(persistence: HostPersistence(context: container.mainContext))
             #expect(library.group(group.id)?.tailscale?.hostPreferences[hostID] == preferences)
+            library.replaceTailscalePeers([peer], groupID: group.id)
+            #expect(library.hosts.first?.id == hostID)
+            let retainedHost = try #require(library.host(hostID))
+            #expect(library.savedTailscaleUsername(for: retainedHost) == "deploy")
             state.hostname = "saved-device"
             try localStore.save(state)
         }
@@ -110,8 +116,12 @@ struct TailscaleIntegrationTests {
                 ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)
             ])
         container.mainContext.insert(PersistentHostGroup(group))
-        container.mainContext.insert(
-            try PersistentTailscaleGroup(id: group.id, configuration: #require(group.tailscale)))
+        let configuration = try PersistentTailscaleGroup(id: group.id, configuration: #require(group.tailscale))
+        var historical = try #require(
+            JSONSerialization.jsonObject(with: configuration.configurationData) as? [String: Any])
+        historical.removeValue(forKey: "hostIdentityVersion")
+        configuration.configurationData = try JSONSerialization.data(withJSONObject: historical)
+        container.mainContext.insert(configuration)
         container.mainContext.insert(
             TermindSchemaV47TailscaleModels.PersistentTailscaleLocalState(
                 groupID: group.id, profileID: profileID, peersData: try JSONEncoder().encode([peer])))
@@ -171,7 +181,7 @@ struct TailscaleIntegrationTests {
         #expect(throws: TailscaleConfigurationError.self) { try library.tailscaleNetwork(for: host) }
     }
 
-    @Test func additionalOrdinaryConnectionsFollowTheHostsCurrentGroup() throws {
+    @Test func additionalOrdinaryConnectionsCannotDropTheirRequiredTailnetRoute() throws {
         let group = try group("example.ts.net")
         let host = Host(name: "Manual", host: "server", groupID: group.id)
         let library = HostLibraryModel(hosts: [host], groups: [group])
@@ -186,18 +196,77 @@ struct TailscaleIntegrationTests {
 
         library.move(hostIDs: [host.id], into: nil)
 
-        #expect(try library.additionalConnectionRequest(from: snapshot).configuration.network == nil)
+        #expect(throws: TailscaleConfigurationError.self) { try library.additionalConnectionRequest(from: snapshot) }
         #expect(try library.tailscaleNetwork(for: host) == nil)
     }
 
-    @Test func duplicateTailnetIsRejectedIncludingAnExplicitSubgroup() throws {
+    @Test func networkStampTracksOnlyThisConnectionsRoutingAndAuthentication() throws {
+        var group = try group("example.ts.net")
+        let library = HostLibraryModel(groups: [group])
+        library.replaceTailscalePeers([peer()], groupID: group.id)
+        let host = try #require(library.hosts.first)
+        let original = library.networkConfigurationStamp(for: host)
+        for _ in 0..<100 { #expect(library.networkConfigurationStamp(for: host) == original) }
+        var unrelated = TailscaleHostPreferences()
+        unrelated.username = "another-user"
+        unrelated.tags = ["production"]
+        group.tailscale?.hostPreferences[UUID()] = unrelated
+        library.upsert(group)
+        #expect(library.networkConfigurationStamp(for: host) == original)
+        group.tailscale?.username = "changed-user"
+        library.upsert(group)
+        let changedUser = library.networkConfigurationStamp(for: host)
+        #expect(changedUser != original)
+        group.tailscale?.exitNodeID = "exit-node"
+        library.upsert(group)
+        #expect(library.networkConfigurationStamp(for: host) != changedUser)
+    }
+
+    @Test(arguments: [true, false])
+    func loginRechecksRemoteGroupChangesAfterApplyingExitNode(deleted: Bool) async throws {
+        var group = try group("example.ts.net")
+        let library = HostLibraryModel(groups: [group])
+        let store = InMemoryTailscaleLocalStore()
+        let node = TestTailscaleNode(network: try #require(group.tailscale?.network), holdExitNode: true)
+        let model = TailscaleModel(
+            library: library, store: store, factory: { _, _, _, _ in node },
+            profileStorage: .init(profiles: { [] }, erase: { _ in }),
+            hostname: { "device" }, hasAccess: { true })
+        model.beginLogin(
+            name: group.name, parentID: nil, controlURL: TailscaleNetwork.defaultControlURL,
+            authKey: nil, groupID: group.id)
+        await node.waitForExitNode()
+        group.name = "Remote name"
+        group.tailscale?.username = "remote-user"
+        library.replacePersistedSnapshot(VaultSnapshot(groups: deleted ? [] : [group]))
+        await node.releaseExitNode()
+        for _ in 0..<1000 {
+            if deleted ? await node.closed : model.loginCompletedGroupID != nil { break }
+            await Task.yield()
+        }
+        if deleted {
+            #expect(library.group(group.id) == nil)
+            #expect(try store.load().isEmpty)
+            #expect(model.loginCompletedGroupID == nil)
+            #expect(await node.closed)
+            #expect(await node.logoutCount == 1)
+        } else {
+            #expect(library.group(group.id)?.name == "Remote name")
+            #expect(library.group(group.id)?.tailscale?.username == "remote-user")
+            #expect(model.loginCompletedGroupID == group.id)
+            #expect(try store.load().count == 1)
+        }
+        await model.shutdown()
+    }
+
+    @Test func sameTailnetCanBeBoundToAnExplicitSubgroup() throws {
         let parent = try group("example.ts.net")
         let library = HostLibraryModel(groups: [parent])
         var duplicate = HostGroup(name: "Duplicate", parentID: parent.id)
         duplicate.tailscale = parent.tailscale
         library.upsert(duplicate)
-        #expect(library.group(duplicate.id) == nil)
-        #expect(library.storageError != nil)
+        #expect(library.group(duplicate.id)?.tailscale?.network == parent.tailscale?.network)
+        #expect(library.storageError == nil)
     }
 
     @Test func discoveredHostsStayLocalAndPreferencesRoundTripThroughGroup() throws {
@@ -481,6 +550,7 @@ struct TailscaleIntegrationTests {
         let node = TestTailscaleNode(network: try #require(group.tailscale?.network))
         let model = TailscaleModel(
             library: library, store: store, factory: { _, _, _, _ in node },
+            profileStorage: .init(profiles: { [] }, erase: { _ in }),
             hostname: { "default-device" }, hasAccess: { true })
         model.start()
         for _ in 0..<100 where !model.runningGroups.contains(group.id) {
@@ -493,6 +563,7 @@ struct TailscaleIntegrationTests {
         await model.shutdown()
         let restored = TailscaleModel(
             library: library, store: store, factory: { _, _, _, _ in node },
+            profileStorage: .init(profiles: { [] }, erase: { _ in }),
             hostname: { "renamed-system-device" }, hasAccess: { false })
         restored.start()
         #expect(restored.savedHostname(groupID: group.id) == "custom-device")
@@ -527,6 +598,7 @@ struct TailscaleIntegrationTests {
             network: try #require(group.tailscale?.network), peers: [exitPeer, peer()])
         let model = TailscaleModel(
             library: library, store: store, factory: { _, _, _, _ in node },
+            profileStorage: .init(profiles: { [] }, erase: { _ in }),
             hostname: { "device" }, hasAccess: { true })
         model.start()
         for _ in 0..<100 where !model.runningGroups.contains(group.id) {
@@ -598,17 +670,34 @@ private actor TestTailscaleNode: TailscaleNodeSession {
     var closed = false
     var hostname = ""
     var selectedExitNode: String?
-    func setExitNode(_ stableID: String?) async throws { selectedExitNode = stableID }
+    var logoutCount = 0
+    private var holdExitNode: Bool
+    private var exitNodeContinuation: CheckedContinuation<Void, Never>?
+    func setExitNode(_ stableID: String?) async throws {
+        if holdExitNode {
+            holdExitNode = false
+            await withCheckedContinuation { exitNodeContinuation = $0 }
+        }
+        selectedExitNode = stableID
+    }
+    func waitForExitNode() async {
+        while exitNodeContinuation == nil { await Task.yield() }
+    }
+    func releaseExitNode() {
+        exitNodeContinuation?.resume()
+        exitNodeContinuation = nil
+    }
     func setHostname(_ hostname: String) async throws { self.hostname = hostname }
-    init(network: TailscaleNetwork, peers: [TailscalePeer] = []) {
+    init(network: TailscaleNetwork, peers: [TailscalePeer] = [], holdExitNode: Bool = false) {
         self.network = network
         self.peers = peers
+        self.holdExitNode = holdExitNode
     }
     func status() async throws -> TailscaleNodeStatus {
         TailscaleNodeStatus(running: true, network: network, authURL: nil, peers: peers)
     }
     func login() async throws {}
-    func logout() async throws {}
+    func logout() async throws { logoutCount += 1 }
     func close() async { closed = true }
     func dial(host: String, port: Int, timeout: TimeInterval) async throws -> Int32 { throw CancellationError() }
     func hostKeys(stableNodeID: String) async throws -> Set<SSHHostKeyIdentity> { [] }

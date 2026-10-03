@@ -8,6 +8,32 @@
 
     @Suite
     struct RemoteShellHistoryLoaderTests {
+        @Test func realZshHistoryPreservesBackslashesBeforeLogicalNewlines() async throws {
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: file) }
+            let commands =
+                (0...2).map { "echo one" + String(repeating: "\\", count: $0) + "\ntwo" }
+                + ["echo end\\", "pwd"]
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.arguments =
+                [
+                    "-f", "-i", "-c",
+                    "HISTFILE=$1; HISTSIZE=100; SAVEHIST=100; setopt EXTENDED_HISTORY; shift; "
+                        + "for c in \"$@\"; do print -sr -- \"$c\"; done; fc -W \"$HISTFILE\"",
+                    "history-test", file.path,
+                ] + commands
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try process.run()
+            process.waitUntilExit()
+            #expect(process.terminationStatus == 0)
+            let loader = RemoteShellHistoryLoader(
+                charset: .utf8, resolveSource: { nil }, execute: { command, _ in try Self.execute(command) })
+            let records = try await loader.load(source: .init(shell: .zsh, path: file.path))
+            #expect(records.map(\.command) == Array(commands.prefix(3)) + ["echo end\\ ", "pwd"])
+        }
+
         @Test func execReadsQuotedPathsAsDataAndWorksWithoutIntegration() async throws {
             let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

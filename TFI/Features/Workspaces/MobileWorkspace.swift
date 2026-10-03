@@ -1751,9 +1751,7 @@ final class MobileWorkspace: Identifiable {
                     let url = try await sftpEdits.open(
                         file, hostID: descriptor.hostID, connection: .context(transferContext), client: sftp,
                         homeDirectory: sftpChannel.homeDirectory)
-                    if connectionOrigin.allowsPersistence {
-                        sftpHistory.record(kind: .file, path: file.path)
-                    }
+                    sftpHistory.record(kind: .file, path: file.path)
                     completion(url)
                 } catch { operationError = error.localizedDescription }
             }
@@ -1774,9 +1772,7 @@ final class MobileWorkspace: Identifiable {
                 homeDirectory: sftpChannel.homeDirectory
             ) { [sftpHistory, path = file.path] state in
                 guard state == .completed else { return }
-                if self.connectionOrigin.allowsPersistence {
-                    sftpHistory.record(kind: .file, path: path)
-                }
+                sftpHistory.record(kind: .file, path: path)
                 completion(localURL)
             }
             return true

@@ -163,18 +163,57 @@ nonisolated enum VaultWireV2 {
             return result
         }
     }
+    /// Shipped V2 has only control-plane-scoped host IDs. Keep its shape frozen.
+    struct TailscaleConfiguration: Codable {
+        var network: TailscaleNetwork
+        var username: String
+        var exitNodeID: String?
+        var hostPreferences: [String: TailscaleHostPreferences]
+
+        init(_ value: TailscaleGroupConfiguration) throws {
+            guard value.hostIdentityVersion == .legacy else { throw CocoaError(.coderInvalidValue) }
+            network = value.network
+            username = value.username
+            exitNodeID = value.exitNodeID
+            hostPreferences = Dictionary(
+                uniqueKeysWithValues: value.hostPreferences.map { ($0.key.uuidString.lowercased(), $0.value) })
+        }
+
+        private enum CodingKeys: String, CodingKey { case network, username, exitNodeID, hostPreferences }
+        init(from decoder: any Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            network = try values.decode(TailscaleNetwork.self, forKey: .network)
+            username = try values.decode(String.self, forKey: .username)
+            exitNodeID = try values.decodeIfPresent(String.self, forKey: .exitNodeID)
+            hostPreferences = try values.decode([String: TailscaleHostPreferences].self, forKey: .hostPreferences)
+            guard hostPreferences.keys.allSatisfy({ UUID(uuidString: $0)?.uuidString.lowercased() == $0 }) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .hostPreferences, in: values, debugDescription: "Invalid host identifier")
+            }
+        }
+
+        var domainValue: TailscaleGroupConfiguration {
+            var value = TailscaleGroupConfiguration(network: network, hostIdentityVersion: .legacy)
+            value.username = username
+            value.exitNodeID = exitNodeID
+            value.hostPreferences = Dictionary(
+                uniqueKeysWithValues: hostPreferences.map { (UUID(uuidString: $0.key)!, $0.value) })
+            return value
+        }
+    }
+
     struct HostGroup: Codable {
         var base: VaultWireV1.HostGroup
-        var tailscale: TailscaleGroupConfiguration?
+        var tailscale: TailscaleConfiguration?
         enum CodingKeys: String, CodingKey { case tailscale }
-        init(_ value: TermindDomain.HostGroup) {
+        init(_ value: TermindDomain.HostGroup) throws {
             base = VaultWireV1.HostGroup(value)
-            tailscale = value.tailscale
+            tailscale = try value.tailscale.map(TailscaleConfiguration.init)
         }
         init(from decoder: any Decoder) throws {
             base = try VaultWireV1.HostGroup(from: decoder)
             tailscale = try decoder.container(keyedBy: CodingKeys.self)
-                .decode(TailscaleGroupConfiguration?.self, forKey: .tailscale)
+                .decode(TailscaleConfiguration?.self, forKey: .tailscale)
         }
         func encode(to encoder: any Encoder) throws {
             try base.encode(to: encoder)
@@ -183,7 +222,7 @@ nonisolated enum VaultWireV2 {
         }
         var domainValue: TermindDomain.HostGroup {
             var value = base.domainValue
-            value.tailscale = tailscale
+            value.tailscale = tailscale?.domainValue
             return value
         }
     }
@@ -206,7 +245,7 @@ nonisolated enum VaultWireV2 {
             if case .host(let host) = envelope.payload {
                 payload = .host(try Host(host))
             } else if case .hostGroup(let group) = envelope.payload {
-                payload = .hostGroup(HostGroup(group))
+                payload = .hostGroup(try HostGroup(group))
             } else if case .sshKey(let key) = envelope.payload {
                 guard key.storage != .external || key.algorithm == .securityKey else {
                     throw CocoaError(.coderInvalidValue)

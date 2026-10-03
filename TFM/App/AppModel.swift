@@ -186,6 +186,10 @@ final class AppModel {
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
         devices: DeviceDirectoryModel? = nil,
         tailscaleStore: (any TailscaleLocalStoring)? = nil,
+        tailscaleFactory: @escaping TailscaleNodeFactory = { _, _, _, _ in
+            throw TailscaleConfigurationError.unavailable
+        },
+        tailscaleProfileStorage: TailscaleProfileStorage = .disabled,
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
@@ -233,7 +237,7 @@ final class AppModel {
         self.devices = devices
         tailscale = TailscaleModel(
             library: hosts, store: tailscaleStore ?? InMemoryTailscaleLocalStore(),
-            factory: LibTailscaleNodeSession.factory,
+            factory: tailscaleFactory, profileStorage: tailscaleProfileStorage,
             hostname: { devices.currentDeviceName }, hasAccess: { proAccess.canUse(.tailscale) }
         )
         self.externalToolCalls = externalToolCalls

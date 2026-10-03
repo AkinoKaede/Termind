@@ -88,7 +88,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
                 pendingChanges: {
                     try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
                 },
-                safety: .persistent(context: context),
+                safety: .persistent(context: context, capabilityID: SyncRecordFormats.metrics.capabilityID),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() },

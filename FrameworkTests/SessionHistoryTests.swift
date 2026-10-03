@@ -172,6 +172,93 @@ struct ShellHistoryParsingTests {
 
 @Suite @MainActor
 struct RetiredSessionHistoryMigrationTests {
+    @Test func version48RetainsCloudHistoryJournalsAndDeviceStateAfterMigrationAndReopening() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("CloudHistory.store")
+        let device = DeviceRecord(id: UUID(), displayName: "Original device")
+        let event = ConnectionHistoryEntry(
+            hostID: UUID(), kind: .sftp, connectedAt: Date(timeIntervalSince1970: 100),
+            sourceDeviceID: device.id, endedAt: Date(timeIntervalSince1970: 200))
+        let deletedEvent = ConnectionHistoryEntry(hostID: event.hostID, kind: .ssh)
+        let version = VaultVersion(modifiedAt: Date(timeIntervalSince1970: 300), counter: 4, writerID: device.id)
+        let eventPayload = HistoryRecordPayload.connectionHistory(event)
+        let devicePayload = HistoryRecordPayload.device(device)
+        let envelopes = [
+            HistoryEnvelope(key: eventPayload.key, version: version, payload: eventPayload),
+            HistoryEnvelope(key: devicePayload.key, version: version, payload: devicePayload),
+            HistoryEnvelope(
+                key: .init(kind: .connectionHistory, id: deletedEvent.id), version: version, isDeleted: true),
+            HistoryEnvelope(key: .init(kind: .device, id: UUID()), version: version, isDeleted: true),
+        ]
+        try writeCloudHistoryStore(url, event: event, device: device, envelopes: envelopes)
+        for _ in 0..<2 {
+            let container = try TermindPersistence.makeContainer(url: url)
+            let context = container.mainContext
+            let persistence = HistorySyncPersistence(context: context)
+            try persistence.prepare()
+            #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map(\.value) == [event])
+            let devices = try context.fetch(FetchDescriptor<PersistentDeviceRecord>())
+            #expect(
+                devices.count == 1 && devices.first?.id == device.id && devices.first?.displayName == device.displayName
+            )
+            let rows = try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
+            #expect(Set(rows.compactMap(\.envelope)) == Set(envelopes))
+            for (index, envelope) in envelopes.enumerated() {
+                let row = try #require(rows.first { $0.recordName == envelope.key.recordName })
+                #expect(row.systemFieldsData == Data([UInt8(index), 42]))
+                #expect(row.needsUpload == (index != 1))
+            }
+            for kind in HistoryRecordKind.allCases {
+                let state = try HistorySyncJournal(context: context, kind: kind).state()
+                #expect(state.bootstrapCompleted)
+                #expect(state.installationID == device.id)
+                #expect(state.boundUserRecordName == "account-\(kind.rawValue)")
+                #expect(state.pendingUserRecordName == "pending-\(kind.rawValue)")
+                #expect(state.engineStateData == Data(kind.rawValue.utf8))
+                #expect(state.lastSuccessfulSync == version.modifiedAt)
+            }
+            let late = HistoryRecordPayload.connectionHistory(deletedEvent)
+            _ = try persistence.applyRemote([
+                HistoryEnvelope(
+                    key: late.key, version: .next(after: version, writerID: UUID()), payload: late)
+            ])
+            #expect(try persistence.journal.envelope(for: late.key)?.isDeleted == true)
+            #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map(\.value) == [event])
+        }
+    }
+
+    private func writeCloudHistoryStore(
+        _ url: URL, event: ConnectionHistoryEntry, device: DeviceRecord, envelopes: [HistoryEnvelope]
+    ) throws {
+        let schema = Schema(versionedSchema: TermindSchemaV48.self)
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
+        let context = container.mainContext
+        context.insert(PersistentConnectionHistoryEntry(event))
+        context.insert(PersistentDeviceRecord(device))
+        context.insert(PersistentCommandHistoryEntry(hostID: event.hostID, command: "retired", executedAt: .now))
+        context.insert(
+            PersistentSFTPHistoryEntry(hostID: event.hostID, kind: "file", path: "/retired", visitedAt: .now))
+        for (index, envelope) in envelopes.enumerated() {
+            let row = try PersistentHistorySyncEntry(envelope: envelope, needsUpload: index != 1)
+            row.systemFieldsData = Data([UInt8(index), 42])
+            context.insert(row)
+        }
+        for kind in HistoryRecordKind.allCases {
+            let state = try HistorySyncJournal(context: context, kind: kind).state()
+            state.bootstrapCompleted = true
+            state.installationID = device.id
+            state.boundUserRecordName = "account-\(kind.rawValue)"
+            state.pendingUserRecordName = "pending-\(kind.rawValue)"
+            state.engineStateData = Data(kind.rawValue.utf8)
+            state.lastSuccessfulSync = envelopes[0].version.modifiedAt
+        }
+        try context.save()
+    }
+
     @Test(arguments: [9, 48])
     func oldStoresDropSessionHistoryAndRetainOtherDataAfterReopening(version: Int) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

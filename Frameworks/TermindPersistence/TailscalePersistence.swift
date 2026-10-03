@@ -19,6 +19,13 @@ public final class PersistentTailscaleGroup {
 
 public typealias PersistentTailscaleLocalState = TermindSchemaV48TailscaleModels.PersistentTailscaleLocalState
 
+/// Device-local retry intent; never part of a Vault envelope.
+@Model
+public final class PersistentTailscaleProfileCleanup {
+    @Attribute(.unique) public var profileID: UUID
+    public init(profileID: UUID) { self.profileID = profileID }
+}
+
 extension HostPersistence {
     static func groups(in context: ModelContext) throws -> [HostGroup] {
         let configurations = try Dictionary(
@@ -69,6 +76,7 @@ public final class SwiftDataTailscaleLocalStore: TailscaleLocalStoring {
             if let row = try context.fetch(FetchDescriptor<PersistentTailscaleLocalState>()).first(where: {
                 $0.groupID == state.groupID
             }) {
+                if row.profileID != state.profileID { try enqueueCleanup(row.profileID) }
                 row.profileID = state.profileID
                 row.peersData = data
                 row.hostname = state.hostname
@@ -77,14 +85,42 @@ public final class SwiftDataTailscaleLocalStore: TailscaleLocalStoring {
                     PersistentTailscaleLocalState(
                         groupID: state.groupID, profileID: state.profileID, peersData: data, hostname: state.hostname))
             }
+            try deleteCleanup(state.profileID)
         }
     }
     public func remove(groupID: UUID) throws {
         try context.commit {
             for row in try context.fetch(FetchDescriptor<PersistentTailscaleLocalState>()) where row.groupID == groupID
             {
+                try enqueueCleanup(row.profileID)
                 context.delete(row)
             }
         }
+    }
+
+    public func scheduleCleanup(profileID: UUID) throws {
+        try context.commit { try enqueueCleanup(profileID) }
+    }
+
+    public func pendingCleanupProfiles() throws -> Set<UUID> {
+        let active = Set(try context.fetch(FetchDescriptor<PersistentTailscaleLocalState>()).map(\.profileID))
+        return Set(try context.fetch(FetchDescriptor<PersistentTailscaleProfileCleanup>()).map(\.profileID))
+            .subtracting(active)
+    }
+
+    public func completeCleanup(profileID: UUID) throws {
+        try context.commit { try deleteCleanup(profileID) }
+    }
+
+    private func enqueueCleanup(_ profileID: UUID) throws {
+        let query = FetchDescriptor<PersistentTailscaleProfileCleanup>(
+            predicate: #Predicate { $0.profileID == profileID })
+        if try context.fetch(query).isEmpty { context.insert(PersistentTailscaleProfileCleanup(profileID: profileID)) }
+    }
+
+    private func deleteCleanup(_ profileID: UUID) throws {
+        let query = FetchDescriptor<PersistentTailscaleProfileCleanup>(
+            predicate: #Predicate { $0.profileID == profileID })
+        for row in try context.fetch(query) { context.delete(row) }
     }
 }

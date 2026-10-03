@@ -62,10 +62,14 @@ public final class CloudSyncSafetyStore {
     }
 
     public func requiresNewerClient() throws -> Bool {
+        try hasQuarantine(reason: .unsupportedFormat)
+    }
+
+    public func hasQuarantine(reason: CloudSyncQuarantineReason) throws -> Bool {
         let scopeKey = scope.storageKey
-        let unsupported = CloudSyncQuarantineReason.unsupportedFormat.rawValue
+        let reasonCode = reason.rawValue
         var descriptor = FetchDescriptor<PersistentCloudSyncQuarantine>(
-            predicate: #Predicate { $0.scopeKey == scopeKey && $0.reasonCode == unsupported })
+            predicate: #Predicate { $0.scopeKey == scopeKey && $0.reasonCode == reasonCode })
         descriptor.fetchLimit = 1
         return try !context.fetch(descriptor).isEmpty
     }

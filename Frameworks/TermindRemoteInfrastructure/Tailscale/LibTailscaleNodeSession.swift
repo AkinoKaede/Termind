@@ -18,16 +18,51 @@ public actor LibTailscaleNodeSession: TailscaleNodeSession {
 
     public static let factory: TailscaleNodeFactory = { profileID, hostname, controlURL, authKey in
         try await Task.detached {
-            let directory = try FileManager.default.url(
-                for: .applicationSupportDirectory, in: .userDomainMask,
-                appropriateFor: nil, create: true
-            ).appendingPathComponent("Termind/Tailscale/\(profileID.uuidString)", isDirectory: true)
+            let directory = try profileDirectory(profileID)
             let node = try Node(
                 hostname: hostname, directory: directory, controlURL: controlURL,
-                stateNamespace: "app.termind.tailscale.\(profileID.uuidString)", authKey: authKey
+                stateNamespace: stateNamespace(profileID), authKey: authKey
             )
             return LibTailscaleNodeSession(node: node, controlURL: controlURL)
         }.value
+    }
+
+    public static let profileStorage = TailscaleProfileStorage(
+        profiles: {
+            try await Task.detached { try storedProfiles(in: profileRoot()) }.value
+        },
+        erase: { id in
+            try await Task.detached {
+                try Node.eraseState(directory: profileDirectory(id), stateNamespace: stateNamespace(id))
+            }.value
+        })
+
+    private nonisolated static func stateNamespace(_ id: UUID) -> String { "app.termind.tailscale.\(id.uuidString)" }
+
+    private nonisolated static func profileRoot() throws -> URL {
+        try FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false
+        ).appendingPathComponent("Termind/Tailscale", isDirectory: true)
+    }
+
+    private nonisolated static func profileDirectory(_ id: UUID) throws -> URL {
+        try profileRoot().appendingPathComponent(id.uuidString, isDirectory: true)
+    }
+
+    nonisolated static func storedProfiles(in root: URL) throws -> Set<UUID> {
+        let entries: [URL]
+        do {
+            entries = try FileManager.default.contentsOfDirectory(
+                at: root, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        } catch CocoaError.fileReadNoSuchFile { return [] }
+        return try Set(
+            entries.compactMap { url in
+                guard let id = UUID(uuidString: url.lastPathComponent), id.uuidString == url.lastPathComponent else {
+                    return nil
+                }
+                let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                return values.isDirectory == true && values.isSymbolicLink != true ? id : nil
+            })
     }
 
     public func status() async throws -> TailscaleNodeStatus {
@@ -140,7 +175,7 @@ public actor LibTailscaleNodeSession: TailscaleNodeSession {
     public func logout() async throws {
         _ = try? await node.request(method: "POST", path: "logout")
         await node.close()
-        try await node.eraseState()
+        // The model's durable profile cleanup queue owns local erasure and retry.
     }
     public func close() async { await node.close() }
     public func dial(host: String, port: Int, timeout: TimeInterval) async throws -> Int32 {
