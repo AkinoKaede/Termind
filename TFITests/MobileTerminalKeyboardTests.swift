@@ -1,7 +1,6 @@
 import Foundation
 import GhosttyTerminal
 import SwiftUI
-import TermindPresentation
 import Testing
 import UIKit
 
@@ -21,12 +20,9 @@ struct MobileTerminalKeyboardTests {
             ])
         let bar = try #require(terminal.inputAccessoryView)
         let buttons = accessoryButtons(in: bar)
-        #expect(buttons.map(\.accessibilityLabel) == items.compactMap(terminal.inputAccessoryAccessibilityLabel))
+        #expect(buttons.map(\.accessibilityLabel) == items.compactMap(\.title))
         #expect(items.last == .paste)
         #expect(buttons.count == 18)
-        #expect(
-            terminal.inputAccessoryAccessibilityLabel(for: .command)
-                == String(localized: AppStrings.Terminal.commandKey))
     }
 
     @Test func nativeAccessoryKeepsItsGeometryAndAllKeysReachable() throws {
@@ -50,28 +46,6 @@ struct MobileTerminalKeyboardTests {
         }
     }
 
-    @Test func modifierButtonsExposeLocalizedArmedAndLockedStates() throws {
-        let terminal = MobileTerminalView(frame: .zero)
-        let bar = try #require(terminal.inputAccessoryView)
-        for (modifier, item) in [
-            (TerminalPublicStickyModifier.ctrl, TerminalInputAccessoryItem.ctrl), (.alt, .alt), (.command, .command),
-        ] {
-            let button = try #require(
-                accessoryButtons(in: bar).first {
-                    $0.accessibilityLabel == terminal.inputAccessoryAccessibilityLabel(for: item)
-                })
-            button.sendActions(for: .touchUpInside)
-            #expect(terminal.stickyActivation(for: modifier) == .armed)
-            #expect(button.accessibilityValue == String(localized: AppStrings.Terminal.armed))
-            #expect(button.accessibilityTraits.contains(.selected))
-            button.sendActions(for: .touchUpInside)
-            #expect(terminal.stickyActivation(for: modifier) == .locked)
-            #expect(button.accessibilityValue == String(localized: AppStrings.Terminal.locked))
-            button.sendActions(for: .touchUpInside)
-            #expect(terminal.stickyActivation(for: modifier) == .inactive)
-            #expect(!button.accessibilityTraits.contains(.selected))
-        }
-    }
 }
 
 /// Hosts the library's actual UIView for the existing opt-in rendering matrix.
@@ -269,7 +243,7 @@ private final class KeyboardFixture {
         let bar = try #require(terminal.inputAccessoryView)
         return try #require(
             accessoryButtons(in: bar).first {
-                $0.accessibilityLabel == terminal.inputAccessoryAccessibilityLabel(for: item)
+                $0.accessibilityLabel == item.title
             })
     }
 
