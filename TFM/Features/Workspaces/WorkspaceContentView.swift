@@ -1254,6 +1254,7 @@ private struct WelcomeHostRow: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @State private var confirmsHistoryClear = false
+    @State private var isMenuPresented = false
 
     var body: some View {
         Button {
@@ -1289,17 +1290,16 @@ private struct WelcomeHostRow: View {
         }
         .buttonStyle(.plain)
         .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
-        .contextMenu {
-            HostContextMenu(
-                host: host
-            )
-            Divider()
-            DestructiveMenuButton(AppStrings.Common.delete) {
-                if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
-                    confirmsHistoryClear = true
-                } else {
-                    app.connectionHistory.clear(for: host.id)
-                }
+        .overlay {
+            // Build a native menu per click. SwiftUI's live context menu can shrink
+            // its popup window when the greeting updates during menu tracking.
+            NativeRowContextMenu(entries: { contextMenu }, isPresented: $isMenuPresented)
+        }
+        .overlay {
+            if isMenuPresented {
+                RoundedRectangle(cornerRadius: Metrics.Radius.medium)
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+                    .allowsHitTesting(false)
             }
         }
         .confirmationDialog(
@@ -1313,6 +1313,22 @@ private struct WelcomeHostRow: View {
         } message: {
             Text(AppStrings.Workspace.clearHostHistoryWarning)
         }
+    }
+
+    private var contextMenu: [NativeMenuEntry] {
+        HostMenuEntries.entries(for: host, app: app, window: window, includesDuplicate: true)
+            + [
+                .separator,
+                NativeMenuEntry(
+                    title: AppStrings.Common.delete, symbol: MenuSymbol.delete, imageVisibility: .visible
+                ) {
+                    if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
+                        confirmsHistoryClear = true
+                    } else {
+                        app.connectionHistory.clear(for: host.id)
+                    }
+                },
+            ]
     }
 
     @ViewBuilder

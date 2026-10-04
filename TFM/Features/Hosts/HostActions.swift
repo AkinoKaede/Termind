@@ -73,24 +73,7 @@ struct HostContextMenu: View {
             }
             if showsDuplicate {
                 Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
-                    var copy = host
-                    if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-                        copy.identityID = nil
-                    }
-                    if host.proxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-                        copy.proxy?.identityID = nil
-                        copy.proxy?.username = ""
-                    }
-                    if host.telnetIdentityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-                        copy.telnetIdentityID = nil
-                    }
-                    if host.telnetProxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
-                        copy.telnetProxy?.identityID = nil
-                        copy.telnetProxy?.username = ""
-                    }
-                    copy.id = UUID()
-                    copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
-                    app.hostLibrary.upsert(copy)
+                    HostMenuEntries.duplicate(host, in: app)
                 }
                 .disabled(host.isTailscaleManaged)
             }
@@ -183,7 +166,8 @@ enum HostMenuEntries {
         for host: Host,
         app: AppModel,
         window: WindowModel,
-        includesCopySSHCommand: Bool = true
+        includesCopySSHCommand: Bool = true,
+        includesDuplicate: Bool = false
     ) -> [NativeMenuEntry] {
         let connectActions = HostConnectAction.available(for: [host])
         var entries = [
@@ -230,7 +214,37 @@ enum HostMenuEntries {
             NativeMenuEntry(title: AppStrings.Common.edit, symbol: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             })
+        if includesDuplicate {
+            entries.append(
+                NativeMenuEntry(
+                    title: AppStrings.Common.duplicate, symbol: MenuSymbol.duplicate,
+                    isEnabled: !host.isTailscaleManaged
+                ) {
+                    duplicate(host, in: app)
+                })
+        }
         return entries
+    }
+
+    static func duplicate(_ host: Host, in app: AppModel) {
+        var copy = host
+        if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+            copy.identityID = nil
+        }
+        if host.proxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+            copy.proxy?.identityID = nil
+            copy.proxy?.username = ""
+        }
+        if host.telnetIdentityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+            copy.telnetIdentityID = nil
+        }
+        if host.telnetProxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+            copy.telnetProxy?.identityID = nil
+            copy.telnetProxy?.username = ""
+        }
+        copy.id = UUID()
+        copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
+        app.hostLibrary.upsert(copy)
     }
 }
 
