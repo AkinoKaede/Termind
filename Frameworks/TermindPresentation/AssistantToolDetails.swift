@@ -50,7 +50,7 @@ public struct AssistantToolDetails: View {
                         .font(field.isMonospaced ? .caption.monospaced() : .caption)
                         .buttonStyle(.plain)
                         .foregroundStyle(.tint)
-                } else if let url = allowedURL(field.url) {
+                } else if let url = linkURL(field.url) {
                     Link(field.value, destination: url).font(.caption)
                 } else {
                     Text(field.value).font(field.isMonospaced ? .caption.monospaced() : .caption)
@@ -100,7 +100,7 @@ public struct AssistantToolDetails: View {
                     if !row.badges.isEmpty { Text(row.badges.joined(separator: " · ")).font(.caption) }
                     if let navigation = row.navigation, let navigate {
                         Button(AppStrings.Common.open.swiftUIKey) { navigate(navigation) }
-                    } else if let url = allowedURL(row.url) {
+                    } else if let url = linkURL(row.url) {
                         Link(AppStrings.Common.open.swiftUIKey, destination: url)
                     }
                 }
@@ -108,8 +108,8 @@ public struct AssistantToolDetails: View {
         }
     }
 
-    private func allowedURL(_ value: String?) -> URL? {
-        guard let value, TermindMarkdownParser.isAllowedLink(value) else { return nil }
+    private func linkURL(_ value: String?) -> URL? {
+        guard let value else { return nil }
         return URL(string: value)
     }
 

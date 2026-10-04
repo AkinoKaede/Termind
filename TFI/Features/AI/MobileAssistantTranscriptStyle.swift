@@ -28,15 +28,9 @@ struct MobileAssistantMarkdown: View {
         value.colors.code = color
         value.colors.highlight = UIColor(Color.accentColor).resolvedColor(with: traits)
         value.colors.emphasis = UIColor(Color.accentColor).resolvedColor(with: traits)
-        value.colors.codeBackground = UIColor.secondaryLabel.resolvedColor(with: traits).withAlphaComponent(0.15)
         value.spacings.paragraph = AssistantTranscriptStyle.blockSpacing
         value.spacings.headingBefore = 4
         value.spacings.list = 4
-        value.table.cornerRadius = 4
-        value.table.borderColor = UIColor.separator.resolvedColor(with: traits)
-        value.table.headerBackgroundColor = UIColor.quaternaryLabel.resolvedColor(with: traits).withAlphaComponent(0.12)
-        value.table.stripeCellBackgroundColor = UIColor.quaternaryLabel.resolvedColor(with: traits).withAlphaComponent(
-            0.06)
         return value
     }
 }

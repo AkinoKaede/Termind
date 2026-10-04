@@ -181,15 +181,15 @@ struct AssistantTranscriptPresentationTests {
         #expect(preview.displayed.split(separator: "\n", omittingEmptySubsequences: false).count <= 120)
     }
 
-    @Test func reasoningTitlesKeepEmphasisAndDoNotRenderRemoteImagesOrUnsafeLinks() {
+    @Test func reasoningTitlesKeepEmphasisLinksAndImageAltText() {
         let title = TermindMarkdownParser.inlineTitle(
             "## **Inspect**\n\n`nginx` [logs](https://example.com) ![alt](https://example.com/p.png)")
         #expect(String(title.characters) == "Inspect nginx logs alt")
         #expect(title.runs.contains { $0.inlinePresentationIntent?.contains(.stronglyEmphasized) == true })
         #expect(title.runs.contains { $0.inlinePresentationIntent?.contains(.code) == true })
-        let unsafe = TermindMarkdownParser.inlineTitle("[command](file:///tmp/local)")
-        #expect(String(unsafe.characters) == "command")
-        #expect(unsafe.runs.allSatisfy { $0.link == nil })
+        let localLink = TermindMarkdownParser.inlineTitle("[command](file:///tmp/local)")
+        #expect(String(localLink.characters) == "command")
+        #expect(localLink.runs.contains { $0.link == URL(string: "file:///tmp/local") })
     }
 
     private func work(id: UUID, state: AgentRunState, afterAnswer: Bool = false) -> AssistantTranscriptEntry {

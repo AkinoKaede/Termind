@@ -1637,7 +1637,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func completedTerminalSuggestionIsPromotedBesidePlansInsteadOfRemainingInWorked() throws {
+    func completedLegacyTerminalSuggestionIsPromotedWithoutItsExplanation() throws {
         let conversation = ConversationModel()
         let runID = UUID()
         let createdAt = Date(timeIntervalSince1970: 2_000)
@@ -1679,7 +1679,6 @@ struct ChatComposerStateTests {
         }
         #expect(command.id == invocation.id)
         #expect(command.command == "pwd")
-        #expect(command.explanation == "Show the current directory.")
         #expect(command.createdAt == createdAt)
     }
 

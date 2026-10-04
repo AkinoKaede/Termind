@@ -9,12 +9,11 @@ enum TermindMarkdownTone: Hashable {
     case secondary
 }
 
-// MARK: - Parsing policy
+// MARK: - Transcript titles
 
 extension TermindMarkdownParser {
-    /// A one-line AppKit projection for transient tool titles. It applies the
-    /// same sanitization as the full transcript renderer, preserves inline
-    /// emphasis/code/strikethrough/safe links, and flattens block structure
+    /// A one-line AppKit projection for transient tool titles. It preserves
+    /// inline emphasis/code/strikethrough/links and flattens block structure
     /// without allowing it to change the disclosure header's height.
     @MainActor
     static func singleLineAttributedText(
@@ -78,7 +77,7 @@ extension TermindMarkdownParser {
                     inlines(children, attributes: struck)
                 case .link(let destination, let children):
                     var link = attributes
-                    if let url = URL(string: destination), isAllowedLink(destination) {
+                    if let url = URL(string: destination) {
                         link[.link] = url
                         link[.foregroundColor] = NSColor.linkColor
                         link[.underlineStyle] = NSUnderlineStyle.single.rawValue
@@ -152,45 +151,11 @@ extension TermindMarkdownParser {
 
 @MainActor
 struct TermindMarkdownRenderedDocument {
-    struct Segment: Identifiable {
-        enum Content {
-            case markdown(MarkdownContent)
-            case shell(language: String, command: String)
-        }
-
-        let id: Int
-        let content: Content
-    }
-
-    let segments: [Segment]
+    let content: MarkdownContent
     let theme: MarkdownTheme
 
-    init(source: String, allowsShellActions: Bool, theme: TermindMarkdownTheme.Value) {
-        let parserResult = MarkdownParser().parse(MarkdownSoftBreaks.hardened(source))
-        let blocks = TermindMarkdownParser.sanitize(parserResult.document)
-        let rendered = parserResult.renderedContent(theme: theme.theme)
-        let highlights = parserResult.highlightMaps(theme: theme.theme)
-
-        segments = TermindMarkdownParser.segments(
-            from: blocks,
-            allowsShellActions: allowsShellActions
-        ).enumerated().map { index, segment in
-            switch segment {
-            case .markdown(let segmentBlocks):
-                let content = MarkdownContent(
-                    blocks: segmentBlocks,
-                    rendered: rendered,
-                    highlightMaps: highlights,
-                    locale: .autoupdatingCurrent
-                )
-                return Segment(id: index, content: .markdown(content))
-            case .shell(let language, let command):
-                return Segment(
-                    id: index,
-                    content: .shell(language: language, command: command)
-                )
-            }
-        }
+    init(source: String, theme: TermindMarkdownTheme.Value) {
+        content = MarkdownContent(markdown: source, theme: theme.theme)
         self.theme = theme.theme
     }
 }
@@ -227,9 +192,6 @@ enum TermindMarkdownTheme {
         theme.colors.code = bodyColor
         theme.colors.highlight = resolved(.controlAccentColor, colorScheme: colorScheme)
         theme.colors.emphasis = resolved(.controlAccentColor, colorScheme: colorScheme)
-        theme.colors.codeBackground = resolved(
-            .secondaryLabelColor, colorScheme: colorScheme
-        ).withAlphaComponent(0.15)
         theme.colors.selectionBackground = resolved(
             .controlAccentColor, colorScheme: colorScheme
         ).withAlphaComponent(0.2)
@@ -237,14 +199,6 @@ enum TermindMarkdownTheme {
         theme.spacings.paragraph = Metrics.Chat.blockSpacing
         theme.spacings.headingBefore = Metrics.Space.xs
         theme.spacings.list = Metrics.Space.xs
-        theme.table.cornerRadius = Metrics.Radius.small
-        theme.table.borderColor = resolved(.separatorColor, colorScheme: colorScheme)
-        theme.table.headerBackgroundColor = resolved(
-            .quaternaryLabelColor, colorScheme: colorScheme
-        ).withAlphaComponent(0.12)
-        theme.table.stripeCellBackgroundColor = resolved(
-            .quaternaryLabelColor, colorScheme: colorScheme
-        ).withAlphaComponent(0.06)
         return Value(theme: theme, colorScheme: colorScheme)
     }
 

@@ -2,82 +2,8 @@ import Foundation
 import MarkdownParser
 
 nonisolated public enum TermindMarkdownParser {
-    public static let allowedLinkSchemes: Set<String> = ["http", "https", "mailto"]
-    public static let shellLanguages: Set<String> = [
-        "bash", "sh", "zsh", "shell", "console", "terminal",
-    ]
-
     public static func parse(_ source: String) -> [MarkdownBlockNode] {
-        let parsed = MarkdownParser().parse(MarkdownSoftBreaks.hardened(source))
-        return sanitize(parsed.document)
-    }
-
-    public static func sanitize(_ blocks: [MarkdownBlockNode]) -> [MarkdownBlockNode] {
-        blocks.rewrite { (inline: MarkdownInlineNode) -> [MarkdownInlineNode] in
-            switch inline {
-            case .link(let destination, let children):
-                guard isAllowedLink(destination) else { return children }
-                return [.link(destination: destination, children: children)]
-            case .image(_, let children):
-                // Never fetch a model-chosen URL while rendering a transcript.
-                // The image's alt text remains readable ordinary prose.
-                return children
-            default:
-                return [inline]
-            }
-        }
-    }
-
-    public static func isAllowedLink(_ destination: String) -> Bool {
-        guard let scheme = URL(string: destination)?.scheme?.lowercased() else {
-            return false
-        }
-        return allowedLinkSchemes.contains(scheme)
-    }
-
-    public static func isActionableShell(language: String?, code: String) -> Bool {
-        guard let language else { return false }
-        return shellLanguages.contains(language.lowercased())
-            && !normalizedFenceCode(code).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    public static func segments(
-        from blocks: [MarkdownBlockNode],
-        allowsShellActions: Bool
-    ) -> [TermindMarkdownBlockSegment] {
-        var result: [TermindMarkdownBlockSegment] = []
-        var markdown: [MarkdownBlockNode] = []
-
-        func flushMarkdown() {
-            guard !markdown.isEmpty else { return }
-            result.append(.markdown(markdown))
-            markdown.removeAll(keepingCapacity: true)
-        }
-
-        for block in blocks {
-            if allowsShellActions,
-                case .codeBlock(let language, let code) = block,
-                isActionableShell(language: language, code: code)
-            {
-                flushMarkdown()
-                result.append(
-                    .shell(
-                        language: language ?? "",
-                        command: normalizedFenceCode(code)
-                    ))
-            } else {
-                markdown.append(block)
-            }
-        }
-        flushMarkdown()
-        return result
-    }
-
-    /// cmark includes the structural newline immediately before a closing
-    /// fence. It is not part of the command and must not make a one-line shell
-    /// suggestion look like a multi-line script to the execution guard.
-    private static func normalizedFenceCode(_ code: String) -> String {
-        code.hasSuffix("\n") ? String(code.dropLast()) : code
+        MarkdownParser().parse(source).document
     }
 
     public static func plainText(_ source: String) -> String {
@@ -88,7 +14,7 @@ nonisolated public enum TermindMarkdownParser {
             .joined(separator: " ")
     }
 
-    /// A portable single-line title that keeps inline emphasis and safe links.
+    /// A portable single-line title that keeps inline emphasis and links.
     public static func inlineTitle(_ source: String) -> AttributedString {
         func inlines(_ nodes: [MarkdownInlineNode]) -> AttributedString {
             nodes.reduce(into: AttributedString()) { result, node in
@@ -121,7 +47,7 @@ nonisolated public enum TermindMarkdownParser {
                     }
                 case .link(let destination, let children):
                     value = inlines(children)
-                    if isAllowedLink(destination) { value.link = URL(string: destination) }
+                    value.link = URL(string: destination)
                 case .image(_, let children):
                     value = inlines(children)
                 }
@@ -181,9 +107,4 @@ nonisolated public enum TermindMarkdownParser {
             }
         }.joined()
     }
-}
-
-nonisolated public enum TermindMarkdownBlockSegment: Equatable, Sendable {
-    case markdown([MarkdownBlockNode])
-    case shell(language: String, command: String)
 }

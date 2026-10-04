@@ -8,17 +8,15 @@ import TermindDomain
 nonisolated public struct SuggestedCommand: Identifiable, Hashable, Sendable {
     public var id: UUID = UUID()
     public var command: String
-    public var explanation: String = ""
     public var createdAt: Date = .now
 
     public var risk: RiskAssessment {
         CommandRiskClassifier.assess(command)
     }
 
-    public init(id: UUID = UUID(), command: String, explanation: String = "", createdAt: Date = .now) {
+    public init(id: UUID = UUID(), command: String, createdAt: Date = .now) {
         self.id = id
         self.command = command
-        self.explanation = explanation
         self.createdAt = createdAt
     }
 }
@@ -346,7 +344,6 @@ nonisolated public struct AgentToolCard: Identifiable, Hashable, Sendable {
         return SuggestedCommand(
             id: id,
             command: command,
-            explanation: arguments["explanation"]?.stringValue ?? "",
             createdAt: invocation.createdAt
         )
     }

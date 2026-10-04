@@ -198,7 +198,6 @@ nonisolated enum Metrics {
         static let gutter: CGFloat = 56
         /// The same idea at 260pt, where 56 would leave a bubble two words wide.
         static let compactGutter: CGFloat = 24
-        static let codeInset: CGFloat = 10
         /// The leading rule on a block quote and on expanded tool output.
         static let rule: CGFloat = 2
         /// The draft editor's floor and ceiling.

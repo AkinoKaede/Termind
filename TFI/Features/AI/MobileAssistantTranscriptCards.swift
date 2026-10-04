@@ -1,4 +1,5 @@
 import AgentKit
+import MarkdownView
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -95,36 +96,21 @@ struct MobileAssistantCommandRow: View {
     let command: SuggestedCommand
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label(AppStrings.Assistant.suggestedCommand.swiftUIKey, systemImage: "sparkles").foregroundStyle(
-                    .secondary)
-                Spacer(minLength: 8)
-                Label(command.risk.risk.label, systemImage: command.risk.risk.symbol).foregroundStyle(riskColor)
-            }.font(.caption.weight(.medium))
-            Text(command.command).font(.callout.monospaced()).textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(10)
-            if !command.explanation.isEmpty {
-                Text(command.explanation).font(.caption).foregroundStyle(.secondary)
-            }
-            ForEach(command.risk.reasons, id: \.self) { reason in
-                Text(verbatim: "• \(reason)").font(.caption2).foregroundStyle(riskColor)
-            }
-            HStack {
-                Spacer()
-                Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
-                    UIPasteboard.general.string = command.command
+        VStack(alignment: .leading, spacing: 0) {
+            SuggestedCommandCodeBlock(command.command)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(command.risk.reasons, id: \.self) { reason in
+                    Text(verbatim: "• \(reason)").font(.caption2).foregroundStyle(riskColor)
                 }
-                .font(.caption).frame(minHeight: 44)
+                HStack {
+                    Spacer()
+                    Label(command.risk.risk.label, systemImage: command.risk.risk.symbol)
+                        .font(.caption.weight(.medium)).foregroundStyle(riskColor)
+                }
             }
+            .padding(.top, 8).padding([.horizontal, .bottom], 12)
         }
-        .padding(16)
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(
-                    command.risk.risk == .destructive ? Color.red.opacity(0.4) : Color(uiColor: .separator),
-                    lineWidth: 1)
-        }
+        .background(Color(uiColor: MarkdownTheme().colors.codeBlockBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var riskColor: Color {

@@ -137,8 +137,7 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
             command yourself, use ssh_exec.
             """,
             properties: [
-                "command": Self.string(max: 32_768),
-                "explanation": Self.string(max: 4_096),
+                "command": Self.string(max: 32_768)
             ],
             required: ["command"], target: .user, approvalPolicy: .approve,
             concurrency: .parallel,
@@ -160,7 +159,6 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
             invocation,
             .object([
                 "command": .string(command),
-                "explanation": .string(arguments.optionalString("explanation") ?? ""),
                 "risk": .string(CommandRiskClassifier.assess(command).risk.label),
                 "requires_user_action": .bool(true),
             ]))
@@ -181,11 +179,6 @@ nonisolated extension TerminalSuggestTool {
             input.arguments["command"]?.stringValue
             ?? object["command"]?.stringValue ?? ""
         var items: [AgentToolDetail.Item] = [F.text("Command", command, locale: input.locale)]
-        if let explanation = F.nonempty(
-            input.arguments["explanation"]?.stringValue ?? object["explanation"]?.stringValue
-        ) {
-            items.append(.message(explanation, .secondary))
-        }
         let assessment = CommandRiskClassifier.assess(command)
         items.append(F.field("Risk", assessment.risk.label, locale: input.locale))
         items.append(contentsOf: assessment.reasons.map { .message($0, .warning) })

@@ -22,14 +22,15 @@ struct MarkdownParsingTests {
     }
 
     @Test
-    func newlineInsideAParagraphSurvivesAsALineBreak() {
+    func newlineInsideAParagraphUsesUpstreamSoftBreaks() {
         let blocks = TermindMarkdownParser.parse("**Note:** this matters\nAnother line here")
         guard case .paragraph(let inlines)? = blocks.first else {
             Issue.record("expected a paragraph, got \(blocks)")
             return
         }
-        #expect(inlines.contains(.lineBreak))
-        #expect(inlineText(inlines).contains("matters\nAnother"))
+        #expect(inlines.contains(.softBreak))
+        #expect(!inlines.contains(.lineBreak))
+        #expect(inlineText(inlines).contains("matters Another"))
     }
 
     @Test
@@ -97,34 +98,36 @@ struct MarkdownParsingTests {
         #expect(code.trimmingCharacters(in: .newlines) == "ls -la")
     }
 
-    @Test
-    func onlyOpenableSchemesRemainLinks() {
-        let allowed = linkedInline("[docs](https://example.com)")
-        guard case .link(let destination, _)? = allowed else {
-            Issue.record("expected an allowed link")
+    @Test(arguments: ["https://example.com", "file:///tmp/example.txt", "ssh://example.com", "custom:document"])
+    @MainActor
+    func renderedLinksKeepTheirOriginalScheme(destination: String) throws {
+        let document = TermindMarkdownRenderedDocument(
+            source: "[open](\(destination))",
+            theme: TermindMarkdownTheme.make(tone: .primary)
+        )
+        let inline = try #require(paragraphInlines(document.content.blocks.first).first)
+        guard case .link(let renderedDestination, let children) = inline else {
+            Issue.record("expected the original link")
             return
         }
-        #expect(destination == "https://example.com")
-
-        for source in ["[click](javascript:alert(1))", "[open](file:///etc/passwd)"] {
-            let inlines = paragraphInlines(TermindMarkdownParser.parse(source).first)
-            #expect(
-                !inlines.contains { inline in
-                    guard case .link = inline else { return false }
-                    return true
-                })
-            #expect(inlineText(inlines).contains(source.contains("click") ? "click" : "open"))
-        }
+        #expect(renderedDestination == destination)
+        #expect(inlineText(children) == "open")
     }
 
     @Test
-    func imagesKeepAltTextButLoseRemoteSource() {
-        let blocks = TermindMarkdownParser.parse(
-            "![alt text](https://tracker.test/p.png)"
+    @MainActor
+    func renderedImagesKeepTheirSourceAndAltText() throws {
+        let document = TermindMarkdownRenderedDocument(
+            source: "![alt text](https://example.com/p.png)",
+            theme: TermindMarkdownTheme.make(tone: .primary)
         )
-        let inlines = paragraphInlines(blocks.first)
-        #expect(inlineText(inlines) == "alt text")
-        #expect(!String(describing: inlines).contains("tracker.test"))
+        let inline = try #require(paragraphInlines(document.content.blocks.first).first)
+        guard case .image(let source, let children) = inline else {
+            Issue.record("expected an image node")
+            return
+        }
+        #expect(source == "https://example.com/p.png")
+        #expect(inlineText(children) == "alt text")
     }
 
     @Test
@@ -164,46 +167,36 @@ struct MarkdownParsingTests {
     }
 
     @Test
-    func assistantShellFencesBecomeActionSegments() {
-        let blocks = TermindMarkdownParser.parse(
-            "before\n\n```bash\necho ok\n```\n\nafter"
-        )
-        let segments = TermindMarkdownParser.segments(
-            from: blocks,
-            allowsShellActions: true
-        )
-        #expect(segments.count == 3)
-        #expect(segments[1] == .shell(language: "bash", command: "echo ok"))
+    @MainActor
+    func renderedDocumentKeepsShellFencesAndTablesInOrder() throws {
+        let document = TermindMarkdownRenderedDocument(
+            source: """
+                Before the blocks.
 
-        let userSegments = TermindMarkdownParser.segments(
-            from: blocks,
-            allowsShellActions: false
+                ```bash
+                echo ok
+                ```
+
+                | Name | Value |
+                | --- | --- |
+                | result | ready |
+
+                After the blocks.
+                """,
+            theme: TermindMarkdownTheme.make(tone: .primary)
         )
-        #expect(userSegments.count == 1)
-        guard case .markdown(let userBlocks) = userSegments[0] else {
-            Issue.record("user code should stay native Markdown")
+        let blocks = document.content.blocks
+        try #require(blocks.count == 4)
+        #expect(paragraphText(blocks.first) == "Before the blocks.")
+        guard case .codeBlock(let language, let code) = blocks[1],
+            case .table = blocks[2]
+        else {
+            Issue.record("expected shell code and a table in the same Markdown document")
             return
         }
-        #expect(userBlocks.count == blocks.count)
-        #expect(
-            userBlocks.contains { block in
-                guard case .codeBlock = block else { return false }
-                return true
-            })
-    }
-
-    @Test
-    func shellFenceExtractedFromAListStillBecomesAnActionSegment() {
-        let blocks = TermindMarkdownParser.parse("- inspect\n\n  ```zsh\n  pwd\n  ```")
-        let segments = TermindMarkdownParser.segments(
-            from: blocks,
-            allowsShellActions: true
-        )
-        #expect(
-            segments.contains { segment in
-                guard case .shell(let language, let command) = segment else { return false }
-                return language == "zsh" && command.trimmingCharacters(in: .whitespaces) == "pwd"
-            })
+        #expect(language == "bash")
+        #expect(code == "echo ok\n")
+        #expect(paragraphText(blocks.last) == "After the blocks.")
     }
 
     @Test
@@ -220,7 +213,7 @@ struct MarkdownParsingTests {
 
     @MainActor
     @Test
-    func transientToolTitleFlattensBlocksAndPreservesSafeInlineMarkdown() throws {
+    func transientToolTitleFlattensBlocksAndPreservesInlineMarkdown() throws {
         let title = TermindMarkdownParser.singleLineAttributedText(
             """
             **Checked** *both* hosts and [`sshd`](https://example.com).
@@ -249,34 +242,26 @@ struct MarkdownParsingTests {
         #expect(TermindMarkdownParser.parse("").isEmpty)
     }
 
-    // MARK: - Soft-break guards
-
-    @Test(arguments: [
-        "```\nnot prose\nstill code\n```",
-        "| a | b |\n|---|---|\n| 1 | 2 |",
-        "<output label=\"log\">\nfirst\nsecond\n</output>",
-        "text\n# Heading",
-        "text\n- list item",
-        "text\n1. list item",
-        "Title\n===",
-        "text\n---",
-        "text\n```",
-    ])
-    func hardeningLeavesStructuralLinesAlone(source: String) {
-        #expect(!MarkdownSoftBreaks.hardened(source).contains("\\"))
+    @Test(arguments: ["first\\\nsecond", "first  \nsecond"])
+    func explicitHardBreaksRemainLineBreaks(source: String) {
+        let inlines = paragraphInlines(TermindMarkdownParser.parse(source).first)
+        #expect(inlines.contains(.lineBreak))
+        #expect(inlineText(inlines) == "first\nsecond")
     }
 
-    @Test
-    func hardeningAddsOneBreakBetweenTwoProseLines() {
-        #expect(MarkdownSoftBreaks.hardened("first\nsecond") == "first\\\nsecond")
-    }
-
-    @Test
-    func hardeningDoesNotDoubleUpOnAnExistingHardBreak() {
-        #expect(
-            MarkdownSoftBreaks.hardened("first\\\nsecond").filter { $0 == "\\" }.count == 1
-        )
-        #expect(!MarkdownSoftBreaks.hardened("first  \nsecond").contains("\\"))
+    @MainActor
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func suggestedCommandKeepsLiteralCodeAndLocalizesTheUpstreamHeader(language: String) throws {
+        let command = "printf '%s\\n' '```'\ncat <<'EOF'\n# literal heading\nEOF"
+        let content = SuggestedCommandCodeBlock.content(command, locale: Locale(identifier: language))
+        try #require(content.blocks.count == 1)
+        guard case .codeBlock(let title, let code) = content.blocks[0] else {
+            Issue.record("expected a single code block")
+            return
+        }
+        let titles = ["en": "Suggested Command", "zh-Hans": "建议的命令", "zh-Hant": "建議的指令"]
+        #expect(title == titles[language])
+        #expect(code == command)
     }
 
     private func paragraphText(_ block: MarkdownBlockNode?) -> String? {
@@ -287,13 +272,6 @@ struct MarkdownParsingTests {
     private func paragraphInlines(_ block: MarkdownBlockNode?) -> [MarkdownInlineNode] {
         guard case .paragraph(let inlines)? = block else { return [] }
         return inlines
-    }
-
-    private func linkedInline(_ source: String) -> MarkdownInlineNode? {
-        paragraphInlines(TermindMarkdownParser.parse(source).first).first { inline in
-            guard case .link = inline else { return false }
-            return true
-        }
     }
 
     private func inlineText(_ inlines: [MarkdownInlineNode]) -> String {

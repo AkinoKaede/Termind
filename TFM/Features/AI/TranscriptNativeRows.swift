@@ -16,14 +16,12 @@ final class TranscriptMarkdownCache {
 
         init(
             source: String,
-            allowsShellActions: Bool,
             tone: TermindMarkdownTone,
             colorScheme: ColorScheme
         ) {
             self.source = source
             rendered = TermindMarkdownRenderedDocument(
                 source: source,
-                allowsShellActions: allowsShellActions,
                 theme: TermindMarkdownTheme.make(tone: tone, colorScheme: colorScheme)
             )
         }
@@ -33,7 +31,6 @@ final class TranscriptMarkdownCache {
         let entryID: UUID
         let slot: String
         let source: String
-        let shell: Bool
         let tone: TermindMarkdownTone
         let colorScheme: ColorScheme
     }
@@ -48,7 +45,6 @@ final class TranscriptMarkdownCache {
         entryID: UUID,
         slot: String,
         source: String,
-        shell: Bool,
         tone: TermindMarkdownTone = .primary,
         colorScheme: ColorScheme
     ) -> Package {
@@ -56,7 +52,6 @@ final class TranscriptMarkdownCache {
             entryID: entryID,
             slot: slot,
             source: source,
-            shell: shell,
             tone: tone,
             colorScheme: colorScheme
         )
@@ -66,7 +61,6 @@ final class TranscriptMarkdownCache {
         }
         let value = Package(
             source: source,
-            allowsShellActions: shell,
             tone: tone,
             colorScheme: colorScheme
         )
@@ -400,7 +394,6 @@ private enum NativeTranscriptFactory {
     private final class AssistantContent: NSView {
         private let stack = NativeStack.vertical(spacing: Metrics.Chat.blockSpacing)
         private let markdownView = NativeMarkdownView()
-        private var representedMessageID: UUID?
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -425,8 +418,6 @@ private enum NativeTranscriptFactory {
             canFork: Bool,
             context: NativeTranscriptContext
         ) {
-            let sameMessage = representedMessageID == message.id
-            representedMessageID = message.id
             stack.removeAllArrangedSubviews()
             if !message.text.isEmpty {
                 markdownView.configure(
@@ -434,18 +425,10 @@ private enum NativeTranscriptFactory {
                         entryID: context.entryID,
                         slot: "assistant",
                         source: message.text,
-                        shell: true,
                         colorScheme: context.configuration.colorScheme
                     ),
-                    measurement: context.measurement,
                     proposedWidth: context.contentWidth,
-                    fillsWidth: true,
-                    actions: .init(
-                        enabled: context.configuration.showsTerminalActions
-                            && context.actions.canDeliverCommand(),
-                        deliver: context.actions.deliverCommand
-                    ),
-                    preservesRenderedViews: sameMessage
+                    fillsWidth: true
                 )
                 stack.addArrangedSubview(markdownView)
             }
@@ -672,16 +655,13 @@ private enum NativeTranscriptFactory {
                         entryID: context.entryID,
                         slot: "user",
                         source: message.text,
-                        shell: false,
                         colorScheme: context.configuration.colorScheme
                     ),
-                    measurement: context.measurement,
                     proposedWidth: max(
                         1,
                         context.contentWidth - gutter - Metrics.Space.l * 2
                     ),
-                    fillsWidth: false,
-                    actions: .init()
+                    fillsWidth: false
                 )
                 body.addArrangedSubview(markdown)
             }
@@ -927,7 +907,6 @@ private enum NativeTranscriptFactory {
                     let reasoning = markdown(
                         source: block.text,
                         slot: "reasoning.\(block.id)",
-                        shell: false,
                         tone: .secondary,
                         context: context
                     )
@@ -959,7 +938,6 @@ private enum NativeTranscriptFactory {
                             markdown(
                                 source: message.text,
                                 slot: "work-message.\(message.id)",
-                                shell: true,
                                 context: context
                             ))
                     }
@@ -1102,7 +1080,6 @@ private enum NativeTranscriptFactory {
         let body = markdown(
             source: card.plan.body,
             slot: "plan",
-            shell: true,
             horizontalInset: Metrics.Space.l * 2
                 + Metrics.Sidebar.rowIcon + Metrics.Space.s,
             context: context
@@ -1274,7 +1251,6 @@ private enum NativeTranscriptFactory {
     private static func markdown(
         source: String,
         slot: String,
-        shell: Bool,
         tone: TermindMarkdownTone = .primary,
         fillsWidth: Bool = true,
         horizontalInset: CGFloat = 0,
@@ -1286,18 +1262,11 @@ private enum NativeTranscriptFactory {
                 entryID: context.entryID,
                 slot: slot,
                 source: source,
-                shell: shell,
                 tone: tone,
                 colorScheme: context.configuration.colorScheme
             ),
-            measurement: context.measurement,
             proposedWidth: max(1, context.contentWidth - horizontalInset),
-            fillsWidth: fillsWidth,
-            actions: .init(
-                enabled: context.configuration.showsTerminalActions
-                    && context.actions.canDeliverCommand(),
-                deliver: context.actions.deliverCommand
-            )
+            fillsWidth: fillsWidth
         )
         return view
     }
@@ -1330,81 +1299,26 @@ private enum NativeTranscriptFactory {
         context: NativeTranscriptContext
     ) -> NSView {
         let assessment = command.risk
-        let card = NativeCard(radius: Metrics.Radius.large)
+        let card = NativeCard(radius: 8)
         card.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCard")
-        // The transcript's visual-effect hierarchy makes semantic control
-        // surfaces look grey. Inherit the row background instead.
-        card.fillProvider = { .clear }
-        card.strokeProvider = {
-            assessment.risk == .destructive
-                ? NSColor.systemRed.withAlphaComponent(0.4)
-                : .separatorColor
-        }
+        card.fillProvider = { MarkdownTheme().colors.codeBlockBackground }
         card.layer?.masksToBounds = true
-        let stack = NativeStack.vertical(spacing: Metrics.Space.m)
+        let stack = NativeStack.vertical(spacing: 0)
         stack.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardContent")
-        stack.edgeInsets = .init(
-            top: Metrics.Space.l,
-            left: Metrics.Space.l,
-            bottom: Metrics.Space.l,
-            right: Metrics.Space.l
-        )
         card.setContent(stack)
-        let header = NativeStack.horizontal(spacing: Metrics.Space.m)
-        header.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardHeader")
-        header.addArrangedSubview(
-            labelRow(
-                symbol: "sparkles",
-                text: String(localized: AppStrings.Assistant.suggestedCommand),
-                color: .secondaryLabelColor,
-                font: .systemFont(
-                    ofSize: NSFont.smallSystemFontSize,
-                    weight: .medium
-                ),
-                spacing: Metrics.Space.xs,
-                symbolPointSize: NSFont.smallSystemFontSize
-            ))
-        header.addArrangedSubview(NativeFlexibleSpacer())
-        header.addArrangedSubview(NativeRiskBadge(assessment: assessment))
-        stack.addArrangedSubview(header)
-
-        let commandBackground = NativeCard(radius: Metrics.Radius.small)
-        commandBackground.identifier = NSUserInterfaceItemIdentifier(
-            "Transcript.CommandCardCommandBackground"
+        let code = NativeMarkdownView()
+        code.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardCommand")
+        code.configure(
+            content: SuggestedCommandCodeBlock.content(command.command, locale: context.configuration.locale),
+            theme: SuggestedCommandCodeBlock.theme,
+            proposedWidth: context.contentWidth,
+            fillsWidth: true
         )
-        commandBackground.fillProvider = { .clear }
-        let commandLabel = NativeLabel(
-            command.command,
-            font: .monospacedSystemFont(
-                ofSize: NSFont.systemFontSize - 1,
-                weight: .regular
-            ),
-            selectable: true
-        )
-        commandLabel.identifier = NSUserInterfaceItemIdentifier(
-            "Transcript.CommandCardCommand"
-        )
-        let commandInsets = NativeStack.vertical()
-        commandInsets.edgeInsets = .init(
-            top: Metrics.Space.m,
-            left: Metrics.Space.m,
-            bottom: Metrics.Space.m,
-            right: Metrics.Space.m
-        )
-        commandInsets.addArrangedSubview(commandLabel)
-        commandBackground.setContent(commandInsets)
-        stack.addArrangedSubview(commandBackground)
-        if !command.explanation.isEmpty {
-            let explanation = NativeLabel(
-                command.explanation,
-                font: .systemFont(ofSize: NSFont.smallSystemFontSize),
-                color: .secondaryLabelColor
-            )
-            explanation.identifier = NSUserInterfaceItemIdentifier(
-                "Transcript.CommandCardExplanation"
-            )
-            stack.addArrangedSubview(explanation)
-        }
+        stack.addArrangedSubview(code)
+        let details = NativeStack.vertical(spacing: Metrics.Space.m)
+        details.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardDetails")
+        details.edgeInsets = .init(
+            top: Metrics.Space.s, left: Metrics.Space.m, bottom: Metrics.Space.m, right: Metrics.Space.m)
         let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
         actions.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardActions")
         if context.configuration.showsTerminalActions {
@@ -1437,8 +1351,9 @@ private enum NativeTranscriptFactory {
             actions.addArrangedSubview(run)
         }
         actions.addArrangedSubview(NativeFlexibleSpacer())
-        actions.addArrangedSubview(NativeCopyButton(text: command.command))
-        stack.addArrangedSubview(actions)
+        actions.addArrangedSubview(NativeRiskBadge(assessment: assessment))
+        details.addArrangedSubview(actions)
+        stack.addArrangedSubview(details)
         return card
     }
 
@@ -1733,197 +1648,12 @@ private func presentDestructiveCommandConfirmation(
 
 @MainActor
 private final class NativeMarkdownView: NSView {
-    struct Actions {
-        var enabled = false
-        var deliver: (String, Bool) -> Void = { _, _ in }
-    }
-
-    private let stack = NativeStack.vertical(spacing: Metrics.Chat.blockSpacing)
-    private var segmentViews: [NSView] = []
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        addSubview(stack)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    func configure(
-        package: TranscriptMarkdownCache.Package,
-        measurement: Bool,
-        proposedWidth: CGFloat,
-        fillsWidth: Bool,
-        actions: Actions,
-        preservesRenderedViews: Bool = false
-    ) {
-        if preservesRenderedViews,
-            segmentViews.count == package.rendered.segments.count,
-            zip(package.rendered.segments, segmentViews).allSatisfy({ segment, view in
-                switch (segment.content, view) {
-                case (.markdown, is NativeMarkdownSegment): true
-                default: false
-                }
-            })
-        {
-            for (segment, view) in zip(package.rendered.segments, segmentViews) {
-                guard case .markdown(let content) = segment.content,
-                    let view = view as? NativeMarkdownSegment
-                else { continue }
-                view.configure(
-                    content: content,
-                    theme: package.rendered.theme,
-                    proposedWidth: proposedWidth,
-                    fillsWidth: fillsWidth,
-                    immediate: measurement
-                )
-            }
-            invalidateIntrinsicContentSize()
-            return
-        }
-        stack.removeAllArrangedSubviews()
-        segmentViews.removeAll()
-        for segment in package.rendered.segments {
-            switch segment.content {
-            case .markdown(let content):
-                let view = NativeMarkdownSegment()
-                view.configure(
-                    content: content,
-                    theme: package.rendered.theme,
-                    proposedWidth: proposedWidth,
-                    fillsWidth: fillsWidth,
-                    immediate: true
-                )
-                stack.addArrangedSubview(view)
-                segmentViews.append(view)
-            case .shell(let language, let command):
-                let view = shell(language: language, command: command, actions: actions)
-                stack.addArrangedSubview(view)
-                segmentViews.append(view)
-            }
-        }
-        invalidateIntrinsicContentSize()
-    }
-
-    func setScanning(_ active: Bool, reduceMotion: Bool, measurement: Bool) {
-        guard active, !reduceMotion, !measurement else {
-            layer?.mask = nil
-            return
-        }
-        installNativeScanningMask(on: self)
-    }
-
-    override func layout() {
-        super.layout()
-        layoutNativeScanningMask(on: self)
-    }
-
-    override var intrinsicContentSize: NSSize {
-        let size = stack.fittingSize
-        return NSSize(width: max(1, size.width), height: max(1, size.height))
-    }
-
-    private func shell(language: String, command: String, actions: Actions) -> NSView {
-        let assessment = CommandRiskClassifier.assess(command)
-        let card = NativeCard(radius: Metrics.Radius.large)
-        card.fillProvider = { .controlBackgroundColor }
-        card.strokeProvider = {
-            assessment.risk == .destructive
-                ? NSColor.systemRed.withAlphaComponent(0.4)
-                : .separatorColor
-        }
-        card.layer?.masksToBounds = true
-        let stack = NativeStack.vertical()
-        stack.edgeInsets = .init(
-            top: Metrics.Chat.codeInset,
-            left: Metrics.Chat.codeInset,
-            bottom: Metrics.Chat.codeInset,
-            right: Metrics.Chat.codeInset
-        )
-        card.setContent(stack)
-        let header = NativeStack.horizontal(spacing: Metrics.Space.xs)
-        header.addArrangedSubview(
-            NativeLabel(
-                language,
-                font: .systemFont(ofSize: NSFont.smallSystemFontSize),
-                color: .secondaryLabelColor
-            ))
-        header.addArrangedSubview(NativeFlexibleSpacer())
-        header.addArrangedSubview(NativeRiskBadge(assessment: assessment))
-        stack.addArrangedSubview(header)
-        stack.addArrangedSubview(
-            NativeLabel(
-                command,
-                font: .monospacedSystemFont(
-                    ofSize: NSFont.systemFontSize,
-                    weight: .regular
-                ),
-                selectable: true
-            ))
-        let row = NativeStack.horizontal()
-        if !command.contains("\n") {
-            let insert = NativeButton(title: String(localized: AppStrings.Common.insert))
-            insert.isEnabled = actions.enabled
-            insert.handler = { actions.deliver(command, false) }
-            let run = NativeButton(
-                title: String(localized: AppStrings.Common.run),
-                bordered: true,
-                prominent: true
-            )
-            run.identifier = NSUserInterfaceItemIdentifier("Transcript.MarkdownShellRun")
-            run.isEnabled = actions.enabled
-            run.bezelColor = assessment.risk == .destructive ? .systemRed : .controlAccentColor
-            run.handler = { [weak run] in
-                let deliver = { actions.deliver(command, true) }
-                if assessment.requiresSecondConfirmation {
-                    presentDestructiveCommandConfirmation(
-                        command,
-                        reasons: assessment.reasons,
-                        from: run,
-                        action: deliver
-                    )
-                } else {
-                    deliver()
-                }
-            }
-            row.addArrangedSubview(insert)
-            row.addArrangedSubview(run)
-        } else {
-            row.addArrangedSubview(
-                NativeLabel(
-                    String(localized: AppStrings.Assistant.severalCommandsCopyAndReviewBeforeRunning),
-                    font: .systemFont(ofSize: NSFont.smallSystemFontSize),
-                    color: .secondaryLabelColor
-                ))
-        }
-        row.addArrangedSubview(NativeFlexibleSpacer())
-        row.addArrangedSubview(NativeCopyButton(text: command))
-        stack.addArrangedSubview(row)
-        return card
-    }
-}
-
-@MainActor
-final class NativeMarkdownSegment: NSView {
     private let markdown = MarkdownTextView()
     private var content: MarkdownContent?
     private var measuredSize = NSSize(width: 1, height: 1)
     private var lastProposedWidth: CGFloat?
     private var lastFillsWidth: Bool?
     private var heightConstraint: NSLayoutConstraint!
-    private var horizontalScrollViews: [NSScrollView] = []
-    private var horizontalTrackingAreas: [ObjectIdentifier: NSTrackingArea] = [:]
-    private var horizontalScrollerVisibility: [ObjectIdentifier: Bool] = [:]
-    private var horizontalScrollerAnimationGenerations: [ObjectIdentifier: Int] = [:]
-    private var pendingHorizontalScrollerFadeOuts: [ObjectIdentifier: Int] = [:]
-    private weak var hoveredHorizontalScrollView: NSScrollView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -1944,11 +1674,7 @@ final class NativeMarkdownSegment: NSView {
                 case .url(let url): url
                 case .string(let value): URL(string: value)
                 }
-            if let url,
-                TermindMarkdownParser.allowedLinkSchemes.contains(
-                    url.scheme?.lowercased() ?? ""
-                )
-            {
+            if let url {
                 NSWorkspace.shared.open(url)
             }
         }
@@ -1958,28 +1684,34 @@ final class NativeMarkdownSegment: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(
+        package: TranscriptMarkdownCache.Package,
+        proposedWidth: CGFloat,
+        fillsWidth: Bool
+    ) {
+        configure(
+            content: package.rendered.content,
+            theme: package.rendered.theme,
+            proposedWidth: proposedWidth,
+            fillsWidth: fillsWidth
+        )
+    }
+
+    func configure(
         content: MarkdownContent,
         theme: MarkdownTheme,
         proposedWidth: CGFloat,
-        fillsWidth: Bool,
-        immediate: Bool
+        fillsWidth: Bool
     ) {
         let contentChanged = self.content !== content
         let availableWidth = max(1, proposedWidth)
         guard contentChanged || lastProposedWidth != availableWidth || lastFillsWidth != fillsWidth else { return }
-        let hadContent = self.content != nil
         self.content = content
         lastProposedWidth = availableWidth
         lastFillsWidth = fillsWidth
         frame.size.width = availableWidth
         markdown.frame.size.width = availableWidth
         if contentChanged {
-            if immediate || !hadContent {
-                markdown.setContentImmediately(content, theme: theme)
-            } else {
-                markdown.theme = theme
-                markdown.setContent(content)
-            }
+            markdown.setContentImmediately(content, theme: theme)
         }
         let bounded = markdown.boundingSize(for: availableWidth)
         let measuredWidth =
@@ -1990,233 +1722,25 @@ final class NativeMarkdownSegment: NSView {
         measuredSize = NSSize(width: measuredWidth, height: measuredHeight)
         heightConstraint.constant = measuredHeight
         markdown.layoutSubtreeIfNeeded()
-        synchronizeHorizontalScrollViews()
         invalidateIntrinsicContentSize()
     }
 
     override func layout() {
         super.layout()
         markdown.layoutSubtreeIfNeeded()
-        synchronizeHorizontalScrollViews()
+        layoutNativeScanningMask(on: self)
     }
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        if window == nil { setHoveredHorizontalScrollView(nil, animated: false) }
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        guard let scrollView = horizontalScrollView(for: event.trackingArea) else {
-            super.mouseEntered(with: event)
+    func setScanning(_ active: Bool, reduceMotion: Bool, measurement: Bool) {
+        guard active, !reduceMotion, !measurement else {
+            layer?.mask = nil
             return
         }
-        setHoveredHorizontalScrollView(scrollView)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        guard let scrollView = horizontalScrollView(for: event.trackingArea) else {
-            super.mouseExited(with: event)
-            return
-        }
-        if hoveredHorizontalScrollView === scrollView {
-            setHoveredHorizontalScrollView(nil)
-        }
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        let localPoint = superview.map { convert(point, from: $0) } ?? point
-        if let scroller = visibleHorizontalScroller(at: localPoint) {
-            return scroller
-        }
-        return super.hitTest(point)
+        installNativeScanningMask(on: self)
     }
 
     override var intrinsicContentSize: NSSize {
         measuredSize
-    }
-
-    func updateHorizontalScrollerHover(at point: NSPoint?) {
-        setHoveredHorizontalScrollView(point.flatMap(horizontalScrollView(at:)))
-    }
-
-    private func setHoveredHorizontalScrollView(
-        _ hovered: NSScrollView?,
-        animated: Bool = true
-    ) {
-        hoveredHorizontalScrollView = hovered
-        for scrollView in horizontalScrollViews {
-            let visible = horizontalOverflow(in: scrollView) && scrollView === hovered
-            updateHorizontalScrollerVisibility(
-                visible,
-                in: scrollView,
-                animated: animated && window != nil
-            )
-        }
-    }
-
-    private func updateHorizontalScrollerVisibility(
-        _ visible: Bool,
-        in scrollView: NSScrollView,
-        animated: Bool
-    ) {
-        guard let scroller = scrollView.horizontalScroller else { return }
-        let identifier = ObjectIdentifier(scrollView)
-        guard horizontalScrollerVisibility[identifier] != visible else {
-            if visible, scroller.isHidden {
-                scroller.isHidden = false
-                scroller.alphaValue = 1
-            } else if !visible, pendingHorizontalScrollerFadeOuts[identifier] == nil {
-                scroller.alphaValue = 0
-                scroller.isHidden = true
-            }
-            return
-        }
-        horizontalScrollerVisibility[identifier] = visible
-        let generation = horizontalScrollerAnimationGenerations[identifier, default: 0] + 1
-        horizontalScrollerAnimationGenerations[identifier] = generation
-
-        if visible {
-            pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
-            scroller.isHidden = false
-        }
-        guard animated else {
-            pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
-            scroller.alphaValue = visible ? 1 : 0
-            scroller.isHidden = !visible
-            return
-        }
-
-        if visible {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.12
-                context.allowsImplicitAnimation = true
-                scroller.animator().alphaValue = 1
-            }
-        } else {
-            pendingHorizontalScrollerFadeOuts[identifier] = generation
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.16
-                context.allowsImplicitAnimation = true
-                scroller.animator().alphaValue = 0
-            } completionHandler: { [weak self, weak scroller] in
-                Task { @MainActor in
-                    guard let self, let scroller,
-                        self.horizontalScrollerVisibility[identifier] == false,
-                        self.pendingHorizontalScrollerFadeOuts[identifier] == generation
-                    else { return }
-                    self.pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
-                    scroller.isHidden = true
-                }
-            }
-        }
-    }
-
-    private func synchronizeHorizontalScrollViews() {
-        let previous = horizontalScrollViews
-        let candidates = descendantScrollViews(in: markdown).filter {
-            !$0.hasVerticalScroller && $0.documentView != nil
-        }
-        horizontalScrollViews = candidates
-
-        for scrollView in previous where !candidates.contains(where: { $0 === scrollView }) {
-            removeHorizontalTrackingArea(from: scrollView)
-            updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
-            horizontalScrollerVisibility.removeValue(forKey: ObjectIdentifier(scrollView))
-            horizontalScrollerAnimationGenerations.removeValue(forKey: ObjectIdentifier(scrollView))
-            pendingHorizontalScrollerFadeOuts.removeValue(forKey: ObjectIdentifier(scrollView))
-        }
-
-        for scrollView in candidates {
-            scrollView.scrollerStyle = .overlay
-            scrollView.hasHorizontalScroller = true
-            scrollView.autohidesScrollers = false
-            scrollView.horizontalScroller?.controlSize = .mini
-            scrollView.tile()
-
-            let overflows = horizontalOverflow(in: scrollView)
-            let scroller = scrollView.horizontalScroller
-            scroller?.scrollerStyle = .legacy
-            scroller?.isEnabled = overflows
-            if overflows {
-                installHorizontalTrackingAreaIfNeeded(on: scrollView)
-                if horizontalScrollerVisibility[ObjectIdentifier(scrollView)] == nil {
-                    updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
-                }
-            } else {
-                removeHorizontalTrackingArea(from: scrollView)
-                updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
-            }
-        }
-
-        if let hoveredHorizontalScrollView,
-            !candidates.contains(where: { $0 === hoveredHorizontalScrollView })
-                || !horizontalOverflow(in: hoveredHorizontalScrollView)
-        {
-            self.hoveredHorizontalScrollView = nil
-        }
-        setHoveredHorizontalScrollView(hoveredHorizontalScrollView, animated: false)
-    }
-
-    private func installHorizontalTrackingAreaIfNeeded(on scrollView: NSScrollView) {
-        let identifier = ObjectIdentifier(scrollView)
-        guard horizontalTrackingAreas[identifier] == nil else { return }
-        let area = NSTrackingArea(
-            rect: .zero,
-            options: [.activeInKeyWindow, .inVisibleRect, .mouseEnteredAndExited],
-            owner: self,
-            userInfo: nil
-        )
-        scrollView.addTrackingArea(area)
-        horizontalTrackingAreas[identifier] = area
-    }
-
-    private func removeHorizontalTrackingArea(from scrollView: NSScrollView) {
-        guard let area = horizontalTrackingAreas.removeValue(forKey: ObjectIdentifier(scrollView)) else {
-            return
-        }
-        scrollView.removeTrackingArea(area)
-    }
-
-    private func horizontalScrollView(for trackingArea: NSTrackingArea?) -> NSScrollView? {
-        guard let trackingArea else { return nil }
-        return horizontalScrollViews.first { scrollView in
-            horizontalTrackingAreas[ObjectIdentifier(scrollView)] === trackingArea
-        }
-    }
-
-    private func horizontalScrollView(at point: NSPoint) -> NSScrollView? {
-        horizontalScrollViews.last { scrollView in
-            horizontalOverflow(in: scrollView)
-                && convert(scrollView.bounds, from: scrollView).contains(point)
-        }
-    }
-
-    private func visibleHorizontalScroller(at point: NSPoint) -> NSScroller? {
-        for scrollView in horizontalScrollViews.reversed() {
-            guard horizontalOverflow(in: scrollView),
-                let scroller = scrollView.horizontalScroller,
-                !scroller.isHidden,
-                scroller.alphaValue > 0.01
-            else { continue }
-            let scrollerPoint = scroller.convert(point, from: self)
-            if scroller.bounds.contains(scrollerPoint) { return scroller }
-        }
-        return nil
-    }
-
-    private func horizontalOverflow(in scrollView: NSScrollView) -> Bool {
-        guard let documentView = scrollView.documentView else { return false }
-        return documentView.frame.width > scrollView.contentView.bounds.width + 1
-    }
-
-    private func descendantScrollViews(in root: NSView) -> [NSScrollView] {
-        var result: [NSScrollView] = []
-        var pending = root.subviews
-        while let view = pending.popLast() {
-            if let scrollView = view as? NSScrollView { result.append(scrollView) }
-            pending.append(contentsOf: view.subviews)
-        }
-        return result
     }
 }
 

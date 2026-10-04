@@ -2,6 +2,7 @@ import AgentKit
 import AppKit
 import Foundation
 import ListViewKit
+import MarkdownView
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -351,7 +352,7 @@ struct TranscriptListViewBridgeTests {
             await settleResize(listView)
             let row = try #require(listView.rowView(for: id))
             let markdown = try #require(descendant(in: row, identifier: "Transcript.AssistantMarkdown"))
-            let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
+            let segment = try #require(descendant(in: row, ofType: MarkdownTextView.self))
             let wideHeight = listView.rectForRow(with: id).height
             let wideWidth = markdown.bounds.width
 
@@ -359,7 +360,7 @@ struct TranscriptListViewBridgeTests {
             await settleResize(listView)
 
             #expect(listView.rowView(for: id) === row)
-            #expect(descendant(in: row, ofType: NativeMarkdownSegment.self) === segment)
+            #expect(descendant(in: row, ofType: MarkdownTextView.self) === segment)
             #expect(abs(markdown.bounds.width - (360 - (isCompact ? 24 : 32))) <= 1)
             #expect(listView.rectForRow(with: id).height > wideHeight)
             #expect(segment.bounds.height > 1)
@@ -448,12 +449,13 @@ struct TranscriptListViewBridgeTests {
             isCompact: false)
         await settleResize(listView)
         let row = try #require(listView.rowView(for: id))
-        let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
+        let segment = try #require(descendant(in: row, ofType: MarkdownTextView.self))
 
         listView.frame.size.width = 360
         await settleResize(listView)
         let narrowScrollers = descendants(in: segment, ofType: NSScrollView.self)
         #expect(narrowScrollers.count == 2)
+        #expect(narrowScrollers.allSatisfy { !$0.hasHorizontalScroller })
         #expect(narrowScrollers.allSatisfy { $0.contentView.bounds.width <= 328 })
         for scroller in narrowScrollers {
             #expect((scroller.documentView?.frame.width ?? 0) > scroller.contentView.bounds.width)
@@ -461,7 +463,7 @@ struct TranscriptListViewBridgeTests {
 
         listView.frame.size.width = 900
         await settleResize(listView)
-        #expect(descendant(in: row, ofType: NativeMarkdownSegment.self) === segment)
+        #expect(descendant(in: row, ofType: MarkdownTextView.self) === segment)
         #expect(
             descendants(in: segment, ofType: NSScrollView.self).allSatisfy {
                 $0.contentView.bounds.width > 328
@@ -748,72 +750,58 @@ struct TranscriptListViewBridgeTests {
     }
 
     @Test
-    func terminalSuggestionUsesTheSameSurfaceAsThePlanCard() throws {
+    func terminalSuggestionUsesUpstreamCodeWithActionsAndRiskBelow() throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
-        listView.appearance = NSAppearance(named: .aqua)
         listView.frame = CGRect(x: 0, y: 0, width: 420, height: 800)
-        let id = UUID()
-        let suggestion = SuggestedCommand(
-            id: id,
-            command: "pwd",
-            explanation: "Show the current directory."
-        )
-        let entry = TranscriptEntry(
-            id: id,
-            content: .command(suggestion)
-        )
-
+        let suggestion = SuggestedCommand(command: "pwd")
+        var deliveries: [(String, Bool)] = []
         update(
-            coordinator,
-            listView,
-            entries: [entry],
+            coordinator, listView,
+            entries: [.init(id: suggestion.id, content: .command(suggestion))],
             showsTerminalActions: true,
-            actions: .init(canDeliverCommand: { true })
+            actions: .init(
+                canDeliverCommand: { true },
+                deliverCommand: { deliveries.append(($0, $1)) }
+            )
         )
         listView.layoutSubtreeIfNeeded()
 
-        let row = try #require(listView.rowView(for: id))
+        let row = try #require(listView.rowView(for: suggestion.id))
         let card = try #require(descendant(in: row, identifier: "Transcript.CommandCard"))
-        let content = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardContent") as? NSStackView
-        )
-        let commandBackground = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardCommandBackground")
-        )
-        let command = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardCommand") as? NSTextField
-        )
-        let explanation = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardExplanation") as? NSTextField
-        )
-        let insert = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardInsert") as? NSButton
-        )
-        let run = try #require(
-            descendant(in: card, identifier: "Transcript.CommandCardRun") as? NSButton
-        )
+        let content = try #require(descendant(in: card, identifier: "Transcript.CommandCardContent") as? NSStackView)
+        let details = try #require(descendant(in: card, identifier: "Transcript.CommandCardDetails") as? NSStackView)
+        let code = try #require(descendant(in: card, identifier: "Transcript.CommandCardCommand"))
+        let markdown = try #require(descendant(in: code, ofType: MarkdownTextView.self))
+        guard case .codeBlock(let title, let command)? = markdown.content.blocks.first else {
+            Issue.record("expected the suggested command in an upstream code block")
+            return
+        }
+        #expect(title == "Suggested Command")
+        #expect(command == "pwd")
+        let codeButtons = descendants(in: markdown, ofType: NSButton.self)
+        for selector in ["handleCopy:", "handleExpand:"] {
+            let button = try #require(codeButtons.first { $0.action.map(NSStringFromSelector) == selector })
+            #expect(button.target != nil && button.isEnabled && !button.isHidden)
+        }
+        #expect(descendants(in: markdown, ofType: NSScrollView.self).allSatisfy { !$0.hasHorizontalScroller })
 
-        card.displayIfNeeded()
-        commandBackground.displayIfNeeded()
-        let cardColor = try #require(card.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)))
-        let commandColor = try #require(
-            commandBackground.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
-        )
-        // A detached layer can resolve a named AppKit color as clear while the
-        // test list has no window. The mounted app resolves it through the
-        // owning appearance; this test owns the card hierarchy, not AppKit's
-        // detached dynamic-color behavior.
-        #expect(cardColor.alphaComponent == 0 || cardColor.alphaComponent == 1)
-        #expect(card.layer?.cornerRadius == Metrics.Radius.large)
-        #expect(card.layer?.borderWidth == 1)
-        #expect(commandColor.alphaComponent == 0)
-        #expect(content.spacing == Metrics.Space.m)
-        #expect(command.font?.fontDescriptor.symbolicTraits.contains(.monoSpace) == true)
-        #expect(command.font?.pointSize == NSFont.systemFontSize - 1)
-        #expect(explanation.font?.pointSize == NSFont.smallSystemFontSize)
-        #expect(insert.isBordered)
-        #expect(run.isBordered)
+        let footer = try #require(descendant(in: card, identifier: "Transcript.CommandCardActions") as? NSStackView)
+        #expect(content.arrangedSubviews.first === code)
+        #expect(content.arrangedSubviews.last === details)
+        #expect(details.arrangedSubviews.last === footer)
+        #expect((card.layer?.backgroundColor?.alpha ?? 0) > 0)
+        #expect(markdown.theme.colors.codeBlockBackground.alphaComponent == 0)
+        #expect(markdown.theme.colors.codeBlockBarBackground == MarkdownTheme().colors.codeBlockBarBackground)
+        #expect(details.arrangedSubviews.count == 1)
+        #expect(descendant(in: card, identifier: "Transcript.CommandCardExplanation") == nil)
+        #expect(descendant(in: footer, identifier: "Transcript.CommandCardRiskBadge") != nil)
+        let insert = try #require(descendant(in: footer, identifier: "Transcript.CommandCardInsert") as? NSButton)
+        let run = try #require(descendant(in: footer, identifier: "Transcript.CommandCardRun") as? NSButton)
+        insert.performClick(nil)
+        run.performClick(nil)
+        #expect(deliveries.map(\.0) == ["pwd", "pwd"])
+        #expect(deliveries.map(\.1) == [false, true])
     }
 
     @Test
@@ -828,7 +816,6 @@ struct TranscriptListViewBridgeTests {
             scratchPath: "/tmp/plan.md"
         )
         let commandID = UUID()
-        let markdownID = UUID()
         listView.appearance = NSAppearance(named: .aqua)
         listView.frame = CGRect(x: 0, y: 0, width: 520, height: 2_000)
         presentation.beginEditingMessage(userID, text: "Edited message")
@@ -847,14 +834,9 @@ struct TranscriptListViewBridgeTests {
                     content: .command(
                         SuggestedCommand(
                             id: commandID,
-                            command: "pwd",
-                            explanation: "Show the current directory."
+                            command: "pwd"
                         )
                     )
-                ),
-                assistant(
-                    id: markdownID,
-                    text: "```bash\nrm -rf /tmp/termind-prominent-button-test\n```"
                 ),
             ],
             presentation: presentation,
@@ -868,7 +850,6 @@ struct TranscriptListViewBridgeTests {
             (userID, "Transcript.UserEditorSend"),
             (plan.id, "Transcript.PlanImplement"),
             (commandID, "Transcript.CommandCardRun"),
-            (markdownID, "Transcript.MarkdownShellRun"),
         ]
         let buttons = try buttonLocations.map { rowID, identifier in
             let row = try #require(listView.rowView(for: rowID))
@@ -1286,143 +1267,59 @@ struct TranscriptListViewBridgeTests {
         #expect(actions.alphaValue == 0)
     }
 
-    @Test
-    func overflowingMarkdownBlocksExposeHoverableHorizontalScrollers() throws {
+    @Test(arguments: [false, true], [false, true])
+    func markdownRendersOneDocumentWithoutAddingScrollbars(isUser: Bool, overflows: Bool) throws {
         let coordinator = TranscriptListView.Coordinator()
         let listView = coordinator.makeListView()
         let id = UUID()
-        listView.frame = CGRect(x: 0, y: 0, width: 320, height: 800)
-        let longValue = String(repeating: "wide-content-", count: 24)
-        let markdown = """
+        listView.frame = CGRect(x: 0, y: 0, width: overflows ? 320 : 900, height: 1_200)
+        let value = overflows ? String(repeating: "wide-content-", count: 24) : "short"
+        let source = """
+            Before the blocks.
+
             | Name | Value |
             | --- | --- |
-            | table | \(longValue) |
+            | table | \(value) |
 
             ```swift
-            let value = "\(longValue)"
+            let value = "\(value)"
             ```
-            """
 
-        update(coordinator, listView, entries: [assistant(id: id, text: markdown)])
-        listView.layoutSubtreeIfNeeded()
-
-        let row = try #require(listView.rowView(for: id))
-        let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
-        segment.layoutSubtreeIfNeeded()
-        let scrollViews = horizontalScrollViews(in: segment)
-        let allHaveHorizontalScrollers = scrollViews.allSatisfy { $0.hasHorizontalScroller }
-        let allScrollersAreHidden = scrollViews.allSatisfy {
-            $0.horizontalScroller?.alphaValue == 0
-                && $0.horizontalScroller?.isHidden == true
-        }
-        #expect(scrollViews.count == 2)
-        #expect(allHaveHorizontalScrollers)
-        #expect(allScrollersAreHidden)
-        #expect(segment.trackingAreas.allSatisfy { !$0.options.contains(.mouseMoved) })
-
-        let trackingAreas = try scrollViews.map { scrollView in
-            try #require(
-                scrollView.trackingAreas.first { area in
-                    area.owner === segment
-                        && area.options.contains(.inVisibleRect)
-                        && area.options.contains(.mouseEnteredAndExited)
-                        && !area.options.contains(.mouseMoved)
-                }
-            )
-        }
-        segment.needsLayout = true
-        segment.layoutSubtreeIfNeeded()
-        for (scrollView, trackingArea) in zip(scrollViews, trackingAreas) {
-            let ownedTrackingAreas = scrollView.trackingAreas.filter { $0.owner === segment }
-            #expect(ownedTrackingAreas.count == 1)
-            #expect(ownedTrackingAreas.first === trackingArea)
-        }
-
-        for scrollView in scrollViews {
-            let scroller = try #require(scrollView.horizontalScroller)
-            let contentHit = [
-                CGPoint(x: scrollView.bounds.midX, y: scrollView.bounds.minY + 2),
-                CGPoint(x: scrollView.bounds.midX, y: scrollView.bounds.maxY - 2),
-                CGPoint(x: scrollView.bounds.midX, y: scrollView.bounds.midY),
-            ].lazy.compactMap { point -> (NSPoint, NSView)? in
-                guard !scroller.frame.contains(point) else { return nil }
-                let localPoint = segment.convert(point, from: scrollView)
-                guard let superview = segment.superview else { return nil }
-                let hitPoint = superview.convert(localPoint, from: segment)
-                guard let hit = segment.hitTest(hitPoint), !(hit is NSScroller) else { return nil }
-                return (hitPoint, hit)
-            }.first
-
-            let hoverPoint = segment.convert(
-                CGPoint(x: scrollView.bounds.midX, y: scrollView.bounds.midY),
-                from: scrollView
-            )
-            segment.updateHorizontalScrollerHover(at: hoverPoint)
-
-            #expect(scroller.alphaValue == 1)
-            #expect(!scroller.isHidden)
-            #expect(scroller.scrollerStyle == .legacy)
-            #expect(scroller.controlSize == .mini)
-            #expect(scroller.frame.width > 0)
-            #expect(scroller.frame.height > 0)
-            #expect(
-                scroller.frame.height
-                    <= NSScroller.scrollerWidth(for: .mini, scrollerStyle: .legacy) + 1
-            )
-            if let (hitPoint, hitBeforeHover) = contentHit {
-                #expect(segment.hitTest(hitPoint) === hitBeforeHover)
-            }
-
-            let localScrollerPoint = segment.convert(
-                CGPoint(x: scroller.bounds.midX, y: scroller.bounds.midY),
-                from: scroller
-            )
-            let scrollerHitPoint = try #require(segment.superview).convert(localScrollerPoint, from: segment)
-            #expect(segment.hitTest(scrollerHitPoint) === scroller)
-
-            let documentView = try #require(scrollView.documentView)
-            let maximumX = documentView.frame.width - scrollView.contentView.bounds.width
-            scrollView.contentView.scroll(to: CGPoint(x: maximumX, y: 0))
-            scrollView.reflectScrolledClipView(scrollView.contentView)
-            #expect(scrollView.contentView.bounds.minX > 0)
-        }
-
-        segment.updateHorizontalScrollerHover(at: nil)
-        #expect(scrollViews.allSatisfy { $0.horizontalScroller?.alphaValue == 0 })
-        #expect(scrollViews.allSatisfy { $0.horizontalScroller?.isHidden == true })
-    }
-
-    @Test
-    func markdownScrollersStayHiddenWhenTheirContentFits() throws {
-        let coordinator = TranscriptListView.Coordinator()
-        let listView = coordinator.makeListView()
-        let id = UUID()
-        listView.frame = CGRect(x: 0, y: 0, width: 900, height: 800)
-        let markdown = """
-            | Name | Value |
-            | --- | --- |
-            | table | short |
-
-            ```swift
-            let value = 1
+            ```bash
+            echo "\(value)"
             ```
+
+            After the blocks.
             """
-
-        update(coordinator, listView, entries: [assistant(id: id, text: markdown)])
-        listView.layoutSubtreeIfNeeded()
-
-        let row = try #require(listView.rowView(for: id))
-        let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
-        segment.layoutSubtreeIfNeeded()
-        let scrollViews = descendants(in: segment, ofType: NSScrollView.self)
-        #expect(scrollViews.count == 2)
-
-        segment.updateHorizontalScrollerHover(
-            at: CGPoint(x: segment.bounds.midX, y: segment.bounds.midY)
+        let entry = isUser ? user(id: id, text: source) : assistant(id: id, text: source)
+        update(
+            coordinator, listView, entries: [entry], showsTerminalActions: true,
+            actions: .init(canDeliverCommand: { true })
         )
-        #expect(scrollViews.allSatisfy { $0.horizontalScroller?.alphaValue == 0 })
-        #expect(scrollViews.allSatisfy { $0.horizontalScroller?.isHidden == true })
-        #expect(scrollViews.allSatisfy { $0.horizontalScroller?.isEnabled == false })
+        listView.layoutSubtreeIfNeeded()
+
+        let row = try #require(listView.rowView(for: id))
+        let renderers = descendants(in: row, ofType: MarkdownTextView.self)
+        #expect(renderers.count == 1)
+        let markdown = try #require(renderers.first)
+        #expect(markdown.content.blocks.count == 5)
+        #expect(descendant(in: row, identifier: "Transcript.MarkdownShellRun") == nil)
+
+        let scrollViews = descendants(in: markdown, ofType: NSScrollView.self)
+        #expect(scrollViews.count == 3)
+        #expect(scrollViews.allSatisfy { !$0.hasHorizontalScroller && !$0.hasVerticalScroller })
+        #expect(descendants(in: markdown, ofType: NSScroller.self).isEmpty)
+
+        if overflows {
+            for scrollView in scrollViews {
+                let documentView = try #require(scrollView.documentView)
+                let maximumX = documentView.frame.width - scrollView.contentView.bounds.width
+                #expect(maximumX > 0)
+                scrollView.contentView.scroll(to: CGPoint(x: maximumX, y: 0))
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+                #expect(scrollView.contentView.bounds.minX > 0)
+            }
+        }
     }
 
     @Test
@@ -1669,13 +1566,6 @@ struct TranscriptListViewBridgeTests {
             queue.append(contentsOf: view.subviews)
         }
         return result
-    }
-
-    private func horizontalScrollViews(in root: NSView) -> [NSScrollView] {
-        descendants(in: root, ofType: NSScrollView.self).filter { scrollView in
-            guard let documentView = scrollView.documentView else { return false }
-            return documentView.frame.width > scrollView.contentView.bounds.width + 1
-        }
     }
 
     private func expectProminentForeground(_ button: NSButton, component: CGFloat) throws {

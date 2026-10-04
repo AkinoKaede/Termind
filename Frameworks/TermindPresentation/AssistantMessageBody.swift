@@ -1,4 +1,3 @@
-import MarkdownParser
 import MarkdownView
 import SwiftUI
 
@@ -13,13 +12,6 @@ public struct AssistantMessageBody: View {
     }
 
     public var body: some View {
-        let parsed = MarkdownParser().parse(MarkdownSoftBreaks.hardened(text))
-        let content = MarkdownContent(
-            blocks: TermindMarkdownParser.sanitize(parsed.document),
-            rendered: parsed.renderedContent(theme: theme),
-            highlightMaps: parsed.highlightMaps(theme: theme),
-            locale: .autoupdatingCurrent
-        )
-        MarkdownView(content, theme: theme).frame(maxWidth: .infinity, alignment: .leading)
+        MarkdownView(text, theme: theme).frame(maxWidth: .infinity, alignment: .leading)
     }
 }
