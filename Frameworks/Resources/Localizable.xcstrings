@@ -32983,6 +32983,23 @@
         }
       }
     },
+    "Unpackaged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未打包"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未打包"
+          }
+        }
+      }
+    },
     "Unpin" : {
       "extractionState" : "manual",
       "localizations" : {

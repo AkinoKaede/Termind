@@ -475,7 +475,7 @@ struct MobileSnippetDetailView: View {
     private func packagePanel(_ snippet: Snippet) -> some View {
         MobileSnippetDetailPanel(title: String(localized: AppStrings.Snippets.package)) {
             Label(
-                app.snippets.snippetPackagePath(snippet.packageID) ?? String(localized: AppStrings.Common.ungrouped),
+                app.snippets.snippetPackagePath(snippet.packageID) ?? String(localized: AppStrings.Snippets.unpackaged),
                 systemImage: "folder")
         }
     }
@@ -565,7 +565,7 @@ struct MobileSnippetEditor: View {
         ) {
             SnippetOrganizationSection(name: $draft.title, color: $draft.colorTag) {
                 Picker(AppStrings.Snippets.package.swiftUIKey, selection: packageChoice) {
-                    Text(AppStrings.Common.ungrouped).tag(PackageChoice.ungrouped)
+                    Text(AppStrings.Snippets.unpackaged).tag(PackageChoice.ungrouped)
                     ForEach(packageChoices, id: \.package.id) { choice in
                         Text(choice.path).tag(PackageChoice.existing(choice.package.id))
                     }

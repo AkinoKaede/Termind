@@ -129,7 +129,7 @@ public enum SnippetLibrarySectionLayout {
         if !ungrouped.isEmpty || !library.snippetPackages.isEmpty {
             result.append(
                 SnippetLibrarySection(
-                    id: .ungrouped, title: String(localized: "Ungrouped"),
+                    id: .ungrouped, title: String(localized: "Unpackaged"),
                     snippets: ungrouped, isExpanded: library.isSnippetsUngroupedExpanded
                 ))
         }

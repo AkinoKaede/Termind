@@ -2,6 +2,8 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Snippets {
+        public static var unpackaged: LocalizedStringResource { "Unpackaged" }
+
         public static var readOnlyRisk: LocalizedStringResource { "Read-only" }
         public static var cautionRisk: LocalizedStringResource { "Caution" }
         public static var destructiveRisk: LocalizedStringResource { "Destructive" }

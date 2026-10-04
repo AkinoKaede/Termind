@@ -578,7 +578,7 @@ struct SnippetEditorView: View {
             Form {
                 SnippetOrganizationSection(name: $title, color: $colorTag) {
                     Picker(AppStrings.Snippets.package.swiftUIKey, selection: $packageID) {
-                        Text(AppStrings.Common.ungrouped).tag(SnippetPackage.ID?.none)
+                        Text(AppStrings.Snippets.unpackaged).tag(SnippetPackage.ID?.none)
                         ForEach(packageChoices, id: \.package.id) { choice in
                             Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
                         }

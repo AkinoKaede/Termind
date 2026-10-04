@@ -604,7 +604,7 @@ private struct SnippetsSidebarView: View {
         if !ungrouped.isEmpty {
             groups.append(
                 SnippetSidebarGroup(
-                    id: .ungrouped, title: localized(AppStrings.Common.ungrouped), snippets: ungrouped
+                    id: .ungrouped, title: localized(AppStrings.Snippets.unpackaged), snippets: ungrouped
                 )
             )
         }
