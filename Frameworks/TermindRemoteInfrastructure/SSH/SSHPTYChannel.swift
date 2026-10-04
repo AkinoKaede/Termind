@@ -454,7 +454,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             // the saved user-command status only after those hooks finish.
             command =
                 [
-                    "if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then",
+                    " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then",
                     "__termind_integration_token=\"\(token)\";",
                     "__termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; };",
                     "__termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; };",
