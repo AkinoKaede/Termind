@@ -177,8 +177,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/libtailscale-spm.git",
       "state" : {
-        "revision" : "b2fb67440039ec805ed26a250942421456a6f89e",
-        "version" : "1.0.1"
+        "revision" : "098e6b69ea128f3a55bc560f005a3e851123dc99",
+        "version" : "1.0.2"
       }
     },
     {

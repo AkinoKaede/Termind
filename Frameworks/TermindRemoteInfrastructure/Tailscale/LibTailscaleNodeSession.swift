@@ -37,7 +37,9 @@ public actor LibTailscaleNodeSession: TailscaleNodeSession {
             }.value
         })
 
-    private nonisolated static func stateNamespace(_ id: UUID) -> String { "app.termind.tailscale.\(id.uuidString)" }
+    private nonisolated static func stateNamespace(_ id: UUID) -> String {
+        "com.akinokaede.termind.tailscale.\(id.uuidString)"
+    }
 
     private nonisolated static func profileRoot() throws -> URL {
         try FileManager.default.url(
