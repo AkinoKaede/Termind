@@ -24,8 +24,6 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-83cf4f34941d19114f080a3a
     resource: repo://TFI/Application/Connections/MobileWorkspaceConnectionServices.swift
-  - id: openwiki-source-deb061208994fd7d84d4f029
-    resource: repo://TFI/Application/Transfers/MobileSFTPChannelModel.swift
   - id: openwiki-source-851edcded7143bb79a41f6c6
     resource: repo://TFI/Application/Workspaces/MobileConnectionHistory.swift
   - id: openwiki-source-0368ecce931d0fb26fe8f35f
@@ -86,6 +84,8 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-873894299539cce9a737a860
@@ -106,16 +106,14 @@ sources:
     resource: repo://TFM/Features/Settings/MCPSettings.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
-  - id: openwiki-source-a93c339a06b550013d027e29
-    resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
+  - id: openwiki-source-61a7b49f0fef771653753f14
+    resource: repo://TFM/Features/SFTP/SFTPBrowserView.swift
   - id: openwiki-source-07825e2cdc632a818b8c30ee
     resource: repo://TFM/Features/Shell/WindowRoute.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
-  - id: openwiki-source-507cd94a8ae82f840ac8591f
-    resource: repo://TFM/Features/Vault/VaultView.swift
   - id: openwiki-source-9cfd8531aa60dcfb31f04e04
     resource: repo://TFM/Features/Vault/VaultWorkspaceView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -150,10 +148,10 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Native App Responsibilities
@@ -201,7 +199,7 @@ Settings is a **window destination**, not a separate shared-service owner. `Wind
 
 ### Mobile navigation, restoration and lifecycle
 
-`MobileFeatureRegistry` passes scene callbacks into Vault: tapping a host selects a recent preferred SSH/Telnet workspace **in that scene's session** or opens one there; explicit SSH, Telnet and SFTP menu actions create independent connections. `MobileSceneModel.selectWorkspace` asks its `workspaceSession` to materialize a saved descriptor, then selects the resulting runtime. When switching from another destination, it defers the workspace ID until the Workspaces destination is active; `activatePendingWorkspace` completes selection and publishes focus to Live Activities. Missing runtimes instead clear selection and show an unavailable-workspace alert. `MobileWorkspaceSessionModel.openWorkspace` first checks its own live instances and discards stale descriptors whose host is missing. Its `addWorkspaces` publishes the runtime and descriptor **before** `connect()`, so repeated selection within that window shares the first attempt. An explicit close disconnects and removes that session's saved descriptor; it does not close another window's workspaces. The app retains sessions across view disappearance or a UIKit scene disconnect: disconnect alone is not evidence that a persistent `UISceneSession` was discarded.
+`MobileFeatureRegistry` passes scene callbacks into Vault: tapping a host selects a recent preferred SSH/Telnet workspace **in that scene's session** or opens one there; explicit SSH, Telnet and SFTP menu actions create independent connections. `MobileSceneModel` stores one optional Workspace/Transfers destination and one optional Connection Picker/Batch Startup sheet; its old selection/picker accessors derive from those enums. `MobileSceneModel.selectWorkspace` asks its `workspaceSession` to materialize a saved descriptor, then selects the resulting runtime. When switching from another destination, it defers the workspace ID until the Workspaces destination is active; `activatePendingWorkspace` completes selection and publishes focus to Live Activities. Missing runtimes instead clear selection and show an unavailable-workspace alert. `MobileWorkspaceSessionModel.openWorkspace` first checks its own live instances and discards stale descriptors whose host is missing. Its `addWorkspaces` publishes the runtime and descriptor **before** `connect()`, so repeated selection within that window shares the first attempt. An explicit close disconnects and removes that session's saved descriptor; it does not close another window's workspaces. The app retains sessions across view disappearance or a UIKit scene disconnect: disconnect alone is not evidence that a persistent `UISceneSession` was discarded.
 
 The single app-owned `Infrastructure/MobileWorkspaceStore` writes a device-local snapshot keyed by persistent native session ID, with legacy unassigned records; it stores connection intent only, never credentials, commands or live sessions. Cold launch consolidates saved records into the first bound session in one save, preserving IDs and order, without connecting until selected. A read failure prevents writes over the unreadable snapshot; save or restore failures surface as app errors. When UIKit reports a session **discarded**, the app closes only its workspaces and deletes its records. Conversely, when `UIApplication.openSessions` proves an owner no longer exists, reconciliation can move its live objects and descriptors to an active session **after saving the new ownership**, without reconnecting; a late explicit discard still closes the recovered objects from that former window. Activity links resolve the workspace UUID to its owning session and request native scene activation rather than opening a duplicate connection in the receiving window. If activation cannot find that window, the scene reports unavailable. The `Platform` scene delegate, routing adapter and `App` session model are the change points for native window ownership; the list/detail views only display and command their bound session.
 
@@ -247,7 +245,7 @@ Scene registration and entitlement gate app-owned services independently of whic
 
 | Directory | Desktop example | Mobile example |
 | --- | --- | --- |
-| `Application` | Use cases and injectable ports, including quick-connect parsing, command identities, audit/transfer library models, `Serial` contracts and external `MCPServer` tools. | `Connections` injectable SSH/SFTP and terminal-write capabilities; `Agent` Assistant coordination; `FeatureModels` editor and picker state; `Metrics` sampling contracts; `Transfers` SFTP browser state; `Workspaces` descriptor/history policy. Not a shared-framework layer and not the native window session owner. |
+| `Application` | Use cases and injectable ports, including quick-connect parsing, command identities, audit and feature-library models, `Serial` contracts and external `MCPServer` tools. | `Connections` injectable SSH/SFTP and terminal-write capabilities; `Agent` Assistant coordination; `FeatureModels` editor and picker state; `Metrics` sampling contracts; `Transfers` SFTP browser state; `Workspaces` descriptor/history policy. Not a shared-framework layer and not the native window session owner. |
 | `Infrastructure` | Concrete wiring: `Database` convenience adapters over `TermindPersistence` repositories, repository factories, serial and SSH adapters, import adapters, loopback `Networking`, MCP sessions and security token storage. No second SwiftData schema. | `MobileWorkspaceStore` versioned, per-session intent persistence and `SSH` implementations of mobile connection/metrics services. The app owns snapshot mutations and recovery decisions. |
 | `Platform` | AppKit window/menu-bar control, login/appearance, shortcuts, file handoff, audio and native device naming. | UIKit scene delegate and scene routing, background allowance, quick actions, Live Activities, camera, document handoff, terminal surface/drop handling, speech and fonts. |
 | `Design`, `DesignSystem`, `UI` | Tokens and layout helpers; reusable native components and managed card grids. Resource pages supply operations. | Tokens, available-content geometry and toolbar placement; reusable mobile cards, native lists, sheets, toolbars and input. |
@@ -266,7 +264,7 @@ UIKit code does not automatically belong in `Platform`. The reusable [`UI/Compon
 - SSH/Telnet bind text and presentation to the workspace's `TerminalFindController`; submit navigates `.previous`. Native dismissal calls `dismiss(restoringFocus: false)`, leaving the UIKit responder transition to the search host.
 - SFTP binds only `sftpChannel.query`, with no terminal presentation binding or navigation callback. A file filter is not terminal Find.
 
-The workspace constructs Find with callbacks into its `TerminalViewState` for binding actions and focus. Separately, [`Platform/MobileTerminalSurface.swift`](../../TFI/Platform/MobileTerminalSurface.swift) owns the native terminal view: the workspace retains this surface and returns the same view through `makePlatformView`. Its terminal subclass adds F3/Shift-F3 Find navigation and replaces Escape/Shift-Escape only while Find is presented, preserving ordinary terminal input otherwise. Keep Ghostty-specific native adaptation here, not in the generic search controller. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the terminal boundary and binding behavior.
+The workspace constructs Find with callbacks into its `TerminalViewState` for binding actions and focus. Separately, [`Platform/MobileTerminalSurface.swift`](../../TFI/Platform/MobileTerminalSurface.swift) owns the native terminal view: the workspace retains this surface and returns the same view through `makePlatformView`. Its terminal subclass adds F3/Shift-F3 Find navigation and replaces Escape/Shift-Escape only while Find is presented, preserving ordinary terminal input otherwise. Before a size change it suspends engine search; a replaced delayed task resumes after Ghostty's resize throttle plus 0.1 seconds without recreating the terminal or clearing the query. Keep Ghostty-specific native adaptation here, not in the generic search controller. See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for the terminal boundary and binding behavior.
 
 `MobileWorkspaceView` applies the search modifier to stable workspace chrome, outside the connection-journey branch. SSH/Telnet keep their terminal mounted beneath that journey overlay; SFTP may replace browser content, but not the search host. A change to connection progress must not accidentally recreate search or the terminal surface.
 
@@ -275,9 +273,9 @@ For this seam, `TFITests/MobileTerminalSearchTests.swift` provides serialized, o
 ## Where feature work belongs
 
 - **`Features/AI`, `Assistant`, `Shell`:** `AI` holds reusable composer/transcript pieces; `Assistant` composes the full and contextual conversation destinations; `Shell` names app destinations and routes, not SSH transport. Desktop `Terminal` includes SSH/Telnet/serial session models and persistent terminal presentation; mobile `Terminal` includes keyboard/history interaction while `Workspaces` implements mobile live connections, `App/MobileWorkspaceSessionModel` owns each native window's collection, and `Platform` mounts the native terminal surface.
-- **`Features/Vault` and specialist editors:** Desktop Vault is a pinned window destination: `WindowModel` retains its page, selected manager items and optional work-detail route; `VaultView` dispatches the manager page and `VaultWorkspaceView` mounts the detail without replacing the list's identity. Inline dirty editor transitions offer save, discard or cancel; a failed save does not proceed. Mobile Vault renders grouped host cards and links to credentials, forwarding, snippets, known hosts and History. Local search, sheets and confirmations do not own the library or sessions. `MobileHostEditor` maintains host/custom-identity drafts and validates protocol, port, authentication and environment before saving via the host library. `MobileKnownHostsView` edits validated trust entries via `app.knownHosts` and surfaces save failures. Deleting a host through `MobileAppModel.deleteHost` closes matching workspaces **in every session and saved snapshot**, invalidates SFTP edits, cancels transfers, stops forwarding, removes metrics, requests deletion and starts the outbox; moving that into a card would omit lifecycle effects.
+- **`Features/Vault` and specialist editors:** Desktop Vault is a pinned window destination: `WindowModel` retains its page, selected manager items and optional work-detail route; `VaultView` dispatches the manager page and `VaultWorkspaceView` mounts the detail without replacing the list's identity. Inline dirty navigation offers save, discard or cancel; explicit editor cancellation offers keep editing or discard, busy editors block transitions, and a failed save does not proceed. Mobile Vault renders grouped host cards and links to credentials, forwarding, snippets, known hosts and History. Local search, sheets and confirmations do not own the library or sessions. `MobileHostEditor` maintains host/custom-identity drafts and validates protocol, port, authentication and environment before saving via the host library. `MobileKnownHostsView` edits validated trust entries via `app.knownHosts` and surfaces save failures. Deleting a host through `MobileAppModel.deleteHost` closes matching workspaces **in every session and saved snapshot**, invalidates SFTP edits, cancels transfers, stops forwarding, removes metrics, requests deletion and starts the outbox; moving that into a card would omit lifecycle effects.
 - **Vault History:** The SwiftUI History view is in `Features/Vault/MobileVaultView.swift`, but `Application/Workspaces/MobileConnectionHistory.swift` resolves rows against hosts and device names, filters search, limits results to 50 and permits opening only enabled host protocols. A recorded event for a now-disabled protocol remains visible but cannot be opened. Delete and clear-all call `app.connectionHistory`. Vault search forwards queries into dedicated pushed resource screens, while Metrics results switch the top-level destination. `TFITests/MobileConnectionPickerTests.swift` covers History search/limit and disabled-protocol actions; mobile Vault feature tests cover menu protocol filtering and group/host operations.
-- **`Features/Settings`, `SFTP`, `Transfers`:** Mobile `MobileSettingsView` links app, notification, terminal, connection, AI and sync forms to `MobileAppModel` services; `MobileSyncSettingsView` sends toggles through `app.setSyncEnabled` instead of starting cloud coordinators itself. Desktop `SettingsPageView` switches window-local routes and reads shared `AppModel` capabilities. SFTP browser/channel models manage browsing and edit presentation; process-level `SFTPTransferCoordinator` lives in shared Remote Infrastructure and is retained by app composition. Mobile has a separate `Features/Transfers` queue surface; desktop transfer-library state is in `Application/FeatureModels`. Closing a screen must not cancel unrelated work.
+- **`Features/Settings`, `SFTP`, `Transfers`:** Mobile `MobileSettingsView` links app, notification, terminal, connection, AI and sync forms to `MobileAppModel` services; `MobileSyncSettingsView` sends toggles through `app.setSyncEnabled` instead of starting cloud coordinators itself. Desktop `SettingsPageView` switches window-local routes and reads shared `AppModel` capabilities. SFTP browser/channel models manage browsing and edit presentation; process-level `SFTPTransferCoordinator` lives in shared Remote Infrastructure and is retained by app composition. Mobile has a separate `Features/Transfers` queue surface; desktop browsers now consume the existing Host library directly; the obsolete `TransferLibraryModel` forwarding facade was removed. Closing a screen must not cancel unrelated work.
 - **`Features/Sidebar` and `Workspaces`:** Desktop Sidebar is a per-window column, not an app-global navigator. Desktop Workspaces manages window layout and panes; closing a workspace disconnects its connections and retains at most ten closed workspaces for reopening, while closing a window disconnects every workspace and clears that stack. Mobile `Features/Workspaces` provides the runtime and list/detail, but scene-local `App/MobileWorkspaceSessionModel` owns the collection, reconnection and descriptor mutations; `MobileAppModel` aggregates across sessions for background work and host deletion. Moving session ownership across those boundaries changes native-window lifetime, not just file organization.
 
 The native `UI/Managed` grids and `UI/Components` interaction helpers do not acquire resource ownership merely by rendering a manager. For deeper behavior, see [Desktop UI](desktop-ui.md), [Mobile UI](mobile-ui.md), and [Platform Runtime](platform-runtime.md); return to the [Module Map](module-map.md) for dependencies.

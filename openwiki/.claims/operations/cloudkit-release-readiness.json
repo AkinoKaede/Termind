@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:efeb20df6dfda4a07a9fcd7a8201a96d57119436942ea495c98ff084a4854a12",
+  "pageVersion": "sha256:bb812565d317e9f27c5d6329cd68ddeeffcfd2902fdea72c0439d6e0375c220b",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -135,7 +135,7 @@
           "version": "repo-lines-v1:sha256:ef29cd0331637056886c9a527eb75358aa485f3e9c8fd419810278b323cec18f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0MTYxNTVhMTUwNThhY2VmODIzMTJiZTlkZjZiOTI5OWZiZDM4MTVlN2NhNDM5M2Y1ZTllNTQxMjUwMmQ5NjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjZGI5NzdmYWUwMGFjYzYwYTUyYWUzNmZkNDJiNzRkMjE1ZTYyNWQzOGFhOTE0ZjdiZTFlNzdlNTk2M2EwODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4Y2VjM2ZiZjVmZmVjZTdiY2QyMmI0Y2VjOGUzZTUwMmU2ZmQ1YmIyMjJlMWQ4ODA5NDJlZjI3YTFlOTFkYTMifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L803-L836",
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L805-L838",
           "version": "repo-lines-v1:sha256:719837905551b3d1f76161c6eaacfa5da59b704cce0b01926bad8f045425bc33:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzMWY1NzljMDIwYzdmOWJkMTdmNWEzMzUwYWIwMGU4M2U4YzlhMzlmZThlYzRhNzNmOGFjZGM0NGQyMDZkZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1M2I5ZDVjZDc0MDFlMjUzNjJlMGYwNzIwNzE4ZWI5ODZlMzQyYjY5MGY5MzBhZWZiZTgyZjFjMDgyNzI4ZGYifQ"
         }
       ]
@@ -224,15 +224,19 @@
     },
     {
       "id": "claim_d9bd498c7bb54f79af60a63cf83c303c",
-      "statement": "The shared SwiftData container uses V50 with CloudKit mirroring disabled; the migration plan preserves V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50 without V29, V32 or V33 endpoints.",
+      "statement": "The shared container uses V51 with CloudKit mirroring disabled and preserved historical endpoints, omitting V29/V32/V33. V51 adds Snippet color over a frozen historical entity; its disk fixture upgrades V50 retaining data, writes color and reopens again rather than equating schema constants.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:689c7e7a10cb5a9438a118c8b712fe5927761705a9e50b5800e497d5722a7f74"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L109-L143",
+          "version": "repo-lines-v1:sha256:a2f6b010a022c98ec7e629f86b6ebf6497cb6af0abea4256350ec6d32c2a77b7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBlM2M4NjQ2YmJmY2JhZTc3ZGIwMjNhZTUzNmUyN2U4ZTVkNTAxMGY2NzczYTJhMDRmMTA0MjYxZjY2MDJhNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:014707bd8a373fd405507c9ab1b346fef572e23a3fd1a075c5f7a0af7ce76870"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L945-L1082",
+          "version": "repo-lines-v1:sha256:64fce397cfbdc206839752962c430b2e93dfaf08834640ac4a4291aebae8b232:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0ZjAzNWMyMjQ2OGZiZGNhMzk2MmI4ZThkZGEzOTk0NDNhMTlmNTViZjI1NTY1MzQ0MDcyNzU3MGQ4ZjgwMzRmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5YTBmNWU5MWYyMTE3YmFlYjdhOGFiNzVhNzczMDllYmZlYmJhZjY1MWZlYTA3MmI1NDBiYmU4NWY4MzEyODQ2In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L45",
+          "version": "repo-lines-v1:sha256:0c1457fe0727cb0ae3c85da6dbab612ea422e55a4be6acd074b87a16768a54bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZDE3ODg3ZDhiOWFjYjJlZjc4ZGRkZmJiNTJkMWEzM2UwZWI2MDRlMmU1NDczMjI5OGZhNmUyMjgyMjc3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZDdiZTg1ODEwYTgzY2E3NDczYThhZDg4Yzg2NDRkNTIzNWZhOTY4MWI2NTlhNTFlZTU3OTZjMWFiZmFiNTUifQ"
         }
       ]
     },
@@ -264,7 +268,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:689c7e7a10cb5a9438a118c8b712fe5927761705a9e50b5800e497d5722a7f74"
+          "version": "repo-file-v1:sha256:42ff82768a4bcfdc9b1252d61d9528824ef20f2f6210f0f0b647bea826a2b64e"
         },
         {
           "resource": "repo://Scripts/generate-v28-fixture.swift",
@@ -278,7 +282,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40",
-          "version": "repo-lines-v1:sha256:f07729532ad7e11bc1c062a58fa30b5643ac0dff10c05c2b1fefaf926e546a0f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
+          "version": "repo-lines-v1:sha256:549d8a8544520f4a90252ea2b664d4f83972c1712855e67b1ca5a85f747b749e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift#L55-L84",
@@ -387,7 +391,7 @@
           "version": "repo-lines-v1:sha256:cc3d8d00b3ba5984eec3428ab7e97b2aa7e442b34108ab28392aeec5993cb0fe:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkZDg3NjgyMjU3MTE3YWViNDc2Yjk1NDgxOTU0ODA0MmVhYjlmZmJlZWQ2NjBhOGFmODhlNmJlZWYwOTU5NmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlNTMzZTdhOWVkMjg3MDg4NWJmYmE2Zjc4ZDU5Nzc5ZGIxODFkMWIwYzE1YjBmNDY5YTBjYTgyNjFlYjVlZDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjZGI5NzdmYWUwMGFjYzYwYTUyYWUzNmZkNDJiNzRkMjE1ZTYyNWQzOGFhOTE0ZjdiZTFlNzdlNTk2M2EwODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L838-L855",
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L840-L857",
           "version": "repo-lines-v1:sha256:e9c60b9de8d1abb7f05ed0ed068f3d8b9cf9cf8c936c3df0de89c9e47dd7b37c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkNDBiZDMzYWU5NGYxMDcxM2I4Njc0MTM2MDhmOTAwZGUzZDc4NGI4NWJhMjQyZTUyMTg0MGZlNzU2ZDI3ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYzllZDBkMTRmYjhhM2EzOGI3MDhmZmYzYmFmMWIxM2Q3YzA3YmIxMmNmZDZkMDJlMWJiMjRhZGY3ZTUzZWIifQ"
         }
       ]
@@ -477,7 +481,7 @@
           "version": "repo-lines-v1:sha256:5d199b3cdfbf10dab1e28f37accc23d5d4be53b98d729be74232ea0ba3653f72:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNmNhNmEwZmQzZjA1MWI3Nzc4YWIyMjU3NjBjYWQ3Mzk4N2MwOTBjZjdjYjFkMjRlNzkyYTQ2NGUyZGM3ZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5OGI3NjBmMjVmNjNjNDQxMDIyMzA2OWYxNzQwNDBlYWMxNTZiNGVjYTdlMGJiNmQ0NGZmNTJiZDkzMDA1MjAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L857-L875",
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L859-L877",
           "version": "repo-lines-v1:sha256:d77582fc451692ad443220624d6ba1fcae6002e255c0a5d448247b27e847e642:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlYmI2ZjA5NGZiOTBjYWRiOTA5NjY1ZmYyY2I0MDkwYjE2OWNmNDllMjMyYjA0MGQwNjBlMTk0YWY1MzlkZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NmIzYTEyZjYyMTVmOWFhMzI1MzQyOWZlYTU2NDgyNDZhZjc5NTk0YWI4YWMzZjRkZGI3ZGI2Y2ZiNjQxYWYifQ"
         }
       ]
@@ -515,7 +519,7 @@
       "statement": "After V42, V43 adds public MCP OAuth configuration, V44 replaces the Host model with SSH enablement and forwarding fields, and V45 replaces the SSH key model with Security Key credential metadata.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L878-L900",
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L880-L902",
           "version": "repo-lines-v1:sha256:e884786c61c6b21ce7cf7742217663a2191f6f57be6fb6abe51531e18815c83b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkZDc2M2I3YTA4M2JkMTg5Y2Q1YWEzMjdlNGIxMWRhMzk3YTVmNTg3YWFmYWFhNWI4ZGIxNDlkMzkwNjhkMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYzllZDBkMTRmYjhhM2EzOGI3MDhmZmYzYmFmMWIxM2Q3YzA3YmIxMmNmZDZkMDJlMWJiMjRhZGY3ZTUzZWIifQ"
         },
         {
@@ -559,7 +563,7 @@
           "version": "repo-lines-v1:sha256:8138eb45e49bbfd7b7d1b76167da63b7388bbdb0655ad16733be89720f3999d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZjMxMWQ5OTc1YjMyMTU5Y2Y2ZTA5NGFlYzY0YmQyZGE3NGQ1OTEzMzc1NGMyY2M0M2M2NTJlMzg1OTdhYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2YmUxZDc5ZDRiMmI0YTZkYTFkN2IwMWU2N2IyZDQxZmZhMDk4NWZiNTk1NDkxZTIwMmU3N2Q2ODg4MWM2NjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0NzY5MzI4YjhlZWVjNjY0NzYzODQzYTE3YThmMDc0ZWNlNDUyZmE4ZTlmYjY4ZTA2N2M3MDM3ZWE2YWIwYWEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L204-L215",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L188-L199",
           "version": "repo-lines-v1:sha256:2b284c68616d7f895a9a6a8b17b0d1fc8103531a2a2aab601e7801e358fc92ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwMDc4NTkwOGZlY2YyODUxNWNhMDMxOGZkYjI4ODhhNjU4ZTQyMjVkZWZjMTAxNWExYWFmNzUxZGQ3OTUwNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmZTc3ZTdjMGNmZWIyYjQ5ZDBjYTIzOGExMThkOTk0YTFkYWYyNjAwNWEyZDYxMGI3YmRkZWRkYzc3YjM1YTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmN2M4NjBjOTAzOGM2ODEzOWVjMTYzOGNiZThkNDYzNzYxMDYyOGY0NGU4MTk1OThjYmY2YjA0Y2MzOWIzNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3YzFiNmI0YjE0NDZiZDA4NTAwNzg4ZTk4YmJhOWQ1NjVlYmJlNjJmMTE3ZTRlZTc0MjlkYzUxNmY4MjQ4NjYifQ"
         },
         {
@@ -596,7 +600,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         }
       ]
     },
@@ -627,11 +631,11 @@
       "statement": "Live macOS sync coordinators start only when Pro permits vault sync, and mobile starts them only when both a scene is active and Pro permits vault sync; otherwise they are paused without deleting local data.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L623-L638",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L607-L622",
           "version": "repo-lines-v1:sha256:56c479ee1ba583ccecd03c7f5e7fd6e3c3009d4326b744a8f2637290bf0233b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3Y2E3MWJkZmM2MGVhMzNkYWQ0YWI2NmNkYjBjNmM5MjUzOGY1NDA0NjRkYzY1OGExMTkwYjUyZTc3MGUyMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1MGZiNmUwZThhYmY3YmNiNjdkODIzMzJjMmVlOGZlNzY0NzYzZDFlZjA5ODc4NWM3ZmM4Y2Q1Zjk2ZmRkOGUifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L439-L485",
+          "resource": "repo://TFM/App/AppModel.swift#L444-L490",
           "version": "repo-lines-v1:sha256:25130b9b319c9f47241ee905ce66168408580b290be8e167787b9986392bc3a0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3MDMyZjUzOTcxNDA0YjMxMjM2MmZkYmQ5MzlmOGRlNjYzMGRiNGVhNTQ1Mjk5MTUxNDVlMjNmY2RjNTc0MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYjE3NDhmMTc0MjI2OGM0MTNmMjQ3N2VmY2Y3OTNmY2MxYzUxYTAyN2ExMDhhZWIyODljYmRmOWQ2M2M1YWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhNmVkNDJiNDliZDBjNGNkMDNiZmMwMzRkNzZiMzI2NjliZmYwOGYwOTE5OTRkMDUyNTIwODllYmEyNTEwNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYwM2EzMTlkOGZlNzllZTc4ZjIxYjVjMTQxZTAwOWFmMzRlYjAyODQ2MDBjZTQ5MzI0OTk3YTUyZTQ3ZDk5NzUifQ"
         }
       ]
@@ -656,21 +660,25 @@
     },
     {
       "id": "claim_3634d9689ed64de2a0b38d4b3c3419e1",
-      "statement": "Cloud compatibility is per kind: Host writes V2, HostGroup/SSHKey write V3, Metrics writes V2 with historical readers; Tailscale managed Hosts cannot be encoded as Vault Host envelopes.",
+      "statement": "Cloud compatibility is per kind: Host/Snippet write V2, HostGroup/SSHKey write V3 and Metrics writes V2 with historical readers; managed Hosts cannot encode as Vault Host records. Snippet V1 rejects colored writes, while a newer received V1 record clears color and both tombstone versions round-trip.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58",
-          "version": "repo-lines-v1:sha256:c3bd24cff79dfed965f281b956602bdd595262c704681fa909952632a2464c5b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L59-L107",
+          "version": "repo-lines-v1:sha256:24b0c9e0b758f86f425ef2ffa35c20a030bc1f4a652cbec7133b61b551a8d039:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5ZGYzNDY3YTk1OWY0ZWQ2YWVlNGJjNzUyMzg2YzA5ZThhMzcyMzg2OTY2NWEzYjdiMTAxYzVhZDMxNWYwNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViMjg0MWUxZmMyMTQ1MzExYjVlNDYxY2JmZDVkMGZlOWE3ODVmYTFhODA2MDZiZmE1OTdhZjUxZTQ3YmY4OTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L60-L73",
-          "version": "repo-lines-v1:sha256:e500f3dde174abec328254c2f945bba386527ee88175abacc8dc560c89536b65:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNTQ0YjkxY2NiZDZkYTgzYThkYmJmZGJiZDUzMGM0MTE2YWI5YWNlNTU5Nzg2MjAyZjBhNzIwYWQ5NGNmNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ZWZkYjI1ZDk2MjYzNzNjOTIzOTIzZWQwZjYyZWZhODQyYzkyMWY5OWI1ZTc0YjM4ODcwYmU0OTc1MDUzMDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyYjAzMDYzZjk2NDIxOTdiMmQwNjFjM2MwYTlhMzZjY2VmOTRiZjIzOTY4MDg4MzIxMjU2ZmUxODQ4ZDRmNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmNjljZTFlNmQ3YTUyM2NhOTBhYmMzMzZlMDc3NjY1MmVjMTA0MGZmYzY5YmNmNWQwNWMzYWQzOTdhYmIyMWUifQ"
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58",
+          "version": "repo-lines-v1:sha256:644e9cecfcec36d696beb951811d0e4c6cc06cf3f47ad21285ee1f5a5e2f8bb1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L60-L93",
+          "version": "repo-lines-v1:sha256:5aa90020671ffa9249705d32f93b926a6a2626dffb803a2e4fa77e904affbdab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNTQ0YjkxY2NiZDZkYTgzYThkYmJmZGJiZDUzMGM0MTE2YWI5YWNlNTU5Nzg2MjAyZjBhNzIwYWQ5NGNmNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzYTQ3OGQxNTk5ODQ4ZTY0NWM4MzUwOGYyNmM2ODIyNjM5MWFjMGIwNGU3ZWJhNmM2ZmE5YTM5YjY1MzZiMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyYjAzMDYzZjk2NDIxOTdiMmQwNjFjM2MwYTlhMzZjY2VmOTRiZjIzOTY4MDg4MzIxMjU2ZmUxODQ4ZDRmNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjOGZlOTM5MmZmZmFiMjIwNDQ4MmQ1ZjBkYTM0ZGU2YTkzYzc0NWVlNTA0MzBjN2JlNzNlYzZhZmViNGYxOGMifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T22:38:13.888Z"
+    "at": "2026-10-04T14:45:13.763Z"
   }
 }

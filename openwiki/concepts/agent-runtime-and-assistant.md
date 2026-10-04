@@ -3,9 +3,6 @@ type: assistant runtime concept
 title: Agent runtime and assistant ownership
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -39,6 +36,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-726b3d2d8e6b8e6e0b9ee479
+    resource: repo://Frameworks/TermindPresentation/AssistantMessageBody.swift
+  - id: openwiki-source-718a8dd6b4c7481c367a98e1
+    resource: repo://Frameworks/TermindPresentation/TermindMarkdownParser.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
@@ -91,8 +92,6 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
-  - id: openwiki-source-16db5d5459897d40fe080701
-    resource: repo://TFM/Features/AI/ConversationTranscriptView.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-49c5ca81284394384f3c3913
@@ -113,14 +112,19 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+  - id: openwiki-source-5a540932657f4174b82cb1eb
+    resource: repo://TFMTests/TerminalSuggestToolTests.swift
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # Agent runtime and assistant ownership
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.18.1); this repository's `AgentKit/` directory is empty here and is not evidence of the pinned package's implementation. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.18.1** at revision `e21235d8647a780e16a1c2c3b19cc00db5c82cb7` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.19.0); ordinary Xcode builds consume the resolved remote package, not the reference or sibling checkout. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.19.0** at revision `d6f4692de8f30d8836b2e83ffcd5ddfcd7f1fdfc` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 
@@ -142,8 +146,7 @@ flowchart TD
 
 Native assistant composition: app targets inject device services, while the shared controller creates an AgentKit runtime and the separate macOS MCP server exports a restricted tool surface.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md).
+For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](../workflows/file-drag-and-drop.md).
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. When configured, `AssistantModelSelectionController.prepareForSend` first persists a valid per-conversation chat-model choice (or replaces an unavailable choice with the current default); a write error refuses capture without consuming the draft. Drafts are seeded with a model in memory, while restore backfills durable choices, and later Chat-role changes do not silently switch an existing valid choice. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 
@@ -197,7 +200,7 @@ This snapshot dictionary is a partial override: disabling terminal suggestions d
 
 ## Turn lifecycle
 
-Desktop sidebar, standalone Assistant, and mobile first sends use the same controller-owned capture path as subsequent sends. A first conversation is promoted into the library only after capture and local turn append succeed. Refused sends leave the draft, attachments, armed skill and ephemeral conversation unconsumed. Accepted composer sends fold attachments and an armed skill directive into the model-facing turn once, clear those composer payloads, and clear the submitted draft. Direct text sends and plan implementation also fold those payloads once but leave unrelated ordinary draft text alone.
+Desktop sidebar, standalone Assistant, and mobile first sends use the same controller-owned capture path as subsequent sends. A first conversation is promoted into the library only after capture and local turn append succeed; the obsolete `startConversation`/`startDraftConversation` shortcuts were removed. Refused sends leave the draft, attachments, armed skill and ephemeral conversation unconsumed. Accepted composer sends fold attachments and an armed skill directive into the model-facing turn once, clear those composer payloads, and clear the submitted draft. Direct text sends and plan implementation also fold those payloads once but leave unrelated ordinary draft text alone.
 
 Edits have a separate two-stage entry point: desktop and mobile UI call `prepareAgentEdit` synchronously before creating their UI `Task`. It preserves the original attachment payload and model-facing suffix while capturing fresh context and configuration for the replacement submission. `performAgentEdit` checks the capture identity before starting a tracked history task; persistence succeeds before the live edit is applied, and another identity check precedes runtime preparation. A cancelled or superseded prepared edit cannot later enter truncation or start a runtime.
 
@@ -317,7 +320,7 @@ This interaction sequence describes the queue's per-head deadline, not the lifet
 
 ## Host tools and plan mode
 
-Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` creates a user-operated command card and never executes it. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. Separately, `list_panes` and `read_pane` inspect *already open* local terminal viewports through the captured app adapter, including connected SSH, Telnet, and (on desktop) serial panes; they do not create a PTY or run a command. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
+Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `AgentConnectionPool` keeps a host-keyed multiplexed SSH connection across runs and conversations, with a 180-second default idle timeout, route-fingerprint invalidation and explicit disconnect/closeAll; SSH exec and the primary SFTP subsystem share it. `AgentSSHAuthenticationRegistry` shares temporary authentication only among overlapping attempts for the same host and releases it after the last lease. SFTP operations acquire an exclusive lease and release it even on failure; only acquisition/authentication retries, not the operation itself. Transfer work takes an SFTP concurrency permit. An `ssh_exec` connection-unavailable retry is allowed only before a command session opens; a running command is never replayed after an uncertain failure. After its deadline, an unstarted connection reports `connecting`, whereas a started command can be handed to `AgentBackgroundCommands` and followed with `ssh_wait` across turns. `terminal_suggest` accepts only a command and creates a user-operated card without executing it. The schema rejects an `explanation` argument, the result contains command/risk/requires-user-action, and legacy explanation fields are not displayed. Suggested commands use the shared `SuggestedCommandCodeBlock`; permission and captured surface availability remain separate from rendering. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. Separately, `list_panes` and `read_pane` inspect *already open* local terminal viewports through the captured app adapter, including connected SSH, Telnet, and (on desktop) serial panes; they do not create a PTY or run a command. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
 
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 
@@ -339,7 +342,7 @@ A saved context snapshot preserves historical session, skill-catalog text, plan 
 
 Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
 
-Tool cards resolve their persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: built-in JSON results can use a registered structured presenter or a generic fallback, while MCP keeps remote-defined JSON output. Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. Display text previews are bounded to 8,192 characters and 120 lines, retaining the full transformed output for Copy; this does not truncate the original execution/replay result.
+Tool cards resolve their persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: built-in JSON results can use a registered structured presenter or a generic fallback, while MCP keeps remote-defined JSON output. Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. Display text previews are bounded to 8,192 characters and 120 lines, retaining the full transformed output for Copy; this does not truncate the original execution/replay result. Both platforms use shared `AssistantMessageBody` over MarkdownView, and `TermindMarkdownParser` delegates block parsing to MarkdownParser. Inline titles retain emphasis, code, link destinations and image alt text; the previous soft-break rewriting and local unsafe-link filtering adapters were removed. Native list ownership, row measurement and interaction remain platform-owned.
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation.
 

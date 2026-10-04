@@ -38,12 +38,16 @@ sources:
     resource: repo://TFI/Platform/MobileTerminalDropTarget.swift
   - id: openwiki-source-ff70f9337ec621c20453d410
     resource: repo://TFI/UI/Components/MobileDropPayload.swift
+  - id: openwiki-source-e4e69f9f6077911b963b1f83
+    resource: repo://TFI/UI/Components/MobileFileImportState.swift
   - id: openwiki-source-d4d621c97707c9d77357829d
     resource: repo://TFI/UI/Components/MobileWindowDropTarget.swift
   - id: openwiki-source-a58d5ef8fa89aff75e31553b
     resource: repo://TFITests/MobileCommandGeneratorAndUploadTests.swift
   - id: openwiki-source-2ccf9b5f9aa44bcc4462adbe
     resource: repo://TFITests/MobileDropTests.swift
+  - id: openwiki-source-2e344ef3e7cfe79ec821941e
+    resource: repo://TFITests/MobileWorkspacePresentationTests.swift
   - id: openwiki-source-16db5d5459897d40fe080701
     resource: repo://TFM/Features/AI/ConversationTranscriptView.swift
   - id: openwiki-source-16bb1a92866262b0d20f24e4
@@ -72,10 +76,10 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # File Drag and Drop
@@ -149,6 +153,8 @@ Ghostty also owns a drop interaction. `MobileTerminalDropTarget` temporarily rep
 Two guards handle overlapping window and terminal callbacks: `activeInteraction` prevents a late exit from the old interaction from clearing the new target, and `performedSession` prevents the same native session from being uploaded twice. Leaving, ending, or disabling clears targeting; disabling gates callbacks but does **not** uninstall the interactions. Detaching or moving between windows removes the old window interaction and restores the terminal's original interaction; dismantling the representable uninstalls both routes.
 
 `MobileWorkspaceView` enables the receiver only while `workspaceIsVisible && scenePhase == .active`, and `.id(workspace.id)` gives a changed Workspace a distinct native destination lifecycle. Disappearance clears targeting, unbinds terminal upload-menu callbacks and cancels provider loading; changing Workspace identity clears the captured picker target and cancels loading too. Scene inactivity disables native acceptance, but is not itself a call to `cancelDropLoading()`. These are presentation lifetimes, not instructions to disconnect the Workspace or cancel admitted transfers. See [Mobile UI and Scene Ownership](../architecture/mobile-ui.md) for the session owner.
+
+File pickers have a separate callback lifetime from drop-provider loading. `MobileFileImportState` keeps the captured download/edit target when UIKit first reports dismissal, then consumes it once when the importer result arrives. A new picker request replaces a cancelled request; removing the presentation flag alone must not erase the still-pending target. `MobileWorkspacePresentationTests` exercises both callback orders without a key window.
 
 ### Loading files before UIKit releases them
 

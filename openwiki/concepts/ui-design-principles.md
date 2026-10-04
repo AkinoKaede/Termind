@@ -3,9 +3,6 @@ type: design guide
 title: UI state and presentation principles
 description: Source-backed guide to native desktop and mobile settings routes, reusable presentation, terminal appearance selection, and state continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -27,10 +24,16 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
     resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
+  - id: openwiki-source-7ce0caf95a799e357a1bcaeb
+    resource: repo://Frameworks/TermindPresentation/HostEditorBindings.swift
   - id: openwiki-source-b94703f13853dd091b9c8088
     resource: repo://Frameworks/TermindPresentation/NotificationSettingsFields.swift
+  - id: openwiki-source-4706711c42fe2431044b1e84
+    resource: repo://Frameworks/TermindPresentation/OperationConfirmation.swift
   - id: openwiki-source-db3eac4d3fbf63570c0e0d56
     resource: repo://Frameworks/TermindPresentation/SingleLineTextInput.swift
+  - id: openwiki-source-9eb0eec8ab67d2032ec11b01
+    resource: repo://Frameworks/TermindPresentation/SnippetCardContent.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
     resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-667f8dcadd921c1910c5026c
@@ -87,6 +90,8 @@ sources:
     resource: repo://TFI/UI/Components/MobileEditorSheet.swift
   - id: openwiki-source-a4f3a690a8395e2ac9b065b9
     resource: repo://TFI/UI/Components/MobileNativeList.swift
+  - id: openwiki-source-69a5f03670569fd29fe8983d
+    resource: repo://TFI/UI/Components/MobileOperationConfirmationPresenter.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
@@ -169,15 +174,15 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # UI state and presentation principles
 
-<!-- openwiki: broken internal link [/openwiki/architecture/desktop-ui.md] link "/openwiki/architecture/desktop-ui.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/architecture/mobile-ui.md] link "/openwiki/architecture/mobile-ui.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/commerce-localization-and-product-surfaces.md] link "/openwiki/concepts/commerce-localization-and-product-surfaces.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](/openwiki/architecture/desktop-ui.md), [Mobile UI](/openwiki/architecture/mobile-ui.md), and [Commerce and Localization](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
+Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
 ## Shared presentation is not a shared application shell
 
@@ -230,7 +235,7 @@ Mobile card columns follow available width and accessibility text sizes force on
 
 ## Native actions report intent to their owners
 
-Desktop `ManagedCardPage` consumes typed sections, externally owned selection, capabilities and cards, manages geometry/selection/drag and reports stable IDs. Mobile `MobileCardPage` / `MobileCardGrid` / `MobileActionCard` use taps for the primary action and context menus for secondary actions; other lists use swipe actions or links. Renderer enablement is feedback, not a replacement for operation validation.
+Desktop `ManagedCardPage` consumes typed sections, externally owned selection, capabilities and cards, manages geometry/selection/drag and reports stable IDs. Mobile `MobileCardPage` / `MobileCardGrid` / `MobileActionCard` use taps for the primary action and context menus for secondary actions; other lists use swipe actions or links. Renderer enablement is feedback, not a replacement for operation validation. Shared `operationConfirmation` resolves text with the view locale and keeps an explicit Cancel action. Anchored operations use native SwiftUI confirmation dialogs; centered collection-wide operations use the app-injected UIKit renderer. The latter waits for existing presentation transitions, uses an arrowless window-centered popover on iPad, and runs actions after dismissal completes rather than deleting their source views during exit.
 
 ```mermaid
 flowchart LR
@@ -245,17 +250,17 @@ Cards offer intents; the feature or application owner performs the operation.
 
 A mobile Vault Host card taps into scene-owned host activation. Its context menu offers SSH/SFTP only when `sshEnabled` and Telnet only when `telnetEnabled`, separated from Edit/Duplicate and destructive Delete; a Host with no enabled protocol still has edit and delete. The Vault also renders grouped, collapsible Host sections and native links to Keychain, Forwarding, Snippets, Known Hosts and History; search can find Hosts or links into those features, passing the query to the destination where appropriate. `MobileVaultView` passes connections through its `open` callback, edits through an item-based `editingHost` sheet and confirms deletion before `MobileAppModel.deleteHost`. Duplication creates a new ID, clears Host-custom SSH, Telnet and proxy identity references and clears the proxy username when its custom identity is removed. TFM's `HostContextMenu` instead has Quick Connect, Connect submenu and Copy SSH Command, retaining desktop-owned editing/deletion.
 
-Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one SSH workspace per allowed target, passing the snippet command as live startup state, never into its restoration descriptor.
+Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Shared `SnippetCardContent` supplies colored icons, valid-target counts, risk and timestamp content while native cards retain surfaces and actions. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one SSH workspace per allowed target, passing the snippet command as live startup state, never into its restoration descriptor.
 
 Desktop `WindowModel.findKind` selects the foreground Vault, Assistant, Metrics, appearance-specific terminal theme browser or focused workspace pane's query; Welcome owns search in content, while other Settings routes and unsearchable workspaces have no titlebar Find. Theme browser queries live in `WindowModel.terminalThemeQueries` per light/dark scheme, so returning from the custom editor retains the browser's filter without giving the editor its own Find. `RootView` mounts one OS-selected toolbar slot: macOS 26 uses a background `WindowToolbarSearchHost` with system `.searchable`, while older systems use a native field and `NSSearchField` owner (or compact Metrics popover). The legacy owner and direct focus handler protect keyboard intent when SwiftUI replaces toolbar content. Both paths use window query and terminal find navigation/cancellation; `focusToolbarFind()` stands panes down before requesting focus so rebuilding terminal content cannot reclaim the caret. Leading New actions follow foreground content rather than sidebar mode; Navigator rows can offer page-specific verbs without first navigating there.
 
 ## Shared Host fields, distinct editor lifecycles
 
-`HostOrganizationSection`, `HostProtocolProfileControls` and `HostConnectionFields` bind to a platform-owned Host draft. The organization section accepts platform-supplied group/tag controls; profile selection exposes SSH or Telnet fields. iOS connection fields select URL/number keyboards and suppress address autocorrection. These shared fields do not save.
+`HostOrganizationSection`, `HostProtocolProfileControls` and `HostConnectionFields` bind to a platform-owned Host draft. The organization section accepts platform-supplied group/tag controls; profile selection exposes SSH or Telnet fields. iOS connection fields select URL/number keyboards and suppress address autocorrection. These shared fields do not save. Stateless `HostEditorBindings` projects the existing Host/custom-identity drafts and reports platform-owned creation callbacks, without storing a second selection model.
 
 TFM edits a local draft inside the Vault work column: nested identity/group/environment routes must stay there rather than promoting into the outer split detail. `VaultWorkEditingSession` tracks dirty transitions and commit; desktop validity checks SFTP initial paths and validated SSH routes. TFI opens `MobileHostEditor` as an item-based Vault sheet for new or existing Hosts. It seeds a local Host draft, loads a separate `HostCustomIdentityDraft` once, and feeds child identity/group/environment changes back into the parent. Save persists custom identities and Host through the library. Mobile eligibility requires a nonblank address, enabled terminal protocol, valid enabled ports, configured custom SSH/Telnet/proxy identity and valid SSH environment variables.
 
-`MobileEditorSheet` owns the enclosing `NavigationStack`, Form and toolbar. Clean Cancel dismisses; dirty Cancel asks to discard; invalid or already-saving Save is disabled; an in-flight save disables editing, actions and interactive dismissal. Successful save dismisses, while failure alerts without dismissing, and disappearance cancels an outstanding task. Desktop and mobile save gates intentionally differ.
+`MobileEditorSheet` owns the enclosing `NavigationStack`, Form and toolbar. Clean Cancel runs `onCancel` and dismisses; dirty Cancel presents a titleless, destructive-only action sheet with resource-specific copy for new drafts, and confirmed discard runs `onCancel` before dismissal; invalid or already-saving Save is disabled; an in-flight save disables editing, actions and interactive dismissal. Successful save checks cancellation before dismissal; becoming clean clears any discard prompt, while failure alerts without dismissing, and disappearance cancels an outstanding task. Desktop and mobile save gates intentionally differ.
 
 ```mermaid
 flowchart TD
@@ -280,8 +285,7 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 Terminal keyword highlighting is a separate synchronized preference. Both Settings shells expose the shared rule editor: Domain supplies fixed built-in rules and bounded custom rules, Application validates and saves edits before publication, and Presentation converts colors and matching modes into Ghostty runtime rules. A remote pattern unsupported by the current engine is skipped while usable rules remain active. The desktop and mobile terminal views apply the resulting rules without replacing their native surfaces.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ghostty-terminal-integration.md] link "/openwiki/concepts/ghostty-terminal-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](/openwiki/concepts/ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
+Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
 
 ```mermaid
 flowchart TD
@@ -322,15 +326,12 @@ flowchart TD
 
 Descriptor persistence and live-session lifetime must not be conflated; scene-session recovery is separate from tab and size-class changes.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/desktop-drag-and-drop.md] link "/openwiki/workflows/desktop-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Desktop drag similarly protects native identity: a dragged pane stays mounted but leaves temporary split geometry. Native receivers check current displayed workspace and matching pasteboard identity at drop time, preview edge insertion on occupied panes and replacement in empty slots, and reject stale/hidden destinations. The Navigator overlays its native List with a receiver using measured row frames; preview boundaries include the dragged row while move indices exclude it. See [Desktop Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) before changing source mounting or preview placement. Continuity does not mean every hidden view keeps measuring or accepting events.
+Desktop drag similarly protects native identity: a dragged pane stays mounted but leaves temporary split geometry. Native receivers check current displayed workspace and matching pasteboard identity at drop time, preview edge insertion on occupied panes and replacement in empty slots, and reject stale/hidden destinations. The Navigator overlays its native List with a receiver using measured row frames; preview boundaries include the dragged row while move indices exclude it. See [Desktop Drag and Drop](../workflows/desktop-drag-and-drop.md) before changing source mounting or preview placement. Continuity does not mean every hidden view keeps measuring or accepting events.
 
 ## Verification and extension
 
 `ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into three languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
 
-<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) and [Build and Test](/openwiki/operations/build-test-and-release.md) when changing ownership or verification boundaries.
+For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 
 Tailscale peer details are an eligible Host menu section; managed Hosts disable duplication and deletion with matching application guards. The iOS terminal menu puts editing actions in a medium inline group and upload actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.

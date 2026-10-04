@@ -3,9 +3,6 @@ type: implementation guide
 title: SSH Multiplexing, Channel Admission, and I/O Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
@@ -45,7 +42,10 @@ sources:
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling
@@ -135,12 +135,11 @@ if anything progressed or receive budget yielded: wake another sweep
 1. Serialize subsystem initialization with `reserveOpen`/`releaseOpen`; acquire the connection's session-channel lease.
 2. On the owning queue, start a bounded buffer pass and flush encrypted output. Return `.again` under backpressure or `libssh2_sftp_init` EAGAIN; on success retain pointer and lease in `channels[id]`.
 3. For each raw SFTP operation, enter the same queue, validate the channel/context, begin/flush a pass, perform the operation, flush again, and update socket interest.
-4. On `.again`, leave the queue and **asynchronously sleep for 2 ms** before retrying. Shutdown uses the same retry interval. Closing releases the lease and can notify a PTY owner when its last sibling is gone.
+4. On `.again`, leave the queue and **asynchronously sleep for 2 ms** before retrying. Shutdown uses the same retry interval. Closing releases the lease and can notify a PTY owner when its last sibling is gone. The SFTP driver retains that worker through asynchronous close, without a worker-to-driver cycle. Closing the terminal retires the transport unless live SFTP channels remain; pending exec closes alone do not keep it alive. Worker destruction is queue-confined and avoids synchronous self-reentry.
 
 This is important when reasoning about fairness: SFTP does **not** live in the exec worker's `ready` dictionary. Queue confinement and short retry turns allow PTY/exec and other channel calls to interleave; the SFTP path currently uses async retry sleeps rather than a single unified readiness queue for all operations. Do not describe every transport user as fully event-driven or as receiving a common weighted scheduling guarantee.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For file-level fairness, extra physical connections, and fallback after silent authentication failure, continue with [SFTP Transfer Scheduling](/openwiki/workflows/sftp-transfer-and-external-edit.md). Those choices happen above this channel owner.
+For file-level fairness, extra physical connections, and fallback after silent authentication failure, continue with [SFTP Transfer Scheduling](../workflows/sftp-transfer-and-external-edit.md). Those choices happen above this channel owner.
 
 ## Bounded turns, immutable retry bytes, and backpressure
 
@@ -159,8 +158,7 @@ The encrypted buffer is not merely a throughput optimization: its source comment
 
 ## Wakeups and retirement are correctness mechanisms
 
-<!-- openwiki: broken internal link [/openwiki/workflows/port-forwarding-pool-and-dispatch.md] link "/openwiki/workflows/port-forwarding-pool-and-dispatch.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Any libssh2 read can decode packets for another channel. The forwarding worker therefore services opens/listeners both before and after stream I/O, checks already-buffered channel data/EOF, and schedules another sweep on progress or budget exhaustion instead of requiring a new socket edge. A zero-window writer can be rescheduled after a window update even if no payload was read. See the exact forwarding algorithm in [Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md).
+Any libssh2 read can decode packets for another channel. The forwarding worker therefore services opens/listeners both before and after stream I/O, checks already-buffered channel data/EOF, and schedules another sweep on progress or budget exhaustion instead of requiring a new socket edge. A zero-window writer can be rescheduled after a window update even if no payload was read. See the exact forwarding algorithm in [Pool and Flow Dispatch](../workflows/port-forwarding-pool-and-dispatch.md).
 
 Socket dispatch sources are queue-confined. `SSHSocketEvents.cancel` resumes suspended sources after cancellation and runs the descriptor-close completion only after **both** cancellation handlers have retired. The exec worker increments its generation on cleanup, clears queued work, closes SFTP and the channel budget, and rejects stale scheduled pumps/events. Transport errors report connection failure once and fail outstanding commands; one command's channel-local error follows its own close/free path instead.
 
@@ -204,5 +202,4 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Why does closing the terminal not close SSH yet? | PTY `closeTerminalSession` and last-sibling callback; an SFTP subsystem can still own the transport. |
 | Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, in-flight join, active leases and idle sweep; `AgentConnectionPoolTests`. |
 
-<!-- openwiki: broken internal link [/openwiki/operations/port-forwarding-benchmarks.md] link "/openwiki/operations/port-forwarding-benchmarks.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Tests cited here are implementation evidence; they are not a performance guarantee for arbitrary servers/routes. Keep the pinned dependency graph when validating changes, and do not turn the [historical forwarding benchmarks](/openwiki/operations/port-forwarding-benchmarks.md) into general WAN latency claims.
+Tests cited here are implementation evidence; they are not a performance guarantee for arbitrary servers/routes. Keep the pinned dependency graph when validating changes, and do not turn the [historical forwarding benchmarks](../operations/port-forwarding-benchmarks.md) into general WAN latency claims.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:089b34eeb53da8909ac3c0b1b427d4bf2e2af2672ce4faeb4edae68bb2f27ebb",
+  "pageVersion": "sha256:81dc24caf24f7449087e16db509742e85b6114525e65325b09039665b6600c7f",
   "claims": [
     {
       "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:829743b52e98be8ee37746e616e352296faed9acf2789473a98f23a9224a4e73"
+          "version": "repo-file-v1:sha256:fb2c6a49e4c411c7845266be08d098b13b6d705a98b61ce767aedb418e79d3db"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift",
@@ -319,14 +319,14 @@
           "version": "repo-lines-v1:sha256:0b64db2ae64c88bf1c9d9cac4fd12461f9a02a4d3aec87695208e206af1fb041:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3NGVkMjNjOGM1YzAxZDk4OGI3NDM3NGVkZjFiNDM5NGEwODliN2ZjNDgxOGM2NzYyMDczZDI3NjAxMDkzZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YmViYTU5YWI2NmI3Nzc2MmU5MDMyNjc5YjZkOWUyMDI5YzExYTlmOTY4NDA3YjQ2ZWNkODhiNDFiM2E0ZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjYWU4ZjEzNDk5MzU2ZTY3MmYxMjJmZDcxMDIwMzFiOTIwNDU4MTE0M2JkZDhkNjEwYzJhNTIyMDM4MjU4ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5NmUzYTMyYzM3N2Q3ZGU0ZDg4YWQwZmFlOTlmZjYwMTU3YjU4NTlhMzAwNDgwOTRlZGUwNjZlYjhjNTczNzQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L205-L221",
-          "version": "repo-lines-v1:sha256:c6ad86a4dc8828082c2aa04cd02dbf24d78d611fb71b692f63a689247c86ee8b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyMjlkODUyMmMxNDEwMDQ1Y2FiMmZmMDliNjFhZGI4M2UyM2FiMDc4ZTUyOGNkMjgyNjY3YmU3NDJmZGM2MmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5MTI0MDAxMzJhNDg1MjE5MjI3OGE5ODk0ZWFjM2MwOTRiMGNkNDFjMThiYzI0MzBmZDkxMGI2ZDdlOGQ1MDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkMGMxNDZhZGVkNzcxMzFiNGIwMTFiZjg0Y2EwOGJlNWIxMjFjZjczMWU4ZWU4ZTk4MDQ1MjcwMzc5YmQwYjcifQ"
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV2.swift#L231-L249",
+          "version": "repo-lines-v1:sha256:685da075405540cf0faf6e4d64f5818f723695ca2fc3a78df11f4fdfd3176c12:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1YzA5ZGIyMjE2OGYzNDJkN2RkNmJhODRmYTE1ZDI4ZDM2ZTcwZTRmZmRkNGM2NjI4YjY5ZDcyY2Y3MWEwODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkYmViZjI0NDYzYzhlOTUyZjFhMGJmMzgwYmQ2MTNlZDMzZWY5NGJlNzA3Y2RjNGUyOTVlNDcxMDBkZjJkNjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxMzU4ZDVhZTczMTg5M2M1NjcyOTMxY2E3MWUwZDVkZTMzYTkyYWUwYTA0NzgzMjE5ZjZhMDU3ZjQ1YWFiZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2MGUyZjdhNmYyNGM5MzcwNzljNWZhYzEzYmZmZWIyYWE5MGQzZDYwNTI3NmMwNTA1YzI4ZjlmNGFjNzlkZjUifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-04T16:22:58.117Z"
   }
 }

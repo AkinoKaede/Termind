@@ -3,9 +3,6 @@ type: workflow
 title: SFTP Transfer, Scheduling, and External Edit Workflow
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
@@ -57,23 +54,24 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 ## Scope and operating model
 
-<!-- openwiki: broken internal link [/openwiki/workflows/file-drag-and-drop.md] link "/openwiki/workflows/file-drag-and-drop.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-For native drag events, mobile provider staging, SSH versus SFTP drop destinations, and desktop remote-file payloads, start with [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md). That guide follows the gesture up to the transfer preparation and queue boundaries described here.
+For native drag events, mobile provider staging, SSH versus SFTP drop destinations, and desktop remote-file payloads, start with [File Drag and Drop Across TFM and TFI](file-drag-and-drop.md). That guide follows the gesture up to the transfer preparation and queue boundaries described here.
 
 SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^client-channel]
 
 The important safety boundary is **no durable staging and no silent replay**. Checkpoints—temporary path, source identity, acknowledged offset, and SHA-256 state—live only in `SFTPResumeState` in the running process. A recoverable connection failure pauses instead of retrying; a user must explicitly resume, at which point the source and already-written prefix are verified. A restart therefore cannot recover or replay work. [^resume-state] [^coordinator-outcomes] [^channel-prefix]
 
-A transfer can use one of three connection forms:
+A transfer uses one of two connection forms:
 
 - **Saved** — create a fresh `SFTPClient` from an additional-connection snapshot and disconnect it after the transfer.
-- **Context** — borrow a lease from a browser/terminal `SFTPTransferContext`, which can select a sibling channel, an additional silent connection, or the primary channel.
-- **Borrowed** — use an existing externally owned channel, serialized by its borrowed-connection identifier so two jobs do not operate it concurrently. [^connection-forms] [^lease-selection]
+- **Context** — acquire a lease from a browser/terminal `SFTPTransferContext`, which can select a sibling channel, an additional silent connection, or the primary channel. The obsolete externally borrowed queue form and its exclusivity identifier were removed. [^connection-forms] [^lease-selection]
 
 ## Browser paths: prepare, validate, enqueue
 
@@ -89,7 +87,7 @@ For a same-host remote copy, planning rejects copying a file onto itself and rej
 
 ## Admission, fairness, and SSH topology
 
-`SFTPConcurrencyScheduler` is process-wide admission for data operations. Capacity counts logical files, not connections or channels: a remote copy consumes one global slot and one per-host slot for each distinct endpoint. Metadata work is outside this data admission path. The scheduler rotates anchor hosts and then sources (`workspace`, `agentRun`, or `batch`), retaining FIFO order within each source queue; it grants only a request whose every endpoint remains below the per-host limit and whose exclusive borrowed resources are free. [^scheduler-contract] [^scheduler-fairness]
+`SFTPConcurrencyScheduler` is process-wide admission for data operations. Capacity counts logical files, not connections or channels: a remote copy consumes one global slot and one per-host slot for each distinct endpoint. Metadata work is outside this data admission path. The scheduler rotates anchor hosts and then sources (`workspace`, `agentRun`, or `batch`), retaining FIFO order within each source queue; it grants only a request whose every endpoint remains below the per-host limit under current global and per-host capacity. [^scheduler-contract] [^scheduler-fairness]
 
 Preferences default to 30 global active files and 10 per host, constrain global to 1–100 and per-host to 1–50/not above global, and select `smart`, `channels_only`, or `connections_preferred`. Updating preferences drains queued work with the new values; an already-admitted permit retains its selected mode. In Smart mode, unknown sizes and sizes through 64,000,000 bytes use channels; only a larger known file prefers an additional connection. Both app composition roots apply `MultiConnectionPolicy` to the saved strategy: without SFTP multi-connection Pro access the effective strategy is `channelsOnly`, while the stored user choice remains intact for later access restoration. A Pro change updates future scheduler admission without changing an already-admitted permit. [^preferences] [^mode-selection] [^preferences-update]
 
@@ -135,7 +133,7 @@ while active file count < globalLimit:
     visit anchor hosts starting after lastGrantedHost
     within each host, visit sources starting after that host's lastGrantedSource
     inspect only the head request of each source queue
-    skip if any endpoint is at its per-host limit or an exclusive resource is busy
+    skip if any endpoint is at its per-host limit
     grant the first eligible head; update host/source rotation cursors
     stop when no eligible head exists
 ```
@@ -146,7 +144,7 @@ This has three consequences:
 
 - FIFO is preserved **within one source queue**. The scheduler can skip a blocked source to consider a different source/host, but does not look past that source's blocked head.
 - Rotation is a grant-order fairness policy, not preemption or a bandwidth reservation. Long-running files keep their permits until release. Lowering limits cannot revoke active permits; it only delays future grants until capacity fits again.
-- A remote copy consumes one global permit and one slot per distinct Host, regardless of whether it later needs one or two endpoint leases. A borrowed channel adds an exclusive resource ID so jobs cannot simultaneously use that same borrowed resource.
+- A remote copy consumes one global permit and one slot per distinct Host, regardless of whether it later needs one or two endpoint leases. Channel exclusivity belongs to managed-context lease ownership, not a separate borrowed-resource admission axis.
 
 Tests make the policy concrete: after a workspace used the sole slot, a queued Agent source can precede more work from that workspace; another Host gets a turn before the previous Host; two workspace queues can split five same-host grants 3/2. These are controlled queued examples, not a guarantee that a later-arriving operation displaces an already active file.
 
@@ -171,7 +169,7 @@ These fallbacks include two distinct kinds of waiting:
 1. `openSiblingChannel` can wait for the per-connection `SSHChannelBudget` before libssh2 ever tries initialization. A full local session budget is not automatically interpreted as failure, and does not cause the context to open a new socket by itself.
 2. If sibling initialization actually fails, the context waits on `primaryBusy` and leases the primary serially. Context waiters are a dictionary resumed together by `wakeWaiters`; do not attribute the scheduler's FIFO guarantee to this fallback waiter mechanism.
 
-A browser-context extra connection or sibling is leased for the operation and disconnected on release, rather than kept in a warm auxiliary pool. The context primary is retained by owner/transfer references. If it was closed after detach/pause, a later explicit resume can silently recreate a primary from its snapshot and resets capability; `channelsOnly` cannot conjure an already-authenticated transport that no longer exists. The saved form always opens a fresh client and the borrowed form always returns the external channel with a no-op lease release; neither runs the managed-context topology table.
+A browser-context extra connection or sibling is leased for the operation and disconnected on release, rather than kept in a warm auxiliary pool. The context primary is retained by owner/transfer references. If it was closed after detach/pause, a later explicit resume can silently recreate a primary from its snapshot and resets capability; `channelsOnly` cannot conjure an already-authenticated transport that no longer exists. The saved form always opens a fresh client and bypasses the managed-context topology table. Context-owned primary/sibling/extra leases supply the remaining topology; no externally borrowed queue lease remains.
 
 ### Worked connection/channel counts
 
@@ -233,14 +231,11 @@ Do not copy browser-context assumptions wholesale into the Agent pool: browser a
 
 ## From a file lease to libssh2 turns
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ssh-multiplexing-and-scheduling.md] link "/openwiki/concepts/ssh-multiplexing-and-scheduling.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-A sibling channel shares the same driver's transport identity. `SSHMultiplexedSFTPChannelOwner` serializes each raw libssh2 call on its SSH owner's queue, uses the encrypted buffer's bounded pass/backpressure, and returns to an async 2 ms retry sleep on EAGAIN. File fairness above does not imply strict round-robin ordering for every SFTP packet below. See [SSH Multiplexing and Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md).
+A sibling channel shares the same driver's transport identity. `SSHMultiplexedSFTPChannelOwner` serializes each raw libssh2 call on its SSH owner's queue, uses the encrypted buffer's bounded pass/backpressure, and returns to an async 2 ms retry sleep on EAGAIN. File fairness above does not imply strict round-robin ordering for every SFTP packet below. See [SSH Multiplexing and Scheduling](../concepts/ssh-multiplexing-and-scheduling.md).
 
 Copy's topology check is driver identity, **not merely equal Host IDs**. If both concrete `SFTPChannel` endpoints share it, `copyOnSharedTransport` alternates reads of at most 64 KiB with destination writes on the shared owner. Otherwise the socket-pair relay runs producer and consumer tasks concurrently; failure cancels the group and stops the relay. Stable lease acquisition order, the shared-driver fast path, and file-admission accounting solve different problems and should not be collapsed.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/port-forwarding-pool-and-dispatch.md] link "/openwiki/workflows/port-forwarding-pool-and-dispatch.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/shell-integration.md] link "/openwiki/concepts/shell-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-To compare with port forwarding, use [Forwarding Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md): forwarding prewarms a Host-level target and assigns accepted TCP flows to retained workers, rather than creating a connection-per-file lease. For terminal-to-SFTP cwd/availability prerequisites, use [Shell Integration](/openwiki/concepts/shell-integration.md).
+To compare with port forwarding, use [Forwarding Pool and Flow Dispatch](port-forwarding-pool-and-dispatch.md): forwarding prewarms a Host-level target and assigns accepted TCP flows to retained workers, rather than creating a connection-per-file lease. For terminal-to-SFTP cwd/availability prerequisites, use [Shell Integration](../concepts/shell-integration.md).
 
 ## Transfer state, resume, cleanup, and ownership
 
@@ -312,7 +307,7 @@ Discard is intentionally non-destructive to user work: it stops tracking and for
 ## Operational guidance and focused verification
 
 - Treat `SFTPPreferences` changes as future admission policy, not a way to tear down active transfers. Choose Channels Only for servers/routes where extra connections are undesirable, Connections Preferred for independent transfers when silent credentials are available, and Smart for the size-based default. [^preferences] [^preferences-update]
-- Never add persistence for `SFTPResumeState`, transfer contexts, borrowed channels, or edit route credentials. The intended recovery behavior is a visible paused/failed state and an explicit user decision, not launch-time replay. [^resume-state]
+- Never add persistence for `SFTPResumeState`, transfer contexts, channel leases, or edit route credentials. The intended recovery behavior is a visible paused/failed state and an explicit user decision, not launch-time replay. [^resume-state]
 - When changing planner or resolver code, preserve the sequence **preflight → user policy → directory resolution → target resolution → enqueue**. Moving deletion or directory creation into preflight would violate conflict validation before mutation. [^upload-preflight] [^upload-enqueue]
 - When changing connection lifetimes, test both owner release and terminal transport fallback: a pane close must not interrupt retained work, but a last unused context primary must disconnect. [^context-close] [^pause-ownership]
 
@@ -338,7 +333,7 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^resume-state]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift#L5-L75`.
 [^channel-prefix]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L985-L1031`.
 [^connection-forms]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L12-L24`.
-[^lease-selection]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L721-L754`.
+[^lease-selection]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L669-L704`.
 [^upload-preflight]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift#L88-L103`.
 [^copy-preflight]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPRemoteTransferPlanner.swift#L221-L260`.
 [^conflict-resolution]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPRemoteConflictResolver.swift#L64-L118`.
@@ -350,20 +345,20 @@ Focused tests cover the materially risky cases: scheduler fairness across hosts/
 [^safe-recursive-delete]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPRemoteConflictResolver.swift#L121-L139`.
 [^self-copy-guard]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPRemoteTransferPlanner.swift#L221-L230`.
 [^copy-streaming]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L575-L705`.
-[^scheduler-contract]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L29-L59`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L133-L150`.
-[^scheduler-fairness]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L154-L219`.
+[^scheduler-contract]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L29-L53`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L123-L153`.
+[^scheduler-fairness]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L141-L206`.
 [^preferences]: `Frameworks/TermindDomain/Transfers/SFTPPreferences.swift#L3-L46`.
-[^mode-selection]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L169-L182`.
+[^mode-selection]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift#L123-L139`.
 [^preferences-update]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L149-L165`.
 [^context-topology]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L99-L188`.
 [^context-probe]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L212-L233`; `TFMTests/SFTPTransferContextTests.swift#L232-L263`.
 [^terminal-preflight]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L4-L16`; `TFMTests/SFTPTransferContextTests.swift#L23-L61`.
 [^remote-copy-leases]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L624-L695`.
 [^transfer-control]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L349-L413`.
-[^coordinator-outcomes]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L583-L622`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L797-L819`.
+[^coordinator-outcomes]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L545-L579`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L720-L740`.
 [^channel-atomic-resume]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L354-L404`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L416-L483`.
 [^channel-commit-recovery]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L807-L909`.
-[^cleanup]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L415-L440`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift#L62-L68`.
+[^cleanup]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L399-L424`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift#L62-L68`.
 [^context-ownership]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L64-L97`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L266-L272`.
 [^context-close]: `TFMTests/SFTPTransferContextTests.swift#L63-L108`.
 [^pause-ownership]: `TFMTests/SFTPTransferContextTests.swift#L280-L298`.

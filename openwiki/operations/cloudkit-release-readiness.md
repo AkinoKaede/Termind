@@ -82,6 +82,8 @@ sources:
     resource: repo://FrameworkTests/SFTPSettingsSyncTests.swift
   - id: openwiki-source-a6f48b126bfcd6573fe06736
     resource: repo://FrameworkTests/SFTPSettingsTests.swift
+  - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
+    resource: repo://FrameworkTests/SnippetColorTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -102,10 +104,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # CloudKit Release Readiness
@@ -194,14 +196,14 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V50** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V51** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
-Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["V28 to V30 to V31 to V34 to V50"]
+    Factory --> Local["V28 to V30 to V31 to V34 to V51"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -272,4 +274,4 @@ Release sign-off should record, separately:
 
 See [Settings, Vault, Metrics, and Cloud Sync Workflow](../workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](../concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](build-test-and-release.md) for ordinary build gates.
 
-Current compatibility gates are per kind: Host reads/writes V2 (also reads V1); HostGroup and SSHKey write V3 and read V1/V2/V3; Metrics selection writes V2 and reads V1/V2. Tailscale group configuration is part of HostGroup, while managed peer Hosts, sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history and V50 adds profile cleanup. Validate mixed-version group/key/metrics edits, quarantine and refetch independently of the V50 local migration.
+Current compatibility gates are per kind: Host and Snippet write V2 (also read V1); HostGroup and SSHKey write V3 and read V1/V2/V3; Metrics selection writes V2 and reads V1/V2. Tailscale group configuration is part of HostGroup, while managed peer Hosts, sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup and V51 adds Snippet color over the frozen historical Snippet model. SnippetColorTests creates a V50 disk store, upgrades retaining data, writes color and reopens again; V1 writes reject color and a newer received V1 record clears color to none. Validate mixed-version group/key/metrics/Snippet edits, tombstones, quarantine and refetch independently of the V51 local migration; these fixtures do not prove signed-device delivery.

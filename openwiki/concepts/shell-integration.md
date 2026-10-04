@@ -3,9 +3,6 @@ type: implementation guide
 title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
 description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, how command completion notifications observe shell hooks or OSC 133, and how charset handling differs from Telnet."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:33:30.535Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
@@ -47,7 +44,10 @@ sources:
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
   - id: openwiki-source-b1446950c4c60caef12aa43a
     resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
-generated: { by: "codex", at: "2026-10-03T16:33:30.535Z" }
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State
@@ -58,9 +58,7 @@ Shell integration is a **PTY feature**, not a prerequisite for authentication or
 
 `HostShellIntegrationMode` resolves `followGlobalSettings`, `enabled`, or `disabled` against the global terminal preference. Desktop and mobile capture that decision at the beginning of a connection attempt; changing settings does not retrofit hooks into the live shell. `HostShellIntegrationSessionTests.connectionRetainsItsPreferenceUntilTheNextAttempt` protects this boundary.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/ssh-multiplexing-and-scheduling.md] link "/openwiki/concepts/ssh-multiplexing-and-scheduling.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-The value-type bootstrap and event filter are driven by the PTY's queue-confined worker behind its actor facade. Keep the pure parsing/state-machine seams separate from native feature state. For authentication and teardown context, start with [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); for shared I/O ownership, use [SSH Multiplexing and Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md).
+The value-type bootstrap and event filter are driven by the PTY's queue-confined worker behind its actor facade. Keep the pure parsing/state-machine seams separate from native feature state. For authentication and teardown context, start with [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md); for shared I/O ownership, use [SSH Multiplexing and Scheduling](ssh-multiplexing-and-scheduling.md).
 
 ## End-to-end byte and event path
 
@@ -159,8 +157,7 @@ The token provides **session scoping and accidental/spoofed-frame rejection with
 - **Startup submission readiness** is separate from command-generator prompt readiness. Desktop can unblock a pending startup command on `.available`, `.promptReady`, or `.homeResolutionUnavailable`, so failed/late integration does not indefinitely withhold startup work.
 - **Composition** reads the current shell draft with `ESC [777;1~`. `TerminalCommandDraftController` allows one pending read, times it out after 2 seconds, and resolves it from a draft event. Replacement sends the clear binding `ESC [777;2~` followed by bracketed-paste start/content/end, with no submit newline. The feature gates reads on a live supported shell, enabled/available integration, and prompt readiness.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md).
+Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md).
 
 ## Completion observation and notifications are not prompt readiness
 
@@ -214,7 +211,6 @@ Telnet terminal data path: negotiation is removed before decoding, and outgoing 
 | Compose is enabled while a command runs | Availability versus prompt-ready transitions | `TerminalCommandDraftControllerTests`; `MobileCommandGeneratorAndUploadTests` prompt/integration cases. |
 | Settings change an already connected shell | Attempt-time preference capture | `HostShellIntegrationSessionTests`; mobile `integrationUsesConnectionSnapshotUntilManualOrAutomaticReconnect`. |
 
-<!-- openwiki: broken internal link [/openwiki/quickstart.md] link "/openwiki/quickstart.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-The listed tests are source evidence, not a claim that live remote shells or the test suite were executed during this documentation update. Use the pinned-package commands in [Engineering Quickstart](/openwiki/quickstart.md) for implementation changes.
+The listed tests are source evidence, not a claim that live remote shells or the test suite were executed during this documentation update. Use the pinned-package commands in [Engineering Quickstart](../quickstart.md) for implementation changes.
 
 After authentication, each terminal’s memory-only `CommandHistoryModel` loads a bounded remote history snapshot through `RemoteShellHistoryLoader`, then merges live shell events. Installer metadata supplies the shell history path. Reconnect keeps a completed snapshot; disconnect cancels an unfinished read and close clears the session history.

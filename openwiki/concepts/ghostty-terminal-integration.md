@@ -3,9 +3,6 @@ type: integration guide
 title: Ghostty Terminal Integration
 description: Explain the boundary between Ghostty rendering and input and Termind transport, retained native surfaces, Find lifecycle, menu customization, upload policy, and appearance on macOS and iOS.
 tags: [ghostty, terminal, menus, macos, ios, integration]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -57,7 +54,10 @@ sources:
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Ghostty Terminal Integration
@@ -68,10 +68,14 @@ Termind uses the pinned remote `libghostty-spm` package for terminal parsing, re
 
 `TerminalFindController` owns query and presentation state separately from the terminal surface. Its host-provided `perform` closure sends Ghostty binding actions, while `focus` requests terminal focus. On mobile these closures call `TerminalViewState.performBindingAction` and `requestFocus`; the retained surface is bound to the workspace's Find controller. Find is a local terminal operation, not text submitted to the remote shell.
 
-- A changed query emits `search:<query>`, including `search:` for an empty query, without changing presentation. Repeating the same query is a no-op.
-- Transitioning from closed to presented reissues the retained nonempty query. Repeated `present()` calls while already open do not restart it.
-- Navigation emits `navigate_search:previous` or `navigate_search:next` only while presented with a nonempty query. `presentAndNavigate` opens first. The app maps Find Next to `.previous`, toward older output, because the search starts at the bottom of the buffer.
+- When not resize-suspended, a changed query emits `search:<query>`, including `search:` for an empty query, without changing presentation. Repeating the same query is a no-op.
+- Transitioning from closed to presented reissues the retained nonempty query unless resize-suspended. Repeated `present()` calls while already open do not restart it.
+- Navigation emits `navigate_search:previous` or `navigate_search:next` only while presented with a nonempty query and not resize-suspended. `presentAndNavigate` opens first. The app maps Find Next to `.previous`, toward older output, because the search starts at the bottom of the buffer.
 - `dismiss(restoringFocus: Bool = true)` emits `end_search`, closes presentation and retains the query. It is idempotent while closed. The default then invokes the focus closure; `restoringFocus: false` ends the search without requesting terminal focus.
+
+### Resize coordination does not close Find
+
+`MobileTerminalView.layoutSubviews` suspends engine search before forwarding changed bounds to Ghostty, preventing search from interfering with blank-row trimming. The controller ends an active search while retaining query/presentation and suppresses search/navigation during suspension. Each size change cancels and replaces the native delayed resume task; it waits for the configured resize throttle plus 0.1 seconds. Resume searches the latest query only if Find is still presented and nonempty. Closing while resize is settling therefore cannot reopen search.
 
 ### Mobile UIKit owns search presentation
 
@@ -126,7 +130,7 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 `MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
 
-**Package evidence boundary:** `libghostty-spm` is uninitialized in this checkout. The repository records the remote package pin and submodule, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the fork's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
+**Package evidence boundary:** this page derives the app contract from Termind's overrides and tests, not an audit of package internals. The repository records the remote package pin and submodule, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the fork's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
 
 ### macOS secondary-click menu
 
@@ -145,10 +149,10 @@ Shared Presentation maps Termind palettes and the Ghostty theme catalog into lig
 ## Focused checks
 
 - [TerminalFindControllerTests](../../FrameworkTests/TerminalFindControllerTests.swift) covers binding order, retained-query restart, empty-query navigation, default focus restoration and repeated native dismissal without focus.
-- [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys.
+- [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys. Its full-workspace SSH fixture also checks unchanged native surface, output and connection generation through repeated reopening with empty, matching and missing queries.
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
 - `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All, conditional Copy, right-click-paste with Option bypass, live Upload File availability and stale pane-binding teardown.
-- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both touch contexts, pasteboard-dependent action expectations, editing/upload/system group ordering, absent handlers and enabled/disabled children. Package gesture mechanics require the pinned fork's own source and tests; they are not available in this checkout.
+- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both touch contexts, pasteboard-dependent action expectations, editing/upload/system group ordering, absent handlers and enabled/disabled children. Package gesture mechanics require the pinned fork's own source and tests; they were not inspected as part of this host-adapter update.
 - `TFMTests/TerminalKeywordHighlightingTests.swift`, `TFITests/MobileTerminalHighlightingTests.swift` and `FrameworkTests/TerminalHighlightPreferencesTests.swift` cover rule validation, rendering and preference persistence. Use the resolved-only Xcode build for either app; package changes also need the fork's own tests and release sequence.
 
 For upload destination and drop behavior, continue with [File Drag and Drop](../workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](ui-design-principles.md). For test scope, see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).

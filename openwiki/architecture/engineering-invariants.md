@@ -3,9 +3,6 @@ type: engineering-contract
 title: Engineering Invariants
 description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -53,6 +50,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Hosts/HostDeletion.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
+  - id: openwiki-source-e08ad235d9d92a20cf09290b
+    resource: repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
@@ -91,6 +90,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-353d364de99f80858a5abfd5
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV50SnippetModels.swift
+  - id: openwiki-source-ba9bcaaf5c4be2ca83356c1a
+    resource: repo://Frameworks/TermindPersistence/VaultWireV1Validation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
@@ -231,7 +234,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Engineering invariants
@@ -254,7 +260,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V50 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V51 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -266,7 +272,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V50 schema/plan; each app composition root retains its startup container
+  migration. `makeContainer` fixes the complete V51 schema/plan; each app composition root retains its startup container
   for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
   app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
   store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
@@ -285,18 +291,18 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V50 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V51 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
   asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
   retaining scoped quarantine), V41 (shared notification preferences), V42 (agent-message provenance, chat creation
   relations and durable collaboration delivery receipts), V43 (public MCP OAuth settings), V44 (Host model fields), and
-  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup; V51 adds Snippet colors through a lightweight migration, freezing the pre-color V1–V50 Snippet entity. Snippet Vault records now read V1/V2 and write V2; V1 encoding rejects colored values rather than silently dropping color. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
 ### Notification ownership and delivery
 
-`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V50 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
+`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V51 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
 
 ```mermaid
 sequenceDiagram
@@ -331,7 +337,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
 
 ### Windows and sessions
 
-- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns process services, the complete Workspace descriptor snapshot and a registry of `MobileWorkspaceSessionModel`s. Each native scene session owns its ordered live Workspaces and saved descriptors through that model; `MobileSceneModel` owns the destination, selected Workspace and Assistant navigation. Workspace links activate the existing native owner rather than opening a duplicate in another scene. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
+- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns process services, the complete Workspace descriptor snapshot and a registry of `MobileWorkspaceSessionModel`s. Each native scene session owns its ordered live Workspaces and saved descriptors through that model; `MobileSceneModel` owns the destination, selected Workspace and Assistant navigation. Its optional Workspace destination is one enum (Workspace or Transfers), and its optional sheet is another (Connection Picker or Batch Startup); compatibility accessors derive from those values rather than maintaining competing flags. Workspace links activate the existing native owner rather than opening a duplicate in another scene. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
 - New desktop windows start at Welcome; Dock reopen preserves destination and Metrics entry selects Metrics. Dock
   New Window uses the registered factory and activates hidden/windowless apps. Restoration never reconnects live
   Workspaces. New windows snapshot ordinary content size once, after full-size content styling; fullscreen/auxiliary
@@ -517,9 +523,9 @@ The shared coordinators decide eligibility and the native routers navigate witho
   provide context/validity/insertion. Generated commands are inserted, never submitted.
 - **Find dismissal is idempotent and query-preserving.** `TerminalFindController.dismiss(restoringFocus:)` ends the active
   Ghostty search once and clears presentation, not the query; repeated dismissal does nothing. Reopening restarts a retained
-  nonempty query. The default restores terminal focus, but a native search host calls `dismiss(restoringFocus: false)` so
+  nonempty query unless engine search is suspended for resize. The default restores terminal focus, but a native search host calls `dismiss(restoringFocus: false)` so
   the platform owns responder dismissal without a competing terminal-focus request. Query edits dispatch search only when
-  changed; match navigation requires both presentation and a nonempty query. These shared semantics belong to the controller,
+  changed and not resize-suspended; match navigation requires presentation, a nonempty query and no suspension. Resize suspension ends active engine search without changing presentation or query. Resume restarts only the latest presented, nonempty query, so closing during resize cannot reopen search. These shared semantics belong to the controller,
   not a platform-specific toolbar. See [Terminal Find controller](../../Frameworks/TermindApplication/Terminal/TerminalFindController.swift)
   and [its focused tests](../../FrameworkTests/TerminalFindControllerTests.swift).
 
@@ -537,7 +543,7 @@ sequenceDiagram
     end
     Native->>Native: complete responder dismissal
     Native->>Find: present again
-    opt retained query is nonempty
+    opt retained query is nonempty and search is not resize-suspended
         Find->>Surface: restart search binding
     end
 ```
@@ -988,6 +994,3 @@ The finite UIKit lease ends after synchronous cancellation requests, not after a
   transports, never replays or auto-approves on return.
 - Window drop interaction covers visible Workspaces: terminal routes files to uploads, text/links retain Ghostty behavior. Leaving restores original
   interaction/targets. File-provider data is copied inside callbacks into staging retained by queued transfers after navigation.
-vigation.
-.
-on.

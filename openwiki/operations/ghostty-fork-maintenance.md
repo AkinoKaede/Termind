@@ -3,9 +3,6 @@ type: operations guide
 title: Ghostty Fork Maintenance
 description: Maintain Termind's remote libghostty-spm dependency, native XCFramework release boundary, local development override, and coordinated dependency records.
 tags: [ghostty, dependency, submodule, xcframework, release, menus]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -25,7 +22,10 @@ sources:
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Ghostty Fork Maintenance
@@ -40,13 +40,13 @@ Termind has **three distinct Ghostty boundaries**:
 
 The current project minimum and resolved version are both **`2.2.2026100303`**, with resolved revision **`fc5444ea40e9d7c6204bd5dd46d23a884e987181`**. This is the existing pin, not a proposed bump. See the [project requirement](../../Termind.xcodeproj/project.pbxproj), [lockfile](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), and [repository dependency rules](../../AGENTS.md).
 
-**Checkout limitation:** `libghostty-spm/` is empty in this checkout. Initialize it with:
+**Inspection boundary:** app integration contracts are not an audit of fork internals. Initialize the maintenance checkout if needed with:
 
 ```sh
 git submodule update --init libghostty-spm
 ```
 
-Then inspect the fork's own guidance, manifests, build scripts and tests before modifying it. The release rules below are grounded in `AGENTS.md` and the local helper. This checkout does not establish the fork's patch-application algorithm, release workflow ordering, verification scripts, exact manifest contents, or UIKit implementation details.
+Then inspect the fork's own guidance, manifests, build scripts and tests before modifying it. The release rules below are grounded in `AGENTS.md` and the local helper. This host-focused source review does not establish the fork's patch-application algorithm, release workflow ordering, verification scripts, exact manifest contents, or UIKit implementation details.
 
 | Change | Ownership boundary | Required consumption step |
 | --- | --- | --- |
@@ -119,4 +119,4 @@ Focused app regression coverage:
 - [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both selection states with and without pasteboard text, editing-row identifiers and sizing, upload placement before system AutoFill, the no-upload case, and Photos/Files enabled state.
 - [TerminalContextMenuTests](../../TFMTests/TerminalContextMenuTests.swift) checks AppKit upload composition and live availability, action-time refusal after availability changes, stale pane teardown, paste validation and Option bypass of automatic right-click paste.
 
-These tests cover app-facing menu behavior, not the absent fork's native build or release pipeline. For an interaction change, also review actual selection and pointer behavior on the affected platform. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test-boundary model.
+These tests cover app-facing menu behavior, not the fork's native build or release pipeline. For an interaction change, also review actual selection and pointer behavior on the affected platform. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test-boundary model.

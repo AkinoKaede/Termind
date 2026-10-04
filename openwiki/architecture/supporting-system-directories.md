@@ -54,8 +54,6 @@ sources:
     resource: repo://Scripts/Tests/test_bump_version.py
   - id: openwiki-source-a1213a08e73ca7ac095748f3
     resource: repo://Scripts/Tests/test_port_forwarding_benchmark.py
-  - id: openwiki-source-66092b0aa632065907bc7606
-    resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-2241f95e71114ed235d89f10
     resource: repo://Scripts/update-pi-model-catalog.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -86,10 +84,10 @@ sources:
     resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Supporting Systems Ownership Guide
@@ -98,7 +96,7 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.18.1`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
+`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.19.0`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
 
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
@@ -106,9 +104,9 @@ The other submodule paths are not automatically build inputs either: `.gitmodule
 
 ### Maintenance checkouts versus build inputs
 
-The maintenance submodules are uninitialized in the inspected checkout: their source is unavailable here, **not absent from the resolved remote build**. `.gitmodules`, the Xcode package requirements, and `Package.resolved` establish the integration boundary; they do not verify fork manifests, patches, binary contents, or internal tests. Initialize the relevant checkout before inspecting or changing those internals. Keep Ghostty fork internals and release operations in [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md), and app build/release procedures in [Build and Release](../operations/build-test-and-release.md).
+Maintenance checkouts and resolved build inputs are separate. An initialized checkout may track a different maintenance commit than the released package pin; its presence alone does not change an ordinary Xcode build. `.gitmodules`, the Xcode package requirements, and `Package.resolved` establish the integration boundary; they do not verify fork manifests, patches, binary contents, or internal tests. Initialize the relevant checkout before inspecting or changing those internals. Keep Ghostty fork internals and release operations in [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md), and app build/release procedures in [Build and Release](../operations/build-test-and-release.md).
 
-`libtailscale-spm` follows the same separation: `.gitmodules` declares a checkout tracking `main`, while Xcode requires the remote package at exact version `1.0.1` and records its revision in `Package.resolved`. Its `TailscaleKit` product is linked by `TermindRemoteInfrastructure`; Termind's `LibTailscaleNodeSession` is the app-side adapter that owns the embedded node. The checkout is not a native feature owner or the default source of that product.
+`libtailscale-spm` follows the same separation: `.gitmodules` declares a checkout tracking `main`, while Xcode requires the remote package through `upToNextMinorVersion` from `1.0.2`, resolved to `1.0.2` at `098e6b69ea128f3a55bc560f005a3e851123dc99`. Its `TailscaleKit` product is linked by `TermindRemoteInfrastructure`; Termind's `LibTailscaleNodeSession` is the app-side adapter that owns the embedded node. The checkout is not a native feature owner or the default source of that product.
 
 There is one explicit Ghostty development override: [prepare-local-ghostty-workspace.sh](../../Scripts/prepare-local-ghostty-workspace.sh) creates `build/KeywordHighlighting/Termind.xcworkspace` with a staged local package, without changing the committed project requirements or pins. It requires an already-built `libghostty-spm/BinaryTarget/GhosttyKit.xcframework/Info.plist`, copies `Package.local.swift` as the staged `Package.swift`, links `Sources`, `Tests`, and `BinaryTarget`, and copies the app's resolution file into the workspace. It fails if the binary is missing or an existing staging entry would require replacing a non-symlink. This opt-in workspace is distinct from ordinary `-project Termind.xcodeproj` builds; preparing it does not publish a fork release or advance the app's remote dependency.
 
@@ -174,7 +172,7 @@ The standalone benchmark reads fixture metadata, enforces the host's 1–64 conn
 
 The script root has multiple independent workflows:
 
-- **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
+- **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/update-pi-model-catalog.sh` requires an explicit Pi version, records npm commit/integrity, preserves model type/input/output, and deduplicates `(provider, id)` entries preferring chat over image over other types; missing output defaults by model type. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
 - **Remote fixtures and benchmarks:** SSH authentication, OpenSSH forwarding, and Telnet fixtures; native/external forwarding runners and their shared benchmark helpers.
 - **Screenshots and assets:** Mac/mobile capture runners, screenshot-demo launcher, and reproducible device-frame generation. `run-mac-marketing-screenshots.sh` requires macOS 27, defaults to the workspace scene in `en`, `zh-Hans`, and `zh-Hant`, and accepts scene/locale filters. It builds `TFM` for testing with resolved dependencies, starts only `MacMarketingScreenshotTests` for each selection, waits for its focused-key-window readiness marker, checks capture dimensions, backs up existing files, then copies captures into `Marketing/Screenshots/Captures`. A missing readiness marker, lost focus, failing test, or wrong dimensions aborts instead of silently producing a replacement image. The mobile runner similarly uses a pinned `TFI` build, iOS 27 simulators and locale-specific capture tests, and only copies a locale's images after its test and expected-count checks pass.
 

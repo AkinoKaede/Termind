@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:659925cce05cbf725277ce4be49e3f4622dc55bf1a179e2f852813fe021a951f",
+  "pageVersion": "sha256:5ab695d54cc5ae460b811ee2efb9de9e79865f776bed76ad4f7a731913ea3b5a",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5934f366da1880f0fed92765b66302af2981eb4bb5287e3d04a168b3d8b8ad52"
+          "version": "repo-file-v1:sha256:f362f94b114fb37a8dafee3112b82d9311f0616bec19b05cf2832695f072df29"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -167,7 +167,7 @@
       "statement": "request_user_secret returns a one-shot secret handle rather than plaintext; ssh_exec consumes it only when its session run, host, tool, and purpose binding match.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift#L370-L400",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift#L363-L393",
           "version": "repo-lines-v1:sha256:cb9d274af2cf8597e6f1f980c89a727c1918d02e74f6823041b01be3deb3a1ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NDExYmI4MTU0ZDk3MjI1YTkzY2I1N2RiYzBjMWQyNWJiNTFjMDY0OTI1YjExNTJmOWNhMjE1OTYyMzRlNmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmMjk0ZjkzNDI3Mzk0YWEyOTE5MjRlZTljNzcwNGU5M2FkYzNmYWVkZmY5ZGVjYzljZDQ4OTQwZmJjMmQ5ZGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyZWE4NDk3MjE5MmRjZDM4NmQzOWEwMTg5MTc5MDA2YzVlZjk0MWFhYWM4MDMxNTgyNzYyODdlNDZjMjcxNDAifQ"
         },
         {
@@ -294,11 +294,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5934f366da1880f0fed92765b66302af2981eb4bb5287e3d04a168b3d8b8ad52"
+          "version": "repo-file-v1:sha256:f362f94b114fb37a8dafee3112b82d9311f0616bec19b05cf2832695f072df29"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:2f1439e09cafcc41f70316878d6962a762f01188df10b7b8bc85e8fd69b72fae"
+          "version": "repo-file-v1:sha256:04264e4b5bd171859be979c64cb4943c8d3a8617e202452e2795e5046280252b"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -426,7 +426,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:2f1439e09cafcc41f70316878d6962a762f01188df10b7b8bc85e8fd69b72fae"
+          "version": "repo-file-v1:sha256:04264e4b5bd171859be979c64cb4943c8d3a8617e202452e2795e5046280252b"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
@@ -439,11 +439,11 @@
       "statement": "MobileAppModel handles host deletion by cancelling ordinary SFTP transfers and does not compose the desktop MCP server or its ticket routes; its assistant receives AgentHostServices independently of the mobile SFTPTransferCoordinator.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L326-L359",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L310-L343",
           "version": "repo-lines-v1:sha256:a44c7628fe8485eabc7da78157056381c5e252da44351d0fb1ea2c2cce954e78:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYWQ3ODk2ZGU0ODk4MzU0ODAyMGEwYzY5YmQxNDVjN2VjMTlhOTBkZTRhMGYxMjQyZWIwMWE3ZjMzZDVjOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNmQyZWJjNGFjZWE5ZDk0YWMyOGU0ZWJhMmQwNzA2MDQzODU2Y2Q4YmFmZTk4YzdmYzQ3NGJmYTdhYTk5N2QifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L374-L391",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L358-L375",
           "version": "repo-lines-v1:sha256:a53b823b1fa9f07ec6891012487c6f0af33213a786cfa9438b106a2401a0f7e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwM2M0NWRiMmQ0ZTMyMDIzOGNmOTkzMWJjMDJlMTg3NzZlMjVmNmNmNGZhY2MwZjcwYmE4M2Q3MzYxYmJmYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MDAzMDk2ZDkzZTMyMmY3NDZlMWZhZjQxZjY1NTcyMWY3ZDc5MmRkYWM3NDIyNzA5ZTMwOTg2MTgzZDA4MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwYjU0YTBjNDQ2NzcyZDJlYzkwNzZhZmEwMGY2NTAyNmJhZDZhZDFjODk0MzMxMTEwMzYxMDU5NjEwN2ZiYTAifQ"
         },
         {
@@ -512,11 +512,11 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:5934f366da1880f0fed92765b66302af2981eb4bb5287e3d04a168b3d8b8ad52"
+          "version": "repo-file-v1:sha256:f362f94b114fb37a8dafee3112b82d9311f0616bec19b05cf2832695f072df29"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:2f1439e09cafcc41f70316878d6962a762f01188df10b7b8bc85e8fd69b72fae"
+          "version": "repo-file-v1:sha256:04264e4b5bd171859be979c64cb4943c8d3a8617e202452e2795e5046280252b"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
@@ -695,6 +695,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T06:43:09.891Z"
+    "at": "2026-10-04T16:22:58.117Z"
   }
 }

@@ -63,7 +63,7 @@ sources:
 generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Storefront commerce release checks

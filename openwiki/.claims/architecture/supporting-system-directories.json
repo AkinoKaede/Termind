@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:217b326b4af4f4cde7f3ce16a4728f4ddf54a1a53fa867bfdfe88ea3173ccc53",
+  "pageVersion": "sha256:1dfda47a4a185f4303a6ba66b7b3bcdf05fb4fea502fcfddc20a555e380f23ef",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,11 +12,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:274e8acd520af1b174ba4071547b76fcf6e8f4e0acdf075455c8bf2963570c34"
+          "version": "repo-file-v1:sha256:164a580bdf8013909f36d0d069fb45c70531fcc9a7ea436ca9375fdf80a050a5"
         }
       ]
     },
@@ -70,7 +70,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -106,7 +106,7 @@
     },
     {
       "id": "claim_a945a4b41dcf4e69849bbdcee724ffd4",
-      "statement": "Repository scripts cover version/resource maintenance, remote fixtures/forwarding measurement, and screenshot/device-frame production, with Python tests for version and benchmark tooling.",
+      "statement": "Scripts cover resource/version maintenance, remote fixtures and benchmarks, and screenshots. Model-catalog generation requires an explicit Pi version, records npm provenance, preserves typed input/output and deduplicates provider/ID with chat preferred over image and other types.",
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
@@ -121,16 +121,8 @@
           "version": "repo-file-v1:sha256:131e9bb9089ea820c28f57c7096e8e55fb78f73598bb4ab641a2cf45c3f3a04e"
         },
         {
-          "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:7b3636ee172a79eded1abade3d47b549fae1de61ef49d6c38cfb2a610404d447"
-        },
-        {
-          "resource": "repo://Scripts/update-linux-distribution-icons.sh",
-          "version": "repo-file-v1:sha256:6554e0ab2064d73f9aedf5c5334a7b113a5e78f2964f95812ebadaefba0b23b1"
-        },
-        {
           "resource": "repo://Scripts/update-pi-model-catalog.sh",
-          "version": "repo-file-v1:sha256:27158e0d707210321d7c9b73cedd3f3cc81056dc72b5dc42cd764db12bb13990"
+          "version": "repo-file-v1:sha256:5406bd5f94131ac8687f11842206c83bfb7ae004501a35cc92d41f5cbe9682b5"
         }
       ]
     },
@@ -196,7 +188,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -218,7 +210,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L3001-L3008",
-          "version": "repo-lines-v1:sha256:474dcf1634275a14fa012c0e0cf69986978bdde5312ee5d3d9c965607e850f06:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "version": "repo-lines-v1:sha256:2ff41ee569af37679e3a3d66cfcfd137b3bf3bb8322a4c7beb1dd27819fb54ba:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
         }
       ]
     },
@@ -292,19 +284,15 @@
     },
     {
       "id": "claim_66be87c535d7418d8b8d757a4764c13c",
-      "statement": "The app's AgentKit remote package reference requires versions starting at 0.18.1 up to the next major version, and the committed Package.resolved pin governs Xcode builds rather than the reference submodule or sibling working tree.",
+      "statement": "AgentKit's remote project requirement begins at 0.19.0 up to the next major version; Package.resolved governs ordinary Xcode builds rather than maintenance or sibling working trees.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules#L1-L3",
-          "version": "repo-lines-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmU0MjljMjJjMWYxZWM0YzE3YTg2ZjkzYWI3ZjcyNDdlODQxMDAwNjlkNWUxZTM4N2VlNjczOWMxN2Y1ZjFjMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY3Njg4YWQ1NzBiZjg1NTkxZGIzZjg1MTI2ODJhZjlmMjViYjY2MWQ1NDM0YzMyMWEyYjA2NzA0YzExYjQ2MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjdlNGRkNTI4YTUwNmI4NjllMzk1MmNiZDljNGVkYzFlZWU1OGJlODhjMWY3MzFkMGNjYzgzN2U2YzZjZmE3NCJ9"
-        },
-        {
-          "resource": "repo://AGENTS.md#L16-L18",
-          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
-        },
-        {
           "resource": "repo://Termind.xcodeproj/project.pbxproj#L3001-L3008",
-          "version": "repo-lines-v1:sha256:474dcf1634275a14fa012c0e0cf69986978bdde5312ee5d3d9c965607e850f06:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+          "version": "repo-lines-v1:sha256:2ff41ee569af37679e3a3d66cfcfd137b3bf3bb8322a4c7beb1dd27819fb54ba:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L13-L22",
+          "version": "repo-lines-v1:sha256:35477ee2a3860f8b888826be9680a205d3002f5172cb246f57df0c7e6d85727d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhNzBlYWU1OTBhNDIxYTgzMGY3ZjE2Y2MxYjQxZjAyNzIwZDFjNDgzYmJhYmM4MGZhMWZiODk5NDg0NzhhNjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzZWJmNGI1YTk4MWRlZmU5ZTcwYThlYzcxOWRiMDJlZDhhZWI1OTk2YzhmMzMwMzY4NjVkZTJhNzExNzhhZTAifQ"
         }
       ]
     },
@@ -384,7 +372,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L1-L30",
-          "version": "repo-lines-v1:sha256:ed91d705807670f5e827beadc909d9c9ea8282ed458a15050daebdb628fa52e0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+          "version": "repo-lines-v1:sha256:3ed9cc3d8ba3fc95582dfffa0b198d480518e7c9b487a6c3d806e577d46c12a5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
         }
       ]
     },
@@ -508,11 +496,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:274e8acd520af1b174ba4071547b76fcf6e8f4e0acdf075455c8bf2963570c34"
+          "version": "repo-file-v1:sha256:164a580bdf8013909f36d0d069fb45c70531fcc9a7ea436ca9375fdf80a050a5"
         }
       ]
     },
@@ -545,50 +533,24 @@
       ]
     },
     {
-      "id": "claim_81ebc5803af14277bcbb6837fccac1d2",
-      "statement": "The maintenance submodules are uninitialized in the inspected checkout, so their unavailable local source must not be confused with the remote package inputs declared by Xcode and pinned in Package.resolved; repository guidance requires initializing the Ghostty maintenance checkout before working on it.",
-      "evidence": [
-        {
-          "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:655f51c415373812bd0316e8377b65c4475f764604001383c2d1ee2be540f926"
-        },
-        {
-          "resource": "repo://AGENTS.md#L20-L46",
-          "version": "repo-lines-v1:sha256:afa4cac80bdf86e5b9f3d2da33fad3c53734d913bbc87d7adc7d0e20152976d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyMDY4MTg4ODg0YWQzYjJmMTk3MTgxYzAxNDM1ODdlNGE5ODJiMDY3ZTNhYmY2ZGI3MmQzNjJkYTFhNjBjMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MGEyMDdkZmE3NDIxZjM5MDlhZTU4MjViNTcwNTc2NjY2NmI3ZDhhNTgxMmVlZTcyNmFmMDA3ZTYwYmI4ZGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MDNlOTNiOTIwZGNjMjVjNGFmODJjZTE3NGI3M2QxODcyOTUxMGM2ZGExNTEwZjU4MGE0MDE3NzZkN2M2NTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1ZDk3ZjJlMDczOTEwM2Y3NTEwNTI5YzYwNWY4NDkyMzE3ZDQyZjQwOTcxMDRhZjJkZDIwYjhlMjZmYTJjZjcifQ"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2896-L3008",
-          "version": "repo-lines-v1:sha256:71b23ae550948db5d8ff29b02699afbd2a8dc8baa25e5e542beb4ed7d9ca160b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5MmI2MjE1YjE4NzI1NzAzNjg1ZjExMGRlNGU1ZmIwY2NiMzIyYTFlZTM2Y2NhMWZiZTliZDJjYWI2NjI3NWE1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjNjhlNThmZDU2YWE0Y2ZkZWIzMzQ4MTcwYTdmYjg0ZTc1YzdmNTE1NDA4NTMxOTg0ZTJjODBjOGUwN2I3MmYzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3YzljMDUzMzBhZDdhMWY0NWEyYjY0NTYxNDg4ZmZjY2NkZjliNzdjNmYwMDRmMGRjNGY1MGI5ZGFlYWJiN2Y3In0"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L158-L183",
-          "version": "repo-lines-v1:sha256:34cc7d8254f91ca4d531b84cb309baabe262432bac986b9a5ccc746dc9d2d188:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxNTJhNDZmODdhOGY2ZWVjMWNlMmVjZjExNDgwM2M1NTczZThkOTIwNzdlM2E5NzM0NzEyMDQyZGFkNmEyMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5ZTRiZTI4NzdmMzE5MGM0MzE0YTJhNGZiMWE0OTE0ODk4MjM3M2Y2NmIxYzIzYjVmMGMyMDc0ZTMzMzRlZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjOTI0OGU0MjhjYjZlZTFhNThlZDFjMjZlM2U5ZTFlY2M0MjFhYTVmN2I5ZWQ1ZTk3NmU2NTcyNjQyYjBjMjgifQ"
-        }
-      ]
-    },
-    {
       "id": "claim_af3ca6ae33544149a5152238fa0621ec",
-      "statement": "libtailscale-spm is a submodule tracking main, but Xcode consumes its remote exact version 1.0.1, pinned in Package.resolved; TailscaleKit links into TermindRemoteInfrastructure, whose LibTailscaleNodeSession owns the embedded node on the app side.",
+      "statement": "libtailscale-spm tracks main as a maintenance submodule, but Xcode consumes its remote package through upToNextMinorVersion from 1.0.2, resolved to 1.0.2 at 098e6b69ea128f3a55bc560f005a3e851123dc99. TailscaleKit links into Remote Infrastructure, whose LibTailscaleNodeSession owns the app-side node.",
       "evidence": [
         {
           "resource": "repo://.gitmodules#L12-L15",
           "version": "repo-lines-v1:sha256:281e9f78fd6455537a3aec4a6c78f1c57327ab98522de739f23c1d9f19228df1:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTRlYmQ0ZmVkMDUwOTE1YjMwYTZiNjE3NDQ0MTE0Njk1YjIzY2EwZDU1MTNjOGU4ZTI3ZDM5ZTI0OTE5MGNjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjZhZjNkZGNiOGFmZDk0ODgwM2NjYTk1ZmJjODM1MmVjMDZlOGNhYjZjZmJmMTRkMWQwMmExZDE2OGMyMDRkOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2VjNTJhNGE1ODBmMmFiNzRlZTg1M2JhMWYxYmNhYWZiMjc4YmY3NGI2MmFkYWY3Mjg5NTQzZDIxZmU2YjJjZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L1-L28",
-          "version": "repo-lines-v1:sha256:a1b9fbed6718e06ef91449a6f7a9fb912058c7e82834367c05b4fd90bb708314:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3NDQ2YjVjNzUyOTUzYjZlODgwNWZiOTZjMGFjZWZhMzhiOGJkNTNlN2I2MjdjN2I3ODgzMTFkZTY5NDExODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzYzY0MDIwNTRkMTljMmUxYmJjYzgzNDllNzVjNDRlNDYyMzhhNjUwZjBiYWE5NzI4NDNhNzcyYTFlNjcyOTAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift#L7-L28",
+          "version": "repo-lines-v1:sha256:bd84a4bdc607b42654bcac83ef0915e2d978333e0ef5f4d01c19fe4a8fe7862a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ZGY2YTc5NjEzZDM4MzFhYjI1NzQ4MzliNTYyMTg2YzMzYTg5ODZkMjUwZTMxOTM5ODgyNzM3M2U0YTZjNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzYzY0MDIwNTRkMTljMmUxYmJjYzgzNDllNzVjNDRlNDYyMzhhNjUwZjBiYWE5NzI4NDNhNzcyYTFlNjcyOTAifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1118-L1147",
-          "version": "repo-lines-v1:sha256:6bd3c9f8284ef421612a7f2d92c65af786d566115e3e5316141a3407ee30c2fa:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNDRjY2U2ZmJhMzU2OThhN2U4MTM4YWZhYThmYTg3NDhkOWYwYjU2MDYxZjFlNzhiNTg4MjJhOWRlNGZhOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxYTEzYTZmZGI4NzFhNTlhNWQxMzg2Zjc5ODQwNWM5OGNkYTRhYTMyMWE1NTAwNzUwZDdhNGY2MWJiNmM4MGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhOWJkNzE5N2MzOGI1YjUwMDFkYWNlODE5NmY1ZDc5NTlmZjIzZjYxM2ZlYjc3NmIwNTRjOTc5MzUxYWFjNzcifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2896-L2904",
+          "version": "repo-lines-v1:sha256:f04cbf5305b2fe0646f72e74f4e941a1aec359102d5691c1945770139a0e1198:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTJiNjIxNWIxODcyNTcwMzY4NWYxMTBkZTRlNWZiMGNjYjMyMmExZWUzNmNjYTFmYmU5YmQyY2FiNjYyNzVhNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzY4ZTU4ZmQ1NmFhNGNmZGViMzM0ODE3MGE3ZmI4NGU3NWM3ZjUxNTQwODUzMTk4NGUyYzgwYzhlMDdiNzJmMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGE0YzcxYWYyNGU3MDlmY2E1MzM1ZDA3YWUzYjU3ZTFiNDU2MzdmMzA3ZWQzNGVhZjdhZGMwMWJmN2YyM2Q4YyJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2897-L2904",
-          "version": "repo-lines-v1:sha256:12f979516e7bc8757bf0bf5cf37f3c1076233a35ff7326c404b342ee5c3531e7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTNlYWY4YmMzNzY0NjE5MDM3MTY3MjdiYWJmOWJmMmJiNzA2NGI5NGY0NDdjNmJlMDc5ZjgxMmFkOGYxNWRlNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjBjNWYxZDMxZTg4MDRiNzQ2ZTc1MmRmNjYzNjRiMmVjNjQ3ZjgyNWU2ODkwMjIwNTc3NjRlZDI0MzhlODE2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGE0YzcxYWYyNGU3MDlmY2E1MzM1ZDA3YWUzYjU3ZTFiNDU2MzdmMzA3ZWQzNGVhZjdhZGMwMWJmN2YyM2Q4YyJ9"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L175-L183",
-          "version": "repo-lines-v1:sha256:3c4b534b3915475c268ce2bbff08622fa608b825de2da900f09cbecf9ca3b5e5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWEzOTM3NGE3MjZmMzc2ZTAyZjcyYTRlNzNkOWRhYTAyYmM3YTI1YWVmMTI2YzU5NTlhY2QwZWQ4NTcxMzdhNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmM5MjQ4ZTQyOGNiNmVlMWE1OGVkMWMyNmUzZTllMWVjYzQyMWFhNWY3YjllZDVlOTc2ZTY1NzI2NDJiMGMyOCJ9"
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L184-L193",
+          "version": "repo-lines-v1:sha256:1990026655722af46d5676b1501be6fdf5d5cb0ad13379ffd7894ad7cebe8a91:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliNjk0Nzg4OWMwODBjN2IyNmE1YjNhNmZiMmU4OGI0ZjMwYmI2MzNiMzE2ZjJkYzE2OGNjYjFmYzM1NmU3NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4NmM5MWE2OGMzZmUzOWUyZmUyMGI2ZjRkM2U0ZTRhZTc2ODg4NGI4MWFkMDE3NmY0MTg1YjMyMGI0ZTkzOWQifQ"
         }
       ]
     },
@@ -629,6 +591,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T22:38:13.888Z"
+    "at": "2026-10-04T14:45:13.763Z"
   }
 }

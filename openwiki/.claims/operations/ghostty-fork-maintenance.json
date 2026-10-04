@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:01983c76ba6c23a2f3d0191989c5d259e52d0e8bf95e88ea96455ed36e556cfe",
+  "pageVersion": "sha256:23e7e258453fcf9512bc5aeecf3371f4eb008a6be20cf5564f4fbd2a7e1fba20",
   "claims": [
     {
       "id": "claim_178354d1d71f460e9b920a02dd44754f",
@@ -16,11 +16,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:13ce39e0bfaf84ae6c617b4ac982654094114823fd50dbaafe33da5b9f673938"
+          "version": "repo-file-v1:sha256:5970b88c36eca6c0673659a80d639ff80b2f77c082b2b87786926270d9d46eea"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:274e8acd520af1b174ba4071547b76fcf6e8f4e0acdf075455c8bf2963570c34"
+          "version": "repo-file-v1:sha256:164a580bdf8013909f36d0d069fb45c70531fcc9a7ea436ca9375fdf80a050a5"
         }
       ]
     },
@@ -133,6 +133,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-03T22:38:13.888Z"
+    "at": "2026-10-04T14:45:13.763Z"
   }
 }

@@ -22,6 +22,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-ead8e57ca19639dd536b792d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift
+  - id: openwiki-source-dd3df578da8881d8ba0638e6
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-e980c605b1828a2d960bfd5e
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift
   - id: openwiki-source-ab74624bdc6b7046d91bcbac
@@ -34,6 +36,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHRoutedSocket.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
     resource: repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift
+  - id: openwiki-source-ed4da67c229084479edcd999
+    resource: repo://FrameworkTests/SFTPChannelLifetimeTests.swift
   - id: openwiki-source-7d8c92c7f508941f92360dcd
     resource: repo://FrameworkTests/SSHConnectionPreparationTests.swift
   - id: openwiki-source-6f2f3aed2218602847085f4d
@@ -42,6 +46,8 @@ sources:
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-67f284756d9cb27d2bd3eda8
+    resource: repo://FrameworkTests/SSHPTYChannelWorkerLifecycleTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -80,10 +86,12 @@ sources:
     resource: repo://TFMTests/ConnectionJourneyTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
-generated: { by: "codex", at: "2026-10-03T16:39:47.431Z" }
+  - id: openwiki-source-fc9dd746ee8dc0791104d397
+    resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T16:39:47.431Z
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # SSH session lifecycle
@@ -190,8 +198,7 @@ flowchart TD
 
 A configuration carries credentials only for one physical connection attempt. Its `SSHSecret` values are shared mutable secret owners, so copies of the configuration can be invalidated together. `SSHConnectionConfiguration.clearSecrets()` clears target credentials, proxy password, and every jump credential. Public entrypoints defer that cleanup on both success and failure, and the authenticated opener also clears at its own transport boundary. Retrying resolves saved material again; a temporary password or key passphrase is not a reusable connection snapshot.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ssh-security-key-authentication.md] link "/openwiki/concepts/ssh-security-key-authentication.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits only informational keyboard-interactive rounds (no prompts and not a Tailscale browser-approval banner). This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
+Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits only informational keyboard-interactive rounds (no prompts and not a Tailscale browser-approval banner). This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](../concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
 
@@ -201,20 +208,18 @@ An authenticated SSH connection has one serial libssh2 owner. `SSHConnection` is
 
 The worker's generation token invalidates socket events, timers, and scheduled pumps after cleanup. While a new connection is still opening, cancellation of its route or destination authentication also cancels the keyboard-interactive/Security Key exchange, interrupts its socket, and serializes opening-state cleanup. Disconnect increments that generation, cancels timers, fails outstanding commands, closes multiplexed SFTP channels and the channel budget, and closes the authenticated transport. Connection-level socket failure is reported once, then uses the same cleanup path. The worker also cleans up when its last reference is released: if release happens on its own queue it cleans up inline, otherwise it synchronously enters that queue. This avoids deadlocking on queue reentry while preserving serialized transport teardown. `SSHConnectionWorkerLifecycleTests` covers both release contexts. This establishes two related invariants: libssh2 is never entered concurrently, and a retired connection cannot have a stale event revive or mutate its replacement.
 
+The PTY worker has a separate sibling lifetime: closing the terminal preserves its transport only while live SFTP channels remain, not merely because native exec CLOSE is pending. Each SFTP driver retains its worker through asynchronous cleanup, with no owner-to-driver cycle. Worker destruction cleans up on its serial queue and avoids synchronous self-reentry. `SSHPTYChannelWorkerLifecycleTests` covers queue release, `SFTPChannelLifetimeTests` covers retained cleanup, and opt-in `SSHPTYChannelLifecycleWireTests` uses an unacknowledged exec CLOSE to check transport retirement and final SFTP-sibling closure.
+
 Feature models apply the same idea at the UI boundary. `RemoteSessionConnectionController.progressHandler(attemptID:isCurrent:)` forwards route progress to `ConnectionJourney` only for the current attempt. Desktop `SSHSessionModel` checks its `connectionAttemptID` after PTY connect and in exit and integration callbacks; if post-connect installation fails it disconnects the new actor. Mobile workspaces replace their UUID generation when connecting, backgrounding, exiting, or retiring work, and guard every asynchronous completion against it. Late connection, transfer-preparation, socket, and timer callbacks therefore cannot attach an obsolete transport, clear newer state, or enqueue work after explicit close.
 
 ### Continue into post-authentication mechanics
 
 Authentication answers whether a transport may be installed. The next layer decides how its work progresses and how additional transports are obtained:
 
-<!-- openwiki: broken internal link [/openwiki/concepts/ssh-multiplexing-and-scheduling.md] link "/openwiki/concepts/ssh-multiplexing-and-scheduling.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) explains per-connection session leases, serial libssh2 ownership, exec state machines, SFTP retry turns, and buffer backpressure.
-<!-- openwiki: broken internal link [/openwiki/concepts/shell-integration.md] link "/openwiki/concepts/shell-integration.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Shell Integration: Bootstrap, OSC Events, and Terminal State](/openwiki/concepts/shell-integration.md) follows the PTY-only probe/install exchange, shell hooks, charset-aware event filtering, history, cwd/home, and platform-specific prompt readiness.
-<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md) explains file permits before channel acquisition, independent-connection preference, sibling/primary fallback, and detached transfer ownership.
-<!-- openwiki: broken internal link [/openwiki/workflows/port-forwarding-pool-and-dispatch.md] link "/openwiki/workflows/port-forwarding-pool-and-dispatch.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md) follows pool publication, local/SOCKS flow assignment, primary-only remote listeners, and the distinction between auxiliary repair and whole-context recovery.
+- [SSH Multiplexing, Channel Admission, and I/O Scheduling](../concepts/ssh-multiplexing-and-scheduling.md) explains per-connection session leases, serial libssh2 ownership, exec state machines, SFTP retry turns, and buffer backpressure.
+- [Shell Integration: Bootstrap, OSC Events, and Terminal State](../concepts/shell-integration.md) follows the PTY-only probe/install exchange, shell hooks, charset-aware event filtering, history, cwd/home, and platform-specific prompt readiness.
+- [SFTP Transfer, Scheduling, and External Edit Workflow](sftp-transfer-and-external-edit.md) explains file permits before channel acquisition, independent-connection preference, sibling/primary fallback, and detached transfer ownership.
+- [Port Forwarding: Multi-Connection Pool and Flow Dispatch](port-forwarding-pool-and-dispatch.md) follows pool publication, local/SOCKS flow assignment, primary-only remote listeners, and the distinction between auxiliary repair and whole-context recovery.
 
 ## Agent SSH connections are not workspace sessions
 
@@ -354,17 +359,11 @@ When changing connection code, preserve these boundaries:
 
 ## Related pages
 
-<!-- openwiki: broken internal link [/openwiki/architecture/platform-runtime.md] link "/openwiki/architecture/platform-runtime.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Platform runtime and lifetime ownership](/openwiki/architecture/platform-runtime.md)
-<!-- openwiki: broken internal link [/openwiki/concepts/agent-runtime-and-assistant.md] link "/openwiki/concepts/agent-runtime-and-assistant.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Agent runtime and Assistant](/openwiki/concepts/agent-runtime-and-assistant.md)
-<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Persistence and secrets](/openwiki/concepts/persistence-and-secrets.md)
-<!-- openwiki: broken internal link [/openwiki/concepts/ssh-security-key-authentication.md] link "/openwiki/concepts/ssh-security-key-authentication.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [SSH Security Key Authentication](/openwiki/concepts/ssh-security-key-authentication.md)
-<!-- openwiki: broken internal link [/openwiki/concepts/remote-services-and-forwarding.md] link "/openwiki/concepts/remote-services-and-forwarding.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [Remote services and forwarding](/openwiki/concepts/remote-services-and-forwarding.md)
-<!-- openwiki: broken internal link [/openwiki/workflows/sftp-transfer-and-external-edit.md] link "/openwiki/workflows/sftp-transfer-and-external-edit.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-- [SFTP transfer and external edit workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md)
+- [Platform runtime and lifetime ownership](../architecture/platform-runtime.md)
+- [Agent runtime and Assistant](../concepts/agent-runtime-and-assistant.md)
+- [Persistence and secrets](../concepts/persistence-and-secrets.md)
+- [SSH Security Key Authentication](../concepts/ssh-security-key-authentication.md)
+- [Remote services and forwarding](../concepts/remote-services-and-forwarding.md)
+- [SFTP transfer and external edit workflow](sftp-transfer-and-external-edit.md)
 
 Tailscale-managed peers use the group-bound dialer and control-service host keys. They authenticate a selected remote username through Tailscale SSH, carry no ordinary SSH credential list, and cannot be jump Hosts; failed Tailnet dialing never falls back to system networking. Peer identity is scoped to its group, and sign-in/cache/profile cleanup remain device-local. Command and SFTP browse histories are session-local memory snapshots retained on reconnect and cleared on close. Shared non-PTY exec scheduling now resides in `SSHMultiplexedExecChannelOwner`, used by `SSHConnectionWorker` and PTY-owned history reads under the same queue and channel budget.

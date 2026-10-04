@@ -40,6 +40,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
     resource: repo://FrameworkTests/HistorySyncTests.swift
+  - id: openwiki-source-aa17b5491058eab1bbe5d01f
+    resource: repo://FrameworkTests/HostEditorBindingsTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -50,6 +52,8 @@ sources:
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
+  - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
+    resource: repo://FrameworkTests/SnippetColorTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-bb65493b0fd5bf5957736cd6
@@ -98,6 +102,8 @@ sources:
     resource: repo://TFITests/MobileHardwareKeyEditorRenderingTests.swift
   - id: openwiki-source-2c7245a9a1462a5a8d09b739
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
+  - id: openwiki-source-a8fe0369546b05fdb8d24cb6
+    resource: repo://TFITests/MobileOperationConfirmationTests.swift
   - id: openwiki-source-282855f9369e6dc0c3447dc8
     resource: repo://TFITests/MobileSettingsPortTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
@@ -108,6 +114,8 @@ sources:
     resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
+  - id: openwiki-source-2e344ef3e7cfe79ec821941e
+    resource: repo://TFITests/MobileWorkspacePresentationTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
@@ -146,16 +154,18 @@ sources:
     resource: repo://TFMTests/MetricsJourneyRenderingTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
+  - id: openwiki-source-fc9dd746ee8dc0791104d397
+    resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Behavioral Tests and Fixtures
@@ -186,11 +196,11 @@ This flow selects the narrowest test target that owns the behavior, then expands
 
 Use `FrameworkTests` for behavior intended to remain identical across macOS and mobile: value/rule behavior, repository and persistence adapters, migration compatibility, settings synchronization, host-key policy, and presentation-independent controllers. These tests should normally run with deterministic in-memory state or a temporary directory and should not import an app target.
 
-Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. The seam is the public `@MainActor` container factory in Persistence: it configures the V50 schema with the migration plan and `cloudKitDatabase: .none`, taking either a disk URL or `inMemory: true` (not both). The platform entrypoint chooses the storage and retains the container; tests should create a fresh container for independent in-memory state and a temporary disk URL for reopen checks. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
+Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. The seam is the public `@MainActor` container factory in Persistence: it configures the V51 schema with the migration plan and `cloudKitDatabase: .none`, taking either a disk URL or `inMemory: true` (not both). The platform entrypoint chooses the storage and retains the container; tests should create a fresh container for independent in-memory state and a temporary disk URL for reopen checks. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
 
 Checked-in `FrameworkTests/Fixtures/V1.store` and `V14.store` also check that stores created under the original app module open with their group (and V1 provider) intact. The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
 
-`version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. V25/V26 defaulting, V27, V30 and V31 migration checks remain alongside it. V35→V36 drops the retired history importer table while retaining native History on reopen; V36→V38 adds cloud-presence and delete-handoff state; V39 adds assistant model selection, V40 removes the retired per-category quarantine tables while retaining scoped quarantine, V41 adds shared notification preferences, and V42 adds agent-message and conversation provenance plus collaboration delivery receipts. V43 adds MCP OAuth configuration, V44 updates the Host model, and V45 adds SSH Security Key metadata, and V46 adds terminal keyword-highlight preferences. A V41→V42 disk migration fixture checks that existing groups survive and the new collaboration sidecars start empty; separate collaboration fixtures verify monotonic delivery receipts across SwiftData contexts and creation relations after disk reopen. V29, V32 and V33 stay absent from the migration plan.
+`version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. V25/V26 defaulting, V27, V30 and V31 migration checks remain alongside it. V35→V36 drops the retired history importer table while retaining native History on reopen; V36→V38 adds cloud-presence and delete-handoff state; V39 adds assistant model selection, V40 removes the retired per-category quarantine tables while retaining scoped quarantine, V41 adds shared notification preferences, and V42 adds agent-message and conversation provenance plus collaboration delivery receipts. V43 adds MCP OAuth configuration, V44 updates the Host model, and V45 adds SSH Security Key metadata, and V46 adds terminal keyword-highlight preferences. A V41→V42 disk migration fixture checks that existing groups survive and the new collaboration sidecars start empty; separate collaboration fixtures verify monotonic delivery receipts across SwiftData contexts and creation relations after disk reopen. V29, V32 and V33 stay absent from the migration plan.
 
 On macOS, a separate `PersistentStoreLockTests` seam checks the **lifetime around** that factory, not merely successful SwiftData open. For a disk configuration `makeContainer` acquires an advisory lock on a stable `.lock` sibling **before** `ModelContainer` can open or migrate the store; a failed lease throws `PersistentStoreAccessError.inUse` without touching even a sentinel store or creating its WAL. A canonicalized URL (including symlink aliases) shares one process-local lease across simultaneously open containers; Objective-C association keeps it alive until the last container closes. The lock file stays on disk; closing the descriptor releases the kernel lock, including after forced termination. The tests hold and release real containers, use an independent Python `flock` process to simulate contention and forced exit, reopen to verify Vault host/key records, and check that other store URLs and in-memory containers do not contend. The desktop `DatabaseStartupGuardTests` exercises the separate compatibility guard: before opening a real store, the app refuses another running instance of its bundle even if that older instance does not acquire the new lock. These tests do not simulate a true crash during migration or guarantee that other platforms implement the macOS lock.
 
@@ -206,7 +216,7 @@ sequenceDiagram
     App->>Factory: Open disk container
     Factory->>Lock: Acquire lease before database access
     Lock-->>Factory: Lease acquired
-    Factory->>DB: Open or migrate V50 schema
+    Factory->>DB: Open or migrate V51 schema
     DB-->>Factory: ModelContainer
     Factory-->>App: Container retaining lease
 ```
@@ -261,7 +271,7 @@ The safety fixture substitutes only the CloudKit transport. It uses the producti
 - Compare fetched winners with older or same-version losing records: only a winning fetch clears the pending journal, engine queue and stale batch snapshot. Inject a pre-save failure to prove that data/journal mutation and quarantine removal roll back together.
 - Distinguish malformed payloads from recognized newer formats in status hints. Ignore unknown record types on ordinary fetch, but validate a conflict returned for an attempted known record ID.
 
-Disk-backed `CloudSyncSafetyPersistenceTests` separately create synthetic V30 and V39 stores and open them through the current V50 container, traversing V40 retirement of per-category quarantine tables. V30 retains an existing group and adds the scoped quarantine schema; V39 inserts retired per-category rows and a current scoped block, then checks group, scoped block and cloud-presence state after migration. It does **not** assert import of legacy quarantine payloads into scoped quarantine. The interrupted-fetch fixture runs all five record categories: it begins a fetch, receives an unsupported record and stops before `didFetchChanges`; a fresh disk container must still find the original quarantined bytes, recovery fence and pending journal intent. The blocked record stays out of outgoing entries while one compatible peer remains uploadable. Deletion-handoff sidecars are also reopened. The five-category journal test checks that identical upload acknowledgements and system-field updates do not dirty SwiftData, but actual state transitions do; redundant writes should not be mistaken for progress. Scope tests vary container, environment, account, zone and owner independently.
+Disk-backed `CloudSyncSafetyPersistenceTests` separately create synthetic V30 and V39 stores and open them through the current V51 container, traversing V40 retirement of per-category quarantine tables. V30 retains an existing group and adds the scoped quarantine schema; V39 inserts retired per-category rows and a current scoped block, then checks group, scoped block and cloud-presence state after migration. It does **not** assert import of legacy quarantine payloads into scoped quarantine. The interrupted-fetch fixture runs all five record categories: it begins a fetch, receives an unsupported record and stops before `didFetchChanges`; a fresh disk container must still find the original quarantined bytes, recovery fence and pending journal intent. The blocked record stays out of outgoing entries while one compatible peer remains uploadable. Deletion-handoff sidecars are also reopened. The five-category journal test checks that identical upload acknowledgements and system-field updates do not dirty SwiftData, but actual state transitions do; redundant writes should not be mistaken for progress. Scope tests vary container, environment, account, zone and owner independently.
 
 `CloudSyncLifecycleTests` is a separate deterministic **port-level** fixture, not a disk store or live CloudKit test. Its `LifecycleFixture` wires `CloudSyncLifecycle` to an in-memory journal, fake `CloudSyncTransport`/`CloudSyncEngineSession`, injectable save/lookup failures and continuation gates. `start` first commits a recovery fence, checks account and zone, creates the engine, reconciles pending mutations, then completes a fetch before authorizing sends; a failed first fetch retains the fence, and retry on the same engine only sends after a successful fetch. Overlapping explicit fetch/send transitions retain recovery until both finish; automatic fetch-failure callbacks likewise keep uploads closed. Retirement invalidates late operations and delegate callbacks; failed persistence or lookup must not turn into an authorized upload. The suite additionally verifies detached fetch/send and cancellation do not inherit the CloudKit delegate task-local context, a shared 250-item limit across saves and deletes, refusal of unjournaled deletes, and no quota consumption by invalid pending changes. These are controllable contract checks, not evidence of delivery by iCloud. For zone purge or encrypted-data reset, start with `CloudSyncPhysicalDeletionTests.destructiveZoneReasonsPurgeOnlyTheActiveReplicaAndCannotResendOldSnapshot`: it checks active-scope projection/safety cleanup and no resend while preserving another account's fence. `assetPurgeFailureRetiresSyncAfterDurableProjectionPurge` covers the failed-cleanup boundary.
 
@@ -328,7 +338,7 @@ The restoration fixture tests the save-before-ownership boundary separately from
 
 ### Terminal Find and mobile search: cancellation is a lifecycle contract
 
-Start with always-on `FrameworkTests/TerminalFindControllerTests.swift`. It injects binding-action and focus closures rather than Ghostty or UIKit. The retained-query test checks the actual search/navigation/end action sequence and one focus return across dismiss/reopen. Empty-query navigation opens Find without issuing a navigation action. The shared native-dismissal regression calls `dismiss(restoringFocus: false)` twice: Find closes, emits exactly one `end_search`, and never requests terminal focus. Reopening restarts the retained query; a later ordinary dismissal returns focus once. This protects idempotence and responder ownership, not just fixture values.
+Start with always-on `FrameworkTests/TerminalFindControllerTests.swift`. It injects binding-action and focus closures rather than Ghostty or UIKit. The retained-query test checks the actual search/navigation/end action sequence and one focus return across dismiss/reopen. Empty-query navigation opens Find without issuing a navigation action. The shared native-dismissal regression calls `dismiss(restoringFocus: false)` twice: Find closes, emits exactly one `end_search`, and never requests terminal focus. Reopening restarts the retained query; a later ordinary dismissal returns focus once. This protects idempotence and responder ownership, not just fixture values. Resize tests suspend engine search while retaining UI state, edit the query during suspension, resume only the latest query, suppress navigation and ensure closing during resize cannot reopen search.
 
 The production seam is `TerminalFindController`: it retains query independently of presentation, restarts a nonempty query on a closed-to-open transition, and ignores dismissal when already closed. `MobileWorkspaceSearchModifier` binds SSH/Telnet search to that controller and translates native closure into `dismiss(restoringFocus: false)`; SFTP binds directly to `sftpChannel.query` instead. The workspace supplies Ghostty binding execution and terminal focus through closures.
 
@@ -358,7 +368,7 @@ Run the separately **serialized, opt-in** `MobileTerminalSearchIntegrationTests`
 - SFTP filtering closes and reopens three times with its retained filter. Clearing the filter must not deactivate search, and cancellation must release the responder without clearing `sftpChannel.query`.
 - SSH and SFTP journey begin/hide transitions keep the **same** search controller, active text while the journey appears, and closed state after cancellation. SSH additionally retains the same attached terminal view and can reopen Find with its query after the journey hides.
 
-Its fixture uses an in-memory app, a standalone workspace and a key `UIWindow`, mounts the production search modifier and SSH terminal surface, restores the prior key window and disconnects on teardown. Journey visibility is simulated with an overlay; SFTP content is a text projection, not the full file browser. Cancel is invoked through the search-bar delegate and UIKit settling uses timed waits. These are native presentation regressions, not real SSH/SFTP connection or physical button-tap tests.
+Its fixture uses an in-memory app, a standalone workspace and a key `UIWindow`, mounts the production search modifier and SSH terminal surface, restores the prior key window and disconnects on teardown. The journey fixture simulates its overlay and uses a text projection for SFTP, not the full file browser. A separate full-`MobileWorkspaceView` SSH fixture repeatedly reopens Find with empty, matching and missing queries and checks native surface, output and upload generation retention. Cancel is invoked through the search-bar delegate and UIKit settling uses timed waits. These are native presentation regressions, not real SSH/SFTP connection or physical button-tap tests.
 
 `MobileWorkspaceMenuTests` is also serialized and gated by `TERMIND_MOBILE_UI_TESTS`. It resolves native menus in a key window to verify opened/dormant workspace order in title and icon switchers, removal of conversation unread indicators after reading, and lifecycle actions: Rename is nondestructive, Close is destructive, and a separately grouped Close Others appears only when multiple workspaces can close; Close All is absent. Use it for observable menu changes, not as a substitute for search lifecycle or scene-routing tests. See [Mobile UI](../architecture/mobile-ui.md) for presentation ownership and [Engineering Invariants](../architecture/engineering-invariants.md) for safe-change rules.
 
@@ -371,6 +381,14 @@ The mobile Metrics suite is `.serialized` but has **no** `TERMIND_MOBILE_UI_TEST
 ### Mobile settings ports: prove propagation and rollback without a cloud engine
 
 `MobileSettingsPortTests` constructs `MobileAppModel(inMemory: true)` and tests that changing shared SFTP preferences updates transfer limits and strategy immediately—even without opening Settings—and that an applied remote snapshot updates the same coordinator. The small direct `SFTPTransferCoordinator` test verifies invalid limits clamp to usable values. The test app's active scene must not start Vault, History, Device or Settings cloud engines. For provider editing, injected `AISecretStoring` and `AIConfigurationPersisting` failures show that a failed secret write leaves the draft and avoids metadata persistence, and a metadata failure restores the previous secret. A concurrent model refresh survives editing, remote deletion cannot be resurrected by an open draft, and controlled discovery ignores a late response after cancellation or provider deletion. Run these ordinary, no-key-window tests before any settings UI rendering suite.
+
+## Focused additions: drafts, confirmations and resource retirement
+
+- `SnippetColorTests` checks tolerant legacy JSON, unsaved draft isolation, duplicate color, V1/V2 wire/tombstone behavior and a real V50→V51 disk migration followed by saved-color reopen.
+- `HostEditorBindingsTests` exercises creation callbacks without changing existing selections, independent SSH/Telnet custom/none choices, proxy default-port transitions and no recreation of a removed proxy.
+- `MobileWorkspacePresentationTests` checks importer dismissal-before-result and once-only target consumption, and preview/export sequencing without UIKit windows.
+- `MobileOperationConfirmationTests` is serialized and mobile-UI gated; English and both Chinese fixtures compare row anchoring against window-centered arrowless popovers, action order, animated transitions and post-dismissal action timing. It uses temporary windows and restores their predecessor; these are not a real destructive business-operation run.
+- `SSHPTYChannelLifecycleWireTests` requires `TERMIND_PTY_LIFECYCLE_FIXTURE` with the Python SSH peer. The peer deliberately leaves exec CLOSE unacknowledged. Tests observe transport closure after explicit disconnect and owner release, and prove a retained SFTP sibling survives PTY release until the final subsystem closes. These are opt-in local wire fixtures, not arbitrary-server coverage.
 
 ## Fixture design rules
 

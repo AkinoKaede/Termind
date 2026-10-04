@@ -3,9 +3,6 @@ type: authentication concept
 title: SSH Security Key Authentication
 description: How Termind registers an RP-bound FIDO2/WebAuthn Security Key, stores its public reference, and turns a local authenticator assertion into an OpenSSH SSH signature across macOS and iOS.
 tags: [ssh, security-key, fido2, webauthn, authentication, vault]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
@@ -59,17 +56,17 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # SSH Security Key Authentication
 
 Termind supports hardware-backed SSH authentication through Apple's Security Key WebAuthn API on macOS and iOS/iPadOS. The supported SSH public-key algorithm is **`sk-ecdsa-sha2-nistp256@openssh.com`** (WebAuthn ES256 / P-256). The authenticator owns the private key; Termind keeps an RP-bound credential ID, public key, verification preference, and presence requirement. It does not implement `sk-ssh-ed25519@openssh.com` or import an OpenSSH private-key file as a Security Key reference.
 
-<!-- openwiki: broken internal link [/openwiki/workflows/ssh-session-lifecycle.md] link "/openwiki/workflows/ssh-session-lifecycle.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/persistence-and-secrets.md] link "/openwiki/concepts/persistence-and-secrets.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/concepts/remote-services-and-forwarding.md] link "/openwiki/concepts/remote-services-and-forwarding.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-This page covers the hardware credential path. See [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for route/trust/session ownership, [Persistent Data and Secrets](/openwiki/concepts/persistence-and-secrets.md) for the Vault boundary, and [Remote Services and Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) for other SSH connection owners.
+This page covers the hardware credential path. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for route/trust/session ownership, [Persistent Data and Secrets](persistence-and-secrets.md) for the Vault boundary, and [Remote Services and Forwarding](remote-services-and-forwarding.md) for other SSH connection owners.
 
 ## Set up and use a key
 

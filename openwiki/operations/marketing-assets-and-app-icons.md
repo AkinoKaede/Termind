@@ -3,9 +3,6 @@ type: asset-production-operations
 title: Marketing Assets and App Icons
 description: How to capture localized Mac and mobile marketing screenshots, regenerate device frames, validate App Store exports, and hand off platform, website, and paywall icon artwork.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T06:43:09.891Z
 sources:
   - id: openwiki-source-ea04d3d10088e2d554646adf
     resource: repo://Design/Brand/README.md
@@ -79,7 +76,10 @@ sources:
     resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
   - id: openwiki-source-8ff78bfef9c925b442eff0f2
     resource: repo://TFMTests/Screenshots/Marketing/ScreenshotDemoTests.swift
-generated: { by: "codex", at: "2026-10-03T06:43:09.891Z" }
+generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T16:22:58.117Z
 ---
 
 # Marketing Assets and App Icons
@@ -251,7 +251,4 @@ The 2026-09-22 macOS 27 refresh recorded 15 recaptured Mac sources, three regene
 
 Local `.build/marketing-forwarding-refresh/` and `.build/marketing-topbar-refresh/` directories, when present, are disposable history rather than repository evidence. The earlier 2026-09-19 topbar record counted 45 captures, 33 frames, and 54 JPGs; 23 untouched baseline JPGs lacked ICC profiles. Its capture/build/localization/format checks passed, but TFM and TFI full suites each retained one unrelated failure and Xcode diagnostic collection required stopping a stalled `simctl diagnose` child. Rerun affected checks and perform a fresh profile audit before making current blanket claims.
 
-<!-- openwiki: broken internal link [/openwiki/concepts/commerce-localization-and-product-surfaces.md] link "/openwiki/concepts/commerce-localization-and-product-surfaces.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/storefront-commerce-release.md] link "/openwiki/operations/storefront-commerce-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-<!-- openwiki: broken internal link [/openwiki/operations/build-test-and-release.md] link "/openwiki/operations/build-test-and-release.md" is root-absolute, which no real consumer resolves against the repository root (not a coding agent reading the page, not GitHub's Markdown renderer, not a local viewer); use a path relative to this file instead. Fix the href or restore the target, then delete this comment. -->
-See [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for runtime ownership, [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md) for storefront metadata, and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for the ordinary build gates.
+See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime ownership, [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md) for storefront metadata, and [Build, Validation, Localization, and Dependency Release Operations](build-test-and-release.md) for the ordinary build gates.

@@ -32,6 +32,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-353d364de99f80858a5abfd5
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV50SnippetModels.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -80,10 +82,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-03T22:38:13.888Z
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # System boundaries and dependency direction
@@ -144,7 +146,7 @@ The shared non-presentation rule (Domain, Application, Infrastructure, Remote In
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the current schema (`TermindSchemaV50`) and builds a `ModelContainer` using `TermindMigrationPlan`. V39 added persistent assistant model selection; V40 removed retired per-category quarantine tables while keeping scoped quarantine; V41 added shared notification preferences; V42 adds agent-message provenance, chat creation relations, and durable collaboration delivery receipts without changing historical model shapes. V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model with Security Key reference metadata, and V46 adds terminal keyword-highlight preferences. The migration plan contains lightweight stages through V50, including V47/V48 Tailscale data, V49 history-model removal and V50 profile cleanup. The factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled. On macOS, before opening or migrating a disk store, it takes a nonblocking exclusive `flock` on a stable `.lock` file keyed by the canonical store URL; same-process containers share the lease and the container retains it until its lifetime ends. An in-memory container skips this lock. Platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
+`TermindPersistence` exports the current schema (`TermindSchemaV51`) and builds a `ModelContainer` using `TermindMigrationPlan`. V39 added persistent assistant model selection; V40 removed retired per-category quarantine tables while keeping scoped quarantine; V41 added shared notification preferences; V42 adds agent-message provenance, chat creation relations, and durable collaboration delivery receipts without changing historical model shapes. V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model with Security Key reference metadata, and V46 adds terminal keyword-highlight preferences. The migration plan contains lightweight stages through V51, including V47/V48 Tailscale data, V49 history-model removal, V50 profile cleanup and V51 Snippet color. The pre-color Snippet model is frozen for V1–V50; the latest model is substituted only in V51. The factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled. On macOS, before opening or migrating a disk store, it takes a nonblocking exclusive `flock` on a stable `.lock` file keyed by the canonical store URL; same-process containers share the lease and the container retains it until its lifetime ends. An in-memory container skips this lock. Platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
 Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and independent History-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models. `DeviceDirectoryModel` registers the current installation at initialization and resolves names by ID from its cached repository snapshot, falling back to the supplied local name for the current device. The constructor defaults to an in-memory directory when no repository is supplied. Registration failure records `storageError` but still attempts a read, so already-saved names may remain visible; `reload()` clears the snapshot on read failure, records `storageError`, and increments `revision` even on failure. Explicit renaming calls `upsert` and updates the local name only after the write succeeds, then reloads the snapshot; a failed rename retains the previous local name and records the error. The SwiftData adapter's launch-time `registerIfNeeded` deliberately leaves a remotely deleted directory entry deleted, whereas an explicit `upsert` commits a changed name or new record with the History journal snapshot and notifies the injected device-sync callback after a successful mutation.
 
@@ -183,7 +185,7 @@ Do not use this as permission to move live state into the app-wide layer. Durabl
 
 The mobile Find path illustrates the same boundary without moving UIKit into shared code:
 
-- **Shared Application owns query/action policy.** `TerminalFindController` holds the query and logical presentation state and emits `TerminalFindBinding` actions through an injected closure. Query changes trigger search; navigation requires a presented, nonempty query. Dismissal ends search but retains the query so reopening restarts it. Its default dismissal restores terminal focus, while `dismiss(restoringFocus: false)` lets native UI own the responder transition.
+- **Shared Application owns query/action policy.** `TerminalFindController` holds the query and logical presentation state and emits `TerminalFindBinding` actions through an injected closure. Query changes trigger search and navigation requires a presented, nonempty query, unless engine search is resize-suspended. Suspension retains presentation/query; resume searches the latest nonempty query only if still presented. Dismissal ends search but retains the query so reopening restarts it when not suspended. Its default dismissal restores terminal focus, while `dismiss(restoringFocus: false)` lets native UI own the responder transition.
 - **Mobile feature composition owns the workspace binding.** `MobileWorkspace` injects its terminal's action and focus callbacks. `MobileWorkspaceView` applies `MobileWorkspaceSearchModifier`, which binds SSH/Telnet search to `workspace.find`, submits `.previous`, and dismisses without requesting terminal focus. For SFTP the same modifier binds to `sftpChannel.query` instead of terminal Find.
 - **Mobile UI owns UIKit presentation.** `MobileToolbarSearch` accepts bindings and a submit callback, installs a `UISearchController` on the navigation owner, and synchronizes delegate changes back through those bindings. It defers synchronization from SwiftUI updates and blocks synchronization, edits, and submission during dismissal to avoid reopening the native search UI mid-transition. On disconnection it removes its search controller and restores the owner's prior presentation-context setting. The bridge imports only `SwiftUI`, `TermindPresentation`, and `UIKit`—neither transport nor persistence implementations. This is a concrete example of the `TFI/UI` import restriction, not a new universal ban on UIKit or a claim that mobile Features cannot import infrastructure.
 
@@ -207,7 +209,7 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The project declares `upToNextMajorVersion` from `0.18.1`, and the committed `Package.resolved` file pins the Xcode build. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree; an uncommitted sibling change cannot affect Termind.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The project declares `upToNextMajorVersion` from `0.19.0`, and the committed `Package.resolved` file pins the Xcode build. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree; an uncommitted sibling change cannot affect Termind.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 

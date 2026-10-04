@@ -3,9 +3,6 @@ type: integration
 title: Tailscale groups, embedded nodes, and SSH
 description: Group-bound embedded Tailscale enrollment, managed peer identity, ordinary and Tailscale SSH routing, sync boundaries, profile cleanup, and focused regression tests.
 tags: [tailscale, ssh, enrollment, sync, lifecycle]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-03T16:39:47.431Z
 sources:
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
@@ -27,6 +24,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TailscalePersistence.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
+  - id: openwiki-source-5d66b25c98e6adc57c9cb1bb
+    resource: repo://Frameworks/TermindPresentation/Tailscale/TailscaleExitNodeField.swift
   - id: openwiki-source-18c028915e161c02ce996ee2
     resource: repo://Frameworks/TermindPresentation/Tailscale/TailscalePeerForm.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -49,7 +48,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "codex", at: "2026-10-03T16:39:47.431Z" }
+generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-04T14:45:13.763Z
 ---
 
 # Tailscale groups, embedded nodes, and SSH
@@ -75,6 +77,8 @@ Both app roots inject the local store, node factory, current device name and `.t
 The control URL must be HTTPS without embedded credentials, query or fragment. Normalization lowercases the host, removes default port/trailing slashes, and maps the standard login URL to the controlplane URL. The Tailnet DNS suffix comes from native status, not from a guessed peer name.
 
 1. `TailscaleGroupEditor.login` starts an operation bound to its group draft. `beginLogin` allocates a fresh profile and journals cleanup intent before creating the node. An Auth Key goes to the factory; otherwise the node starts interactive browser login.
+The shared Exit Node field owns selection validation: a committed menu choice is rechecked against current online candidates even if the menu was already open, and saving editors reject changes. Disabled or no-longer-present choices remain displayable without being selected as new values.
+
 2. The model polls status once per second for up to 600 seconds. Success produces `TailscalePendingLogin` and transfers the candidate node to the editor's pending operation. It does not create a Vault group or dismiss the form. A blank draft name may adopt the Tailnet name or DNS suffix; a name typed during login is preserved.
 3. Explicit Save applies hostname and Exit Node to the candidate and rechecks generation, Pro access and the original public group binding after suspension. The public group saves first, then local profile/cache activation saves. Only successful activation publishes the node and managed peers.
 4. A local activation failure can follow a successful public save. The editor retains the candidate and advances its baseline so Save can retry without another browser login, or the binding can be disabled. A failed public save never publishes a new group.
@@ -161,7 +165,7 @@ Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant us
 | --- | --- |
 | Network binding, group/peer username, Exit Node and per-peer preferences | Public HostGroup configuration, synchronized through Vault HostGroup V3. |
 | Profile UUID, local hostname, discovered peer cache | Device-local SwiftData enrollment row; not a Vault envelope. |
-| Native node state | Application Support `Termind/Tailscale/<profile UUID>` with a profile-specific native state namespace. |
+| Native node state | Application Support `Termind/Tailscale/<profile UUID>` with the native Keychain service namespace `com.akinokaede.termind.tailscale.<profile UUID>` passed consistently to node creation and erasure. |
 | Pending erasure | Device-local durable `PersistentTailscaleProfileCleanup`; never synchronized. |
 | Metrics selection | Separate Metrics V2 record, with V1/V2 readers and decoder-capability refetch. |
 
