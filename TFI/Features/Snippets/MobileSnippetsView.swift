@@ -263,34 +263,11 @@ struct MobileSnippetsView: View {
         MobileActionCard {
             selectedSnippetID = snippet.id
         } content: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    MobileCardIcon(symbol: "curlybraces")
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(snippet.title).font(.headline).lineLimit(1)
-                        MobileSnippetMetadataChips(
-                            target: targetSummary(snippet),
-                            assessment: CommandRiskClassifier.assess(snippet.body))
-                    }
-                }
-                HStack(spacing: 6) {
-                    if showsPackage, let path = app.snippets.snippetPackagePath(snippet.packageID) {
-                        Label(path, systemImage: "folder")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 6)
-                    Text(
-                        app.snippetModifiedAt(for: snippet.id)
-                            .formatted(.relative(presentation: .numeric).locale(locale))
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-            }
+            SnippetCardContent(
+                snippet: snippet,
+                validTargetCount: app.snippets.validTargetIDs(for: snippet).count,
+                packagePath: showsPackage ? app.snippets.snippetPackagePath(snippet.packageID) : nil,
+                modifiedAt: app.snippetModifiedAt(for: snippet.id))
         } actions: {
             Button(AppStrings.Common.run.swiftUIKey, systemImage: "play.fill") {
                 requestExecution(snippet.id, overrideTargets: false)
@@ -380,8 +357,7 @@ struct MobileSnippetsView: View {
     }
 
     private func validTargets(for snippet: Snippet) -> [Host.ID] {
-        let wanted = Set(snippet.targetHostIDs)
-        return app.snippets.searchHosts("").filter { wanted.contains($0.id) }.map(\.id)
+        app.snippets.validTargetIDs(for: snippet)
     }
 
     private func stageExecution(snippetID: Snippet.ID, hostIDs: [Host.ID]) {
@@ -416,11 +392,6 @@ struct MobileSnippetsView: View {
         let names = app.snippets.searchHosts("").filter { wanted.contains($0.id) }.map(\.name)
             .joined(separator: ", ")
         return "\(snippet.body)\n\(names)"
-    }
-
-    private func targetSummary(_ snippet: Snippet) -> String {
-        AppLocalization.resolve(
-            AppStrings.Snippets.targetSummary(count: validTargets(for: snippet).count), locale: locale)
     }
 
     private func reportStorageError() {
@@ -494,7 +465,7 @@ struct MobileSnippetDetailView: View {
     private func riskPanel(_ snippet: Snippet) -> some View {
         let assessment = CommandRiskClassifier.assess(snippet.body)
         return MobileSnippetDetailPanel(title: String(localized: AppStrings.Snippets.risk)) {
-            MobileSnippetRiskChip(assessment: assessment)
+            SnippetRiskChip(assessment: assessment)
             ForEach(assessment.reasons, id: \.self) { reason in
                 Text(reason).font(.caption).foregroundStyle(.secondary)
             }
@@ -552,43 +523,6 @@ private struct MobileSnippetDetailPanel<Content: View>: View {
     }
 }
 
-private struct MobileSnippetRiskChip: View {
-    let assessment: RiskAssessment
-
-    var body: some View {
-        MobileCardChip(
-            text: assessment.risk.label, symbol: assessment.risk.symbol,
-            tint: assessment.risk.mobileTint)
-    }
-}
-
-private struct MobileSnippetMetadataChips: View {
-    let target: String
-    let assessment: RiskAssessment
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { chips }
-            VStack(alignment: .leading, spacing: 6) { chips }
-        }
-    }
-
-    @ViewBuilder private var chips: some View {
-        MobileCardChip(text: target, symbol: "server.rack")
-        MobileSnippetRiskChip(assessment: assessment)
-    }
-}
-
-extension CommandRisk {
-    fileprivate var mobileTint: Color {
-        switch self {
-        case .safe: .green
-        case .caution: .orange
-        case .destructive: .red
-        }
-    }
-}
-
 struct MobileSnippetEditor: View {
     private enum PackageChoice: Hashable {
         case ungrouped
@@ -629,7 +563,7 @@ struct MobileSnippetEditor: View {
             canSave: !trimmedTitle.isEmpty && !trimmedBody.isEmpty,
             save: save
         ) {
-            SnippetOrganizationSection(name: $draft.title) {
+            SnippetOrganizationSection(name: $draft.title, color: $draft.colorTag) {
                 Picker(AppStrings.Snippets.package.swiftUIKey, selection: packageChoice) {
                     Text(AppStrings.Common.ungrouped).tag(PackageChoice.ungrouped)
                     ForEach(packageChoices, id: \.package.id) { choice in
@@ -641,7 +575,7 @@ struct MobileSnippetEditor: View {
             }
             SnippetScriptSection(script: $draft.body, minHeight: 220) {
                 let assessment = CommandRiskClassifier.assess(draft.body)
-                MobileSnippetRiskChip(assessment: assessment)
+                SnippetRiskChip(assessment: assessment)
                 ForEach(assessment.reasons, id: \.self) { reason in
                     Text(reason).font(.caption).foregroundStyle(.secondary)
                 }

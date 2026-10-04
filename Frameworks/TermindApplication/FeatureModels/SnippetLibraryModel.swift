@@ -39,6 +39,10 @@ public final class SnippetLibraryModel {
     }
     public func searchSnippets(_ query: String) -> [Snippet] { library.searchSnippets(query) }
     public func searchHosts(_ query: String) -> [Host] { library.hosts(matching: query, for: .snippetExecution) }
+    public func validTargetIDs(for snippet: Snippet) -> [Host.ID] {
+        let wanted = Set(snippet.targetHostIDs)
+        return searchHosts("").filter { wanted.contains($0.id) }.map(\.id)
+    }
     public func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
 
     public func setSnippetPackageExpanded(_ expanded: Bool, for packageID: SnippetPackage.ID) {

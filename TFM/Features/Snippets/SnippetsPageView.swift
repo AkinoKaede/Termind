@@ -160,6 +160,7 @@ struct SnippetsPageView: ManagedCardPage {
     ) -> some View {
         SnippetCard(
             snippet: snippet,
+            content: cardContent(for: snippet),
             isSelected: context.isSelected,
             select: { select(snippet, action: context.select) },
             extendSelection: context.extendSelection,
@@ -174,7 +175,15 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     func managedGhost(for snippet: Snippet) -> some View {
-        SnippetGhostCard(snippet: snippet)
+        SnippetGhostCard(content: cardContent(for: snippet))
+    }
+
+    private func cardContent(for snippet: Snippet) -> SnippetCardContent {
+        SnippetCardContent(
+            snippet: snippet,
+            validTargetCount: app.snippets.validTargetIDs(for: snippet).count,
+            packagePath: isFiltering ? app.snippets.snippetPackagePath(snippet.packageID) : nil,
+            modifiedAt: app.snippetModifiedAt(for: snippet.id))
     }
 
     /// Right-clicking inside a package files the new snippet or subpackage
@@ -436,6 +445,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
 
 private struct SnippetCard: View {
     let snippet: Snippet
+    let content: SnippetCardContent
     let isSelected: Bool
     let select: () -> Void
     let extendSelection: () -> Void
@@ -453,7 +463,7 @@ private struct SnippetCard: View {
             extendSelection: extendSelection,
             activate: { execute(actionSnippets) }
         ) {
-            SnippetCardContent(snippet: snippet, allowsTextSelection: true)
+            content
         }
         .contextMenu {
             Button(AppStrings.Common.run.swiftUIKey, systemImage: MenuSymbol.execute) { execute(actionSnippets) }
@@ -472,10 +482,10 @@ private struct SnippetCard: View {
 }
 
 private struct SnippetGhostCard: View {
-    let snippet: Snippet
+    let content: SnippetCardContent
 
     var body: some View {
-        SnippetCardContent(snippet: snippet)
+        content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Metrics.Space.l)
             .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
@@ -484,58 +494,6 @@ private struct SnippetGhostCard: View {
                 RoundedRectangle(cornerRadius: Metrics.Radius.large)
                     .strokeBorder(.quaternary, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
-    }
-}
-
-private struct SnippetCardContent: View {
-    let snippet: Snippet
-    var allowsTextSelection = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            HStack(spacing: Metrics.Space.m) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(snippet.title).font(.headline).lineLimit(1)
-                    Text(targetSummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: Metrics.Space.xs)
-                RiskBadge(
-                    assessment: CommandRiskClassifier.assess(snippet.body),
-                    compact: true
-                )
-            }
-
-            bodyPreview
-        }
-    }
-
-    @ViewBuilder
-    private var bodyPreview: some View {
-        if allowsTextSelection {
-            styledBodyPreview.textSelection(.enabled)
-        } else {
-            styledBodyPreview
-        }
-    }
-
-    private var styledBodyPreview: some View {
-        Text(snippet.body)
-            .font(.caption.monospaced())
-            .foregroundStyle(.secondary)
-            .lineLimit(3, reservesSpace: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Metrics.Space.s)
-            .background(
-                .quaternary.opacity(0.5),
-                in: .rect(cornerRadius: Metrics.Radius.small)
-            )
-    }
-
-    private var targetSummary: String {
-        String(localized: AppStrings.Snippets.targetSummary(count: snippet.targetHostIDs.count))
     }
 }
 
@@ -548,6 +506,7 @@ struct SnippetEditorView: View {
     @Environment(WindowModel.self) private var window
     @Environment(VaultWorkEditingSession.self) private var editingSession
     @State private var title: String
+    @State private var colorTag: TagColor
     @State private var bodyText: String
     @State private var packageID: SnippetPackage.ID?
     @State private var targets: Set<Host.ID>
@@ -565,6 +524,7 @@ struct SnippetEditorView: View {
         self.save = save
         self.close = close
         _title = State(initialValue: snippet?.title ?? "")
+        _colorTag = State(initialValue: snippet?.colorTag ?? .none)
         _bodyText = State(initialValue: snippet?.body ?? "")
         _packageID = State(initialValue: snippet?.packageID ?? packageID)
         _targets = State(initialValue: Set(snippet?.targetHostIDs ?? []))
@@ -616,7 +576,7 @@ struct SnippetEditorView: View {
             symbol: "curlybraces", close: cancelEditing, closeLabel: AppStrings.Common.cancel
         ) {
             Form {
-                SnippetOrganizationSection(name: $title) {
+                SnippetOrganizationSection(name: $title, color: $colorTag) {
                     Picker(AppStrings.Snippets.package.swiftUIKey, selection: $packageID) {
                         Text(AppStrings.Common.ungrouped).tag(SnippetPackage.ID?.none)
                         ForEach(packageChoices, id: \.package.id) { choice in
@@ -697,6 +657,7 @@ struct SnippetEditorView: View {
         title != (existing?.title ?? "") || bodyText != (existing?.body ?? "")
             || packageID != existing?.packageID
             || targets != Set(existing?.targetHostIDs ?? [])
+            || colorTag != (existing?.colorTag ?? .none)
     }
 
     private var packageChoices: [(package: SnippetPackage, path: String)] {
@@ -725,7 +686,7 @@ struct SnippetEditorView: View {
             Snippet(
                 id: existing?.id ?? UUID(), title: trimmedTitle, body: trimmedBody,
                 packageID: packageID, targetHostIDs: orderedTargets,
-                sortIndex: existing?.sortIndex ?? 0
+                sortIndex: existing?.sortIndex ?? 0, colorTag: colorTag
             )
         )
         error = nil

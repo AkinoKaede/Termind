@@ -148,12 +148,18 @@ final class AppModel {
     /// and a run ending is not a reason to stop a deploy.
     private let agentBackgroundCommands: AgentBackgroundCommands
     private let outboxRunner: OutboxRunner?
+    private let snippetTimestampFallback: Date
     private let settingsDefaults: UserDefaults
     private let shutdownDependencies: AppShutdownDependencies?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
     /// Conversations already handed to the summarizer. Titling is once per
     /// conversation, and every run re-arms the hook that would do it.
+
+    func snippetModifiedAt(for snippetID: Snippet.ID) -> Date {
+        SnippetTimestamp.resolve(
+            modifiedAt: snippets.modifiedAt(for: snippetID), fallback: snippetTimestampFallback)
+    }
 
     func makeSSHImportModel() -> SSHImportModel {
         SSHImportModel(
@@ -203,6 +209,7 @@ final class AppModel {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         settingsDefaults = dependencies.settingsDefaults
+        snippetTimestampFallback = SnippetTimestamp.fallback(in: dependencies.settingsDefaults)
         assistantConversations = dependencies.assistantConversations ?? AssistantConversationStore()
         shutdownDependencies = dependencies.shutdown
         logging = dependencies.logging

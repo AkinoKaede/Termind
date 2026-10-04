@@ -1,7 +1,7 @@
 import Foundation
 import TermindDomain
 
-/// V2 adds host agent forwarding and SSH key hardware references without changing V1.
+/// V2 adds host agent forwarding, SSH key hardware references and snippet colors without changing V1.
 nonisolated enum VaultWireV2 {
     struct Host: Codable {
         var base: VaultWireV1.Host
@@ -186,8 +186,40 @@ nonisolated enum VaultWireV2 {
         }
         var domainValue: TermindDomain.HostGroup { base.domainValue }
     }
+    struct Snippet: Codable {
+        var base: VaultWireV1.Snippet
+        var colorTag: TagColor
+        enum CodingKeys: String, CodingKey { case colorTag }
+
+        init(_ value: TermindDomain.Snippet) throws {
+            guard let color = TagColor(rawValue: value.colorTag.rawValue) else {
+                throw CocoaError(.coderInvalidValue)
+            }
+            base = VaultWireV1.Snippet(value)
+            colorTag = color
+        }
+
+        init(from decoder: any Decoder) throws {
+            base = try VaultWireV1.Snippet(from: decoder)
+            colorTag = try decoder.container(keyedBy: CodingKeys.self).decode(TagColor.self, forKey: .colorTag)
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            try base.encode(to: encoder)
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(colorTag, forKey: .colorTag)
+        }
+
+        var domainValue: TermindDomain.Snippet {
+            var value = base.domainValue
+            value.colorTag = TermindDomain.TagColor(rawValue: colorTag.rawValue)!
+            return value
+        }
+    }
+
     enum Payload: Codable {
         case host(Host)
+        case snippet(Snippet)
         case hostGroup(HostGroup)
         case sshKey(SSHKeyRef)
     }
@@ -214,6 +246,8 @@ nonisolated enum VaultWireV2 {
                     throw CocoaError(.coderInvalidValue)
                 }
                 payload = .sshKey(SSHKeyRef(key))
+            } else if case .snippet(let snippet) = envelope.payload {
+                payload = .snippet(try Snippet(snippet))
             } else if envelope.payload == nil {
                 payload = nil
             } else {
@@ -224,6 +258,7 @@ nonisolated enum VaultWireV2 {
             var value: VaultRecordPayload?
             switch payload {
             case .host(let host): value = .host(host.domainValue)
+            case .snippet(let snippet): value = .snippet(snippet.domainValue)
             case .hostGroup(let group): value = .hostGroup(group.domainValue)
             case .sshKey(let key): value = .sshKey(key.domainValue)
             case nil: value = nil

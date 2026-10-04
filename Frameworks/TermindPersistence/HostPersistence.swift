@@ -204,6 +204,7 @@ public final class PersistentSnippet {
     public var packageID: UUID?
     public var targetHostIDs: [UUID] = []
     public var sortIndex = 0.0
+    public var colorTag = TagColor.none.rawValue
 
     public init(_ value: Snippet) {
         id = value.id
@@ -216,13 +217,14 @@ public final class PersistentSnippet {
         packageID = value.packageID
         targetHostIDs = value.targetHostIDs
         sortIndex = value.sortIndex
+        colorTag = value.colorTag.rawValue
     }
 
     public var value: Snippet {
         Snippet(
             id: id, title: title, body: body,
             packageID: packageID, targetHostIDs: targetHostIDs,
-            sortIndex: sortIndex
+            sortIndex: sortIndex, colorTag: TagColor(rawValue: colorTag) ?? .none
         )
     }
 }
@@ -495,7 +497,7 @@ public enum TermindSchemaV1: VersionedSchema {
             TermindSchemaV6Models.PersistentSSHKey.self,
             TermindSchemaV29KnownHostModels.PersistentKnownHost.self,
             PersistentSnippetPackage.self,
-            PersistentSnippet.self,
+            TermindSchemaV50SnippetModels.PersistentSnippet.self,
             TermindSchemaV19ForwardingModels.PersistentPortForwardingRule.self,
             PersistentOutboxJob.self,
             PersistentPendingDeletion.self,
@@ -940,6 +942,14 @@ public enum TermindSchemaV50: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV51: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(51, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV50.models.filter { $0 != TermindSchemaV50SnippetModels.PersistentSnippet.self }
+            + [PersistentSnippet.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -956,7 +966,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
-            TermindSchemaV50.self,
+            TermindSchemaV50.self, TermindSchemaV51.self,
         ]
     }
 
@@ -1066,6 +1076,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV47.self, toVersion: TermindSchemaV48.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV48.self, toVersion: TermindSchemaV49.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV49.self, toVersion: TermindSchemaV50.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV50.self, toVersion: TermindSchemaV51.self),
         ]
     }
 }

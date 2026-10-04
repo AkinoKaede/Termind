@@ -2,6 +2,10 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Snippets {
+        public static var readOnlyRisk: LocalizedStringResource { "Read-only" }
+        public static var cautionRisk: LocalizedStringResource { "Caution" }
+        public static var destructiveRisk: LocalizedStringResource { "Destructive" }
+
         public static var addAHostBeforeChoosingDefaultTargets: LocalizedStringResource {
             "Add a host before choosing default targets."
         }

@@ -68,6 +68,38 @@ struct MobileCardTests {
         #expect(abs(actionNoTags - actionManyTags) <= 1)
     }
 
+    @Test func snippetCardsMatchOtherMobileCards() throws {
+        for locale in ["en", "zh-Hans", "zh-Hant"] {
+            for width: CGFloat in [320, 398, 600] {
+                let standard = measuredHeight(of: standardActionCard(tags: ["production"]), width: width)
+                for script in ["uptime", "sudo systemctl restart nginx", "rm -rf /"] {
+                    let card = MobileActionCard(
+                        action: {},
+                        content: {
+                            SnippetCardContent(
+                                snippet: Snippet(title: "Production database maintenance", body: script),
+                                validTargetCount: 12, packagePath: "Operations / Production",
+                                modifiedAt: Date().addingTimeInterval(-3600))
+                        },
+                        actions: { EmptyView() }
+                    )
+                    .environment(\.locale, Locale(identifier: locale))
+                    #expect(abs(measuredHeight(of: card, width: width) - standard) <= 1)
+                    if width == 320,
+                        let directory = ProcessInfo.processInfo.environment["TERMIND_SNIPPET_SCREENSHOTS"]
+                    {
+                        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+                        let renderer = ImageRenderer(content: card.frame(width: width))
+                        renderer.scale = 2
+                        let data = try #require(renderer.uiImage?.pngData())
+                        let risk = CommandRiskClassifier.assess(script).risk.rawValue
+                        try data.write(to: URL(filePath: directory).appending(path: "snippet-\(locale)-\(risk).png"))
+                    }
+                }
+            }
+        }
+    }
+
     @Test func hostCardsShowAtMostTwoTags() {
         #expect(Array(MobileCardLayout.visibleTags([])).isEmpty)
         #expect(Array(MobileCardLayout.visibleTags(["one"])) == ["one"])

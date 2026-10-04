@@ -13,22 +13,6 @@ import UIKit
 
 import struct TermindDomain.Host
 
-enum MobileSnippetTimestamp {
-    static let fallbackKey = "mobile.snippets.baselineModifiedAtFallback.v1"
-
-    static func fallback(in defaults: UserDefaults?) -> Date {
-        if let existing = defaults?.object(forKey: fallbackKey) as? Date { return existing }
-        let date = Date()
-        defaults?.set(date, forKey: fallbackKey)
-        return date
-    }
-
-    static func resolve(modifiedAt: Date?, fallback: Date) -> Date {
-        guard let modifiedAt, modifiedAt > VaultVersion.baselineDate else { return fallback }
-        return modifiedAt
-    }
-}
-
 @MainActor
 @Observable
 final class MobileAppModel {
@@ -214,7 +198,7 @@ final class MobileAppModel {
         self.hosts = hosts ?? SwiftDataHostRepository(context: vaultContext)
         outbox = OutboxRunner(store: SwiftDataOutboxStore(context: ModelContext(container)))
         self.defaults = inMemory || hosts != nil ? nil : defaults
-        snippetTimestampFallback = MobileSnippetTimestamp.fallback(in: self.defaults)
+        snippetTimestampFallback = SnippetTimestamp.fallback(in: self.defaults)
         liveActivities = dependencies.liveActivities ?? MobileLiveActivityController(enabled: !inMemory && hosts == nil)
         pro = dependencies.proAccess ?? (inMemory || hosts != nil ? .unrestrictedForTesting() : .live())
         let persistence = HostPersistence(context: vaultContext)
@@ -547,7 +531,7 @@ final class MobileAppModel {
     }
 
     func snippetModifiedAt(for snippetID: Snippet.ID) -> Date {
-        MobileSnippetTimestamp.resolve(
+        SnippetTimestamp.resolve(
             modifiedAt: snippets.modifiedAt(for: snippetID), fallback: snippetTimestampFallback)
     }
 

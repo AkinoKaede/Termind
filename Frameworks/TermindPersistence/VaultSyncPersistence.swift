@@ -83,6 +83,9 @@ public nonisolated enum VaultSyncCodec {
         decoders[VaultRecordKind.sshKey.rawValue]?[2] = {
             try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
         }
+        decoders[VaultRecordKind.snippet.rawValue]?[2] = {
+            try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
+        }
         decoders[VaultRecordKind.host.rawValue]?[2] = {
             try JSONDecoder().decode(VaultWireV2.Envelope.self, from: $0).domainValue
         }

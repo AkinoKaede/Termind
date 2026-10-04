@@ -24,21 +24,6 @@ struct MobileSnippetTests {
         #expect(MobileCommandHistorySnippetFactory.make(name: " \n ", command: command) == nil)
     }
 
-    @Test func legacyTimestampFallbackIsStableUntilARealEditExists() throws {
-        let suiteName = "termind.snippet-timestamp-tests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let fallback = MobileSnippetTimestamp.fallback(in: defaults)
-        #expect(MobileSnippetTimestamp.fallback(in: defaults) == fallback)
-        #expect(
-            MobileSnippetTimestamp.resolve(modifiedAt: VaultVersion.baselineDate, fallback: fallback)
-                == fallback)
-
-        let editedAt = fallback.addingTimeInterval(60)
-        #expect(MobileSnippetTimestamp.resolve(modifiedAt: editedAt, fallback: fallback) == editedAt)
-    }
-
     @Test func snippetCardsReadCreationAndEditTimesFromTheVaultJournal() async throws {
         let app = try MobileAppModel(inMemory: true)
         var snippet = Snippet(title: "Status", body: "uptime")

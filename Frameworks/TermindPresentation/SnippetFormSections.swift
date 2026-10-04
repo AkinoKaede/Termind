@@ -1,11 +1,14 @@
 import SwiftUI
+import TermindDomain
 
 public struct SnippetOrganizationSection<PackageField: View>: View {
     @Binding private var name: String
+    @Binding private var color: TagColor
     private let packageField: PackageField
 
-    public init(name: Binding<String>, @ViewBuilder packageField: () -> PackageField) {
+    public init(name: Binding<String>, color: Binding<TagColor>, @ViewBuilder packageField: () -> PackageField) {
         _name = name
+        _color = color
         self.packageField = packageField()
     }
 
@@ -13,6 +16,7 @@ public struct SnippetOrganizationSection<PackageField: View>: View {
         Section {
             VaultNameField(text: $name)
             packageField
+            VaultColorField(selection: $color)
         }
     }
 }

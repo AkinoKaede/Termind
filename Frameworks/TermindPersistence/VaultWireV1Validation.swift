@@ -43,9 +43,11 @@ nonisolated extension VaultWireV1 {
         case .portForwarding(let value):
             try require(PortForwardingRule.Kind(rawValue: value.kind.rawValue))
             try require(TagColor(rawValue: value.colorTag.rawValue))
+        case .snippet(let value):
+            guard value.colorTag == .none else { throw CocoaError(.coderInvalidValue) }
         case .connectionHistory(let value): try require(ConnectionHistoryEntry.Kind(rawValue: value.kind.rawValue))
         case .workspaceTemplate(let value): try layout(value.layout)
-        case .hostGroup, .snippet, .snippetPackage, .device, nil: break
+        case .hostGroup, .snippetPackage, .device, nil: break
         }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 import UIKit
 
 struct MobileCardPage<Content: View>: View {
@@ -160,43 +161,6 @@ struct MobileActionCard<Content: View, Actions: View>: View {
     }
 }
 
-struct MobileCardIcon: View {
-    let symbol: String
-    var tint: Color = .accentColor
-    var body: some View {
-        Image(systemName: symbol).font(.system(size: 17, weight: .medium)).foregroundStyle(tint)
-            .frame(width: 36, height: 36)
-            .background(tint.opacity(0.16), in: .rect(cornerRadius: 8))
-            .accessibilityHidden(true)
-    }
-}
-
-struct MobileCardChip: View {
-    private let text: Text
-    private let symbol: String?
-    private let tint: Color
-
-    init(text: String, symbol: String? = nil, tint: Color = .secondary) {
-        self.text = Text(verbatim: text)
-        self.symbol = symbol
-        self.tint = tint
-    }
-
-    init(title: LocalizedStringResource, symbol: String? = nil, tint: Color = .secondary) {
-        text = Text(title)
-        self.symbol = symbol
-        self.tint = tint
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            if let symbol { Image(systemName: symbol) }
-            text
-        }
-        .font(.caption).foregroundStyle(tint)
-        .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(tint.opacity(0.12), in: .capsule)
-        .lineLimit(1)
-        .truncationMode(.tail)
-    }
-}
+// Keep the mobile API while sharing the rendering with desktop Snippet cards.
+typealias MobileCardIcon = LibraryCardIcon
+typealias MobileCardChip = LibraryCardChip

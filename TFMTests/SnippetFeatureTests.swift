@@ -16,6 +16,25 @@ import struct TermindDomain.Host
 @MainActor
 struct SnippetFeatureTests {
     @Test
+    func snippetCardsReadCreationAndEditTimesFromTheVaultJournal() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let persistence = HostPersistence(context: container.mainContext)
+        let app = AppModel(hosts: HostLibraryModel(persistence: persistence))
+        defer { app.shutdownForTermination() }
+        var snippet = Snippet(title: "Status", body: "uptime")
+        app.snippets.upsert(snippet)
+        let createdAt = try #require(app.snippets.modifiedAt(for: snippet.id))
+        #expect(app.snippetModifiedAt(for: snippet.id) == createdAt)
+        app.snippets.upsert(snippet)
+        #expect(app.snippets.modifiedAt(for: snippet.id) == createdAt)
+        try? await Task.sleep(for: .milliseconds(10))
+        snippet.body = "uptime -p"
+        app.snippets.upsert(snippet)
+        #expect(app.snippetModifiedAt(for: snippet.id) > createdAt)
+        #expect(app.snippetModifiedAt(for: snippet.id) == app.snippets.modifiedAt(for: snippet.id))
+    }
+
+    @Test
     func snippetMovePreservesBatchOrderAcrossPackages() {
         let source = SnippetPackage(name: "Source")
         let destination = SnippetPackage(name: "Destination")

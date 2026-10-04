@@ -47,7 +47,7 @@ public nonisolated struct SyncRecordFormats: Sendable {
         "host": Format(readingVersions: [1, 2], writingVersion: 2),
         "hostGroup": Format(readingVersions: [1, 2, 3], writingVersion: 3), "identity": v1,
         "sshKey": Format(readingVersions: [1, 2, 3], writingVersion: 3),
-        "knownHost": v1, "snippet": v1, "snippetPackage": v1,
+        "knownHost": v1, "snippet": Format(readingVersions: [1, 2], writingVersion: 2), "snippetPackage": v1,
         "portForwarding": v1, "workspaceTemplate": v1,
         // Legacy readers only; these cases cannot pass Vault upload eligibility.
         "connectionHistory": v1, "device": v1,
