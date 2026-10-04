@@ -298,6 +298,10 @@ extension AppStrings {
             "Save Changes?"
         }
 
+        public static var saveChangesMessage: LocalizedStringResource {
+            "You have unsaved changes. Save them before leaving, or discard them."
+        }
+
         public static var serial: LocalizedStringResource {
             "Serial"
         }

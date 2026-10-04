@@ -69,6 +69,8 @@ struct MobileHostEditor: View {
                 && (!draft.sshEnabled || draft.environmentVariablesAreValid),
             topBar: AnyView(
                 HostProtocolProfileControls(protocol: $selectedProtocol).disabled(draft.isTailscaleManaged)),
+            discardQuestion: app.library.host(original.id) == nil
+                ? AppStrings.Common.discardNewHostQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 if draft.isTailscaleManaged {
                     guard library.saveTailscaleHost(draft, username: tailscaleUsername) else {
@@ -579,6 +581,8 @@ private struct MobileHostEnvironmentVariableEditor: View {
             isDirty: draft != original,
             canSave: draft.isValid && !usedVariables.contains(draft.variable),
             compact: true,
+            discardQuestion: isNew
+                ? AppStrings.Common.discardNewEnvironmentVariableQuestion : AppStrings.Common.discardChangesQuestion,
             save: { didSave(draft) },
             content: {
                 LabeledContent(AppStrings.Vault.variable.swiftUIKey) {

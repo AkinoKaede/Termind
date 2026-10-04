@@ -883,7 +883,7 @@ struct HostEditorView: View {
     }
 
     private func cancel() {
-        editingSession.requestTransition(
+        editingSession.requestCancellation(
             route: .hostEditor(hostID, groupID: initialGroupID), action: closeTab)
     }
 
@@ -944,7 +944,7 @@ private struct HostEnvironmentVariableEditor: View {
             HStack {
                 Spacer()
                 Button(AppStrings.Common.cancel.swiftUIKey, action: back).keyboardShortcut(.cancelAction)
-                Button(original == nil ? AppStrings.Common.add.swiftUIKey : AppStrings.Common.save.swiftUIKey) {
+                Button(AppStrings.Common.save.swiftUIKey) {
                     save(draft)
                     back()
                 }

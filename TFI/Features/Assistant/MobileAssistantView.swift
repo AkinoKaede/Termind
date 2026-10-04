@@ -142,18 +142,19 @@ struct MobileAssistantView: View {
                     renaming = nil
                 }
             }
-            .confirmationDialog(
-                AppStrings.Assistant.deleteConversation,
+            .operationConfirmation(
+                .init(AppStrings.Assistant.deleteConversation),
                 isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-                titleVisibility: .visible
-            ) {
-                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                    if let deleting { Task { await model.delete(deleting) } }
-                    deleting = nil
-                }
-            } message: {
-                Text(AppStrings.Assistant.deleteStagedConversationWarning)
-            }
+                placement: .centered,
+                actions: [
+                    .init(AppStrings.Common.delete, role: .destructive) {
+                        if let deleting { Task { await model.delete(deleting) } }
+                        deleting = nil
+                    },
+                    .init(AppStrings.Common.cancel, role: .cancel) { deleting = nil },
+                ],
+                message: .init(AppStrings.Assistant.deleteStagedConversationWarning)
+            )
             .task { await model.load() }
             .alert(
                 AppStrings.Common.operationFailed,
@@ -359,18 +360,6 @@ struct MobileAssistantLibrary: View {
                 renaming = nil
             }
         }
-        .confirmationDialog(
-            AppStrings.Assistant.deleteConversation,
-            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                if let deleting { Task { await model.delete(deleting) } }
-                deleting = nil
-            }
-        } message: {
-            Text(AppStrings.Assistant.deleteStagedConversationWarning)
-        }
     }
 
     private var values: [ConversationModel] { model.library.search(query, scope: archived ? .archived : .active) }
@@ -422,6 +411,18 @@ struct MobileAssistantLibrary: View {
                 ? String(localized: AppStrings.Notifications.unread(conversation.unreadNotificationCount)) : ""
         )
         .accessibilityAddTraits(model.conversation.id == conversation.id ? .isSelected : [])
+        .operationConfirmation(
+            .init(AppStrings.Assistant.deleteConversation),
+            isPresented: $deleting.isPresenting { $0.id == conversation.id },
+            actions: [
+                .init(AppStrings.Common.delete, role: .destructive) {
+                    if let deleting { Task { await model.delete(deleting) } }
+                    deleting = nil
+                },
+                .init(AppStrings.Common.cancel, role: .cancel) { deleting = nil },
+            ],
+            message: .init(AppStrings.Assistant.deleteStagedConversationWarning)
+        )
     }
 
     private func select(_ conversation: ConversationModel) {

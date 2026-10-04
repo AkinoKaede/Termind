@@ -56,12 +56,14 @@ struct MobileLoggingView: View {
             exportDocument = nil
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
         }
-        .confirmationDialog(
-            AppStrings.Settings.deleteAllLoggingFilesConfirmation, isPresented: $showsDeleteAll,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }
-        }
+        .operationConfirmation(
+            .init(AppStrings.Settings.deleteAllLoggingFilesConfirmation), isPresented: $showsDeleteAll,
+            placement: .centered,
+            actions: [
+                .init(AppStrings.Common.deleteAll, role: .destructive) { perform { try logging.deleteAll() } },
+                .init(AppStrings.Common.cancel, role: .cancel) {},
+            ]
+        )
         .alert(AppStrings.Settings.logging, isPresented: errorPresented) {
             Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {

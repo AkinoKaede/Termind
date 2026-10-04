@@ -119,17 +119,17 @@ struct MobileConnectionHistoryView: View {
                 .disabled(app.connectionHistory.entries().isEmpty)
             }
         }
-        .confirmationDialog(
-            AppStrings.Connections.clearConnectionHistoryConfirmation, isPresented: $clearingHistory,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
-                app.connectionHistory.clearAll()
-            }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
-        } message: {
-            Text(AppStrings.Workspace.clearHistoryWarning)
-        }
+        .operationConfirmation(
+            .init(AppStrings.Connections.clearConnectionHistoryConfirmation), isPresented: $clearingHistory,
+            placement: .centered,
+            actions: [
+                .init(AppStrings.Common.clearHistory, role: .destructive) {
+                    app.connectionHistory.clearAll()
+                },
+                .init(AppStrings.Common.cancel, role: .cancel) {},
+            ],
+            message: .init(AppStrings.Workspace.clearHistoryWarning)
+        )
     }
 
     @ViewBuilder
@@ -505,33 +505,6 @@ struct MobileVaultView: View {
                 group: request.groupID.flatMap(app.library.group),
                 parentID: request.parentID)
         }
-        .confirmationDialog(
-            AppStrings.Vault.deleteHostConfirmation,
-            isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                if let host = deletingHost { app.deleteHost(host.id) }
-                deletingHost = nil
-            }
-        } message: {
-            Text(AppStrings.Vault.deleteHostWarning)
-        }
-        .confirmationDialog(
-            groupDeletionTitle,
-            isPresented: Binding(
-                get: { deletingGroup != nil },
-                set: { if !$0 { deletingGroup = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Vault.deleteGroupAndHosts.swiftUIKey, role: .destructive) {
-                deleteGroup(keepingHosts: false)
-            }
-            Button(AppStrings.Vault.keepHosts.swiftUIKey) { deleteGroup(keepingHosts: true) }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { deletingGroup = nil }
-        } message: {
-            Text(groupDeletionMessage)
-        }
         .mobileReviewPage("vault.hosts", scene: reviewScene)
     }
 
@@ -719,6 +692,18 @@ struct MobileVaultView: View {
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel(AppStrings.Common.more.swiftUIKey)
+                .operationConfirmation(
+                    .init(groupDeletionTitle),
+                    isPresented: $deletingGroup.isPresenting { $0.id == group.id },
+                    actions: [
+                        .init(AppStrings.Vault.deleteGroupAndHosts, role: .destructive) {
+                            deleteGroup(keepingHosts: false)
+                        },
+                        .init(AppStrings.Vault.keepHosts) { deleteGroup(keepingHosts: true) },
+                        .init(AppStrings.Common.cancel, role: .cancel) { deletingGroup = nil },
+                    ],
+                    message: .init(groupDeletionMessage)
+                )
             } else if case .ungrouped = section.id {
                 Menu {
                     Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
@@ -831,6 +816,18 @@ struct MobileVaultView: View {
                 }
             }
         }
+        .operationConfirmation(
+            .init(AppStrings.Vault.deleteHostConfirmation),
+            isPresented: $deletingHost.isPresenting { $0.id == host.id },
+            actions: [
+                .init(AppStrings.Common.delete, role: .destructive) {
+                    if let host = deletingHost { app.deleteHost(host.id) }
+                    deletingHost = nil
+                },
+                .init(AppStrings.Common.cancel, role: .cancel) { deletingHost = nil },
+            ],
+            message: .init(AppStrings.Vault.deleteHostWarning)
+        )
     }
 
     @ViewBuilder
@@ -889,6 +886,8 @@ struct MobileHostGroupEditor: View {
             title: existing
                 ? String(localized: AppStrings.Vault.editGroup) : String(localized: AppStrings.Vault.newGroup),
             isDirty: editor.isDirty, canSave: editor.canSave, compact: true,
+            discardQuestion: !existing
+                ? AppStrings.Common.discardNewGroupQuestion : AppStrings.Common.discardChangesQuestion,
             save: save
         ) {
             Section {

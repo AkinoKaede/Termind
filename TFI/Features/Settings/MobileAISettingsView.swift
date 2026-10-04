@@ -214,6 +214,8 @@ struct MobileProviderEditor: View {
             title: String(localized: AppStrings.Settings.modelProvider), isDirty: model.isDirty,
             canSave: model.canSave,
             onCancel: { model.discardPlaintext() },
+            discardQuestion: ai.modelProvider(model.original.id) == nil
+                ? AppStrings.Common.discardNewProviderQuestion : AppStrings.Common.discardChangesQuestion,
             save: { try model.save() },
             content: {
                 ModelProviderConnectionFields(

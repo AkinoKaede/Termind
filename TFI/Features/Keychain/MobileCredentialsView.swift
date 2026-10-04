@@ -67,6 +67,22 @@ struct MobileCredentialsView: View {
                                     deletingKey = key
                                 }
                             }
+                            .operationConfirmation(
+                                .init(AppStrings.Keychain.deleteKeyConfirmation),
+                                isPresented: $deletingKey.isPresenting { $0.id == key.id },
+                                actions: [
+                                    .init(AppStrings.Common.delete, role: .destructive) {
+                                        if let key = deletingKey {
+                                            do { try app.credentials.delete(keyID: key.id) } catch {
+                                                self.error = error.localizedDescription
+                                            }
+                                        }
+                                        deletingKey = nil
+                                    },
+                                    .init(AppStrings.Common.cancel, role: .cancel) { deletingKey = nil },
+                                ],
+                                message: .init(AppStrings.Keychain.deleteKeyWarning)
+                            )
                         }
                     }
                 }
@@ -90,6 +106,22 @@ struct MobileCredentialsView: View {
                                     deletingIdentity = identity
                                 }
                             }
+                            .operationConfirmation(
+                                .init(AppStrings.Keychain.deleteIdentityConfirmation),
+                                isPresented: $deletingIdentity.isPresenting { $0.id == identity.id },
+                                actions: [
+                                    .init(AppStrings.Common.delete, role: .destructive) {
+                                        if let identity = deletingIdentity,
+                                            !app.credentials.delete(identityID: identity.id)
+                                        {
+                                            error = app.credentials.storageError
+                                        }
+                                        deletingIdentity = nil
+                                    },
+                                    .init(AppStrings.Common.cancel, role: .cancel) { deletingIdentity = nil },
+                                ],
+                                message: .init(AppStrings.Keychain.deleteIdentityWarning)
+                            )
                         }
                     }
                 }
@@ -126,34 +158,6 @@ struct MobileCredentialsView: View {
             MobileKeyExportDetailView(
                 library: app.library,
                 model: KeyExportModel(key: key, library: app.library, services: app.keyExportServices))
-        }
-        .confirmationDialog(
-            AppStrings.Keychain.deleteIdentityConfirmation,
-            isPresented: Binding(get: { deletingIdentity != nil }, set: { if !$0 { deletingIdentity = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                if let identity = deletingIdentity, !app.credentials.delete(identityID: identity.id) {
-                    error = app.credentials.storageError
-                }
-                deletingIdentity = nil
-            }
-        } message: {
-            Text(AppStrings.Keychain.deleteIdentityWarning)
-        }
-        .confirmationDialog(
-            AppStrings.Keychain.deleteKeyConfirmation,
-            isPresented: Binding(get: { deletingKey != nil }, set: { if !$0 { deletingKey = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                if let key = deletingKey {
-                    do { try app.credentials.delete(keyID: key.id) } catch { self.error = error.localizedDescription }
-                }
-                deletingKey = nil
-            }
-        } message: {
-            Text(AppStrings.Keychain.deleteKeyWarning)
         }
         .alert(
             AppStrings.Common.unableToDelete,
@@ -407,6 +411,8 @@ struct MobileIdentityEditor: View {
                 identity: draft, password: password,
                 hasConfiguredPassword: original.usesPassword,
                 removesPassword: canEditPassword && password.isEmpty && !originalPassword.isEmpty),
+            discardQuestion: isNew
+                ? AppStrings.Common.discardNewIdentityQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
                 draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -38,13 +38,14 @@ struct MobileTransfersView: View {
                     .labelStyle(.iconOnly)
             }
         }
-        .confirmationDialog(
-            AppStrings.SFTP.clearFinishedTransfersConfirmation, isPresented: $confirmsClearFinished,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.SFTP.clearFinished.swiftUIKey, role: .destructive) { transfers.clearFinished() }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
-        }
+        .operationConfirmation(
+            .init(AppStrings.SFTP.clearFinishedTransfersConfirmation), isPresented: $confirmsClearFinished,
+            placement: .centered,
+            actions: [
+                .init(AppStrings.SFTP.clearFinished, role: .destructive) { transfers.clearFinished() },
+                .init(AppStrings.Common.cancel, role: .cancel) {},
+            ]
+        )
     }
 
     @ViewBuilder

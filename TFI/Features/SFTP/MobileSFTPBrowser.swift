@@ -65,7 +65,9 @@ struct MobileSFTPBrowser: View {
                     case .parent:
                         parentRow
                     case .file(let file):
-                        fileRow(file)
+                        MobileSFTPFileDeletion(file: file, delete: delete) { requestDelete in
+                            fileRow(file, requestDelete: requestDelete)
+                        }
                     }
                 }
                 if items.isEmpty {
@@ -99,7 +101,7 @@ struct MobileSFTPBrowser: View {
         .accessibilityLabel(AppStrings.SFTP.parentDirectory.swiftUIKey)
     }
 
-    private func fileRow(_ file: RemoteFile) -> some View {
+    private func fileRow(_ file: RemoteFile, requestDelete: @escaping () -> Void) -> some View {
         HStack(spacing: 14) {
             Image(systemName: file.kind.symbol)
                 .font(.system(size: file.isDirectory ? 28 : 25))
@@ -159,9 +161,30 @@ struct MobileSFTPBrowser: View {
             Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil") { rename(file) }
             Button(AppStrings.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield") { editPermissions(file) }
             Divider()
-            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) { delete(file) }
+            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: requestDelete)
         }
         .accessibilityHint(file.isDirectory ? Text(AppStrings.Common.open) : Text(AppStrings.SFTP.download))
+    }
+}
+
+/// Lives in the hosted file row so its presentation and anchor survive list refreshes together.
+private struct MobileSFTPFileDeletion<Content: View>: View {
+    let file: RemoteFile
+    let delete: (RemoteFile) -> Void
+    @ViewBuilder let content: (@escaping () -> Void) -> Content
+    @Environment(\.locale) private var locale
+    @State private var confirmsDeletion = false
+
+    var body: some View {
+        content { confirmsDeletion = true }
+            .operationConfirmation(
+                .init(AppStrings.SFTP.deleteConfirmation(file.name)), isPresented: $confirmsDeletion,
+                actions: [
+                    .init(AppStrings.Common.delete, role: .destructive) { delete(file) },
+                    .init(AppStrings.Common.cancel, role: .cancel) {},
+                ],
+                message: .init(AppStrings.SFTP.deletionMessage(paths: file.path, remainingCount: 0, locale: locale))
+            )
     }
 }
 

@@ -101,7 +101,10 @@ struct MobileSnippetsView: View {
                     editorRequest = SnippetEditorRequest(snippetID: id, packageID: nil)
                 },
                 duplicate: duplicate,
-                delete: { deletingSnippetID = id })
+                delete: {
+                    app.snippets.delete(snippetIDs: [id])
+                    reportStorageError()
+                })
         }
         .sheet(item: $editorRequest) { request in
             MobileSnippetEditor(
@@ -127,33 +130,6 @@ struct MobileSnippetsView: View {
             ) { ids in
                 pendingTargetExecution = ExecutionRequest(snippetID: request.snippetID, hostIDs: ids)
             }
-        }
-        .confirmationDialog(
-            AppStrings.Snippets.deleteSnippetConfirmation,
-            isPresented: Binding(
-                get: { deletingSnippetID != nil },
-                set: { if !$0 { deletingSnippetID = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Snippets.deleteSnippet.swiftUIKey, role: .destructive, action: deleteSnippet)
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { deletingSnippetID = nil }
-        } message: {
-            Text(AppStrings.Snippets.thisActionCannotBeUndone)
-        }
-        .confirmationDialog(
-            packageDeletionTitle,
-            isPresented: Binding(
-                get: { deletingPackage != nil },
-                set: { if !$0 { deletingPackage = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Snippets.deletePackageAndSnippets.swiftUIKey, role: .destructive) {
-                deletePackage(keepingSnippets: false)
-            }
-            Button(AppStrings.Snippets.keepSnippets.swiftUIKey) { deletePackage(keepingSnippets: true) }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { deletingPackage = nil }
-        } message: {
-            Text(packageDeletionMessage)
         }
         .confirmationDialog(
             AppStrings.Snippets.runADestructiveScriptConfirmation,
@@ -241,6 +217,18 @@ struct MobileSnippetsView: View {
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel(AppStrings.Common.more.swiftUIKey)
+                .operationConfirmation(
+                    .init(packageDeletionTitle),
+                    isPresented: $deletingPackage.isPresenting { $0.id == package.id },
+                    actions: [
+                        .init(AppStrings.Snippets.deletePackageAndSnippets, role: .destructive) {
+                            deletePackage(keepingSnippets: false)
+                        },
+                        .init(AppStrings.Snippets.keepSnippets) { deletePackage(keepingSnippets: true) },
+                        .init(AppStrings.Common.cancel, role: .cancel) { deletingPackage = nil },
+                    ],
+                    message: .init(packageDeletionMessage)
+                )
             } else if case .ungrouped = section.id {
                 Menu {
                     Button(AppStrings.Snippets.newSnippet.swiftUIKey, systemImage: "curlybraces") {
@@ -285,6 +273,15 @@ struct MobileSnippetsView: View {
                 deletingSnippetID = snippet.id
             }
         }
+        .operationConfirmation(
+            .init(AppStrings.Snippets.deleteSnippetConfirmation),
+            isPresented: $deletingSnippetID.isPresenting { $0 == snippet.id },
+            actions: [
+                .init(AppStrings.Snippets.deleteSnippet, role: .destructive, action: deleteSnippet),
+                .init(AppStrings.Common.cancel, role: .cancel) { deletingSnippetID = nil },
+            ],
+            message: .init(AppStrings.Snippets.thisActionCannotBeUndone)
+        )
     }
 
     private func toggle(_ section: SnippetLibrarySection, expanded: Bool) {
@@ -407,6 +404,7 @@ struct MobileSnippetDetailView: View {
     let duplicate: (Snippet.ID) -> Void
     let delete: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmsDeletion = false
 
     private var snippet: Snippet? { app.snippets.snippets.first { $0.id == snippetID } }
 
@@ -450,13 +448,23 @@ struct MobileSnippetDetailView: View {
                         Divider()
                         Button(
                             AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive,
-                            action: delete)
+                            action: { confirmsDeletion = true })
                     }
                 }
             } else {
                 ContentUnavailableView(AppStrings.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
             }
         }
+        .operationConfirmation(
+            .init(AppStrings.Snippets.deleteSnippetConfirmation),
+            isPresented: $confirmsDeletion,
+            placement: .centered,
+            actions: [
+                .init(AppStrings.Snippets.deleteSnippet, role: .destructive, action: delete),
+                .init(AppStrings.Common.cancel, role: .cancel) {},
+            ],
+            message: .init(AppStrings.Snippets.thisActionCannotBeUndone)
+        )
         .onChange(of: app.snippets.snippets.map(\.id)) {
             if snippet == nil { dismiss() }
         }
@@ -561,6 +569,8 @@ struct MobileSnippetEditor: View {
                 : String(localized: AppStrings.Snippets.newSnippet),
             isDirty: draft != original,
             canSave: !trimmedTitle.isEmpty && !trimmedBody.isEmpty,
+            discardQuestion: !existing
+                ? AppStrings.Common.discardNewSnippetQuestion : AppStrings.Common.discardChangesQuestion,
             save: save
         ) {
             SnippetOrganizationSection(name: $draft.title, color: $draft.colorTag) {
@@ -699,6 +709,8 @@ struct MobileSnippetPackageEditor: View {
                 ? String(localized: AppStrings.Snippets.editPackage)
                 : String(localized: AppStrings.Snippets.newPackage),
             isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
+            discardQuestion: !existing
+                ? AppStrings.Common.discardNewPackageQuestion : AppStrings.Common.discardChangesQuestion,
             save: save
         ) {
             TextField(AppStrings.Common.name.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal)

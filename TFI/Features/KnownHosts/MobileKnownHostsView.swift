@@ -61,6 +61,17 @@ struct MobileKnownHostsView: View {
                             removing = entry
                         }
                     }
+                    .operationConfirmation(
+                        .init(AppStrings.KnownHosts.deleteKnownHostConfirmation),
+                        isPresented: $removing.isPresenting { $0.id == entry.id },
+                        actions: [
+                            .init(AppStrings.Common.delete, role: .destructive) {
+                                if let entry = removing { _ = app.knownHosts.delete([entry.id]) }
+                                removing = nil
+                            },
+                            .init(AppStrings.Common.cancel, role: .cancel) { removing = nil },
+                        ]
+                    )
                 }
             }
         }
@@ -75,16 +86,6 @@ struct MobileKnownHostsView: View {
         }
         .sheet(item: $editing) { entry in
             MobileKnownHostEditor(app: app, entry: entry, isNew: app.knownHosts.entry(entry.id) == nil)
-        }
-        .confirmationDialog(
-            AppStrings.KnownHosts.deleteKnownHostConfirmation,
-            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                if let entry = removing { _ = app.knownHosts.delete([entry.id]) }
-                removing = nil
-            }
         }
     }
 }
@@ -112,6 +113,8 @@ struct MobileKnownHostEditor: View {
         MobileEditorSheet(
             title: editorTitle, isDirty: draft != original,
             canSave: draft.isValid,
+            discardQuestion: isNew
+                ? AppStrings.Common.discardNewKnownHostQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 guard app.knownHosts.save(draft) else {
                     throw MobileEditorError.message(

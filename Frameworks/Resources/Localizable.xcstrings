@@ -3648,6 +3648,227 @@
         }
       }
     },
+    "Are you sure you want to discard this new environment variable?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新环境变量吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新環境變數嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new group?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新组吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新組嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new highlight rule?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新高亮规则吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新醒目提示規則嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new host?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新主机吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新主機嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new identity?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新身份吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新身分嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new key?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新密钥吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新金鑰嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new known host?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新已知主机记录吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新已知主機記錄嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new model provider?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新模型提供商吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新模型供應商嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new package?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新包吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新包嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new port forwarding rule?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新端口转发规则吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新連接埠轉送規則嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new skill?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新技能吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新技能嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard this new snippet?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃这个新片段吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄這個新片段嗎？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to discard your changes?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要放弃更改吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要放棄更改嗎？"
+          }
+        }
+      }
+    },
     "Arguments" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14775,6 +14996,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "兩者都保留"
+          }
+        }
+      }
+    },
+    "Keep Editing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续编辑"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續編輯"
           }
         }
       }
@@ -34800,6 +35038,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最多可加入58條自訂醒目提示規則。"
+          }
+        }
+      }
+    },
+    "You have unsaved changes. Save them before leaving, or discard them." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你有未保存的更改。可以保存后离开，也可以放弃更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你有未儲存的更改。可以儲存後離開，也可以放棄更改。"
           }
         }
       }

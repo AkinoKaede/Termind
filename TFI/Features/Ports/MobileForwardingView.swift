@@ -53,17 +53,6 @@ struct MobileForwardingView: View {
         .sheet(item: $editing) { rule in
             MobileForwardingEditor(app: app, rule: rule, isNew: app.forwardingLibrary.portForwarding(rule.id) == nil)
         }
-        .confirmationDialog(
-            AppStrings.Forwarding.deleteForwardingRulesConfirmation,
-            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                guard let removing else { return }
-                do { try app.forwardingLibrary.delete(removing.id) } catch { self.error = error.localizedDescription }
-                self.removing = nil
-            }
-        }
         .alert(
             AppStrings.Common.operationFailed,
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
@@ -108,6 +97,20 @@ struct MobileForwardingView: View {
             Divider()
             Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) { removing = rule }
         }
+        .operationConfirmation(
+            .init(AppStrings.Forwarding.deleteForwardingRulesConfirmation),
+            isPresented: $removing.isPresenting { $0.id == rule.id },
+            actions: [
+                .init(AppStrings.Common.delete, role: .destructive) {
+                    guard let removing else { return }
+                    do { try app.forwardingLibrary.delete(removing.id) } catch {
+                        self.error = error.localizedDescription
+                    }
+                    self.removing = nil
+                },
+                .init(AppStrings.Common.cancel, role: .cancel) { removing = nil },
+            ]
+        )
     }
     private func canStart(_ rule: PortForwardingRule) -> Bool {
         PortForwardingEditorPolicy.canStart(

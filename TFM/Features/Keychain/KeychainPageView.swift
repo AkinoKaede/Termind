@@ -269,7 +269,7 @@ struct KeychainPageView: ManagedCardPage {
 
     private func isEditableRoute(_ route: VaultWorkRoute) -> Bool {
         switch route {
-        case .editKey, .identityEditor: true
+        case .editKey, .identityEditor, .importKey, .generateKey: true
         default: false
         }
     }
@@ -476,6 +476,7 @@ private struct SoftwareKeyEditor: View {
     @State private var reference = ""
     @State private var referenceDropTask: Task<Void, Never>?
     let existing: SSHKeyRef?
+    let initialStorage: KeyStorage
     let title: LocalizedStringResource
     let symbol: String
     let close: () -> Void
@@ -531,6 +532,7 @@ private struct SoftwareKeyEditor: View {
     ) {
         self.saveSecurityKey = saveSecurityKey
         self.existing = existing
+        initialStorage = existing?.storage ?? defaultStorage
         self.title = title
         self.symbol = symbol
         self.close = close
@@ -549,9 +551,7 @@ private struct SoftwareKeyEditor: View {
     var body: some View {
         VaultDetailScaffold(
             title: title, symbol: symbol,
-            close: {
-                if existing == nil { close() } else { cancelEditing() }
-            },
+            close: cancelEditing,
             closeLabel: existing == nil ? AppStrings.Common.close : AppStrings.Common.cancel
         ) {
             if isLoading {
@@ -653,9 +653,9 @@ private struct SoftwareKeyEditor: View {
                 }
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button(AppStrings.Common.cancel.swiftUIKey) {
-                    if existing == nil { close() } else { cancelEditing() }
-                }
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing)
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(isWorking)
                 Button(existing == nil ? AppStrings.Common.import.swiftUIKey : AppStrings.Common.save.swiftUIKey) {
                     Task {
                         guard await commitChanges() else { return }
@@ -697,9 +697,8 @@ private struct SoftwareKeyEditor: View {
         )
         .task {
             load()
-            guard let existing else { return }
             editingToken = editingSession.register(
-                route: .editKey(existing.id), isDirty: { isDirty }
+                route: editingRoute, isDirty: { isDirty }, isBusy: { isWorking }
             ) {
                 await commitChanges()
             }
@@ -798,6 +797,8 @@ private struct SoftwareKeyEditor: View {
     private var isDirty: Bool {
         guard let existing else {
             return !name.isEmpty || !privateKey.isEmpty || !publicKey.isEmpty || !certificate.isEmpty
+                || colorTag != .none || storage != initialStorage || !passphrase.isEmpty || !savePassphrase
+                || usesWebAuthn || !reference.isEmpty || verification != .preferred
         }
         return name != existing.label || colorTag != existing.colorTag || storage != existing.storage
             || privateKey != originalPrivateKey || passphrase != originalPassphrase
@@ -806,14 +807,16 @@ private struct SoftwareKeyEditor: View {
     }
 
     private func cancelEditing() {
-        guard let existing else {
-            close()
-            return
-        }
-        editingSession.requestTransition(route: .editKey(existing.id), action: close)
+        guard !isWorking else { return }
+        editingSession.requestCancellation(route: editingRoute, action: close)
+    }
+
+    private var editingRoute: VaultWorkRoute {
+        existing.map { .editKey($0.id) } ?? .importKey
     }
 
     private func commitChanges() async -> Bool {
+        guard !isWorking, !isLoading else { return false }
         guard existing == nil || isDirty else { return true }
         isWorking = true
         errorMessage = nil
@@ -1082,6 +1085,7 @@ private struct GenerateKeySheet: View {
     }
 
     let credentials: CredentialLibraryModel
+    let initialStorage: KeyStorage
     let selectKey: (SSHKeyRef) -> Void
     @State private var usesWebAuthn = false
     @State private var verification: SecurityKeyCredential.UserVerification = .preferred
@@ -1108,6 +1112,8 @@ private struct GenerateKeySheet: View {
     @State private var requiresUserPresence = false
     @State private var isWorking = false
     @State private var errorMessage: String?
+    @State private var editingToken: UUID?
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     init(
         credentials: CredentialLibraryModel,
@@ -1121,6 +1127,7 @@ private struct GenerateKeySheet: View {
         close: @escaping () -> Void
     ) {
         self.credentials = credentials
+        initialStorage = defaultStorage
         self.selectKey = selectKey
         self.generate = generate
         self.close = close
@@ -1140,8 +1147,29 @@ private struct GenerateKeySheet: View {
         passphrase.isEmpty || passphrase == confirmation
     }
 
+    private var isDirty: Bool {
+        !label.isEmpty || colorTag != .none || storage != initialStorage
+            || kind != .ed25519 || curveBits != 256 || rsaBits != 3072
+            || !passphrase.isEmpty || !confirmation.isEmpty || !savePassphrase
+            || cipher != .aes256 || rounds != 100 || requiresUserPresence
+            || usesWebAuthn || verification != .preferred
+    }
+
+    private var canGenerate: Bool {
+        !isWorking
+            && (usesWebAuthn
+                || (storage == .secureEnclave
+                    ? SecureEnclaveKey.isAvailable
+                    : passwordsMatch && (passphrase.isEmpty || rounds > 0)))
+    }
+
+    private func cancelEditing() {
+        guard !isWorking else { return }
+        editingSession.requestCancellation(route: .generateKey, action: close)
+    }
+
     var body: some View {
-        VaultDetailScaffold(title: AppStrings.Keychain.generateKey, symbol: "key.fill", close: close) {
+        VaultDetailScaffold(title: AppStrings.Keychain.generateKey, symbol: "key.fill", close: cancelEditing) {
             Form {
                 Section {
                     VaultNameField(text: $label, prompt: Text(defaultName))
@@ -1213,22 +1241,27 @@ private struct GenerateKeySheet: View {
             HStack {
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button(AppStrings.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing)
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(isWorking)
                 Button(AppStrings.Keychain.generate.swiftUIKey) {
-                    generationTask = Task { await commit() }
+                    generationTask = Task {
+                        if await commitChanges() { close() }
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(
-                    isWorking
-                        || (!usesWebAuthn && storage != .secureEnclave
-                            && (!passwordsMatch || (!passphrase.isEmpty && rounds <= 0)))
-                        || (!usesWebAuthn && storage == .secureEnclave && !SecureEnclaveKey.isAvailable)
-                )
+                .disabled(!canGenerate)
             }
             .padding()
         }
         .background(SecurityKeyAnchor(presenter: presenter).frame(width: 0, height: 0))
+        .onAppear {
+            editingToken = editingSession.register(
+                route: .generateKey, isDirty: { isDirty }, isBusy: { isWorking }
+            ) { await commitChanges() }
+        }
         .onDisappear {
+            if let editingToken { editingSession.unregister(editingToken) }
             generationTask?.cancel()
             presenter.cancel()
             passphrase = ""
@@ -1237,8 +1270,14 @@ private struct GenerateKeySheet: View {
     }
 
     @MainActor
-    private func commit() async {
+    private func commitChanges() async -> Bool {
+        guard !isWorking else { return false }
+        guard canGenerate else {
+            errorMessage = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
+            return false
+        }
         isWorking = true
+        defer { isWorking = false }
         errorMessage = nil
         do {
             if usesWebAuthn {
@@ -1263,10 +1302,10 @@ private struct GenerateKeySheet: View {
             }
             passphrase = ""
             confirmation = ""
-            close()
+            return true
         } catch {
             errorMessage = error.localizedDescription
-            isWorking = false
+            return false
         }
     }
 
@@ -1482,7 +1521,7 @@ private struct SecureEnclaveKeyEditor: View {
     private var isDirty: Bool { name != key.label || colorTag != key.colorTag }
 
     private func cancelEditing() {
-        editingSession.requestTransition(route: .editKey(key.id), action: close)
+        editingSession.requestCancellation(route: .editKey(key.id), action: close)
     }
 
     private func commitChanges() -> Bool {

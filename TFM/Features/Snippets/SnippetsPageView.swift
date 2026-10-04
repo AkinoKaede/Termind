@@ -206,8 +206,12 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     func managedBlankAreaPrimaryAction() {
-        guard let route = window.vaultWorkRoute, case .snippetEditor = route else { return }
-        editingSession.requestTransition(route: route, action: window.closeVaultWork)
+        guard let route = window.vaultWorkRoute else { return }
+        switch route {
+        case .snippetEditor, .snippetPackageEditor:
+            editingSession.requestTransition(route: route, action: window.closeVaultWork)
+        default: break
+        }
     }
 
     func managedEmptyState() -> some View {
@@ -671,7 +675,7 @@ struct SnippetEditorView: View {
     }
 
     private func cancelEditing() {
-        editingSession.requestTransition(
+        editingSession.requestCancellation(
             route: .snippetEditor(snippetID: existing?.id, packageID: packageID), action: close)
     }
 
@@ -874,12 +878,14 @@ struct SnippetPackageSheet: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
     @State private var parentID: SnippetPackage.ID?
-    @State private var confirmsDiscard = false
+    @State private var editingToken: UUID?
     @State private var confirmsDeletion = false
     @State private var deleteError: String?
+    @State private var saveError: String?
 
     init(
         package: SnippetPackage? = nil, parentID: SnippetPackage.ID? = nil,
@@ -910,6 +916,7 @@ struct SnippetPackageSheet: View {
                 }
             }
             .formStyle(.grouped)
+            .overlay(alignment: .bottom) { if let saveError { Text(saveError).foregroundStyle(.red) } }
         } footer: {
             HStack {
                 if existing != nil {
@@ -917,21 +924,17 @@ struct SnippetPackageSheet: View {
                 }
                 Spacer()
                 Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing).keyboardShortcut(.cancelAction)
-                Button(
-                    existing == nil ? AppStrings.Common.add.swiftUIKey : AppStrings.Common.save.swiftUIKey,
-                    action: commit
-                )
-                .keyboardShortcut(.defaultAction)
-                .disabled(trimmedName.isEmpty)
+                Button(AppStrings.Common.save.swiftUIKey, action: commit)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(trimmedName.isEmpty)
             }
             .padding(Metrics.Space.l)
         }
-        .confirmationDialog(
-            AppStrings.Common.discardChangesConfirmation, isPresented: $confirmsDiscard,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: close)
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        .onAppear {
+            editingToken = editingSession.register(route: editingRoute, isDirty: { isDirty }) { commitChanges() }
+        }
+        .onDisappear {
+            if let editingToken { editingSession.unregister(editingToken) }
         }
         .confirmationDialog(
             AppStrings.Common.deleteNamedConfirmation(existing?.name ?? ""), isPresented: $confirmsDeletion,
@@ -966,7 +969,11 @@ struct SnippetPackageSheet: View {
     }
 
     private func cancelEditing() {
-        if isDirty { confirmsDiscard = true } else { close() }
+        editingSession.requestCancellation(route: editingRoute, action: close)
+    }
+
+    private var editingRoute: VaultWorkRoute {
+        .snippetPackageEditor(packageID: existing?.id, parentID: initialParentID)
     }
 
     private func close() {
@@ -1001,6 +1008,14 @@ struct SnippetPackageSheet: View {
     }
 
     private func commit() {
+        if commitChanges() { close() }
+    }
+
+    private func commitChanges() -> Bool {
+        guard !trimmedName.isEmpty else {
+            saveError = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
+            return false
+        }
         save(
             SnippetPackage(
                 id: existing?.id ?? UUID(), name: trimmedName,
@@ -1008,7 +1023,8 @@ struct SnippetPackageSheet: View {
                 isExpanded: existing?.isExpanded ?? true
             )
         )
-        close()
+        saveError = app.hostLibrary.storageError
+        return saveError == nil
     }
 }
 

@@ -102,6 +102,62 @@ extension AppStrings {
             "Discard Changes?"
         }
 
+        public static var discardChangesQuestion: LocalizedStringResource {
+            "Are you sure you want to discard your changes?"
+        }
+
+        public static var discardNewHostQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new host?"
+        }
+
+        public static var discardNewGroupQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new group?"
+        }
+
+        public static var discardNewPackageQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new package?"
+        }
+
+        public static var discardNewSnippetQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new snippet?"
+        }
+
+        public static var discardNewIdentityQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new identity?"
+        }
+
+        public static var discardNewKeyQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new key?"
+        }
+
+        public static var discardNewKnownHostQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new known host?"
+        }
+
+        public static var discardNewForwardingQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new port forwarding rule?"
+        }
+
+        public static var discardNewProviderQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new model provider?"
+        }
+
+        public static var discardNewSkillQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new skill?"
+        }
+
+        public static var discardNewHighlightRuleQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new highlight rule?"
+        }
+
+        public static var discardNewEnvironmentVariableQuestion: LocalizedStringResource {
+            "Are you sure you want to discard this new environment variable?"
+        }
+
+        public static var keepEditing: LocalizedStringResource {
+            "Keep Editing"
+        }
+
         public static var done: LocalizedStringResource {
             "Done"
         }

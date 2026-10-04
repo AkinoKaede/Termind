@@ -20,6 +20,11 @@ public struct MemorySettingsSection: View {
         self.ai = ai
         self.layout = layout
     }
+    @ViewBuilder private var destroyActions: some View {
+        Button(AppStrings.Settings.destroy.swiftUIKey, role: .destructive) { Task { await memory.destroy() } }
+        Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+    }
+
     public var body: some View {
         Group {
             if layout == .page {
@@ -43,11 +48,25 @@ public struct MemorySettingsSection: View {
             }
         }
         .task { await memory.refresh() }
-        .confirmationDialog("Destroy Memory?", isPresented: $confirmDestroy, titleVisibility: .visible) {
-            Button("Destroy", role: .destructive) { Task { await memory.destroy() } }
-        } message: {
-            Text(AppStrings.Settings.hermesDestroyDescription)
-        }
+        #if os(iOS)
+            .operationConfirmation(
+                .init(AppStrings.Settings.destroyMemoryConfirmation), isPresented: $confirmDestroy,
+                placement: .centered,
+                actions: [
+                    .init(AppStrings.Settings.destroy, role: .destructive) { Task { await memory.destroy() } },
+                    .init(AppStrings.Common.cancel, role: .cancel) {},
+                ],
+                message: .init(AppStrings.Settings.hermesDestroyDescription)
+            )
+        #else
+            .confirmationDialog(
+                AppStrings.Settings.destroyMemoryConfirmation, isPresented: $confirmDestroy, titleVisibility: .visible
+            ) {
+                destroyActions
+            } message: {
+                Text(AppStrings.Settings.hermesDestroyDescription)
+            }
+        #endif
         .sheet(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
             NavigationStack {
                 Form {

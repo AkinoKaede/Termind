@@ -262,7 +262,7 @@ struct NewIdentitySheet: View {
     }
 
     private func cancelEditing() {
-        editingSession.requestTransition(route: .identityEditor(existing?.id), action: close)
+        editingSession.requestCancellation(route: .identityEditor(existing?.id), action: close)
     }
 
     private func saveAndClose() {

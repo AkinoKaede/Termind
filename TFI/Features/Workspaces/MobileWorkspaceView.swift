@@ -41,7 +41,6 @@ struct MobileWorkspaceView: View {
     }
     @State private var directoryName = ""
     @State private var creatingDirectory = false
-    @State private var deleting: RemoteFile?
     @State private var renaming: RemoteFile?
     @State private var editingPermissions: RemoteFile?
     @State private var showingTransfers = false
@@ -437,19 +436,6 @@ struct MobileWorkspaceView: View {
                 }
                 Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
             }
-            .confirmationDialog(
-                deletionTitle, isPresented: deletingPresented,
-                titleVisibility: .visible
-            ) {
-                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
-                    if let file = deleting { Task { await workspace.sftpChannel.delete(file) } }
-                    deleting = nil
-                }
-            } message: {
-                if let deleting {
-                    Text(AppStrings.SFTP.deletionMessage(paths: deleting.path, remainingCount: 0, locale: locale))
-                }
-            }
     }
 
     private var workspaceAlerts: some View {
@@ -521,7 +507,7 @@ struct MobileWorkspaceView: View {
                 paste: pasteRemoteItems,
                 rename: { renaming = $0 },
                 editPermissions: { editingPermissions = $0 },
-                delete: { deleting = $0 }
+                delete: { file in Task { await workspace.sftpChannel.delete(file) } }
             )
             .overlay(alignment: .bottom) {
                 SFTPEditUploadOverlay(
@@ -772,18 +758,6 @@ struct MobileWorkspaceView: View {
                 }
             }
         )
-    }
-
-    private var deletingPresented: Binding<Bool> {
-        Binding(
-            get: { deleting != nil },
-            set: { if !$0 { deleting = nil } }
-        )
-    }
-
-    private var deletionTitle: LocalizedStringResource {
-        deleting.map { AppStrings.SFTP.deleteConfirmation($0.name) }
-            ?? AppStrings.Workspace.deleteFileConfirmation
     }
 
     private func workspaceTitleMenuLabel(for candidate: MobileWorkspaceDescriptor) -> some View {

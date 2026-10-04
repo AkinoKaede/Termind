@@ -274,7 +274,7 @@ struct KnownHostEditorView: View {
     }
 
     private func cancelEditing() {
-        editingSession.requestTransition(route: .knownHostEditor(entryID), action: window.closeVaultWork)
+        editingSession.requestCancellation(route: .knownHostEditor(entryID), action: window.closeVaultWork)
     }
 
     private func commitChanges() -> Bool {

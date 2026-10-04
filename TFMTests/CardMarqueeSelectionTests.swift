@@ -123,4 +123,98 @@ struct CardMarqueeSelectionTests {
         #expect(commits == [secondID])
         #expect(transitions.last == secondID)
     }
+
+    @Test @MainActor
+    func cancellingEditingOffersDiscardWhileNavigationStillOffersSave() async {
+        let session = VaultWorkEditingSession()
+        var commits = 0
+        var transitions = 0
+        var dirty = true
+        session.register(
+            route: .importKey, isDirty: { dirty },
+            commit: {
+                commits += 1
+                return true
+            })
+        session.requestCancellation(route: .importKey) { transitions += 1 }
+        #expect(session.confirmation == .discardChanges)
+        #expect(session.confirmationID != nil)
+        session.saveAndProceed()
+        await Task.yield()
+        #expect(commits == 0)
+        #expect(transitions == 0)
+        session.cancelTransition()
+        #expect(transitions == 0)
+
+        session.requestTransition(route: .importKey) { transitions += 1 }
+        #expect(session.confirmation == .saveChanges)
+        session.saveAndProceed()
+        for _ in 0..<100 where transitions == 0 { await Task.yield() }
+        #expect(commits == 1)
+        #expect(transitions == 1)
+
+        session.requestCancellation(route: .importKey) { transitions += 1 }
+        session.discardAndProceed()
+        #expect(commits == 1)
+        #expect(transitions == 2)
+        dirty = false
+        session.requestCancellation(route: .importKey) { transitions += 1 }
+        #expect(session.confirmationID == nil)
+        #expect(transitions == 3)
+    }
+
+    @Test @MainActor
+    func failedAsyncSaveKeepsTheEditorOpenAndAllowsRetry() async throws {
+        let session = VaultWorkEditingSession()
+        var transitions = 0
+        var commits = 0
+        var completion: CheckedContinuation<Bool, Never>?
+        session.register(
+            route: .generateKey, isDirty: { true },
+            commit: {
+                commits += 1
+                return await withCheckedContinuation { completion = $0 }
+            })
+        session.requestTransition(route: .generateKey) { transitions += 1 }
+        session.saveAndProceed()
+        for _ in 0..<100 where completion == nil { await Task.yield() }
+        let first = try #require(completion)
+        session.saveAndProceed()
+        session.requestTransition(route: .generateKey) { transitions += 10 }
+        session.discardAndProceed()
+        first.resume(returning: false)
+        for _ in 0..<100 where session.confirmationID != nil { await Task.yield() }
+        #expect(transitions == 0)
+        #expect(commits == 1)
+
+        completion = nil
+        session.requestTransition(route: .generateKey) { transitions += 1 }
+        session.saveAndProceed()
+        for _ in 0..<100 where completion == nil { await Task.yield() }
+        let retry = try #require(completion)
+        #expect(transitions == 0)
+        retry.resume(returning: true)
+        for _ in 0..<100 where transitions == 0 { await Task.yield() }
+        #expect(transitions == 1)
+        #expect(commits == 2)
+    }
+
+    @Test @MainActor
+    func anActiveEditorOperationBlocksDismissalUntilItFinishes() {
+        let session = VaultWorkEditingSession()
+        var busy = true
+        var transitions = 0
+        session.register(route: .importKey, isDirty: { true }, isBusy: { busy }, commit: { true })
+        session.requestTransition(route: .importKey) { transitions += 1 }
+        #expect(session.confirmationID == nil)
+        #expect(transitions == 0)
+        busy = false
+        session.requestTransition(route: .importKey) { transitions += 1 }
+        #expect(session.confirmationID != nil)
+        session.cancelTransition()
+        #expect(transitions == 0)
+        session.requestTransition(route: .importKey) { transitions += 1 }
+        session.discardAndProceed()
+        #expect(transitions == 1)
+    }
 }

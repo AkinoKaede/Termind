@@ -26,6 +26,8 @@ struct MobileTerminalHighlightRuleEditor: View {
                 localized: isNew ? AppStrings.TerminalHighlighting.addRule : AppStrings.TerminalHighlighting.editRule),
             isDirty: rule != original, canSave: canSave,
             actions: toolbarActions,
+            discardQuestion: isNew
+                ? AppStrings.Common.discardNewHighlightRuleQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 guard model.upsert(rule) else {
                     throw MobileEditorError.message(

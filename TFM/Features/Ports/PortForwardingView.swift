@@ -354,7 +354,7 @@ struct PortForwardingDetailView: View {
         window.closeVaultWork()
     }
     private func cancelEditing() {
-        editingSession.requestTransition(route: .forwardingEditor(ruleID), action: window.closeVaultWork)
+        editingSession.requestCancellation(route: .forwardingEditor(ruleID), action: window.closeVaultWork)
     }
     private func commitChanges() -> Bool {
         guard isDirty else { return true }

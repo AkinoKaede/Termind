@@ -12,6 +12,26 @@ import UIKit
 
 @Suite @MainActor
 struct MobileCardTests {
+    @Test func dismissingAnOldRowDoesNotCancelAnotherRowsConfirmation() {
+        var selectedID: UUID?
+        let firstID = UUID()
+        let secondID = UUID()
+        let selection = Binding(get: { selectedID }, set: { selectedID = $0 })
+        let first = selection.isPresenting { $0 == firstID }
+        let second = selection.isPresenting { $0 == secondID }
+
+        selectedID = firstID
+        #expect(first.wrappedValue && !second.wrappedValue)
+        selectedID = secondID
+        first.wrappedValue = false
+        #expect(!first.wrappedValue && second.wrappedValue)
+        #expect(selectedID == secondID)
+
+        second.wrappedValue = false
+        #expect(selectedID == nil)
+        #expect(!first.wrappedValue && !second.wrappedValue)
+    }
+
     @Test func workspaceConnectionIndicatorHidesDisconnectedWorkspaces() {
         #expect(
             MobileWorkspaceConnectionIndicator.resolve(

@@ -16,6 +16,8 @@ struct MobileKeyEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: title, isDirty: model.isDirty, canSave: model.canSave,
+            discardQuestion: model.mode != .edit
+                ? AppStrings.Common.discardNewKeyQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 try await model.save { name, verification in
                     try await presenter.register(name: name, userVerification: verification)

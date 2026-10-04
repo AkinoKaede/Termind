@@ -19,6 +19,7 @@ struct NewGroupSheet: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
 
@@ -26,6 +27,7 @@ struct NewGroupSheet: View {
     @State private var saveError: String?
     @State private var saveTask: Task<Void, Never>?
     @State private var confirmsDiscard = false
+    @State private var editingToken: UUID?
     @State private var confirmsDeletion = false
 
     init(
@@ -63,8 +65,16 @@ struct NewGroupSheet: View {
         } footer: {
             footer
         }
-        .onAppear(perform: load)
+        .onAppear {
+            load()
+            guard requestedClose != nil else { return }
+            editingToken = editingSession.register(
+                route: editingRoute, isDirty: { editor?.isDirty == true },
+                isBusy: { editor?.isSaving == true }
+            ) { await commitChanges() }
+        }
         .onDisappear {
+            if let editingToken { editingSession.unregister(editingToken) }
             saveTask?.cancel()
             editor?.cancel()
         }
@@ -72,8 +82,12 @@ struct NewGroupSheet: View {
             AppStrings.Common.discardChangesConfirmation, isPresented: $confirmsDiscard,
             titleVisibility: .visible
         ) {
+            Button(AppStrings.Common.keepEditing.swiftUIKey, role: .cancel) {}
+                .keyboardShortcut(.defaultAction)
             Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: close)
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        } message: {
+            Text(
+                isEditing ? AppStrings.Common.discardChangesQuestion : AppStrings.Common.discardNewGroupQuestion)
         }
         .confirmationDialog(
             AppStrings.Common.deleteNamedConfirmation(group?.name ?? ""), isPresented: $confirmsDeletion,
@@ -134,7 +148,7 @@ struct NewGroupSheet: View {
                 .keyboardShortcut(.cancelAction)
                 .disabled(editor?.isSaving == true)
 
-            Button(isEditing ? AppStrings.Common.save.swiftUIKey : AppStrings.Common.add.swiftUIKey, action: add)
+            Button(AppStrings.Common.save.swiftUIKey, action: saveAndClose)
                 .keyboardShortcut(.defaultAction)
                 .disabled(editor?.canSave != true)
         }
@@ -149,11 +163,17 @@ struct NewGroupSheet: View {
 
     private func cancelEditing() {
         guard editor?.isSaving != true else { return }
-        if editor?.isDirty == true {
+        if requestedClose != nil {
+            editingSession.requestCancellation(route: editingRoute, action: close)
+        } else if editor?.isDirty == true {
             confirmsDiscard = true
         } else {
             close()
         }
+    }
+
+    private var editingRoute: VaultWorkRoute {
+        .hostGroupEditor(groupID: group?.id, parentID: initialParentID)
     }
 
     private func delete(keepHosts: Bool) {
@@ -172,14 +192,26 @@ struct NewGroupSheet: View {
         editor = TailscaleGroupEditor(model: app.tailscale, group: group, parentID: initialParentID)
     }
 
-    private func add() {
+    private func saveAndClose() {
         guard let editor, editor.canSave else { return }
         saveTask = Task {
-            do {
-                let saved = try await editor.save()
-                create(saved)
-                close()
-            } catch { saveError = error.localizedDescription }
+            if await commitChanges() { close() }
+        }
+    }
+
+    private func commitChanges() async -> Bool {
+        guard let editor, !editor.isSaving else { return false }
+        guard editor.canSave else {
+            saveError = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
+            return false
+        }
+        do {
+            create(try await editor.save())
+            saveError = nil
+            return true
+        } catch {
+            saveError = error.localizedDescription
+            return false
         }
     }
 
@@ -189,4 +221,5 @@ struct NewGroupSheet: View {
     NewGroupSheet(create: { _ in })
         .environment(AppModel(hosts: .demo()))
         .environment(WindowModel())
+        .environment(VaultWorkEditingSession())
 }

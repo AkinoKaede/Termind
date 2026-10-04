@@ -29,6 +29,7 @@ struct MobileStartupView: View {
                     MobileQuickActionSceneRoot(app: app)
                 }
             }
+            .mobileOperationConfirmations()
             .modelContainer(app.container)
             .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
         case .failure:

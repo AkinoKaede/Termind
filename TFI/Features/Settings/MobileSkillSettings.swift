@@ -110,6 +110,8 @@ struct MobileSkillEditor: View {
         MobileEditorSheet(
             title: String(localized: AppStrings.Settings.skill), isDirty: model.isDirty, canSave: model.canSave,
             actions: toolbarActions,
+            discardQuestion: library.skill(model.original.id) == nil
+                ? AppStrings.Common.discardNewSkillQuestion : AppStrings.Common.discardChangesQuestion,
             save: { try model.save() },
             content: {
                 Section(AppStrings.Settings.skill.swiftUIKey) {

@@ -28,6 +28,8 @@ struct MobileForwardingEditor: View {
                 ? String(localized: AppStrings.Forwarding.newForwarding)
                 : String(localized: AppStrings.Forwarding.editForwarding),
             isDirty: draft != original, canSave: canSave,
+            discardQuestion: isNew
+                ? AppStrings.Common.discardNewForwardingQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
                 guard canSave, let rule = PortForwardingEditorPolicy.normalized(draft) else { return }
                 draft = try app.forwardingLibrary.save(rule)

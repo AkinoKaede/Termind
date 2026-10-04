@@ -223,8 +223,12 @@ struct HostsPageView: ManagedCardPage {
     }
 
     func managedBlankAreaPrimaryAction() {
-        guard let route = window.vaultWorkRoute, case .hostEditor = route else { return }
-        editingSession.requestTransition(route: route, action: window.closeVaultWork)
+        guard let route = window.vaultWorkRoute else { return }
+        switch route {
+        case .hostEditor, .hostGroupEditor:
+            editingSession.requestTransition(route: route, action: window.closeVaultWork)
+        default: break
+        }
     }
 
     /// Every tag in use, each one a toggle, plus a way out.

@@ -100,24 +100,6 @@ struct MobileWorkspaceListView: View {
             await Task.yield()
             scene.activatePendingWorkspace()
         }
-        .confirmationDialog(
-            AppStrings.Workspace.clearRecentConnectionsConfirmation,
-            isPresented: Binding(
-                get: { clearingRecentHost != nil },
-                set: { if !$0 { clearingRecentHost = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
-                if let host = clearingRecentHost {
-                    app.connectionHistory.clear(for: host.id)
-                }
-                clearingRecentHost = nil
-            }
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { clearingRecentHost = nil }
-        } message: {
-            Text(AppStrings.Workspace.clearHostHistoryWarning)
-        }
     }
 
     @ViewBuilder
@@ -226,9 +208,10 @@ struct MobileWorkspaceListView: View {
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                    Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash") {
                         requestHistoryClear(for: row.host)
                     }
+                    .tint(.red)
                     ForEach(
                         MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: row.host), id: \.self
                     ) { kind in
@@ -236,6 +219,20 @@ struct MobileWorkspaceListView: View {
                             .tint(swipeTint(for: kind))
                     }
                 }
+                .operationConfirmation(
+                    .init(AppStrings.Workspace.clearRecentConnectionsConfirmation),
+                    isPresented: $clearingRecentHost.isPresenting { $0.id == row.host.id },
+                    actions: [
+                        .init(AppStrings.Common.clearHistory, role: .destructive) {
+                            if let host = clearingRecentHost {
+                                app.connectionHistory.clear(for: host.id)
+                            }
+                            clearingRecentHost = nil
+                        },
+                        .init(AppStrings.Common.cancel, role: .cancel) { clearingRecentHost = nil },
+                    ],
+                    message: .init(AppStrings.Workspace.clearHostHistoryWarning)
+                )
         }
     }
 

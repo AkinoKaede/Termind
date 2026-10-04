@@ -20,10 +20,11 @@ struct MobileEditorSheet<Content: View>: View {
     var actions: [MobileEditorToolbarAction] = []
     var onCancel: () -> Void = {}
     var topBar: AnyView? = nil
+    var discardQuestion: LocalizedStringResource = AppStrings.Common.discardChangesQuestion
     let save: () async throws -> Void
     @ViewBuilder let content: () -> Content
     @Environment(\.dismiss) private var dismiss
-    @State private var discard = false
+    @State private var showsDiscard = false
     @State private var error: String?
     @State private var isSaving = false
     @State private var saveTask: Task<Void, Never>?
@@ -51,12 +52,17 @@ struct MobileEditorSheet<Content: View>: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") {
                         if isDirty {
-                            discard = true
+                            showsDiscard = true
                         } else {
                             cancel()
                         }
                     }
                     .labelStyle(.iconOnly).disabled(isSaving)
+                    .confirmationDialog(Text(verbatim: ""), isPresented: $showsDiscard, titleVisibility: .hidden) {
+                        Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
+                    } message: {
+                        Text(discardQuestion)
+                    }
                 }
                 if !actions.isEmpty {
                     MobileToolbarOverflow {
@@ -70,30 +76,12 @@ struct MobileEditorSheet<Content: View>: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        guard !isSaving else { return }
-                        isSaving = true
-                        saveTask = Task {
-                            defer { isSaving = false }
-                            do {
-                                try await save()
-                                try Task.checkCancellation()
-                                dismiss()
-                            } catch is CancellationError {
-                            } catch { self.error = error.localizedDescription }
-                        }
-                    } label: {
+                    Button(action: saveAndDismiss) {
                         Label(AppStrings.Common.save.swiftUIKey, systemImage: "checkmark")
                     }.labelStyle(.iconOnly).accessibilityLabel(Text(AppStrings.Common.save)).disabled(
                         !canSave || isSaving)
                 }
                 .mobileProminentAction()
-            }
-            .confirmationDialog(
-                AppStrings.Common.discardChangesConfirmation, isPresented: $discard,
-                titleVisibility: .visible
-            ) {
-                Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
             }
             .alert(
                 AppStrings.Common.unableToSave,
@@ -106,10 +94,28 @@ struct MobileEditorSheet<Content: View>: View {
         }
         .mobileSheetPresentation(compact: compact)
         .interactiveDismissDisabled(isDirty || isSaving)
+        .onChange(of: isDirty) { _, dirty in
+            if !dirty { showsDiscard = false }
+        }
         .onDisappear { saveTask?.cancel() }
     }
 
+    private func saveAndDismiss() {
+        guard canSave, !isSaving else { return }
+        isSaving = true
+        saveTask = Task {
+            defer { isSaving = false }
+            do {
+                try await save()
+                try Task.checkCancellation()
+                dismiss()
+            } catch is CancellationError {
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+
     private func cancel() {
+        guard !isSaving else { return }
         onCancel()
         dismiss()
     }

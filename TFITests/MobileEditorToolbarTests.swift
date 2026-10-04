@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import TermindApplication
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -75,18 +77,35 @@ struct MobileEditorToolbarTests {
         }
     }
 
-    @Test(arguments: [false, true])
-    func cancelOnlyDismissesUnmodifiedDrafts(isDirty: Bool) async throws {
+    @Test(arguments: [false, true], ["en", "zh-Hans", "zh-Hant"])
+    func cancelOnlyDismissesUnmodifiedDrafts(isDirty: Bool, language: String) async throws {
         let state = EditorState()
         state.isDirty = isDirty
-        try await withEditor(state) { controller, navigation in
+        try await withEditor(state, language: language) { controller, navigation in
             try activate(#require(cancelButton(in: navigation)))
             try await settle()
             #expect(state.isPresented == isDirty)
             #expect(state.saveCount == 0)
             if isDirty {
                 let alert = try #require(descendant(of: UIAlertController.self, in: controller))
-                #expect(alert.actions.contains { $0.style == .destructive })
+                #expect(alert.preferredStyle == .actionSheet)
+                #expect(alert.title?.isEmpty != false)
+                let locale = Locale(identifier: language)
+                #expect(
+                    alert.message == AppLocalization.resolve(AppStrings.Common.discardChangesQuestion, locale: locale))
+                let actions = alert.actions.filter { $0.style != .cancel }
+                #expect(actions.count == 1)
+                #expect(actions.first?.style == .destructive)
+                #expect(
+                    actions.first?.title == AppLocalization.resolve(AppStrings.Common.discardChanges, locale: locale))
+                #expect(saveButton(in: navigation) != nil)
+                #expect(state.cancelCount == 0)
+                if let window = controller.view.window {
+                    let data = UIGraphicsImageRenderer(bounds: window.bounds).pngData { _ in
+                        window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                    }
+                    Attachment.record(data, named: "discard-confirmation-\(language).png")
+                }
             }
         }
     }
@@ -207,6 +226,7 @@ struct MobileEditorToolbarTests {
     var showsActions = false
     var title = "Example"
     var saveCount = 0
+    var cancelCount = 0
     var pendingSave: CheckedContinuation<Void, Never>?
 
     func finishSave() {
@@ -231,6 +251,7 @@ private struct EditorHost: View {
                             id: "delete", title: "Delete", systemImage: "trash", role: .destructive,
                             startsGroup: true, perform: {}),
                     ] : [],
+                onCancel: { state.cancelCount += 1 },
                 save: {
                     state.saveCount += 1
                     await withCheckedContinuation { state.pendingSave = $0 }
