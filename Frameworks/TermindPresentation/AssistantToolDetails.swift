@@ -70,7 +70,7 @@ public struct AssistantToolDetails: View {
                 HStack {
                     Text(AppStrings.Assistant.outputShortenedForDisplay).font(.caption2).foregroundStyle(.secondary)
                     if let copy {
-                        Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(preview.full) }
+                        AssistantCopyButton(text: preview.full, copy: copy)
                             .font(.caption).frame(minHeight: 44)
                     }
                 }

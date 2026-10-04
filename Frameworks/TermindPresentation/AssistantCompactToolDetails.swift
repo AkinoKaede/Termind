@@ -36,7 +36,7 @@ public struct AssistantCompactToolDetails: View {
                         expanded ? AppStrings.Assistant.showLess.swiftUIKey : AppStrings.Assistant.showMore.swiftUIKey
                     ) { expanded.toggle() }
                     .accessibilityIdentifier("AssistantTool.More")
-                    Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(preview.fullText) }
+                    AssistantCopyButton(text: preview.fullText, copy: copy)
                         .accessibilityIdentifier("AssistantTool.Copy")
                 }
                 .font(.caption)

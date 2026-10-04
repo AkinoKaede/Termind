@@ -681,8 +681,8 @@ struct MobileAssistantConversation: View {
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
-                    UIPasteboard.general.string = failure.reason
+                AssistantCopyButton(text: failure.reason) {
+                    UIPasteboard.general.string = $0
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.plain)
@@ -809,9 +809,13 @@ struct MobileAssistantConversation: View {
                 }
             }
 
-            messageAction(AppStrings.Common.copy, systemImage: "doc.on.doc") {
-                UIPasteboard.general.string = message.text
+            AssistantCopyButton(text: message.text, minimumLabelSize: 44) {
+                UIPasteboard.general.string = $0
             }
+            .font(.caption)
+            .labelStyle(.iconOnly)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
 
             if let origin = message.origin {
                 let presentation = MobileAssistantAgentOriginPresentation(

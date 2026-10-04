@@ -2814,7 +2814,25 @@ private class NativeButton: NSButton {
 }
 
 @MainActor
+private final class NativeCopyButtonCell: NSButtonCell {
+    // The image view draws the symbol so it can use the system replacement transition.
+    // Retain the cell's image and metrics for the existing button layout.
+    override func drawImage(_ image: NSImage, withFrame frame: NSRect, in controlView: NSView) {}
+}
+
+@MainActor
+private final class NativeCopySymbolView: NSImageView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+@MainActor
 private final class NativeCopyButton: NativeButton {
+    override class var cellClass: AnyClass? {
+        get { NativeCopyButtonCell.self }
+        set {}
+    }
+
+    private let symbolView = NativeCopySymbolView()
     private let copiedImage = NSImage(
         systemSymbolName: "checkmark",
         accessibilityDescription: String(localized: AppStrings.Common.copied)
@@ -2831,16 +2849,28 @@ private final class NativeCopyButton: NativeButton {
         image = copyImage
         imagePosition = .imageOnly
         toolTip = help
+        setAccessibilityLabel(help)
         widthAnchor.constraint(equalToConstant: 28).isActive = true
         heightAnchor.constraint(equalToConstant: 28).isActive = true
+        symbolView.image = copyImage
+        symbolView.imageScaling = .scaleNone
+        symbolView.symbolConfiguration = NSImage.SymbolConfiguration(
+            pointSize: NSFont.systemFontSize(for: controlSize),
+            weight: .regular
+        )
+        symbolView.setAccessibilityElement(false)
+        addSubview(symbolView)
         handler = { [weak self] in
             guard copyToPasteboard(text), let self else { return }
-            image = copiedImage
+            showSymbol(copiedImage)
             toolTip = String(localized: AppStrings.Common.copied)
+            setAccessibilityValue(toolTip)
             resetWorkItem?.cancel()
             let work = DispatchWorkItem { [weak self] in
-                self?.image = self?.copyImage
-                self?.toolTip = String(localized: AppStrings.Common.copy)
+                guard let self else { return }
+                showSymbol(copyImage)
+                toolTip = String(localized: AppStrings.Common.copy)
+                setAccessibilityValue(nil)
             }
             resetWorkItem = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4, execute: work)
@@ -2848,4 +2878,18 @@ private final class NativeCopyButton: NativeButton {
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        symbolView.frame = bounds
+    }
+
+    private func showSymbol(_ image: NSImage?) {
+        guard let image, symbolView.image !== image else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            symbolView.image = image
+        } else {
+            symbolView.setSymbolImage(image, contentTransition: .replace)
+        }
+    }
 }
