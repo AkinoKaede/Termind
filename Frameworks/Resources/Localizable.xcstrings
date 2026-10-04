@@ -10856,29 +10856,6 @@
         }
       }
     },
-    "Enable Shell Integration to add commands to this session’s history in real time." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable Shell Integration to add commands to this session’s history in real time."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "启用Shell集成以实时添加当前会话的命令历史。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "啟用Shell整合以即時加入目前工作階段的指令歷史。"
-          }
-        }
-      }
-    },
     "Enable Web Search" : {
       "extractionState" : "manual",
       "localizations" : {

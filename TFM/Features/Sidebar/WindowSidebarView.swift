@@ -831,31 +831,6 @@ private struct SSHCommandHistorySidebar: View {
                 }
             }
 
-            if sshSession?.status.isLive == true,
-                sshSession?.shellIntegrationAvailable == false
-            {
-                // Bounded by a line limit rather than by `fixedSize`.
-                //
-                // `fixedSize(horizontal: false, vertical: true)` makes this
-                // sentence report whatever height it needs at whatever width it
-                // is asked about — and SwiftUI asks about very narrow ones while
-                // sizing the column. Ninety characters at a probe width wrap
-                // into a paragraph, the split view adopts that as the height it
-                // must offer, and *both* columns get proposed it: measured as
-                // the detail column being handed 912x1125 instead of 912x688,
-                // which is what threw the connection journey upward. It only
-                // ever happened in History because this is the one sidebar mode
-                // with a child that demands height, and it appears exactly when
-                // `status.isLive` flips — the instant a connection succeeds.
-                Text(AppStrings.Terminal.commandHistoryRequirement)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.Space.m)
-                    .padding(.vertical, Metrics.Space.s)
-            }
-
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(

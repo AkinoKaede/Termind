@@ -185,10 +185,6 @@ extension AppStrings {
             "Write serial port"
         }
 
-        public static var commandHistoryRequirement: LocalizedStringResource {
-            "Enable Shell Integration to add commands to this session’s history in real time."
-        }
-
         public static var commandsConfirmedByTheRemoteShellAppearHere: LocalizedStringResource {
             "Shell history and commands from this session appear here."
         }
