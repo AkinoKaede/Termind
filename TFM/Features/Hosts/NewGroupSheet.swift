@@ -18,11 +18,15 @@ struct NewGroupSheet: View {
     var requestedBack: (() -> Void)?
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
 
     @State private var editor: TailscaleGroupEditor?
     @State private var saveError: String?
     @State private var saveTask: Task<Void, Never>?
+    @State private var confirmsDiscard = false
+    @State private var confirmsDeletion = false
 
     init(
         group: HostGroup? = nil,
@@ -51,7 +55,7 @@ struct NewGroupSheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: isEditing ? AppStrings.Vault.editGroup : AppStrings.Vault.newGroup,
-            symbol: "folder.fill", close: close,
+            symbol: "folder.fill", close: cancelEditing,
             closeLabel: requestedClose == nil ? AppStrings.Common.back : AppStrings.Common.close,
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
         ) {
@@ -64,7 +68,28 @@ struct NewGroupSheet: View {
             saveTask?.cancel()
             editor?.cancel()
         }
-
+        .confirmationDialog(
+            AppStrings.Common.discardChangesConfirmation, isPresented: $confirmsDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        }
+        .confirmationDialog(
+            AppStrings.Common.deleteNamedConfirmation(group?.name ?? ""), isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Vault.deleteGroupAndHosts.swiftUIKey, role: .destructive) { delete(keepHosts: false) }
+            Button(AppStrings.Vault.keepHosts.swiftUIKey) { delete(keepHosts: true) }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        } message: {
+            if let group {
+                Text(
+                    AppStrings.Vault.groupDeletionMessage(
+                        hostCount: app.hostLibrary.hosts(inTreeOf: group.id).count,
+                        nestedGroupCount: app.hostLibrary.descendantGroups(of: group.id).count, locale: locale))
+            }
+        }
     }
 
     // MARK: - Pieces
@@ -99,9 +124,13 @@ struct NewGroupSheet: View {
 
     private var footer: some View {
         HStack {
+            if isEditing {
+                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
+                    .disabled(editor?.isSaving == true)
+            }
             Spacer()
 
-            Button(AppStrings.Common.cancel.swiftUIKey, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing)
                 .keyboardShortcut(.cancelAction)
                 .disabled(editor?.isSaving == true)
 
@@ -116,6 +145,26 @@ struct NewGroupSheet: View {
         guard editor?.isSaving != true else { return }
         editor?.cancel()
         if let requestedBack { requestedBack() } else if let requestedClose { requestedClose() } else { dismiss() }
+    }
+
+    private func cancelEditing() {
+        guard editor?.isSaving != true else { return }
+        if editor?.isDirty == true {
+            confirmsDiscard = true
+        } else {
+            close()
+        }
+    }
+
+    private func delete(keepHosts: Bool) {
+        guard let group, editor?.isSaving != true else { return }
+        app.deleteHostGroup(group.id, keepHosts: keepHosts)
+        window.pruneVaultSelections(in: app.hostLibrary)
+        guard app.hostLibrary.group(group.id) == nil else {
+            saveError = app.hostLibrary.storageError
+            return
+        }
+        close()
     }
 
     private func load() {
@@ -139,4 +188,5 @@ struct NewGroupSheet: View {
 #Preview {
     NewGroupSheet(create: { _ in })
         .environment(AppModel(hosts: .demo()))
+        .environment(WindowModel())
 }

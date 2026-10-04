@@ -868,13 +868,18 @@ struct SnippetTargetPickerView: View {
 
 struct SnippetPackageSheet: View {
     let existing: SnippetPackage?
+    let initialParentID: SnippetPackage.ID?
     let save: (SnippetPackage) -> Void
     var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
     @State private var parentID: SnippetPackage.ID?
+    @State private var confirmsDiscard = false
+    @State private var confirmsDeletion = false
+    @State private var deleteError: String?
 
     init(
         package: SnippetPackage? = nil, parentID: SnippetPackage.ID? = nil,
@@ -882,6 +887,7 @@ struct SnippetPackageSheet: View {
         close: (() -> Void)? = nil
     ) {
         existing = package
+        initialParentID = package?.parentID ?? parentID
         self.save = save
         requestedClose = close
         _name = State(initialValue: package?.name ?? "")
@@ -891,7 +897,7 @@ struct SnippetPackageSheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: existing == nil ? AppStrings.Snippets.newPackage : AppStrings.Snippets.editPackage,
-            symbol: "folder.fill", close: close
+            symbol: "folder.fill", close: cancelEditing
         ) {
             Form {
                 TextField(AppStrings.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
@@ -906,8 +912,11 @@ struct SnippetPackageSheet: View {
             .formStyle(.grouped)
         } footer: {
             HStack {
+                if existing != nil {
+                    Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
+                }
                 Spacer()
-                Button(AppStrings.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing).keyboardShortcut(.cancelAction)
                 Button(
                     existing == nil ? AppStrings.Common.add.swiftUIKey : AppStrings.Common.save.swiftUIKey,
                     action: commit
@@ -917,12 +926,62 @@ struct SnippetPackageSheet: View {
             }
             .padding(Metrics.Space.l)
         }
+        .confirmationDialog(
+            AppStrings.Common.discardChangesConfirmation, isPresented: $confirmsDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        }
+        .confirmationDialog(
+            AppStrings.Common.deleteNamedConfirmation(existing?.name ?? ""), isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Snippets.deletePackageAndSnippets.swiftUIKey, role: .destructive) {
+                delete(keepSnippets: false)
+            }
+            Button(AppStrings.Snippets.keepSnippets.swiftUIKey) { delete(keepSnippets: true) }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        } message: {
+            if let existing {
+                let packages = Set([existing.id] + app.snippets.descendantSnippetPackages(of: existing.id).map(\.id))
+                let count = app.snippets.snippets.filter { $0.packageID.map(packages.contains) == true }.count
+                Text(AppStrings.Snippets.packageDeletionMessage(snippetCount: count))
+            }
+        }
+        .alert(
+            AppStrings.Common.unableToDelete,
+            isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })
+        ) {
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { deleteError = nil }
+        } message: {
+            Text(deleteError ?? "")
+        }
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    private var isDirty: Bool {
+        name != (existing?.name ?? "") || parentID != initialParentID
+    }
+
+    private func cancelEditing() {
+        if isDirty { confirmsDiscard = true } else { close() }
+    }
+
     private func close() {
         if let requestedClose { requestedClose() } else { dismiss() }
+    }
+
+    private func delete(keepSnippets: Bool) {
+        guard let existing else { return }
+        app.snippets.delete(snippetPackageID: existing.id, keepSnippets: keepSnippets)
+        window.pruneVaultSelections(in: app.snippets)
+        if let error = app.hostLibrary.storageError {
+            deleteError = error
+            return
+        }
+        close()
     }
 
     private var parentChoices: [(package: SnippetPackage, path: String)] {
