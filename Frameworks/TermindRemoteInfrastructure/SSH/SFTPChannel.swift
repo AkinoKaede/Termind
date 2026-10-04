@@ -28,17 +28,22 @@ nonisolated final class SFTPChannelDriver: @unchecked Sendable {
     typealias RawOperation = @Sendable (OpaquePointer, OpaquePointer) throws -> SFTPChannelAnyAttempt
 
     let identity: UUID
+    // External channels (including siblings and asynchronous deinit close tasks) keep
+    // the transport owner alive. The owner never retains its drivers, so this is acyclic.
+    private let connectionOwner: (any AnyObject & Sendable)?
     private let openAction: @Sendable () async throws -> UUID
     private let closeAction: @Sendable (UUID) async -> Void
     private let performAction: @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
 
     init(
         identity: UUID,
+        retaining connectionOwner: (any AnyObject & Sendable)? = nil,
         open: @escaping @Sendable () async throws -> UUID,
         close: @escaping @Sendable (UUID) async -> Void,
         perform: @escaping @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
     ) {
         self.identity = identity
+        self.connectionOwner = connectionOwner
         openAction = open
         closeAction = close
         performAction = perform

@@ -44,9 +44,12 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
         self.didCloseLastChannel = didCloseLastChannel
     }
 
-    func openChannel() async throws -> any SFTPChannelProtocol {
+    func openChannel(retaining connectionOwner: (any AnyObject & Sendable)? = nil) async throws
+        -> any SFTPChannelProtocol
+    {
         let driver = SFTPChannelDriver(
             identity: identity,
+            retaining: connectionOwner,
             open: { [weak self] in
                 guard let self else { throw SFTPError.notConnected }
                 return try await self.createChannel()

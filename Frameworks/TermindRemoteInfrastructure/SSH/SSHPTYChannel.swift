@@ -810,7 +810,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
 
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.pty-channel")
+    private let queue: DispatchQueue
+    private let queueKey = DispatchSpecificKey<Void>()
     private let output: SSHPTYChannel.OutputHandler
     private let exit: SSHPTYChannel.ExitHandler
     private let shellIntegrationHandler: SSHPTYChannel.ShellIntegrationHandler
@@ -844,9 +845,12 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         exit: @escaping SSHPTYChannel.ExitHandler,
         shellIntegrationHandler: @escaping SSHPTYChannel.ShellIntegrationHandler,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy(),
+        queue: DispatchQueue = DispatchQueue(label: "com.akinokaede.termind.ssh.pty-channel")
     ) {
         _ = Self.initialization
+        self.queue = queue
+        queue.setSpecific(key: queueKey, value: ())
         self.output = output
         self.exit = exit
         self.shellIntegrationHandler = shellIntegrationHandler
@@ -888,9 +892,19 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
             },
             didCloseLastChannel: { [weak self] in
-                guard let self, self.ptyChannel == nil, self.execChannelOwner.isEmptyOnQueue else { return }
+                guard let self, self.ptyChannel == nil else { return }
                 self.cleanup()
             })
+    }
+
+    deinit {
+        // The final owner can disappear on either the app executor or a pump callback.
+        // Retire socket sources before releasing their connection, without reentering the queue.
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            cleanup()
+        } else {
+            queue.sync { cleanup() }
+        }
     }
 
     /// Opens a byte transport, handshakes, validates the host key, and authenticates —
@@ -1836,7 +1850,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             ptyChannelLease?.release()
             ptyChannelLease = nil
         }
-        if sftpChannelOwner.isEmptyOnQueue, execChannelOwner.isEmptyOnQueue {
+        // Cancelled exec callers may already have returned while native close still waits
+        // for the peer. Only live SFTP channels justify keeping this transport running.
+        if sftpChannelOwner.isEmptyOnQueue {
             cleanup()
         } else {
             queue.async { [weak self] in self?.pump() }
@@ -2048,7 +2064,7 @@ nonisolated extension SSHPTYChannelWorker {
     }
 
     fileprivate func openSFTPChannel() async throws -> any SFTPChannelProtocol {
-        try await sftpChannelOwner.openChannel()
+        try await sftpChannelOwner.openChannel(retaining: self)
     }
 
     private func updateSharedConnectionEvents(session: OpaquePointer, buffer: SSHConnectionBuffer) {
