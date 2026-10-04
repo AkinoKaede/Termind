@@ -6,20 +6,33 @@ public struct TailscaleExitNodeField: View {
 
     public init(editor: TailscaleGroupEditor) { self.editor = editor }
 
+    // Recheck live candidates when the menu commits, including while a menu is already open.
+    var selection: Binding<String> {
+        Binding(
+            get: { editor.exitNodeID },
+            set: { value in
+                guard !editor.isSaving,
+                    value.isEmpty || editor.candidates.contains(where: { $0.stableID == value && $0.online })
+                else { return }
+                editor.exitNodeID = value
+            })
+    }
+
     public var body: some View {
         let candidates = editor.candidates
-        Picker(AppStrings.Tailscale.exitNode.swiftUIKey, selection: $editor.exitNodeID) {
+        Picker(AppStrings.Tailscale.exitNode.swiftUIKey, selection: selection) {
             Text(AppStrings.Settings.disabled).tag("")
             ForEach(candidates, id: \.stableID) { peer in
                 HStack {
-                    Image(systemName: "circle.fill").foregroundStyle(peer.online ? .green : .secondary)
                     Text(verbatim: peer.name)
-                    if !peer.online { Text(AppStrings.Tailscale.offline).foregroundStyle(.secondary) }
-                }.tag(peer.stableID)
+                    if !peer.online { Text(AppStrings.Tailscale.offline) }
+                }.tag(peer.stableID).disabled(!peer.online)
             }
             if !editor.exitNodeID.isEmpty, !candidates.contains(where: { $0.stableID == editor.exitNodeID }) {
-                Text(AppStrings.Tailscale.selectedExitNodeUnavailable).tag(editor.exitNodeID)
+                Text(AppStrings.Tailscale.selectedExitNodeUnavailable).tag(editor.exitNodeID).disabled(true)
             }
         }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("tailscale.exitNode")
     }
 }

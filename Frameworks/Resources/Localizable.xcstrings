@@ -6386,6 +6386,23 @@
         }
       }
     },
+    "Complete sign-in in your browser." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在浏览器中完成登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在瀏覽器中完成登入。"
+          }
+        }
+      }
+    },
     "Completed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7255,19 +7272,19 @@
         }
       }
     },
-    "Controlplane URL" : {
+    "Control URL" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "控制平面URL"
+            "value" : "控制URL"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "控制平面URL"
+            "value" : "控制URL"
           }
         }
       }
@@ -7659,6 +7676,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選取後自動複製"
+          }
+        }
+      }
+    },
+    "Copy the full value." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制完整内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製完整內容。"
           }
         }
       }
@@ -15745,7 +15779,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出登录"
+            "value" : "登出"
           }
         },
         "zh-Hant" : {
@@ -24659,6 +24693,23 @@
         }
       }
     },
+    "Save to log out on this device." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存以在此设备上登出。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存以在此裝置上登出。"
+          }
+        }
+      }
+    },
     "Saved" : {
       "comment" : "A label displayed next to a saved target.",
       "extractionState" : "manual",
@@ -26316,6 +26367,40 @@
         }
       }
     },
+    "Signed in. Save to use this Tailnet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录。保存以使用此Tailnet。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登入。儲存以使用此Tailnet。"
+          }
+        }
+      }
+    },
+    "Signing in…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在登录…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在登入…"
+          }
+        }
+      }
+    },
     "Size" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27675,6 +27760,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tailscale"
+          }
+        }
+      }
+    },
+    "Tailscale Addresses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tailscale位址"
           }
         }
       }

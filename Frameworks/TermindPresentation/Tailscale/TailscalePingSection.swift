@@ -22,7 +22,7 @@ struct TailscalePingSection: View {
     var body: some View {
         Section {
             if let result {
-                HStack {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
                     connectionLabel(result.route)
                         .foregroundStyle(routeColor)
                     Spacer()
@@ -32,11 +32,17 @@ struct TailscalePingSection: View {
                 }
                 switch result.route {
                 case .direct(let endpoint):
-                    LabeledContent(AppStrings.Tailscale.endpoint.swiftUIKey, value: endpoint)
+                    TailscaleFormRow(label: AppStrings.Tailscale.endpoint) {
+                        Text(verbatim: endpoint).textSelection(.enabled)
+                    }
                 case .peerRelay(let relay):
-                    LabeledContent(AppStrings.Tailscale.peerRelay.swiftUIKey, value: relay)
+                    TailscaleFormRow(label: AppStrings.Tailscale.peerRelay) {
+                        Text(verbatim: relay).textSelection(.enabled)
+                    }
                 case .derp(let region):
-                    LabeledContent(AppStrings.Tailscale.derpRegion.swiftUIKey, value: region)
+                    TailscaleFormRow(label: AppStrings.Tailscale.derpRegion) {
+                        Text(verbatim: region).textSelection(.enabled)
+                    }
                 case .unknown: EmptyView()
                 }
                 if pinging { latencyChart }
@@ -59,7 +65,7 @@ struct TailscalePingSection: View {
                     pinging.toggle()
                 } label: {
                     Image(systemName: pinging ? "stop.fill" : "play.fill")
-                        .frame(width: 28, height: 28)
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)

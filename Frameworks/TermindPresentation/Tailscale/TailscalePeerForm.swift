@@ -23,37 +23,44 @@ public struct TailscalePeerForm: View {
     public var body: some View {
         Form {
             if let peer = model.peer(for: host) {
-                Section {
-                    TailscaleCopyField(label: AppStrings.Vault.hostname, value: peer.name, copy: copy)
+                Section(AppStrings.Tailscale.status.swiftUIKey) {
+                    TailscaleFormRow(label: AppStrings.Tailscale.status) {
+                        Text(peer.online ? AppStrings.Tailscale.online : AppStrings.Tailscale.offline)
+                    }
+                }
+                Section(AppStrings.Tailscale.addresses.swiftUIKey) {
                     TailscaleCopyField(label: AppStrings.Tailscale.magicDNS, value: peer.dnsName, copy: copy)
+                    TailscaleCopyField(label: AppStrings.Vault.hostname, value: peer.name, copy: copy)
                     ForEach(peer.details?.addresses ?? [], id: \.self) { address in
                         TailscaleCopyField(
                             label: address.contains(":") ? AppStrings.Tailscale.ipv6 : AppStrings.Tailscale.ipv4,
                             value: address, copy: copy)
                     }
-                    LabeledContent(AppStrings.Tailscale.status.swiftUIKey) {
-                        Text(peer.online ? AppStrings.Tailscale.online : AppStrings.Tailscale.offline)
-                    }
-                    if let details = peer.details {
-                        LabeledContent(
-                            AppStrings.Tailscale.operatingSystem.swiftUIKey, value: details.operatingSystem)
-                        LabeledContent(AppStrings.Tailscale.keyExpiry.swiftUIKey) {
+                }
+                TailscalePingSection(
+                    pinging: $pinging, result: result, error: error, history: latencyHistory,
+                    isAvailable: model.canPing(host))
+                if let details = peer.details {
+                    Section(AppStrings.Tailscale.details.swiftUIKey) {
+                        TailscaleFormRow(label: AppStrings.Tailscale.keyExpiry, symbol: "key") {
                             if let expiry = details.keyExpiry {
                                 Text(expiry, format: .dateTime)
                             } else {
-                                Text(AppStrings.Settings.disabled)
+                                Text(AppStrings.Settings.disabled).foregroundStyle(.secondary)
+                            }
+                        }
+                        if !details.operatingSystem.isEmpty {
+                            TailscaleFormRow(label: AppStrings.Tailscale.operatingSystem, symbol: "desktopcomputer") {
+                                Text(verbatim: details.operatingSystem)
                             }
                         }
                         if !peer.online, let lastSeen = details.lastSeen {
-                            LabeledContent(AppStrings.Tailscale.lastSeen.swiftUIKey) {
+                            TailscaleFormRow(label: AppStrings.Tailscale.lastSeen, symbol: "clock") {
                                 Text(lastSeen, format: .dateTime)
                             }
                         }
                     }
                 }
-                TailscalePingSection(
-                    pinging: $pinging, result: result, error: error, history: latencyHistory,
-                    isAvailable: model.canPing(host))
             } else {
                 Text(AppStrings.Tailscale.unavailable)
             }

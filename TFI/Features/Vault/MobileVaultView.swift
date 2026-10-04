@@ -891,13 +891,15 @@ struct MobileHostGroupEditor: View {
             isDirty: editor.isDirty, canSave: editor.canSave, compact: true,
             save: save
         ) {
-            TextField(AppStrings.Common.name.swiftUIKey, text: $editor.draft.name.singleLineText, axis: .horizontal)
-                .singleLinePaste()
-                .lineLimit(1)
-            Picker(AppStrings.Common.inside.swiftUIKey, selection: $editor.draft.parentID) {
-                Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
-                ForEach(parentChoices, id: \.group.id) { choice in
-                    Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
+            Section {
+                TextField(AppStrings.Common.name.swiftUIKey, text: $editor.draft.name.singleLineText, axis: .horizontal)
+                    .singleLinePaste()
+                    .lineLimit(1)
+                Picker(AppStrings.Common.inside.swiftUIKey, selection: $editor.draft.parentID) {
+                    Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
+                    ForEach(parentChoices, id: \.group.id) { choice in
+                        Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
+                    }
                 }
             }
             TailscaleGroupFields(editor: editor, requireAccess: { app.pro.require(.tailscale) }) { value in

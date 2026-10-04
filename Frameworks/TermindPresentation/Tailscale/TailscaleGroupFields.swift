@@ -16,32 +16,71 @@ public struct TailscaleGroupFields: View {
     }
 
     public var body: some View {
-        Section(AppStrings.Tailscale.title.swiftUIKey) {
-            if editor.canChangeEnabled {
-                Toggle(
-                    AppStrings.Common.enabled.swiftUIKey,
-                    isOn: Binding(
-                        get: { editor.enabled },
-                        set: { value in if !value || requireAccess() { editor.setEnabled(value) } })
-                )
+        Group {
+            Section {
+                if editor.canChangeEnabled {
+                    Toggle(
+                        AppStrings.Common.enabled.swiftUIKey,
+                        isOn: Binding(
+                            get: { editor.enabled },
+                            set: { value in if !value || requireAccess() { editor.setEnabled(value) } })
+                    )
+                } else {
+                    TailscaleFormRow(label: AppStrings.Tailscale.status) {
+                        Text(AppStrings.Connections.connected)
+                    }
+                }
+            } header: {
+                Text(AppStrings.Tailscale.title)
+            } footer: {
+                if editor.pending != nil {
+                    Text(AppStrings.Tailscale.loginPendingSave)
+                } else if editor.isLogoutPending {
+                    Text(AppStrings.Tailscale.logoutPendingSave)
+                }
             }
             if editor.enabled {
                 if editor.isConnected {
-                    if let network = editor.network {
-                        LabeledContent(AppStrings.Tailscale.network.swiftUIKey, value: network.dnsSuffix)
+                    Section {
+                        if let network = editor.network {
+                            TailscaleCopyField(
+                                label: AppStrings.Tailscale.network, value: network.dnsSuffix, copy: copy)
+                        }
+                        TailscaleHostnameField(editor: editor)
+                        TailscaleExitNodeField(editor: editor)
+                        Button(role: .destructive) {
+                            editor.logout()
+                        } label: {
+                            Label(
+                                AppStrings.Tailscale.logout.swiftUIKey,
+                                systemImage: "rectangle.portrait.and.arrow.right"
+                            )
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    TailscaleExitNodeField(editor: editor)
                     TailscaleDeviceFields(editor: editor, copy: copy)
+                    if let error = editor.model.error {
+                        Section { errorText(error) }
+                    }
                 } else {
-                    TailscaleLoginFields(editor: editor, requireAccess: requireAccess)
+                    Section {
+                        TailscaleLoginFields(editor: editor, requireAccess: requireAccess)
+                        if let error = editor.model.error { errorText(error) }
+                    }
                 }
+            } else if let error = editor.model.error {
+                Section { errorText(error) }
             }
-            if editor.enabled && editor.isConnected {
-                Button(AppStrings.Tailscale.logout.swiftUIKey, role: .destructive) { editor.logout() }
-            }
-            if let error = editor.model.error { Text(error).foregroundStyle(.red).font(.caption) }
         }
         .disabled(editor.isSaving)
         .onChange(of: editor.pending?.id) { _, _ in editor.receiveLogin() }
+    }
+
+    private func errorText(_ error: String) -> some View {
+        Text(error).foregroundStyle(.red).font(.callout)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

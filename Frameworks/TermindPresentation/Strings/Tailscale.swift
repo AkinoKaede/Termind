@@ -2,6 +2,14 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Tailscale {
+        public static var advanced: LocalizedStringResource { "Advanced" }
+        public static var addresses: LocalizedStringResource { "Tailscale Addresses" }
+        public static var details: LocalizedStringResource { "Details" }
+        public static var copyValue: LocalizedStringResource { "Copy the full value." }
+        public static var signingIn: LocalizedStringResource { "Signing in…" }
+        public static var waitingForLogin: LocalizedStringResource { "Complete sign-in in your browser." }
+        public static var loginPendingSave: LocalizedStringResource { "Signed in. Save to use this Tailnet." }
+        public static var logoutPendingSave: LocalizedStringResource { "Save to log out on this device." }
         public static var ping: LocalizedStringResource { "Ping" }
         public static var stopPing: LocalizedStringResource { "Stop Ping" }
         public static var status: LocalizedStringResource { "Status" }
@@ -28,7 +36,7 @@ extension AppStrings {
         public static var login: LocalizedStringResource { "Login" }
         public static var interactive: LocalizedStringResource { "Interactive Login" }
         public static var authKey: LocalizedStringResource { "Auth Key" }
-        public static var controlURL: LocalizedStringResource { "Controlplane URL" }
+        public static var controlURL: LocalizedStringResource { "Control URL" }
         public static var openLogin: LocalizedStringResource { "Open login page" }
         public static var networkName: LocalizedStringResource { "Network" }
         public static var magicDNS: LocalizedStringResource { "MagicDNS" }
