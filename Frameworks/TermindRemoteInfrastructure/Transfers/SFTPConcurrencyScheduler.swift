@@ -38,13 +38,7 @@ public actor SFTPConcurrencyScheduler {
         var hostIDs: Set<UUID>
         var source: SFTPWorkSource
         var byteCount: Int64?
-        var exclusiveResourceIDs: Set<UUID>
         var continuation: CheckedContinuation<SFTPConcurrencyPermit, any Error>
-    }
-
-    private struct ActiveRequest {
-        var hostIDs: Set<UUID>
-        var exclusiveResourceIDs: Set<UUID>
     }
 
     private var preferences: SFTPPreferences
@@ -54,9 +48,8 @@ public actor SFTPConcurrencyScheduler {
     private var sourceOrder: [UUID: [SFTPWorkSource]] = [:]
     private var lastGrantedHost: UUID?
     private var lastGrantedSource: [UUID: SFTPWorkSource] = [:]
-    private var active: [UUID: ActiveRequest] = [:]
+    private var active: [UUID: Set<UUID>] = [:]
     private var activePerHost: [UUID: Int] = [:]
-    private var activeExclusiveResources: Set<UUID> = []
 
     public init(preferences: SFTPPreferences = SFTPPreferences()) {
         self.preferences = preferences.normalized
@@ -71,8 +64,7 @@ public actor SFTPConcurrencyScheduler {
         anchorHostID: UUID,
         hostIDs: Set<UUID>,
         source: SFTPWorkSource,
-        byteCount: Int64?,
-        exclusiveResourceIDs: Set<UUID> = []
+        byteCount: Int64?
     ) async throws -> SFTPConcurrencyPermit {
         try Task.checkCancellation()
         let id = UUID()
@@ -85,7 +77,6 @@ public actor SFTPConcurrencyScheduler {
                     hostIDs: normalizedHosts,
                     source: source,
                     byteCount: byteCount,
-                    exclusiveResourceIDs: exclusiveResourceIDs,
                     continuation: continuation
                 )
                 requests[id] = request
@@ -121,12 +112,11 @@ public actor SFTPConcurrencyScheduler {
     }
 
     private func release(_ id: UUID) {
-        guard let request = active.removeValue(forKey: id) else { return }
-        for hostID in request.hostIDs {
+        guard let hostIDs = active.removeValue(forKey: id) else { return }
+        for hostID in hostIDs {
             let remaining = max(0, activePerHost[hostID, default: 1] - 1)
             activePerHost[hostID] = remaining == 0 ? nil : remaining
         }
-        activeExclusiveResources.subtract(request.exclusiveResourceIDs)
         drain()
     }
 
@@ -135,11 +125,8 @@ public actor SFTPConcurrencyScheduler {
             requests[request.id] = nil
             removeQueuedID(request.id, request: request)
             let permitID = UUID()
-            active[permitID] = ActiveRequest(
-                hostIDs: request.hostIDs,
-                exclusiveResourceIDs: request.exclusiveResourceIDs)
+            active[permitID] = request.hostIDs
             for hostID in request.hostIDs { activePerHost[hostID, default: 0] += 1 }
-            activeExclusiveResources.formUnion(request.exclusiveResourceIDs)
             lastGrantedHost = request.anchorHostID
             lastGrantedSource[request.anchorHostID] = request.source
             let mode = schedulingMode(byteCount: request.byteCount)
@@ -159,7 +146,6 @@ public actor SFTPConcurrencyScheduler {
                 guard let id = hostQueues[source]?.first, let request = requests[id] else { continue }
                 guard request.hostIDs.allSatisfy({ activePerHost[$0, default: 0] < preferences.perHostLimit })
                 else { continue }
-                guard request.exclusiveResourceIDs.isDisjoint(with: activeExclusiveResources) else { continue }
                 return request
             }
         }
@@ -202,7 +188,7 @@ public actor SFTPConcurrencyScheduler {
                 queues[hostID] = hostQueues
             }
         }
-        let activeHosts = Set(active.values.flatMap(\.hostIDs))
+        let activeHosts = Set(active.values.flatMap { $0 })
         for hostID in Array(lastGrantedSource.keys)
         where queues[hostID] == nil && !activeHosts.contains(hostID) {
             lastGrantedSource[hostID] = nil

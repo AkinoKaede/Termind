@@ -13,7 +13,6 @@ struct TailscaleSessionRoutingTests {
         var group = HostGroup(name: "Tailnet")
         group.tailscale = TailscaleGroupConfiguration(network: network)
         let library = HostLibraryModel(groups: [group])
-        let transfers = TransferLibraryModel(library: library)
         let provider = RoutingProvider()
         library.tailscaleConnections = provider
         library.replaceTailscalePeers(
@@ -31,7 +30,7 @@ struct TailscaleSessionRoutingTests {
             files?.disconnect()
         }
         terminal?.connect(using: library)
-        files?.connect(using: transfers)
+        files?.connect(using: library)
         #expect(terminal?.pendingAuthentication == nil)
         #expect(files?.pendingAuthentication == nil)
         for _ in 0..<200 {
@@ -47,7 +46,6 @@ struct TailscaleSessionRoutingTests {
         var group = HostGroup(name: "Tailnet")
         group.tailscale = TailscaleGroupConfiguration(network: network)
         let library = HostLibraryModel(groups: [group])
-        let transfers = TransferLibraryModel(library: library)
         let provider = RoutingProvider()
         library.tailscaleConnections = provider
         library.replaceTailscalePeers(
@@ -64,7 +62,7 @@ struct TailscaleSessionRoutingTests {
             files?.disconnect()
         }
         terminal?.connect(using: library)
-        files?.connect(using: transfers)
+        files?.connect(using: library)
         let prompt = try #require(terminal?.pendingAuthentication ?? files?.pendingAuthentication)
         #expect(prompt.usernameOnly && prompt.username == "root")
         terminal?.continueAuthentication(
@@ -72,7 +70,7 @@ struct TailscaleSessionRoutingTests {
             keyID: nil, save: true, using: library)
         files?.continueAuthentication(
             identityID: nil, username: "operator", password: nil, passphrase: nil,
-            keyID: nil, save: true, using: transfers)
+            keyID: nil, save: true, using: library)
         for _ in 0..<200 {
             if await provider.dialer.openedHost != nil { break }
             try await Task.sleep(for: .milliseconds(10))

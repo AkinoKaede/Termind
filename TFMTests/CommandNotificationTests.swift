@@ -16,7 +16,8 @@ struct CommandNotificationTests {
         app.registerWindow(window)
         let conversation = ConversationModel()
         conversation.composer.draft = "Target"
-        _ = try #require(window.assistantLibrary.startConversation(conversation))
+        conversation.sendDraft()
+        window.assistantLibrary.insertAndSelect(conversation)
         let workspace = Workspace(pane: Pane(.empty))
         workspace.splitFocusedPane(axis: .horizontal, with: Pane(.empty))
         window.open(workspace)
@@ -30,7 +31,8 @@ struct CommandNotificationTests {
         case "peer":
             let peer = ConversationModel()
             peer.composer.draft = "Other conversation"
-            _ = try #require(window.assistantLibrary.startConversation(peer))
+            peer.sendDraft()
+            window.assistantLibrary.insertAndSelect(peer)
         case "archive": window.showAssistantArchiveInSidebar()
         default: break
         }
@@ -55,7 +57,8 @@ struct CommandNotificationTests {
         for window in windows { app.registerWindow(window) }
         let conversation = ConversationModel()
         conversation.composer.draft = "Target"
-        _ = try #require(windows[0].assistantLibrary.startConversation(conversation))
+        conversation.sendDraft()
+        windows[0].assistantLibrary.insertAndSelect(conversation)
         for window in windows {
             window.openAssistantFullScreen(conversation.id)
             if !visible { window.selectVault() }
@@ -79,7 +82,8 @@ struct CommandNotificationTests {
         app.registerWindow(other)
         let conversation = ConversationModel()
         conversation.composer.draft = "Target"
-        _ = try #require(owner.assistantLibrary.startConversation(conversation))
+        conversation.sendDraft()
+        owner.assistantLibrary.insertAndSelect(conversation)
         owner.openAssistantFullScreen(conversation.id)
         let workspace = Workspace(pane: Pane(.empty))
         owner.open(workspace)
@@ -105,8 +109,10 @@ struct CommandNotificationTests {
         let second = ConversationModel()
         first.composer.draft = "First"
         second.composer.draft = "Second"
-        _ = try #require(window.assistantLibrary.startConversation(first))
-        _ = try #require(window.assistantLibrary.startConversation(second))
+        first.sendDraft()
+        window.assistantLibrary.insertAndSelect(first)
+        second.sendDraft()
+        window.assistantLibrary.insertAndSelect(second)
         let activations = AsyncStream<Void>.makeStream()
         var count = 0
         let router = DesktopNotificationRouter(app: app) { _ in
@@ -213,7 +219,8 @@ struct CommandNotificationTests {
         app.registerWindow(other)
         let conversation = ConversationModel()
         conversation.composer.draft = "Test"
-        _ = try #require(window.assistantLibrary.startConversation(conversation))
+        conversation.sendDraft()
+        window.assistantLibrary.insertAndSelect(conversation)
         window.openAssistantFullScreen(conversation.id)
         #expect(app.isAssistantNotificationFocused(conversation.id))
         #expect(app.isAssistantNotificationFocused(UUID()))
@@ -229,7 +236,8 @@ struct CommandNotificationTests {
         #expect(other.assistantLibrary.selectedConversation === conversation)
         let peer = ConversationModel()
         peer.composer.draft = "Second conversation"
-        _ = try #require(window.assistantLibrary.startConversation(peer))
+        peer.sendDraft()
+        window.assistantLibrary.insertAndSelect(peer)
         window.openAssistantInSidebar(peer.id)
         window.showsSidebar = true
         other.open(Workspace(pane: Pane(.empty)))

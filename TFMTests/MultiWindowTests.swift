@@ -206,7 +206,7 @@ struct MultiWindowTests {
         let ssh = try #require(sshWorkspace.focusedPane.sshSession)
         let sftp = try #require(sftpWorkspace.focusedPane.sftpChannel)
         ssh.connectIfNeeded(using: app.hostLibrary)
-        sftp.connectIfNeeded(using: app.transfers)
+        sftp.connectIfNeeded(using: app.hostLibrary)
         let sshPrompt = try #require(ssh.pendingAuthentication)
         for _ in 0..<100 where sftp.pendingAuthentication == nil {
             try await Task.sleep(for: .milliseconds(10))
@@ -221,7 +221,7 @@ struct MultiWindowTests {
         destination.open(try #require(source.takeWorkspaceForMove(sshWorkspace.id)))
         destination.open(try #require(source.takeWorkspaceForMove(sftpWorkspace.id)))
         ssh.connectIfNeeded(using: app.hostLibrary)
-        sftp.connectIfNeeded(using: app.transfers)
+        sftp.connectIfNeeded(using: app.hostLibrary)
         #expect(ssh.pendingAuthentication?.id == sshPrompt.id)
         #expect(sftp.pendingAuthentication?.id == sftpPrompt.id)
         #expect(sftp.path == "/srv")

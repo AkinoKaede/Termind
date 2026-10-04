@@ -642,12 +642,15 @@ struct SFTPFeatureTests {
     }
 
     @Test
-    func borrowedConnectionRunsSeriallyWithoutReconnect() async {
+    func contextSerializesPrimaryChannelAndClosesItAfterOwnerRelease() async {
         let hostID = UUID()
-        let connectionID = UUID()
         let store = HostLibraryModel()
         let gate = SFTPTransferClientGate()
-        let client = BorrowedSFTPTransferClient(gate: gate)
+        let client = PrimarySFTPTransferClient(gate: gate)
+        let context = SFTPTransferContext(
+            snapshot: SSHAdditionalConnectionSnapshot(
+                configuration: makeTestConfiguration(hostID: hostID, host: "fixture.invalid")),
+            channel: client, primaryRole: .ptyConnectionFallback)
         let coordinator = SFTPTransferCoordinator(
             store: store, globalLimit: 4, perHostLimit: 4
         )
@@ -656,16 +659,15 @@ struct SFTPFeatureTests {
         for index in 0..<2 {
             coordinator.enqueue(
                 direction: .download, batchID: UUID(),
-                localURL: root.appendingPathComponent("borrowed-\(index)"),
-                remotePath: "/borrowed-\(index)", byteCount: 1,
-                hostID: hostID, connection: .borrowed(id: connectionID, channel: client),
+                localURL: root.appendingPathComponent("primary-\(index)"),
+                remotePath: "/primary-\(index)", byteCount: 1,
+                hostID: hostID, connection: .context(context),
                 scopedRoot: root, overwrite: true
             )
         }
 
         await gate.waitForStarts(1)
         #expect(await gate.maximumActive == 1)
-        #expect(coordinator.activeCount == 1)
         await gate.releaseNext()
         await gate.waitForStarts(2)
         #expect(await gate.maximumActive == 1)
@@ -675,6 +677,8 @@ struct SFTPFeatureTests {
         #expect(await client.connectCount == 0)
         #expect(await client.disconnectCount == 0)
         #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
+        await context.releaseOwner()
+        #expect(await client.disconnectCount == 1)
     }
 
     @Test
@@ -1390,7 +1394,7 @@ private actor FakeSFTPTransferClient: SFTPClientProtocol {
     ) async throws { await gate.enter(host: host) }
 }
 
-private actor BorrowedSFTPTransferClient: SFTPClientProtocol {
+private actor PrimarySFTPTransferClient: SFTPClientProtocol {
     let gate: SFTPTransferClientGate
     private(set) var connectCount = 0
     private(set) var disconnectCount = 0
@@ -1413,12 +1417,12 @@ private actor BorrowedSFTPTransferClient: SFTPClientProtocol {
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
-    ) async throws { await gate.enter(host: "borrowed") }
+    ) async throws { await gate.enter(host: "primary") }
     func downloadFile(
         from remotePath: String, to localURL: URL, overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
-    ) async throws { await gate.enter(host: "borrowed") }
+    ) async throws { await gate.enter(host: "primary") }
 }
 
 private actor ManifestSFTPClient: SFTPClientProtocol {

@@ -34305,23 +34305,6 @@
         }
       }
     },
-    "Waiting for a Telnet password" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在等待Telnet密码"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在等待Telnet密碼"
-          }
-        }
-      }
-    },
     "Waiting for an Identity" : {
       "extractionState" : "manual",
       "localizations" : {

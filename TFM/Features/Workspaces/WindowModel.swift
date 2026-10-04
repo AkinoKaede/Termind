@@ -764,15 +764,6 @@ final class WindowModel {
         assistantCommands?.edit(id, messageID, text, context, terminalSuggestionsAvailable)
     }
 
-    @discardableResult
-    func sendAssistantSidebarDraft() -> ConversationModel? {
-        let draft = sidebar.assistantDraft
-        guard let conversation = assistantLibrary.startConversation(draft) else { return nil }
-        isAssistantArchivePresented = false
-        sidebar.assistantDraft = ConversationModel()
-        return conversation
-    }
-
     func assistantSidebarConversationDidStart(_ conversation: ConversationModel) {
         isAssistantArchivePresented = false
         assistantLibrary.select(conversation.id)

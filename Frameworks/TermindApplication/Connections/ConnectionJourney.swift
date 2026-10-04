@@ -61,7 +61,6 @@ public final class ConnectionJourney {
     public enum LocalRequirement: Equatable {
         case identity
         case tailscaleUsername
-        case telnetPassword
         case passphrase
         case proxyAuthentication
     }
@@ -98,7 +97,6 @@ public final class ConnectionJourney {
     public var waitsForLocalIdentity: Bool { localRequirement == .identity }
     public var waitsForLocalPassphrase: Bool { localRequirement == .passphrase }
     public var waitsForProxyAuthentication: Bool { localRequirement == .proxyAuthentication }
-    public var waitsForTelnetPassword: Bool { localRequirement == .telnetPassword }
 
     private static var localDeviceName: String {
         #if os(macOS)
@@ -351,20 +349,6 @@ public final class ConnectionJourney {
         log(
             endpoint: endpoints[index].name,
             message: failure ?? String(localized: "Waiting for a Passphrase")
-        )
-    }
-
-    public func waitForTelnetPassword(at hostID: Host.ID, failure: String? = nil) {
-        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
-        activeEndpointIndex = 0
-        completedEndpointIndex = 0
-        checkpoint = nil
-        localRequirement = .telnetPassword
-        localRequirementEndpointIndex = 0
-        phase = .waiting
-        log(
-            endpoint: endpoints[index].name,
-            message: failure ?? String(localized: "Waiting for a Telnet password")
         )
     }
 

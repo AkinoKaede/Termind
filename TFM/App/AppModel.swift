@@ -60,7 +60,6 @@ final class AppModel {
     let credentials: CredentialLibraryModel
     let snippets: SnippetLibraryModel
     let forwardings: ForwardingLibraryModel
-    let transfers: TransferLibraryModel
     let connectionHistory: ConnectionHistoryModel
     let devices: DeviceDirectoryModel
     private let externalToolCalls: ToolAuditModel
@@ -238,7 +237,6 @@ final class AppModel {
         credentials = CredentialLibraryModel(library: hosts)
         snippets = SnippetLibraryModel(library: hosts)
         forwardings = ForwardingLibraryModel(library: hosts)
-        transfers = TransferLibraryModel(library: hosts)
         self.connectionHistory = connectionHistory
         let devices = devices ?? DeviceDirectoryModel(currentDeviceID: connectionHistory.sourceDeviceID)
         self.devices = devices

@@ -29,11 +29,10 @@ nonisolated struct TailscaleSFTPChannelWireTests {
                     dnsName: "fixture.test.ts.net", online: true, sshHostKeys: ["fixture"])
             ], groupID: group.id)
         let host = try #require(library.hosts.first)
-        let transfers = TransferLibraryModel(library: library)
-        #expect(transfers.saveTailscaleUsername(rejected ? "reject" : "none", hostID: host.id))
+        #expect(library.saveTailscaleUsername(rejected ? "reject" : "none", hostID: host.id))
         let files = SFTPChannelModel(hostID: host.id)
         defer { files.disconnect() }
-        files.connect(using: transfers)
+        files.connect(using: library)
         for _ in 0..<2_000 {
             if files.status == .connected || files.pendingAuthentication != nil { break }
             if case .failed = files.status { break }

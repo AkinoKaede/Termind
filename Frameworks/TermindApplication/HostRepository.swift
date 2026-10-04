@@ -55,7 +55,6 @@ public protocol HostRepository: AnyObject {
     func changes() -> AsyncStream<RepositoryChange<HostLibrarySnapshot>>
     func refresh() throws
     func upsertHost(_ host: Host) throws
-    func deletionImpact(for hostID: Host.ID) throws -> HostDeletionImpact
     func requestHostDeletion(_ hostID: Host.ID) throws
     func clearReferencesForDeletedHost(_ hostID: Host.ID) throws
     func finalizeHostDeletion(_ hostID: Host.ID) throws

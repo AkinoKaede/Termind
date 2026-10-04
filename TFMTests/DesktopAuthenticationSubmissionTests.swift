@@ -100,6 +100,38 @@ struct DesktopAuthenticationSubmissionTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func sftpPassphraseContinuationSavesOnlyWhenRequested(_ save: Bool) throws {
+        let key = protectedKey()
+        let secrets = InMemorySecretStore()
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
+        let host = Host(name: "Server", host: "server.invalid", identityID: identity.id)
+        let library = HostLibraryModel(hosts: [host], keys: [key], identities: [identity], secrets: secrets)
+        try secrets.setKeyCredential(
+            .software(.init(privateKey: "encrypted")), for: key.credentialRef, storage: key.storage)
+        let app = AppModel(hosts: library)
+        let channel = SFTPChannelModel(hostID: host.id)
+        defer { channel.disconnect() }
+        channel.pendingAuthentication = SSHAuthenticationPrompt(
+            host: host, selectedIdentityID: identity.id, username: identity.username,
+            selectedKeyID: key.id, requiresPassphrase: true)
+
+        channel.continueAuthentication(
+            identityID: identity.id, username: identity.username, password: nil,
+            passphrase: "saved", keyID: key.id, save: save, using: app.hostLibrary)
+
+        #expect(channel.pendingAuthentication == nil)
+        guard
+            case .software(let credential)? = try secrets.keyCredential(
+                for: key.credentialRef, storage: key.storage)
+        else {
+            Issue.record("The protected key must remain available")
+            return
+        }
+        #expect(credential.passphrase == (save ? "saved" : nil))
+        #expect(library.host(host.id) == host)
+    }
+
     private func protectedKey() -> SSHKeyRef {
         SSHKeyRef(label: "Protected", publicKey: "ssh-ed25519 fixture", hasPassphrase: true)
     }

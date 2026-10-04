@@ -50,13 +50,6 @@ public final class InMemoryHostRepository: HostRepository {
         try publish(.mutation)
     }
 
-    public func deletionImpact(for hostID: Host.ID) throws -> HostDeletionImpact {
-        HostDeletionImpact(
-            jumpHostReferences: value.hosts.filter { $0.jumpHostID == hostID }.count,
-            snippetReferences: 0, forwardingRules: 0
-        )
-    }
-
     public func requestHostDeletion(_ hostID: Host.ID) throws {
         value.hosts.removeAll { $0.id == hostID }
         try publish(.mutation)

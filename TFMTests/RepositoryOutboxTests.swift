@@ -197,12 +197,6 @@ struct RepositoryOutboxTests {
         try context.save()
         let repository = SwiftDataHostRepository(context: context)
 
-        #expect(
-            try repository.deletionImpact(for: doomed.id)
-                == HostDeletionImpact(
-                    jumpHostReferences: 1, snippetReferences: 1, forwardingRules: 1
-                )
-        )
         try repository.requestHostDeletion(doomed.id)
 
         let hiddenSnapshot = try repository.snapshot()

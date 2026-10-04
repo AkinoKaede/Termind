@@ -12,14 +12,9 @@ public nonisolated struct SFTPRemoteItemsPayload: Codable, Hashable, Sendable {
 public nonisolated enum SFTPTransferConnection: Sendable {
     case saved(SSHAdditionalConnectionSnapshot)
     case context(SFTPTransferContext)
-    case borrowed(id: UUID, channel: any SFTPChannelProtocol)
 
     public var managedContext: SFTPTransferContext? {
         if case .context(let context) = self { context } else { nil }
-    }
-
-    public var borrowedID: UUID? {
-        if case .borrowed(let id, _) = self { id } else { nil }
     }
 }
 
@@ -116,7 +111,6 @@ public final class SFTPTransferCoordinator {
     private var preferencesUpdateTask: Task<Void, Never>?
     private var activeTasks: [SFTPTransfer.ID: Task<Void, Never>] = [:]
     private var activePermits: [SFTPTransfer.ID: SFTPConcurrencyPermit] = [:]
-    private var activeBorrowedConnections: Set<UUID> = []
     private var remoteCopySources: [UUID: (source: SFTPRemoteCopySource, createdAt: Date)] = [:]
 
     public private(set) var globalLimit: Int
@@ -214,13 +208,6 @@ public final class SFTPTransferCoordinator {
         }
         let reservation = UUID()
         retain(source.connection, for: reservation)
-        let borrowedID = source.connection.borrowedID
-        if let borrowedID {
-            try await reserveBorrowedConnection(borrowedID)
-        }
-        defer {
-            if let borrowedID { releaseBorrowedConnections([borrowedID]) }
-        }
         var lease: ChannelLease?
         do {
             let acquired = try await clientLease(for: source.connection)
@@ -343,12 +330,6 @@ public final class SFTPTransferCoordinator {
         )
     }
 
-    public func replaceBorrowedChannel(_ connectionID: UUID, with channel: any SFTPChannelProtocol) {
-        for id in Array(runtimes.keys) where runtimes[id]?.connection.borrowedID == connectionID {
-            runtimes[id]?.connection = .borrowed(id: connectionID, channel: channel)
-        }
-    }
-
     public func canPause(_ id: SFTPTransfer.ID) -> Bool {
         guard let transfer = store.sftpTransfer(id) else { return false }
         return runtimes[id] != nil && transfer.state.isActive
@@ -430,8 +411,6 @@ public final class SFTPTransferCoordinator {
             try await runtime.resume.cleanup(using: channel)
         } else {
             do {
-                if let id = runtime.connection.borrowedID { try await reserveBorrowedConnection(id) }
-                defer { if let id = runtime.connection.borrowedID { releaseBorrowedConnections([id]) } }
                 let lease = try await clientLease(for: runtime.connection)
                 do { try await runtime.resume.cleanup(using: lease.channel) } catch {
                     await lease.disconnect()
@@ -466,21 +445,6 @@ public final class SFTPTransferCoordinator {
         }
     }
 
-    public func cancelTransfers(usingBorrowedConnection connectionID: UUID) async {
-        let ids = store.sftpTransfers.compactMap { transfer -> SFTPTransfer.ID? in
-            guard !transfer.state.isFinished,
-                borrowedIDs(for: transfer).contains(connectionID)
-            else { return nil }
-            return transfer.id
-        }
-        for id in ids { cancel(id) }
-        let tasks = ids.compactMap { activeTasks[$0] }
-        for task in tasks { await task.value }
-        while activeBorrowedConnections.contains(connectionID) {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-    }
-
     public func clearFinished() { store.clearFinishedSFTPTransfers() }
 
     public func removeFinished(_ id: SFTPTransfer.ID) { store.removeFinishedSFTPTransfer(id) }
@@ -494,7 +458,6 @@ public final class SFTPTransferCoordinator {
             let hostIDs = Set(hostIDs(for: sftpTransfer))
             guard let anchorHostID = anchorHostID(for: sftpTransfer), !hostIDs.isEmpty else { continue }
             let source = workSource(for: sftpTransfer)
-            let exclusiveResourceIDs = Set(borrowedIDs(for: sftpTransfer))
             let scheduler = concurrencyScheduler
             let preferencesUpdateTask = preferencesUpdateTask
             admissionTasks[sftpTransfer.id] = Task { @MainActor [weak self] in
@@ -504,8 +467,7 @@ public final class SFTPTransferCoordinator {
                         anchorHostID: anchorHostID,
                         hostIDs: hostIDs,
                         source: source,
-                        byteCount: sftpTransfer.byteCount >= 0 ? sftpTransfer.byteCount : nil,
-                        exclusiveResourceIDs: exclusiveResourceIDs
+                        byteCount: sftpTransfer.byteCount >= 0 ? sftpTransfer.byteCount : nil
                     )
                     guard let self else {
                         await permit.release()
@@ -534,10 +496,8 @@ public final class SFTPTransferCoordinator {
             startRemoteCopy(sftpTransfer, runtime: runtime, mode: mode)
             return
         }
-        guard let hostID = sftpTransfer.hostID, let runtime = runtimes[sftpTransfer.id] else { return }
+        guard let runtime = runtimes[sftpTransfer.id] else { return }
         store.setSFTPTransferState(.running, for: sftpTransfer.id)
-        let borrowedIDs = Array(runtime.connection.borrowedID.map { [$0] } ?? [])
-        activeBorrowedConnections.formUnion(borrowedIDs)
         let task = Task { [weak self] in
             guard let self else { return }
             let scoped = runtime.scopedRoot.startAccessingSecurityScopedResource()
@@ -606,10 +566,7 @@ public final class SFTPTransferCoordinator {
                     totalBytes: snapshot.source?.byteCount ?? sftpTransfer.byteCount, bytesPerSecond: 0)
             }
             await lease?.disconnect()
-            await finish(
-                sftpTransfer.id, hostIDs: [hostID], borrowedIDs: borrowedIDs,
-                state: result
-            )
+            await finish(sftpTransfer.id, state: result)
         }
         activeTasks[sftpTransfer.id] = task
     }
@@ -626,13 +583,7 @@ public final class SFTPTransferCoordinator {
         runtime: RemoteCopyRuntime,
         mode: SSHChannelSchedulingMode
     ) {
-        let involvedHostIDs = Array(Set([runtime.sourceHostID, runtime.destinationHostID]))
         store.setSFTPTransferState(.running, for: sftpTransfer.id)
-        let borrowedIDs = [
-            runtime.sourceConnection.borrowedID,
-            runtime.destinationConnection.borrowedID,
-        ].compactMap { $0 }
-        activeBorrowedConnections.formUnion(borrowedIDs)
         let task = Task { [weak self] in
             guard let self else { return }
             var sourceLease: ChannelLease?
@@ -687,10 +638,7 @@ public final class SFTPTransferCoordinator {
             }
             await sourceLease?.disconnect()
             await destinationLease?.disconnect()
-            await finish(
-                sftpTransfer.id, hostIDs: involvedHostIDs,
-                borrowedIDs: borrowedIDs, state: result
-            )
+            await finish(sftpTransfer.id, state: result)
         }
         activeTasks[sftpTransfer.id] = task
     }
@@ -748,8 +696,6 @@ public final class SFTPTransferCoordinator {
                 throw error
             }
             return ChannelLease(channel: client) { await client.disconnect() }
-        case .borrowed(_, let channel):
-            return ChannelLease(channel: channel) {}
         }
     }
 
@@ -771,32 +717,8 @@ public final class SFTPTransferCoordinator {
             .sorted { $0.id.uuidString < $1.id.uuidString }
     }
 
-    private func borrowedIDs(for sftpTransfer: SFTPTransfer) -> [UUID] {
-        if let runtime = remoteCopyRuntimes[sftpTransfer.id] {
-            return [
-                runtime.sourceConnection.borrowedID,
-                runtime.destinationConnection.borrowedID,
-            ].compactMap { $0 }
-        }
-        return runtimes[sftpTransfer.id]?.connection.borrowedID.map { [$0] } ?? []
-    }
-
-    private func reserveBorrowedConnection(_ id: UUID) async throws {
-        while activeBorrowedConnections.contains(id) {
-            try Task.checkCancellation()
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        activeBorrowedConnections.insert(id)
-    }
-
-    private func releaseBorrowedConnections(_ ids: [UUID]) {
-        activeBorrowedConnections.subtract(ids)
-        schedule()
-    }
-
     private func finish(
-        _ id: SFTPTransfer.ID, hostIDs: [Host.ID], borrowedIDs: [UUID] = [],
-        state: SFTPTransfer.State
+        _ id: SFTPTransfer.ID, state: SFTPTransfer.State
     ) async {
         for context in managedContexts(for: id) {
             context.releaseSlot()
@@ -813,7 +735,6 @@ public final class SFTPTransferCoordinator {
         }
         activeTasks.removeValue(forKey: id)
         let permit = activePermits.removeValue(forKey: id)
-        releaseBorrowedConnections(borrowedIDs)
         await permit?.release()
         schedule()
     }

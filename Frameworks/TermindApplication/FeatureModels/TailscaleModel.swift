@@ -149,22 +149,6 @@ public final class TailscaleModel: TailscaleConnectionProviding {
 
     public func exitNodeID(groupID: UUID) -> String { library.group(groupID)?.tailscale?.exitNodeID ?? "" }
 
-    public func exitNodeCandidates(groupID: UUID) -> [TailscalePeer] {
-        (peers[groupID] ?? []).filter { $0.exitNodeOption == true }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-    }
-
-    public func saveExitNode(_ stableID: String, groupID: UUID) throws {
-        guard hasAccess() else { throw TailscaleConfigurationError.requiresPro }
-        guard var group = library.group(groupID), group.tailscale != nil else {
-            throw TailscaleConfigurationError.unavailable
-        }
-        guard exitNodeID(groupID: groupID) != stableID else { return }
-        group.tailscale?.exitNodeID = stableID.isEmpty ? nil : stableID
-        library.upsert(group)
-        if let error = library.storageError { throw TermindSSHError.library(error) }
-    }
-
     public func saveHostname(_ value: String, groupID: UUID) async throws {
         guard hasAccess() else { throw TailscaleConfigurationError.requiresPro }
         guard var state = states[groupID] else { throw TailscaleConfigurationError.unavailable }

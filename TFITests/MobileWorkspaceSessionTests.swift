@@ -23,7 +23,8 @@ struct MobileWorkspaceSessionTests {
         other.agentForwarding.isActive = true
         let conversation = ConversationModel()
         conversation.composer.draft = "Agent forwarding"
-        _ = try #require(owner.assistant.library.startConversation(conversation))
+        conversation.sendDraft()
+        owner.assistant.library.insertAndSelect(conversation)
         owner.openAssistantNotification(conversation.id)
         let hostID = UUID()
         let request = SSHConnectionRequest(
@@ -59,7 +60,8 @@ struct MobileWorkspaceSessionTests {
         ].sorted { $0.id.uuidString < $1.id.uuidString }
         let conversation = ConversationModel()
         conversation.composer.draft = "Target"
-        _ = try #require(scenes[0].assistant.library.startConversation(conversation))
+        conversation.sendDraft()
+        scenes[0].assistant.library.insertAndSelect(conversation)
         for scene in scenes {
             scene.openAssistantNotification(conversation.id)
             if !visible { scene.selectedDestination = .vault }
@@ -85,7 +87,8 @@ struct MobileWorkspaceSessionTests {
         let other = MobileSceneModel(app: app, sessionID: "active-other")
         let conversation = ConversationModel()
         conversation.composer.draft = "Target"
-        _ = try #require(owner.assistant.library.startConversation(conversation))
+        conversation.sendDraft()
+        owner.assistant.library.insertAndSelect(conversation)
         owner.openAssistantNotification(conversation.id)
         if libraryPresented {
             owner.assistantLibraryRoute = .conversations
@@ -155,8 +158,10 @@ struct MobileWorkspaceSessionTests {
         let second = ConversationModel()
         first.composer.draft = "First"
         second.composer.draft = "Second"
-        _ = try #require(scene.assistant.library.startConversation(first))
-        _ = try #require(scene.assistant.library.startConversation(second))
+        first.sendDraft()
+        scene.assistant.library.insertAndSelect(first)
+        second.sendDraft()
+        scene.assistant.library.insertAndSelect(second)
         app.sceneChanged(scene.id, phase: .active)
         var activations: [String] = []
         scene.assistant.library.select(first.id)
@@ -258,7 +263,8 @@ struct MobileWorkspaceSessionTests {
         let second = MobileSceneModel(app: app, sessionID: "assistant-b")
         let conversation = ConversationModel()
         conversation.composer.draft = "Test"
-        _ = try #require(first.assistant.library.startConversation(conversation))
+        conversation.sendDraft()
+        first.assistant.library.insertAndSelect(conversation)
         first.openAssistantNotification(conversation.id)
         app.sceneChanged(first.id, phase: .active)
         #expect(app.isAssistantNotificationFocused(conversation.id))
@@ -268,7 +274,8 @@ struct MobileWorkspaceSessionTests {
         app.sceneChanged(second.id, phase: .active)
         let peer = ConversationModel()
         peer.composer.draft = "Second conversation"
-        _ = try #require(second.assistant.library.startConversation(peer))
+        peer.sendDraft()
+        second.assistant.library.insertAndSelect(peer)
         second.openAssistantNotification(peer.id)
         #expect(app.isAssistantNotificationFocused(conversation.id))
         #expect(app.isAssistantNotificationFocused(peer.id))

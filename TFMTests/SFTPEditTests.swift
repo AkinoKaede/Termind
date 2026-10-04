@@ -282,7 +282,13 @@ struct SFTPEditTests {
         let client = EditClient()
         let transfers: SFTPTransferCoordinator
         let service: SFTPEditService
-        var connection: SFTPTransferConnection { .borrowed(id: hostID, channel: client) }
+        private lazy var context = SFTPTransferContext(
+            snapshot: SSHAdditionalConnectionSnapshot(
+                configuration: SSHConnectionConfiguration(
+                    hostID: hostID, host: "fixture.invalid", port: 22,
+                    username: "test", credentials: [], expectedHostKeys: [])),
+            channel: client, primaryRole: .ptyConnectionFallback)
+        var connection: SFTPTransferConnection { .context(context) }
         init() {
             let client = client
             transfers = SFTPTransferCoordinator(store: HostLibraryModel(), clientFactory: { client })

@@ -63,17 +63,6 @@ public final class SwiftDataHostRepository: HostRepository {
         try commitMutation()
     }
 
-    public func deletionImpact(for hostID: Host.ID) throws -> HostDeletionImpact {
-        let hosts = try context.fetch(FetchDescriptor<PersistentHost>())
-        let snippets = try context.fetch(FetchDescriptor<PersistentSnippet>())
-        let rules = try forwardingRules(for: hostID)
-        return HostDeletionImpact(
-            jumpHostReferences: hosts.filter { $0.jumpHostID == hostID }.count,
-            snippetReferences: snippets.filter { $0.targetHostIDs.contains(hostID) }.count,
-            forwardingRules: rules.count
-        )
-    }
-
     /// The deletion marker, all durable side effects, and the revision become
     /// visible in one database commit. A crash can therefore see either the
     /// live host or a complete deletion saga, never half of each.

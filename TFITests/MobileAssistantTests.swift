@@ -266,7 +266,6 @@ struct MobileAssistantTests {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
-        _ = assistant.library.startConversation(conversation)
         let plan = AgentPlan(
             title: "Implementation plan", body: "Apply the requested change.",
             scratchPath: "/tmp/plan.md")
@@ -295,7 +294,8 @@ struct MobileAssistantTests {
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
         conversation.composer.draft = "Opening question"
-        _ = assistant.library.startConversation(conversation)
+        conversation.sendDraft()
+        assistant.library.insertAndSelect(conversation)
         conversation.composer.draft = "Follow-up question"
 
         assistant.send()
@@ -537,7 +537,6 @@ struct MobileAssistantTests {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
-        _ = assistant.library.startConversation(conversation)
         let plan = AgentPlan(
             title: "Implementation plan", body: "Apply the requested change.",
             scratchPath: "/tmp/plan.md")

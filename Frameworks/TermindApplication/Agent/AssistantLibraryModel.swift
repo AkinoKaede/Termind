@@ -287,16 +287,6 @@ public final class AssistantLibraryModel {
         return draftConversation
     }
 
-    /// Promotes the New Chat scratch model on its first send, then prepares a
-    /// fresh scratch model for the next visit to New Chat.
-    @discardableResult
-    public func startDraftConversation() -> ConversationModel? {
-        let conversation = draftConversation
-        guard let started = startConversation(conversation) else { return nil }
-        draftConversation = newConversation()
-        return started
-    }
-
     public func canPromote(_ conversation: ConversationModel) -> Bool {
         !conversations.contains(where: { $0.id == conversation.id })
     }
@@ -323,19 +313,6 @@ public final class AssistantLibraryModel {
     private func newConversation() -> ConversationModel {
         let conversation = ConversationModel()
         modelSelections?.seed(conversation)
-        return conversation
-    }
-
-    /// Promotes the sidebar's scratch conversation into history on its first
-    /// real send. Empty drafts remain ephemeral and never create blank rows.
-    @discardableResult
-    public func startConversation(_ conversation: ConversationModel) -> ConversationModel? {
-        guard conversation.canSendDraft else { return nil }
-        guard !conversations.contains(where: { $0.id == conversation.id }) else { return nil }
-
-        conversation.sendDraft()
-        store.insert(conversation)
-        selectedConversationID = conversation.id
         return conversation
     }
 

@@ -1,17 +1,5 @@
 import Foundation
 
-public nonisolated struct HostDeletionImpact: Equatable, Sendable {
-    public var jumpHostReferences: Int
-    public var snippetReferences: Int
-    public var forwardingRules: Int
-    public init(jumpHostReferences: Int, snippetReferences: Int, forwardingRules: Int) {
-        self.jumpHostReferences = jumpHostReferences
-        self.snippetReferences = snippetReferences
-        self.forwardingRules = forwardingRules
-    }
-
-}
-
 public nonisolated struct HostDeletionPayload: Codable, Hashable, Sendable {
     public var hostID: Host.ID
     public var forwardingRuleIDs: [PortForwardingRule.ID]

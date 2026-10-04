@@ -219,7 +219,6 @@ private struct JourneyEndpointView: View {
         if let localRequirement {
             switch localRequirement {
             case .identity, .tailscaleUsername: return "person.fill"
-            case .telnetPassword: return "key.fill"
             case .passphrase: return "key.fill"
             case .proxyAuthentication: return "lock.shield.fill"
             }

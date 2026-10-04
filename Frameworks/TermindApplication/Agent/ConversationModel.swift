@@ -1974,8 +1974,8 @@ public final class ConversationModel: Identifiable {
         composer.pendingAttachments.removeAll { $0.id == id }
     }
 
-    /// Records a local user turn. Agent-backed composers use AppModel's runtime
-    /// path; the sidebar promotion flow uses this before starting that run.
+    /// Records a local user turn. Agent-backed composers capture and submit
+    /// their turns through `AssistantExecutionController`.
     public func sendDraft() {
         let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft else { return }

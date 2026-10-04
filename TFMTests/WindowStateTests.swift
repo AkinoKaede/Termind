@@ -563,7 +563,8 @@ struct WindowStateTests {
     }
 
     @Test
-    func newChatJoinsHistoryOnlyAfterItsFirstSend() {
+    func newChatJoinsHistoryOnlyAfterItsFirstSend() async {
+        let app = AppModel(hosts: HostLibraryModel())
         let window = WindowModel()
         let draft = window.openNewAssistantChat()
 
@@ -571,24 +572,28 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.conversations.isEmpty)
 
         draft.composer.draft = "Hello from a new chat"
-        let started = window.assistantLibrary.startDraftConversation()
+        let started = app.sendNewAgentDraft(in: window.assistantLibrary)
 
         #expect(started === draft)
         #expect(window.assistantLibrary.selectedConversation === draft)
         #expect(window.assistantLibrary.conversations.map(\.id) == [draft.id])
         #expect(window.assistantLibrary.draftConversation !== draft)
+        await started?.stopAndWait()
     }
 
     @Test
-    func sidebarDraftCreatesConversationOnlyOnFirstValidSend() {
+    func sidebarDraftCreatesConversationOnlyOnFirstValidSend() async {
+        let app = AppModel(hosts: HostLibraryModel())
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
         let window = WindowModel(workspaces: [workspace])
 
-        #expect(window.sendAssistantSidebarDraft() == nil)
+        #expect(app.sendNewAgentConversation(window.sidebar.assistantDraft, in: window.assistantLibrary) == nil)
         #expect(window.assistantLibrary.conversations.isEmpty)
 
         window.sidebar.assistantDraft.composer.draft = "  Explain this failure.  "
-        let conversation = window.sendAssistantSidebarDraft()
+        let conversation = app.sendNewAgentConversation(
+            window.sidebar.assistantDraft, in: window.assistantLibrary, context: window.sidebar.sessionContext)
+        if let conversation { window.assistantSidebarConversationDidStart(conversation) }
 
         #expect(conversation?.messages.map(\.text) == ["Explain this failure."])
         #expect(window.assistantLibrary.conversations.count == 1)
@@ -596,6 +601,7 @@ struct WindowStateTests {
         #expect(window.sidebarAssistantConversation?.id == conversation?.id)
         #expect(window.selectedDestination == .workspace(workspace.id))
         #expect(window.sidebar.assistantDraft.isEmpty)
+        await conversation?.stopAndWait()
     }
 
     @Test
@@ -604,7 +610,8 @@ struct WindowStateTests {
         let conversation = ConversationModel()
         conversation.composer.draft = "Hello"
         let library = AssistantLibraryModel()
-        _ = library.startConversation(conversation)
+        conversation.sendDraft()
+        library.insertAndSelect(conversation)
         let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
 
         window.openAssistantInSidebar(conversation.id)
@@ -708,7 +715,8 @@ struct WindowStateTests {
     /// conversation promoted out of it arrives in the Assistant destination carrying
     /// nothing about a host it can no longer see.
     @Test
-    func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
+    func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() async {
+        let app = AppModel(hosts: HostLibraryModel())
         let host = Host(name: "Server", host: "server.example")
         let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv/app")
         workspace.focusedPane.sftpChannel?.homeResolution = .unavailable
@@ -718,10 +726,14 @@ struct WindowStateTests {
 
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
 
-        let conversation = window.sendAssistantSidebarDraft()
+        let conversation = app.sendNewAgentConversation(
+            window.sidebar.assistantDraft, in: window.assistantLibrary, context: window.sidebar.sessionContext)
+        if let conversation { window.assistantSidebarConversationDidStart(conversation) }
 
         #expect(conversation?.composer.attachments.isEmpty == true)
+        #expect(conversation?.transcript.first?.contextSnapshot?.sessionContext?.contains("/srv/app") == true)
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Server", "/srv/app"])
+        await conversation?.stopAndWait()
     }
 
     /// Leaving every Workspace used to freeze the last host and directory on
@@ -745,18 +757,21 @@ struct WindowStateTests {
     /// the log goes with the message it belongs to rather than sitting in the
     /// draft as text the user could half-delete.
     @Test
-    func promotingASidebarDraftSendsItsAttachmentWithTheFirstTurn() {
+    func promotingASidebarDraftSendsItsAttachmentWithTheFirstTurn() async {
+        let app = AppModel(hosts: HostLibraryModel())
         let conversation = ConversationModel()
         conversation.attach(
             ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
         )
         conversation.composer.draft = "Explain this"
 
-        _ = AssistantLibraryModel().startConversation(conversation)
+        #expect(app.sendNewAgentConversation(conversation, in: AssistantLibraryModel()) === conversation)
 
         #expect(conversation.messages.first?.text == "Explain this")
         #expect(conversation.transcript.first?.text.contains("ssh: refused") == true)
         #expect(conversation.composer.attachments.isEmpty, "the attachment went with the turn")
+        #expect(conversation.transcript.first?.contextSnapshot != nil)
+        await conversation.stopAndWait()
     }
 
     @Test
@@ -792,7 +807,8 @@ struct WindowStateTests {
         let conversation = ConversationModel()
         conversation.composer.draft = "Explain this"
         let library = AssistantLibraryModel()
-        _ = library.startConversation(conversation)
+        conversation.sendDraft()
+        library.insertAndSelect(conversation)
         conversation.attach(
             ContextChip(kind: .output, label: "Connection error", content: "ssh: refused")
         )

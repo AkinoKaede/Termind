@@ -309,17 +309,17 @@ struct SFTPBrowserView: View {
                         identityID, username, password, passphrase, keyID, save in
                         sftpChannel.continueAuthentication(
                             identityID: identityID, username: username, password: password,
-                            passphrase: passphrase, keyID: keyID, save: save, using: app.transfers
+                            passphrase: passphrase, keyID: keyID, save: save, using: app.hostLibrary
                         )
                     },
                     continueHostKey: {
                         sftpChannel.continueWithTemporaryHostKey($0)
                     },
-                    trustHostKey: { sftpChannel.trustAndConnect($0, using: app.transfers) },
+                    trustHostKey: { sftpChannel.trustAndConnect($0, using: app.hostLibrary) },
                     denyHostKey: {
                         cancelConnection()
                     },
-                    retry: { sftpChannel.connect(using: app.transfers) },
+                    retry: { sftpChannel.connect(using: app.hostLibrary) },
                     cancel: cancelConnection,
                     reconnectState: sftpChannel.reconnectState,
                     retryReconnectNow: sftpChannel.retryReconnectNow,
@@ -337,7 +337,7 @@ struct SFTPBrowserView: View {
         .background(TermindColor.windowSurface)
         .onAppear {
             sftpChannel.bindTransfers(to: app.sftpTransfers)
-            sftpChannel.connectIfNeeded(using: app.transfers)
+            sftpChannel.connectIfNeeded(using: app.hostLibrary)
             sftpChannel.startAutomaticRefresh()
         }
         .alert(AppStrings.SFTP.newFolder, isPresented: $newFolderPresented) {
@@ -630,7 +630,7 @@ struct SFTPBrowserView: View {
                     Image(systemName: "folder.badge.questionmark")
                         .font(.largeTitle).foregroundStyle(.tertiary)
                     Text(AppStrings.Connections.notConnected).foregroundStyle(.secondary)
-                    Button(AppStrings.Common.connect.swiftUIKey) { sftpChannel.connect(using: app.transfers) }
+                    Button(AppStrings.Common.connect.swiftUIKey) { sftpChannel.connect(using: app.hostLibrary) }
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

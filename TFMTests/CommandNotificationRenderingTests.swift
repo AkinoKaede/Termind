@@ -17,7 +17,8 @@ struct CommandNotificationRenderingTests {
         app.registerWindow(windowModel)
         let conversation = ConversationModel()
         conversation.composer.draft = "Deploy staging"
-        _ = try #require(windowModel.assistantLibrary.startConversation(conversation))
+        conversation.sendDraft()
+        windowModel.assistantLibrary.insertAndSelect(conversation)
         let coordinator = AssistantNotificationCoordinator(
             service: app.notifications, preferences: { .init() }, isFocused: { _ in false },
             content: AssistantNotificationContent.make)

@@ -586,7 +586,10 @@ struct TailscaleIntegrationTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(await node.selectedExitNode == "exit-one")
-        #expect(model.exitNodeCandidates(groupID: group.id).map(\.stableID) == ["exit-one"])
+        #expect(
+            TailscaleGroupEditor(model: model, group: library.group(group.id)).candidates.map(\.stableID) == [
+                "exit-one"
+            ])
         #expect(!library.hosts.contains { $0.tailscale?.stableNodeID == "exit-one" })
         let retained = try model.connection(for: group.id)
         group.tailscale?.exitNodeID = "exit-two"
@@ -599,7 +602,9 @@ struct TailscaleIntegrationTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(await node.selectedExitNode == "exit-two")
-        try model.saveExitNode("", groupID: group.id)
+        let editor = TailscaleGroupEditor(model: model, group: library.group(group.id))
+        editor.exitNodeID = ""
+        _ = try await editor.save()
         for _ in 0..<400 {
             if await node.selectedExitNode == nil { break }
             try await Task.sleep(for: .milliseconds(10))
