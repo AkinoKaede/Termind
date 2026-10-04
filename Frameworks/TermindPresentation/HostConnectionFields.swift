@@ -55,16 +55,16 @@ public struct HostProtocolProfileControls: View {
 /// The protocol-specific connection form inside a desktop work column or a mobile sheet.
 public struct HostConnectionFields: View {
     @Binding private var host: Host
-    @Binding private var connectionProtocol: HostTerminalProtocol
+    private let connectionProtocol: HostTerminalProtocol
 
-    public init(host: Binding<Host>, protocol connectionProtocol: Binding<HostTerminalProtocol>) {
+    public init(host: Binding<Host>, protocol connectionProtocol: HostTerminalProtocol) {
         _host = host
-        _connectionProtocol = connectionProtocol
+        self.connectionProtocol = connectionProtocol
     }
 
     public init(host: Binding<Host>) {
         _host = host
-        _connectionProtocol = .constant(.ssh)
+        connectionProtocol = .ssh
     }
 
     public var body: some View {

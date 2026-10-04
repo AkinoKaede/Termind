@@ -125,9 +125,44 @@ struct MobileBatchStartupTests {
         #expect(second.workspaceID == otherWorkspace)
 
         first.openBatchStartup()
-        first.isBatchStartupPresented = false
+        first.workspaceSheet = nil
         first.completeBatchStartup()
         #expect(app.workspaces.count == 2)
+    }
+
+    @Test func openingTransfersDiscardsAnUnfinishedBatchRequest() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.testWorkspaceSession.closeAll() }
+        let host = Host(name: "Host", host: "host.invalid")
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        scene.openBatchStartup()
+        scene.prepareBatchStartup(hostIDs: [host.id], connectionProtocol: .ssh)
+        scene.openTransfers()
+        scene.completeBatchStartup()
+        #expect(scene.showsTransfers)
+        #expect(scene.workspaceSheet == nil)
+        #expect(app.workspaces.isEmpty)
+
+        scene.open(hostID: host.id, kind: .ssh)
+        #expect(scene.workspaceID != nil)
+        #expect(!scene.showsTransfers)
+        scene.openTransfers()
+        scene.closeAllWorkspaces()
+        #expect(scene.showsTransfers)
+        scene.openConnectionPicker()
+        #expect(scene.workspaceDestination == nil)
+        #expect(scene.workspaceSheet == .connectionPicker)
+    }
+
+    @Test func aPreviousSheetDismissalDoesNotCloseTheNewBatchPicker() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app, sessionID: "test")
+        scene.openConnectionPicker()
+        scene.openBatchStartup()
+        scene.completeBatchStartup()
+        #expect(scene.workspaceSheet == .batchStartup)
+        #expect(app.workspaces.isEmpty)
     }
 
     @Test func openingConnectDiscardsAnUnfinishedBatchRequest() throws {

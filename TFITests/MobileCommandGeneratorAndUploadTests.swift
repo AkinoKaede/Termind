@@ -628,6 +628,46 @@ struct MobileUploadBatchTests {
         if stage != .connection { #expect(await client.disconnectCount == 1) }
     }
 
+    @Test(arguments: [false, true])
+    func conflictDismissalCancelsOnlyAnUnconsumedRequest(_ confirms: Bool) async throws {
+        let remote = RemoteFile(
+            path: "/home/test/report.txt", name: "report.txt", kind: .file, size: 0,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        let client = MobileUploadSFTPClient(attributes: [remote.path: remote])
+        let workspace = uploadWorkspace(client: client, kind: .sftp)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "report.txt")
+        try Data("report".utf8).write(to: file)
+        #expect(workspace.prepareUpload([file]))
+        #expect(await eventually { workspace.hasPendingTransferConflict })
+        let request = try #require(workspace.transferConflictID)
+        workspace.dismissTransferConflict(request)
+        if confirms { workspace.enqueuePendingTransfer(.replace) }
+        #expect(await eventually { !workspace.hasPendingTransferConflict })
+        if confirms {
+            #expect(await eventually { workspace.transfers?.sftpTransfers.first?.state == .completed })
+            #expect(await client.uploadedData[remote.path] == Data("report".utf8))
+        } else {
+            #expect(workspace.transfers?.sftpTransfers.isEmpty == true)
+        }
+
+        #expect(workspace.prepareUpload([file]))
+        #expect(await eventually { workspace.hasPendingTransferConflict })
+        let replacement = try #require(workspace.transferConflictID)
+        #expect(replacement != request)
+        workspace.dismissTransferConflict(request)
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+        #expect(workspace.transferConflictID == replacement)
+        workspace.cancelPendingUpload()
+    }
+
     @Test func browserUploadFailuresKeepTheirOperationAlert() async throws {
         let client = MobileUploadSFTPClient()
         let workspace = uploadWorkspace(client: client, kind: .sftp)

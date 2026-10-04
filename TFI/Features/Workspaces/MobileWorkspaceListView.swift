@@ -50,9 +50,6 @@ struct MobileWorkspaceListView: View {
             }
         }
         .navigationTitle(AppStrings.Navigation.workspaces.swiftUIKey)
-        .navigationDestination(isPresented: $scene.showsTransfers) {
-            MobileTransfersView(transfers: app.transfers, hosts: app.library)
-        }
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: scene.canCloseAllWorkspaces,
@@ -61,39 +58,47 @@ struct MobileWorkspaceListView: View {
                 batchStartup: scene.openBatchStartup
             )
         }
-        .navigationDestination(item: $scene.workspaceID) { id in
-            if let workspace = scene.workspaceSession.workspaces.first(where: { $0.id == id }) {
-                MobileWorkspaceView(
-                    library: app.library, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: scene.workspaceSession.orderedWorkspaceItems.map(\.descriptor),
-                    unreadWorkspaceIDs: scene.workspaceSession.unreadWorkspaceIDs,
-                    selectWorkspace: scene.selectWorkspace,
-                    renameWorkspace: scene.beginWorkspaceRename,
-                    canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
-                    openSameDirectory: scene.openSameDirectory,
-                    closeWorkspace: scene.closeWorkspace,
-                    closeOtherWorkspaces: scene.closeOtherWorkspaces
-                )
-                // The title menu replaces this pushed detail in place. A new identity tears down
-                // SFTP's native search state before an SSH detail is mounted.
-                .id(workspace.id)
+        .navigationDestination(item: $scene.workspaceDestination) { destination in
+            switch destination {
+            case .transfers:
+                MobileTransfersView(transfers: app.transfers, hosts: app.library)
+            case .workspace(let id):
+                if let workspace = scene.workspaceSession.workspaces.first(where: { $0.id == id }) {
+                    MobileWorkspaceView(
+                        library: app.library, commandGenerator: app.commandGenerator,
+                        workspace: workspace,
+                        workspaces: scene.workspaceSession.orderedWorkspaceItems.map(\.descriptor),
+                        unreadWorkspaceIDs: scene.workspaceSession.unreadWorkspaceIDs,
+                        selectWorkspace: scene.selectWorkspace,
+                        renameWorkspace: scene.beginWorkspaceRename,
+                        canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
+                        openSameDirectory: scene.openSameDirectory,
+                        closeWorkspace: scene.closeWorkspace,
+                        closeOtherWorkspaces: scene.closeOtherWorkspaces
+                    )
+                    // The title menu replaces this pushed detail in place. A new identity tears down
+                    // SFTP's native search state before an SSH detail is mounted.
+                    .id(workspace.id)
+                }
             }
         }
-        .sheet(isPresented: $scene.isConnectionPickerPresented) {
-            NavigationStack {
-                MobileConnectionPicker(
-                    library: app.library,
-                    connect: { hostID, kind in
-                        scene.isConnectionPickerPresented = false
-                        scene.open(hostID: hostID, kind: kind)
-                    },
-                    cancel: { scene.isConnectionPickerPresented = false }
-                )
+        .sheet(item: $scene.workspaceSheet, onDismiss: scene.completeBatchStartup) { sheet in
+            switch sheet {
+            case .connectionPicker:
+                NavigationStack {
+                    MobileConnectionPicker(
+                        library: app.library,
+                        connect: { hostID, kind in
+                            scene.workspaceSheet = nil
+                            scene.open(hostID: hostID, kind: kind)
+                        },
+                        cancel: { scene.workspaceSheet = nil }
+                    )
+                }
+                .mobileSheetPresentation(compact: true)
+            case .batchStartup:
+                MobileBatchStartupPicker(library: app.library, connect: scene.prepareBatchStartup)
             }
-            .mobileSheetPresentation(compact: true)
-        }
-        .sheet(isPresented: $scene.isBatchStartupPresented, onDismiss: scene.completeBatchStartup) {
-            MobileBatchStartupPicker(library: app.library, connect: scene.prepareBatchStartup)
         }
         .task(id: scene.selectedDestination) {
             guard scene.selectedDestination == .workspaces else { return }

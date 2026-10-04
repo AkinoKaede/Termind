@@ -189,7 +189,7 @@ struct MobileAssistantComposer: View {
             }
             TextField(
                 AppStrings.Assistant.prompt.swiftUIKey,
-                text: Binding(get: { composer.draft }, set: { composer.draft = $0 }),
+                text: Bindable(composer).projectedValue.draft,
                 axis: .vertical
             )
             .lineLimit(1...6)

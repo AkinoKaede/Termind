@@ -274,7 +274,7 @@ struct MobileVaultFeatureTests {
         var identityDraft = HostCustomIdentityDraft(host: host, library: library)
         #expect(identityDraft.isProxyValid(for: host))
 
-        host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: nil)
+        host.proxy = HostEditorBindings.selectProxy(.http, current: nil)
         #expect(host.proxy?.port == 8080)
         #expect(!identityDraft.isProxyValid(for: host))
 
@@ -283,12 +283,12 @@ struct MobileVaultFeatureTests {
         host.proxy?.port = 0
         #expect(!identityDraft.isProxyValid(for: host))
         host.proxy?.port = 8080
-        host.proxy = MobileHostEditorPolicy.selectProxy(.socks5, current: host.proxy)
+        host.proxy = HostEditorBindings.selectProxy(.socks5, current: host.proxy)
         #expect(host.proxy?.port == 1080)
         #expect(host.proxy?.hostname == "proxy.example")
 
         host.proxy?.port = 9000
-        host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: host.proxy)
+        host.proxy = HostEditorBindings.selectProxy(.http, current: host.proxy)
         #expect(host.proxy?.port == 9000)
 
         let identity = Identity(
@@ -305,7 +305,7 @@ struct MobileVaultFeatureTests {
         #expect(host.proxy?.username.isEmpty == true)
         #expect(identityDraft.isProxyValid(for: host))
 
-        host.proxy = MobileHostEditorPolicy.selectProxy(nil, current: host.proxy)
+        host.proxy = HostEditorBindings.selectProxy(nil, current: host.proxy)
         #expect(host.proxy == nil)
     }
 

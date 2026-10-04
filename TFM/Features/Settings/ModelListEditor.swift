@@ -144,7 +144,7 @@ struct ModelListEditor: View {
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
                         AppStrings.Settings.exactModelIdSuchAsGpt54.swiftUIKey,
-                        text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 }).singleLineText,
+                        text: $state.newModelID.singleLineText,
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
@@ -170,7 +170,7 @@ struct ModelListEditor: View {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(
                 AppStrings.Common.filter.swiftUIKey,
-                text: Binding(get: { state.query }, set: { state.query = $0 }).singleLineText,
+                text: $state.query.singleLineText,
                 axis: .horizontal
             ).singleLinePaste().lineLimit(1).textFieldStyle(.plain)
             if !state.query.isEmpty {
@@ -783,7 +783,7 @@ private struct CandidatePicker: View {
 
     private var query: String { chooser.query }
     private var queryBinding: Binding<String> {
-        Binding(get: { chooser.query }, set: { chooser.query = $0 })
+        $chooser.query
     }
 
     private var filtered: [AIModel] {

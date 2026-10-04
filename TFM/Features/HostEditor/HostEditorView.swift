@@ -133,13 +133,13 @@ struct HostEditorView: View {
     private var form: some View {
         Form {
             HostOrganizationSection(host: $draft) {
-                Picker(AppStrings.Vault.group.swiftUIKey, selection: groupChoice) {
-                    Text(AppStrings.Common.none).tag(Choice<HostGroup.ID>.unset)
+                Picker(AppStrings.Vault.group.swiftUIKey, selection: fields.groupChoice) {
+                    Text(AppStrings.Common.none).tag(HostEditorChoice<HostGroup.ID>.unset)
                     ForEach(app.hostLibrary.groups) { group in
-                        Text(group.name).tag(Choice.existing(group.id))
+                        Text(group.name).tag(HostEditorChoice.existing(group.id))
                     }
                     Divider()
-                    Text(AppStrings.Vault.newGroup).tag(Choice<HostGroup.ID>.new)
+                    Text(AppStrings.Vault.newGroup).tag(HostEditorChoice<HostGroup.ID>.new)
                 }
             } tagsField: {
                 // Full width rather than a `LabeledContent`, which would squeeze
@@ -151,7 +151,7 @@ struct HostEditorView: View {
                 }
             }
 
-            HostConnectionFields(host: $draft, protocol: $selectedProtocol).disabled(draft.isTailscaleManaged)
+            HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
 
             if selectedProtocol == .ssh && draft.sshEnabled {
                 if draft.isTailscaleManaged {
@@ -170,15 +170,15 @@ struct HostEditorView: View {
                         // container, which the App Sandbox does not grant. Offering the
                         // mode and then failing at connect time would be worse than not
                         // offering it.
-                        Picker(AppStrings.Vault.identity.swiftUIKey, selection: identityChoice) {
-                            Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.unset)
+                        Picker(AppStrings.Vault.identity.swiftUIKey, selection: fields.identityChoice) {
+                            Text(AppStrings.Vault.custom).tag(HostEditorChoice<Identity.ID>.unset)
                             Divider()
                             ForEach(app.hostLibrary.reusableIdentities) { identity in
                                 Text("\(identity.name) · \(identity.username)")
-                                    .tag(Choice.existing(identity.id))
+                                    .tag(HostEditorChoice.existing(identity.id))
                             }
                             Divider()
-                            Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                            Text(AppStrings.Keychain.newIdentity).tag(HostEditorChoice<Identity.ID>.new)
                         }
 
                         if usesCustomIdentity {
@@ -219,7 +219,7 @@ struct HostEditorView: View {
                             }
                         }
 
-                        Picker(AppStrings.Vault.proxy.swiftUIKey, selection: proxyKind) {
+                        Picker(AppStrings.Vault.proxy.swiftUIKey, selection: fields.proxyKind) {
                             Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
                             ForEach(HostProxy.ProtocolKind.allCases) { kind in
                                 Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
@@ -228,34 +228,36 @@ struct HostEditorView: View {
 
                         if draft.proxy != nil {
                             TextField(
-                                AppStrings.Vault.hostname.swiftUIKey, text: proxyString(\.hostname).singleLineText,
+                                AppStrings.Vault.hostname.swiftUIKey,
+                                text: fields.proxyString(\.hostname).singleLineText,
                                 axis: .horizontal
                             )
                             .singleLinePaste().lineLimit(1)
                             .padding(.leading, Metrics.Space.xxl)
                             .accessibilityLabel(AppStrings.Vault.proxyHostname.swiftUIKey)
                             TextField(
-                                AppStrings.Common.port.swiftUIKey, value: proxyInt(\.port),
+                                AppStrings.Common.port.swiftUIKey, value: fields.proxyInt(\.port),
                                 format: .number.grouping(.never)
                             ).lineLimit(1)
                                 .padding(.leading, Metrics.Space.xxl)
                                 .accessibilityLabel(AppStrings.Vault.proxyPort.swiftUIKey)
-                            Picker(AppStrings.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
-                                Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
-                                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
+                            Picker(AppStrings.Vault.identity.swiftUIKey, selection: fields.proxyIdentityChoice) {
+                                Text(AppStrings.Common.none).tag(HostEditorChoice<Identity.ID>.unset)
+                                Text(AppStrings.Vault.custom).tag(HostEditorChoice<Identity.ID>.custom)
                                 Divider()
                                 ForEach(proxyIdentities) { identity in
                                     Text("\(identity.name) · \(identity.username)")
-                                        .tag(Choice.existing(identity.id))
+                                        .tag(HostEditorChoice.existing(identity.id))
                                 }
                                 Divider()
-                                Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                                Text(AppStrings.Keychain.newIdentity).tag(HostEditorChoice<Identity.ID>.new)
                             }
                             .padding(.leading, Metrics.Space.xxl)
                             .accessibilityLabel(AppStrings.Vault.proxyIdentity.swiftUIKey)
                             if customIdentity.usesCustomProxy {
                                 TextField(
-                                    AppStrings.Vault.username.swiftUIKey, text: proxyString(\.username).singleLineText,
+                                    AppStrings.Vault.username.swiftUIKey,
+                                    text: fields.proxyString(\.username).singleLineText,
                                     axis: .horizontal
                                 )
                                 .singleLinePaste().lineLimit(1)
@@ -269,7 +271,8 @@ struct HostEditorView: View {
                                 .disabled(!customIdentity.proxyPasswordIsEditable)
                             } else if draft.proxy?.identityID != nil {
                                 TextField(
-                                    AppStrings.Vault.username.swiftUIKey, text: proxyString(\.username).singleLineText,
+                                    AppStrings.Vault.username.swiftUIKey,
+                                    text: fields.proxyString(\.username).singleLineText,
                                     axis: .horizontal
                                 )
                                 .singleLinePaste()
@@ -293,7 +296,7 @@ struct HostEditorView: View {
                 HostSessionSection(
                     charset: $draft.sshCharset,
                     sftpInitialPath: $draft.sftpChannelInitialPath,
-                    startupSnippetID: startupSnippetChoice,
+                    startupSnippetID: fields.startupSnippetChoice,
                     agentForwardingEnabled: $draft.agentForwardingEnabled,
                     allowsAgentForwarding: !draft.isTailscaleManaged,
                     environmentVariables: $draft.environmentVariables,
@@ -374,15 +377,15 @@ struct HostEditorView: View {
 
     private var telnetAuthenticationSection: some View {
         Section(AppStrings.Vault.authentication.swiftUIKey) {
-            Picker(AppStrings.Vault.identity.swiftUIKey, selection: telnetIdentityChoice) {
-                Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
-                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
+            Picker(AppStrings.Vault.identity.swiftUIKey, selection: fields.telnetIdentityChoice) {
+                Text(AppStrings.Common.none).tag(HostEditorChoice<Identity.ID>.unset)
+                Text(AppStrings.Vault.custom).tag(HostEditorChoice<Identity.ID>.custom)
                 Divider()
                 ForEach(telnetIdentities) { identity in
-                    Text("\(identity.name) · \(identity.username)").tag(Choice.existing(identity.id))
+                    Text("\(identity.name) · \(identity.username)").tag(HostEditorChoice.existing(identity.id))
                 }
                 Divider()
-                Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                Text(AppStrings.Keychain.newIdentity).tag(HostEditorChoice<Identity.ID>.new)
             }
             if customIdentity.usesCustomTelnet(for: draft) {
                 TextField(
@@ -403,33 +406,38 @@ struct HostEditorView: View {
     @ViewBuilder
     private var telnetRoutingSection: some View {
         Section(AppStrings.Vault.routing.swiftUIKey) {
-            Picker(AppStrings.Vault.proxy.swiftUIKey, selection: telnetProxyKind) {
+            Picker(AppStrings.Vault.proxy.swiftUIKey, selection: fields.telnetProxyKind) {
                 Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
                 ForEach(HostProxy.ProtocolKind.allCases) { kind in
                     Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
                 }
             }
             if draft.telnetProxy != nil {
-                TextField(AppStrings.Vault.hostname.swiftUIKey, text: telnetProxyString(\.hostname).singleLineText)
-                    .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
                 TextField(
-                    AppStrings.Common.port.swiftUIKey, value: telnetProxyInt(\.port), format: .number.grouping(.never)
+                    AppStrings.Vault.hostname.swiftUIKey, text: fields.telnetProxyString(\.hostname).singleLineText
+                )
+                .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
+                TextField(
+                    AppStrings.Common.port.swiftUIKey, value: fields.telnetProxyInt(\.port),
+                    format: .number.grouping(.never)
                 )
                 .lineLimit(1).padding(.leading, Metrics.Space.xxl)
-                Picker(AppStrings.Vault.identity.swiftUIKey, selection: telnetProxyIdentityChoice) {
-                    Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
-                    Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
+                Picker(AppStrings.Vault.identity.swiftUIKey, selection: fields.telnetProxyIdentityChoice) {
+                    Text(AppStrings.Common.none).tag(HostEditorChoice<Identity.ID>.unset)
+                    Text(AppStrings.Vault.custom).tag(HostEditorChoice<Identity.ID>.custom)
                     Divider()
                     ForEach(telnetIdentities) { identity in
-                        Text("\(identity.name) · \(identity.username)").tag(Choice.existing(identity.id))
+                        Text("\(identity.name) · \(identity.username)").tag(HostEditorChoice.existing(identity.id))
                     }
                     Divider()
-                    Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                    Text(AppStrings.Keychain.newIdentity).tag(HostEditorChoice<Identity.ID>.new)
                 }
                 .padding(.leading, Metrics.Space.xxl)
                 if customIdentity.usesCustomTelnetProxy {
-                    TextField(AppStrings.Vault.username.swiftUIKey, text: telnetProxyString(\.username).singleLineText)
-                        .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
+                    TextField(
+                        AppStrings.Vault.username.swiftUIKey, text: fields.telnetProxyString(\.username).singleLineText
+                    )
+                    .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
                     RevealableSecretField(
                         AppStrings.Vault.password, text: $customIdentity.telnetProxyPassword,
                         prompt: Text(AppStrings.Vault.required)
@@ -535,84 +543,8 @@ struct HostEditorView: View {
         }.forwardingConnections($draft.portForwardingMaxConnections)
     }
 
-    /// What a picker row means: nothing, one of the saved records, or the row
-    /// that makes a new one.
-    ///
-    /// A row in a picker is a *value*, not a button — so "New Identity" has to
-    /// be a third case rather than an action, and the binding below is what
-    /// turns choosing it back into one. Generic over the id because Identity and
-    /// HostGroup need the same three answers; both ids are `UUID`, so a single
-    /// non-generic enum would let a group id be selected into the identity
-    /// picker and still compile.
-    private enum Choice<ID: Hashable>: Hashable {
-        case unset
-        case custom
-        case existing(ID)
-        case new
-    }
-
-    /// `.new` deliberately leaves the draft alone. Nothing is written until the
-    /// sheet hands back something to point at, which is what makes Cancel a
-    /// no-op: the getter still reads the old value, so the picker snaps back to
-    /// it on the next pass.
-    private var identityChoice: Binding<Choice<Identity.ID>> {
-        Binding {
-            guard let id = draft.identityID, app.hostLibrary.identity(id)?.isHostCustom != true else { return .unset }
-            return .existing(id)
-        } set: { choice in
-            switch choice {
-            case .unset, .custom:
-                customIdentity.selectCustomSSH(on: &draft)
-            case .existing(let id):
-                guard let identity = app.hostLibrary.identity(id) else { return }
-                customIdentity.selectSSHIdentity(identity, on: &draft)
-            case .new: route = .identity
-            }
-        }
-    }
-
-    private var telnetIdentityChoice: Binding<Choice<Identity.ID>> {
-        Binding {
-            if customIdentity.usesCustomTelnetSelection { return .custom }
-            guard let id = draft.telnetIdentityID else { return .unset }
-            return app.hostLibrary.identity(id)?.isHostCustom == true ? .custom : .existing(id)
-        } set: { choice in
-            switch choice {
-            case .unset:
-                customIdentity.clearTelnetIdentity(on: &draft)
-            case .custom:
-                customIdentity.selectCustomTelnet(on: &draft)
-            case .existing(let id):
-                guard let identity = app.hostLibrary.identity(id) else { return }
-                customIdentity.selectTelnetIdentity(identity, on: &draft)
-            case .new:
-                route = .telnetIdentity
-            }
-        }
-    }
-
     private var telnetIdentities: [Identity] {
         app.hostLibrary.reusableIdentities.filter(app.hostLibrary.isProxyEligibleOnThisDevice)
-    }
-
-    private var groupChoice: Binding<Choice<HostGroup.ID>> {
-        Binding {
-            draft.groupID.map(Choice.existing) ?? .unset
-        } set: { choice in
-            switch choice {
-            case .unset, .custom: draft.groupID = nil
-            case .existing(let id): draft.groupID = id
-            case .new: route = .group
-            }
-        }
-    }
-
-    private var startupSnippetChoice: Binding<Snippet.ID?> {
-        Binding {
-            draft.startupSnippetID.flatMap { app.hostLibrary.snippet($0)?.id }
-        } set: {
-            draft.startupSnippetID = $0
-        }
     }
 
     private var jumpHostChoices: [Host] {
@@ -672,108 +604,20 @@ struct HostEditorView: View {
         return result
     }
 
-    private var proxyKind: Binding<HostProxy.ProtocolKind?> {
-        Binding {
-            draft.proxy?.kind
-        } set: { kind in
-            guard let kind else {
-                draft.proxy = nil
-                return
-            }
-            if draft.proxy == nil {
-                draft.proxy = HostProxy(kind: kind, port: kind.defaultPort)
-            } else if draft.proxy?.kind != kind {
-                let oldDefault = draft.proxy?.kind.defaultPort
-                draft.proxy?.kind = kind
-                if draft.proxy?.port == oldDefault { draft.proxy?.port = kind.defaultPort }
-            }
-        }
-    }
-
-    private var telnetProxyKind: Binding<HostProxy.ProtocolKind?> {
-        Binding {
-            draft.telnetProxy?.kind
-        } set: { kind in
-            guard let kind else {
-                draft.telnetProxy = nil
-                return
-            }
-            if draft.telnetProxy == nil {
-                draft.telnetProxy = HostProxy(kind: kind, port: kind.defaultPort)
-            } else if draft.telnetProxy?.kind != kind {
-                let oldDefault = draft.telnetProxy?.kind.defaultPort
-                draft.telnetProxy?.kind = kind
-                if draft.telnetProxy?.port == oldDefault { draft.telnetProxy?.port = kind.defaultPort }
-            }
-        }
-    }
-
-    private func proxyString(_ keyPath: WritableKeyPath<HostProxy, String>) -> Binding<String> {
-        Binding(
-            get: { draft.proxy?[keyPath: keyPath] ?? "" },
-            set: { draft.proxy?[keyPath: keyPath] = $0 }
-        )
-    }
-
-    private func proxyInt(_ keyPath: WritableKeyPath<HostProxy, Int>) -> Binding<Int> {
-        Binding(
-            get: { draft.proxy?[keyPath: keyPath] ?? 0 },
-            set: { draft.proxy?[keyPath: keyPath] = $0 }
-        )
-    }
-
-    private func telnetProxyString(_ keyPath: WritableKeyPath<HostProxy, String>) -> Binding<String> {
-        Binding(
-            get: { draft.telnetProxy?[keyPath: keyPath] ?? "" },
-            set: { draft.telnetProxy?[keyPath: keyPath] = $0 })
-    }
-
-    private func telnetProxyInt(_ keyPath: WritableKeyPath<HostProxy, Int>) -> Binding<Int> {
-        Binding(
-            get: { draft.telnetProxy?[keyPath: keyPath] ?? 0 },
-            set: { draft.telnetProxy?[keyPath: keyPath] = $0 })
-    }
-
-    private var proxyIdentityChoice: Binding<Choice<Identity.ID>> {
-        Binding {
-            if customIdentity.usesCustomProxy { return .custom }
-            return draft.proxy?.identityID.map(Choice.existing) ?? .unset
-        } set: { choice in
-            switch choice {
-            case .unset:
-                customIdentity.clearProxyIdentity(on: &draft)
-            case .custom:
-                customIdentity.selectCustomProxy(on: &draft, using: app.hostLibrary)
-            case .existing(let id):
-                guard let identity = app.hostLibrary.identity(id) else { return }
-                customIdentity.selectProxyIdentity(identity, on: &draft)
-            case .new:
-                route = .proxyIdentity
-            }
-        }
-    }
-
-    private var telnetProxyIdentityChoice: Binding<Choice<Identity.ID>> {
-        Binding {
-            if customIdentity.usesCustomTelnetProxy { return .custom }
-            return draft.telnetProxy?.identityID.map(Choice.existing) ?? .unset
-        } set: { choice in
-            switch choice {
-            case .unset:
-                customIdentity.clearTelnetProxyIdentity(on: &draft)
-            case .custom:
-                customIdentity.selectCustomTelnetProxy(on: &draft, using: app.hostLibrary)
-            case .existing(let id):
-                guard let identity = app.hostLibrary.identity(id) else { return }
-                customIdentity.selectTelnetProxyIdentity(identity, on: &draft)
-            case .new:
-                route = .telnetProxyIdentity
-            }
-        }
-    }
-
     private var proxyIdentities: [Identity] {
         app.hostLibrary.reusableIdentities.filter(app.hostLibrary.isProxyEligibleOnThisDevice)
+    }
+
+    private var fields: HostEditorBindings {
+        HostEditorBindings(host: $draft, customIdentity: $customIdentity, library: app.hostLibrary) { creation in
+            switch creation {
+            case .identity: route = .identity
+            case .telnetIdentity: route = .telnetIdentity
+            case .proxyIdentity: route = .proxyIdentity
+            case .telnetProxyIdentity: route = .telnetProxyIdentity
+            case .group: route = .group
+            }
+        }
     }
 
     private var usesCustomIdentity: Bool {

@@ -21,6 +21,7 @@ private nonisolated enum MobileSSHSessionEvent: Sendable {
 }
 
 private struct MobilePendingUpload {
+    let id = UUID()
     var batch: SFTPLocalUploadBatch
     var destination: String
     var homeDirectory: String?
@@ -32,11 +33,13 @@ private struct MobilePendingUpload {
 }
 
 private struct MobilePendingDownload {
+    let id = UUID()
     var batch: SFTPRemoteDownloadBatch
     var connectionGeneration: UUID
 }
 
 private struct MobilePendingRemoteCopy {
+    let id = UUID()
     var batch: SFTPRemoteCopyBatch
     var connectionGeneration: UUID
 }
@@ -184,6 +187,20 @@ final class MobileWorkspace: Identifiable {
             ?? 0
     }
     var hasPendingTransferConflict: Bool { transferConflictCount > 0 }
+
+    var transferConflictID: UUID? {
+        guard hasPendingTransferConflict else { return nil }
+        return pendingRemoteCopy?.id ?? pendingDownload?.id ?? pendingUpload?.id
+    }
+
+    /// SwiftUI can write the dialog binding before invoking its button action.
+    /// Let that action consume the request first, and never cancel a replacement.
+    func dismissTransferConflict(_ id: UUID) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, transferConflictID == id else { return }
+            cancelPendingUpload()
+        }
+    }
 
     var sameDirectoryLaunch: MobileWorkspaceDirectoryLaunch? {
         guard connected else { return nil }

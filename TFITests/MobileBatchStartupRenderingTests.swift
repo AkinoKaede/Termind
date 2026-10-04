@@ -38,7 +38,7 @@ struct MobileBatchStartupRenderingTests {
             let connectSheet = try #require(presented(in: controller))
             let connectFrame = try #require(connectSheet.presentationController?.frameOfPresentedViewInContainerView)
             try capture(window, name: "connect-\(language)")
-            scene.isConnectionPickerPresented = false
+            scene.workspaceSheet = nil
             try await Task.sleep(for: .milliseconds(700))
             scene.openBatchStartup()
             try await Task.sleep(for: .milliseconds(800))
@@ -62,14 +62,14 @@ struct MobileBatchStartupRenderingTests {
             try await Task.sleep(for: .milliseconds(300))
             #expect(segmented.selectedSegmentIndex == 1)
             try capture(window, name: "batch-startup-\(language)-sftp")
-            scene.isBatchStartupPresented = false
+            scene.workspaceSheet = nil
             try await Task.sleep(for: .milliseconds(700))
             #expect(app.workspaces.isEmpty)
             scene.openBatchStartup()
             try await Task.sleep(for: .milliseconds(700))
             let reopened = try #require(presented(in: controller))
             #expect(descendants(UISegmentedControl.self, in: reopened.view).first?.selectedSegmentIndex == 0)
-            scene.isBatchStartupPresented = false
+            scene.workspaceSheet = nil
             try await Task.sleep(for: .milliseconds(500))
         }
     }

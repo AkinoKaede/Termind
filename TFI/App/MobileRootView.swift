@@ -43,7 +43,7 @@ struct MobileRootView: View {
         .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
         .onChange(of: scene.visibleAssistantConversationID, initial: true) { app.refreshAssistantReadState() }
         .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
-        .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
+        .sheet(isPresented: Bindable(app.pro).projectedValue.isPaywallPresented) {
             MobileProView(pro: app.pro)
         }
         .sheet(item: $scene.renamingWorkspace) { descriptor in

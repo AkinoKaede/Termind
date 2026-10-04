@@ -44,7 +44,6 @@ struct MobileWorkspaceView: View {
     @State private var renaming: RemoteFile?
     @State private var editingPermissions: RemoteFile?
     @State private var showingTransfers = false
-    @State private var uploadConflictPresented = false
     @State private var uploadDropTargeted = false
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
@@ -52,13 +51,10 @@ struct MobileWorkspaceView: View {
     @Environment(\.locale) private var locale
     @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @TerminalFontSettings private var font
-    @State private var downloadTarget: RemoteFile?
-    @State private var previewURL: URL?
+    @State private var downloadImport = MobileFileImportState<RemoteFile>()
+    @State private var preview = MobileSFTPPreviewState()
     @State private var openWithPresenter = MobileSFTPOpenWithPresenter()
-    @State private var importingEditedCopy = false
-    @State private var editedCopyTarget: UUID?
-    @State private var exportedEditURL: URL?
-    @State private var showsExportedEdit = false
+    @State private var editedCopyImport = MobileFileImportState<UUID>()
     @ScaledMetric private var editRowHeight = 76.0
 
     private var resolvedFont: TerminalFontPreferences {
@@ -304,25 +300,25 @@ struct MobileWorkspaceView: View {
                 }.mobileSheetPresentation(compact: true)
             }
             .sheet(
-                isPresented: Binding(get: { previewURL != nil }, set: { if !$0 { previewURL = nil } }),
+                isPresented: $preview.isPreviewPresented,
                 onDismiss: {
                     Task { await workspace.sftpEdits?.recheck() }
-                    showsExportedEdit = exportedEditURL != nil
+                    preview.previewDidDismiss()
                 }
             ) {
-                if let previewURL {
+                if let previewURL = preview.previewURL {
                     MobileSFTPEditPreview(
                         url: previewURL,
                         allowsEditing: workspace.sftpEdits?.model.files.contains { $0.localURL == previewURL } == true,
                         changed: { Task { await workspace.sftpEdits?.recheck() } },
-                        export: { exportedEditURL = $0 },
+                        export: { preview.stageExport($0) },
                         failed: { workspace.operationError = $0 },
-                        dismiss: { self.previewURL = nil }
+                        dismiss: { preview.dismissPreview() }
                     )
                 }
             }
-            .sheet(isPresented: $showsExportedEdit) {
-                if let exportedEditURL {
+            .sheet(isPresented: $preview.isExportPresented) {
+                if let exportedEditURL = preview.exportedCopyURL {
                     VStack(spacing: 20) {
                         Text(AppStrings.Workspace.theEditedCopyUsesADifferentFormat).font(.headline)
                         Text(AppStrings.SFTP.editedCopyFormatExplanation)
@@ -355,10 +351,9 @@ struct MobileWorkspaceView: View {
                 }
             }
             .fileImporter(
-                isPresented: $importingEditedCopy, allowedContentTypes: [.data], allowsMultipleSelection: false
+                isPresented: $editedCopyImport.isPresented, allowedContentTypes: [.data], allowsMultipleSelection: false
             ) { result in
-                let target = editedCopyTarget
-                editedCopyTarget = nil
+                let target = editedCopyImport.takeTarget()
                 switch result {
                 case .success(let urls):
                     if let target, let source = urls.first {
@@ -379,15 +374,11 @@ struct MobileWorkspaceView: View {
                 }
             }
             .fileImporter(
-                isPresented: Binding(
-                    get: { downloadTarget != nil },
-                    set: { if !$0 { downloadTarget = nil } }
-                ),
+                isPresented: $downloadImport.isPresented,
                 allowedContentTypes: [.folder],
                 allowsMultipleSelection: false
             ) { result in
-                let target = downloadTarget
-                downloadTarget = nil
+                let target = downloadImport.takeTarget()
                 switch result {
                 case .success(let urls):
                     if let target, let destination = urls.first {
@@ -401,21 +392,13 @@ struct MobileWorkspaceView: View {
 
     private var workspaceDialogs: some View {
         workspaceSheets
-            .onChange(of: workspace.transferConflictCount) { _, count in
-                uploadConflictPresented = count > 0
-            }
-            .onChange(of: uploadConflictPresented) { wasPresented, isPresented in
-                if wasPresented, !isPresented, workspace.hasPendingTransferConflict {
-                    workspace.cancelPendingUpload()
-                }
-            }
             .onDisappear {
                 workspace.cancelPendingUpload()
                 workspace.cancelCommandGeneration()
             }
             .confirmationDialog(
                 uploadConflictTitle,
-                isPresented: $uploadConflictPresented,
+                isPresented: transferConflictPresented,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.SFTP.replace.swiftUIKey) { enqueuePendingUpload(.replace) }
@@ -497,12 +480,13 @@ struct MobileWorkspaceView: View {
                     return !edit.isInvalidated && !edit.isPreparing && edit.transferID == nil
                 },
                 importEditedCopy: { file in
-                    editedCopyTarget =
-                        workspace.sftpEdits?.model.file(
-                            hostID: workspace.descriptor.hostID, path: file.path)?.id
-                    importingEditedCopy = editedCopyTarget != nil
+                    if let id = workspace.sftpEdits?.model.file(
+                        hostID: workspace.descriptor.hostID, path: file.path)?.id
+                    {
+                        editedCopyImport.present(for: id)
+                    }
                 },
-                download: { downloadTarget = $0 },
+                download: { downloadImport.present(for: $0) },
                 copy: copyRemoteItem,
                 paste: pasteRemoteItems,
                 rename: { renaming = $0 },
@@ -524,8 +508,7 @@ struct MobileWorkspaceView: View {
     }
 
     private func presentPreview(_ url: URL) {
-        exportedEditURL = nil
-        previewURL = url
+        preview.present(url)
     }
 
     private func open(_ file: RemoteFile) {
@@ -664,9 +647,17 @@ struct MobileWorkspaceView: View {
         uploadDropTask = nil
     }
 
+    private var transferConflictPresented: Binding<Bool> {
+        let requestID = workspace.transferConflictID
+        return Binding(
+            get: { workspace.hasPendingTransferConflict },
+            set: { presented in
+                if !presented, let requestID { workspace.dismissTransferConflict(requestID) }
+            })
+    }
+
     private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
         workspace.enqueuePendingTransfer(policy)
-        uploadConflictPresented = false
     }
 
     @ViewBuilder

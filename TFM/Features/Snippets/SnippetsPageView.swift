@@ -733,7 +733,7 @@ struct SnippetTargetPickerView: View {
 
     private var query: String { chooser.query }
     private var queryBinding: Binding<String> {
-        Binding(get: { chooser.query }, set: { chooser.query = $0 })
+        $chooser.query
     }
 
     var body: some View {

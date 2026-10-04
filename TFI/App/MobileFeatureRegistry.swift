@@ -60,10 +60,7 @@ struct MobileFeatureRegistry {
                     MobileVaultView(
                         app: app,
                         reviewScene: scene,
-                        editingHost: Binding(
-                            get: { scene.editingHost },
-                            set: { scene.editingHost = $0 }
-                        ),
+                        editingHost: Bindable(scene).projectedValue.editingHost,
                         activateHost: scene.activateHost,
                         open: scene.open,
                         executeSnippet: scene.execute,
@@ -99,10 +96,7 @@ struct MobileFeatureRegistry {
                     MobileAssistantView(
                         app: app,
                         model: scene.assistant,
-                        libraryRoute: Binding(
-                            get: { scene.assistantLibraryRoute },
-                            set: { scene.assistantLibraryRoute = $0 }
-                        )
+                        libraryRoute: Bindable(scene).projectedValue.assistantLibraryRoute
                     ))
             }
         )

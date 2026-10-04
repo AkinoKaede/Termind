@@ -845,12 +845,12 @@ extension WindowModel {
             )
         case .metrics:
             return WindowToolbarFindContext(
-                query: Binding(get: { self.metricsQuery }, set: { self.metricsQuery = $0 }),
+                query: Bindable(self).projectedValue.metricsQuery,
                 focusRequest: findFocusRequest
             )
         case .processes:
             return WindowToolbarFindContext(
-                query: Binding(get: { self.metricsProcessQuery }, set: { self.metricsProcessQuery = $0 }),
+                query: Bindable(self).projectedValue.metricsProcessQuery,
                 focusRequest: findFocusRequest
             )
         case .hosts:
@@ -859,36 +859,34 @@ extension WindowModel {
             // the one with a disclosure chevron: every page's field looks the
             // same. The tag filter lives on the page, in the canvas menu.
             return WindowToolbarFindContext(
-                query: Binding(get: { state.query }, set: { state.query = $0 }),
+                query: Bindable(state).projectedValue.query,
                 focusRequest: findFocusRequest
             )
         case .keychain:
             let state = vaultPages.keychain
             return WindowToolbarFindContext(
-                query: Binding(get: { state.query }, set: { state.query = $0 }),
+                query: Bindable(state).projectedValue.query,
                 focusRequest: findFocusRequest
             )
         case .portForwarding:
             let state = vaultPages.portForwarding
             return WindowToolbarFindContext(
-                query: Binding(get: { state.query }, set: { state.query = $0 }), focusRequest: findFocusRequest)
+                query: Bindable(state).projectedValue.query, focusRequest: findFocusRequest)
         case .knownHosts:
             let state = vaultPages.knownHosts
             return WindowToolbarFindContext(
-                query: Binding(get: { state.query }, set: { state.query = $0 }),
+                query: Bindable(state).projectedValue.query,
                 focusRequest: findFocusRequest
             )
         case .snippets:
             let state = vaultPages.snippets
             return WindowToolbarFindContext(
-                query: Binding(get: { state.query }, set: { state.query = $0 }),
+                query: Bindable(state).projectedValue.query,
                 focusRequest: findFocusRequest
             )
         case .assistant:
             return WindowToolbarFindContext(
-                query: Binding(
-                    get: { self.assistantQuery }, set: { self.assistantQuery = $0 }
-                ),
+                query: Bindable(self).projectedValue.assistantQuery,
                 focusRequest: findFocusRequest
             )
         case .terminal:
@@ -916,9 +914,7 @@ extension WindowModel {
         case .sftp:
             guard let sftpChannel = focusedSFTPChannel else { return nil }
             return WindowToolbarFindContext(
-                query: Binding(
-                    get: { sftpChannel.query }, set: { sftpChannel.query = $0 }
-                ),
+                query: Bindable(sftpChannel).projectedValue.query,
                 focusRequest: findFocusRequest,
                 cancel: { sftpChannel.query = "" }
             )

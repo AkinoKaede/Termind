@@ -135,7 +135,7 @@ struct MobileWorkspaceSessionTests {
         router.resume()
         #expect(scene.showsTransfers)
         #expect(activated.isEmpty)
-        scene.showsTransfers = false
+        scene.workspaceDestination = nil
         router.resume()
         #expect(!scene.showsTransfers)
         router.stop()

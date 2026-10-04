@@ -13,6 +13,19 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 final class MobileSceneModel {
+    enum WorkspaceDestination: Hashable, Identifiable {
+        case workspace(UUID)
+        case transfers
+
+        var id: Self { self }
+    }
+
+    enum WorkspaceSheet: String, Identifiable {
+        case connectionPicker, batchStartup
+
+        var id: Self { self }
+    }
+
     let id = UUID()
     let agentForwarding = MobileAgentForwardingInteraction()
     let workspaceSession: MobileWorkspaceSessionModel
@@ -23,11 +36,26 @@ final class MobileSceneModel {
             app.refreshCommandFocus()
         }
     }
-    var workspaceID: MobileWorkspace.ID? { didSet { app.refreshCommandFocus() } }
-    var isConnectionPickerPresented = false
-    var isBatchStartupPresented = false
+    var workspaceDestination: WorkspaceDestination? { didSet { app.refreshCommandFocus() } }
+    var workspaceSheet: WorkspaceSheet?
+
+    var workspaceID: MobileWorkspace.ID? {
+        get {
+            guard case .workspace(let id) = workspaceDestination else { return nil }
+            return id
+        }
+        set {
+            if let newValue {
+                workspaceDestination = .workspace(newValue)
+            } else if case .workspace = workspaceDestination {
+                workspaceDestination = nil
+            }
+        }
+    }
+    var isConnectionPickerPresented: Bool { workspaceSheet == .connectionPicker }
+    var isBatchStartupPresented: Bool { workspaceSheet == .batchStartup }
     var isWorkspaceUnavailable = false
-    var showsTransfers = false
+    var showsTransfers: Bool { workspaceDestination == .transfers }
     var pendingExternalConnection: RemoteConnectionURL?
     var editingHost: Host?
     var renamingWorkspace: MobileWorkspaceDescriptor?
@@ -69,11 +97,10 @@ final class MobileSceneModel {
 
     func openTransfers() {
         pendingWorkspaceID = nil
-        isConnectionPickerPresented = false
-        isBatchStartupPresented = false
-        workspaceID = nil
+        pendingBatchStartup = nil
+        workspaceSheet = nil
         selectedDestination = .workspaces
-        showsTransfers = true
+        workspaceDestination = .transfers
     }
 
     func enterReviewPage(_ id: String) {
@@ -86,20 +113,18 @@ final class MobileSceneModel {
 
     func openConnectionPicker() {
         pendingBatchStartup = nil
-        isBatchStartupPresented = false
         pendingWorkspaceID = nil
         selectedDestination = .workspaces
-        workspaceID = nil
-        isConnectionPickerPresented = true
+        workspaceDestination = nil
+        workspaceSheet = .connectionPicker
     }
 
     func openBatchStartup() {
         pendingWorkspaceID = nil
         pendingBatchStartup = nil
         selectedDestination = .workspaces
-        workspaceID = nil
-        isConnectionPickerPresented = false
-        isBatchStartupPresented = true
+        workspaceDestination = nil
+        workspaceSheet = .batchStartup
     }
 
     func prepareBatchStartup(hostIDs: [Host.ID], connectionProtocol: MobileConnectionProtocol) {
@@ -108,8 +133,8 @@ final class MobileSceneModel {
     }
 
     func completeBatchStartup() {
-        isBatchStartupPresented = false
         guard let request = pendingBatchStartup else { return }
+        if workspaceSheet == .batchStartup { workspaceSheet = nil }
         pendingBatchStartup = nil
         pendingWorkspaceID = nil
         selectedDestination = .workspaces

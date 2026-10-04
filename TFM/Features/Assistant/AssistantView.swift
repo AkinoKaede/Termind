@@ -524,10 +524,7 @@ private struct AssistantConversationList: View {
                     onOpen: { onOpen(conversation.id) },
                     onDelete: { deleteTarget = conversation },
                     isRenaming: renamingID == conversation.id,
-                    renameTitle: Binding(
-                        get: { renameTitle },
-                        set: { renameTitle = $0 }
-                    ),
+                    renameTitle: $renameTitle,
                     onBeginRename: { beginRename(conversation) },
                     onCommitRename: { commitRename(conversation) },
                     onCancelRename: cancelRename

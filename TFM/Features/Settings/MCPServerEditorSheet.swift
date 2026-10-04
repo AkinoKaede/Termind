@@ -223,7 +223,7 @@ struct MCPServerEditorPage: View {
         Section {
             RevealableSecretField(
                 AppStrings.Settings.bearerToken,
-                text: Binding(get: { session.token }, set: { session.token = $0 }),
+                text: $session.token,
                 prompt: Text(AppStrings.Common.optional)
             )
             .onChange(of: session.token) { _, value in store(token: value) }

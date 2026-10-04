@@ -23,7 +23,7 @@ struct MobileWorkspaceSearchModifier: ViewModifier {
                 onSubmit: { workspace.find.navigate(.previous) })
         case .sftp:
             content.mobileToolbarSearch(
-                text: Binding(get: { workspace.sftpChannel.query }, set: { workspace.sftpChannel.query = $0 }),
+                text: Bindable(workspace.sftpChannel).projectedValue.query,
                 prompt: AppStrings.Common.search)
         }
     }

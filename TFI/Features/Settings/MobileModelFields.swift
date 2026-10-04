@@ -160,10 +160,7 @@ private struct MobileCheckboxToggleStyle: ToggleStyle {
         .buttonStyle(.plain)
         .accessibilityRepresentation {
             Toggle(
-                isOn: Binding(
-                    get: { configuration.isOn },
-                    set: { configuration.isOn = $0 }
-                )
+                isOn: configuration.$isOn
             ) {
                 configuration.label
             }
