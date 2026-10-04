@@ -1,6 +1,7 @@
 {
   "models": [
     {
+      "type": "chat",
       "provider": "openai",
       "id": "codex-auto-review",
       "name": "Codex Auto-review",

@@ -3003,7 +3003,7 @@
 			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.18.1;
+				minimumVersion = 0.19.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -24,6 +24,8 @@ commit=$(npm view "$package" gitHead)
 integrity=$(npm view "$package" dist.integrity)
 temporary="$temporary_dir/PiModelCatalog.json"
 
+# Pi exposes some IDs through multiple APIs. Prefer their chat records because
+# the assistant selects models by provider and ID, without an API-type suffix.
 jq -cs \
     --arg commit "$commit" \
     --arg version "$version" \
@@ -34,7 +36,7 @@ jq -cs \
         version: $version,
         commit: $commit,
         integrity: $integrity,
-        models: [
+        models: ([
             .[]
             | to_entries[]
             | .value
@@ -42,10 +44,12 @@ jq -cs \
             | .value
             | {
                 provider,
+                type,
                 id,
                 name,
                 reasoning,
                 input,
+                output: (.output // (if .type == "image" then ["image"] else ["text"] end)),
                 contextWindow,
                 maxOutputTokens: .maxTokens,
                 unsupportedEfforts: (
@@ -58,7 +62,8 @@ jq -cs \
                     | with_entries(select(.value != null))
                 )
             }
-        ]
+        ] | group_by([.provider, .id])
+          | map(min_by(if .type == "chat" then 0 elif .type == "image" then 1 else 2 end)))
     }' "$data_dir"/*.json > "$temporary"
 
 mv "$temporary" "$output"
