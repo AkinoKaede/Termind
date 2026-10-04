@@ -2898,8 +2898,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AkinoKaede/libtailscale-spm.git";
 			requirement = {
-				kind = exactVersion;
-				version = 1.0.2;
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.0.2;
 			};
 		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
