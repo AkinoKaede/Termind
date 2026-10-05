@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
@@ -211,15 +210,6 @@ struct CommandHistoryTests {
         #expect(channel.history.sessionID != oldHistory.sessionID)
         channel.recordOpenedFile(at: "/current")
         #expect(channel.history.entries().map(\.path) == ["/current"])
-    }
-
-    private func makeContainer(_ name: String) throws -> ModelContainer {
-        let configuration = localModelConfiguration(
-            name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
-        )
-        return try ModelContainer(
-            for: HostPersistence.schema, configurations: [configuration]
-        )
     }
 }
 

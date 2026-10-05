@@ -537,7 +537,4 @@ private final class FailingImportPersistence: VaultPersisting {
     func save(
         _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
     ) throws -> VaultMutationSet { throw CocoaError(.fileWriteUnknown) }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        throw CocoaError(.fileWriteUnknown)
-    }
 }

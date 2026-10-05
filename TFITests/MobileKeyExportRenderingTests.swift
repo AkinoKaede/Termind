@@ -1,6 +1,5 @@
 import SwiftUI
 import TermindApplication
-import TermindPresentation
 import Testing
 import UIKit
 

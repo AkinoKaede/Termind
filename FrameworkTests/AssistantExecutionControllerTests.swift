@@ -878,7 +878,6 @@ private actor PreparationBarrierMemoryStore: MemoryPersisting {
     func replaceHistory(_ conversations: [StoredAgentConversation]) {}
     func rebuildHistoryIndex() {}
     func searchSessions(_ request: AgentSessionSearchRequest) -> AgentJSONValue { .array([]) }
-    func lastReviewedMessage(_ conversationID: UUID) -> UUID? { nil }
     func markReviewed(_ messageID: UUID, conversationID: UUID) {}
     func applyReview(
         _ operations: [AgentMemoryOperation], expected: AgentMemoryState,

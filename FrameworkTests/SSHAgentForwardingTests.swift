@@ -3,7 +3,6 @@ import Foundation
 import OpenSSL
 import TermindApplication
 import TermindDomain
-import TermindPersistence
 import Testing
 
 @testable import TermindRemoteInfrastructure

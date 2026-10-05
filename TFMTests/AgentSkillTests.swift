@@ -2,14 +2,8 @@ import AgentKit
 import Foundation
 import SwiftData
 import TermindApplication
-import TermindDomain
-import TermindInfrastructure
 import TermindPersistence
-import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
-
-@testable import Termind
 
 @Suite
 struct AgentSkillNamingTests {
@@ -568,10 +562,6 @@ struct SkillLibraryModelTests {
         return try ModelContainer(
             for: HostPersistence.schema, configurations: [configuration]
         )
-    }
-
-    private func makeDefaults() throws -> UserDefaults {
-        try #require(UserDefaults(suiteName: "AgentSkillTests.\(UUID().uuidString)"))
     }
 }
 

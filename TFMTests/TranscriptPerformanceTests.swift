@@ -1,11 +1,7 @@
 import Darwin
 import Foundation
 import TermindApplication
-import TermindDomain
-import TermindInfrastructure
-import TermindPersistence
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind

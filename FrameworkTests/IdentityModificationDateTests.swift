@@ -164,9 +164,5 @@ private final class IdentityModificationPersistence: VaultPersisting {
         return VaultMutationSet(keys: changed)
     }
 
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
-
     func modificationDates() throws -> [VaultRecordKey: Date] { dates }
 }

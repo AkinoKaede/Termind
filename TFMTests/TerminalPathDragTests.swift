@@ -1,5 +1,4 @@
 import AppKit
-import TermindDomain
 import Testing
 import UniformTypeIdentifiers
 

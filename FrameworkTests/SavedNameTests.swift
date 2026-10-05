@@ -206,9 +206,6 @@ private final class NameVaultPersistence: VaultPersisting {
         writes += 1
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }
 
 @MainActor

@@ -317,9 +317,6 @@ private final class QuickConnectPersistence: VaultPersisting {
         self.snapshot = snapshot
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }
 
 private final class QuickConnectSecrets: SecretStoring, @unchecked Sendable {

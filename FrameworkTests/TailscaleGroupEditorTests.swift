@@ -646,7 +646,4 @@ struct TailscaleGroupEditorTests {
         self.snapshot = snapshot
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        .init(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }

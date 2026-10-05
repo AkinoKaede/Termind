@@ -2,7 +2,6 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 import UIKit
 

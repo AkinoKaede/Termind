@@ -2,9 +2,7 @@ import AgentKit
 import SwiftData
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindPersistence
-import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 

@@ -240,7 +240,4 @@ private final class AuthenticationPersistence: VaultPersisting {
         self.snapshot = snapshot
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }

@@ -412,7 +412,4 @@ private final class ExportPersistence: VaultPersisting {
         self.snapshot = snapshot
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }

@@ -1,11 +1,7 @@
 import AgentKit
 import Foundation
 import TermindApplication
-import TermindDomain
-import TermindRemoteInfrastructure
 import Testing
-
-@testable import Termind
 
 @Suite
 struct GuardianHostTests {

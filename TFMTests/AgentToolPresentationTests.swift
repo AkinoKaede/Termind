@@ -2,14 +2,11 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
-import TermindPersistence
 import TermindPresentation
 import Testing
 
 import struct TermindDomain.Host
 
-@testable import Termind
 @testable import TermindRemoteInfrastructure
 
 @Suite

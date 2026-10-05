@@ -1,7 +1,6 @@
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindPersistence
 import Testing
 
 @Suite @MainActor

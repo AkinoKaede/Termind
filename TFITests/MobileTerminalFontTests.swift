@@ -1,6 +1,5 @@
 import SwiftUI
 import TermindApplication
-import TermindDomain
 import Testing
 import UIKit
 

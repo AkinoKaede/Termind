@@ -379,7 +379,4 @@ struct PortForwardingRenderingTests {
     func save(
         _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
     ) throws -> VaultMutationSet { throw CocoaError(.fileWriteNoPermission) }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        throw CocoaError(.fileWriteNoPermission)
-    }
 }

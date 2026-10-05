@@ -150,7 +150,4 @@ private final class ExpansionVaultPersistence: VaultPersisting {
         return .empty
     }
 
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
-    }
 }

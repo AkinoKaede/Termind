@@ -342,22 +342,6 @@ private final class ChooserFixture {
         return views.flatMap { descendants($0) }
     }
 
-    func element(_ identifier: String) throws -> AnyObject {
-        if !elements.contains(where: { $0.accessibilityIdentifier?() == identifier }) {
-            print(
-                "CHOOSER VIEWS",
-                views.map {
-                    "\(Swift.type(of: $0)): \(($0 as? NSButton)?.title ?? "") \($0.accessibilityIdentifier())"
-                })
-            print(
-                "CHOOSER AX",
-                elements.map {
-                    "\(Swift.type(of: $0)): \($0.accessibilityLabel?() ?? "") \($0.accessibilityIdentifier?() ?? "")"
-                })
-        }
-        return try #require(elements.first { $0.accessibilityIdentifier?() == identifier }, "Missing \(identifier)")
-    }
-
     func waitUntilQuickOpenCloses() async throws {
         for _ in 0..<100 {
             if !views.contains(where: { ($0 as? NSTextField)?.isEditable == true && !($0 is NSSearchField) }) {

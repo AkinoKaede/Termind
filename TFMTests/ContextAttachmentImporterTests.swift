@@ -3,11 +3,7 @@ import AppKit
 import Foundation
 import PDFKit
 import TermindApplication
-import TermindDomain
 import TermindInfrastructure
-import TermindPersistence
-import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 import ZIPFoundation
 

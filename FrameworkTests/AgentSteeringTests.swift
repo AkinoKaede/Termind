@@ -1,7 +1,6 @@
 import AgentKit
 import Foundation
 import TermindDomain
-import TermindInfrastructure
 import Testing
 
 @testable import TermindApplication

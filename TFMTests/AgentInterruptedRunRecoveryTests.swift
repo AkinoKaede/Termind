@@ -2,14 +2,8 @@ import AgentKit
 import Foundation
 import SwiftData
 import TermindApplication
-import TermindDomain
-import TermindInfrastructure
 import TermindPersistence
-import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
-
-@testable import Termind
 
 /// What a force quit during a tool batch leaves behind, and what it takes to
 /// make that conversation usable again.

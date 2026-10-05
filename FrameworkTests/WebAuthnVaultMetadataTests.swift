@@ -187,7 +187,4 @@ private final class NoKeychain: SecretStoring, @unchecked Sendable {
         self.snapshot = snapshot
         return .empty
     }
-    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
-        throw CocoaError(.coderInvalidValue)
-    }
 }

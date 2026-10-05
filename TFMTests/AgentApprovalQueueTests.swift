@@ -2,14 +2,7 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
-import TermindDomain
-import TermindInfrastructure
-import TermindPersistence
-import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
-
-@testable import Termind
 
 private actor CallLog {
     private(set) var started: [String] = []

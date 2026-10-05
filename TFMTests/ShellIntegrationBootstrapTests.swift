@@ -1,12 +1,8 @@
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
-import TermindPersistence
-import TermindPresentation
 import Testing
 
-@testable import Termind
 @testable import TermindRemoteInfrastructure
 
 @Suite

@@ -946,7 +946,6 @@ private actor MemoryLifecycleStore: MemoryPersisting {
         for waiter in waiters { waiter.resume() }
     }
     func searchSessions(_ request: AgentSessionSearchRequest) -> AgentJSONValue { .array([]) }
-    func lastReviewedMessage(_ id: UUID) -> UUID? { nil }
     func recordActivity(
         _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
         conversationID: UUID
@@ -1094,7 +1093,6 @@ private struct FailingDestroyStore: MemoryPersisting {
     func searchSessions(_ request: AgentSessionSearchRequest) async throws -> AgentJSONValue {
         try await base.searchSessions(request)
     }
-    func lastReviewedMessage(_ id: UUID) async throws -> UUID? { try await base.lastReviewedMessage(id) }
     func recordActivity(
         _ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind,
         conversationID: UUID
