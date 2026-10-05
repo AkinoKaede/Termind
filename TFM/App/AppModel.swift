@@ -118,7 +118,6 @@ final class AppModel {
     /// The procedures the user installed for the agent to follow. Its own store
     /// rather than more fields on `ai`: that one is about endpoints you spend a
     /// key at, this is a library of documents. See `SkillLibraryModel`.
-    let terminalHighlightSettings: TerminalHighlightSettingsModel
     let terminalSettings: TerminalSettingsModel
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
@@ -182,7 +181,6 @@ final class AppModel {
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         skills: SkillLibraryModel = SkillLibraryModel(),
         memory: MemoryModel = MemoryModel(),
-        terminalHighlightSettings: TerminalHighlightSettingsModel = TerminalHighlightSettingsModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         notificationSettings: NotificationSettingsModel = NotificationSettingsModel(),
         sshSettings: SSHSettingsModel = SSHSettingsModel(),
@@ -291,7 +289,6 @@ final class AppModel {
         self.ai = ai
         self.skills = skills
         self.memory = memory
-        self.terminalHighlightSettings = terminalHighlightSettings
         self.terminalSettings = terminalSettings
         self.notificationSettings = notificationSettings
         self.sshSettings = sshSettings
@@ -431,7 +428,6 @@ final class AppModel {
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
-            self?.terminalHighlightSettings.applyRemoteSnapshot(snapshot.terminalHighlighting)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)

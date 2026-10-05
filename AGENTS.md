@@ -17,19 +17,12 @@ The agent runtime is `AgentKit`, a separate open-source package developed in the
 
 Xcode builds the pinned tag, not the sibling working tree, so an uncommitted change in `../AgentKit` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `../AgentKit`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Both files belong in the same commit as the app-side change that needs them.
 
-`libghostty-spm/` is a maintenance submodule of the public
-`AkinoKaede/libghostty-spm` fork, tracking `termind`; upstream is
-`Lakr233/libghostty-spm`. Xcode consumes the fork as a remote SPM dependency
-with an up-to-next-major version requirement; `Package.resolved` locks the released
-version and revision, not the submodule working tree. Publish package changes
-from `termind`, then update the submodule gitlink, `project.pbxproj` minimum version
-and `Package.resolved` together. Run `git submodule update --init libghostty-spm`
-to obtain the maintenance checkout. Changes to `Patches/ghostty/` require a new
-fork XCFramework release and a matching URL/checksum in `Package.swift` before
-advancing the app's pin. The package's native iOS touch menus expose
-separate subclass hooks, `touchMenuItems(for:)` and
-`touchSelectionMenuItems(for:)`, before and after selection. Override them on
-the platform view, with grouping and localization owned by Termind.
+Ghostty is consumed directly from `Lakr233/libghostty-spm` as a remote SPM
+dependency with an up-to-next-major version requirement. `Package.resolved`
+locks the released version and revision. There is no local Ghostty maintenance
+submodule. Keep the project requirement and resolved pin aligned when updating.
+The package exposes separate iOS `touchMenuItems(for:)` and
+`touchSelectionMenuItems(for:)` hooks; grouping and localization belong to Termind.
 
 `libssh2-spm/` is the maintenance checkout of `AkinoKaede/libssh2-spm`,
 tracking `termind`. Xcode consumes its remote exact-version package.

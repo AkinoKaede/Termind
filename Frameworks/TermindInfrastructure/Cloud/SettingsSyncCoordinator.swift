@@ -120,7 +120,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 replica: .persistent(
                     context: context, records: journal.cloudRecords,
                     clearSystemFields: journal.clearSystemFields,
-                    handlesRecordName: { SettingsRecordKey(recordName: $0) != nil })),
+                    handlesRecordName: {
+                        guard let key = SettingsRecordKey(recordName: $0) else { return false }
+                        return key.kind != .terminalHighlighting
+                    })),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: CloudSyncContainer.identifier, defaults: defaults,
             enabledKey: SettingsKey.settingsSyncEnabled, defaultEnabled: SettingsKey.defaultSettingsSyncEnabled,
@@ -214,7 +217,16 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
     ) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
-        let reconciled = try lifecycle.reconcileRemoteChanges(records: records, deletions: deletions)
+        // The removed feature shares this zone, but its separate record type is ignored
+        // before reconciliation or payload validation, including conflict deliveries.
+        let activeRecords = records.filter {
+            $0.recordType != Self.terminalHighlightRecordType
+                && SettingsRecordKey(recordName: $0.recordID.recordName)?.kind != .terminalHighlighting
+        }
+        let activeDeletions = deletions.filter {
+            SettingsRecordKey(recordName: $0.recordName)?.kind != .terminalHighlighting
+        }
+        let reconciled = try lifecycle.reconcileRemoteChanges(records: activeRecords, deletions: activeDeletions)
         let (records, deletions) = (reconciled.records, reconciled.deletions)
         lifecycle.noteRecordsObserved(records, excluding: deletions)
         let allDeletedKeys = Set(
@@ -238,8 +250,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             decode: Self.validatedEnvelope,
             quarantine: {
                 try CloudSyncRecordCoding.quarantine(
-                    $0, error: $1, in: safety,
-                    nativeFields: $0.recordType == Self.terminalHighlightRecordType)
+                    $0, error: $1, in: safety)
             },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
         let result = try applyRemote(
@@ -313,7 +324,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
         type == recordType || type == sshRecordType || type == sftpRecordType || type == workspaceRecordType
-            || type == notificationRecordType || type == terminalHighlightRecordType
+            || type == notificationRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
@@ -339,12 +350,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         CloudSyncRecordCoding.setMetadata(
             on: record, formatVersion: envelope.formatVersion, kind: envelope.key.kind.rawValue,
             entityID: envelope.key.id, version: envelope.version, isDeleted: envelope.isDeleted)
-        if envelope.key.kind == .terminalHighlighting {
-            try TerminalHighlightCloudRecordCoding.encode(envelope, into: record)
-        } else {
-            let payload = try SettingsSyncCodec.encode(envelope)
-            try CloudSyncRecordCoding.setPayload(payload, on: record, assetURL: assetURL(for: envelope.key))
-        }
+        let payload = try SettingsSyncCodec.encode(envelope)
+        try CloudSyncRecordCoding.setPayload(payload, on: record, assetURL: assetURL(for: envelope.key))
         return record
     }
 
@@ -353,9 +360,6 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     private nonisolated static func validatedEnvelope(from record: CKRecord) throws -> SettingsEnvelope {
-        if record.recordType == terminalHighlightRecordType {
-            return try TerminalHighlightCloudRecordCoding.decode(record)
-        }
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         try CloudSyncRecordCoding.validateFormat(in: data, supported: SettingsEnvelope.currentFormatVersion)

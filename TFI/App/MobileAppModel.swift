@@ -103,7 +103,6 @@ final class MobileAppModel {
         }
     }
     var error: String?
-    let terminalHighlightSettings: TerminalHighlightSettingsModel
     let terminalSettings: TerminalSettingsModel
     let agentForwardingRouter = MobileAgentForwardingRouter()
     let sshSettings: SSHSettingsModel
@@ -221,8 +220,6 @@ final class MobileAppModel {
         try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(
             context: settingsPersistence.context, keychain: secrets, defaults: settingsDefaults)
-        terminalHighlightSettings = TerminalHighlightSettingsModel(
-            persistence: settingsPersistence, validatePattern: TerminalKeywordHighlighting.validationIssue)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         notificationSettings = NotificationSettingsModel(persistence: settingsPersistence)
         sshSettings = SSHSettingsModel(persistence: settingsPersistence)
@@ -421,7 +418,6 @@ final class MobileAppModel {
         ai.didChange = { [weak assistant] in assistant?.repairUnavailableModels() }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
-            self?.terminalHighlightSettings.applyRemoteSnapshot(snapshot.terminalHighlighting)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)

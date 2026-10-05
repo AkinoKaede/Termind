@@ -101,7 +101,6 @@ final class MobileWorkspace: Identifiable {
     private var remoteTransferPreparationID: UUID?
     private var pendingDownload: MobilePendingDownload?
     private var pendingRemoteCopy: MobilePendingRemoteCopy?
-    let terminalHighlightSettings: TerminalHighlightSettingsModel
     let terminalSettings: TerminalSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
@@ -265,7 +264,6 @@ final class MobileWorkspace: Identifiable {
         descriptor: MobileWorkspaceDescriptor, hosts: any RemoteSessionHostStore,
         transfers: SFTPTransferCoordinator? = nil,
         sftpEdits: SFTPEditService? = nil,
-        terminalHighlightSettings: TerminalHighlightSettingsModel = TerminalHighlightSettingsModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         connectionServices: MobileWorkspaceConnectionServices = .live,
         reconnectController: SessionReconnectController = SessionReconnectController(),
@@ -280,7 +278,6 @@ final class MobileWorkspace: Identifiable {
         externalSFTPResourcePath: String? = nil,
         externalSFTPMustBeDirectory: Bool = false
     ) {
-        self.terminalHighlightSettings = terminalHighlightSettings
         self.terminalSettings = terminalSettings
         commandHistory = CommandHistoryModel(sessionID: descriptor.id)
         sftpHistory = SFTPHistoryModel(sessionID: descriptor.id)

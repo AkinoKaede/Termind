@@ -162,9 +162,8 @@ public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Senda
     case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp, workspace, notifications
     case terminalHighlighting
 
-    /// `selection` remains decodable for compatibility with existing CloudKit
-    /// records, but the conversation model picker is a device-local preference.
-    public var participatesInSync: Bool { self != .selection }
+    /// Retired record identifiers are recognized so their data can be skipped without decoding.
+    public var participatesInSync: Bool { self != .selection && self != .terminalHighlighting }
 }
 
 public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
@@ -217,7 +216,6 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
     case sftp(SFTPPreferences)
     case workspace(WorkspacePreferences)
     case notifications(NotificationPreferences)
-    case terminalHighlighting(TerminalHighlightPreferences)
 
     public var key: SettingsRecordKey {
         switch self {
@@ -232,7 +230,6 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
         case .sftp: .init(kind: .sftp, id: "default")
         case .workspace: .init(kind: .workspace, id: "default")
         case .notifications: .init(kind: .notifications, id: "default")
-        case .terminalHighlighting: .init(kind: .terminalHighlighting, id: "default")
         }
     }
 }
@@ -259,7 +256,6 @@ public nonisolated struct SettingsEnvelope: Codable, Hashable, Sendable {
 
     public var isValid: Bool {
         if case .notifications(let value) = payload, !value.isValid { return false }
-        if case .terminalHighlighting(let value) = payload, !value.isValid { return false }
         if case .ssh(let value) = payload, !value.isValid { return false }
         if case .sftp(let value) = payload, !value.isValid { return false }
         return formatVersion == Self.currentFormatVersion

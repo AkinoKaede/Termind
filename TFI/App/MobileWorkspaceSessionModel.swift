@@ -182,7 +182,6 @@ final class MobileWorkspaceSessionModel {
             descriptor: MobileWorkspaceDescriptor(
                 hostID: host.id, title: host.name, kind: kind),
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
-            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
             transientHost: host,
             connectionRoute: request.kind == .telnet ? nil : route,
@@ -295,7 +294,6 @@ final class MobileWorkspaceSessionModel {
         }
         let workspace = MobileWorkspace(
             descriptor: descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
-            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices)
         addWorkspaces([workspace])
         return workspace
@@ -334,7 +332,6 @@ final class MobileWorkspaceSessionModel {
             descriptor: MobileWorkspaceDescriptor(
                 hostID: host.id, title: title, kind: kind),
             hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
-            terminalHighlightSettings: app.terminalHighlightSettings,
             terminalSettings: app.terminalSettings,
             connectionServices: app.workspaceConnectionServices,
             initialCommand: initialCommand,

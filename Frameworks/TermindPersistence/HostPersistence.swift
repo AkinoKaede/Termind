@@ -950,6 +950,14 @@ public enum TermindSchemaV51: VersionedSchema {
     }
 }
 
+/// Removes the retired keyword-highlighting preferences and their stored rules.
+public enum TermindSchemaV52: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(52, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV51.models.filter { $0 != PersistentTerminalHighlightPreferences.self }
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -966,7 +974,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
-            TermindSchemaV50.self, TermindSchemaV51.self,
+            TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self,
         ]
     }
 
@@ -1077,6 +1085,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV48.self, toVersion: TermindSchemaV49.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV49.self, toVersion: TermindSchemaV50.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV50.self, toVersion: TermindSchemaV51.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV51.self, toVersion: TermindSchemaV52.self),
         ]
     }
 }

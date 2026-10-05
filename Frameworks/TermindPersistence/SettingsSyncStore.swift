@@ -13,13 +13,12 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
     public var sftp = SFTPPreferences()
     public var workspace = WorkspacePreferences()
     public var notifications = NotificationPreferences()
-    public var terminalHighlighting = TerminalHighlightPreferences()
 
     public init(
         configuration: AIConfigurationSnapshot, skills: [AgentSkill], webSearch: AIWebSearchPreferences,
         terminal: TerminalPreferences = .init(), ssh: SSHPreferences = .init(),
         sftp: SFTPPreferences = .init(), workspace: WorkspacePreferences = .init(),
-        notifications: NotificationPreferences = .init(), terminalHighlighting: TerminalHighlightPreferences = .init()
+        notifications: NotificationPreferences = .init()
     ) {
         self.configuration = configuration
         self.skills = skills
@@ -29,7 +28,6 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         self.sftp = sftp
         self.workspace = workspace
         self.notifications = notifications
-        self.terminalHighlighting = terminalHighlighting
     }
 
     public var recordPayloads: [SettingsRecordKey: SettingsRecordPayload] {
@@ -53,7 +51,6 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         payloads.append(.sftp(sftp))
         payloads.append(.workspace(workspace))
         payloads.append(.notifications(notifications))
-        payloads.append(.terminalHighlighting(terminalHighlighting))
         return Dictionary(uniqueKeysWithValues: payloads.map { ($0.key, $0) })
     }
 }
@@ -87,7 +84,6 @@ public final class SettingsSyncPersistence {
             for payload in [
                 SettingsRecordPayload.terminal(previous.terminal), .ssh(previous.ssh), .sftp(previous.sftp),
                 .workspace(previous.workspace), .notifications(previous.notifications),
-                .terminalHighlighting(previous.terminalHighlighting),
             ] {
                 if try journal.envelope(for: payload.key) == nil {
                     let version = VaultVersion.baseline(writerID: try journal.state().installationID)
@@ -133,8 +129,7 @@ public final class SettingsSyncPersistence {
             configuration: try ai.load(preservingUnresolvedReferences: true),
             skills: try skills.load(), webSearch: try preferences().value, terminal: try terminalPreferences().load(),
             ssh: try sshPreferences().load(), sftp: try sftpPreferences().load(),
-            workspace: try workspacePreferences().load(), notifications: try notificationPreferences().load(),
-            terminalHighlighting: try loadTerminalHighlightPreferences())
+            workspace: try workspacePreferences().load(), notifications: try notificationPreferences().load())
     }
 
     public func saveConfiguration(_ configuration: AIConfigurationSnapshot) throws {
@@ -226,7 +221,6 @@ public final class SettingsSyncPersistence {
         try sftpPreferences().apply(snapshot.sftp)
         try workspacePreferences().apply(snapshot.workspace)
         try notificationPreferences().apply(snapshot.notifications)
-        try terminalHighlightPreferences().apply(snapshot.terminalHighlighting)
     }
 
     private func mirrorSnapshot(_ snapshot: SettingsSyncSnapshot) {
@@ -252,7 +246,6 @@ public final class SettingsSyncPersistence {
         var sftp = try sftpPreferences().load()
         var workspace = try workspacePreferences().load()
         var notifications = try notificationPreferences().load()
-        var terminalHighlighting = try loadTerminalHighlightPreferences()
         for envelope in envelopes where envelope.isDeleted {
             switch envelope.key.kind {
             case .webSearch: webSearch = AIWebSearchPreferences()
@@ -261,8 +254,6 @@ public final class SettingsSyncPersistence {
             case .sftp: sftp = SFTPPreferences()
             case .workspace: workspace = WorkspacePreferences()
             case .notifications: notifications = NotificationPreferences()
-            case .terminalHighlighting:
-                terminalHighlighting = TerminalHighlightPreferences()
             default: break
             }
         }
@@ -279,8 +270,6 @@ public final class SettingsSyncPersistence {
             case .sftp(let value): sftp = value
             case .workspace(let value): workspace = value
             case .notifications(let value): notifications = value
-            case .terminalHighlighting(let value):
-                terminalHighlighting = value
             case nil: break
             }
         }
@@ -306,8 +295,7 @@ public final class SettingsSyncPersistence {
         }
         return SettingsSyncSnapshot(
             configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal,
-            ssh: ssh, sftp: sftp, workspace: workspace, notifications: notifications,
-            terminalHighlighting: terminalHighlighting)
+            ssh: ssh, sftp: sftp, workspace: workspace, notifications: notifications)
     }
 
     private func terminalPreferences() throws -> PersistentTerminalPreferences {
@@ -389,24 +377,6 @@ public final class SettingsSyncPersistence {
         try saveLocal { try notificationPreferences().apply(value) }
     }
 
-    private func terminalHighlightPreferences() throws -> PersistentTerminalHighlightPreferences {
-        if let row = try context.fetch(FetchDescriptor<PersistentTerminalHighlightPreferences>()).first { return row }
-        let row = try PersistentTerminalHighlightPreferences(.init())
-        context.insert(row)
-        return row
-    }
-
-    public func loadTerminalHighlightPreferences() throws -> TerminalHighlightPreferences {
-        try terminalHighlightPreferences().load()
-    }
-
-    public func saveTerminalHighlightPreferences(_ value: TerminalHighlightPreferences) throws {
-        guard value.isValid else {
-            throw SettingsSyncPersistenceError.invalidEnvelope("v1/terminalHighlighting/default")
-        }
-        try saveLocal { try terminalHighlightPreferences().apply(value) }
-    }
-
     private func preferences() throws -> PersistentAIWebSearchPreferences {
         if let row = try context.fetch(FetchDescriptor<PersistentAIWebSearchPreferences>()).first { return row }
         let row = PersistentAIWebSearchPreferences(
@@ -451,5 +421,3 @@ extension SettingsSyncPersistence: SFTPPreferencesPersisting {}
 extension SettingsSyncPersistence: WorkspacePreferencesPersisting {}
 
 extension SettingsSyncPersistence: NotificationPreferencesPersisting {}
-
-extension SettingsSyncPersistence: TerminalHighlightPreferencesPersisting {}

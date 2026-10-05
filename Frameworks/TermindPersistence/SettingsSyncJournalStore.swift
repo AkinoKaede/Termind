@@ -74,7 +74,13 @@ public final class SettingsSyncJournal {
     /// creating a CloudKit deletion.
     public func discardInactiveEntries() throws {
         let rows = try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).filter {
-            $0.envelope.map { !$0.key.kind.participatesInSync && !$0.isDeleted } == true
+            // Highlight payloads are retired, including malformed data and old tombstones.
+            if $0.kind == SettingsRecordKind.terminalHighlighting.rawValue
+                || SettingsRecordKey(recordName: $0.recordName)?.kind == .terminalHighlighting
+            {
+                return true
+            }
+            return $0.envelope.map { !$0.key.kind.participatesInSync && !$0.isDeleted } == true
         }
         if !rows.isEmpty {
             for row in rows { context.delete(row) }
@@ -98,7 +104,6 @@ public final class SettingsSyncJournal {
             SettingsRecordKey(kind: .sftp, id: "default"),
             SettingsRecordKey(kind: .workspace, id: "default"),
             SettingsRecordKey(kind: .notifications, id: "default"),
-            SettingsRecordKey(kind: .terminalHighlighting, id: "default"),
         ] {
             let envelope = SettingsEnvelope(
                 key: key, version: .baseline(writerID: state.installationID), isDeleted: true)
