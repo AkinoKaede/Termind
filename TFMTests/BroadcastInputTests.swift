@@ -600,11 +600,11 @@ struct BroadcastInputTests {
             }
         }
 
-        @Test
-        func commandQFallsThroughToAppKitQuitCommand() throws {
+        @Test(arguments: [("q", UInt16(12)), ("i", UInt16(34))])
+        func commandShortcutFallsThroughToAppKit(character: String, keyCode: UInt16) throws {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
-            AppShortcutRegistry.shared.register(AppShortcutRegistration("q"))
+            AppShortcutRegistry.shared.register(AppShortcutRegistration(.character(Character(character))))
             let event = try #require(
                 NSEvent.keyEvent(
                     with: .keyDown,
@@ -613,32 +613,10 @@ struct BroadcastInputTests {
                     timestamp: ProcessInfo.processInfo.systemUptime,
                     windowNumber: 0,
                     context: nil,
-                    characters: "q",
-                    charactersIgnoringModifiers: "q",
+                    characters: character,
+                    charactersIgnoringModifiers: character,
                     isARepeat: false,
-                    keyCode: 12
-                ))
-
-            #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))
-        }
-
-        @Test
-        func commandIFallsThroughToAppKitGenerateCommand() throws {
-            let host = Host(name: "host", host: "host.example")
-            let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
-            AppShortcutRegistry.shared.register(AppShortcutRegistration("i"))
-            let event = try #require(
-                NSEvent.keyEvent(
-                    with: .keyDown,
-                    location: .zero,
-                    modifierFlags: .command,
-                    timestamp: ProcessInfo.processInfo.systemUptime,
-                    windowNumber: 0,
-                    context: nil,
-                    characters: "i",
-                    charactersIgnoringModifiers: "i",
-                    isARepeat: false,
-                    keyCode: 34
+                    keyCode: keyCode
                 ))
 
             #expect(!sshSession.terminalViewOwner.performKeyEquivalentForTesting(event))

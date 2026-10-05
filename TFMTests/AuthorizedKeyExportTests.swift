@@ -7,30 +7,22 @@ import Testing
 @testable import TermindRemoteInfrastructure
 
 struct AuthorizedKeyExportTests {
-    @Test
-    func exportPlacesTheKeyNameCommentAboveThePublicKey() throws {
-        let input = try SSHConnectionOpener.authorizedKeyInstallInput(
-            publicKey: "ssh-ed25519 AAAAC3Nza test@example.com",
-            keyName: "Production"
-        )
+    @Test(arguments: [
+        (
+            "ssh-ed25519 AAAAC3Nza test@example.com", "Production",
+            "# Production Key by Termind\nssh-ed25519 AAAAC3Nza test@example.com\n"
+        ),
+        (
+            "ssh-ed25519 AAAAC3Nza", "  Production\n\tServer  ",
+            "# Production Server Key by Termind\nssh-ed25519 AAAAC3Nza\n"
+        ),
+    ])
+    func exportPlacesTheKeyNameCommentAboveThePublicKeyOnOneLine(
+        publicKey: String, keyName: String, expected: String
+    ) throws {
+        let input = try SSHConnectionOpener.authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
 
-        #expect(
-            String(decoding: input, as: UTF8.self)
-                == "# Production Key by Termind\nssh-ed25519 AAAAC3Nza test@example.com\n"
-        )
-    }
-
-    @Test
-    func exportKeepsTheGeneratedCommentOnOneLine() throws {
-        let input = try SSHConnectionOpener.authorizedKeyInstallInput(
-            publicKey: "ssh-ed25519 AAAAC3Nza",
-            keyName: "  Production\n\tServer  "
-        )
-
-        #expect(
-            String(decoding: input, as: UTF8.self)
-                == "# Production Server Key by Termind\nssh-ed25519 AAAAC3Nza\n"
-        )
+        #expect(String(decoding: input, as: UTF8.self) == expected)
     }
 
     @Test

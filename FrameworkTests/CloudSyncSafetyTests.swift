@@ -33,30 +33,26 @@ struct CloudSyncSafetyTests {
         }
     }
 
-    @Test(arguments: SyncSafetyCategory.allCases)
-    func olderFetchedRecordCannotAcknowledgeTheCurrentLocalWinner(category: SyncSafetyCategory) async throws {
-        let fixture = try CloudSyncSafetyFixture(category: category)
-        defer { fixture.stop() }
-        try await fixture.start()
-        let id = fixture.recordIDs[0]
-
-        try fixture.receive([try fixture.olderRecord(id)], [])
-
-        #expect(try fixture.pendingNames().contains(id.recordName))
-        #expect(fixture.network.nextEngine.queued.contains(id.recordName))
-        #expect(fixture.record(id) != nil)
+    enum StaleFetchedRecord: CaseIterable {
+        case older
+        case sameVersionDifferentPayload
     }
 
-    @Test(arguments: SyncSafetyCategory.allCases)
-    func sameVersionDifferentPayloadCannotAcknowledgeTheCurrentLocalWinner(
-        category: SyncSafetyCategory
+    @Test(arguments: SyncSafetyCategory.allCases, StaleFetchedRecord.allCases)
+    func staleFetchedRecordCannotAcknowledgeTheCurrentLocalWinner(
+        category: SyncSafetyCategory, stale: StaleFetchedRecord
     ) async throws {
         let fixture = try CloudSyncSafetyFixture(category: category)
         defer { fixture.stop() }
         try await fixture.start()
         let id = fixture.recordIDs[0]
+        let fetched =
+            switch stale {
+            case .older: try fixture.olderRecord(id)
+            case .sameVersionDifferentPayload: try fixture.sameVersionLosingRecord(id)
+            }
 
-        try fixture.receive([try fixture.sameVersionLosingRecord(id)], [])
+        try fixture.receive([fetched], [])
 
         #expect(try fixture.pendingNames().contains(id.recordName))
         #expect(fixture.network.nextEngine.queued.contains(id.recordName))

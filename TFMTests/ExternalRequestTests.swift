@@ -395,30 +395,8 @@ struct ExternalAuthCoordinatorTests {
 @Suite(.serialized)
 @MainActor
 struct ExternalToolCallHistoryTests {
-    @Test
-    func clearingHistoryInvalidatesObservedEntriesImmediately() {
-        let entry = ExternalToolCall(
-            runID: UUID(), clientName: "Codex", toolName: "list_hosts",
-            summary: "List saved hosts", risk: .readOnly,
-            startedAt: Date(timeIntervalSince1970: 1)
-        )
-        let store = ToolAuditModel(entries: [entry])
-        let invalidated = ObservationInvalidationFlag()
-
-        withObservationTracking {
-            #expect(store.entries().map(\.id) == [entry.id])
-        } onChange: {
-            invalidated.value = true
-        }
-
-        store.clear()
-
-        #expect(invalidated.value)
-        #expect(store.entries().isEmpty)
-    }
-
-    @Test
-    func clearingHistoryInvalidatesObservedFilteredEntriesImmediately() {
+    @Test(arguments: [nil, "uname"])
+    func clearingHistoryInvalidatesObservedEntriesImmediately(filter: String?) {
         let entry = ExternalToolCall(
             runID: UUID(), clientName: "Claude Code", toolName: "ssh_exec",
             summary: "uname -a", risk: .readOnly,
@@ -426,9 +404,12 @@ struct ExternalToolCallHistoryTests {
         )
         let store = ToolAuditModel(entries: [entry])
         let invalidated = ObservationInvalidationFlag()
+        func observedEntries() -> [ExternalToolCall] {
+            filter.map { store.entries(matching: $0) } ?? store.entries()
+        }
 
         withObservationTracking {
-            #expect(store.entries(matching: "uname").map(\.id) == [entry.id])
+            #expect(observedEntries().map(\.id) == [entry.id])
         } onChange: {
             invalidated.value = true
         }
@@ -436,7 +417,7 @@ struct ExternalToolCallHistoryTests {
         store.clear()
 
         #expect(invalidated.value)
-        #expect(store.entries(matching: "uname").isEmpty)
+        #expect(observedEntries().isEmpty)
     }
 
     @Test

@@ -72,26 +72,18 @@ struct MarkdownParsingTests {
         #expect(paragraphText(items[1].children.first) == "todo")
     }
 
-    @Test
-    func fencedCodeKeepsItsLanguageAndNewlines() {
-        let blocks = TermindMarkdownParser.parse("```bash\nls -la\ncd /tmp\n```")
+    @Test(arguments: [
+        ("```bash\nls -la\ncd /tmp\n```", "ls -la\ncd /tmp"),
+        ("```bash\nls -la", "ls -la"),
+    ])
+    func fencedCodeKeepsItsLanguageAndNewlines(markdown: String, expectedCode: String) {
+        let blocks = TermindMarkdownParser.parse(markdown)
         guard case .codeBlock(let language, let code)? = blocks.first else {
             Issue.record("expected a code block, got \(blocks)")
             return
         }
         #expect(language == "bash")
-        #expect(code.trimmingCharacters(in: .newlines) == "ls -la\ncd /tmp")
-    }
-
-    @Test
-    func unterminatedFenceStillProducesACodeBlock() {
-        let blocks = TermindMarkdownParser.parse("```bash\nls -la")
-        guard case .codeBlock(let language, let code)? = blocks.first else {
-            Issue.record("expected a code block, got \(blocks)")
-            return
-        }
-        #expect(language == "bash")
-        #expect(code.trimmingCharacters(in: .newlines) == "ls -la")
+        #expect(code.trimmingCharacters(in: .newlines) == expectedCode)
     }
 
     @Test(arguments: ["https://example.com", "file:///tmp/example.txt", "ssh://example.com", "custom:document"])

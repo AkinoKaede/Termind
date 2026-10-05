@@ -144,59 +144,27 @@ struct AgentPersistenceTests {
 
     @Test
     func schemaV2MigratesToV3WithEmptyAttachmentBacking() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TermindAgentV3Migration-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(
-            at: directory, withIntermediateDirectories: true
-        )
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let storeURL = directory.appendingPathComponent("Termind.store")
-        let legacySchema = Schema(versionedSchema: TermindSchemaV2.self)
-        let conversationID = UUID()
-
-        var legacyContainer: ModelContainer? = try ModelContainer(
-            for: legacySchema,
-            configurations: [
-                localModelConfiguration("Migration", schema: legacySchema, url: storeURL)
-            ]
-        )
-        legacyContainer?.mainContext.insert(
-            PersistentAgentConversation(
-                id: conversationID, title: "Existing"
-            ))
-        try legacyContainer?.mainContext.save()
-        legacyContainer = nil
-
-        let migrated = try ModelContainer(
-            for: HostPersistence.schema,
-            migrationPlan: TermindMigrationPlan.self,
-            configurations: [
-                localModelConfiguration(
-                    "Migration", schema: HostPersistence.schema, url: storeURL
-                )
-            ]
-        )
-
-        #expect(
-            try migrated.mainContext.fetch(
-                FetchDescriptor<PersistentAgentConversation>()
-            ).map(\.id) == [conversationID])
-        #expect(
-            try migrated.mainContext.fetch(
-                FetchDescriptor<PersistentAgentContextAttachments>()
-            ).isEmpty)
+        try expectMigrationKeepsConversationAndLeavesEmptyBacking(
+            from: TermindSchemaV2.self, backing: PersistentAgentContextAttachments.self)
     }
 
     @Test
     func schemaV8MigratesToV9WithEmptyCompactionBacking() throws {
+        try expectMigrationKeepsConversationAndLeavesEmptyBacking(
+            from: TermindSchemaV8.self, backing: PersistentAgentCompaction.self)
+    }
+
+    private func expectMigrationKeepsConversationAndLeavesEmptyBacking<Backing: PersistentModel>(
+        from legacy: any VersionedSchema.Type, backing: Backing.Type
+    ) throws {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TermindAgentV9Migration-\(UUID().uuidString)")
+            .appendingPathComponent("TermindAgentMigration-\(UUID().uuidString)")
         try FileManager.default.createDirectory(
             at: directory, withIntermediateDirectories: true
         )
         defer { try? FileManager.default.removeItem(at: directory) }
         let storeURL = directory.appendingPathComponent("Termind.store")
-        let legacySchema = Schema(versionedSchema: TermindSchemaV8.self)
+        let legacySchema = Schema(versionedSchema: legacy)
         let conversationID = UUID()
 
         var legacyContainer: ModelContainer? = try ModelContainer(
@@ -226,10 +194,7 @@ struct AgentPersistenceTests {
             try migrated.mainContext.fetch(
                 FetchDescriptor<PersistentAgentConversation>()
             ).map(\.id) == [conversationID])
-        #expect(
-            try migrated.mainContext.fetch(
-                FetchDescriptor<PersistentAgentCompaction>()
-            ).isEmpty)
+        #expect(try migrated.mainContext.fetch(FetchDescriptor<Backing>()).isEmpty)
     }
 
     @Test

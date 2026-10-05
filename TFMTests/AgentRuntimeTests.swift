@@ -521,50 +521,11 @@ struct AgentRuntimeTests {
         #expect(await executions.value == 0)
     }
 
-    @Test
-    func emptyCompatibleToolArgumentsBecomeAnEmptyObject() async {
+    @Test(arguments: ["", "null{}provider-duplicate"])
+    func zeroParameterToolReceivesAnEmptyObjectForCompatibleArguments(arguments: String) async {
         let model = ScriptedAgentModel(turns: [
             [
-                .toolCallDelta(id: "1", name: "list_hosts", arguments: ""),
-                .finished(.toolCalls),
-            ],
-            [.textDelta("done"), .finished(.completed)],
-        ])
-        let executions = Counter()
-        let tool = AnyAgentTool(
-            descriptor: AgentToolDescriptor(
-                name: "list_hosts", summary: "list",
-                inputSchema: .object([
-                    "type": .string("object"), "properties": .object([:]),
-                    "required": .array([]), "additionalProperties": .bool(false),
-                ]),
-                target: .host, approvalPolicy: .approve
-            )
-        ) { invocation, _ in
-            #expect(invocation.call.arguments == .object([:]))
-            await executions.increment()
-            return AgentToolResult(callID: invocation.call.id, content: "[]")
-        }
-        let runtime = AgentRuntime(
-            model: model, tools: [tool],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
-        )
-        for await _ in await runtime.start(
-            AgentRunRequest(
-                conversationID: UUID(), prompt: "list", permissionMode: .askForApproval
-            ))
-        {}
-        #expect(await executions.value == 1)
-    }
-
-    @Test
-    func zeroParameterToolIgnoresMalformedCompatibleArguments() async {
-        let model = ScriptedAgentModel(turns: [
-            [
-                .toolCallDelta(
-                    id: "1", name: "list_hosts",
-                    arguments: "null{}provider-duplicate"
-                ),
+                .toolCallDelta(id: "1", name: "list_hosts", arguments: arguments),
                 .finished(.toolCalls),
             ],
             [.textDelta("done"), .finished(.completed)],
