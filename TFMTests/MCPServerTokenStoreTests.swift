@@ -19,23 +19,15 @@ struct MCPServerTokenStoreTests {
         #expect(secrets.synchronizedValuesWritten.isEmpty)
     }
 
-    @Test
-    func migratesACloudTokenOnlyAfterVerifyingTheLocalCopy() throws {
-        let secrets = MCPServerTokenTestSecrets(cloud: "legacy-token")
+    @Test(arguments: [(nil as String?, "legacy-token"), ("device-token", "device-token")])
+    func loadingKeepsTheLocalTokenOrMigratesTheCloudTokenBeforeRemovingTheCloudCopy(
+        localToken: String?, expectedToken: String
+    ) throws {
+        let secrets = MCPServerTokenTestSecrets(local: localToken, cloud: "legacy-token")
         let store = MCPServerTokenStore(secrets: secrets)
 
-        #expect(try store.load() == "legacy-token")
-        #expect(secrets.value(storage: .thisDevice) == "legacy-token")
-        #expect(secrets.value(storage: .iCloud) == nil)
-    }
-
-    @Test
-    func localTokenWinsWhenBothLocationsContainValues() throws {
-        let secrets = MCPServerTokenTestSecrets(local: "device-token", cloud: "shared-token")
-        let store = MCPServerTokenStore(secrets: secrets)
-
-        #expect(try store.load() == "device-token")
-        #expect(secrets.value(storage: .thisDevice) == "device-token")
+        #expect(try store.load() == expectedToken)
+        #expect(secrets.value(storage: .thisDevice) == expectedToken)
         #expect(secrets.value(storage: .iCloud) == nil)
     }
 

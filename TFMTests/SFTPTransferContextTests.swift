@@ -161,34 +161,20 @@ struct SFTPTransferContextTests {
         await context.releaseOwner()
     }
 
-    @Test func smartUsesChannelsOnTheDonatedConnectionThroughTheDecimalThreshold() async throws {
+    @Test(arguments: [(Int64(0), 0, 1), (Int64(1), 1, 0)])
+    func smartSelectsChannelsOrConnectionsAtTheDecimalThreshold(
+        sizeAboveThreshold: Int64, expectedConnections: Int, expectedSiblingChannels: Int
+    ) async throws {
         let harness = TransferChannelHarness(behaviors: [])
         let primary = TransferChannelClient(harness: harness, primary: true)
         let (context, coordinator) = fixture(
             primary: primary, harness: harness, limit: 2,
             primaryRole: .donatedConnection, strategy: .smart)
-        enqueue(
-            [SFTPConcurrencyStrategy.smartConnectionThreshold, SFTPConcurrencyStrategy.smartConnectionThreshold],
-            context: context, coordinator: coordinator)
+        let size = SFTPConcurrencyStrategy.smartConnectionThreshold + sizeAboveThreshold
+        enqueue([size, size], context: context, coordinator: coordinator)
         try await eventually { await harness.started == 2 }
-        #expect(await harness.opens == 0)
-        #expect(await harness.siblingChannels == 1)
-        await harness.releaseAll()
-        try await eventually { coordinator.activeCount == 0 }
-        await context.releaseOwner()
-    }
-
-    @Test func smartUsesAnotherConnectionAboveTheDecimalThreshold() async throws {
-        let harness = TransferChannelHarness(behaviors: [])
-        let primary = TransferChannelClient(harness: harness, primary: true)
-        let (context, coordinator) = fixture(
-            primary: primary, harness: harness, limit: 2,
-            primaryRole: .donatedConnection, strategy: .smart)
-        let large = SFTPConcurrencyStrategy.smartConnectionThreshold + 1
-        enqueue([large, large], context: context, coordinator: coordinator)
-        try await eventually { await harness.started == 2 }
-        #expect(await harness.opens == 1)
-        #expect(await harness.siblingChannels == 0)
+        #expect(await harness.opens == expectedConnections)
+        #expect(await harness.siblingChannels == expectedSiblingChannels)
         await harness.releaseAll()
         try await eventually { coordinator.activeCount == 0 }
         await context.releaseOwner()
