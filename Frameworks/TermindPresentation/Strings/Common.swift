@@ -146,10 +146,6 @@ extension AppStrings {
             "Are you sure you want to discard this new skill?"
         }
 
-        public static var discardNewHighlightRuleQuestion: LocalizedStringResource {
-            "Are you sure you want to discard this new highlight rule?"
-        }
-
         public static var discardNewEnvironmentVariableQuestion: LocalizedStringResource {
             "Are you sure you want to discard this new environment variable?"
         }
@@ -406,9 +402,6 @@ extension AppStrings {
         }
         public static var operationFailed: LocalizedStringResource {
             "Operation Failed"
-        }
-        public static var failed: LocalizedStringResource {
-            "Failed"
         }
         public static var copied: LocalizedStringResource {
             "Copied"

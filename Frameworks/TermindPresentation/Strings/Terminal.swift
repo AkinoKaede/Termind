@@ -4,72 +4,12 @@ extension AppStrings {
     public nonisolated enum Terminal {
         public static var uploadFile: LocalizedStringResource { "Upload File" }
 
-        public static var armed: LocalizedStringResource {
-            "Armed"
-        }
-
-        public static var charsetError: LocalizedStringResource {
-            "Charset Error"
-        }
-
         public static var connectionLog: LocalizedStringResource {
             "Connection Log"
         }
 
-        public static var control: LocalizedStringResource {
-            "Control"
-        }
-
-        public static var commandKey: LocalizedStringResource {
-            "Command Key"
-        }
-
-        public static var downArrow: LocalizedStringResource {
-            "Down Arrow"
-        }
-
-        public static var end: LocalizedStringResource {
-            "End"
-        }
-
-        public static var escape: LocalizedStringResource {
-            "Escape"
-        }
-
-        public static var hideKeyboard: LocalizedStringResource {
-            "Hide Keyboard"
-        }
-
-        public static var home: LocalizedStringResource {
-            "Home"
-        }
-
-        public static var inactive: LocalizedStringResource {
-            "Inactive"
-        }
-
-        public static var leftArrow: LocalizedStringResource {
-            "Left Arrow"
-        }
-
-        public static var locked: LocalizedStringResource {
-            "Locked"
-        }
-
         public static var noDetectedSerialDevices: LocalizedStringResource {
             "No detected serial devices"
-        }
-
-        public static var option: LocalizedStringResource {
-            "Option"
-        }
-
-        public static var pageDown: LocalizedStringResource {
-            "Page Down"
-        }
-
-        public static var pageUp: LocalizedStringResource {
-            "Page Up"
         }
 
         public static var reconnect: LocalizedStringResource {
@@ -80,25 +20,9 @@ extension AppStrings {
             "The server rejected these environment variables: \(names)"
         }
 
-        public static var rightArrow: LocalizedStringResource {
-            "Right Arrow"
-        }
-
-        public static var shift: LocalizedStringResource {
-            "Shift"
-        }
-
-        public static var showKeyboard: LocalizedStringResource {
-            "Show Keyboard"
-        }
-
         public static func sshConnectionFailedWhatShouldICheckConfirmation(_ message: String) -> LocalizedStringResource
         {
             "SSH connection failed: \(message). What should I check?"
-        }
-
-        public static var tab: LocalizedStringResource {
-            "Tab"
         }
 
         public static var theSavedPasswordIsNoLongerAvailable: LocalizedStringResource {
@@ -111,10 +35,6 @@ extension AppStrings {
 
         public static var theSelectedKeyIsNoLongerAvailable: LocalizedStringResource {
             "The selected key is no longer available."
-        }
-
-        public static var upArrow: LocalizedStringResource {
-            "Up Arrow"
         }
 
         public static var applySerialSettings: LocalizedStringResource {

@@ -4,8 +4,6 @@ extension AppStrings {
     public nonisolated enum Vault {
         public static var addHost: LocalizedStringResource { "Add Host" }
 
-        public static var groupingAndTags: LocalizedStringResource { "Grouping & Tags" }
-
         public static var acceptTheseImportWarnings: LocalizedStringResource {
             "Accept these import warnings"
         }

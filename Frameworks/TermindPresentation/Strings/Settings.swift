@@ -226,10 +226,6 @@ extension AppStrings {
             "Delete all logging files?"
         }
 
-        public static var deleteServer: LocalizedStringResource {
-            "Delete Server"
-        }
-
         public static var derivedFromTheTitle: LocalizedStringResource {
             "Derived from the title"
         }
@@ -264,10 +260,6 @@ extension AppStrings {
 
         public static func edit(_ displayTitle: String) -> LocalizedStringResource {
             "Edit \(displayTitle)"
-        }
-
-        public static var editCustomConfiguration: LocalizedStringResource {
-            "Edit Custom Configuration"
         }
 
         public static var enable: LocalizedStringResource {
@@ -320,14 +312,6 @@ extension AppStrings {
 
         public static var font: LocalizedStringResource {
             "Font"
-        }
-
-        public static var generateATokenToCopyClientSetupCommands: LocalizedStringResource {
-            "Generate a token to copy client setup commands."
-        }
-
-        public static var generateToken: LocalizedStringResource {
-            "Generate Token"
         }
 
         public static var ghostty: LocalizedStringResource {

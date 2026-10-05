@@ -7,10 +7,6 @@ extension AppStrings {
         public static func keyType(_ name: String) -> LocalizedStringResource { "Type \(name)" }
         public static var unknownKeyType: LocalizedStringResource { "Type Unknown" }
 
-        public static var addAndConnectToAHostBeforeExportingAKeyToIt: LocalizedStringResource {
-            "Add and connect to a host before exporting a key to it."
-        }
-
         public static var algorithm: LocalizedStringResource {
             "Algorithm"
         }
@@ -37,10 +33,6 @@ extension AppStrings {
 
         public static var confirmPassphrase: LocalizedStringResource {
             "Confirm Passphrase"
-        }
-
-        public static var copyPublicKey: LocalizedStringResource {
-            "Copy Public Key"
         }
 
         public static func deleteIdentitiesConfirmation(_ count: Int) -> LocalizedStringResource {
@@ -79,10 +71,6 @@ extension AppStrings {
             "Delete \(count) Keys?"
         }
 
-        public static var derivedFromThePrivateKey: LocalizedStringResource {
-            "Derived from the private key"
-        }
-
         public static var dragToReplace: LocalizedStringResource {
             "Drag to Replace"
         }
@@ -101,30 +89,6 @@ extension AppStrings {
 
         public static var exportToHost: LocalizedStringResource {
             "Export to Host"
-        }
-
-        public static var exported: LocalizedStringResource {
-            "Exported"
-        }
-
-        public static func exportedFailed(count1: Int, failures: Int) -> LocalizedStringResource {
-            "\(count1) exported, \(failures) failed"
-        }
-
-        public static func exportedKeysTo1Host(_ count: Int) -> LocalizedStringResource {
-            "Exported \(count) keys to 1 host"
-        }
-
-        public static func exportedKeysToHosts(count: Int, hostCount: Int) -> LocalizedStringResource {
-            "Exported \(count) keys to \(hostCount) hosts"
-        }
-
-        public static var exportedTo1Host: LocalizedStringResource {
-            "Exported to 1 host"
-        }
-
-        public static func exportedToHosts(_ hostCount: Int) -> LocalizedStringResource {
-            "Exported to \(hostCount) hosts"
         }
 
         public static var generate: LocalizedStringResource {
@@ -177,10 +141,6 @@ extension AppStrings {
 
         public static var keys: LocalizedStringResource {
             "Keys"
-        }
-
-        public static func keysNamed(_ count: Int) -> LocalizedStringResource {
-            "\(count) keys"
         }
 
         public static var loadingPrivateKeyProgress: LocalizedStringResource {

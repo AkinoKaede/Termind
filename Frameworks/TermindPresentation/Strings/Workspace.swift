@@ -62,10 +62,6 @@ extension AppStrings {
             "Copy to \(hostName)"
         }
 
-        public static var deleteFileConfirmation: LocalizedStringResource {
-            "Delete File?"
-        }
-
         public static var doubleClickToRename: LocalizedStringResource {
             "Double-click to rename"
         }

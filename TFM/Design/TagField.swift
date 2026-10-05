@@ -320,7 +320,7 @@ private struct RemovableTagChip: View {
     @Previewable @State var tags = ["nginx", "prod"]
 
     Form {
-        Section(AppStrings.Vault.groupingAndTags.swiftUIKey) {
+        Section {
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
                 Text(AppStrings.Vault.tags)
                 TagField(tags: $tags, suggestions: HostLibraryModel.demo().allTags)

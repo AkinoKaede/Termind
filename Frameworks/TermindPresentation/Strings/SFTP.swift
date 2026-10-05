@@ -223,10 +223,6 @@ extension AppStrings {
             "Open with SFTP"
         }
 
-        public static var pauseTransfer: LocalizedStringResource {
-            "Pause transfer"
-        }
-
         public static var permissions: LocalizedStringResource {
             "Permissions"
         }

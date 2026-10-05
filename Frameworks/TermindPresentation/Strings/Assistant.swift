@@ -413,10 +413,6 @@ extension AppStrings {
             "Send — ⌘⏎"
         }
 
-        public static var severalCommandsCopyAndReviewBeforeRunning: LocalizedStringResource {
-            "Several commands — copy and review before running."
-        }
-
         public static var showArchive: LocalizedStringResource {
             "Show Archive"
         }

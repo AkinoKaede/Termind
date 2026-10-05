@@ -17,8 +17,6 @@ extension AppStrings {
         public static var offline: LocalizedStringResource { "Offline" }
         public static var lastSeen: LocalizedStringResource { "Last Seen" }
         public static var latency: LocalizedStringResource { "Latency" }
-        public static var route: LocalizedStringResource { "Route" }
-        public static var direct: LocalizedStringResource { "Direct" }
         public static var peerRelay: LocalizedStringResource { "Peer Relay" }
         public static var unknownRoute: LocalizedStringResource { "Unknown Route" }
         public static var endpoint: LocalizedStringResource { "Endpoint" }
@@ -38,7 +36,6 @@ extension AppStrings {
         public static var authKey: LocalizedStringResource { "Auth Key" }
         public static var controlURL: LocalizedStringResource { "Control URL" }
         public static var openLogin: LocalizedStringResource { "Open login page" }
-        public static var networkName: LocalizedStringResource { "Network" }
         public static var magicDNS: LocalizedStringResource { "MagicDNS" }
         public static var ipv4: LocalizedStringResource { "IPv4" }
         public static var ipv6: LocalizedStringResource { "IPv6" }
@@ -47,14 +44,8 @@ extension AppStrings {
         public static var logout: LocalizedStringResource { "Log out" }
         public static var check: LocalizedStringResource { "Tailscale SSH approval" }
         public static var network: LocalizedStringResource { "Tailnet" }
-        public static var signedOut: LocalizedStringResource { "Sign in on this device to use this Tailnet." }
         public static var unavailable: LocalizedStringResource {
             "This Tailscale connection is unavailable. Check the Tailnet login, SSH policy, and username."
         }
-        public static var invalidURL: LocalizedStringResource { "Enter a valid HTTPS Controlplane URL." }
-        public static var partialSave: LocalizedStringResource {
-            "The group was saved, but this device could not finish signing in. Save again to retry."
-        }
-        public static var requiresPro: LocalizedStringResource { "Tailscale requires Termind Pro." }
     }
 }
