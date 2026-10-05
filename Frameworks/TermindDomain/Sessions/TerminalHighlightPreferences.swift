@@ -88,6 +88,9 @@ public nonisolated struct TerminalHighlightPreferences: Codable, Hashable, Senda
         let ipv6 = "(?:\(hex):){7}\(hex)|(?:\(groups))?::(?:\(groups))?"
         let embeddedIPv4 = "(?:\(hex):){6}\(ipv4)|(?:\(groups))?::(?:\(hex):)*\(ipv4)"
         let mac = #"(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}|(?:[0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}"#
-        return "(?:\(embeddedIPv4)|\(ipv6)|\(mac)|\(ipv4))"
+        // Include valid CIDR lengths without accepting a shorter prefix of an invalid number.
+        let ipv4Prefix = #"(?:/(?:3[0-2]|[12][0-9]|[0-9])(?![0-9]))?"#
+        let ipv6Prefix = #"(?:/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])(?![0-9]))?"#
+        return "(?:(?:\(embeddedIPv4)|\(ipv6))\(ipv6Prefix)|\(mac)|\(ipv4)\(ipv4Prefix))"
     }()
 }

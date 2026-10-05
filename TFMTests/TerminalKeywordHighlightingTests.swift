@@ -162,6 +162,34 @@ struct TerminalKeywordHighlightingTests {
 
     }
 
+    @Test(arguments: [
+        "192.168.1.0/24", "0.0.0.0/0", "192.0.2.1/32", "192.0.2.1/9", "192.0.2.1/10", "192.0.2.1/29",
+        "::/0", "::1/128", "2001:db8::/64", "2001:db8::1/9", "2001:db8::1/99", "2001:db8::1/100",
+        "2001:db8::1/119", "2001:db8::1/120", "2001:db8:1:2:3:4:5:6/127", "::ffff:192.0.2.1/128",
+        "2001:db8::ffff:192.0.2.1/96", "0:0:0:0:0:ffff:192.0.2.1/96",
+    ])
+    func cidrAddressesIncludeTheCompletePrefixLength(_ address: String) throws {
+        let expression = try NSRegularExpression(pattern: TerminalHighlightPreferences.builtInRules[5].pattern)
+        for text in [
+            address, "route \(address) dev en0", "prefix\(address)suffix", "\"\(address)\"", "\(address)/path",
+        ] {
+            let matches = expression.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            #expect(matches.map { (text as NSString).substring(with: $0.range) } == [address], "\(text)")
+        }
+    }
+
+    @Test(arguments: [
+        ("192.0.2.1/33", "192.0.2.1"), ("192.0.2.1/240", "192.0.2.1"),
+        ("2001:db8::1/129", "2001:db8::1"), ("2001:db8::1/1280", "2001:db8::1"),
+        ("192.0.2.1/path", "192.0.2.1"), ("192.0.2.1/-1", "192.0.2.1"),
+        ("aa:bb:cc:dd:ee:ff/24", "aa:bb:cc:dd:ee:ff"), ("aa-bb-cc-dd-ee-ff/64", "aa-bb-cc-dd-ee-ff"),
+    ])
+    func invalidPrefixesAndMACAddressesKeepOnlyTheAddressHighlighted(_ text: String, _ address: String) throws {
+        let expression = try NSRegularExpression(pattern: TerminalHighlightPreferences.builtInRules[5].pattern)
+        let matches = expression.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        #expect(matches.map { (text as NSString).substring(with: $0.range) } == [address])
+    }
+
     @Test func literalTextIsEscapedAndConfigurationUpdatesPreserveOtherSettings() {
         let state = TerminalViewState(configSource: .none)
         let rule = TerminalKeywordHighlightRule(pattern: #"[error].*\E"#, foregroundRGB: 0xFF0000)
