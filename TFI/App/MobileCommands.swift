@@ -15,7 +15,9 @@ extension FocusedValues {
 
 nonisolated enum MobileShortcut {
     static let settings = KeyboardShortcut(",", modifiers: .command)
+    static let newWindow = KeyboardShortcut("n", modifiers: .command)
     static let connect = KeyboardShortcut("t", modifiers: .command)
+    static let batchStartup = KeyboardShortcut("b", modifiers: [.command, .shift])
     static let newChat = KeyboardShortcut("t", modifiers: [.command, .option])
     static let newHost = KeyboardShortcut("n", modifiers: [.command, .shift])
     static let generateCommand = KeyboardShortcut("i", modifiers: .command)
@@ -38,6 +40,8 @@ nonisolated enum MobileShortcut {
 /// Scene commands mirror the macOS key map while targeting only the frontmost
 /// iOS/iPadOS scene through `FocusedValues.mobileScene`.
 struct MobileCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
     @FocusedValue(\.mobileScene) private var scene
 
     var body: some Commands {
@@ -48,8 +52,19 @@ struct MobileCommands: Commands {
         }
 
         CommandGroup(replacing: .newItem) {
+            Button(AppStrings.Workspace.newWindow.swiftUIKey, systemImage: "macwindow.badge.plus") {
+                openWindow(id: TermindIOSApp.mainWindowID)
+            }
+            .keyboardShortcut(MobileShortcut.newWindow)
+            .disabled(!supportsMultipleWindows)
+
+            Divider()
+
             Button(AppStrings.Common.connect.swiftUIKey, systemImage: "network") { scene?.openConnectionPicker() }
                 .keyboardShortcut(MobileShortcut.connect)
+                .disabled(scene == nil)
+            Button(AppStrings.Vault.batchStartup.swiftUIKey, systemImage: "wind") { scene?.openBatchStartup() }
+                .keyboardShortcut(MobileShortcut.batchStartup)
                 .disabled(scene == nil)
             Button(AppStrings.Assistant.newChat.swiftUIKey, systemImage: "plus.bubble") {
                 scene?.openNewConversation()

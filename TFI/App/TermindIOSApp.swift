@@ -3,6 +3,8 @@ import TermindApplication
 
 @main
 struct TermindIOSApp: App {
+    static let mainWindowID = "main"
+
     @UIApplicationDelegateAdaptor(MobileAppDelegate.self) private var appDelegate
     private let startup: Result<MobileAppModel, any Error>
 
@@ -16,7 +18,7 @@ struct TermindIOSApp: App {
     }
 
     var body: some Scene {
-        WindowGroup(makeContent: MobileStartupView.sceneContent(for: startup))
+        WindowGroup(id: Self.mainWindowID, makeContent: MobileStartupView.sceneContent(for: startup))
             .commands { MobileCommands() }
     }
 }

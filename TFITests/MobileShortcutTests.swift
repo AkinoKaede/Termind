@@ -12,7 +12,9 @@ import struct TermindDomain.Host
 struct MobileShortcutTests {
     @Test func shortcutMapMatchesDesktopAndHasNoDuplicates() {
         #expect(MobileShortcut.settings == KeyboardShortcut(",", modifiers: .command))
+        #expect(MobileShortcut.newWindow == KeyboardShortcut("n", modifiers: .command))
         #expect(MobileShortcut.connect == KeyboardShortcut("t", modifiers: .command))
+        #expect(MobileShortcut.batchStartup == KeyboardShortcut("b", modifiers: [.command, .shift]))
         #expect(MobileShortcut.newChat == KeyboardShortcut("t", modifiers: [.command, .option]))
         #expect(MobileShortcut.newHost == KeyboardShortcut("n", modifiers: [.command, .shift]))
         #expect(MobileShortcut.generateCommand == KeyboardShortcut("i", modifiers: .command))
@@ -30,7 +32,9 @@ struct MobileShortcutTests {
         let shortcuts =
             [
                 MobileShortcut.settings,
+                MobileShortcut.newWindow,
                 MobileShortcut.connect,
+                MobileShortcut.batchStartup,
                 MobileShortcut.newChat,
                 MobileShortcut.newHost,
                 MobileShortcut.generateCommand,
@@ -80,6 +84,23 @@ struct MobileShortcutTests {
         #expect(scene.selectedDestination == .workspaces)
         #expect(scene.workspaceID == nil)
         #expect(scene.isConnectionPickerPresented)
+    }
+
+    @Test func batchStartupCommandPresentsThePickerOnlyInItsScene() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app, sessionID: "first")
+        let otherScene = MobileSceneModel(app: app, sessionID: "second")
+        scene.openTransfers()
+        otherScene.openConnectionPicker()
+
+        scene.openBatchStartup()
+
+        #expect(scene.selectedDestination == .workspaces)
+        #expect(scene.workspaceDestination == nil)
+        #expect(scene.workspaceSheet == .batchStartup)
+        #expect(otherScene.selectedDestination == .workspaces)
+        #expect(otherScene.workspaceSheet == .connectionPicker)
+        #expect(app.workspaces.isEmpty)
     }
 
     @Test func homeScreenHistoryActionOpensThePreferredTerminalAndReportsAMissingHost() throws {

@@ -170,12 +170,6 @@ struct TermindCommands: Commands {
             }
             .termindShortcut("w")
             .disabled(window == nil)
-            Button(AppStrings.Workspace.closeWindow.swiftUIKey) {
-                guard let window else { return }
-                app.mainWindows.closeWindow(in: window)
-            }
-            .termindShortcut("w", modifiers: [.command, .shift])
-            .disabled(window == nil)
             Button(AppStrings.Workspace.closeOtherWorkspaces.swiftUIKey) {
                 guard let window, let id = window.selectedWorkspaceID else { return }
                 window.closeOthers(than: id)
