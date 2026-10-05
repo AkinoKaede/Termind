@@ -5,7 +5,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresKeyWindow, .serialized) @MainActor
 struct MobileAISettingsToolbarTests {
     @Test func workspaceDetailHidesBottomTabsAndRestoresThemOnExit() async throws {
         let app = try MobileAppModel(inMemory: true)

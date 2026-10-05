@@ -6,9 +6,7 @@ import UIKit
 @testable import TermindIOS
 
 @Suite(
-    .enabled(
-        if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1",
-        "Set TERMIND_MOBILE_UI_TESTS=1 and disable parallel testing for native-window integration tests"),
+    .requiresKeyWindow,
     .serialized)
 @MainActor
 struct MobileWorkspaceWindowIntegrationTests {

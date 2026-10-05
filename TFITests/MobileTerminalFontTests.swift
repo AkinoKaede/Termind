@@ -34,7 +34,7 @@ struct MobileTerminalFontTests {
     }
 
     @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        .requiresKeyWindow,
         arguments: ["en", "zh-Hans", "zh-Hant"])
     func fontNamesPreviewTheirOwnFamilies(_ language: String) async throws {
         let view = TerminalFontOptions(
@@ -49,7 +49,7 @@ struct MobileTerminalFontTests {
     }
 
     @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        .requiresKeyWindow,
         arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
     func terminalFontSettingsRenderInSupportedLanguages(_ language: String, family: String) async throws {
         let domain = "MobileTerminalFontRendering.\(UUID())"

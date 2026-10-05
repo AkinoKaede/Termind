@@ -25,7 +25,7 @@ struct MobilePassphraseFormLayoutTests {
     }
 
     @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        .requiresKeyWindow,
         arguments: ["en", "zh-Hans"], [false, true])
     func rendersPassphraseActionsInANativeWindow(language: String, showKeys: Bool) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)

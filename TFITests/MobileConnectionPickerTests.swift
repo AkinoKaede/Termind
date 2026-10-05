@@ -192,9 +192,7 @@ struct MobileConnectionPickerTests {
     }
 
     @Test(
-        .enabled(
-            if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1",
-            "Set TERMIND_MOBILE_UI_TESTS=1 and disable parallel testing for key-window integration tests"),
+        .requiresKeyWindow,
         arguments: [HostUseCase.snippetExecution, .metrics])
     func multiHostPickerGatesConfirmationOnRequiredSelection(useCase: HostUseCase) async throws {
         let app = try MobileAppModel(inMemory: true)

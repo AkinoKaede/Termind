@@ -6,7 +6,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresKeyWindow, .serialized) @MainActor
 struct MobileMetricsJourneyTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func authenticationStaysInMetricsAcrossNavigationAndSizeChanges(_ language: String) async throws {

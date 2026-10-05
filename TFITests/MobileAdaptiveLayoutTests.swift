@@ -9,7 +9,9 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAdaptiveLayoutTests {
-    @Test func metricsRetainsItsNativeListAndScrollPositionAcrossFoldsAndVerticalMenuChanges() async throws {
+    @Test(.requiresKeyWindow) func metricsRetainsItsNativeListAndScrollPositionAcrossFoldsAndVerticalMenuChanges()
+        async throws
+    {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
@@ -74,7 +76,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func foldingKeepsAssistantTranscriptComposerFocusAndMarkedText(language: String) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -128,7 +130,7 @@ struct MobileAdaptiveLayoutTests {
         #expect(MobileLayout(sizeClass: .regular) == .regular)
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [DynamicTypeSize.large, .accessibility3])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"], [DynamicTypeSize.large, .accessibility3])
     func fiveNativeTabsRemainAvailableAcrossWindowWidths(language: String, typeSize: DynamicTypeSize) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -175,7 +177,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test func compactLaunchKeepsTheConversationAndDraftAcrossResizing() async throws {
+    @Test(.requiresKeyWindow) func compactLaunchKeepsTheConversationAndDraftAcrossResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .assistant
@@ -195,7 +197,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test func metricsStaysSelectedAcrossResizingAndTabRoundTrips() async throws {
+    @Test(.requiresKeyWindow) func metricsStaysSelectedAcrossResizingAndTabRoundTrips() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
@@ -218,7 +220,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func assistantSwitchersReflectAvailableConversationsAcrossToolbarLayouts(language: String) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -306,7 +308,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func assistantTitleAdaptsWithoutLosingItsConversationMenuOrDrafts(language: String) async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         let app = try MobileAppModel(inMemory: true)
@@ -383,7 +385,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func metricsDetailTitleAdaptsWhileItsPickerAndNavigationSurvive(language: String) async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         let app = try MobileAppModel(inMemory: true)
@@ -446,7 +448,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test func settingsDepthAndUnsavedFormsSurviveWidthChanges() async throws {
+    @Test(.requiresKeyWindow) func settingsDepthAndUnsavedFormsSurviveWidthChanges() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.openSettings()
@@ -489,7 +491,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test func vaultSearchAndScrollSurviveResizing() async throws {
+    @Test(.requiresKeyWindow) func vaultSearchAndScrollSurviveResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
         for index in 0..<40 {
             app.library.upsert(TermindDomain.Host(name: "Production \(index)", host: "server-\(index).example.invalid"))
@@ -529,7 +531,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test func twoWindowsKeepIndependentPagesAndDraftsDuringResizing() async throws {
+    @Test(.requiresKeyWindow) func twoWindowsKeepIndependentPagesAndDraftsDuringResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
         let first = MobileSceneModel(app: app, sessionID: "test")
         let second = MobileSceneModel(app: app, sessionID: "other")
@@ -556,7 +558,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: [false, true])
+    @Test(.requiresKeyWindow, arguments: [false, true])
     func savingSurvivesResizingThroughCompletionAndErrorFeedback(fails: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -606,7 +608,7 @@ struct MobileAdaptiveLayoutTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func recentWorkspaceListRestoresOnlySelectedRowAndNavigates(language: String) async throws {
         let suite = "termind.recent-workspace-ui.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: suite))

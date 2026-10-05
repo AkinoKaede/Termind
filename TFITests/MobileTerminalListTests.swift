@@ -6,7 +6,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1")) @MainActor
+@Suite(.serialized, .requiresKeyWindow) @MainActor
 struct MobileTerminalListTests {
     @Test func appendingACommandUpdatesTheNativeHistoryList() async throws {
         let app = try MobileAppModel(inMemory: true)

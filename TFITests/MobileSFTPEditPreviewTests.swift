@@ -16,7 +16,7 @@ struct MobileSFTPEditPreviewTests {
         let id: Int
     }
 
-    @Test func overlayClearancePreservesTheFullMobileListViewport() throws {
+    @Test(.requiresKeyWindow) func overlayClearancePreservesTheFullMobileListViewport() throws {
         let controller = UIHostingController(
             rootView:
                 MobileNativeList(items: (0..<16).map { InsetItem(id: $0) }, bottomContentInset: 180) { item in
@@ -86,7 +86,7 @@ struct MobileSFTPEditPreviewTests {
         #expect(changes == 1)
     }
 
-    @Test func nativeImagePreviewOffersTheSystemEditingSurface() async throws {
+    @Test(.requiresKeyWindow) func nativeImagePreviewOffersTheSystemEditingSurface() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "sftp-edit-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appending(path: "preview-fixture.png")
@@ -123,7 +123,7 @@ struct MobileSFTPEditPreviewTests {
         print("SFTP native preview snapshot: \(snapshot.path)")
     }
 
-    @Test func floatingChangesFitPhoneAndTabletWidthsAndRenderOverFileRows() async throws {
+    @Test(.requiresKeyWindow) func floatingChangesFitPhoneAndTabletWidthsAndRenderOverFileRows() async throws {
         let model = SFTPEditModel()
         let hostID = UUID()
         for index in 0..<5 {

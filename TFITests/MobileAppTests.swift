@@ -922,7 +922,7 @@ struct MobileLiveActivitySchedulingTests {
     }
 }
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresKeyWindow, .serialized) @MainActor
 struct MobileWorkspaceNavigationRenderingTests {
     @Test func padWorkspaceDetailsShowTopTabsAndLeadingSwitcherButHideCompactBottomTabs() async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }

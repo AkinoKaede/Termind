@@ -7,7 +7,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"), .serialized)
+@Suite(.requiresKeyWindow, .serialized)
 @MainActor
 struct MobileCommandNotificationRenderingTests {
     @Test func destinationBadgesUseNativeOptionsAndFollowTabPlacement() async throws {

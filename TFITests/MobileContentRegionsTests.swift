@@ -6,7 +6,7 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileContentRegionsTests {
-    @MainActor @Test(arguments: [LayoutDirection.leftToRight, .rightToLeft])
+    @MainActor @Test(.requiresKeyWindow, arguments: [LayoutDirection.leftToRight, .rightToLeft])
     func nativePanesMirrorWithLayoutDirectionWithoutChangingTheirFramesOrIdentity(direction: LayoutDirection)
         async throws
     {

@@ -8,7 +8,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"))
+@Suite(.serialized, .requiresKeyWindow)
 @MainActor
 struct MobileTerminalBackgroundTests {
     @Test func oscBackgroundFillsSafeAreaWithoutChangingTerminalGeometryOrIdentity() async throws {

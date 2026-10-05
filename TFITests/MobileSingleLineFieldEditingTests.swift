@@ -6,7 +6,7 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite("Mobile single-line field editing", .serialized)
+@Suite("Mobile single-line field editing", .requiresKeyWindow, .serialized)
 @MainActor
 struct MobileSingleLineFieldEditingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])

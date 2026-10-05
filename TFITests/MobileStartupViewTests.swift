@@ -22,9 +22,7 @@ struct MobileStartupViewTests {
     }
 
     @Test(
-        .enabled(
-            if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1",
-            "Set TERMIND_MOBILE_UI_TESTS=1 and disable parallel testing for key-window integration tests")
+        .requiresKeyWindow
     )
     func mountingSceneRootStartsOnceAndPreservesNavigationAcrossUpdates() async throws {
         let app = try MobileAppModel(inMemory: true)

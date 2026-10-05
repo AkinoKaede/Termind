@@ -5,7 +5,7 @@ import TermindPresentation
 import Testing
 import UIKit
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresKeyWindow, .serialized) @MainActor
 struct MobileMemorySettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [false, true])
     func memorySettingsHaveNativeMobileLayout(_ language: String, enabled: Bool) async throws {

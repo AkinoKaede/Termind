@@ -8,7 +8,7 @@ import UIKit
 @testable import TermindPresentation
 
 @Suite(
-    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+    .requiresKeyWindow,
     .serialized)
 @MainActor
 struct MobileTailscaleRenderingTests {

@@ -6,7 +6,7 @@ import UIKit
 @testable import TermindIOS
 
 @Suite(
-    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+    .requiresKeyWindow,
     .serialized)
 @MainActor
 struct MobileSkillSettingsRenderingTests {

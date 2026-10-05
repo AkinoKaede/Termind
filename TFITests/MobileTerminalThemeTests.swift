@@ -10,7 +10,7 @@ import UIKit
 @Suite(.serialized) @MainActor
 struct MobileTerminalThemeTests {
     @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"),
+        .requiresKeyWindow,
         arguments: ["en", "zh-Hans", "zh-Hant"], [false, true])
     func themeBrowserSnapshots(language: String, isDark: Bool) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)

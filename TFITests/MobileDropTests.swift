@@ -166,7 +166,7 @@ nonisolated private func failedFileProvider() -> NSItemProvider {
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceDropTests {
-    @Test func failedProviderDropShowsANoticeWithoutPresentingAnAlertOrTakingFocus() async throws {
+    @Test(.requiresKeyWindow) func failedProviderDropShowsANoticeWithoutPresentingAnAlertOrTakingFocus() async throws {
         let app = try MobileAppModel(inMemory: true)
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: UUID(), title: "Upload Test", kind: .ssh), hosts: app.library)
@@ -225,7 +225,7 @@ struct MobileWorkspaceDropTests {
         return view.subviews.lazy.compactMap { firstResponder(in: $0) }.first
     }
 
-    @Test(arguments: ConnectionHistoryEntry.Kind.allCases)
+    @Test(.requiresKeyWindow, arguments: ConnectionHistoryEntry.Kind.allCases)
     func hostedWorkspacesRenderTheOverlayAcrossTheirContent(kind: ConnectionHistoryEntry.Kind) async throws {
         let app = try MobileAppModel(inMemory: true)
         let workspace = MobileWorkspace(

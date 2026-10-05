@@ -92,7 +92,7 @@ private func accessoryButtons(in view: UIView) -> [UIButton] {
     descendants(of: view).compactMap { $0 as? UIButton }
 }
 
-@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1"))
+@Suite(.serialized, .requiresKeyWindow)
 @MainActor
 struct MobileTerminalKeyboardIntegrationTests {
     @Test func initialFocusWaitsForReadinessAndReopensOnlyAfterRemount() async throws {
