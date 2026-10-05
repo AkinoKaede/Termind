@@ -5,33 +5,23 @@ import Testing
 
 @Suite
 struct SoftwareKeyFileImporterTests {
-    @Test
-    func privateKeyInfersItsCompleteFilename() throws {
+    @Test(arguments: [(true, "deploy.pem" as String?), (false, nil)])
+    func privateKeyImportInfersItsCompleteFilenameOnlyWhenRequested(infersName: Bool, expectedName: String?) throws {
         let url = try temporaryFile(
             named: "deploy.pem",
             contents: "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret"
         )
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
 
-        let result = try SoftwareKeyFileImporter.read(urls: [url], infersName: true)
+        let result = try SoftwareKeyFileImporter.read(urls: [url], infersName: infersName)
 
         #expect(result.privateKey?.contains("PRIVATE KEY") == true)
-        #expect(result.inferredName == "deploy.pem")
+        #expect(result.inferredName == expectedName)
     }
 
-    @Test
-    func manualNameIsNotReplaced() throws {
-        let url = try temporaryFile(
-            named: "deploy.pem",
-            contents: "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret"
-        )
-        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-
-        let result = try SoftwareKeyFileImporter.read(urls: [url], infersName: false)
-
-        #expect(result.inferredName == nil)
-        #expect(!SoftwareKeyFileImporter.shouldInferName(from: "Production"))
-        #expect(SoftwareKeyFileImporter.shouldInferName(from: "  \n"))
+    @Test(arguments: [("Production", false), ("  \n", true)])
+    func nameInferencePreservesManualNamesAndReplacesBlankNames(name: String, shouldInfer: Bool) {
+        #expect(SoftwareKeyFileImporter.shouldInferName(from: name) == shouldInfer)
     }
 
     @Test

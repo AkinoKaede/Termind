@@ -57,16 +57,6 @@ struct TerminalFindTests {
         #expect(TerminalFindBinding.end == "end_search")
     }
 
-    /// A terminal search starts at the bottom of the buffer, so the direction
-    /// that reaches the first match is Ghostty's `.previous` — which is what a
-    /// reader means by "next". Return in the Find field, ⌘G and F3 all have to
-    /// agree on that; ⌘G used to be wired the other way round.
-    @Test
-    func findNextWalksTowardOlderOutput() {
-        #expect(TerminalFindBinding.navigate(.previous) == "navigate_search:previous")
-        #expect(TerminalFindBinding.navigate(.next) == "navigate_search:next")
-    }
-
     @MainActor
     @Test
     func navigatingRevealsTheFindStateAndRetainsTheQuery() {

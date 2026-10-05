@@ -4,10 +4,13 @@ import Testing
 @testable import TermindRemoteInfrastructure
 
 @Suite struct SFTPRenameTests {
-    @Test func overwriteUsesPOSIXRenameWithoutFirstFailingStandardRename() {
+    @Test(arguments: [(true, Int32(0), "posix"), (false, LIBSSH2_ERROR_SFTP_PROTOCOL, "standard")])
+    func overwritePolicySelectsTheRenameOperation(
+        overwrite: Bool, expectedResult: Int32, expectedOperation: String
+    ) {
         var calls: [String] = []
         let result = SFTPRenameOperation.perform(
-            overwrite: true,
+            overwrite: overwrite,
             posixRename: {
                 calls.append("posix")
                 return 0
@@ -17,25 +20,8 @@ import Testing
                 return LIBSSH2_ERROR_SFTP_PROTOCOL
             },
             lastStatus: { UInt(LIBSSH2_FX_FAILURE) })
-        #expect(result == 0)
-        #expect(calls == ["posix"])
-    }
-
-    @Test func nonOverwritingRenameNeverUsesAnOverwritingExtension() {
-        var calls: [String] = []
-        let result = SFTPRenameOperation.perform(
-            overwrite: false,
-            posixRename: {
-                calls.append("posix")
-                return 0
-            },
-            standardRename: {
-                calls.append("standard")
-                return LIBSSH2_ERROR_SFTP_PROTOCOL
-            },
-            lastStatus: { UInt(LIBSSH2_FX_FAILURE) })
-        #expect(result == LIBSSH2_ERROR_SFTP_PROTOCOL)
-        #expect(calls == ["standard"])
+        #expect(result == expectedResult)
+        #expect(calls == [expectedOperation])
     }
 
     @Test(arguments: [Int32(LIBSSH2_FX_OP_UNSUPPORTED), LIBSSH2_ERROR_SFTP_PROTOCOL])

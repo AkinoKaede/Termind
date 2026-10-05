@@ -89,8 +89,8 @@ struct WindowStateTests {
         #expect(window.sidebarMode == .history)
     }
 
-    @Test
-    func closingTheLastWorkspacePromotesTheVisibleSidebarConversationFullScreen() {
+    @Test(arguments: [false, true])
+    func closingWorkspacesPromotesTheVisibleSidebarConversationFullScreen(closeAll: Bool) {
         let workspace = Workspace.sshSession(
             host: Host(name: "Server", host: "server.example")
         )
@@ -103,33 +103,16 @@ struct WindowStateTests {
         window.sidebarMode = .assistant
         window.openAssistantInSidebar(conversation.id)
 
-        window.close(workspace.id)
+        if closeAll {
+            window.closeAll()
+        } else {
+            window.close(workspace.id)
+        }
 
         #expect(window.workspaces.isEmpty)
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation === conversation)
         #expect(window.sidebarMode == .assistant)
-    }
-
-    @Test
-    func closingAllWorkspacesPromotesTheVisibleSidebarConversationFullScreen() {
-        let workspace = Workspace.sshSession(
-            host: Host(name: "Server", host: "server.example")
-        )
-        let conversation = ConversationModel()
-        let library = AssistantLibraryModel(
-            store: AssistantConversationStore(
-                conversations: [conversation]
-            ))
-        let window = WindowModel(workspaces: [workspace], assistantLibrary: library)
-        window.sidebarMode = .assistant
-        window.openAssistantInSidebar(conversation.id)
-
-        window.closeAll()
-
-        #expect(window.workspaces.isEmpty)
-        #expect(window.selectedDestination == .assistant)
-        #expect(window.assistantLibrary.selectedConversation === conversation)
     }
 
     @Test
@@ -870,43 +853,20 @@ struct WindowStateTests {
         #expect(window.selectedDestination == .workspace(workspace.id))
     }
 
-    @Test
-    func draggingSelectedWorkspaceDisplaysNeighbourAsMergeTarget() {
+    @Test(arguments: [true, false])
+    func draggingAWorkspacePreservesSelectionAndTemporarilyDisplaysItsMergeTarget(dragSelected: Bool) {
         let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
         let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
         let window = WindowModel(workspaces: [first, second])
         window.select(first.id)
 
-        window.dragging = .workspace(first.id)
+        window.dragging = .workspace(dragSelected ? first.id : second.id)
 
-        #expect(window.displayedWorkspace?.id == second.id)
+        #expect(window.displayedWorkspace?.id == (dragSelected ? second.id : first.id))
         #expect(window.selectedWorkspace?.id == first.id)
-    }
-
-    @Test
-    func endingSelectedWorkspaceDragRestoresDisplayedSelection() {
-        let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
-        let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
-        let window = WindowModel(workspaces: [first, second])
-        window.select(first.id)
-
-        window.dragging = .workspace(first.id)
-        #expect(window.displayedWorkspace?.id == second.id)
+        #expect(window.selectedWorkspaceID == first.id)
 
         window.dragging = nil
-
-        #expect(window.displayedWorkspace?.id == first.id)
-        #expect(window.selectedWorkspaceID == first.id)
-    }
-
-    @Test
-    func draggingUnselectedWorkspaceDoesNotChangeDisplayedSelection() {
-        let first = Workspace.sshSession(host: Host(name: "First", host: "first.example"))
-        let second = Workspace.sshSession(host: Host(name: "Second", host: "second.example"))
-        let window = WindowModel(workspaces: [first, second])
-        window.select(first.id)
-
-        window.dragging = .workspace(second.id)
 
         #expect(window.displayedWorkspace?.id == first.id)
         #expect(window.selectedWorkspaceID == first.id)

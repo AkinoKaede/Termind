@@ -181,29 +181,17 @@ struct AgentPlanModeTests {
         #expect(await ran.didRun)
     }
 
-    @Test
-    func readsAreUntouchedWhilePlanning() async {
+    /// Planning still permits reads, drafting in the scratch workspace, and asking the user questions.
+    @Test(arguments: ["sftp_read", "scratch_edit", "request_user_input"])
+    func approvedPlanningToolsRemainAvailable(toolName: String) async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("sftp_read", approvalPolicy: .approve, ran: ran)],
-            turns: callingTurns(["sftp_read"]), isPlanning: true
+            tools: [spyTool(toolName, approvalPolicy: .approve, ran: ran)],
+            turns: callingTurns([toolName]), isPlanning: true
         )
 
         #expect(await ran.didRun)
         #expect(results(events).first?.isError == false)
-    }
-
-    /// The scratch workspace is where a plan is drafted. A planning mode that
-    /// cannot write its own plan is not one.
-    @Test
-    func containedWritesAreAllowedSoThePlanCanBeDrafted() async {
-        let ran = RanFlag()
-        _ = await drain(
-            tools: [spyTool("scratch_edit", approvalPolicy: .approve, ran: ran)],
-            turns: callingTurns(["scratch_edit"]), isPlanning: true
-        )
-
-        #expect(await ran.didRun)
     }
 
     // MARK: - Reading a server
@@ -212,38 +200,18 @@ struct AgentPlanModeTests {
     /// gating `ssh_exec` on "provably safe" refused most of the ways of asking
     /// what a machine is doing. The bar is destructiveness instead; anything
     /// unproven still meets the ordinary approval gate.
-    @Test
-    func planModeRunsACommandTheClassifierCannotVouchFor() async {
+    @Test(arguments: [("vendorctl inspect", true), ("rm -rf /var/log/nginx", false), ("df -h", true)])
+    func planningRejectsDestructiveCommandsWhileAllowingReadsAndUnclassifiedCommands(
+        command: String, shouldRun: Bool
+    ) async {
         let ran = RanFlag()
         let events = await drain(
             tools: [execTool(ran: ran)],
-            turns: execTurns("vendorctl inspect"), isPlanning: true
+            turns: execTurns(command), isPlanning: true
         )
 
-        #expect(await ran.didRun)
-        #expect(results(events).first?.isError == false)
-    }
-
-    @Test
-    func planModeRefusesADestructiveCommand() async {
-        let ran = RanFlag()
-        let events = await drain(
-            tools: [execTool(ran: ran)],
-            turns: execTurns("rm -rf /var/log/nginx"), isPlanning: true
-        )
-
-        #expect(await ran.didRun == false)
-        #expect(results(events).first?.isError == true)
-    }
-
-    @Test
-    func planModeRunsAnOrdinaryRead() async {
-        let ran = RanFlag()
-        _ = await drain(
-            tools: [execTool(ran: ran)], turns: execTurns("df -h"), isPlanning: true
-        )
-
-        #expect(await ran.didRun)
+        #expect(await ran.didRun == shouldRun)
+        #expect(results(events).first?.isError == !shouldRun)
     }
 
     @Test
@@ -342,20 +310,6 @@ struct AgentPlanModeTests {
         // And the systemctl subcommands that act are still not reads.
         #expect(CommandRiskClassifier.assess("systemctl restart nginx").risk != .safe)
         #expect(CommandRiskClassifier.assess("systemctl stop nginx").risk == .destructive)
-    }
-
-    /// This is what "the plan must be able to suggest" rests on: the tool that
-    /// asks the user a question with options is read-only, so it survives the
-    /// gate with no special case.
-    @Test
-    func askingTheUserIsNotBlockedWhilePlanning() async {
-        let ran = RanFlag()
-        _ = await drain(
-            tools: [spyTool("request_user_input", approvalPolicy: .approve, ran: ran)],
-            turns: callingTurns(["request_user_input"]), isPlanning: true
-        )
-
-        #expect(await ran.didRun)
     }
 
     /// A partially-blocked turn must still answer every call it was asked for.
