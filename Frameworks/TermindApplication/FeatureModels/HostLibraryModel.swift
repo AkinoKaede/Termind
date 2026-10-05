@@ -782,10 +782,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return credentials
     }
 
-    public func transportProxy(for host: Host) throws -> SSHTransportProxy? {
-        try transportProxy(for: host, submission: nil)
-    }
-
     public func transportProxy(
         for host: Host, submission: SSHProxyAuthenticationSubmission?
     ) throws -> SSHTransportProxy? {

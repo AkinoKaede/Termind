@@ -5,7 +5,6 @@ public nonisolated protocol MemoryPersisting: AgentMemoryAccessing {
     func prepareSession(_ conversationID: UUID) async throws
     func replaceHistory(_ conversations: [StoredAgentConversation]) async throws
     func rebuildHistoryIndex() async throws
-    func lastReviewedMessage(_ conversationID: UUID) async throws -> UUID?
     func recordActivity(_ id: UUID, sourceMessageID: UUID, kind: MemoryActivityKind, conversationID: UUID) async throws
         -> MemoryLearningProgress
     func learningProgress(_ conversationID: UUID) async throws -> MemoryLearningProgress

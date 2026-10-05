@@ -570,12 +570,6 @@ public actor AgentSSHAuthenticationContext {
             self.generation = generation
         }
 
-        public init(configuration: SSHConnectionConfiguration, generation: UInt64) {
-            self.init(
-                request: SSHConnectionRequest(configuration: configuration),
-                generation: generation
-            )
-        }
     }
 
     private struct Pending {

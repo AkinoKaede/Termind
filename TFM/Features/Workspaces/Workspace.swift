@@ -153,12 +153,12 @@ final class Workspace: Identifiable {
         return automaticTitle ?? focusedPane.derivedTitle(in: store, locale: locale)
     }
 
-    func subtitle(in store: HostLibraryModel) -> String? {
+    var subtitle: String? {
         if isSplit {
             let count = panes.count
             return String(localized: AppStrings.Workspace.panes(count))
         }
-        return focusedPane.subtitle(in: store)
+        return focusedPane.subtitle
     }
 
     // MARK: - Mutation

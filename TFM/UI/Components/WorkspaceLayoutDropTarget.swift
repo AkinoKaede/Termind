@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import TermindPresentation
 
 enum WorkspaceLayoutDropPreviewStyle {
     case insertion

@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import TermindDomain
 
 /// The V1–V9 shape stays frozen so adding lifecycle fields does not rewrite the
 /// checksums of schemas already shipped to users.

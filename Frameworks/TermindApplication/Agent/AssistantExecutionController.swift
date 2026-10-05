@@ -415,8 +415,6 @@ public final class AssistantExecutionController {
         authoredPrompt: String? = nil,
         promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext? = nil,
-        terminalSuggestionsAvailable: Bool = false,
         panes: AgentPaneAccess? = nil
     ) {
         guard authorize(), canSubmit(to: conversation) else { return }

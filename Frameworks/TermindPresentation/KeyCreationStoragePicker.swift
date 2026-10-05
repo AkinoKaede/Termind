@@ -1,5 +1,4 @@
 import SwiftUI
-import TermindApplication
 import TermindDomain
 
 /// Keeps the software storage selection while the user switches to an external authenticator.

@@ -293,7 +293,6 @@ public nonisolated struct SettingsEnvelope: Codable, Hashable, Sendable {
 public nonisolated struct SettingsMutationSet: Equatable, Sendable {
     public var keys: Set<SettingsRecordKey> = []
     public static let empty = Self()
-    public var isEmpty: Bool { keys.isEmpty }
     public init(keys: Set<SettingsRecordKey> = []) {
         self.keys = keys
     }

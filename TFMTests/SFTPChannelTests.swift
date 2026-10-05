@@ -1,8 +1,6 @@
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
-import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
@@ -23,25 +21,24 @@ struct SFTPChannelTests {
         let channel = try #require(workspace.focusedPane.sftpChannel)
         try await channel.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
 
-        #expect(workspace.subtitle(in: store) == "/srv")
+        #expect(workspace.subtitle == "/srv")
         window.rename(workspace.id, to: "Logs")
         #expect(workspace.title(in: store) == "Logs")
-        #expect(workspace.subtitle(in: store) == "/srv")
+        #expect(workspace.subtitle == "/srv")
 
         channel.navigate(to: "/var/log")
-        #expect(workspace.subtitle(in: store) == "/var/log")
+        #expect(workspace.subtitle == "/var/log")
     }
 
     @Test
     func workspaceWaitsForHomeThenUsesTilde() async throws {
         let host = Host(name: "Files", host: "files.example")
-        let store = HostLibraryModel(hosts: [host])
         let workspace = Workspace.sftpChannel(host: host, initialPath: "/home/test/project")
         let channel = try #require(workspace.focusedPane.sftpChannel)
 
-        #expect(workspace.subtitle(in: store) == nil)
+        #expect(workspace.subtitle == nil)
         try await channel.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
-        #expect(workspace.subtitle(in: store) == "~/project")
+        #expect(workspace.subtitle == "~/project")
     }
 
     @Test

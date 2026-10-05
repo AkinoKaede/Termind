@@ -635,14 +635,12 @@ final class AppModel {
         _ conversation: ConversationModel, promptID: UUID? = nil, prompt: String? = nil,
         authoredPrompt: String? = nil, promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext? = nil, terminalSuggestionsAvailable: Bool = false,
         window: WindowModel? = nil
     ) {
         assistantExecution.startAgentRun(
             conversation, promptID: promptID, prompt: prompt,
             authoredPrompt: authoredPrompt, promptImages: promptImages,
             promptContextAttachments: promptContextAttachments,
-            context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable,
             panes: paneAccess(for: window))
     }
 

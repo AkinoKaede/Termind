@@ -192,8 +192,6 @@ public final class RemoteSessionConnectionController {
         return true
     }
 
-    public func rejectHostKey() { hostKeyAuthorization.reject() }
-
     public func signWithSecurityKey(_ request: SecurityKeySigningRequest) async throws -> SecurityKeyAssertion {
         reconnect.pauseForUserInteraction()
         journey.waitForAuthentication(at: request.hostID)

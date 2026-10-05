@@ -398,29 +398,6 @@ nonisolated extension StoredSSHKeyCredential {
         }
     }
 
-    public func sshCredential(
-        publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
-        requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
-    ) -> SSHCredentials {
-        switch self {
-        case .software(let secret):
-            SSHResolvedKeyCredential.software(
-                SSHSecret(secret.privateKey), passphrase: secret.passphrase.map(SSHSecret.init)
-            ).sshCredential(
-                publicKey: publicKey, certificate: certificate,
-                passphraseOverride: passphraseOverride,
-                requiresPassphrase: requiresPassphrase,
-                requiresUserPresence: requiresUserPresence
-            )
-        case .secureEnclave(let credential):
-            SSHResolvedKeyCredential.secureEnclave(credential).sshCredential(
-                publicKey: publicKey, certificate: certificate,
-                passphraseOverride: passphraseOverride,
-                requiresPassphrase: requiresPassphrase,
-                requiresUserPresence: requiresUserPresence
-            )
-        }
-    }
 }
 
 /// Non-secret provenance retained by a live connection so its reusable

@@ -3,13 +3,11 @@ import TermindDomain
 
 @MainActor
 public protocol OutboxStore: AnyObject {
-    func enqueue(_ jobs: [OutboxJob]) throws
     func nextReady(at date: Date) throws -> OutboxJob?
     func markRunning(_ id: OutboxJob.ID) throws
     func markSucceeded(_ id: OutboxJob.ID) throws
     func markFailed(_ id: OutboxJob.ID, error: String, retryAt: Date?) throws
     func resetInterruptedJobs() throws
-    func retryFailedJob(_ id: OutboxJob.ID) throws
 }
 
 public protocol OutboxEventHandler: AnyObject {

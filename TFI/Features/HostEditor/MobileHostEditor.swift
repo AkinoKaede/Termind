@@ -41,8 +41,6 @@ struct MobileHostEditor: View {
             : String(localized: AppStrings.Vault.editHost)
     }
 
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
         MobileEditorSheet(
             title: editorTitle,

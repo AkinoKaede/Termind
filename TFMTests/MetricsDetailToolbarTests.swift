@@ -76,7 +76,7 @@ struct MetricsDetailToolbarTests {
         state.selectedDestination = .metrics
         state.metricsHostID = server.id
         state.metricsModel = model
-        let root = LegacyMetricsToolbarFixture(server: server, model: model)
+        let root = LegacyMetricsToolbarFixture(server: server)
             .environment(state).environment(\.locale, language.locale)
         let window = makeWindow(root)
         defer {
@@ -195,12 +195,11 @@ struct MetricsDetailToolbarTests {
 /// preferences are refreshed when the first measured detail width arrives.
 private struct LegacyMetricsToolbarFixture: View {
     let server: ServerMetric
-    let model: ServerMetricsModel
     @Environment(WindowModel.self) private var window
 
     var body: some View {
         NavigationStack {
-            MetricsDetailView(server: server, model: model)
+            MetricsDetailView(server: server)
                 .toolbar(removing: window.showsCompactMetricsDetail ? .title : nil)
                 .toolbar {
                     ToolbarItem(placement: .principal) { MetricsDetailPagePicker() }

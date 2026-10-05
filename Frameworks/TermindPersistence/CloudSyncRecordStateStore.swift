@@ -77,10 +77,6 @@ public final class CloudSyncAssetCleanupStore {
         try !pending(cacheKey: cacheKey).isEmpty
     }
 
-    public func complete(scope: CloudSyncScope, cacheKey: String) throws {
-        if let row = try pending(scope: scope, cacheKey: cacheKey) { context.delete(row) }
-    }
-
     public func complete(cacheKey: String) throws {
         for row in try pending(cacheKey: cacheKey) { context.delete(row) }
     }

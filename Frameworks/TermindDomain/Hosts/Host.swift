@@ -211,13 +211,6 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         }
     }
 
-    public func charset(for connectionProtocol: HostTerminalProtocol) -> RemoteCharset {
-        switch connectionProtocol {
-        case .ssh: sshCharset
-        case .telnet: telnetCharset
-        }
-    }
-
     public var supportedTerminalProtocols: [HostTerminalProtocol] {
         HostTerminalProtocol.allCases.filter(isEnabled)
     }

@@ -51,10 +51,6 @@ public final class SkillLibraryModel: AgentSkillLibraryManaging {
         skills.first { $0.id == id }
     }
 
-    public func skill(named name: String) -> AgentSkill? {
-        skills.first { $0.effectiveName == name }
-    }
-
     public func hasNameConflict(_ name: String, excluding id: AgentSkill.ID) -> Bool {
         !name.isEmpty
             && (AgentSkillLibrary.reservedNames.contains(name)

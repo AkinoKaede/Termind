@@ -123,7 +123,3 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
 public nonisolated func == (lhs: SSHSecret, rhs: String) -> Bool {
     lhs.matches(rhs)
 }
-
-public nonisolated func == (lhs: String, rhs: SSHSecret) -> Bool {
-    rhs.matches(lhs)
-}

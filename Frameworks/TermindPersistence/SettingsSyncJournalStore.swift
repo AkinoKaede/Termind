@@ -304,46 +304,6 @@ public final class SettingsSyncJournal {
         row.systemFieldsData = data
     }
 
-    public func recordCurrentSnapshot(_ snapshot: SettingsSyncSnapshot, now: Date = .now) throws
-        -> SettingsMutationSet
-    {
-        let state = try state()
-        let current = snapshot.recordPayloads
-        var entries = try entriesByName()
-        var changed = Set<SettingsRecordKey>()
-
-        for (key, payload) in current {
-            let row = entries[key.recordName]
-            // Snapshot/bootstrap reconciliation is not an explicit edit of a deleted singleton.
-            if row?.envelope?.isDeleted == true { continue }
-            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else {
-                continue
-            }
-            let envelope = SettingsEnvelope(
-                key: key,
-                version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
-                payload: payload
-            )
-            try store(envelope, needsUpload: true, in: &entries)
-            changed.insert(key)
-        }
-
-        for row in entries.values {
-            guard let envelope = row.envelope, !envelope.isDeleted,
-                envelope.key.kind.participatesInSync,
-                current[envelope.key] == nil
-            else { continue }
-            let tombstone = SettingsEnvelope(
-                key: envelope.key,
-                version: .next(after: envelope.version, writerID: state.installationID, now: now),
-                isDeleted: true
-            )
-            try row.apply(tombstone, needsUpload: true)
-            changed.insert(envelope.key)
-        }
-        return SettingsMutationSet(keys: changed)
-    }
-
     public func markAllLiveRecordsNeedsUploadForNewAccount() throws {
         for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()) {
             guard let envelope = row.envelope else { continue }

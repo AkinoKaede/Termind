@@ -52,9 +52,7 @@ public nonisolated struct HostLibrarySnapshot: Equatable, Sendable {
 @MainActor
 public protocol HostRepository: AnyObject {
     func snapshot() throws -> RepositoryChange<HostLibrarySnapshot>
-    func changes() -> AsyncStream<RepositoryChange<HostLibrarySnapshot>>
     func refresh() throws
-    func upsertHost(_ host: Host) throws
     func requestHostDeletion(_ hostID: Host.ID) throws
     func clearReferencesForDeletedHost(_ hostID: Host.ID) throws
     func finalizeHostDeletion(_ hostID: Host.ID) throws

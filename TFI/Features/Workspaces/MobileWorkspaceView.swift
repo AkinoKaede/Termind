@@ -48,7 +48,6 @@ struct MobileWorkspaceView: View {
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.locale) private var locale
     @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @TerminalFontSettings private var font
     @State private var downloadImport = MobileFileImportState<RemoteFile>()

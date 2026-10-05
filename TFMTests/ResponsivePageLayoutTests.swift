@@ -77,7 +77,7 @@ struct ResponsivePageLayoutTests {
         state.selectedDestination = .metrics
         state.metricsModel = model
         state.metricsHostID = server.id
-        let hosting = NSHostingView(rootView: MetricsDetailView(server: server, model: model).environment(state))
+        let hosting = NSHostingView(rootView: MetricsDetailView(server: server).environment(state))
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 900, height: 600),
             styleMask: .borderless, backing: .buffered, defer: false)

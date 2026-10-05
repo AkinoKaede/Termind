@@ -57,7 +57,6 @@ public nonisolated struct ApplicationLogFile: Identifiable, Hashable, Sendable {
 
 public nonisolated protocol ApplicationLogManaging: AnyObject, Sendable {
     var isSaving: Bool { get }
-    var level: ApplicationLogLevel { get }
 
     func makeLogger(label: String) -> Logger
     func setSaving(_ enabled: Bool) throws
@@ -78,7 +77,6 @@ public nonisolated final class DisabledApplicationLogManager: ApplicationLogMana
     public static let shared = DisabledApplicationLogManager()
 
     public var isSaving: Bool { false }
-    public var level: ApplicationLogLevel { .info }
 
     private init() {}
 

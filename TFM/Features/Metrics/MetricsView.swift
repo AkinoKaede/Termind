@@ -54,14 +54,13 @@ struct ServerMetricsView: View {
     }
 
     private func detail(_ server: ServerMetric) -> some View {
-        MetricsDetailView(server: server, model: app.serverMetrics)
+        MetricsDetailView(server: server)
     }
 
 }
 
 struct MetricsDetailView: View {
     let server: ServerMetric
-    let model: ServerMetricsModel
     @Environment(WindowModel.self) private var window
 
     var body: some View {

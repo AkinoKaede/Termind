@@ -1,5 +1,4 @@
 import Foundation
-import TermindDomain
 
 /// Device-local connection intent only. Credentials, commands and live session state never enter this store.
 /// One app-owned store writes the complete snapshot, so saves from different windows cannot overwrite each other.

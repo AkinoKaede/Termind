@@ -373,7 +373,7 @@ final class Pane: Identifiable {
         return derivedTitle(in: store, locale: locale)
     }
 
-    func subtitle(in store: HostLibraryModel) -> String? {
+    var subtitle: String? {
         switch content {
         case .sftpChannel(let sftpChannel):
             sftpChannel.displayedPath

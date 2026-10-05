@@ -30,25 +30,25 @@ struct PortForwardingFeatureTests {
         #expect(
             IdentityEditorConfiguration.proxy.accepts(
                 username: "proxy", password: "secret",
-                hasConfiguredPassword: false, removesPassword: false
+                hasConfiguredPassword: false
             )
         )
         #expect(
             !IdentityEditorConfiguration.proxy.accepts(
                 username: "proxy", password: "",
-                hasConfiguredPassword: false, removesPassword: false
+                hasConfiguredPassword: false
             )
         )
         #expect(
             !IdentityEditorConfiguration.proxy.accepts(
                 username: "", password: "secret",
-                hasConfiguredPassword: false, removesPassword: false
+                hasConfiguredPassword: false
             )
         )
         #expect(
             IdentityEditorConfiguration.proxy.accepts(
                 username: "proxy", password: "",
-                hasConfiguredPassword: true, removesPassword: false
+                hasConfiguredPassword: true
             )
         )
     }

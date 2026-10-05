@@ -21,7 +21,7 @@ nonisolated struct IdentityEditorConfiguration: Hashable, Sendable {
 
     func accepts(
         username: String, password: String,
-        hasConfiguredPassword: Bool, removesPassword: Bool
+        hasConfiguredPassword: Bool
     ) -> Bool {
         guard !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return false
@@ -209,8 +209,7 @@ struct NewIdentitySheet: View {
     private var isValid: Bool {
         configuration.accepts(
             username: username, password: password,
-            hasConfiguredPassword: existing?.usesPassword == true,
-            removesPassword: canEditPassword && password.isEmpty && !originalPassword.isEmpty
+            hasConfiguredPassword: existing?.usesPassword == true
         )
     }
 

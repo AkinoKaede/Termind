@@ -38,7 +38,6 @@ public nonisolated final class LaunchFileLogService: ApplicationLogManaging, @un
     }
 
     public var isSaving: Bool { core.isSaving }
-    public var level: ApplicationLogLevel { core.level }
 
     public func makeLogger(label: String) -> Logger {
         Logger(label: label) { [core] label in

@@ -493,7 +493,7 @@ private struct WorkspaceNavigatorRow: View {
                     Text(workspace.title(in: app.hostLibrary, locale: locale))
                         .fontWeight(isSelected ? .semibold : .regular)
                         .lineLimit(1)
-                    if let subtitle = workspace.subtitle(in: app.hostLibrary) {
+                    if let subtitle = workspace.subtitle {
                         Text(subtitle)
                             .font(.caption2)
                             .foregroundStyle(.secondary)

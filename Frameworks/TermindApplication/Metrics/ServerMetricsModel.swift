@@ -27,7 +27,6 @@ public final class ServerMetric: Identifiable {
     public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
     public var authenticationPrompt: SSHAuthenticationPrompt?
     public var hostKeyPrompt: SSHHostKeyPrompt? { hostKeyAuthorization.pending?.prompt }
-    public var hostKeyHostID: UUID? { hostKeyAuthorization.pending?.hostID }
     public var requiresAuthentication: Bool {
         hostKey != nil || authenticationPrompt != nil || keyboardAuthentication.current != nil
             || securityKeySigning.pending != nil

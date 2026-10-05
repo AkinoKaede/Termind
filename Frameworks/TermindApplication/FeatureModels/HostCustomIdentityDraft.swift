@@ -22,8 +22,6 @@ public struct HostCustomIdentityDraft {
 
     private var sshIdentityID: Identity.ID?
     private var telnetIdentityID: Identity.ID?
-    private var proxyIdentityID: Identity.ID?
-    private var telnetProxyIdentityID: Identity.ID?
     private var sshHasConfiguredPassword = false
     private var telnetHasConfiguredPassword = false
     private var proxyHasConfiguredPassword = false
@@ -61,7 +59,6 @@ public struct HostCustomIdentityDraft {
         usesCustomTelnetSelection = host.telnetIdentityID == telnet?.id && telnet != nil
 
         let proxy = library.customIdentity(for: host.id, purpose: .proxy)
-        proxyIdentityID = proxy?.id
         proxyHasConfiguredPassword = proxy?.usesPassword == true
         if let proxy {
             proxyPasswordAvailability = library.passwordAvailability(for: proxy)
@@ -74,7 +71,6 @@ public struct HostCustomIdentityDraft {
         }
 
         let telnetProxy = library.customIdentity(for: host.id, purpose: .telnetProxy)
-        telnetProxyIdentityID = telnetProxy?.id
         telnetProxyHasConfiguredPassword = telnetProxy?.usesPassword == true
         if let telnetProxy {
             telnetProxyPasswordAvailability = library.passwordAvailability(for: telnetProxy)
@@ -144,7 +140,6 @@ public struct HostCustomIdentityDraft {
     public mutating func selectCustomProxy(on host: inout Host, using library: HostLibraryModel) {
         usesCustomProxy = true
         let identity = library.customIdentity(for: host.id, purpose: .proxy)
-        proxyIdentityID = identity?.id
         proxyHasConfiguredPassword = identity?.usesPassword == true
         proxyPasswordAvailability = identity.map(library.passwordAvailability) ?? .notConfigured
         host.proxy?.identityID = identity?.id
@@ -170,7 +165,6 @@ public struct HostCustomIdentityDraft {
     public mutating func selectCustomTelnetProxy(on host: inout Host, using library: HostLibraryModel) {
         usesCustomTelnetProxy = true
         let identity = library.customIdentity(for: host.id, purpose: .telnetProxy)
-        telnetProxyIdentityID = identity?.id
         telnetProxyHasConfiguredPassword = identity?.usesPassword == true
         telnetProxyPasswordAvailability = identity.map(library.passwordAvailability) ?? .notConfigured
         host.telnetProxy?.identityID = identity?.id
@@ -252,14 +246,12 @@ public struct HostCustomIdentityDraft {
                 ownerHostID: host.id, purpose: .proxy, displayName: "\(host.name) Proxy",
                 username: proxy.username, password: proxyPassword, keyID: nil)
             host.proxy?.identityID = identity?.id
-            proxyIdentityID = identity?.id
             proxyHasConfiguredPassword = identity?.usesPassword == true
             proxyPasswordAvailability = identity.map(library.passwordAvailability) ?? .notConfigured
         } else if host.proxy == nil {
             _ = try library.saveCustomIdentity(
                 ownerHostID: host.id, purpose: .proxy, displayName: "",
                 username: "", password: "", keyID: nil)
-            proxyIdentityID = nil
             proxyHasConfiguredPassword = false
             proxyPasswordAvailability = .notConfigured
         }
@@ -270,14 +262,12 @@ public struct HostCustomIdentityDraft {
                 displayName: "\(host.name) Telnet Proxy",
                 username: proxy.username, password: telnetProxyPassword, keyID: nil)
             host.telnetProxy?.identityID = identity?.id
-            telnetProxyIdentityID = identity?.id
             telnetProxyHasConfiguredPassword = identity?.usesPassword == true
             telnetProxyPasswordAvailability = identity.map(library.passwordAvailability) ?? .notConfigured
         } else if host.telnetProxy == nil {
             _ = try library.saveCustomIdentity(
                 ownerHostID: host.id, purpose: .telnetProxy, displayName: "",
                 username: "", password: "", keyID: nil)
-            telnetProxyIdentityID = nil
             telnetProxyHasConfiguredPassword = false
             telnetProxyPasswordAvailability = .notConfigured
         }

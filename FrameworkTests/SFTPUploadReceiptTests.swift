@@ -8,11 +8,11 @@ struct SFTPUploadReceiptTests {
     @Test func waitsForAdmissionAndEveryTransferAndPreservesSelectionOrder() {
         var received: [[String]] = []
         let receipt = SFTPUploadReceipt(paths: ["/a", "/folder"]) { received.append($0) }
-        receipt.admit(0)
+        receipt.admit()
         receipt.completed(0, state: .completed)
         #expect(received.isEmpty)
-        receipt.admit(1)
-        receipt.admit(1)
+        receipt.admit()
+        receipt.admit()
         receipt.resolve(1, to: "/folder.2")
         receipt.finishAdmission()
         receipt.completed(1, state: .completed)
@@ -28,7 +28,7 @@ struct SFTPUploadReceiptTests {
         let receipt = SFTPUploadReceipt(paths: ["/ok", "/failed", "/cancelled", "/skipped"]) {
             received.append($0)
         }
-        for index in 0..<3 { receipt.admit(index) }
+        for _ in 0..<3 { receipt.admit() }
         receipt.resolve(3, to: nil)
         receipt.finishAdmission()
         receipt.completed(2, state: .cancelled)
@@ -44,7 +44,7 @@ struct SFTPUploadReceiptTests {
         empty.finishAdmission()
         #expect(received == [["/empty"]])
         let cancelled = SFTPUploadReceipt(paths: ["/cancelled"]) { received.append($0) }
-        cancelled.admit(0)
+        cancelled.admit()
         cancelled.cancel()
         cancelled.finishAdmission()
         cancelled.completed(0, state: .completed)

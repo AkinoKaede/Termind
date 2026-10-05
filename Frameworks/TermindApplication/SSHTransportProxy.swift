@@ -24,16 +24,6 @@ public nonisolated struct TerminalTransportProxy: Sendable {
         self.ownerHostID = ownerHostID
     }
 
-    public init(
-        kind: HostProxy.ProtocolKind, hostname: String, port: Int, username: String,
-        password: String?, identityID: Identity.ID? = nil, ownerHostID: Host.ID? = nil
-    ) {
-        self.init(
-            kind: kind, hostname: hostname, port: port, username: username,
-            password: password.map(SSHSecret.init), identityID: identityID, ownerHostID: ownerHostID
-        )
-    }
-
     public func clearSecret() { password?.clear() }
 
 }

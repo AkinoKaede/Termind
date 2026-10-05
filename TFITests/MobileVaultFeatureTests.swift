@@ -355,17 +355,17 @@ struct MobileVaultFeatureTests {
         #expect(MobileIdentityEditorConfiguration.standard.showsKey)
         #expect(
             MobileIdentityEditorConfiguration.standard.canSave(
-                identity: identity, password: "", hasConfiguredPassword: false, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: false))
         #expect(!MobileIdentityEditorConfiguration.proxy.showsKey)
         #expect(
             !MobileIdentityEditorConfiguration.proxy.canSave(
-                identity: identity, password: "", hasConfiguredPassword: false, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: false))
         #expect(
             MobileIdentityEditorConfiguration.proxy.canSave(
-                identity: identity, password: "secret", hasConfiguredPassword: false, removesPassword: false))
+                identity: identity, password: "secret", hasConfiguredPassword: false))
         #expect(
             MobileIdentityEditorConfiguration.proxy.canSave(
-                identity: identity, password: "", hasConfiguredPassword: true, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: true))
     }
 
     @Test func identityEditorDistinguishesNewAndSavedEntries() throws {
@@ -724,7 +724,7 @@ struct MobileVaultFeatureTests {
         #expect(!editor.canEditPassword)
         #expect(
             MobileIdentityEditorConfiguration.standard.canSave(
-                identity: identity, password: "", hasConfiguredPassword: true, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: true))
     }
 
     @Test func invalidPrivateKeyAndCertificateEditsPreserveTheOriginalCredential() async throws {

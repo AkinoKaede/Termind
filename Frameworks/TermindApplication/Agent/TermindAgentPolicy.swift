@@ -104,16 +104,6 @@ nonisolated public enum TermindAgentPolicy {
     /// value, so a conversation's staged files survive an upgrade.
     public static let scratchDirectoryName = "Termind"
 
-    /// How Termind introduces itself to an MCP server.
-    ///
-    /// The app's name and version, not the runtime's: an operator reading their
-    /// server logs wants to know which client connected.
-    public static var mcpClientInfo: MCPClient.ClientInfo {
-        .init(
-            name: "Termind",
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
-    }
-
     /// Generic Plan-mode policy. Host-specific differences, including the
     /// destructive SSH bar, live in the `.planning` registration of each tool.
     public static func planModeHook(isPlanning: Bool) -> AgentPlanModeHook {

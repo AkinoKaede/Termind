@@ -30,8 +30,6 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public var status: VaultSyncStatus { lifecycle.status }
     public var didApplyRemote: ((MetricsSyncSnapshot, Set<MetricsRecordKey>) -> Void)?
 
-    public var isEnabled: Bool { lifecycle.isEnabled }
-
     public convenience init(
         persistence: MetricsSyncPersistence,
         container: CKContainer = CKContainer(identifier: CloudSyncContainer.identifier),

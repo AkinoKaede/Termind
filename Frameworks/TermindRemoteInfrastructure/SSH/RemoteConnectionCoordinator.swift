@@ -71,16 +71,6 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
-    /// Mirrors `connectSFTP`, including its guarantee that a session which fails
-    /// to come up is torn down here rather than handed back half-open.
-    public func connectConnection(
-        using configuration: SSHConnectionConfiguration
-    ) async throws -> any SSHConnectionProtocol {
-        try await connectConnection(
-            using: SSHConnectionRequest(configuration: configuration)
-        )
-    }
-
     public func connectConnection(
         using request: SSHConnectionRequest
     ) async throws -> any SSHConnectionProtocol {
@@ -92,17 +82,6 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
             await connection.disconnect()
             throw error
         }
-    }
-
-    public func connectSFTP(
-        using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler? = nil,
-        connectionFailure: (@Sendable (String) -> Void)? = nil
-    ) async throws -> any SFTPClientProtocol {
-        try await connectSFTP(
-            using: SSHConnectionRequest(configuration: configuration),
-            progress: progress, connectionFailure: connectionFailure
-        )
     }
 
     public func connectSFTP(
@@ -142,24 +121,4 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
             })
     }
 
-    public func installAuthorizedKey(
-        _ publicKey: String, named keyName: String,
-        using configuration: SSHConnectionConfiguration
-    ) async throws {
-        try await installAuthorizedKeys(
-            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
-            using: configuration
-        )
-    }
-
-    public func installAuthorizedKeys(
-        _ keys: [SSHAuthorizedKeyInstall],
-        using configuration: SSHConnectionConfiguration
-    ) async throws {
-        try await SSHPTYChannel.installAuthorizedKeys(
-            keys,
-            using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
-            logger: logger, maxSessionsPolicy: maxSessionsPolicy
-        )
-    }
 }

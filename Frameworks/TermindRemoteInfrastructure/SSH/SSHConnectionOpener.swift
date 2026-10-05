@@ -7,15 +7,6 @@ import TermindDomain
 /// verification, and authentication. Terminal, exec, SFTP, and forwarding
 /// owners all use this boundary before opening their own Channels.
 public nonisolated enum SSHConnectionOpener {
-    public static func openAuthenticatedConnection(
-        using configuration: SSHConnectionConfiguration,
-        timeout: TimeInterval,
-        progress: SSHRouteProgressHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
-    ) throws -> SSHAuthenticatedConnection {
-        try SSHPTYChannelWorker.openAuthenticatedConnection(
-            using: configuration, timeout: timeout, progress: progress, logger: logger)
-    }
 
     public static func openAuthenticatedConnection(
         using request: SSHConnectionRequest,
@@ -27,41 +18,9 @@ public nonisolated enum SSHConnectionOpener {
             using: request, timeout: timeout, progress: progress, logger: logger)
     }
 
-    public static func installAuthorizedKey(
-        _ publicKey: String, named keyName: String, using request: SSHConnectionRequest,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await installAuthorizedKeys(
-            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
-            using: request, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy
-        )
-    }
-
-    public static func installAuthorizedKeys(
-        _ keys: [SSHAuthorizedKeyInstall], using request: SSHConnectionRequest,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await SSHPTYChannelWorker.installAuthorizedKeys(
-            keys, using: request, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy)
-    }
-
     public static func authorizedKeyInstallInput(publicKey: String, keyName: String) throws -> Data {
         try SSHPTYChannelWorker.authorizedKeyInstallInput(
             publicKey: publicKey, keyName: keyName)
-    }
-
-    public static func authenticate(
-        username: String, credentials: [SSHCredentials], libssh2Session: OpaquePointer,
-        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-authentication")
-    ) throws -> String {
-        try SSHPTYChannelWorker.authenticate(
-            username: username, credentials: credentials, session: libssh2Session,
-            keyboardInteractive: keyboardInteractive, socket: socket, logger: logger)
     }
 
     public static func authenticate(

@@ -683,67 +683,6 @@ public actor SSHPTYChannel {
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
-    /// Appends a named public key to a remote account's `authorized_keys`, unless
-    /// the exact key line is already present. The generated comment and key travel
-    /// over the PTY Channel's stdin, never as shell syntax.
-    public static func installAuthorizedKey(
-        _ publicKey: String, named keyName: String,
-        using configuration: SSHConnectionConfiguration,
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await installAuthorizedKey(
-            publicKey, named: keyName, using: SSHConnectionRequest(configuration: configuration),
-            maxSessionsPolicy: maxSessionsPolicy)
-    }
-
-    public static func installAuthorizedKey(
-        _ publicKey: String, named keyName: String, using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await installAuthorizedKeys(
-            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
-            using: request, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy
-        )
-    }
-
-    public static func installAuthorizedKeys(
-        _ keys: [SSHAuthorizedKeyInstall], using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await SSHConnectionOpener.installAuthorizedKeys(
-            keys, using: request, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy)
-    }
-
-    public func connect(
-        hostID: Host.ID,
-        host: String,
-        port: Int,
-        username: String,
-        credentials: [SSHCredentials],
-        expectedHostKeys: Set<SSHHostKeyIdentity>,
-        proxy: SSHTransportProxy? = nil,
-        jumps: [SSHRouteHopConfiguration] = [],
-        shellIntegrationEnabled: Bool = true,
-        columns: UInt16,
-        rows: UInt16,
-        progress: SSHRouteProgressHandler? = nil
-    ) async throws {
-        let configuration = SSHConnectionConfiguration(
-            hostID: hostID, host: host, port: port,
-            username: username, credentials: credentials,
-            expectedHostKeys: expectedHostKeys, proxy: proxy, jumps: jumps
-        )
-        try await connect(
-            using: SSHConnectionRequest(configuration: configuration),
-            shellIntegrationEnabled: shellIntegrationEnabled,
-            columns: columns, rows: rows, progress: progress
-        )
-    }
-
     public func connect(
         using request: SSHConnectionRequest,
         shellIntegrationEnabled: Bool = true,
@@ -907,91 +846,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         }
     }
 
-    /// Opens a byte transport, handshakes, validates the host key, and authenticates —
-    /// the identical prologue every non-PTY entry point needs before it can open
-    /// a Channel. On any failure it frees what it created and rethrows, so a
-    /// caller only owns the resulting connection once it has been handed one.
-    ///
-    /// The connection's libssh2 handle is left in blocking mode. Callers that want the
-    /// non-blocking pump switch it themselves once their Channel is running.
-    public static func openAuthenticatedConnection(
-        using configuration: SSHConnectionConfiguration,
-        timeout: TimeInterval,
-        progress: SSHRouteProgressHandler? = nil,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
-    ) throws -> SSHAuthenticatedConnection {
-        _ = initialization
-        defer { configuration.clearSecrets() }
-        guard configuration.network == nil, configuration.tailscaleNodeID == nil else {
-            throw TailscaleConfigurationError.unavailable
-        }
-        let operationID = UUID().uuidString.lowercased()
-        var logger = logger
-        logger[metadataKey: "operation_id"] = "\(operationID)"
-        logger.info(
-            "ssh.authentication.started",
-            metadata: [
-                "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
-                "protocol": "ssh", "stage": "opening",
-            ])
-        var transport: SSHRoutedSocket?
-        var session: OpaquePointer?
-        do {
-            let opened = try SSHRoutedSocket.open(
-                host: configuration.host, port: configuration.port,
-                proxy: configuration.proxy, jumps: configuration.jumps,
-                timeout: timeout, progress: progress, logger: logger
-            )
-            transport = opened
-            progress?(.connecting(configuration.hostID))
-            guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
-                throw TermindSSHError.library("Unable to create an SSH session.")
-            }
-            session = created
-            libssh2_session_set_blocking(created, 1)
-            try performHandshake(
-                created, socket: opened.socket,
-                peer: SSHSocketConnector.peerDescription(
-                    socket: opened.socket,
-                    fallbackHost: configuration.host,
-                    port: configuration.port
-                ),
-                timeout: timeout
-            )
-            let observed = try observation(
-                host: configuration.host, port: configuration.port, session: created
-            )
-            try validateHostKey(observed, expected: configuration.expectedHostKeys)
-            progress?(.authenticating(configuration.hostID))
-            let authentication = try authenticate(
-                username: configuration.username,
-                credentials: configuration.credentials,
-                session: created, logger: logger
-            )
-            progress?(.authenticated(configuration.hostID))
-            logger.info(
-                "ssh.authentication.completed",
-                metadata: [
-                    "authentication": "\(authentication)", "host_id": RemoteLogging.hostID(configuration.hostID),
-                    "operation_id": "\(operationID)", "outcome": "success", "protocol": "ssh",
-                    "stage": "authenticated",
-                ])
-            return SSHAuthenticatedConnection(
-                byteTransport: opened, libssh2Session: created)
-        } catch {
-            logger.error(
-                "ssh.authentication.failed",
-                metadata: [
-                    "error_code": RemoteLogging.errorCode(error),
-                    "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
-                    "outcome": "failure", "protocol": "ssh", "stage": "authentication",
-                ])
-            if let session { _ = libssh2_session_free(session) }
-            transport?.close()
-            throw error
-        }
-    }
-
     public static func openAuthenticatedConnection(
         using request: SSHConnectionRequest,
         timeout: TimeInterval,
@@ -1120,29 +974,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             state.cancel()
             queue.async { state.cleanup() }
         }
-    }
-
-    public static func installAuthorizedKey(
-        _ publicKey: String, named keyName: String,
-        using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        try await installAuthorizedKeys(
-            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
-            using: request, logger: logger,
-            maxSessionsPolicy: maxSessionsPolicy
-        )
-    }
-
-    public static func installAuthorizedKeys(
-        _ keys: [SSHAuthorizedKeyInstall],
-        using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
-        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
-    ) async throws {
-        let connection = SSHConnection(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
-        try await installAuthorizedKeys(keys, using: request, connection: connection)
     }
 
     static func installAuthorizedKeys(

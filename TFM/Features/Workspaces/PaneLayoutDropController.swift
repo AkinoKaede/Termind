@@ -1,5 +1,4 @@
 import Foundation
-import TermindDomain
 
 /// Resolves the live model at drag time. In particular, picking up the selected
 /// workspace changes its merge neighbour before SwiftUI has rendered the deck.

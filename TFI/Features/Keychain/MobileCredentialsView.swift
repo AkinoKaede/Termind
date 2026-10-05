@@ -368,9 +368,7 @@ nonisolated struct MobileIdentityEditorConfiguration: Hashable, Sendable {
     static let standard = MobileIdentityEditorConfiguration(showsKey: true, requiresPassword: false)
     static let proxy = MobileIdentityEditorConfiguration(showsKey: false, requiresPassword: true)
 
-    func canSave(
-        identity: Identity, password: String, hasConfiguredPassword: Bool, removesPassword: Bool
-    ) -> Bool {
+    func canSave(identity: Identity, password: String, hasConfiguredPassword: Bool) -> Bool {
         guard !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return false
         }
@@ -409,8 +407,7 @@ struct MobileIdentityEditor: View {
             isDirty: draft != original || password != originalPassword,
             canSave: configuration.canSave(
                 identity: draft, password: password,
-                hasConfiguredPassword: original.usesPassword,
-                removesPassword: canEditPassword && password.isEmpty && !originalPassword.isEmpty),
+                hasConfiguredPassword: original.usesPassword),
             discardQuestion: isNew
                 ? AppStrings.Common.discardNewIdentityQuestion : AppStrings.Common.discardChangesQuestion,
             save: {

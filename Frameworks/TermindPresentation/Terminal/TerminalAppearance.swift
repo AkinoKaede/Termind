@@ -50,14 +50,6 @@ public nonisolated enum TermindTerminalThemeCatalog {
         allThemes.first { $0.name == name }
     }
 
-    public static func darkTheme(named name: String) -> GhosttyThemeDefinition? {
-        theme(named: name).flatMap { $0.isDark ? $0 : nil }
-    }
-
-    public static func lightTheme(named name: String) -> GhosttyThemeDefinition? {
-        theme(named: name).flatMap { $0.isDark ? nil : $0 }
-    }
-
     public static let defaultDark = TermindTerminalPalette.termindDark.ghosttyDefinition
     public static let defaultLight = TermindTerminalPalette.termindLight.ghosttyDefinition
     public static let darkThemes = allThemes.filter(\.isDark).sorted { $0.name < $1.name }

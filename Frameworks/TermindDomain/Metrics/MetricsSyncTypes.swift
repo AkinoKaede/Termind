@@ -90,6 +90,5 @@ public nonisolated struct MetricsSyncSnapshot: Equatable, Sendable {
 public nonisolated struct MetricsMutationSet: Equatable, Sendable {
     public var keys: Set<MetricsRecordKey> = []
     public static let empty = Self()
-    public var isEmpty: Bool { keys.isEmpty }
     public init(keys: Set<MetricsRecordKey> = []) { self.keys = keys }
 }

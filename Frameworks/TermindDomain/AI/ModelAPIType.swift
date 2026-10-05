@@ -48,12 +48,6 @@ public nonisolated enum ModelAPIType: String, Codable, Sendable, CaseIterable, I
         }
     }
 
-    public var symbol: String {
-        switch self {
-        case .automatic: "wand.and.stars"
-        default: format?.symbol ?? ""
-        }
-    }
 }
 
 nonisolated extension ModelAPIFormat {
@@ -109,11 +103,6 @@ nonisolated extension ModelAPIFormat {
             self.endpoint = endpoint
         }
 
-    }
-
-    /// The endpoint a pasted URL names, if it names one.
-    public static func detected(in url: String) -> ModelAPIFormat? {
-        parts(of: url).endpoint
     }
 
     /// Suffix matching rather than anything cleverer, because a gateway is free

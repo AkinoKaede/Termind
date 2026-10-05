@@ -16,7 +16,6 @@ public nonisolated final class SFTPResumeState: @unchecked Sendable {
         public var hasTemporaryFile = false
         public var committed = false
         public var committing = false
-        public var sha256: String { digest.finalize().map { String(format: "%02x", $0) }.joined() }
     }
 
     private let lock = NSLock()

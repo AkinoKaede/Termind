@@ -160,7 +160,7 @@ public enum SFTPLocalUploadPlanner {
                 try Task.checkCancellation()
                 let rootIndex = job.rootIndex
                 if job.scopedRoot == job.localURL { receipt.resolve(rootIndex, to: job.remotePath) }
-                receipt.admit(rootIndex)
+                receipt.admit()
                 coordinator.enqueue(
                     direction: .upload,
                     batchID: batch.id,
@@ -208,7 +208,7 @@ final class SFTPUploadReceipt {
 
     func resolve(_ index: Int, to path: String?) { paths[index] = path }
     func reject(_ index: Int) { rejected.insert(index) }
-    func admit(_ index: Int) { pending += 1 }
+    func admit() { pending += 1 }
     func completed(_ index: Int, state: SFTPTransfer.State) {
         if state != .completed { reject(index) }
         pending -= 1

@@ -15,31 +15,10 @@ import struct TermindDomain.Host
 /// different sets of verbs.
 struct HostContextMenu: View {
     let hosts: [Host]
-    let showsDuplicate: Bool
-    let requestDelete: (() -> Void)?
+    let requestDelete: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-
-    init(
-        host: Host,
-        showsDuplicate: Bool = true,
-        requestDelete: (() -> Void)? = nil
-    ) {
-        hosts = [host]
-        self.showsDuplicate = showsDuplicate
-        self.requestDelete = requestDelete
-    }
-
-    init(
-        hosts: [Host],
-        showsDuplicate: Bool = true,
-        requestDelete: @escaping () -> Void
-    ) {
-        self.hosts = hosts
-        self.showsDuplicate = showsDuplicate
-        self.requestDelete = requestDelete
-    }
 
     var body: some View {
         // No "Connect in Split": a Workspace is built by combining workspaces that are
@@ -71,21 +50,17 @@ struct HostContextMenu: View {
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             }
-            if showsDuplicate {
-                Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
-                    HostMenuEntries.duplicate(host, in: app)
-                }
-                .disabled(host.isTailscaleManaged)
+            Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
+                HostMenuEntries.duplicate(host, in: app)
             }
+            .disabled(host.isTailscaleManaged)
             Divider()
         }
 
-        if let requestDelete {
-            DestructiveMenuButton(AppStrings.Common.delete) {
-                requestDelete()
-            }
-            .disabled(hosts.isEmpty || hosts.contains(where: \.isTailscaleManaged))
+        DestructiveMenuButton(AppStrings.Common.delete) {
+            requestDelete()
         }
+        .disabled(hosts.isEmpty || hosts.contains(where: \.isTailscaleManaged))
     }
 
     @ViewBuilder

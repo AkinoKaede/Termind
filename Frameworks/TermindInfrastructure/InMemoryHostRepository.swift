@@ -20,17 +20,6 @@ public final class InMemoryHostRepository: HostRepository {
         )
     }
 
-    public func changes() -> AsyncStream<RepositoryChange<HostLibrarySnapshot>> {
-        let id = UUID()
-        return AsyncStream { continuation in
-            continuations[id] = continuation
-            continuation.yield(try! snapshot())
-            continuation.onTermination = { [weak self] _ in
-                Task { @MainActor in self?.continuations[id] = nil }
-            }
-        }
-    }
-
     public func refresh() throws {
         revision &+= 1
         let change = RepositoryChange(

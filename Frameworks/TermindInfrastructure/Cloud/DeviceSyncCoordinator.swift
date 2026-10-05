@@ -13,7 +13,6 @@ public final class DeviceSyncCoordinator {
 
     let core: HistoryRecordSyncCoordinator
     public var status: VaultSyncStatus { core.status }
-    public var isEnabled: Bool { core.isEnabled }
     public var didApplyRemote: ((Set<HistoryRecordKey>) -> Void)? {
         get { core.didApplyRemote }
         set { core.didApplyRemote = newValue }

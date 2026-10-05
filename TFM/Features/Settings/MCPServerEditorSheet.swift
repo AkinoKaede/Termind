@@ -183,7 +183,7 @@ struct MCPServerEditorPage: View {
     @ViewBuilder
     private func connectRow(_ server: MCPServer) -> some View {
         HStack(spacing: Metrics.Space.m) {
-            Button(AppStrings.Common.connect.swiftUIKey) { connect(server) }
+            Button(AppStrings.Common.connect.swiftUIKey) { connect() }
                 .disabled(
                     !server.isReachable || namespaceID.isEmpty || hasNamespaceConflict
                         || session.connection == .running
@@ -251,7 +251,7 @@ struct MCPServerEditorPage: View {
                     session.task = Task {
                         if signedIn { await app.aiConfiguration.mcpAuthorization.prepareReauthorization(server) }
                         guard !Task.isCancelled else { return }
-                        connect(server)
+                        connect()
                     }
                 }
                 .disabled(!server.isReachable || session.connection == .running || hasManualAuthorization(server))
@@ -369,7 +369,7 @@ struct MCPServerEditorPage: View {
 
     // MARK: - Actions
 
-    private func connect(_ target: MCPServer) {
+    private func connect() {
         guard !namespaceID.isEmpty, !hasNamespaceConflict else { return }
         guard app.aiConfiguration.lockMCPNamespace(for: serverID), let server else { return }
         session.cancel()
