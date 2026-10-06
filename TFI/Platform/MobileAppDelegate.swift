@@ -1,7 +1,7 @@
 import UIKit
 
 @MainActor
-final class MobileAppDelegate: NSObject, UIApplicationDelegate {
+final class MobileAppDelegate: UIResponder, UIApplicationDelegate {
     weak var app: MobileAppModel? {
         didSet {
             guard let app else { return }
@@ -10,6 +10,11 @@ final class MobileAppDelegate: NSObject, UIApplicationDelegate {
         }
     }
     private var pendingDiscardedSessionIDs: Set<String> = []
+
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        MobileHistoryMenuImages.apply(to: builder)
+    }
 
     func applicationWillTerminate(_ application: UIApplication) {
         app?.clearNotificationBadge()
