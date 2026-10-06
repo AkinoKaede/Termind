@@ -145,7 +145,8 @@ struct MobileWorkspaceView: View {
         }
         .navigationTitle(workspace.descriptor.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(toolbarLayout.showsWorkspaceTabs ? .visible : .hidden, for: .tabBar)
+        // Retained, inactive workspaces must not hide another destination's navigation when folding.
+        .toolbar(workspaceIsVisible && !toolbarLayout.showsWorkspaceTabs ? .hidden : .visible, for: .tabBar)
         .toolbar(removing: toolbarLayout.usesIconSwitcher ? .title : nil)
         .toolbar {
             if toolbarLayout.usesIconSwitcher {

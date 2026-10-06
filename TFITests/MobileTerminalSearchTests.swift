@@ -9,6 +9,40 @@ import UIKit
 @Suite(.serialized, .requiresKeyWindow)
 @MainActor
 struct MobileTerminalSearchIntegrationTests {
+    @Test func expandingVaultAfterWorkspaceSearchKeepsSidebarAvailable() async throws {
+        let fixture = try SearchFixture(kind: .ssh, fullRoot: true)
+        defer { fixture.close() }
+        let scene = try #require(fixture.scene)
+        fixture.resize(width: 430, height: 900, sizeClass: .compact)
+        try await fixture.settle()
+        let tabs = try #require(fixture.tabController)
+        let search = try #require(fixture.searchController)
+        search.isActive = true
+        try await fixture.settle()
+        scene.selectedDestination = .vault
+        try await fixture.settle()
+
+        fixture.resize(width: 1024, height: 900, sizeClass: .regular)
+        if #available(iOS 27.0, *) { tabs.sidebar.preferredPlacement = .sidebar }
+        tabs.sidebar.isHidden = false
+        try await fixture.settle()
+        if #available(iOS 27.0, *) { #expect(tabs.sidebar.isAvailable) }
+        #expect(!search.isActive)
+        #expect(!tabs.sidebar.isHidden)
+        #expect(!tabs.isTabBarHidden)
+        #expect(scene.selectedDestination == .vault)
+
+        // The retained workspace must also keep navigation available in sidebar mode.
+        scene.selectedDestination = .workspaces
+        try await fixture.settle()
+        #expect(!tabs.sidebar.isHidden)
+        #expect(!tabs.isTabBarHidden)
+        scene.selectedDestination = .vault
+        try await fixture.settle()
+        #expect(!tabs.sidebar.isHidden)
+        #expect(!tabs.isTabBarHidden)
+    }
+
     @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp])
     func leavingWorkspaceSearchRestoresVaultNavigationAcrossResizing(kind: ConnectionHistoryEntry.Kind) async throws {
         let fixture = try SearchFixture(kind: kind, fullRoot: true)
@@ -278,8 +312,9 @@ private final class SearchFixture {
 
     func settle() async throws { try await Task.sleep(for: .milliseconds(700)) }
 
-    func resize(width: CGFloat, height: CGFloat) {
+    func resize(width: CGFloat, height: CGFloat, sizeClass: UIUserInterfaceSizeClass? = nil) {
         let frame = CGRect(x: 0, y: 0, width: width, height: height)
+        if let sizeClass { host.traitOverrides.horizontalSizeClass = sizeClass }
         window.frame = frame
         host.view.frame = frame
         host.view.setNeedsLayout()

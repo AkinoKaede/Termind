@@ -2,11 +2,12 @@ import SwiftUI
 
 struct MobileToolbarLayout: Equatable {
     var isTopBar = false
+    var isSidebar = false
     var verticalEdge: HorizontalEdge?
 
     var isVertical: Bool { verticalEdge != nil }
     var usesIconSwitcher: Bool { isTopBar || isVertical }
-    var showsWorkspaceTabs: Bool { isTopBar || isVertical }
+    var showsWorkspaceTabs: Bool { isTopBar || isSidebar || isVertical }
 }
 
 extension EnvironmentValues {
@@ -19,11 +20,12 @@ private struct MobileToolbarEnvironment: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(iOS 27.1, *) {
-            content.modifier(MobileVerticalToolbarEnvironment(isTopBar: placement == .topBar))
+            content.modifier(
+                MobileVerticalToolbarEnvironment(isTopBar: placement == .topBar, isSidebar: placement == .sidebar))
         } else {
             content.environment(
                 \.mobileToolbarLayout,
-                MobileToolbarLayout(isTopBar: placement == .topBar))
+                MobileToolbarLayout(isTopBar: placement == .topBar, isSidebar: placement == .sidebar))
         }
     }
 }
@@ -31,12 +33,13 @@ private struct MobileToolbarEnvironment: ViewModifier {
 @available(iOS 27.1, *)
 private struct MobileVerticalToolbarEnvironment: ViewModifier {
     let isTopBar: Bool
+    let isSidebar: Bool
     @Environment(\.toolbarVerticalEdge) private var edge
 
     func body(content: Content) -> some View {
         content.environment(
             \.mobileToolbarLayout,
-            MobileToolbarLayout(isTopBar: isTopBar, verticalEdge: edge))
+            MobileToolbarLayout(isTopBar: isTopBar, isSidebar: isSidebar, verticalEdge: edge))
     }
 }
 
