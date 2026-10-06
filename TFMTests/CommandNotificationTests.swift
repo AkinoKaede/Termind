@@ -206,7 +206,7 @@ struct CommandNotificationTests {
         other.close(moved.id)
         #expect(app.commandNotificationTarget(firstID) == nil)
         #expect(app.selectCommandNotificationTarget(firstID) == nil)
-        other.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: other)
         #expect(app.commandNotificationTarget(firstID) == nil)
         #expect(first.commandSessionID != firstID)
     }

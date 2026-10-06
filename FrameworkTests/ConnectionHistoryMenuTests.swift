@@ -19,7 +19,6 @@ struct ConnectionHistoryMenuTests {
         let local = UUID()
         let repository = InMemoryConnectionHistoryRepository()
         let history = ConnectionHistoryModel(repository: repository, sourceDeviceID: local)
-        let devices = DeviceDirectoryModel(currentDeviceID: local)
         let library = HostLibraryModel(hosts: [host])
         let first = try #require(history.record(kind: .ssh, for: host.id, at: now))
         let second = try #require(history.record(kind: .sftp, for: host.id, at: now.addingTimeInterval(1)))
@@ -29,13 +28,13 @@ struct ConnectionHistoryMenuTests {
         history.reload()
 
         let menu = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices, now: now, calendar: calendar)
+            history: history, library: library, now: now, calendar: calendar)
         #expect(menu.recentToday.map(\.id) == [synced.id, second.id, first.id])
         #expect(menu.days.isEmpty)
 
         let restarted = ConnectionHistoryModel(repository: repository, sourceDeviceID: local)
         let afterRestart = ConnectionHistoryMenuSnapshot(
-            history: restarted, library: library, devices: devices, now: now, calendar: calendar)
+            history: restarted, library: library, now: now, calendar: calendar)
         #expect(afterRestart.recentToday.map(\.id) == [synced.id, second.id, first.id])
         #expect(afterRestart.days.isEmpty)
     }
@@ -49,7 +48,7 @@ struct ConnectionHistoryMenuTests {
             try #require(history.record(kind: .ssh, for: host.id, at: today.addingTimeInterval(Double(index + 1))))
         }
         let menu = ConnectionHistoryMenuSnapshot(
-            history: history, library: HostLibraryModel(hosts: [host]), devices: DeviceDirectoryModel(),
+            history: history, library: HostLibraryModel(hosts: [host]),
             now: today.addingTimeInterval(3600), calendar: calendar)
         #expect(menu.recentToday.map(\.id) == entries.suffix(15).reversed().map(\.id))
         #expect(menu.days.map(\.isToday) == [true, false])
@@ -68,10 +67,9 @@ struct ConnectionHistoryMenuTests {
         let missing = ConnectionHistoryEntry(
             hostID: UUID(), kind: .ssh, connectedAt: today.addingTimeInterval(-200_000))
         let history = ConnectionHistoryModel(entries: [earlier, missing, recent])
-        let devices = DeviceDirectoryModel()
         let library = HostLibraryModel(hosts: [host])
         let menu = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices, now: now, calendar: calendar)
+            history: history, library: library, now: now, calendar: calendar)
         #expect(menu.recentToday.map(\.id) == [recent.id])
         #expect(menu.days.map(\.isToday) == [false])
         #expect(menu.days.flatMap(\.rows).map(\.id) == [earlier.id])
@@ -79,11 +77,11 @@ struct ConnectionHistoryMenuTests {
         var shifted = calendar
         shifted.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
         let localMenu = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices, now: today.addingTimeInterval(120), calendar: shifted)
+            history: history, library: library, now: today.addingTimeInterval(120), calendar: shifted)
         #expect(localMenu.days.isEmpty)
         #expect(localMenu.recentToday.map(\.id) == [recent.id, earlier.id])
         let tomorrow = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices,
+            history: history, library: library,
             now: today.addingTimeInterval(86_400), calendar: calendar)
         #expect(tomorrow.recentToday.isEmpty)
         #expect(tomorrow.days.allSatisfy { !$0.isToday })
@@ -96,15 +94,14 @@ struct ConnectionHistoryMenuTests {
             hostID: host.id, kind: .sftp, connectedAt: calendar.startOfDay(for: now).addingTimeInterval(-60))
         let history = ConnectionHistoryModel(entries: [old])
         let library = HostLibraryModel(hosts: [host])
-        let devices = DeviceDirectoryModel()
         _ = try #require(history.record(kind: .ssh, for: host.id, at: now))
         let before = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices, now: now, calendar: calendar)
+            history: history, library: library, now: now, calendar: calendar)
         #expect(before.recentToday.first?.canOpen == false)
         #expect(before.days.first?.rows.first?.canOpen == false)
         history.clearAll()
         let after = ConnectionHistoryMenuSnapshot(
-            history: history, library: library, devices: devices, now: now, calendar: calendar)
+            history: history, library: library, now: now, calendar: calendar)
         #expect(after.recentToday.isEmpty && after.days.isEmpty)
         #expect(library.host(host.id) != nil)
     }

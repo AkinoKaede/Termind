@@ -26,14 +26,14 @@ struct MobileWorkspaceSessionTests {
         let nextApp = try fixture.makeApp()
         let window = MobileSceneModel(app: nextApp, sessionID: "second")
         let other = MobileSceneModel(app: nextApp, sessionID: "other")
-        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [closed.id])
+        #expect(window.workspaceSession.recentlyClosedRecords.flatMap(\.items).map(\.id) == [closed.id])
         window.open(hostID: fixture.host.id, kind: .ssh)
         window.activatePendingWorkspace()
         let current = try #require(window.activeWorkspace)
         window.closeActiveWorkspace()
-        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [current.id, closed.id])
+        #expect(window.workspaceSession.recentlyClosedRecords.flatMap(\.items).map(\.id) == [current.id, closed.id])
         window.reopenLastClosedWorkspace()
-        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [closed.id])
+        #expect(window.workspaceSession.recentlyClosedRecords.flatMap(\.items).map(\.id) == [closed.id])
         window.reopenLastClosedWorkspace()
         window.activatePendingWorkspace()
         #expect(window.activeWorkspace?.descriptor.kind == .sftp)
@@ -102,9 +102,9 @@ struct MobileWorkspaceSessionTests {
         let app = try fixture.makeApp()
         let session = app.workspaceSession(for: "owner")
         session.closeAll()
-        #expect(session.recentlyClosedWorkspaces.map(\.id) == records.reversed().map(\.id))
+        #expect(session.recentlyClosedRecords.flatMap(\.items).map(\.id) == records.reversed().map(\.id))
         #expect(session.reopenClosedWorkspace(records[0].id) == records[0].id)
-        #expect(session.recentlyClosedWorkspaces.map(\.id) == [records[2].id, records[1].id])
+        #expect(session.recentlyClosedRecords.flatMap(\.items).map(\.id) == [records[2].id, records[1].id])
         #expect(session.reopenClosedWorkspace(records[0].id) == nil)
         #expect(session.reopenLastClosed() == records[2].id)
     }
@@ -229,6 +229,22 @@ struct MobileWorkspaceSessionTests {
         #expect(!session.canReopen)
         #expect(session.reopenLastClosed() == nil)
         #expect(session.workspaces.isEmpty)
+    }
+
+    @Test func deletingAHostBeforeBindingAWindowRemovesPersistedClosedWorkspaces() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let firstApp = try fixture.makeApp()
+        let session = firstApp.workspaceSession(for: "owner")
+        let id = try #require(session.open(hostID: fixture.host.id, kind: .ssh))
+        session.close(id)
+
+        let nextApp = try fixture.makeApp()
+        #expect(nextApp.recentlyClosedStore.entries.flatMap(\.items).map(\.id) == [id])
+        #expect(nextApp.deleteHost(fixture.host.id))
+        #expect(nextApp.recentlyClosedStore.entries.isEmpty)
+        let thirdApp = try fixture.makeApp()
+        #expect(thirdApp.recentlyClosedStore.entries.isEmpty)
     }
 
     @Test func agentForwardingStaysWithTheConversationScene() async throws {

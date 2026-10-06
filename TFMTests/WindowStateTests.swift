@@ -33,17 +33,19 @@ struct WindowStateTests {
         let first = Workspace(pane: Pane(.empty))
         let second = Workspace(pane: Pane(.empty))
         let window = WindowModel(workspaces: [first, second])
+        let app = AppModel(hosts: HostLibraryModel())
+        app.registerWindow(window)
         window.close(first.id)
         window.close(second.id)
-        #expect(window.recentlyClosedWorkspaces.map(\.id) == [second.id, first.id])
-        window.reopenClosedWorkspace(first.id)
+        #expect(app.closedWorkspaceRecords.flatMap(\.items).map(\.id) == [second.id, first.id])
+        app.reopenClosedRecord(first.id, in: window)
         #expect(window.selectedWorkspace === first)
-        #expect(window.recentlyClosedWorkspaces.map(\.id) == [second.id])
-        window.reopenClosedWorkspace(first.id)
+        #expect(app.closedWorkspaceRecords.flatMap(\.items).map(\.id) == [second.id])
+        app.reopenClosedRecord(first.id, in: window)
         #expect(window.workspaces.count == 1)
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
         #expect(window.selectedWorkspace === second)
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test(arguments: [WindowDestination.vault, .metrics, .settings, .assistant])
@@ -1277,12 +1279,14 @@ struct WindowStateTests {
         pane.customTitle = "Logs"
         let closedSession = try #require(pane.sshSession)
         let window = WindowModel(workspaces: [workspace])
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        app.registerWindow(window)
 
         window.close(workspace.id)
         #expect(closedSession.status == .disconnected)
-        #expect(window.canReopen)
+        #expect(!app.closedWorkspaceRecords.isEmpty)
 
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
 
         let reopenedPane = try #require(window.selectedWorkspace?.focusedPane)
         let reopenedSession = try #require(reopenedPane.sshSession)
@@ -1291,7 +1295,7 @@ struct WindowStateTests {
         #expect(reopenedSession.status == .connecting)
         #expect(reopenedPane.customTitle == "Logs")
         #expect(window.selectedWorkspace === workspace)
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test(arguments: [false, true])
@@ -1308,6 +1312,8 @@ struct WindowStateTests {
         workspace.splitFocusedPane(axis: .vertical, with: closedPane)
         workspace.broadcastsInput = true
         let window = WindowModel(workspaces: [workspace])
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        app.registerWindow(window)
 
         if closeSelected {
             window.closeSelected()
@@ -1315,11 +1321,11 @@ struct WindowStateTests {
             window.closePane(closedPane.id)
         }
 
-        #expect(window.canReopen)
+        #expect(!app.closedWorkspaceRecords.isEmpty)
         #expect(closedSession.status == .disconnected)
         #expect(workspace.panes.map(\.id) == [survivor.id])
 
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
 
         let reopened = try #require(window.selectedWorkspace)
         let reopenedSession = try #require(reopened.focusedPane.sshSession)
@@ -1335,7 +1341,7 @@ struct WindowStateTests {
         #expect(survivorSession.status == .connected)
         #expect(survivorSession.inputRouter === workspace)
         #expect(!workspace.broadcastsInput && !reopened.broadcastsInput)
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test
@@ -1347,30 +1353,34 @@ struct WindowStateTests {
         workspace.splitFocusedPane(axis: .horizontal, with: second)
         let other = Workspace.sshSession(host: host)
         let window = WindowModel(workspaces: [workspace, other])
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        app.registerWindow(window)
 
         window.closePane(second.id)
         window.close(other.id)
         window.closePane(first.id)
         #expect(window.workspaces.isEmpty)
 
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
         #expect(window.selectedWorkspace === workspace)
         #expect(workspace.panes.map(\.id) == [first.id])
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
         #expect(window.selectedWorkspace === other)
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
         let reopened = try #require(window.selectedWorkspace)
         #expect(reopened.panes.map(\.id) == [second.id])
         #expect(reopened.focusedPane.sftpChannel?.path == "/var/log")
         #expect(window.workspaces.count == 3)
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test
-    func individuallyClosedPanesShareTheFifteenItemReopenLimit() {
+    func individuallyClosedPanesShareTheFifteenItemReopenLimit() throws {
         let survivor = Pane(.empty)
         let workspace = Workspace(pane: survivor)
         let window = WindowModel(workspaces: [workspace])
+        let app = AppModel(hosts: HostLibraryModel())
+        app.registerWindow(window)
         let closedPanes = (0..<16).map { _ in Pane(.empty) }
         for pane in closedPanes {
             workspace.splitFocusedPane(axis: .horizontal, with: pane)
@@ -1378,17 +1388,17 @@ struct WindowStateTests {
         }
 
         var reopenedIDs: [Pane.ID] = []
-        while window.canReopen {
-            window.reopenLastClosed()
+        while !app.closedWorkspaceRecords.isEmpty {
+            app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
             if let pane = window.selectedWorkspace?.focusedPane { reopenedIDs.append(pane.id) }
         }
         #expect(reopenedIDs == closedPanes.suffix(15).reversed().map(\.id))
         #expect(workspace.panes.map(\.id) == [survivor.id])
 
         window.closePane(reopenedIDs[0])
-        #expect(window.canReopen)
+        #expect(!app.closedWorkspaceRecords.isEmpty)
         window.closeForWindow()
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == true)
     }
 
     @Test
@@ -1480,7 +1490,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func normalRemoteExitClosesOnlyItsSplitPane() {
+    func normalRemoteExitClosesOnlyItsSplitPane() throws {
         let firstHost = Host(name: "First", host: "first.example")
         let secondHost = Host(name: "Second", host: "second.example")
         let workspace = Workspace.sshSession(host: firstHost)
@@ -1491,6 +1501,8 @@ struct WindowStateTests {
         workspace.focus(firstPane.id)
         workspace.broadcastsInput = true
         let window = WindowModel(workspaces: [workspace])
+        let app = AppModel(hosts: HostLibraryModel(hosts: [firstHost, secondHost]))
+        app.registerWindow(window)
 
         firstSSHSession.handleRemoteExit(.success(0))
 
@@ -1500,13 +1512,13 @@ struct WindowStateTests {
         #expect(workspace.focusedPaneID == secondPane.id)
         #expect(!workspace.broadcastsInput)
         #expect(firstSSHSession.inputRouter == nil)
-        #expect(window.canReopen)
+        #expect(!app.closedWorkspaceRecords.isEmpty)
 
-        window.reopenLastClosed()
+        app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: window)
 
         #expect(window.selectedWorkspace?.focusedPane.id == firstPane.id)
         #expect(window.selectedWorkspace?.focusedPane.sshSession !== firstSSHSession)
-        #expect(!window.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test

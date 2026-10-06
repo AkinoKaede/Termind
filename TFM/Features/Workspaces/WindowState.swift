@@ -3,13 +3,11 @@ import TermindApplication
 import TermindDomain
 import TermindPresentation
 
-/// Window-scoped ownership for the dynamic workspace collection and its
-/// recoverable close history. Navigation remains in `WindowModel`; workspace
-/// lifetime no longer shares storage with Assistant and Vault state.
+/// Window-scoped ownership for the dynamic workspace collection.
+/// Navigation remains in `WindowModel`; recoverable close history belongs to the app.
 @Observable
 final class WorkspaceDeckModel {
     var workspaces: [Workspace]
-    var reopenStack: [Workspace] = []
 
     init(workspaces: [Workspace] = []) {
         self.workspaces = workspaces

@@ -69,7 +69,7 @@ final class MobileSceneModel {
     var confirmsClearConnectionHistory = false
 
     var historyMenuSnapshot: ConnectionHistoryMenuSnapshot {
-        ConnectionHistoryMenuSnapshot(history: app.connectionHistory, library: app.library, devices: app.devices)
+        ConnectionHistoryMenuSnapshot(history: app.connectionHistory, library: app.library)
     }
     var hasConnectionHistory: Bool { !app.connectionHistory.entries().isEmpty }
 

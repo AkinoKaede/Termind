@@ -83,7 +83,7 @@ public struct HistoryMenuRecords: View {
                 open(row)
             } label: {
                 Label {
-                    Text(verbatim: title(row))
+                    Text(verbatim: row.host.name)
                 } icon: {
                     image(row.entry.kind.symbol)
                 }
@@ -91,6 +91,4 @@ public struct HistoryMenuRecords: View {
             .disabled(!row.canOpen)
         }
     }
-
-    private func title(_ row: ConnectionHistoryMenuRow) -> String { row.host.name }
 }

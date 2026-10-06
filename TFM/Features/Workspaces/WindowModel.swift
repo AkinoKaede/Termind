@@ -277,15 +277,6 @@ final class WindowModel {
         }
     }
 
-    /// Closed workspaces and individually closed panes, most recent last. A closed
-    /// pane is kept as a single-pane Workspace. ⇧⌘T pops from here. The Workspace retains
-    /// its layout, names, and conversation, while `prepareForReopen` replaces
-    /// terminal models because a dead SSH session cannot be revived.
-    private var reopenStack: [Workspace] {
-        get { workspaceDeck.reopenStack }
-        set { workspaceDeck.reopenStack = newValue }
-    }
-
     var commandFocusChanged: (() -> Void)?
     var configureCommandNotifications: ((Pane) -> Void)?
 
@@ -545,17 +536,8 @@ final class WindowModel {
         }
     }
 
-    var closedHistory: () -> [RecentlyClosedRecord<ClosedWorkspaceRecord>] = { [] }
     var rememberClosedWorkspace: ((Workspace) -> Void)?
     var rememberClosedWindow: (([Workspace], UUID?) -> Void)?
-    var restoreClosedRecord: ((UUID) -> Void)?
-    var canReopen: Bool {
-        !isClosed && (restoreClosedRecord == nil ? !reopenStack.isEmpty : !closedHistory().isEmpty)
-    }
-    var reopensWindow: Bool { closedHistory().first?.isWindow == true }
-    var recentlyClosedWorkspaces: [Workspace] { Array(reopenStack.reversed()) }
-
-    func forgetClosedWorkspace(_ id: UUID) { reopenStack.removeAll { $0.id == id } }
     var confirmsClearConnectionHistory = false
     var historyOperationError: String?
 
@@ -1397,7 +1379,6 @@ final class WindowModel {
             workspace.lifecycleRouter = nil
         }
         workspaces.removeAll()
-        reopenStack.removeAll()
         dragging = nil
         presentations.route = nil
         transcriptCache.removeAll()
@@ -1412,7 +1393,7 @@ final class WindowModel {
         guard let index = workspaces.firstIndex(where: { $0.id == id }) else { return }
         let removed = workspaces.remove(at: index)
         removed.disconnectConnections()
-        rememberForReopen(removed)
+        rememberClosedWorkspace?(removed)
 
         if selectedWorkspaceID == id {
             // Select the neighbour that visually takes its place.
@@ -1436,7 +1417,7 @@ final class WindowModel {
     func closeOthers(than id: Workspace.ID) {
         for workspace in workspaces where workspace.id != id {
             workspace.disconnectConnections()
-            rememberForReopen(workspace)
+            rememberClosedWorkspace?(workspace)
         }
         workspaces.removeAll { $0.id != id }
         selectedWorkspaceID = id
@@ -1445,7 +1426,7 @@ final class WindowModel {
     func closeAll() {
         for workspace in workspaces {
             workspace.disconnectConnections()
-            rememberForReopen(workspace)
+            rememberClosedWorkspace?(workspace)
         }
         workspaces.removeAll()
         promoteVisibleSidebarConversationOrSelectVault()
@@ -1487,13 +1468,7 @@ final class WindowModel {
         // session. prepareForReopen restores routing when it becomes live again.
         pane.sshSession?.inputRouter = nil
         pane.sftpChannel?.navigationRouter = nil
-        rememberForReopen(closedWorkspace)
-    }
-
-    private func rememberForReopen(_ workspace: Workspace) {
-        reopenStack.append(workspace)
-        rememberClosedWorkspace?(workspace)
-        if reopenStack.count > 15 { reopenStack.removeFirst(reopenStack.count - 15) }
+        rememberClosedWorkspace?(closedWorkspace)
     }
 
     func closeWorkspaces(for hostID: Host.ID) {
@@ -1507,23 +1482,6 @@ final class WindowModel {
         default:
             break
         }
-    }
-
-    func reopenLastClosed() {
-        let candidate = restoreClosedRecord == nil ? reopenStack.last?.id : closedHistory().first?.id
-        guard let id = candidate else { return }
-        reopenClosedWorkspace(id)
-    }
-
-    func reopenClosedWorkspace(_ id: Workspace.ID) {
-        if let restoreClosedRecord {
-            restoreClosedRecord(id)
-            return
-        }
-        guard let index = reopenStack.firstIndex(where: { $0.id == id }) else { return }
-        let workspace = reopenStack.remove(at: index)
-        workspace.prepareForReopen()
-        open(workspace)
     }
 
     // MARK: - Reordering

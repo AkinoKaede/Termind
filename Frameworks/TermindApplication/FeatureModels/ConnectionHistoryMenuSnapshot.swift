@@ -6,7 +6,6 @@ import struct TermindDomain.Host
 public struct ConnectionHistoryMenuRow: Identifiable {
     public let entry: ConnectionHistoryEntry
     public let host: Host
-    public let deviceName: String?
     public var id: UUID { entry.id }
     public var canOpen: Bool {
         switch entry.kind {
@@ -30,7 +29,7 @@ public struct ConnectionHistoryMenuSnapshot {
 
     @MainActor
     public init(
-        history: ConnectionHistoryModel, library: HostLibraryModel, devices: DeviceDirectoryModel,
+        history: ConnectionHistoryModel, library: HostLibraryModel,
         now: Date? = nil, calendar: Calendar = .current
     ) {
         let rows = history.entries().sorted {
@@ -38,9 +37,7 @@ public struct ConnectionHistoryMenuSnapshot {
             return $0.id.uuidString < $1.id.uuidString
         }.compactMap { entry -> ConnectionHistoryMenuRow? in
             guard let host = library.host(entry.hostID) else { return nil }
-            return ConnectionHistoryMenuRow(
-                entry: entry, host: host,
-                deviceName: history.isLocal(entry) ? nil : devices.name(for: entry.sourceDeviceID))
+            return ConnectionHistoryMenuRow(entry: entry, host: host)
         }
         let referenceDate = now ?? history.menuReferenceDate
         recentToday = Array(

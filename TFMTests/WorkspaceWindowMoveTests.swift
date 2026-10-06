@@ -55,7 +55,7 @@ struct WorkspaceWindowMoveTests {
         #expect(workspace.lifecycleRouter === source)
         #expect(source.sidebar.sessionContext.workingDirectory == "/srv")
         #expect(target.sidebar.sessionContext.workingDirectory == nil)
-        #expect(!source.canReopen && !target.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
         #expect(ssh.status == .connected && sftp.status == .connected)
         #expect(sftp.path == "/srv")
         #expect(Set(history.entries().map(\.id)) == historyIDs)
@@ -100,7 +100,7 @@ struct WorkspaceWindowMoveTests {
         #expect(source.workspaces.isEmpty)
         #expect(source.selectedDestination == .vault)
         #expect(source.vaultDestination == .welcome)
-        #expect(!source.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test(arguments: [false, true])
@@ -134,10 +134,10 @@ struct WorkspaceWindowMoveTests {
         #expect(session.status == .disconnected)
         #expect(target.workspaces.isEmpty)
         #expect(source.pane(moved.id) == nil)
-        #expect(source.canReopen == !closesWindow)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == closesWindow)
         #expect(app.mainWindows.movePane(moved.id, from: source) == nil)
         if !closesWindow {
-            source.reopenLastClosed()
+            app.reopenClosedRecord(try #require(app.closedWorkspaceRecords.first?.id), in: source)
             #expect(source.selectedWorkspace?.focusedPane.id == moved.id)
             #expect(source.selectedWorkspace?.focusedPane.sshSession !== session)
             #expect(target.workspaces.isEmpty)
@@ -197,7 +197,7 @@ struct WorkspaceWindowMoveTests {
         #expect(first.selectedWorkspace?.focusedPane === firstPane)
         #expect(second.selectedWorkspace?.focusedPane === secondPane)
         #expect(source.workspaces.isEmpty)
-        #expect(!source.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test(arguments: [false, true])

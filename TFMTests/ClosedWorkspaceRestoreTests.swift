@@ -11,6 +11,29 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct ClosedWorkspaceRestoreTests {
+    @Test func evictedHistoryReleasesWorkspacesAcrossWindows() {
+        let app = AppModel(hosts: HostLibraryModel())
+        let firstWindow = WindowModel()
+        let secondWindow = WindowModel()
+        app.registerWindow(firstWindow)
+        app.registerWindow(secondWindow)
+        weak var evicted: Workspace?
+        do {
+            let workspace = Workspace(pane: Pane(.empty))
+            evicted = workspace
+            firstWindow.open(workspace)
+            firstWindow.close(workspace.id)
+        }
+        #expect(evicted != nil)
+        for _ in 0..<15 {
+            let workspace = Workspace(pane: Pane(.empty))
+            secondWindow.open(workspace)
+            secondWindow.close(workspace.id)
+        }
+        #expect(app.closedWorkspaceRecords.count == 15)
+        #expect(evicted == nil)
+    }
+
     @Test func restartKeepsClosedSplitsInOneRecentList() throws {
         let name = "ClosedWorkspace.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: name))
@@ -34,27 +57,24 @@ struct ClosedWorkspaceRestoreTests {
         let nextApp = AppModel(hosts: hosts, dependencies: dependencies)
         let window = WindowModel()
         nextApp.registerWindow(window)
-        #expect(window.recentlyClosedWorkspaces.isEmpty)
-        #expect(window.closedHistory().flatMap(\.items).map(\.title) == ["Operations"])
-        #expect(window.canReopen)
+        #expect(nextApp.closedWorkspaceRecords.flatMap(\.items).map(\.title) == ["Operations"])
+        #expect(!nextApp.closedWorkspaceRecords.isEmpty)
         let current = Workspace.sshSession(host: host)
         window.open(current)
         window.close(current.id)
-        #expect(window.closedHistory().count == 2)
-        window.reopenLastClosed()
+        #expect(nextApp.closedWorkspaceRecords.count == 2)
+        nextApp.reopenClosedRecord(try #require(nextApp.closedWorkspaceRecords.first?.id), in: window)
         #expect(window.selectedWorkspace === current)
-        window.reopenLastClosed()
+        nextApp.reopenClosedRecord(try #require(nextApp.closedWorkspaceRecords.first?.id), in: window)
         let restored = try #require(window.selectedWorkspace)
         #expect(restored !== workspace)
         #expect(restored.panes.map(\.kind) == [.sshSession, .sftpChannel])
         #expect(restored.panes.map(\.customTitle) == ["Shell", "Files"])
         #expect(restored.customTitle == "Operations")
         #expect(restored.focusedPane.kind == .sftpChannel)
-        #expect(!window.canReopen)
+        #expect(nextApp.closedWorkspaceRecords.isEmpty)
         let thirdApp = AppModel(hosts: hosts, dependencies: dependencies)
-        let thirdWindow = WindowModel()
-        thirdApp.registerWindow(thirdWindow)
-        #expect(!thirdWindow.canReopen)
+        #expect(thirdApp.closedWorkspaceRecords.isEmpty)
     }
 
     @Test func closingAWindowCreatesOneGroupAndReopenWaitsForANewWindow() throws {
@@ -73,11 +93,11 @@ struct ClosedWorkspaceRestoreTests {
         #expect(app.closedWorkspaceRecords.count == 1)
         let current = WindowModel()
         app.registerWindow(current)
-        #expect(current.reopensWindow)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == true)
         var requests: [UUID] = []
         app.mainWindows.createScene = { requests.append($0) }
-        current.reopenLastClosed()
-        current.reopenLastClosed()
+        app.reopenClosedRecord(record.id, in: current)
+        app.reopenClosedRecord(record.id, in: current)
         #expect(requests.count == 1)
         #expect(current.workspaces.isEmpty)
         #expect(app.closedWorkspaceRecords.count == 1)
@@ -107,7 +127,7 @@ struct ClosedWorkspaceRestoreTests {
         app.restoreClosedRecord(id, into: destination, itemID: first.id)
         #expect(destination.selectedWorkspace === first)
         #expect(app.closedWorkspaceRecords.first?.items.map(\.id) == [second.id])
-        #expect(destination.reopensWindow)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == true)
     }
 
     @Test func missingHostsAreNotOfferedAfterRestart() throws {
@@ -117,8 +137,8 @@ struct ClosedWorkspaceRestoreTests {
         let window = WindowModel()
         app.registerWindow(window)
         app.recentlyClosedStore.record(RecentlyClosedRecord(items: [record]))
-        #expect(!window.canReopen)
-        window.reopenClosedWorkspace(record.id)
+        #expect(app.closedWorkspaceRecords.isEmpty)
+        app.reopenClosedRecord(record.id, in: window)
         #expect(window.workspaces.isEmpty)
     }
 }

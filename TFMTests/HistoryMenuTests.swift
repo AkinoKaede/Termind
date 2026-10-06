@@ -80,7 +80,7 @@ struct HistoryMenuRecordTests {
         let history = ConnectionHistoryModel(entries: [earlier, yesterday] + recent)
         let current = try #require(history.record(kind: .ssh, for: host.id, at: now))
         let snapshot = ConnectionHistoryMenuSnapshot(
-            history: history, library: HostLibraryModel(hosts: [host]), devices: DeviceDirectoryModel(), now: now)
+            history: history, library: HostLibraryModel(hosts: [host]), now: now)
         var opened: [UUID] = []
         let menu = NSHostingMenu(
             rootView: HistoryMenuRecords(

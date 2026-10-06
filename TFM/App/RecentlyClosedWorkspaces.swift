@@ -49,7 +49,6 @@ extension AppModel {
             window.select(restored[selected].id)
         }
         let removed = Set(items.map(\.id))
-        forgetClosedWorkspaces(removed)
         record.items.removeAll { removed.contains($0.id) }
         closedWorkspaceInstances[id]?.removeAll { removed.contains($0.id) }
         if record.items.isEmpty {

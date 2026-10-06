@@ -709,12 +709,6 @@ final class AppModel {
         AssistantExecutionController.titleContext(for: conversation)
     }
 
-    func forgetClosedWorkspaces(_ ids: Set<UUID>) {
-        for window in windows.values.compactMap(\.value) {
-            for id in ids { window.forgetClosedWorkspace(id) }
-        }
-    }
-
     func unregisterWindow(_ window: WindowModel) {
         windows[ObjectIdentifier(window)] = nil
         onboarding.windowClosed(window)
@@ -725,12 +719,10 @@ final class AppModel {
         configureConnectionHistory(in: window)
         window.connectionCoordinator = connections
         window.hostStore = hosts
-        window.closedHistory = { [weak self] in self?.closedWorkspaceRecords ?? [] }
         window.rememberClosedWorkspace = { [weak self] in self?.rememberClosedWorkspaces([$0]) }
         window.rememberClosedWindow = { [weak self] workspaces, selected in
             self?.rememberClosedWorkspaces(workspaces, isWindow: true, selectedID: selected)
         }
-        window.restoreClosedRecord = { [weak self, weak window] id in self?.reopenClosedRecord(id, in: window) }
         window.metricsModel = serverMetrics
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)

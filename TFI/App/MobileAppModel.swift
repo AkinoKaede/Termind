@@ -468,8 +468,8 @@ final class MobileAppModel {
     }
 
     private func closeWorkspaces(for hostID: UUID) {
+        forgetClosedWorkspaces(for: hostID)
         for session in workspaceSessions {
-            session.forgetClosedWorkspaces(for: hostID)
             for item in session.orderedWorkspaceItems where item.descriptor.hostID == hostID {
                 session.close(item.id, rememberForReopen: false)
             }

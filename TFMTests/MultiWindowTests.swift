@@ -42,7 +42,7 @@ struct MultiWindowTests {
 
         app.mainWindows.register(targetNative, model: target, requestID: request)
         #expect(source.workspaces.isEmpty)
-        #expect(!source.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
         #expect(!source.isClosed)
         #expect(source.vaultDestination == .welcome)
         #expect(target.selectedWorkspace === workspace)
@@ -122,7 +122,7 @@ struct MultiWindowTests {
         #expect(session.status == .disconnected)
         app.mainWindows.register(second, model: target, requestID: request)
         #expect(target.workspaces.isEmpty)
-        #expect(!source.canReopen)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == true)
         source.closeForWindow()
         session.status = .connecting
         let phase = session.connectionJourney.phase
@@ -276,14 +276,14 @@ struct MultiWindowTests {
         app.mainWindows.closeSelectionOrWindow(in: model)
 
         #expect(model.workspaces.isEmpty)
-        #expect(model.canReopen)
+        #expect(app.closedWorkspaceRecords.count == 2)
         #expect(firstSession.status == .disconnected)
         #expect(!model.isClosed)
 
         app.mainWindows.closeSelectionOrWindow(in: model)
 
         #expect(model.isClosed)
-        #expect(!model.canReopen)
+        #expect(app.closedWorkspaceRecords.count == 2)
     }
 
     @Test(arguments: [WindowDestination.vault, .settings, .assistant, .metrics])
@@ -310,7 +310,7 @@ struct MultiWindowTests {
         #expect(model.selectedDestination == destination)
         #expect(model.workspaces.first === workspace)
         #expect(session.status == .connected)
-        #expect(!model.canReopen)
+        #expect(app.closedWorkspaceRecords.isEmpty)
     }
 
     @Test(arguments: [false, true])

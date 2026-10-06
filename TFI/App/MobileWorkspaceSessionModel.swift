@@ -55,10 +55,6 @@ final class MobileWorkspaceSessionModel {
     var canReopen: Bool { !isDiscarded && !app.closedWorkspaceRecords.isEmpty }
     var reopensWindow: Bool { app.closedWorkspaceRecords.first?.isWindow == true }
     var recentlyClosedRecords: [RecentlyClosedRecord<MobileWorkspaceDescriptor>] { app.closedWorkspaceRecords }
-    var recentlyClosedWorkspaces: [MobileWorkspaceDescriptor] {
-        guard !isDiscarded else { return [] }
-        return app.closedWorkspaceRecords.filter { !$0.isWindow }.flatMap(\.items)
-    }
     private(set) var isDiscarded = false
     @ObservationIgnored private unowned let app: MobileAppModel
 
@@ -299,10 +295,6 @@ final class MobileWorkspaceSessionModel {
         for item in orderedWorkspaceItems where ids.contains(item.id) {
             app.rememberClosedWorkspaces([item.workspace?.reopenState ?? .init(descriptor: item.descriptor)])
         }
-    }
-
-    func forgetClosedWorkspaces(for hostID: Host.ID) {
-        app.forgetClosedWorkspaces(for: hostID)
     }
 
     func reopenLastClosed() -> MobileWorkspace.ID? {

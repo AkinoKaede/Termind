@@ -297,7 +297,7 @@ struct TermindCommands: Commands {
 
             HistoryMenuRecords(
                 snapshot: ConnectionHistoryMenuSnapshot(
-                    history: app.connectionHistory, library: app.hostLibrary, devices: app.devices),
+                    history: app.connectionHistory, library: app.hostLibrary),
                 image: { Image(nsImage: MenuImageVisibilityController.markedImage(systemName: $0)) }
             ) { row in
                 guard let window, let host = app.hostLibrary.host(row.host.id) else { return }
