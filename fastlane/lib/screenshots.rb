@@ -9,6 +9,11 @@ require "securerandom"
 class Screenshots
   ROOT = File.expand_path("../..", __dir__)
   ASSET_DIRECTORY = "com.akinokaede.termind".freeze
+  ASSET_DEVICE_DIRECTORIES = { "iphone" => "iphone-6.3", "ipad" => "ipad-15", "mac" => "mac-14" }.freeze
+
+  def self.asset_device_directory(device)
+    ASSET_DEVICE_DIRECTORIES.fetch(device, device)
+  end
 
   def self.require_assets!(root)
     directory = File.join(root, ASSET_DIRECTORY)
@@ -27,8 +32,8 @@ class Screenshots
   }.freeze
   MOBILE_SCENES = %w[vault sftp ssh metrics assistant].freeze
   DEVICES = {
-    "iphone" => { name: "iPhone 18 Pro Max", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max",
-                  dimensions: [1320, 2868] },
+    "iphone" => { name: "iPhone 18 Pro", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro",
+                  dimensions: [1206, 2622] },
     "iphone-duo-outer" => { name: "iPhone Duo", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo",
                             dimensions: [1398, 2034], display: "primary" },
     "iphone-duo-inner" => { name: "iPhone Duo", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo",
@@ -219,7 +224,7 @@ class Screenshots
       command("sips", "-c", height.to_s, width.to_s, captured)
     end
     validate_dimensions(captured, native_size)
-    promote([[captured, "#{language.downcase}/mac/#{prefix == 'mac-overview' ? 'metrics_overview' : feature.tr('-', '_')}.png"]])
+    promote([[captured, "#{language.downcase}/#{self.class.asset_device_directory("mac")}/#{prefix == 'mac-overview' ? 'metrics_overview' : feature.tr('-', '_')}.png"]])
   ensure
     FileUtils.rm_f(xctestrun) if xctestrun
   end
@@ -294,7 +299,7 @@ class Screenshots
         command(*arguments, captured)
       end
       validate_dimensions(captured, DEVICES.fetch(device).fetch(:dimensions))
-      captures[feature] = [captured, "#{locale}/#{device}/#{feature}.png"]
+      captures[feature] = [captured, "#{locale}/#{self.class.asset_device_directory(device)}/#{feature}.png"]
       tokens << token
       FileUtils.touch(File.join(control, "ack-#{token}"))
     end

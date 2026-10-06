@@ -77,6 +77,8 @@ bundle exec fastlane ios screenshots plan:true
 
 `output:/absolute/path` stages a review capture outside the source asset tree.
 The default remains `com.akinokaede.termind/assets/captures/<locale>/<device>/<feature>.png`.
+Capture and frame directories use `iphone-6.3`, `ipad-15`, and `mac-14`; command
+selectors remain `iphone`, `ipad`, and `mac`. Duo selectors keep their existing directory names.
 Logs and build products live under `.build/fastlane-screenshots/<platform>/`;
 each run has its own logs. Existing captures are backed up with `SHA256SUMS` under
 `.build/screenshot-backups/<run>/` before replacement. A failed test, missing
@@ -95,7 +97,7 @@ the downstream workflow described below.
 produces Command Generator, and `agent` produces Assistant. Metrics detail is a
 development demo only; do not retain its captures as marketing assets.
 
-The mobile lane requires iOS/iPadOS 27. iPhone 18 Pro Max and iPad Pro use
+The mobile lane requires iOS/iPadOS 27. iPhone 18 Pro and iPad Pro use
 **iOS/iPadOS 27.0**; Duo uses **iOS 27.1**. The lane selects 27.1 for Duo-only
 batches and 27.0 otherwise. The installed 27.1 runtime supports only Duo, so
 capture it separately from iPhone and iPad.
@@ -103,7 +105,7 @@ It checks both the simulator model identifier and the raw pixel dimensions:
 
 | Selector | Capture device | Native capture size |
 | --- | --- | --- |
-| `iphone` | iPhone 18 Pro Max (6.9-inch), portrait | 1320×2868 |
+| `iphone` | iPhone 18 Pro (6.3-inch), portrait | 1206×2622 |
 | `iphone-duo-outer` | iPhone Duo, closed, portrait | 1398×2034 |
 | `iphone-duo-inner` | iPhone Duo, open, landscape | 2853×2007 |
 | `ipad` | iPad Pro 13-inch (M5), landscape | 2752×2064 |
@@ -111,13 +113,13 @@ It checks both the simulator model identifier and the raw pixel dimensions:
 Create the exact simulators once if they are missing:
 
 ```sh
-xcrun simctl create "iPhone 18 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max com.apple.CoreSimulator.SimRuntime.iOS-27-0
+xcrun simctl create "iPhone 18 Pro" com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro com.apple.CoreSimulator.SimRuntime.iOS-27-0
 xcrun simctl create "iPhone Duo" com.apple.CoreSimulator.SimDeviceType.iPhone-Duo com.apple.CoreSimulator.SimRuntime.iOS-27-1
 xcrun simctl create "iPad Pro 13-inch (M5)" com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB com.apple.CoreSimulator.SimRuntime.iOS-27-0
 ```
 
 The lane does not resize iPhone captures or substitute another device. Existing
-`com.akinokaede.termind/assets/app_store/*/iphone-6.9` artwork uses a separate 1320×2868 composition canvas;
+`com.akinokaede.termind/assets/app_store/*/iphone-6.3` artwork uses a separate 1206×2622 composition canvas;
 that folder describes the final artwork, not the screenshot device. Recapturing
 does not regenerate those downstream assets automatically.
 
@@ -172,9 +174,9 @@ outside can leave a hovered row highlighted in the captured image.
 In Figma, keep Mac artwork 02–06 as native windows in all three languages.
 Mac and iPad artwork 01 retain the three-device composition. iPhone artwork 01
 uses two devices with aligned bottom edges: iPhone Assistant fully visible in
-the right foreground (width 820), with Mac Workspace enlarged behind it (width
-1800). The Mac layer deliberately extends left of the clipping Product imagery
-frame; only part of the laptop is shown. No iPad appears in this composition.
+the right foreground, with Mac Workspace enlarged behind it. Keep their
+relative sizes and compact overlap when adjusting the 1206×2622 canvas. The Mac
+layer deliberately extends left of the clipping Product imagery frame; only part of the laptop is shown. No iPad appears in this composition.
 Keep the existing export filenames. Replace screenshot layers while
 preserving their geometry, text, shared shadows, and stacking order, then export
 the affected boards as opaque RGB JPGs with an sRGB ICC profile. Refresh the mobile
@@ -198,18 +200,18 @@ selected jobs without changing files. Defaults include only website-used scenes:
 iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in all three
 locales. Use `scenes:` explicitly when another composition is needed.
 The lane stages source copies and publishes
-`<locale>/<device>/<feature>.png` only after every selected output succeeds. Old Pro captures
-must be recaptured on iPhone 18 Pro Max before framing; they are rejected by size.
+`<locale>/<device>/<feature>.png` only after every selected output succeeds. Old Pro Max captures
+must be recaptured on iPhone 18 Pro before framing; they are rejected by size.
 
-- iPhone uses Apple's official iPhone 18 Pro Max Silver portrait frame at native
+- iPhone uses Apple's official iPhone 18 Pro Silver portrait frame at native
   screenshot size. Import it locally or pass `iphone_frame:/path/to/portrait.png`.
 - iPad uses Apple's official iPad Pro (M5) 13-inch Space Black PNG as a custom
   frameit device. Its opening matches the native capture exactly, with no resize.
   Import the PNG once as described in the local frame templates section below, or pass
   `ipad_frame:/path/to/portrait.png`. The licensed source artwork stays local.
 - Mac Workspace fills the MacBook frame with the full-screen app capture.
-  Capture aspect ratio is preserved while trimming the top of the black camera
-  strip to match the aperture. No wallpaper or Dock is composited. Other Mac scenes stay as native
+  The 14-inch aperture matches the capture at native scale. No wallpaper or Dock
+  is composited. Other Mac scenes stay as native
   window captures for final artwork.
 
 Frame dimensions now come from frameit. Astro imports image metadata directly,
@@ -220,12 +222,12 @@ the upstream device artwork; follow its usage terms.
 
 ## Local frame templates
 
-### Official iPhone 18 Pro Max frame
+### Official iPhone 18 Pro frame
 
 Download the [iPhone 18 bezels](https://devimages-cdn.apple.com/design/resources/download/Bezel-iPhone-18.dmg)
-from Apple Design Resources. Copy `PNG/iPhone 18 Pro Max/iPhone 18 Pro Max - Silver - Portrait.png`
-to `.build/frameit-assets/iphone-18-pro-max.png`, or pass `iphone_frame:/path/to/frame.png`.
-The template is 1470×3000 with a native 1320×2868 opening at (75, 66).
+from Apple Design Resources. Copy `PNG/iPhone 18 Pro/iPhone 18 Pro - Silver - Portrait.png`
+to `.build/frameit-assets/iphone-18-pro.png`, or pass `iphone_frame:/path/to/frame.png`.
+The template is 1350×2760 with a native 1206×2622 opening at (72, 69).
 The lane registers the template as a custom frameit device. Keep the licensed source local.
 
 ### Official iPhone Duo frames
@@ -272,23 +274,22 @@ M5 frame, so the lane registers this device at runtime.
 
 ### MacBook Pro narrow frame
 
-Mac Overview compositions use Apple's MacBook Pro M5 16-inch Space Black PNG,
-prepared locally as `.build/frameit-assets/macbook_pro_template.png`. Supply an
+Mac Overview compositions use Apple's MacBook Pro M5 14-inch Space Black PNG,
+prepared locally as `.build/frameit-assets/macbook-pro-14-template.png`. Supply an
 alternate location with `mac_frame:/absolute/path/to/frame.png`. Keep the source
 artwork outside version control and retain its original usage terms.
 
 Download the MacBook Pro M5 bezel from Apple's Design Resources and accept its
 license locally. Remove only the 220-pixel transparent top margin from the
-official 4260×2840 PNG:
+official 3860×2540 PNG:
 
 ```sh
-magick "/Volumes/Bezel-MacBook-Pro-M5/PNG/MacBook Pro M5 16-inch Space Black.png" \
-  -crop 4260x2620+0+220 +repage .build/frameit-assets/macbook_pro_template.png
+magick "/Volumes/Bezel-MacBook-Pro-M5/PNG/MacBook Pro M5 14-inch Space Black.png" \
+  -crop 3860x2320+0+220 +repage .build/frameit-assets/macbook-pro-14-template.png
 ```
 
-The prepared transparent template is 4260×2620, with a 3456×2234 screen opening
-at (402, 83). The native 3024×1964 capture scales proportionally to 3456×2245;
-11 pixels are trimmed from its black full-screen camera strip to fill the opening.
+The prepared transparent template is 3860×2320, with a 3024×1964 screen opening
+at (418, 68). The native Workspace capture fits without resizing or trimming.
 No desktop or personal system UI is added. Do not reuse a template extracted from
 a composed screenshot: it can retain wallpaper or mismatched rounded corners.
 A missing template fails before publishing outputs.

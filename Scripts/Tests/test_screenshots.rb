@@ -30,8 +30,8 @@ class ScreenshotsTests < Minitest::Test
     source = File.join(@root, "capture.png")
     File.binwrite(source, "review capture")
     capture = runner(:ios, output: "review")
-    capture.promote([[source, "en/ipad/vault.png"]])
-    assert_equal "review capture", File.binread(File.join(@root, "review/en/ipad/vault.png"))
+    capture.promote([[source, "en/ipad-15/vault.png"]])
+    assert_equal "review capture", File.binread(File.join(@root, "review/en/ipad-15/vault.png"))
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind"))
   end
 
@@ -56,18 +56,18 @@ class ScreenshotsTests < Minitest::Test
                  runner(:ios, { devices: "iphone-duo-inner", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-27-0" }).plan[:runtime]
   end
 
-  def test_a_renamed_pro_cannot_be_used_as_the_pro_max_capture_device
+  def test_a_renamed_pro_max_cannot_be_used_as_the_pro_capture_device
     capture = runner(:ios, devices: "iphone")
     capture.define_singleton_method(:command) do |*args|
       JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
-        { "name" => "iPhone 18 Pro Max", "udid" => "wrong-model",
-          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro" }
+        { "name" => "iPhone 18 Pro", "udid" => "wrong-model",
+          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max" }
       ] })
     end
     assert_raises(RuntimeError) { capture.find_devices }
-    capture.define_singleton_method(:dimensions) { |_| [1206, 2622] }
+    capture.define_singleton_method(:dimensions) { |_| [1320, 2868] }
     assert_raises(RuntimeError) do
-      capture.validate_dimensions("pro.png", Screenshots::DEVICES.fetch("iphone").fetch(:dimensions))
+      capture.validate_dimensions("pro-max.png", Screenshots::DEVICES.fetch("iphone").fetch(:dimensions))
     end
   end
 
@@ -116,17 +116,17 @@ class ScreenshotsTests < Minitest::Test
 
   def test_successful_capture_backs_up_original_bytes_and_manifest
     capture = runner
-    original = File.join(@root, "com.akinokaede.termind/assets/captures/en/ipad/vault.png")
+    original = File.join(@root, "com.akinokaede.termind/assets/captures/en/ipad-15/vault.png")
     FileUtils.mkdir_p(File.dirname(original))
     File.binwrite(original, "old image bytes")
     source = File.join(@root, "new.png")
     File.binwrite(source, "new image bytes")
-    capture.promote([[source, "en/ipad/vault.png"]])
+    capture.promote([[source, "en/ipad-15/vault.png"]])
     assert_equal "new image bytes", File.binread(original)
-    backup = Dir.glob(File.join(@root, ".build/screenshot-backups/*/en/ipad/vault.png")).fetch(0)
+    backup = Dir.glob(File.join(@root, ".build/screenshot-backups/*/en/ipad-15/vault.png")).fetch(0)
     assert_equal "old image bytes", File.binread(backup)
     manifest = File.read(File.join(File.dirname(File.dirname(File.dirname(backup))), "SHA256SUMS"))
-    assert_equal "#{Digest::SHA256.hexdigest('old image bytes')}  en/ipad/vault.png\n", manifest
+    assert_equal "#{Digest::SHA256.hexdigest('old image bytes')}  en/ipad-15/vault.png\n", manifest
   end
 
   def test_mac_captures_publish_localized_underscore_filenames
@@ -146,7 +146,7 @@ class ScreenshotsTests < Minitest::Test
       end
       capture.define_singleton_method(:dimensions) { |_| [2360, 1480] }
       capture.capture_mac(scene, "zh-Hant", "platform=macOS")
-      destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hant/mac/#{filename}.png")
+      destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hant/mac-14/#{filename}.png")
       assert_equal "captured #{scene}", File.binread(destination)
     end
   end
@@ -179,7 +179,7 @@ class ScreenshotsTests < Minitest::Test
   end
 
   def test_mobile_capture_rediscovers_container_after_host_reinstallation
-    %w[iphone iphone-duo-outer iphone-duo-inner].each do |device|
+    %w[iphone ipad iphone-duo-outer iphone-duo-inner].each do |device|
       assert_mobile_capture_rediscovers_container(device)
     end
   end
@@ -223,7 +223,8 @@ class ScreenshotsTests < Minitest::Test
     Open3.stub(:capture2e, responses) do
       capture.capture_mobile(device, { "udid" => "fixture", "state" => "Booted" }, "zh-Hans")
     end
-    destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hans/#{device}/vault.png")
+    folder = { "iphone" => "iphone-6.3", "ipad" => "ipad-15" }.fetch(device, device)
+    destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hans/#{folder}/vault.png")
     assert_equal "new container capture", File.binread(destination)
     assert File.exist?(File.join(control, "ack-#{token}"))
     refute Dir.exist?(old_container)
@@ -288,7 +289,7 @@ class ScreenshotFramesTests < Minitest::Test
     File.write(File.join(@root, "com.akinokaede.termind/.git"), "gitdir: fixture")
     FileUtils.mkdir_p(File.join(@root, "fastlane"))
     FileUtils.cp(File.expand_path("../../fastlane/Framefile.json", __dir__), File.join(@root, "fastlane"))
-    frame_template(File.join(@root, ".build/frameit-assets/iphone-18-pro-max.png"), 1470, 3000)
+    frame_template(File.join(@root, ".build/frameit-assets/iphone-18-pro.png"), 1350, 2760)
     @templates = File.join(@root, "templates")
     FileUtils.mkdir_p(@templates)
   end
@@ -350,30 +351,34 @@ class ScreenshotFramesTests < Minitest::Test
   def test_mac_composition_clips_corners_and_preserves_source_and_content
     template = File.join(@root, "mac-frame.png")
     runner = ScreenshotFrames.new({ mac_frame: template }, root: @root)
-    runner.command("magick", "-size", "4260x2620", "xc:none", "-fill", "none",
+    runner.command("magick", "-size", "3860x2320", "xc:none", "-fill", "none",
                    "-stroke", "black", "-strokewidth", "20",
-                   "-draw", "roundrectangle 392,73,3867,2326,100,100", template)
+                   "-draw", "roundrectangle 408,58,3451,2041,100,100", template)
     source = File.join(@root, "capture.png")
     output = File.join(@root, "composed.png")
-    runner.command("magick", "-size", "3024x1964", "xc:#327abe", source)
+    runner.command("magick", "-size", "3024x1964", "xc:#327abe", "-fill", "red",
+                   "-draw", "point 1512,982", source)
     original = Digest::SHA256.file(source).hexdigest
     runner.compose_mac(source, output)
-    assert_equal [4260, 2620], FastImage.size(output)
+    assert_equal [3860, 2320], FastImage.size(output)
+    # Native screen pixels must land at the aperture offset without resampling.
+    assert_equal "255,0,0", runner.command("magick", output, "-format",
+                                          "%[fx:round(255*p{1930,1050}.r)],%[fx:round(255*p{1930,1050}.g)],%[fx:round(255*p{1930,1050}.b)]", "info:").strip
     assert_equal original, Digest::SHA256.file(source).hexdigest
     # The old rectangular placement leaked here, outside the curved bezel.
-    assert_equal "0", runner.command("magick", output, "-format", "%[fx:p{402,83}.a]", "info:").strip
-    assert_equal "1", runner.command("magick", output, "-format", "%[fx:p{2130,1200}.a]", "info:").strip
+    assert_equal "0", runner.command("magick", output, "-format", "%[fx:p{418,68}.a]", "info:").strip
+    assert_equal "1", runner.command("magick", output, "-format", "%[fx:p{1930,1160}.a]", "info:").strip
     assert_equal "50,122,190", runner.command("magick", output, "-format",
-                                             "%[fx:round(255*p{2130,1200}.r)],%[fx:round(255*p{2130,1200}.g)],%[fx:round(255*p{2130,1200}.b)]", "info:").strip
+                                             "%[fx:round(255*p{1930,1160}.r)],%[fx:round(255*p{1930,1160}.g)],%[fx:round(255*p{1930,1160}.b)]", "info:").strip
   end
 
   def test_default_frames_only_include_website_used_scenes
     jobs = ScreenshotFrames.new({}, root: @root).plan
     assert_equal 21, jobs.size
-    refute jobs.any? { |job| job[:input].end_with?("/ipad/ssh.png", "/iphone/metrics.png") }
+    refute jobs.any? { |job| job[:input].end_with?("/ipad-15/ssh.png", "/iphone-6.3/metrics.png") }
     explicit = ScreenshotFrames.new({ devices: "ipad", scenes: "ssh", locales: "en" }, root: @root).plan
     assert_equal 1, explicit.size
-    assert explicit.first[:input].end_with?("/ipad/ssh.png")
+    assert explicit.first[:input].end_with?("/ipad-15/ssh.png")
   end
 
   def test_default_frames_fail_before_creating_outputs_when_submodule_is_missing
@@ -386,8 +391,8 @@ class ScreenshotFramesTests < Minitest::Test
 
   def test_explicit_frame_paths_work_without_submodule_and_keep_source_bytes
     FileUtils.remove_entry(File.join(@root, "com.akinokaede.termind"))
-    source = File.join(@root, "review-input/en/iphone/vault.png")
-    png(source, 1320, 2868)
+    source = File.join(@root, "review-input/en/iphone-6.3/vault.png")
+    png(source, 1206, 2622)
     original_hash = Digest::SHA256.file(source).hexdigest
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en",
                                     input: "review-input", output: "review-output" }, root: @root)
@@ -396,21 +401,21 @@ class ScreenshotFramesTests < Minitest::Test
     Frameit::FrameDownloader.stub(:templates_path, @templates) do
       Frameit::FrameDownloader.stub(:new, downloader) do
         runner.run do |options|
-          assert_equal "iPhone 18 Pro Max", options.fetch(:force_device_type)
+          assert_equal "iPhone 18 Pro", options.fetch(:force_device_type)
           framefile = JSON.parse(File.read(File.join(options.fetch(:path), "Framefile.json")))
-          assert_equal({ "offset" => "+75+66", "width" => 1320 }, framefile.fetch("default").fetch("offset"))
-          png(File.join(options.fetch(:path), "iphone_framed.png"), 1470, 3000)
+          assert_equal({ "offset" => "+72+69", "width" => 1206 }, framefile.fetch("default").fetch("offset"))
+          png(File.join(options.fetch(:path), "iphone_framed.png"), 1350, 2760)
         end
       end
     end
-    assert File.exist?(File.join(@root, "review-output/en/iphone/vault.png"))
+    assert File.exist?(File.join(@root, "review-output/en/iphone-6.3/vault.png"))
     assert_equal original_hash, Digest::SHA256.file(source).hexdigest
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind"))
   end
 
-  def test_rejects_pro_sources_before_calling_frameit
-    source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone/vault.png")
-    png(source, 1206, 2622)
+  def test_rejects_pro_max_sources_before_calling_frameit
+    source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone-6.3/vault.png")
+    png(source, 1320, 2868)
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en" }, root: @root)
     called = false
     assert_raises(RuntimeError) { runner.run { called = true } }
@@ -461,12 +466,12 @@ class ScreenshotFramesTests < Minitest::Test
 
   def test_missing_frameit_output_keeps_all_existing_outputs_and_sources
     %w[en zh-hans].each do |locale|
-      png(File.join(@root, "com.akinokaede.termind/assets/captures/#{locale}/iphone/vault.png"), 1320, 2868)
+      png(File.join(@root, "com.akinokaede.termind/assets/captures/#{locale}/iphone-6.3/vault.png"), 1206, 2622)
     end
-    destination = File.join(@root, "com.akinokaede.termind/assets/device_frames/en/iphone/vault.png")
+    destination = File.join(@root, "com.akinokaede.termind/assets/device_frames/en/iphone-6.3/vault.png")
     FileUtils.mkdir_p(File.dirname(destination))
     File.write(destination, "existing frame")
-    source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone/vault.png")
+    source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone-6.3/vault.png")
     original_hash = Digest::SHA256.file(source).hexdigest
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en,zh-Hans" }, root: @root)
     downloader = Object.new

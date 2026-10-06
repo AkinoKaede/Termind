@@ -6,8 +6,8 @@ require_relative "screenshots"
 class ScreenshotFrames
   DEVICES = %w[iphone iphone-duo-outer iphone-duo-inner ipad mac].freeze
   CUSTOM_FRAMES = {
-    "iphone" => { name: "iPhone 18 Pro Max", size: [1470, 3000], offset: "+75+66", width: 1320,
-                  color: "Silver", template: "iphone-18-pro-max" },
+    "iphone" => { name: "iPhone 18 Pro", size: [1350, 2760], offset: "+72+69", width: 1206,
+                  color: "Silver", template: "iphone-18-pro" },
     "iphone-duo-outer" => { name: "iPhone Duo Outer", size: [1574, 2194], offset: "+88+80", width: 1398, color: "Star White" },
     "iphone-duo-inner" => { name: "iPhone Duo Inner", size: [2247, 3093], offset: "+120+120", width: 2007, color: "Star White" }
   }.freeze
@@ -18,7 +18,7 @@ class ScreenshotFrames
 
   def initialize(options = {}, root: Screenshots::ROOT)
     @root = root
-    @mac_frame = File.expand_path(options[:mac_frame] || ".build/frameit-assets/macbook_pro_template.png", root)
+    @mac_frame = File.expand_path(options[:mac_frame] || ".build/frameit-assets/macbook-pro-14-template.png", root)
     @ipad_frame = File.expand_path(options[:ipad_frame] || ".build/frameit-assets/ipad-pro-13-m5.png", root)
     @custom_frames = CUSTOM_FRAMES.to_h do |device, specification|
       option = device.tr("-", "_").concat("_frame").to_sym
@@ -35,7 +35,7 @@ class ScreenshotFrames
       scenes = device == "mac" ? ["workspace"] : Screenshots::MOBILE_SCENES
       selected = selector.selection(@scenes, WEBSITE_SCENES.fetch(device), scenes, "#{device} scenes")
       selected.product(@locales).map do |scene, language|
-        relative = "#{language.downcase}/#{device}/#{scene}"
+        relative = "#{language.downcase}/#{Screenshots.asset_device_directory(device)}/#{scene}"
         { device: device, input: File.join(@input, "#{relative}.png"),
           output: File.join(@output, "#{relative}.png") }
       end
@@ -75,7 +75,7 @@ class ScreenshotFrames
       raise "Import the official iPad Pro (M5) 13-inch Space Black portrait PNG first; " \
             "see Scripts/ASSET_WORKFLOW.md or pass ipad_frame:/path/to/frame.png"
     end
-    if @devices.include?("mac") && FastImage.size(@mac_frame) != [4260, 2620]
+    if @devices.include?("mac") && FastImage.size(@mac_frame) != [3860, 2320]
       raise "Import the narrow MacBook Pro template first; see Scripts/ASSET_WORKFLOW.md " \
             "or pass mac_frame:/path/to/frame.png"
     end
@@ -156,15 +156,13 @@ class ScreenshotFrames
   end
 
   def compose_mac(source, output)
-    # The official M5 16-inch aperture is 3456x2234 after removing the
-    # template's 220px transparent top margin. Preserve the capture's aspect
-    # ratio and trim only 11px from its black full-screen camera strip.
+    # The official M5 14-inch aperture matches the 3024x1964 capture exactly.
+    # Only the template's 220px transparent top margin is removed in preparation.
     Dir.mktmpdir("mac-screen-", File.dirname(output)) do |directory|
       screen = File.join(directory, "screen.png")
-      command("magick", source, "-resize", "3456x", "-gravity", "south",
-              "-extent", "3456x2234", screen)
-      mask_screen(screen, @mac_frame, "+402+83")
-      command("magick", @mac_frame, "-colorspace", "sRGB", screen, "-gravity", "northwest", "-geometry", "+402+83",
+      FileUtils.cp(source, screen)
+      mask_screen(screen, @mac_frame, "+418+68")
+      command("magick", @mac_frame, "-colorspace", "sRGB", screen, "-gravity", "northwest", "-geometry", "+418+68",
               "-compose", "DstOver", "-composite", output)
     end
   end
