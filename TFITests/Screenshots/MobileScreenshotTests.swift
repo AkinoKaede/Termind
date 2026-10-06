@@ -10,23 +10,23 @@ import UIKit
 
 @testable import TermindIOS
 
-/// Opt-in marketing captures. Fixtures are entirely in memory and never open a network connection.
+/// Opt-in screenshots. Fixtures are entirely in memory and never open a network connection.
 @Suite(
-    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MARKETING_SCREENSHOTS"] == "1"),
+    .enabled(if: ProcessInfo.processInfo.environment["TERMIND_SCREENSHOTS"] == "1"),
     .serialized)
 @MainActor
-struct MobileMarketingScreenshotTests {
+struct MobileScreenshotTests {
     private var languages: [String] {
-        if let language = ProcessInfo.processInfo.environment["TERMIND_MARKETING_LOCALE"] {
+        if let language = ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_LOCALE"] {
             return [language]
         }
         return ["en", "zh-Hans", "zh-Hant"]
     }
 
-    @Test func renderMarketingScenes() async throws {
-        guard ProcessInfo.processInfo.environment["TERMIND_MARKETING_SCREENSHOTS"] == "1" else { return }
+    @Test func renderScenes() async throws {
+        guard ProcessInfo.processInfo.environment["TERMIND_SCREENSHOTS"] == "1" else { return }
         let requestedScenes = Set(
-            ProcessInfo.processInfo.environment["TERMIND_MARKETING_SCENES"]?
+            ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_SCENES"]?
                 .split(separator: ",").map(String.init) ?? [])
         func includes(_ scene: String) -> Bool { requestedScenes.isEmpty || requestedScenes.contains(scene) }
 
@@ -34,7 +34,7 @@ struct MobileMarketingScreenshotTests {
             let app = try makeApp(language: language)
             if includes("vault") {
                 try await capture("vault", language: language) {
-                    MarketingVaultScene(app: app)
+                    ScreenshotVaultScene(app: app)
                 }
             }
 
@@ -43,7 +43,7 @@ struct MobileMarketingScreenshotTests {
             } else if includes("sftp") {
                 let sftp = MobileSFTPChannelModel()
                 try await sftp.attach(
-                    fileSystem: MarketingFileSystem(), path: "/srv/termind/releases/2026.09",
+                    fileSystem: ScreenshotFileSystem(), path: "/srv/termind/releases/2026.09",
                     connectionGeneration: UUID(), handlesConnectionError: { _ in false }, didChangePath: {})
                 try await capture("sftp", language: language) {
                     NavigationStack {
@@ -56,7 +56,7 @@ struct MobileMarketingScreenshotTests {
                         .navigationTitle(text(language, "Production files", "生产文件", "正式環境檔案"))
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
-                            marketingBackButton(language: language)
+                            screenshotBackButton(language: language)
                             ToolbarItem(placement: .primaryAction) {
                                 Menu {
                                     Button("Refresh", systemImage: "arrow.clockwise") {}
@@ -78,9 +78,9 @@ struct MobileMarketingScreenshotTests {
             if includes("metrics") {
                 let metrics = makeMetrics(language: language)
                 try await capture("metrics", language: language) {
-                    MarketingTabShell(selected: .metrics) {
+                    ScreenshotTabShell(selected: .metrics) {
                         NavigationStack {
-                            MarketingMetricsScene(servers: metrics)
+                            ScreenshotMetricsScene(servers: metrics)
                         }
                     }
                 }
@@ -91,7 +91,7 @@ struct MobileMarketingScreenshotTests {
                 let conversation = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
                 assistant.library.insertAndSelect(conversation)
                 try await capture("assistant", language: language) {
-                    MarketingTabShell(selected: .assistant) {
+                    ScreenshotTabShell(selected: .assistant) {
                         NavigationStack {
                             MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
                         }
@@ -137,13 +137,13 @@ struct MobileMarketingScreenshotTests {
                 return SSHPTYChannel(output: receive, exit: exit, shellIntegration: shellIntegration)
             },
             connectSSH: { _, _, _, _, _, _ in },
-            connectSFTP: { _, _, _ in MarketingFileSystem() },
+            connectSFTP: { _, _, _ in ScreenshotFileSystem() },
             writeSSH: { _, _ in }
         )
         let app = try makeApp(language: language, connectionServices: services)
         defer { app.testWorkspaceSession.closeAll() }
         let identity = Identity(name: "Deploy", username: "deploy")
-        try app.library.upsert(identity, passwordUpdate: .replace("marketing-fixture-only"))
+        try app.library.upsert(identity, passwordUpdate: .replace("screenshot-fixture-only"))
         var host = try #require(app.library.hosts.first(where: { $0.name == "web-01" }))
         host.identityID = identity.id
         app.library.upsert(host)
@@ -240,7 +240,7 @@ struct MobileMarketingScreenshotTests {
             isPad ? scene.interfaceOrientation == .landscapeLeft : scene.interfaceOrientation == .portrait
         if !hasTargetOrientation {
             scene.requestGeometryUpdate(.iOS(interfaceOrientations: targetOrientation)) { error in
-                print("Unable to rotate the marketing scene: \(error.localizedDescription)")
+                print("Unable to rotate the screenshot scene: \(error.localizedDescription)")
             }
             try await Task.sleep(for: .milliseconds(800))
         }
@@ -297,7 +297,7 @@ struct MobileMarketingScreenshotTests {
             try await Task.sleep(for: .milliseconds(300))
         }
 
-        if ProcessInfo.processInfo.environment["TERMIND_MARKETING_SYSTEM_CAPTURE"] == "1" {
+        if ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_SYSTEM_CAPTURE"] == "1" {
             try await waitForSystemCapture(name, language: language)
             return
         }
@@ -311,7 +311,7 @@ struct MobileMarketingScreenshotTests {
         let data = try #require(image.pngData())
 
         let outputDirectory = try #require(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
-            .appending(path: "marketing-screenshots", directoryHint: .isDirectory)
+            .appending(path: "screenshots", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
         let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
@@ -319,7 +319,7 @@ struct MobileMarketingScreenshotTests {
         try FileManager.default.createDirectory(at: featureDirectory, withIntermediateDirectories: true)
         let output = featureDirectory.appending(path: "\(device)-\(locale).png")
         try data.write(to: output, options: .atomic)
-        print("Marketing snapshot: \(output.path)")
+        print("Screenshot: \(output.path)")
     }
 
     private func tabController(in controller: UIViewController) -> UITabBarController? {
@@ -334,14 +334,14 @@ struct MobileMarketingScreenshotTests {
 
     private func waitForSystemCapture(_ name: String, language: String) async throws {
         let documents = try #require(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
-        let control = documents.appending(path: "marketing-capture-control", directoryHint: .isDirectory)
+        let control = documents.appending(path: "screenshot-capture-control", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
         let token = UUID().uuidString
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
         let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
         let ready = control.appending(path: "ready")
         let ack = control.appending(path: "ack-\(token)")
-        let captureID = try #require(ProcessInfo.processInfo.environment["TERMIND_MARKETING_CAPTURE_ID"])
+        let captureID = try #require(ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_CAPTURE_ID"])
         try "\(name)\t\(device)\t\(locale)\t\(token)\t\(captureID)\n".write(
             to: ready, atomically: true, encoding: .utf8)
 
@@ -353,11 +353,11 @@ struct MobileMarketingScreenshotTests {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        throw MarketingCaptureError.systemCaptureTimedOut(name)
+        throw ScreenshotCaptureError.systemCaptureTimedOut(name)
     }
 
     @ToolbarContentBuilder
-    private func marketingBackButton(language: String) -> some ToolbarContent {
+    private func screenshotBackButton(language: String) -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
             Button(action: {}) {
                 Label(text(language, "Workspaces", "工作区", "工作區"), systemImage: "chevron.left")
@@ -374,15 +374,15 @@ struct MobileMarketingScreenshotTests {
     }
 }
 
-private enum MarketingCaptureError: Error {
+private enum ScreenshotCaptureError: Error {
     case systemCaptureTimedOut(String)
 }
 
-private struct MarketingVaultScene: View {
+private struct ScreenshotVaultScene: View {
     let app: MobileAppModel
 
     var body: some View {
-        MarketingTabShell(selected: .vault) {
+        ScreenshotTabShell(selected: .vault) {
             NavigationStack {
                 MobileVaultView(
                     app: app, editingHost: .constant(nil), activateHost: { _ in },
@@ -393,7 +393,7 @@ private struct MarketingVaultScene: View {
     }
 }
 
-private struct MarketingTabShell<Content: View>: View {
+private struct ScreenshotTabShell<Content: View>: View {
     let selected: MobileDestination
     let content: Content
     private let features = MobileFeatureRegistry.standard()
@@ -420,7 +420,7 @@ private struct MarketingTabShell<Content: View>: View {
     }
 }
 
-private struct MarketingMetricsScene: View {
+private struct ScreenshotMetricsScene: View {
     let servers: [ServerMetric]
 
     var body: some View {
@@ -447,7 +447,7 @@ private struct MarketingMetricsScene: View {
     }
 }
 
-private actor MarketingFileSystem: SFTPClientProtocol {
+private actor ScreenshotFileSystem: SFTPClientProtocol {
     private let files: [RemoteFile] = [
         RemoteFile(
             path: "/srv/termind/releases/2026.09/bin", name: "bin", kind: .directory, size: 0,

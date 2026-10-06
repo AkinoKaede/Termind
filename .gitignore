@@ -58,3 +58,10 @@ htmlcov/
 
 # OpenWiki transient run state
 openwiki/.run.json
+
+# Bundler and fastlane local output
+.bundle/
+vendor/bundle/
+fastlane/report.xml
+fastlane/README.md
+fastlane/test_output/

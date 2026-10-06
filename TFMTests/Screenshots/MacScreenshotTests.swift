@@ -5,14 +5,14 @@ import Testing
 
 #if DEBUG
     @Suite(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1"),
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_SCREENSHOTS"] == "1"),
         .serialized)
     @MainActor
-    struct MacMarketingScreenshotTests {
+    struct MacScreenshotTests {
         @Test
         func captureDemoInFocusedSystemWindow() async throws {
             let environment = ProcessInfo.processInfo.environment
-            guard environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1" else { return }
+            guard environment["TERMIND_MAC_SCREENSHOTS"] == "1" else { return }
 
             let configuration = try #require(ScreenshotDemoConfiguration.active)
             // Capture the production WindowGroup. A second RootView would mount
@@ -65,7 +65,7 @@ import Testing
             guard NSApp.isActive, window.isKeyWindow else {
                 let frontmost = NSWorkspace.shared.frontmostApplication
                 let diagnostic =
-                    "Marketing window could not become the focused key window: "
+                    "Screenshot window could not become the focused key window: "
                     + "active=\(NSApp.isActive), key=\(window.isKeyWindow), "
                     + "frontmost=\(frontmost?.localizedName ?? "none") "
                     + "pid=\(frontmost?.processIdentifier ?? -1)"
@@ -88,7 +88,7 @@ import Testing
             let language = configuration.language.rawValue
             FileHandle.standardOutput.write(
                 Data(
-                    "TERMIND_MAC_MARKETING_READY \(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n"
+                    "TERMIND_MAC_SCREENSHOT_READY \(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n"
                         .utf8)
             )
 

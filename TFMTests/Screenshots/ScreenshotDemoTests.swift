@@ -9,7 +9,7 @@ import TermindPresentation
 
     @testable import Termind
 
-    @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1"))
+    @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_MAC_SCREENSHOTS"] == "1"))
     @MainActor
     struct ScreenshotDemoTests {
         @Test
@@ -168,13 +168,13 @@ import TermindPresentation
             #expect(workspaceModel.panes.map(\.kind) == [.sshSession, .sshSession, .sftpChannel])
 
             guard case .split(let root) = workspaceModel.layout else {
-                Issue.record("Workspace marketing demo should use a horizontal root split")
+                Issue.record("Workspace screenshot demo should use a horizontal root split")
                 return
             }
             #expect(root.axis == .horizontal)
             #expect(root.fraction == 0.5)
             guard case .split(let terminals) = root.first else {
-                Issue.record("Workspace marketing demo should stack two terminals on the left")
+                Issue.record("Workspace screenshot demo should stack two terminals on the left")
                 return
             }
             #expect(terminals.axis == .vertical)

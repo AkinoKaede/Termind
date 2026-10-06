@@ -1,0 +1,45 @@
+ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] ||= "120"
+
+opt_out_usage
+skip_docs
+
+require_relative "lib/screenshots"
+
+# scan drives the existing Swift Testing fixtures; native system capture keeps
+# Liquid Glass, software keyboards and focused Mac window chrome intact.
+platform :mac do
+  desc "Capture Mac release screenshots (scenes, locales, output, plan)"
+  lane :screenshots do |options|
+    runner = Screenshots.new(:mac, options)
+    if options[:plan].to_s == "true"
+      UI.message(JSON.pretty_generate(runner.plan))
+    else
+      UI.message("Mac screenshots open and focus Termind. Use plan:true to inspect the matrix without opening windows.")
+      runner.run { |configuration| run_tests(configuration) }
+    end
+  end
+end
+
+platform :ios do
+  desc "Capture iPhone/iPad release screenshots (scenes, devices, locales, runtime, output, plan)"
+  lane :screenshots do |options|
+    runner = Screenshots.new(:ios, options)
+    if options[:plan].to_s == "true"
+      UI.message(JSON.pretty_generate(runner.plan))
+    else
+      runner.run { |configuration| run_tests(configuration) }
+    end
+  end
+end
+
+require_relative "lib/screenshot_frames"
+
+desc "Add device frames with frameit (devices, scenes, locales, input, output, ipad_frame, plan)"
+lane :frames do |options|
+  runner = ScreenshotFrames.new(options)
+  if options[:plan].to_s == "true"
+    UI.message(JSON.pretty_generate(runner.plan))
+  else
+    runner.run { |configuration| frameit(configuration) }
+  end
+end
