@@ -32,8 +32,7 @@ struct ShellIntegrationLoggingTests {
         lifecycle.sessionEnded(hostID: hostID)
 
         let entries = capture.entries
-        #expect(entries.count == 2)
-        #expect(entries.map(\.message) == ["ssh.shell_integration.started", "ssh.shell_integration.completed"])
+        try #require(entries.map(\.message) == ["ssh.shell_integration.started", "ssh.shell_integration.completed"])
         #expect(entries.map(\.level) == [.info, .info])
         #expect(entries[1].metadata["outcome"] == "success")
         #expect(entries[1].metadata["home_resolution"] == "resolved")

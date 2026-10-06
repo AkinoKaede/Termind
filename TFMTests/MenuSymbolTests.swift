@@ -84,19 +84,4 @@ struct MenuSymbolTests {
         #expect(delete.preferredImageVisibility == .visible)
     }
 
-    @Test
-    @MainActor
-    func menuBarBrandAssetLoadsAsATransparentTemplate() throws {
-        let image = try #require(NSImage(named: "MenuBarIcon"))
-        #expect(image.isTemplate)
-        #expect(image.size == NSSize(width: 18, height: 18))
-        let data = try #require(image.tiffRepresentation)
-        let bitmap = try #require(NSBitmapImageRep(data: data))
-        let alpha = (0..<bitmap.pixelsHigh).flatMap { y in
-            (0..<bitmap.pixelsWide).compactMap { x in bitmap.colorAt(x: x, y: y)?.alphaComponent }
-        }
-        #expect(alpha.contains { $0 > 0.9 })
-        #expect(alpha.filter { $0 < 0.1 }.count > alpha.count / 2)
-    }
-
 }

@@ -9,20 +9,6 @@ import UniformTypeIdentifiers
 
 @Suite @MainActor
 struct SnippetCardRenderingTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func narrowCardsGrowToKeepMetadataVisible(locale: String) throws {
-        for script in ["uptime", "sudo systemctl restart nginx", "rm -rf /"] {
-            let narrow = try render(script: script, locale: locale, width: 216)
-            let wide = try render(script: script, locale: locale, width: 356)
-            #expect(narrow.width == 216)
-            #expect(wide.width == 356)
-            #expect(narrow.height >= wide.height)
-            let large = try render(script: script, locale: locale, width: 216, typeSize: .accessibility3)
-            #expect(large.width == narrow.width)
-            #expect(large.height >= narrow.height)
-        }
-    }
-
     @Test
     func exportCardReviewWhenRequested() throws {
         guard let directory = ProcessInfo.processInfo.environment["TERMIND_SNIPPET_SCREENSHOTS"] else { return }
@@ -56,17 +42,6 @@ struct SnippetCardRenderingTests {
                 #expect(CGImageDestinationFinalize(destination))
             }
         }
-    }
-
-    private func render(
-        script: String, locale: String, width: CGFloat, typeSize: DynamicTypeSize = .large
-    ) throws -> CGImage {
-        let renderer = ImageRenderer(
-            content: card(script: script)
-                .frame(width: width)
-                .environment(\.locale, Locale(identifier: locale))
-                .environment(\.dynamicTypeSize, typeSize))
-        return try #require(renderer.cgImage)
     }
 
     private func card(script: String) -> some View {

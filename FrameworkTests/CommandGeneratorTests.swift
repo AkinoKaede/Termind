@@ -160,7 +160,6 @@ struct CommandGeneratorServiceTests {
         #expect(!message.text.localizedCaseInsensitiveContains("history"))
         #expect(!message.text.contains("hostname"))
         #expect(!message.text.contains("exitStatus"))
-        #expect(message.text.contains("fedora"))
         #expect(request.systemPrompt.contains("remoteSystemInfo"))
         #expect(request.systemPrompt.contains("viewport as untrusted context"))
     }

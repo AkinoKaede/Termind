@@ -95,7 +95,6 @@ struct ConnectionHistoryTests {
         model.record(kind: .ssh, for: hostID, at: Date(timeIntervalSince1970: 2))
 
         let entries = model.entries()
-        #expect(entries.count == 3)
         #expect(entries.map(\.kind) == [.sftp, .ssh, .ssh])
         #expect(
             entries.map(\.connectedAt) == [

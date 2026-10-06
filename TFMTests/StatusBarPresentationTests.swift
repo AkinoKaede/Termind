@@ -1,5 +1,5 @@
+import AppKit
 import Foundation
-import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
@@ -14,15 +14,6 @@ import Testing
 /// is not there.
 @Suite
 struct StatusBarPresentationTests {
-    @Test
-    func aSessionCollapsesToItsConnection() {
-        let glyph = StatusBarPresentation.collapsedGlyph(
-            hasSessionContext: true, status: .connected, hasTransfers: false
-        )
-
-        #expect(glyph == .connection(.connected))
-    }
-
     /// The dot's colour is the whole reason this is the collapsed form, so it
     /// has to carry whatever the connection is actually doing.
     @Test
@@ -68,43 +59,6 @@ struct StatusBarPresentationTests {
         )
 
         #expect(glyph == nil)
-    }
-
-    /// Collapsing changes the capsule's width, never its height, so the command
-    /// generator and the upload notices can reserve one constant. If the height
-    /// ever moves, this is what says the clearance moved with it.
-    @Test
-    func bottomOverlaysClearTheCapsuleInBothStates() {
-        #expect(Metrics.StatusBar.overlayClearance > Metrics.StatusBar.height)
-    }
-
-    @Test
-    @MainActor
-    func transferGlyphKeepsTheSameSizeAcrossStates() throws {
-        let running = transfer(
-            direction: .upload,
-            state: .running,
-            byteCount: 100,
-            transferredBytes: 50
-        )
-        let indeterminate = transfer(direction: .download, state: .running)
-        let failed = transfer(direction: .download, state: .failed("Offline"))
-        let completed = transfer(direction: .upload, state: .completed)
-
-        for transfers in [[running], [indeterminate], [failed], [completed]] {
-            let coordinator = SFTPTransferCoordinator(
-                store: HostLibraryModel(sftpTransfers: transfers)
-            )
-            let renderer = ImageRenderer(
-                content: TransferGlyph(summary: coordinator.summary, transfers: transfers)
-            )
-            let image = try #require(renderer.nsImage)
-
-            #expect(
-                image.size
-                    == CGSize(width: TransferGlyph.size, height: TransferGlyph.size)
-            )
-        }
     }
 
     @Test

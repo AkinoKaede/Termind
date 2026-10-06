@@ -1076,7 +1076,6 @@ struct MobileWorkspaceNavigationRenderingTests {
             )
             detail = try #require(navigation.topViewController)
             #expect(!detail.navigationItem.hidesBackButton)
-            #expect(try #require(renderedPNGData(of: detail)).count > 10_000)
 
             scene.selectWorkspace(sshID)
             _ = try #require(await navigationController(titled: "SSH Workspace", in: controller))

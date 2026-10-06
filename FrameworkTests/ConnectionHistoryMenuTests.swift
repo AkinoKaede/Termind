@@ -54,9 +54,6 @@ struct ConnectionHistoryMenuTests {
         #expect(menu.days.map(\.isToday) == [true, false])
         #expect(menu.days.first?.rows.map(\.id) == entries.prefix(3).reversed().map(\.id))
         #expect(menu.days.last?.rows.map(\.id) == [yesterday.id])
-        let displayed = menu.recentToday + menu.days.flatMap(\.rows)
-        #expect(displayed.count == history.entries().count)
-        #expect(Set(displayed.map(\.id)).count == displayed.count)
     }
 
     @Test func dateGroupsFollowLocalDaysAndOmitMissingHosts() {

@@ -70,7 +70,6 @@ struct WorkspaceAccessTests {
         let workspace = window.openSSHSession(host: fixture.first)
         let original = workspace.focusedPane
         window.duplicateSelected(axis: .horizontal)
-        #expect(workspace.panes.count == 2)
         #expect(workspace.panes.map(\.hostID) == [fixture.first.id, fixture.first.id])
         #expect(workspace.focusedPane.sshSession !== original.sshSession)
         #expect(workspace.canBroadcast)

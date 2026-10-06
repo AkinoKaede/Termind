@@ -193,7 +193,6 @@ struct VaultSyncTests {
         let historyEnvelopes = try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
             .compactMap(\.envelope)
             .filter { $0.key.kind == .connectionHistory }
-        #expect(retained.count == ConnectionHistoryModel.limit)
         #expect(retained.map(\.id) == Array(values.suffix(ConnectionHistoryModel.limit).reversed()).map(\.id))
         #expect(historyEnvelopes.count == values.count)
         #expect(historyEnvelopes.filter(\.isDeleted).count == values.count - ConnectionHistoryModel.limit)

@@ -1485,7 +1485,6 @@ struct WindowStateTests {
         window.select(original.id)
         window.duplicateSelectedInNewWorkspace()
         #expect(window.workspaces.count == 3)
-        #expect(window.selectedWorkspace?.panes.count == 2)
         #expect(window.selectedWorkspace?.panes.map(\.kind) == original.panes.map(\.kind))
     }
 

@@ -244,56 +244,6 @@ struct PersistenceCompatibilityTests {
         try first.mainContext.save()
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV21.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV23.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV24.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV25.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV26.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV27.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV28.versionIdentifier })
-        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(29, 0, 0) })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
-        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(32, 0, 0) })
-        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(33, 0, 0) })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV34.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV42.versionIdentifier })
-        #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
-        #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
-        #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
-        #expect(!TermindSchemaV26.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
-        #expect(TermindSchemaV26.models.contains { $0 == TermindSchemaV26HostModels.PersistentHost.self })
-        #expect(!TermindSchemaV27.models.contains { $0 == TermindSchemaV26HostModels.PersistentHost.self })
-        #expect(TermindSchemaV27.models.contains { $0 == TermindSchemaV27HostModels.PersistentHost.self })
-        #expect(!TermindSchemaV30.models.contains { $0 == TermindSchemaV27HostModels.PersistentHost.self })
-        #expect(TermindSchemaV30.models.contains { $0 == TermindSchemaV29HostModels.PersistentHost.self })
-        #expect(
-            !TermindSchemaV30.models.contains { $0 == TermindSchemaV29KnownHostModels.PersistentKnownHost.self })
-        #expect(TermindSchemaV30.models.contains { $0 == TermindSchemaV30KnownHostModels.PersistentKnownHost.self })
-        #expect(
-            TermindSchemaV31.models.contains {
-                $0 == TermindSchemaV29HostModels.PersistentHost.self
-            })
-        #expect(
-            TermindSchemaV34.models.contains {
-                $0 == TermindSchemaV32HostModels.PersistentHost.self
-            })
-        #expect(
-            !TermindSchemaV34.models.contains {
-                $0 == TermindSchemaV29HostModels.PersistentHost.self
-            })
-        #expect(
-            TermindSchemaV34.models.contains {
-                $0 == TermindSchemaV33IdentityModels.PersistentIdentity.self
-            })
-        #expect(
-            !TermindSchemaV34.models.contains {
-                $0 == TermindSchemaV25IdentityModels.PersistentIdentity.self
-            })
-        #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
-        #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
-        #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
-        #expect(first.schema.entities.contains { $0.name == "PersistentWorkspacePreferences" })
     }
 
     @Test

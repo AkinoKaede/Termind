@@ -82,7 +82,6 @@ struct MobileConnectionPickerTests {
 
         let rows = MobileWorkspaceListView(app: app, scene: scene).historyRows
 
-        #expect(rows.count == MobileWorkspaceListView.historyLimit)
         #expect(rows.map(\.entry.id) == expectedEntries.map(\.id))
         #expect(rows.first?.preferredKind == .ssh)
         #expect(rows.first?.loginAddress == app.library.loginAddress(for: repeatedHost, protocol: .ssh))

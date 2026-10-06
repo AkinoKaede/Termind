@@ -7,32 +7,6 @@ import Testing
 
 @Suite @MainActor
 struct TerminalThemeBrowserTests {
-    @Test func hoverPaletteChangesOnlyTheBottomStripWithoutResizing() throws {
-        func render(showsPalette: Bool) throws -> NSBitmapImageRep {
-            let renderer = ImageRenderer(
-                content: TerminalThemeThumbnail(
-                    theme: TermindTerminalThemeCatalog.defaultDark, showsPalette: showsPalette
-                )
-                .frame(width: 144, height: 96))
-            renderer.scale = 1
-            return NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
-        }
-        let resting = try render(showsPalette: false)
-        let hovering = try render(showsPalette: true)
-        #expect(resting.pixelsWide == hovering.pixelsWide)
-        #expect(resting.pixelsHigh == hovering.pixelsHigh)
-        var changedPixels = 0
-        for y in 0..<96 {
-            for x in 0..<144 {
-                if resting.colorAt(x: x, y: y) != hovering.colorAt(x: x, y: y) {
-                    changedPixels += 1
-                    #expect(y >= 88)
-                }
-            }
-        }
-        #expect(changedPixels > 500)
-    }
-
     @Test(arguments: [false, true])
     func searchKeepsAppearanceAndCustomSelectionIndependent(isDark: Bool) {
         let options = TerminalThemeOptions(

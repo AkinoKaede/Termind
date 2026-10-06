@@ -43,8 +43,7 @@ struct MobileHomeScreenQuickActionTests {
         )
         let descriptors = MobileHomeScreenQuickActions.descriptors(rows: rows)
 
-        #expect(descriptors.count == 3)
-        #expect(
+        try #require(
             descriptors.map(\.action)
                 == [
                     .history(hostID: repeated.id),

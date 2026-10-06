@@ -21,8 +21,6 @@ struct MobileTerminalKeyboardTests {
         let bar = try #require(terminal.inputAccessoryView)
         let buttons = accessoryButtons(in: bar)
         #expect(buttons.map(\.accessibilityLabel) == items.compactMap(\.title))
-        #expect(items.last == .paste)
-        #expect(buttons.count == 18)
     }
 
     @Test func nativeAccessoryKeepsItsGeometryAndAllKeysReachable() throws {

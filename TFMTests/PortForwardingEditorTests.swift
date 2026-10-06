@@ -61,8 +61,6 @@ struct PortForwardingEditorTests {
         draft.targetPort = hiddenTargetPort
         let normalized = try #require(PortForwardingEditorPolicy.normalized(draft))
         #expect(normalized == saved)
-        #expect(normalized.targetHost == nil)
-        #expect(normalized.targetPort == nil)
     }
 
     @Test func savingHostAndRuleDoesNotStartForwardingAndLaterSavedEditsRemainStartable() throws {

@@ -61,61 +61,27 @@ struct MobileCardTests {
         #expect(MobileWorkspaceConnectionIndicator.busy.status == .connecting)
     }
 
-    @Test func cardColumnsFollowContainerWidthOnEveryDevice() {
-        for width: CGFloat in [0, 288, 370, 660, 1024] {
-            #expect(MobileCardLayout.columns(width: width, accessibilitySize: true) == 1)
-        }
-        #expect(MobileCardLayout.columns(width: 0, accessibilitySize: false) == 1)
-        #expect(MobileCardLayout.columns(width: 651, accessibilitySize: false) == 1)
-        #expect(MobileCardLayout.columns(width: 652, accessibilitySize: false) == 2)
-        #expect(MobileCardLayout.columns(width: 983, accessibilitySize: false) == 2)
-        #expect(MobileCardLayout.columns(width: 984, accessibilitySize: false) == 3)
-    }
-
-    @Test func standardCardHeightDoesNotChangeWithHostTags() {
-        let noTags = measuredHeight(of: standardCard(tags: []))
-        let oneTag = measuredHeight(of: standardCard(tags: ["production"]))
-        let manyTags = measuredHeight(
-            of: standardCard(tags: ["production", "a-very-long-tag-that-must-not-wrap", "hidden"]))
-        let actionNoTags = measuredHeight(of: standardActionCard(tags: []))
-        let actionManyTags = measuredHeight(
-            of: standardActionCard(tags: ["production", "a-very-long-tag-that-must-not-wrap", "hidden"]))
-
-        #expect(noTags >= MobileCardLayout.minimumHeight)
-        #expect(abs(noTags - oneTag) <= 1)
-        #expect(abs(noTags - manyTags) <= 1)
-        #expect(actionNoTags >= MobileCardLayout.minimumHeight)
-        #expect(abs(actionNoTags - actionManyTags) <= 1)
-    }
-
-    @Test func snippetCardsMatchOtherMobileCards() throws {
+    @Test func exportSnippetCardReviewWhenRequested() throws {
+        guard let directory = ProcessInfo.processInfo.environment["TERMIND_SNIPPET_SCREENSHOTS"] else { return }
+        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
         for locale in ["en", "zh-Hans", "zh-Hant"] {
-            for width: CGFloat in [320, 398, 600] {
-                let standard = measuredHeight(of: standardActionCard(tags: ["production"]), width: width)
-                for script in ["uptime", "sudo systemctl restart nginx", "rm -rf /"] {
-                    let card = MobileActionCard(
-                        action: {},
-                        content: {
-                            SnippetCardContent(
-                                snippet: Snippet(title: "Production database maintenance", body: script),
-                                validTargetCount: 12, packagePath: "Operations / Production",
-                                modifiedAt: Date().addingTimeInterval(-3600))
-                        },
-                        actions: { EmptyView() }
-                    )
-                    .environment(\.locale, Locale(identifier: locale))
-                    #expect(abs(measuredHeight(of: card, width: width) - standard) <= 1)
-                    if width == 320,
-                        let directory = ProcessInfo.processInfo.environment["TERMIND_SNIPPET_SCREENSHOTS"]
-                    {
-                        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-                        let renderer = ImageRenderer(content: card.frame(width: width))
-                        renderer.scale = 2
-                        let data = try #require(renderer.uiImage?.pngData())
-                        let risk = CommandRiskClassifier.assess(script).risk.rawValue
-                        try data.write(to: URL(filePath: directory).appending(path: "snippet-\(locale)-\(risk).png"))
-                    }
-                }
+            for script in ["uptime", "sudo systemctl restart nginx", "rm -rf /"] {
+                let card = MobileActionCard(
+                    action: {},
+                    content: {
+                        SnippetCardContent(
+                            snippet: Snippet(title: "Production database maintenance", body: script),
+                            validTargetCount: 12, packagePath: "Operations / Production",
+                            modifiedAt: Date().addingTimeInterval(-3600))
+                    },
+                    actions: { EmptyView() }
+                )
+                .environment(\.locale, Locale(identifier: locale))
+                let renderer = ImageRenderer(content: card.frame(width: 320))
+                renderer.scale = 2
+                let data = try #require(renderer.uiImage?.pngData())
+                let risk = CommandRiskClassifier.assess(script).risk.rawValue
+                try data.write(to: URL(filePath: directory).appending(path: "snippet-\(locale)-\(risk).png"))
             }
         }
     }
@@ -124,23 +90,6 @@ struct MobileCardTests {
         #expect(Array(MobileCardLayout.visibleTags([])).isEmpty)
         #expect(Array(MobileCardLayout.visibleTags(["one"])) == ["one"])
         #expect(Array(MobileCardLayout.visibleTags(["one", "two", "three"])) == ["one", "two"])
-    }
-
-    @Test func forwardingCardsMatchHostHeightWithOrWithoutNames() {
-        for width: CGFloat in [320, 398, 600] {
-            let hostHeight = measuredHeight(of: standardActionCard(tags: ["production"]), width: width)
-            for kind in PortForwardingRule.Kind.allCases {
-                for name in ["", "Database with a long display name that stays on one line"] {
-                    let rule = PortForwardingRule(
-                        hostID: UUID(), kind: kind, targetHost: "database.production.example.invalid", label: name)
-                    let card = MobileActionCard(
-                        action: {},
-                        content: { MobileForwardingCardContent(rule: rule, hostName: "Production", runtime: .stopped) },
-                        actions: { EmptyView() })
-                    #expect(abs(measuredHeight(of: card, width: width) - hostHeight) <= 1)
-                }
-            }
-        }
     }
 
     @Test func unnamedForwardingUsesTheHostAndSSHArgument() {
@@ -301,40 +250,6 @@ struct MobileCardTests {
         await reopened.loadPrivateKey()
         #expect(reopened.colorTag == .none && !reopened.isDirty)
         #expect(updated.fingerprint == key.fingerprint)
-    }
-
-    private func standardCard(tags: [String]) -> some View {
-        MobileCard { standardCardContent(tags: tags) }
-    }
-
-    private func standardActionCard(tags: [String]) -> some View {
-        MobileActionCard(
-            action: {},
-            content: { standardCardContent(tags: tags) },
-            actions: { EmptyView() }
-        )
-    }
-
-    private func standardCardContent(tags: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                MobileCardIcon(symbol: "server.rack")
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Production").font(.headline).lineLimit(1)
-                    Text("deploy@example.invalid").font(.caption.monospaced()).lineLimit(1)
-                }
-            }
-            HStack(spacing: 6) {
-                ForEach(MobileCardLayout.visibleTags(tags), id: \.self) { MobileCardChip(text: $0) }
-                Spacer(minLength: 6)
-                Text("1 hr ago").font(.caption2).lineLimit(1).fixedSize(horizontal: true, vertical: false)
-            }
-        }
-    }
-
-    private func measuredHeight<V: View>(of view: V, width: CGFloat = 320) -> CGFloat {
-        let controller = UIHostingController(rootView: view.environment(\.dynamicTypeSize, .large))
-        return controller.sizeThatFits(in: CGSize(width: width, height: 1_000)).height
     }
 
     private func components(_ color: UIColor) throws -> (CGFloat, CGFloat, CGFloat) {

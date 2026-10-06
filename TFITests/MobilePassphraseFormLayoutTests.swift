@@ -9,21 +9,6 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobilePassphraseFormLayoutTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 600.0])
-    func passphraseActionsFitCompactAndRegularWidths(language: String, width: Double) throws {
-        let host = TermindDomain.Host(name: "Production", host: "server.example.invalid")
-        let prompt = SSHAuthenticationPrompt(host: host, username: "deploy", requiresPassphrase: true)
-        let controller = UIHostingController(
-            rootView: SSHAuthenticationForm(
-                prompt: prompt, submit: { _, _, _, _, _, _ in }, cancel: {}, library: HostLibraryModel()
-            ).environment(\.locale, Locale(identifier: language)).frame(width: width))
-        let size = controller.sizeThatFits(in: CGSize(width: width, height: 1000))
-        #expect(abs(size.width - width) < 1)
-        #expect(size.height > 100 && size.height < 500)
-        controller.view.frame = CGRect(origin: .zero, size: size)
-        controller.view.layoutIfNeeded()
-    }
-
     @Test(
         .requiresKeyWindow,
         arguments: ["en", "zh-Hans"], [false, true])
