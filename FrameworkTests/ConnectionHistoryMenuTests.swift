@@ -84,6 +84,31 @@ struct ConnectionHistoryMenuTests {
         #expect(tomorrow.days.allSatisfy { !$0.isToday })
     }
 
+    @Test(arguments: [DateComponents(year: 2026, month: 3, day: 10), DateComponents(year: 2026, month: 11, day: 3)])
+    func menuIncludesOnlySevenLocalCalendarDaysWithoutDeletingOlderHistory(components: DateComponents) throws {
+        var local = Calendar(identifier: .gregorian)
+        local.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let today = try #require(local.date(from: components))
+        let firstDay = try #require(local.date(byAdding: .day, value: -6, to: today))
+        let tomorrow = try #require(local.date(byAdding: .day, value: 1, to: today))
+        let host = Host(name: "Server", host: "server.example")
+        let oldestIncluded = ConnectionHistoryEntry(hostID: host.id, kind: .ssh, connectedAt: firstDay)
+        let excluded = ConnectionHistoryEntry(
+            hostID: host.id, kind: .ssh, connectedAt: firstDay.addingTimeInterval(-1))
+        let future = ConnectionHistoryEntry(hostID: host.id, kind: .ssh, connectedAt: tomorrow)
+        let todayEntries = (0..<16).map {
+            ConnectionHistoryEntry(hostID: host.id, kind: .ssh, connectedAt: today.addingTimeInterval(Double($0)))
+        }
+        let history = ConnectionHistoryModel(entries: todayEntries + [oldestIncluded, excluded, future])
+        let menu = ConnectionHistoryMenuSnapshot(
+            history: history, library: HostLibraryModel(hosts: [host]), now: today, calendar: local)
+
+        #expect(menu.recentToday.map(\.id) == todayEntries.suffix(15).reversed().map(\.id))
+        #expect(menu.days.map(\.date) == [today, firstDay])
+        #expect(menu.days.flatMap(\.rows).map(\.id) == [todayEntries[0].id, oldestIncluded.id])
+        #expect(history.entries().contains { $0.id == excluded.id })
+    }
+
     @Test func unavailableProtocolsStayVisibleAndClearRemovesBothSections() throws {
         var host = Host(name: "Server", host: "server.example")
         host.sshEnabled = false

@@ -22,7 +22,7 @@ public struct ConnectionHistoryMenuDay: Identifiable {
     public var id: Date { date }
 }
 
-/// The latest records from today, with overflow and earlier records grouped by local calendar day.
+/// Today’s latest records, with overflow and the preceding six days grouped by local calendar day.
 public struct ConnectionHistoryMenuSnapshot {
     public let recentToday: [ConnectionHistoryMenuRow]
     public let days: [ConnectionHistoryMenuDay]
@@ -32,14 +32,19 @@ public struct ConnectionHistoryMenuSnapshot {
         history: ConnectionHistoryModel, library: HostLibraryModel,
         now: Date? = nil, calendar: Calendar = .current
     ) {
-        let rows = history.entries().sorted {
+        let referenceDate = now ?? history.menuReferenceDate
+        let today = calendar.startOfDay(for: referenceDate)
+        let firstDay = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        let end = calendar.date(byAdding: .day, value: 1, to: today) ?? referenceDate
+        let rows = history.entries().filter {
+            $0.connectedAt >= firstDay && $0.connectedAt < end
+        }.sorted {
             if $0.connectedAt != $1.connectedAt { return $0.connectedAt > $1.connectedAt }
             return $0.id.uuidString < $1.id.uuidString
         }.compactMap { entry -> ConnectionHistoryMenuRow? in
             guard let host = library.host(entry.hostID) else { return nil }
             return ConnectionHistoryMenuRow(entry: entry, host: host)
         }
-        let referenceDate = now ?? history.menuReferenceDate
         recentToday = Array(
             rows.filter { calendar.isDate($0.entry.connectedAt, inSameDayAs: referenceDate) }.prefix(15))
         let displayed = Set(recentToday.map(\.id))

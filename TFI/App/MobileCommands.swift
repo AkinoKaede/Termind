@@ -151,20 +151,44 @@ struct MobileCommands: Commands {
                                     else { return }
                                     scene.selectWorkspace(id)
                                 } label: {
-                                    HistoryMenuLabel(verbatim: item.title, symbol: item.kind.symbol)
+                                    Label {
+                                        Text(verbatim: item.title)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    } icon: {
+                                        Image(
+                                            uiImage: MobileHistoryMenuConfiguration.recordImage(
+                                                systemName: item.kind.symbol))
+                                    }
                                 }
                             }
                         } label: {
-                            HistoryMenuLabel(
-                                AppStrings.History.closedWindow(
-                                    record.items.first?.title ?? "", count: record.items.count),
-                                symbol: record.items.first?.kind.symbol ?? "macwindow")
+                            Label {
+                                Text(
+                                    AppStrings.History.closedWindow(
+                                        record.items.first?.title ?? "", count: record.items.count)
+                                )
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            } icon: {
+                                Image(
+                                    uiImage: MobileHistoryMenuConfiguration.recordImage(
+                                        systemName: record.items.first?.kind.symbol ?? "macwindow"))
+                            }
                         }
                     } else if let descriptor = record.items.first {
                         Button {
                             scene?.reopenClosedWorkspace(record.id)
                         } label: {
-                            HistoryMenuLabel(verbatim: descriptor.title, symbol: descriptor.kind.symbol)
+                            Label {
+                                Text(verbatim: descriptor.title)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            } icon: {
+                                Image(
+                                    uiImage: MobileHistoryMenuConfiguration.recordImage(
+                                        systemName: descriptor.kind.symbol))
+                            }
                         }
                     }
                 }
@@ -185,7 +209,10 @@ struct MobileCommands: Commands {
             .disabled(scene?.workspaceSession.canReopen != true)
 
             if let scene {
-                HistoryMenuRecords(snapshot: scene.historyMenuSnapshot) { row in
+                HistoryMenuRecords(
+                    snapshot: scene.historyMenuSnapshot,
+                    image: { Image(uiImage: MobileHistoryMenuConfiguration.recordImage(systemName: $0)) }
+                ) { row in
                     scene.open(hostID: row.host.id, kind: row.entry.kind)
                 }
             }

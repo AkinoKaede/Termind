@@ -84,6 +84,8 @@ public struct HistoryMenuRecords: View {
             } label: {
                 Label {
                     Text(verbatim: row.host.name)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 } icon: {
                     image(row.entry.kind.symbol)
                 }

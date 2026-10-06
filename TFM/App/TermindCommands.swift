@@ -249,6 +249,8 @@ struct TermindCommands: Commands {
                                 } label: {
                                     Label {
                                         Text(verbatim: item.title)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
                                     } icon: {
                                         Image(
                                             nsImage: MenuImageVisibilityController.markedImage(systemName: item.symbol))
@@ -260,7 +262,10 @@ struct TermindCommands: Commands {
                             Label {
                                 Text(
                                     AppStrings.History.closedWindow(
-                                        record.items.first?.title ?? "", count: record.items.count))
+                                        record.items.first?.title ?? "", count: record.items.count)
+                                )
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                             } icon: {
                                 Image(
                                     nsImage: MenuImageVisibilityController.markedImage(
@@ -273,6 +278,8 @@ struct TermindCommands: Commands {
                         } label: {
                             Label {
                                 Text(verbatim: item.title)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                             } icon: {
                                 Image(nsImage: MenuImageVisibilityController.markedImage(systemName: item.symbol))
                             }

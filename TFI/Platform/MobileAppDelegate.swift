@@ -13,7 +13,7 @@ final class MobileAppDelegate: UIResponder, UIApplicationDelegate {
 
     override func buildMenu(with builder: any UIMenuBuilder) {
         super.buildMenu(with: builder)
-        MobileHistoryMenuImages.apply(to: builder)
+        MobileHistoryMenuConfiguration.apply(to: builder)
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
