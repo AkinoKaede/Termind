@@ -6,6 +6,10 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
+enum MobileVaultRoute: Hashable {
+    case history
+}
+
 /// Navigation and presentation state owned by one iOS/iPadOS scene.
 ///
 /// App data remains shared through `MobileAppModel`. Focused commands operate on
@@ -60,6 +64,34 @@ final class MobileSceneModel {
     var editingHost: Host?
     var renamingWorkspace: MobileWorkspaceDescriptor?
     var assistantLibraryRoute: MobileAssistantLibraryRoute?
+    private(set) var vaultNavigationID = UUID()
+    var vaultNavigationPath = NavigationPath()
+    var confirmsClearConnectionHistory = false
+
+    var historyMenuSnapshot: ConnectionHistoryMenuSnapshot {
+        ConnectionHistoryMenuSnapshot(history: app.connectionHistory, library: app.library, devices: app.devices)
+    }
+    var hasConnectionHistory: Bool { !app.connectionHistory.entries().isEmpty }
+
+    func showConnectionHistory() {
+        let historyPath = NavigationPath([MobileVaultRoute.history])
+        if vaultNavigationPath != historyPath {
+            // Also remove destination-based pushes that are not represented in the value path.
+            vaultNavigationID = UUID()
+            vaultNavigationPath = historyPath
+        }
+        selectedDestination = .vault
+    }
+
+    func clearConnectionHistory() {
+        app.connectionHistory.clearAll()
+        if let error = app.connectionHistory.storageError { app.error = error }
+    }
+
+    func reopenClosedWorkspace(_ id: MobileWorkspace.ID) {
+        guard let id = workspaceSession.reopenClosedWorkspace(id) else { return }
+        selectWorkspace(id)
+    }
     private(set) var reviewPageID: String?
 
     @ObservationIgnored private let app: MobileAppModel

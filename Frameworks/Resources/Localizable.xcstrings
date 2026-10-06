@@ -10294,6 +10294,23 @@
         }
       }
     },
+    "Earlier Today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天早些时候"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天稍早"
+          }
+        }
+      }
+    },
     "Earlier turns are summarized for the model. Nothing was deleted." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21663,6 +21680,23 @@
         }
       }
     },
+    "Recent Closed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近關閉"
+          }
+        }
+      }
+    },
     "Recent Workspaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22397,19 +22431,19 @@
         }
       }
     },
-    "Reopen Closed Workspace" : {
+    "Reopen Last Closed Workspace" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新打开已关闭的工作区"
+            "value" : "重新打开上次关闭的工作区"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重新開啟已關閉的工作區"
+            "value" : "重新開啟上次關閉的工作區"
           }
         }
       }
@@ -25285,6 +25319,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示隱藏檔案"
+          }
+        }
+      }
+    },
+    "Show History" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示历史记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示歷史記錄"
           }
         }
       }

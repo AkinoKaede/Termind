@@ -285,7 +285,8 @@ final class WindowModel {
         }
     }
 
-    /// Closed workspaces, most recent last. ⇧⌘T pops from here. The Workspace retains
+    /// Closed workspaces and individually closed panes, most recent last. A closed
+    /// pane is kept as a single-pane Workspace. ⇧⌘T pops from here. The Workspace retains
     /// its layout, names, and conversation, while `prepareForReopen` replaces
     /// terminal models because a dead SSH session cannot be revived.
     private var reopenStack: [Workspace] {
@@ -553,6 +554,15 @@ final class WindowModel {
     }
 
     var canReopen: Bool { !reopenStack.isEmpty }
+    var recentlyClosedWorkspaces: [Workspace] { Array(reopenStack.reversed()) }
+    var confirmsClearConnectionHistory = false
+    var historyOperationError: String?
+
+    func showConnectionHistory() {
+        selectVault()
+        showsSidebar = true
+        activateSidebarMode(.history)
+    }
 
     func select(_ id: Workspace.ID) {
         guard workspaces.contains(where: { $0.id == id }) else { return }
@@ -1400,8 +1410,7 @@ final class WindowModel {
         guard let index = workspaces.firstIndex(where: { $0.id == id }) else { return }
         let removed = workspaces.remove(at: index)
         removed.disconnectConnections()
-        reopenStack.append(removed)
-        if reopenStack.count > 10 { reopenStack.removeFirst() }
+        rememberForReopen(removed)
 
         if selectedWorkspaceID == id {
             // Select the neighbour that visually takes its place.
@@ -1416,32 +1425,26 @@ final class WindowModel {
     }
 
     /// ⌘W: closes the focused *pane* when the workspace is split, otherwise the workspace.
-    /// This matches how every split-capable terminal behaves, and is why
-    /// `closePane` reports whether the workspace survived.
+    /// Both cases use the same recoverable close path as the pane's Close button.
     func closeSelected() {
         guard let workspace = selectedWorkspace else { return }
-        if workspace.isSplit {
-            workspace.focusedPane.disconnectConnection()
-            if !workspace.closePane(workspace.focusedPaneID) {
-                close(workspace.id)
-            }
-        } else {
-            close(workspace.id)
-        }
+        closePane(workspace.focusedPaneID)
     }
 
     func closeOthers(than id: Workspace.ID) {
         for workspace in workspaces where workspace.id != id {
             workspace.disconnectConnections()
-            reopenStack.append(workspace)
+            rememberForReopen(workspace)
         }
         workspaces.removeAll { $0.id != id }
         selectedWorkspaceID = id
     }
 
     func closeAll() {
-        for workspace in workspaces { workspace.disconnectConnections() }
-        reopenStack.append(contentsOf: workspaces)
+        for workspace in workspaces {
+            workspace.disconnectConnections()
+            rememberForReopen(workspace)
+        }
         workspaces.removeAll()
         promoteVisibleSidebarConversationOrSelectVault()
     }
@@ -1468,11 +1471,26 @@ final class WindowModel {
     /// whole Workspace because you dismissed one of its three shells would take
     /// two things you did not point at.
     func closePane(_ paneID: Pane.ID) {
-        guard let workspace = workspaces.first(where: { $0.layout.pane(paneID) != nil }) else { return }
-        workspace.layout.pane(paneID)?.disconnectConnection()
-        if !workspace.closePane(paneID) {
+        guard let workspace = workspace(holding: paneID), let pane = workspace.layout.pane(paneID) else { return }
+        guard workspace.isSplit else {
             close(workspace.id)
+            return
         }
+        pane.disconnectConnection()
+        _ = workspace.closePane(paneID)
+        // Keep only the removed pane: reopening must not reconnect surviving
+        // sessions or replace edits made to the original split after the close.
+        let closedWorkspace = automaticallyNamedWorkspace(pane: pane)
+        // The saved wrapper must not route late events from the disconnected
+        // session. prepareForReopen restores routing when it becomes live again.
+        pane.sshSession?.inputRouter = nil
+        pane.sftpChannel?.navigationRouter = nil
+        rememberForReopen(closedWorkspace)
+    }
+
+    private func rememberForReopen(_ workspace: Workspace) {
+        reopenStack.append(workspace)
+        if reopenStack.count > 10 { reopenStack.removeFirst(reopenStack.count - 10) }
     }
 
     func closeWorkspaces(for hostID: Host.ID) {
@@ -1489,7 +1507,13 @@ final class WindowModel {
     }
 
     func reopenLastClosed() {
-        guard let workspace = reopenStack.popLast() else { return }
+        guard let id = reopenStack.last?.id else { return }
+        reopenClosedWorkspace(id)
+    }
+
+    func reopenClosedWorkspace(_ id: Workspace.ID) {
+        guard let index = reopenStack.firstIndex(where: { $0.id == id }) else { return }
+        let workspace = reopenStack.remove(at: index)
         workspace.prepareForReopen()
         open(workspace)
     }

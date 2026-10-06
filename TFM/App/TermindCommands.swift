@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -177,11 +178,7 @@ struct TermindCommands: Commands {
             }
             .termindShortcut(closeShortcuts.closeWorkspace)
             .disabled(window?.selectedWorkspace == nil)
-            Button(AppStrings.Workspace.reopenClosedWorkspace.swiftUIKey, systemImage: MenuSymbol.reopenWorkspace) {
-                window?.reopenLastClosed()
-            }
-            .termindShortcut("t", modifiers: [.command, .shift])
-            .disabled(!(window?.canReopen ?? false))
+
         }
 
         // No Session menu. What was in it lives in File (Duplicate),
@@ -218,6 +215,72 @@ struct TermindCommands: Commands {
             }
             .termindShortcut(.downArrow, modifiers: [.command, .option])
             .disabled(!(window?.canSplitSelected ?? false))
+        }
+
+        CommandMenu(AppStrings.Common.history) {
+            Button {
+                window?.showConnectionHistory()
+            } label: {
+                Label {
+                    Text(AppStrings.History.showHistory)
+                } icon: {
+                    Image(nsImage: MenuImageVisibilityController.markedImage(systemName: "clock.arrow.circlepath"))
+                }
+            }
+            .termindShortcut("y")
+            .disabled(window == nil)
+
+            Divider()
+
+            Menu {
+                ForEach(window?.recentlyClosedWorkspaces ?? []) { workspace in
+                    Button {
+                        window?.reopenClosedWorkspace(workspace.id)
+                    } label: {
+                        Label {
+                            Text(verbatim: workspace.title(in: app.hostLibrary))
+                        } icon: {
+                            Image(nsImage: MenuImageVisibilityController.markedImage(systemName: workspace.symbol))
+                        }
+                    }
+                }
+            } label: {
+                HistoryMenuLabel(AppStrings.History.recentClosed, symbol: "clock.arrow.circlepath")
+            }
+            .disabled(window?.canReopen != true)
+
+            Button {
+                window?.reopenLastClosed()
+            } label: {
+                HistoryMenuLabel(AppStrings.Workspace.reopenClosedWorkspace, symbol: MenuSymbol.reopenWorkspace)
+            }
+            .termindShortcut("t", modifiers: [.command, .shift])
+            .disabled(window?.canReopen != true)
+
+            HistoryMenuRecords(
+                snapshot: ConnectionHistoryMenuSnapshot(
+                    history: app.connectionHistory, library: app.hostLibrary, devices: app.devices),
+                image: { Image(nsImage: MenuImageVisibilityController.markedImage(systemName: $0)) }
+            ) { row in
+                guard let window, let host = app.hostLibrary.host(row.host.id) else { return }
+                let target: HostOpenTarget =
+                    switch row.entry.kind {
+                    case .ssh: .sshSession
+                    case .telnet: .telnetSession
+                    case .sftp: .sftpChannel
+                    }
+                app.open(host, as: target, in: window)
+            }
+            .disabled(window == nil)
+
+            Divider()
+
+            Button {
+                window?.confirmsClearConnectionHistory = true
+            } label: {
+                HistoryMenuLabel(AppStrings.Common.clearHistory, symbol: MenuSymbol.clearHistory)
+            }
+            .disabled(window == nil || app.connectionHistory.entries().isEmpty)
         }
 
         CommandGroup(before: .windowList) {

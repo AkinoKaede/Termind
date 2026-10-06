@@ -370,7 +370,7 @@ extension AppStrings {
             "New Window"
         }
         public static var reopenClosedWorkspace: LocalizedStringResource {
-            "Reopen Closed Workspace"
+            "Reopen Last Closed Workspace"
         }
     }
 }

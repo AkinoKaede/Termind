@@ -195,6 +195,38 @@ struct RootView: View {
         } message: {
             Text(window.workspaceTemplateNotice ?? "")
         }
+        .confirmationDialog(
+            AppStrings.Connections.clearConnectionHistoryConfirmation,
+            isPresented: $window.confirmsClearConnectionHistory, titleVisibility: .visible
+        ) {
+            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
+                app.clearConnectionHistory()
+                window.historyOperationError = app.connectionHistory.storageError
+            }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Workspace.clearHistoryWarning)
+        }
+        .alert(
+            AppStrings.Common.operationFailed,
+            isPresented: Binding(
+                get: { window.historyOperationError != nil },
+                set: { if !$0 { window.historyOperationError = nil } }
+            )
+        ) {
+            Button(AppStrings.Common.ok.swiftUIKey) { window.historyOperationError = nil }
+        } message: {
+            Text(window.historyOperationError ?? "")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            app.connectionHistory.refreshMenuDate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+            app.connectionHistory.refreshMenuDate()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            app.connectionHistory.refreshMenuDate()
+        }
         .dismissalConfirmationDialog(
             AppStrings.Workspace.closeThisWindowConfirmation, shouldPresent: !window.workspaces.isEmpty
         ) {

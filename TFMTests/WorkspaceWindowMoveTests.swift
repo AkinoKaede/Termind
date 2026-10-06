@@ -134,8 +134,14 @@ struct WorkspaceWindowMoveTests {
         #expect(session.status == .disconnected)
         #expect(target.workspaces.isEmpty)
         #expect(source.pane(moved.id) == nil)
-        #expect(!source.canReopen)
+        #expect(source.canReopen == !closesWindow)
         #expect(app.mainWindows.movePane(moved.id, from: source) == nil)
+        if !closesWindow {
+            source.reopenLastClosed()
+            #expect(source.selectedWorkspace?.focusedPane.id == moved.id)
+            #expect(source.selectedWorkspace?.focusedPane.sshSession !== session)
+            #expect(target.workspaces.isEmpty)
+        }
     }
 
     @Test

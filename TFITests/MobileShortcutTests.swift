@@ -11,6 +11,19 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileShortcutTests {
+    @Test func showHistoryTargetsOnlyThisScenesVaultAndDoesNotPushDuplicates() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        let other = MobileSceneModel(app: app, sessionID: "other")
+        scene.selectedDestination = .settings
+        scene.showConnectionHistory()
+        scene.showConnectionHistory()
+        #expect(scene.selectedDestination == .vault)
+        #expect(scene.vaultNavigationPath == NavigationPath([MobileVaultRoute.history]))
+        #expect(other.vaultNavigationPath.isEmpty)
+    }
+
     @Test(arguments: MobileDestination.allCases, [nil, .archived] as [MobileAssistantLibraryRoute?])
     func showAssistantWorksFromEveryPageAndPreservesSceneState(
         destination: MobileDestination, route: MobileAssistantLibraryRoute?
@@ -44,6 +57,7 @@ struct MobileShortcutTests {
         #expect(MobileShortcut.newHost == KeyboardShortcut("n", modifiers: [.command, .shift]))
         #expect(MobileShortcut.generateCommand == KeyboardShortcut("i", modifiers: .command))
         #expect(MobileShortcut.showAssistant == KeyboardShortcut("i", modifiers: [.command, .option]))
+        #expect(MobileShortcut.showHistory == KeyboardShortcut("y", modifiers: .command))
         #expect(MobileShortcut.find == KeyboardShortcut("f", modifiers: .command))
         #expect(MobileShortcut.findNext == KeyboardShortcut("g", modifiers: .command))
         #expect(MobileShortcut.findPrevious == KeyboardShortcut("g", modifiers: [.command, .shift]))
@@ -69,6 +83,7 @@ struct MobileShortcutTests {
                 MobileShortcut.newHost,
                 MobileShortcut.generateCommand,
                 MobileShortcut.showAssistant,
+                MobileShortcut.showHistory,
                 MobileShortcut.find,
                 MobileShortcut.findNext,
                 MobileShortcut.findPrevious,

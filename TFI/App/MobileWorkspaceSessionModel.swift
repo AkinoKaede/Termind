@@ -53,7 +53,11 @@ final class MobileWorkspaceSessionModel {
     private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor]
     private var workspaceDisplayOrder: [MobileWorkspace.ID]
     private var reopenStack: [MobileWorkspace.ReopenState] = []
-    var canReopen: Bool { !isDiscarded && reopenStack.contains(where: canReopen) }
+    var canReopen: Bool { !recentlyClosedWorkspaces.isEmpty }
+    var recentlyClosedWorkspaces: [MobileWorkspaceDescriptor] {
+        guard !isDiscarded else { return [] }
+        return reopenStack.reversed().filter(canReopen).map(\.descriptor)
+    }
     private(set) var isDiscarded = false
     @ObservationIgnored private unowned let app: MobileAppModel
 
@@ -306,20 +310,24 @@ final class MobileWorkspaceSessionModel {
     }
 
     func reopenLastClosed() -> MobileWorkspace.ID? {
-        guard !isDiscarded else { return nil }
-        while let state = reopenStack.popLast() {
-            guard canReopen(state) else { continue }
-            let workspace = MobileWorkspace(
-                descriptor: state.descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
-                terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
-                transientHost: state.transientHost, connectionRoute: state.connectionRoute,
-                usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
-                externalSFTPResourcePath: state.externalSFTPResourcePath,
-                externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
-            addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
-            return workspace.id
-        }
-        return nil
+        guard let id = recentlyClosedWorkspaces.first?.id else { return nil }
+        return reopenClosedWorkspace(id)
+    }
+
+    func reopenClosedWorkspace(_ id: MobileWorkspace.ID) -> MobileWorkspace.ID? {
+        guard !isDiscarded,
+            let index = reopenStack.firstIndex(where: { $0.descriptor.id == id && canReopen($0) })
+        else { return nil }
+        let state = reopenStack.remove(at: index)
+        let workspace = MobileWorkspace(
+            descriptor: state.descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+            terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
+            transientHost: state.transientHost, connectionRoute: state.connectionRoute,
+            usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
+            externalSFTPResourcePath: state.externalSFTPResourcePath,
+            externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
+        addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
+        return workspace.id
     }
 
     /// Publish before connecting so repeated selection in this window shares one initial attempt.

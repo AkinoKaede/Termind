@@ -21,6 +21,7 @@ nonisolated enum MobileShortcut {
     static let newChat = KeyboardShortcut("t", modifiers: [.command, .option])
     static let newHost = KeyboardShortcut("n", modifiers: [.command, .shift])
     static let generateCommand = KeyboardShortcut("i", modifiers: .command)
+    static let showHistory = KeyboardShortcut("y", modifiers: .command)
     static let showAssistant = KeyboardShortcut("i", modifiers: [.command, .option])
     static let find = KeyboardShortcut("f", modifiers: .command)
     static let findNext = KeyboardShortcut("g", modifiers: .command)
@@ -117,17 +118,60 @@ struct MobileCommands: Commands {
             Button(AppStrings.Workspace.closeWorkspace.swiftUIKey) { scene?.closeActiveWorkspace() }
                 .keyboardShortcut(closeShortcuts.closeWorkspace)
                 .disabled(scene?.canCloseWorkspace != true)
-            Button(AppStrings.Workspace.reopenClosedWorkspace.swiftUIKey, systemImage: "arrow.uturn.backward") {
-                scene?.reopenLastClosedWorkspace()
-            }
-            .keyboardShortcut(MobileShortcut.reopenWorkspace)
-            .disabled(scene?.workspaceSession.canReopen != true)
+
         }
 
         CommandGroup(after: .sidebar) {
             Button(AppStrings.Assistant.showAssistant.swiftUIKey, systemImage: "sparkles") { scene?.showAssistant() }
                 .keyboardShortcut(MobileShortcut.showAssistant)
                 .disabled(scene == nil)
+        }
+
+        CommandMenu(AppStrings.Common.history) {
+            Button(AppStrings.History.showHistory.swiftUIKey, systemImage: "clock.arrow.circlepath") {
+                scene?.showConnectionHistory()
+            }
+            .keyboardShortcut(MobileShortcut.showHistory)
+            .disabled(scene == nil)
+
+            Divider()
+
+            Menu {
+                ForEach(scene?.workspaceSession.recentlyClosedWorkspaces ?? []) { descriptor in
+                    Button {
+                        scene?.reopenClosedWorkspace(descriptor.id)
+                    } label: {
+                        HistoryMenuLabel(
+                            verbatim: descriptor.title, symbol: descriptor.kind.symbol)
+                    }
+                }
+            } label: {
+                HistoryMenuLabel(AppStrings.History.recentClosed, symbol: "clock.arrow.circlepath")
+            }
+            .disabled(scene?.workspaceSession.canReopen != true)
+
+            Button {
+                scene?.reopenLastClosedWorkspace()
+            } label: {
+                HistoryMenuLabel(AppStrings.Workspace.reopenClosedWorkspace, symbol: "arrow.uturn.backward")
+            }
+            .keyboardShortcut(MobileShortcut.reopenWorkspace)
+            .disabled(scene?.workspaceSession.canReopen != true)
+
+            if let scene {
+                HistoryMenuRecords(snapshot: scene.historyMenuSnapshot) { row in
+                    scene.open(hostID: row.host.id, kind: row.entry.kind)
+                }
+            }
+
+            Divider()
+
+            Button {
+                scene?.confirmsClearConnectionHistory = true
+            } label: {
+                HistoryMenuLabel(AppStrings.Common.clearHistory, symbol: "clock.badge.xmark")
+            }
+            .disabled(scene?.hasConnectionHistory != true)
         }
 
         CommandGroup(after: .windowArrangement) {

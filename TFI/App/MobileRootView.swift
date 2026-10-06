@@ -54,6 +54,7 @@ struct MobileRootView: View {
             .onChange(of: scenePhase, initial: true) { _, phase in
                 scene.agentForwarding.isActive = phase != .background
                 app.sceneChanged(scene.id, phase: phase, workspaceSessionID: scene.workspaceSession.id)
+                if phase == .active { app.connectionHistory.refreshMenuDate() }
                 MobileHomeScreenQuickActions.refresh(app: app)
             }
             .onChange(of: app.connectionHistory.revision, initial: true) { _, _ in
@@ -79,6 +80,7 @@ struct MobileRootView: View {
                 scene.open(url)
             }
             .focusedSceneValue(\.mobileScene, scene)
+            .modifier(MobileHistoryMenuPresentation(app: app, scene: scene))
             .alert(
                 AppStrings.Workspace.openTelnetConnectionConfirmation,
                 isPresented: Binding(
@@ -124,10 +126,8 @@ struct MobileRootView: View {
         TabView(selection: selection) {
             ForEach(features.registrations) { feature in
                 Tab(value: feature.id) {
-                    NavigationStack {
-                        feature.makeView(app: app, scene: scene)
-                    }
-                    .mobileToolbarEnvironment()
+                    featureNavigation(feature)
+                        .mobileToolbarEnvironment()
                 } label: {
                     Label(feature.title, systemImage: feature.symbol)
                 }
@@ -135,6 +135,27 @@ struct MobileRootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+    }
+
+    @ViewBuilder
+    private func featureNavigation(_ feature: MobileFeatureRegistration) -> some View {
+        if feature.id == .vault {
+            NavigationStack(path: $scene.vaultNavigationPath) {
+                feature.makeView(app: app, scene: scene)
+                    .navigationDestination(for: MobileVaultRoute.self) { route in
+                        switch route {
+                        case .history:
+                            MobileConnectionHistoryView(app: app, open: scene.open)
+                                .mobileReviewPage("vault.history", scene: scene)
+                        }
+                    }
+            }
+            .id(scene.vaultNavigationID)
+        } else {
+            NavigationStack {
+                feature.makeView(app: app, scene: scene)
+            }
+        }
     }
 
     private var selection: Binding<MobileDestination> {
@@ -150,5 +171,28 @@ struct MobileRootView: View {
         case .assistant: app.unreadAssistantNotificationCount
         default: 0
         }
+    }
+}
+
+private struct MobileHistoryMenuPresentation: ViewModifier {
+    let app: MobileAppModel
+    @Bindable var scene: MobileSceneModel
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                app.connectionHistory.refreshMenuDate()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                app.connectionHistory.refreshMenuDate()
+            }
+            .operationConfirmation(
+                .init(AppStrings.Connections.clearConnectionHistoryConfirmation),
+                isPresented: $scene.confirmsClearConnectionHistory, placement: .centered,
+                actions: [
+                    .init(AppStrings.Common.clearHistory, role: .destructive) { scene.clearConnectionHistory() },
+                    .init(AppStrings.Common.cancel, role: .cancel) {},
+                ], message: .init(AppStrings.Workspace.clearHistoryWarning)
+            )
     }
 }

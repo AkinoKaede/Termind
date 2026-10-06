@@ -17,9 +17,11 @@ public final class ConnectionHistoryModel {
     public static let limit = HistoryLimits.retainedEntries
 
     private let repository: any ConnectionHistoryRepository
+    public private(set) var menuReferenceDate = Date()
     public let sourceDeviceID: UUID
     private var cachedEntries: [ConnectionHistoryEntry] = []
     public private(set) var revision: UInt64 = 0
+    public private(set) var currentLaunchEntryIDs: Set<ConnectionHistoryEntry.ID> = []
     public private(set) var storageError: String?
 
     public init(
@@ -41,6 +43,8 @@ public final class ConnectionHistoryModel {
             storageError = error.localizedDescription
         }
     }
+
+    public func refreshMenuDate() { menuReferenceDate = Date() }
 
     public func entries() -> [ConnectionHistoryEntry] {
         _ = revision
@@ -92,6 +96,7 @@ public final class ConnectionHistoryModel {
         )
         do {
             try repository.insert(entry, limit: Self.limit)
+            currentLaunchEntryIDs.insert(entry.id)
             reload()
             return entry
         } catch {
@@ -112,6 +117,7 @@ public final class ConnectionHistoryModel {
     public func reload() {
         do {
             cachedEntries = try repository.entries()
+            currentLaunchEntryIDs.formIntersection(cachedEntries.map(\.id))
             storageError = nil
         } catch {
             cachedEntries = []
@@ -138,6 +144,7 @@ public final class ConnectionHistoryModel {
         do {
             try repository.clearAll()
             cachedEntries = []
+            currentLaunchEntryIDs.removeAll()
             storageError = nil
             revision &+= 1
         } catch { storageError = error.localizedDescription }

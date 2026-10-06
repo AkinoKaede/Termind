@@ -13,6 +13,23 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func recentClosedCanRestoreAnOlderItemWithoutConsumingTheNewest() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let records = (0..<3).map {
+            MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Workspace \($0)", kind: .ssh)
+        }
+        fixture.defaults.set(try JSONEncoder().encode(records), forKey: MobileWorkspaceStore.key)
+        let app = try fixture.makeApp()
+        let session = app.workspaceSession(for: "owner")
+        session.closeAll()
+        #expect(session.recentlyClosedWorkspaces.map(\.id) == records.reversed().map(\.id))
+        #expect(session.reopenClosedWorkspace(records[0].id) == records[0].id)
+        #expect(session.recentlyClosedWorkspaces.map(\.id) == [records[2].id, records[1].id])
+        #expect(session.reopenClosedWorkspace(records[0].id) == nil)
+        #expect(session.reopenLastClosed() == records[2].id)
+    }
+
     @Test func reopenRestoresTheOwningWindowsWorkspaceWithFreshHistoryAndRouting() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

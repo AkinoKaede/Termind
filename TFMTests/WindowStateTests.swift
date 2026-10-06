@@ -14,6 +14,38 @@ import struct TermindDomain.Host
 @Suite
 @MainActor
 struct WindowStateTests {
+    @Test func showHistoryLeavesLivePanesRunningAndAlwaysShowsConnections() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        session.status = .connected
+        let window = WindowModel(workspaces: [workspace])
+        window.showsSidebar = false
+        window.showConnectionHistory()
+        window.showConnectionHistory()
+        #expect(window.selectedDestination == .vault)
+        #expect(window.showsSidebar && window.sidebarMode == .history)
+        #expect(window.workspaces.first === workspace)
+        #expect(session.status == .connected)
+    }
+
+    @Test func recentClosedReopensASpecificPaneWithoutConsumingTheNewestItem() throws {
+        let first = Workspace(pane: Pane(.empty))
+        let second = Workspace(pane: Pane(.empty))
+        let window = WindowModel(workspaces: [first, second])
+        window.close(first.id)
+        window.close(second.id)
+        #expect(window.recentlyClosedWorkspaces.map(\.id) == [second.id, first.id])
+        window.reopenClosedWorkspace(first.id)
+        #expect(window.selectedWorkspace === first)
+        #expect(window.recentlyClosedWorkspaces.map(\.id) == [second.id])
+        window.reopenClosedWorkspace(first.id)
+        #expect(window.workspaces.count == 1)
+        window.reopenLastClosed()
+        #expect(window.selectedWorkspace === second)
+        #expect(!window.canReopen)
+    }
+
     @Test(arguments: [WindowDestination.vault, .metrics, .settings, .assistant])
     func showAssistantWorksOutsideWorkspacesWithoutReplacingItsNavigation(_ destination: WindowDestination) {
         let window = WindowModel()
@@ -1262,6 +1294,103 @@ struct WindowStateTests {
         #expect(!window.canReopen)
     }
 
+    @Test(arguments: [false, true])
+    func reopeningAClosedSplitPaneKeepsTheSurvivingSessionRunning(closeSelected: Bool) throws {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let survivor = workspace.focusedPane
+        let survivorSession = try #require(survivor.sshSession)
+        survivorSession.status = .connected
+        let closedPane = Pane.sshSession(host: host)
+        closedPane.customTitle = "Logs"
+        let closedSession = try #require(closedPane.sshSession)
+        closedSession.status = .connected
+        workspace.splitFocusedPane(axis: .vertical, with: closedPane)
+        workspace.broadcastsInput = true
+        let window = WindowModel(workspaces: [workspace])
+
+        if closeSelected {
+            window.closeSelected()
+        } else {
+            window.closePane(closedPane.id)
+        }
+
+        #expect(window.canReopen)
+        #expect(closedSession.status == .disconnected)
+        #expect(workspace.panes.map(\.id) == [survivor.id])
+
+        window.reopenLastClosed()
+
+        let reopened = try #require(window.selectedWorkspace)
+        let reopenedSession = try #require(reopened.focusedPane.sshSession)
+        #expect(window.workspaces.count == 2)
+        #expect(reopened !== workspace)
+        #expect(reopened.panes.map(\.id) == [closedPane.id])
+        #expect(reopened.focusedPane.customTitle == "Logs")
+        #expect(reopenedSession !== closedSession)
+        #expect(reopenedSession.hostID == host.id)
+        #expect(reopenedSession.status == .connecting)
+        #expect(reopenedSession.inputRouter === reopened)
+        #expect(survivor.sshSession === survivorSession)
+        #expect(survivorSession.status == .connected)
+        #expect(survivorSession.inputRouter === workspace)
+        #expect(!workspace.broadcastsInput && !reopened.broadcastsInput)
+        #expect(!window.canReopen)
+    }
+
+    @Test
+    func closedPanesAndWorkspacesReopenInReverseCloseOrder() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let workspace = Workspace.sshSession(host: host)
+        let first = workspace.focusedPane
+        let second = Pane.sftpChannel(host: host, initialPath: "/var/log")
+        workspace.splitFocusedPane(axis: .horizontal, with: second)
+        let other = Workspace.sshSession(host: host)
+        let window = WindowModel(workspaces: [workspace, other])
+
+        window.closePane(second.id)
+        window.close(other.id)
+        window.closePane(first.id)
+        #expect(window.workspaces.isEmpty)
+
+        window.reopenLastClosed()
+        #expect(window.selectedWorkspace === workspace)
+        #expect(workspace.panes.map(\.id) == [first.id])
+        window.reopenLastClosed()
+        #expect(window.selectedWorkspace === other)
+        window.reopenLastClosed()
+        let reopened = try #require(window.selectedWorkspace)
+        #expect(reopened.panes.map(\.id) == [second.id])
+        #expect(reopened.focusedPane.sftpChannel?.path == "/var/log")
+        #expect(window.workspaces.count == 3)
+        #expect(!window.canReopen)
+    }
+
+    @Test
+    func individuallyClosedPanesShareTheTenItemReopenLimit() {
+        let survivor = Pane(.empty)
+        let workspace = Workspace(pane: survivor)
+        let window = WindowModel(workspaces: [workspace])
+        let closedPanes = (0..<11).map { _ in Pane(.empty) }
+        for pane in closedPanes {
+            workspace.splitFocusedPane(axis: .horizontal, with: pane)
+            window.closePane(pane.id)
+        }
+
+        var reopenedIDs: [Pane.ID] = []
+        while window.canReopen {
+            window.reopenLastClosed()
+            if let pane = window.selectedWorkspace?.focusedPane { reopenedIDs.append(pane.id) }
+        }
+        #expect(reopenedIDs == closedPanes.suffix(10).reversed().map(\.id))
+        #expect(workspace.panes.map(\.id) == [survivor.id])
+
+        window.closePane(reopenedIDs[0])
+        #expect(window.canReopen)
+        window.closeForWindow()
+        #expect(!window.canReopen)
+    }
+
     @Test
     func terminalPathOpensSFTPInANewWorkspaceOrTheCurrentWorkspace() {
         var host = Host(name: "Files", host: "files.example")
@@ -1371,6 +1500,13 @@ struct WindowStateTests {
         #expect(workspace.focusedPaneID == secondPane.id)
         #expect(!workspace.broadcastsInput)
         #expect(firstSSHSession.inputRouter == nil)
+        #expect(window.canReopen)
+
+        window.reopenLastClosed()
+
+        #expect(window.selectedWorkspace?.focusedPane.id == firstPane.id)
+        #expect(window.selectedWorkspace?.focusedPane.sshSession !== firstSSHSession)
+        #expect(!window.canReopen)
     }
 
     @Test

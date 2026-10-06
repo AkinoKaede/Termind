@@ -6,6 +6,21 @@ import Testing
 
 @Suite @MainActor
 struct HistoryRenderingSnapshotTests {
+    @Test func failedClearKeepsLaunchRecordsReadable() throws {
+        let repository = HistoryRepository()
+        let model = ConnectionHistoryModel(repository: repository)
+        let entry = try #require(model.record(kind: .ssh, for: UUID()))
+        repository.failsClear = true
+        model.clearAll()
+        #expect(model.entries().map(\.id) == [entry.id])
+        #expect(model.currentLaunchEntryIDs.contains(entry.id))
+        #expect(model.storageError != nil)
+        repository.failsClear = false
+        model.clearAll()
+        #expect(model.entries().isEmpty && model.currentLaunchEntryIDs.isEmpty)
+        #expect(model.storageError == nil)
+    }
+
     @Test func failedInitialTrimDoesNotHideReadableHistory() throws {
         let repository = HistoryRepository()
         let entry = ConnectionHistoryEntry(hostID: UUID(), kind: .ssh)
@@ -136,6 +151,7 @@ struct HistoryRenderingSnapshotTests {
         var reads = 0
         var fails = false
         var failsTrim = false
+        var failsClear = false
 
         func entries() throws -> [ConnectionHistoryEntry] {
             reads += 1
@@ -150,7 +166,10 @@ struct HistoryRenderingSnapshotTests {
         func end(_ id: UUID, at date: Date) throws { try storage.end(id, at: date) }
         func delete(_ id: UUID) throws { try storage.delete(id) }
         func clear(for hostID: UUID) throws { try storage.clear(for: hostID) }
-        func clearAll() throws { try storage.clearAll() }
+        func clearAll() throws {
+            if failsClear { throw ReadFailure.unavailable }
+            try storage.clearAll()
+        }
     }
 
     private final class DeviceRepository: DeviceDirectoryRepository {
