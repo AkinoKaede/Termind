@@ -1339,7 +1339,6 @@ struct AssistantConversationRow: View {
             entries.append(
                 NativeMenuEntry(
                     title: localized(AppStrings.Common.delete), symbol: MenuSymbol.delete,
-                    imageVisibility: .visible
                 ) {
                     onDelete()
                 }

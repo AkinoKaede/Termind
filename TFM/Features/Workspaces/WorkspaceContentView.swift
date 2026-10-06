@@ -1320,7 +1320,7 @@ private struct WelcomeHostRow: View {
             + [
                 .separator,
                 NativeMenuEntry(
-                    title: AppStrings.Common.delete, symbol: MenuSymbol.delete, imageVisibility: .visible
+                    title: AppStrings.Common.delete, symbol: MenuSymbol.delete,
                 ) {
                     if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
                         confirmsHistoryClear = true

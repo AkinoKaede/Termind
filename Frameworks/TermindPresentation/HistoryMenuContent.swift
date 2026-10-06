@@ -1,7 +1,7 @@
 import SwiftUI
 import TermindApplication
 
-/// macOS 27 follows the sparse menu style; older systems and iPad show symbols.
+/// A menu label whose image visibility follows the system.
 public struct HistoryMenuLabel: View {
     private let title: Text
     private let symbol: String
@@ -17,23 +17,11 @@ public struct HistoryMenuLabel: View {
     }
 
     public var body: some View {
-        #if os(macOS)
-            if #available(macOS 27.0, *) {
-                title
-            } else {
-                Label {
-                    title
-                } icon: {
-                    Image(systemName: symbol)
-                }
-            }
-        #else
-            Label {
-                title
-            } icon: {
-                Image(systemName: symbol)
-            }
-        #endif
+        Label {
+            title
+        } icon: {
+            Image(systemName: symbol)
+        }
     }
 }
 
@@ -84,8 +72,6 @@ public struct HistoryMenuRecords: View {
             } label: {
                 Label {
                     Text(verbatim: row.host.name)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
                 } icon: {
                     image(row.entry.kind.symbol)
                 }

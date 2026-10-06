@@ -153,8 +153,6 @@ struct MobileCommands: Commands {
                                 } label: {
                                     Label {
                                         Text(verbatim: item.title)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
                                     } icon: {
                                         Image(
                                             uiImage: MobileHistoryMenuConfiguration.recordImage(
@@ -168,8 +166,6 @@ struct MobileCommands: Commands {
                                     AppStrings.History.closedWindow(
                                         record.items.first?.title ?? "", count: record.items.count)
                                 )
-                                .lineLimit(1)
-                                .truncationMode(.tail)
                             } icon: {
                                 Image(
                                     uiImage: MobileHistoryMenuConfiguration.recordImage(
@@ -182,8 +178,6 @@ struct MobileCommands: Commands {
                         } label: {
                             Label {
                                 Text(verbatim: descriptor.title)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
                             } icon: {
                                 Image(
                                     uiImage: MobileHistoryMenuConfiguration.recordImage(

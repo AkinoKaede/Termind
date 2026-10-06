@@ -28,22 +28,32 @@ struct MobileHistoryMenuTests {
             title: "Reopen Last Closed Workspace", image: UIImage(systemName: "arrow.uturn.backward"),
             action: Selector(("reopen:")), input: "t", modifierFlags: [.command, .shift])
         let clear = UIAction(title: "Clear History", image: UIImage(systemName: "clock.badge.xmark")) { _ in }
-        let history = UIMenu(title: "历史记录", children: [show, recentlyClosed, reopenLast, day, date, clear])
+        let topRecord = UIAction(
+            title: "Top-level record", image: MobileHistoryMenuConfiguration.recordImage(systemName: "terminal")
+        ) { _ in }
+        let topRecords = UIMenu(options: .displayInline, children: [topRecord])
+        let history = UIMenu(title: "历史记录", children: [show, recentlyClosed, reopenLast, topRecords, day, date, clear])
         #expect(MobileHistoryMenuConfiguration.containsHistoryShortcut(history))
         #expect(!MobileHistoryMenuConfiguration.containsHistoryShortcut(day))
         let configured = MobileHistoryMenuConfiguration.configured(history)
         let elements = descendants(of: configured)
-        for original in [show, closedWindow, ssh, sftp] as [UIMenuElement] {
+        #expect(configured.displayPreferences?.maximumNumberOfTitleLines != 1)
+        let configuredWindow = try #require(
+            elements.compactMap { $0 as? UIMenu }.first { $0.identifier == closedWindow.identifier })
+        #expect(configuredWindow.displayPreferences?.maximumNumberOfTitleLines != 1)
+        for original in [show, topRecord, closedWindow, ssh, sftp] as [UIMenuElement] {
             let element = try #require(elements.first { $0.title == original.title && $0.image == original.image })
             #expect(element.preferredImageVisibility == .visible)
         }
-        for original in [recentlyClosed, reopen, reopenLast, day, date, clear] as [UIMenuElement] {
+        for original in [recentlyClosed, reopen, reopenLast, day, date, clear]
+            as [UIMenuElement]
+        {
             let element = try #require(elements.first { $0.title == original.title })
             #expect(element.preferredImageVisibility == .automatic)
         }
     }
 
-    @Test func longDateMenusKeepAllRowsAndUseSingleLineTitles() throws {
+    @Test func longDateMenusKeepAllRowsWithoutConstrainingTitleLayout() throws {
         guard #available(iOS 27.0, *) else { return }
         let rows = (0..<100).map { index in
             UIAction(
@@ -58,9 +68,14 @@ struct MobileHistoryMenuTests {
         let elements = descendants(of: configured)
         let actualRows = elements.compactMap { $0 as? UIAction }
         #expect(actualRows.map(\.identifier) == rows.map(\.identifier))
-        for menu in [configured] + elements.compactMap({ $0 as? UIMenu }) {
-            #expect(menu.displayPreferences?.maximumNumberOfTitleLines == 1)
-        }
+        let configuredDay = try #require(
+            elements.compactMap { $0 as? UIMenu }.first { $0.identifier == day.identifier })
+        #expect(configuredDay.displayPreferences?.maximumNumberOfTitleLines != 1)
+        #expect(configured.displayPreferences?.maximumNumberOfTitleLines != 1)
+        let configuredInline = try #require(
+            elements.compactMap { $0 as? UIMenu }.first { $0.identifier == inline.identifier })
+        #expect(configuredInline.displayPreferences?.maximumNumberOfTitleLines != 1)
+        #expect(actualRows.allSatisfy { $0.preferredImageVisibility == .visible })
     }
 
     private func descendants(of menu: UIMenu) -> [UIMenuElement] {

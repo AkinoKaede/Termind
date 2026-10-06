@@ -2,12 +2,7 @@ import AppKit
 import SwiftUI
 import TermindApplication
 
-/// A destructive action inside a SwiftUI menu.
-///
-/// macOS 27 normally hides menu item images. Delete and permanent Clear actions
-/// are the exceptions in Termind: their named images let the native menu bridge
-/// request `.visible` without guessing from a localized title. The role still
-/// lets macOS own the destructive presentation.
+/// A destructive action inside a SwiftUI menu, using the system’s image visibility.
 struct DestructiveMenuButton: View {
     let title: LocalizedStringResource
     let systemImage: String
@@ -28,19 +23,13 @@ struct DestructiveMenuButton: View {
             Label {
                 Text(title)
             } icon: {
-                Image(nsImage: MenuImageVisibilityController.markedImage(systemName: systemImage))
+                Image(systemName: systemImage)
             }
         }
     }
 }
 
-/// Whether an AppKit-built menu item should follow the system or keep its image.
-enum MenuImageVisibility: Equatable {
-    case automatic
-    case visible
-}
-
-/// Applies macOS 27's opt-in menu image visibility to SwiftUI-generated menus.
+/// Keeps Show History and connection-record images visible in SwiftUI-generated menus.
 ///
 /// SwiftUI does not expose `NSMenuItem.preferredImageVisibility`. A named image
 /// survives SwiftUI's conversion to `NSMenuItem`, giving this observer a narrow,
@@ -125,7 +114,6 @@ struct NativeMenuEntry {
     /// for standard actions and leaves ours empty, so every verb names its own.
     var symbol: String?
     var image: NSImage?
-    var imageVisibility = MenuImageVisibility.automatic
     var isOn = false
     var isEnabled = true
     var children: [NativeMenuEntry] = []
@@ -133,13 +121,12 @@ struct NativeMenuEntry {
 
     init(
         title: String, symbol: String? = nil, image: NSImage? = nil,
-        imageVisibility: MenuImageVisibility = .automatic, isOn: Bool = false,
+        isOn: Bool = false,
         isEnabled: Bool = true, children: [NativeMenuEntry] = [], action: @escaping () -> Void = {}
     ) {
         literalTitle = title
         self.symbol = symbol
         self.image = image
-        self.imageVisibility = imageVisibility
         self.isOn = isOn
         self.isEnabled = isEnabled
         self.children = children
@@ -148,11 +135,11 @@ struct NativeMenuEntry {
 
     init(
         title: LocalizedStringResource, symbol: String? = nil, image: NSImage? = nil,
-        imageVisibility: MenuImageVisibility = .automatic, isOn: Bool = false,
+        isOn: Bool = false,
         isEnabled: Bool = true, children: [NativeMenuEntry] = [], action: @escaping () -> Void = {}
     ) {
         self.init(
-            title: "", symbol: symbol, image: image, imageVisibility: imageVisibility,
+            title: "", symbol: symbol, image: image,
             isOn: isOn, isEnabled: isEnabled, children: children, action: action)
         titleResource = title
     }
@@ -191,9 +178,6 @@ struct NativeMenuEntry {
             ?? symbol.flatMap {
                 NSImage(systemSymbolName: $0, accessibilityDescription: nil)
             }
-        if #available(macOS 27.0, *), imageVisibility == .visible {
-            item.preferredImageVisibility = .visible
-        }
         if children.isEmpty {
             let target = NativeMenuActionTarget(action)
             item.representedObject = target

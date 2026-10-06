@@ -12,7 +12,7 @@ enum MobileHistoryMenuConfiguration {
     }
 
     static func apply(to builder: any UIMenuBuilder) {
-        guard #available(iOS 17.4, *), builder.system === UIMenuSystem.main,
+        guard #available(iOS 27.0, *), builder.system === UIMenuSystem.main,
             let root = builder.menu(for: .root)
         else { return }
         for menu in root.children.compactMap({ $0 as? UIMenu }) where containsHistoryShortcut(menu) {
@@ -34,25 +34,26 @@ enum MobileHistoryMenuConfiguration {
     }
 
     static func configured(_ menu: UIMenu) -> UIMenu {
-        guard #available(iOS 17.4, *) else { return menu }
+        guard #available(iOS 27.0, *) else { return menu }
         let children = menu.children.map { element -> UIMenuElement in
-            if let submenu = element as? UIMenu { return configured(submenu) }
-            if #available(iOS 27.0, *), element.image != nil,
-                isShowHistory(element) || element.image?.accessibilityIdentifier == recordImageIdentifier
+            if let submenu = element as? UIMenu {
+                return configured(submenu)
+            }
+            if element.image != nil,
+                isShowHistory(element) || isConnectionRecord(element)
             {
                 element.preferredImageVisibility = .visible
             }
             return element
         }
         let result = menu.replacingChildren(children)
-        if #available(iOS 27.0, *), result.image?.accessibilityIdentifier == recordImageIdentifier {
+        if isConnectionRecord(result) {
             result.preferredImageVisibility = .visible
         }
-        // Native menus own scrolling. Keep row heights stable when icon columns narrow nested menus.
-        // Preferences apply only to immediate children, so each submenu needs its own copy.
-        let preferences = UIMenuDisplayPreferences()
-        preferences.maximumNumberOfTitleLines = 1
-        result.displayPreferences = preferences
         return result
+    }
+
+    private static func isConnectionRecord(_ element: UIMenuElement) -> Bool {
+        element.image?.accessibilityIdentifier == recordImageIdentifier
     }
 }

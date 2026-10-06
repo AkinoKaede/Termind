@@ -1175,14 +1175,12 @@ private struct ConnectionHistorySidebar: View {
             NativeMenuEntry(
                 title: AppStrings.Common.delete,
                 symbol: MenuSymbol.delete,
-                imageVisibility: .visible,
                 isEnabled: false
             ),
             .separator,
             NativeMenuEntry(
                 title: AppStrings.Common.clearAll,
                 symbol: MenuSymbol.clearHistory,
-                imageVisibility: .visible,
                 isEnabled: !allRows.isEmpty,
             ) { confirmsClear = true },
         ]
@@ -1220,13 +1218,11 @@ private struct ConnectionHistorySidebar: View {
                 NativeMenuEntry(
                     title: AppStrings.Common.delete,
                     symbol: MenuSymbol.delete,
-                    imageVisibility: .visible,
                 ) { app.connectionHistory.delete(entry.id) },
                 .separator,
                 NativeMenuEntry(
                     title: AppStrings.Common.clearAll,
                     symbol: MenuSymbol.clearHistory,
-                    imageVisibility: .visible,
                 ) { confirmsClear = true },
             ]
         }

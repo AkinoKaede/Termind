@@ -41,9 +41,9 @@ struct HistoryMenuTests {
         if #available(macOS 27.0, *) {
             MenuImageVisibilityController.apply(to: menu)
             #expect(show.preferredImageVisibility == .visible)
-            #expect(rows[1].image == nil)
-            #expect(rows[2].image == nil)
-            #expect(rows.last?.image == nil)
+            #expect(rows[1].preferredImageVisibility == .automatic)
+            #expect(rows[2].preferredImageVisibility == .automatic)
+            #expect(rows.last?.preferredImageVisibility == .automatic)
         } else {
             #expect(rows.allSatisfy { $0.image != nil })
         }

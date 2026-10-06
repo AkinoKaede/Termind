@@ -30,7 +30,7 @@ struct SFTPContextMenuTests {
         #expect(menu.items[9].image != nil)
         if #available(macOS 27.0, *) {
             #expect(menu.items[0].preferredImageVisibility == .automatic)
-            #expect(menu.items[9].preferredImageVisibility == .visible)
+            #expect(menu.items[9].preferredImageVisibility == .automatic)
         }
         let copyAs = try #require(menu.items[5].submenu)
         #expect(copyAs.items.map(\.title) == ["Name", "Path"])
@@ -66,7 +66,6 @@ struct SFTPContextMenuTests {
         for title in ["Open With", "Paste", "Rename", "Edit Permissions", "Delete", "New Folder", "Upload", "Refresh"] {
             #expect(try #require(disconnected.first { $0.title == title }).isEnabled == false)
         }
-        #expect(try #require(disconnected.first { $0.title == "Delete" }).imageVisibility == .visible)
         let openWith = try #require(disconnected.first { $0.title == "Open With" })
         #expect(openWith.children.map(\.title) == ["App Store…", "Other…"])
         #expect(!openWith.children[0].isEnabled)

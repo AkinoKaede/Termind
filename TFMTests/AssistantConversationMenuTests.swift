@@ -67,7 +67,7 @@ struct AssistantConversationMenuTests {
         #expect(row.contextMenu.contains { $0.symbol == MenuSymbol.unarchive })
         #expect(
             row.contextMenu.contains {
-                $0.symbol == MenuSymbol.delete && $0.imageVisibility == .visible
+                $0.symbol == MenuSymbol.delete
             })
     }
 
