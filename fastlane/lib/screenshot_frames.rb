@@ -47,10 +47,10 @@ class ScreenshotFrames
     end
     if @devices.include?("ipad") && FastImage.size(@ipad_frame) != [2300, 3000]
       raise "Import the official iPad Pro (M5) 13-inch Space Black portrait PNG first; " \
-            "see fastlane/device_frames/README.md or pass ipad_frame:/path/to/frame.png"
+            "see Scripts/ASSET_WORKFLOW.md or pass ipad_frame:/path/to/frame.png"
     end
     if @devices.include?("mac") && FastImage.size(@mac_frame) != [4260, 2620]
-      raise "Import the narrow MacBook Pro template first; see fastlane/device_frames/README.md " \
+      raise "Import the narrow MacBook Pro template first; see Scripts/ASSET_WORKFLOW.md " \
             "or pass mac_frame:/path/to/frame.png"
     end
     @jobs.each do |job|
