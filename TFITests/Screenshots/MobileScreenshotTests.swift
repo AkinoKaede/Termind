@@ -16,6 +16,11 @@ import UIKit
     .serialized)
 @MainActor
 struct MobileScreenshotTests {
+    private var captureDevice: String {
+        ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_DEVICE"]
+            ?? (UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone")
+    }
+
     private var languages: [String] {
         if let language = ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_LOCALE"] {
             return [language]
@@ -38,35 +43,8 @@ struct MobileScreenshotTests {
                 }
             }
 
-            if includes("sftp"), UIDevice.current.userInterfaceIdiom == .pad {
+            if includes("sftp") {
                 try await captureWorkspace(.sftp, language: language)
-            } else if includes("sftp") {
-                let sftp = MobileSFTPChannelModel()
-                try await sftp.attach(
-                    fileSystem: ScreenshotFileSystem(), path: "/srv/termind/releases/2026.09",
-                    connectionGeneration: UUID(), handlesConnectionError: { _ in false }, didChangePath: {})
-                try await capture("sftp", language: language) {
-                    NavigationStack {
-                        MobileSFTPBrowser(
-                            channel: sftp, connected: true, open: { _ in }, openWith: { _ in },
-                            canImportEditedCopy: { _ in false }, importEditedCopy: { _ in },
-                            download: { _ in }, copy: { _ in },
-                            paste: {}, rename: { _ in }, editPermissions: { _ in }, delete: { _ in }
-                        )
-                        .navigationTitle(text(language, "Production files", "生产文件", "正式環境檔案"))
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            screenshotBackButton(language: language)
-                            ToolbarItem(placement: .primaryAction) {
-                                Menu {
-                                    Button("Refresh", systemImage: "arrow.clockwise") {}
-                                } label: {
-                                    MobileOverflowMenuLabel("Files")
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             if includes("ssh") {
@@ -235,9 +213,10 @@ struct MobileScreenshotTests {
     ) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let isPad = UIDevice.current.userInterfaceIdiom == .pad
-        let targetOrientation: UIInterfaceOrientationMask = isPad ? .landscapeLeft : .portrait
+        let isLandscape = isPad || captureDevice == "iphone-duo-inner"
+        let targetOrientation: UIInterfaceOrientationMask = isLandscape ? .landscapeLeft : .portrait
         let hasTargetOrientation =
-            isPad ? scene.interfaceOrientation == .landscapeLeft : scene.interfaceOrientation == .portrait
+            isLandscape ? scene.interfaceOrientation == .landscapeLeft : scene.interfaceOrientation == .portrait
         if !hasTargetOrientation {
             scene.requestGeometryUpdate(.iOS(interfaceOrientations: targetOrientation)) { error in
                 print("Unable to rotate the screenshot scene: \(error.localizedDescription)")
@@ -266,6 +245,11 @@ struct MobileScreenshotTests {
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(900))
+
+        if name == "sftp" {
+            // SFTP captures must include the real app navigation shell, not an isolated browser.
+            _ = try #require(tabController(in: controller))
+        }
 
         if isPad, let tabs = tabController(in: controller) {
             // Keep each scene's navigation presentation independent of restored simulator state.
@@ -313,7 +297,7 @@ struct MobileScreenshotTests {
         let outputDirectory = try #require(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
             .appending(path: "screenshots", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
-        let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        let device = captureDevice
         let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
         let featureDirectory = outputDirectory.appending(path: name, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: featureDirectory, withIntermediateDirectories: true)
@@ -337,7 +321,7 @@ struct MobileScreenshotTests {
         let control = documents.appending(path: "screenshot-capture-control", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
         let token = UUID().uuidString
-        let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        let device = captureDevice
         let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
         let ready = control.appending(path: "ready")
         let ack = control.appending(path: "ack-\(token)")

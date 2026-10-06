@@ -39,7 +39,7 @@ class ScreenshotsTests < Minitest::Test
     capture = runner(:ios, { devices: "ipad", locales: "zh-Hant", scenes: "ssh,sftp" },
                      { "TERMIND_SCREENSHOT_DEVICES" => "iphone", "TERMIND_SCREENSHOT_LOCALES" => "en" })
     capture.define_singleton_method(:command) do |*args|
-      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-1" => [
+      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
         { "name" => "iPad Pro 13-inch (M5)", "udid" => "ipad-id",
           "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB" }
       ] })
@@ -49,10 +49,17 @@ class ScreenshotsTests < Minitest::Test
     assert_equal ["zh-Hant"], capture.plan[:locales]
   end
 
+  def test_runtime_defaults_follow_device_compatibility_and_allow_explicit_overrides
+    assert_equal "com.apple.CoreSimulator.SimRuntime.iOS-27-0", runner.plan[:runtime]
+    assert_equal "com.apple.CoreSimulator.SimRuntime.iOS-27-1", runner(:ios, devices: "iphone-duo-inner").plan[:runtime]
+    assert_equal "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+                 runner(:ios, { devices: "iphone-duo-inner", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-27-0" }).plan[:runtime]
+  end
+
   def test_a_renamed_pro_cannot_be_used_as_the_pro_max_capture_device
     capture = runner(:ios, devices: "iphone")
     capture.define_singleton_method(:command) do |*args|
-      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-1" => [
+      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
         { "name" => "iPhone 18 Pro Max", "udid" => "wrong-model",
           "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro" }
       ] })
@@ -172,26 +179,41 @@ class ScreenshotsTests < Minitest::Test
   end
 
   def test_mobile_capture_rediscovers_container_after_host_reinstallation
-    capture = runner(:ios, devices: "iphone", scenes: "vault", locales: "zh-Hans")
+    %w[iphone iphone-duo-outer iphone-duo-inner].each do |device|
+      assert_mobile_capture_rediscovers_container(device)
+    end
+  end
+
+  def assert_mobile_capture_rediscovers_container(device)
+    capture = runner(:ios, devices: device, scenes: "vault", locales: "zh-Hans")
     old_container = File.join(@root, "old-container")
     new_container = File.join(@root, "new-container")
     control = File.join(new_container, "Documents", "screenshot-capture-control")
     token = "11111111-1111-1111-1111-111111111111"
     capture.define_singleton_method(:test_configuration) do |_, _, environment|
       FileUtils.mkdir_p(control)
-      File.write(File.join(control, "ready"), ["vault", "iphone", "zh-hans", token,
+      File.write(File.join(control, "ready"), ["vault", environment.fetch("TERMIND_SCREENSHOT_DEVICE"), "zh-hans", token,
                  environment.fetch("TERMIND_SCREENSHOT_CAPTURE_ID")].join("\t"))
       File.join(@root, "fixture.xctestrun")
     end
     capture.define_singleton_method(:capture_during_test) { |_, &block| 2.times { block.call } }
+    commands = []
+    capture.define_singleton_method(:sleep) { |_| }
     capture.define_singleton_method(:command) do |*args|
+      commands << args
+      if args.include?("displays")
+        next JSON.generate("result" => { "displays" => [
+          { "active" => true, "nativeSize" => Screenshots::DEVICES.fetch(device).fetch(:dimensions).sort,
+            "uniqueId" => "display-#{device}" }
+        ] })
+      end
       if args.include?("screenshot")
         FileUtils.mkdir_p(File.dirname(args.last))
         File.binwrite(args.last, "new container capture")
       end
       ""
     end
-    capture.define_singleton_method(:dimensions) { |_| [1320, 2868] }
+    capture.define_singleton_method(:dimensions) { |_| Screenshots::DEVICES.fetch(device).fetch(:dimensions) }
     containers = [old_container, new_container]
     status = Object.new
     status.define_singleton_method(:success?) { true }
@@ -199,12 +221,35 @@ class ScreenshotsTests < Minitest::Test
       [args.include?("get_app_container") ? containers.shift : "", status]
     end
     Open3.stub(:capture2e, responses) do
-      capture.capture_mobile("iphone", { "udid" => "fixture", "state" => "Booted" }, "zh-Hans")
+      capture.capture_mobile(device, { "udid" => "fixture", "state" => "Booted" }, "zh-Hans")
     end
-    destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hans/iphone/vault.png")
+    destination = File.join(@root, "com.akinokaede.termind/assets/captures/zh-hans/#{device}/vault.png")
     assert_equal "new container capture", File.binread(destination)
     assert File.exist?(File.join(control, "ack-#{token}"))
     refute Dir.exist?(old_container)
+    status_bar = commands.find { |args| args.include?("override") }
+    assert_equal "discharging", status_bar[status_bar.index("--batteryState") + 1]
+    assert_equal "100", status_bar[status_bar.index("--batteryLevel") + 1]
+    if device == "iphone-duo-outer"
+      assert_includes commands.find { |args| args.include?("screenshot") }, "--display=primary"
+    elsif device == "iphone-duo-inner"
+      screenshot = commands.find { |args| args.include?("screenshot") }
+      assert_includes screenshot, "--display-unique-id"
+      assert_includes screenshot, "display-iphone-duo-inner"
+    end
+    FileUtils.remove_entry(new_container)
+  end
+
+  def test_duo_rejects_the_inactive_display_before_starting_capture
+    capture = runner(:ios, devices: "iphone-duo-inner")
+    capture.define_singleton_method(:command) do |*args|
+      JSON.generate("result" => { "displays" => [
+        { "active" => true, "nativeSize" => [1398, 2034] },
+        { "active" => false, "nativeSize" => [2007, 2853] }
+      ] })
+    end
+    error = assert_raises(RuntimeError) { capture.validate_display("iphone-duo-inner", "duo-id") }
+    assert_includes error.message, "Select Open"
   end
 
   def test_failed_scan_never_promotes_a_staged_mac_capture
@@ -243,6 +288,9 @@ class ScreenshotFramesTests < Minitest::Test
     File.write(File.join(@root, "com.akinokaede.termind/.git"), "gitdir: fixture")
     FileUtils.mkdir_p(File.join(@root, "fastlane"))
     FileUtils.cp(File.expand_path("../../fastlane/Framefile.json", __dir__), File.join(@root, "fastlane"))
+    png(File.join(@root, ".build/frameit-assets/iphone-18-pro-max.png"), 1470, 3000)
+    @templates = File.join(@root, "templates")
+    FileUtils.mkdir_p(@templates)
   end
 
   def teardown
@@ -285,10 +333,14 @@ class ScreenshotFramesTests < Minitest::Test
                                     input: "review-input", output: "review-output" }, root: @root)
     downloader = Object.new
     downloader.define_singleton_method(:frames_exist?) { true }
-    Frameit::FrameDownloader.stub(:new, downloader) do
-      runner.run do |options|
-        assert_equal "iPhone 17 Pro Max", options.fetch(:force_device_type)
-        png(File.join(options.fetch(:path), "iphone_framed.png"), 1458, 3006)
+    Frameit::FrameDownloader.stub(:templates_path, @templates) do
+      Frameit::FrameDownloader.stub(:new, downloader) do
+        runner.run do |options|
+          assert_equal "iPhone 18 Pro Max", options.fetch(:force_device_type)
+          framefile = JSON.parse(File.read(File.join(options.fetch(:path), "Framefile.json")))
+          assert_equal({ "offset" => "+75+66", "width" => 1320 }, framefile.fetch("default").fetch("offset"))
+          png(File.join(options.fetch(:path), "iphone_framed.png"), 1470, 3000)
+        end
       end
     end
     assert File.exist?(File.join(@root, "review-output/en/iphone/vault.png"))
@@ -306,6 +358,47 @@ class ScreenshotFramesTests < Minitest::Test
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind/assets/device_frames"))
   end
 
+  def test_duo_frames_preserve_native_sources_and_use_each_display_aperture
+    templates = File.join(@root, "templates")
+    FileUtils.mkdir_p(templates)
+    downloader = Object.new
+    downloader.define_singleton_method(:frames_exist?) { true }
+    expected = {
+      "outer" => [[1398, 2034], [1574, 2194], "+88+80", "iPhone Duo Outer"],
+      "inner" => [[2853, 2007], [2247, 3093], "+120+120", "iPhone Duo Inner"]
+    }
+    expected.each do |display, (native, frame, offset, name)|
+      device = "iphone-duo-#{display}"
+      source = File.join(@root, "input/en/#{device}/vault.png")
+      template = File.join(@root, "#{device}.png")
+      png(source, *native)
+      png(template, *frame)
+      source_hash = Digest::SHA256.file(source).hexdigest
+      options = { devices: device, scenes: "vault", locales: "en", input: "input", output: "output",
+                  "iphone_duo_#{display}_frame".to_sym => template }
+      Frameit::FrameDownloader.stub(:templates_path, templates) do
+        Frameit::FrameDownloader.stub(:new, downloader) do
+          ScreenshotFrames.new(options, root: @root).run do |configuration|
+            assert_equal name, configuration.fetch(:force_device_type)
+            framefile = JSON.parse(File.read(File.join(configuration.fetch(:path), "Framefile.json")))
+            assert_equal({ "offset" => offset, "width" => native.min }, framefile.fetch("default").fetch("offset"))
+            assert_equal :landscape_left, configuration.fetch(:force_orientation_block).call(nil) if display == "inner"
+            png(File.join(configuration.fetch(:path), "#{device}_framed.png"), *(display == "inner" ? frame.reverse : frame))
+          end
+        end
+      end
+      assert_equal source_hash, Digest::SHA256.file(source).hexdigest
+      assert_equal(display == "inner" ? frame.reverse : frame, FastImage.size(File.join(@root, "output/en/#{device}/vault.png")))
+    end
+  end
+
+  def test_missing_duo_template_fails_before_publishing
+    runner = ScreenshotFrames.new({ devices: "iphone-duo-inner", locales: "en" }, root: @root)
+    error = assert_raises(RuntimeError) { runner.run { flunk "frameit must not start" } }
+    assert_includes error.message, "iphone_duo_inner_frame:"
+    refute Dir.exist?(File.join(@root, "com.akinokaede.termind/assets/device_frames"))
+  end
+
   def test_missing_frameit_output_keeps_all_existing_outputs_and_sources
     %w[en zh-hans].each do |locale|
       png(File.join(@root, "com.akinokaede.termind/assets/captures/#{locale}/iphone/vault.png"), 1320, 2868)
@@ -319,12 +412,14 @@ class ScreenshotFramesTests < Minitest::Test
     downloader = Object.new
     downloader.define_singleton_method(:frames_exist?) { true }
     calls = 0
-    Frameit::FrameDownloader.stub(:new, downloader) do
-      assert_raises(RuntimeError) do
-        runner.run do |options|
-          calls += 1
-          png(File.join(options.fetch(:path), "iphone_framed.png"), 1350, 2760) if calls == 1
-          # frameit can log an error and return successfully without an image.
+    Frameit::FrameDownloader.stub(:templates_path, @templates) do
+      Frameit::FrameDownloader.stub(:new, downloader) do
+        assert_raises(RuntimeError) do
+          runner.run do |options|
+            calls += 1
+            png(File.join(options.fetch(:path), "iphone_framed.png"), 1350, 2760) if calls == 1
+            # frameit can log an error and return successfully without an image.
+          end
         end
       end
     end

@@ -29,6 +29,10 @@ class Screenshots
   DEVICES = {
     "iphone" => { name: "iPhone 18 Pro Max", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max",
                   dimensions: [1320, 2868] },
+    "iphone-duo-outer" => { name: "iPhone Duo", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo",
+                            dimensions: [1398, 2034], display: "primary" },
+    "iphone-duo-inner" => { name: "iPhone Duo", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-Duo",
+                            dimensions: [2853, 2007], display: "primary-1" },
     "ipad" => { name: "iPad Pro 13-inch (M5)", type: "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
                 dimensions: [2752, 2064] }
   }.freeze
@@ -45,9 +49,11 @@ class Screenshots
                         platform == :mac ? MAC_SCENES.keys : MOBILE_SCENES, "scenes")
     @locales = selection(options[:locales] || environment["#{prefix}_LOCALES"], LOCALES.keys, LOCALES.keys, "locales")
     @devices = platform == :mac ? ["mac"] : selection(
-      options[:devices] || environment["TERMIND_SCREENSHOT_DEVICES"], DEVICES.keys, DEVICES.keys, "devices"
+      options[:devices] || environment["TERMIND_SCREENSHOT_DEVICES"], %w[iphone ipad], DEVICES.keys, "devices"
     )
-    @runtime = options[:runtime] || environment["TERMIND_SCREENSHOT_RUNTIME"] || "com.apple.CoreSimulator.SimRuntime.iOS-27-1"
+    default_runtime = @devices.all? { |device| device.start_with?("iphone-duo-") } ? "27-1" : "27-0"
+    @runtime = options[:runtime] || environment["TERMIND_SCREENSHOT_RUNTIME"] ||
+               "com.apple.CoreSimulator.SimRuntime.iOS-#{default_runtime}"
     if platform == :ios && !@runtime.match?(/\Acom\.apple\.CoreSimulator\.SimRuntime\.iOS-27-\d+(?:-\d+)?\z/)
       raise ArgumentError, "Screenshots require an iOS/iPadOS 27 runtime: #{@runtime}"
     end
@@ -241,16 +247,21 @@ class Screenshots
     command("xcrun", "simctl", "boot", id) unless simulator.fetch("state") == "Booted"
     command("xcrun", "simctl", "bootstatus", id, "-b")
     simulator["state"] = "Booted"
-    if device == "ipad"
+    display = validate_display(device, id)
+    if device == "ipad" || device == "iphone-duo-inner"
       command("xcrun", "devicectl", "device", "orientation", "set", "--device", id, "landscapeLeft")
+      sleep 2
+    elsif DEVICES.fetch(device)[:display]
+      command("xcrun", "devicectl", "device", "orientation", "set", "--device", id, "portrait")
       sleep 2
     end
     command("xcrun", "simctl", "status_bar", id, "override", "--time", "9:41", "--batteryState", "discharging",
-            "--batteryLevel", "80", "--wifiBars", "3", "--cellularBars", "4")
+            "--batteryLevel", "100", "--wifiBars", "3", "--cellularBars", "4")
     capture_id = SecureRandom.uuid
     xctestrun = test_configuration(language, label, {
       "TERMIND_SCREENSHOTS" => "1", "TERMIND_SCREENSHOT_SYSTEM_CAPTURE" => "1",
       "TERMIND_SCREENSHOT_LOCALE" => language, "TERMIND_SCREENSHOT_CAPTURE_ID" => capture_id,
+      "TERMIND_SCREENSHOT_DEVICE" => device,
       "TERMIND_SCREENSHOT_SCENES" => @scenes.join(",")
     })
     options = scan_options("id=#{id}", label).merge(
@@ -272,10 +283,15 @@ class Screenshots
         raise "Unexpected or duplicate screenshot request: #{File.read(ready)}"
       end
       captured = File.join(@run_directory, "#{label}-#{feature}.png")
-      if device == "ipad"
-        command("xcrun", "devicectl", "device", "capture", "screenshot", "--device", id, "--destination", captured)
+      if device == "ipad" || device == "iphone-duo-inner"
+        arguments = ["xcrun", "devicectl", "device", "capture", "screenshot", "--device", id]
+        arguments += ["--display-unique-id", display.fetch("uniqueId")] if display
+        command(*arguments, "--destination", captured)
       else
-        command("xcrun", "simctl", "io", id, "screenshot", "--type=png", captured)
+        display_name = DEVICES.fetch(device)[:display]
+        arguments = ["xcrun", "simctl", "io", id, "screenshot", "--type=png"]
+        arguments << "--display=#{display_name}" if display_name
+        command(*arguments, captured)
       end
       validate_dimensions(captured, DEVICES.fetch(device).fetch(:dimensions))
       captures[feature] = [captured, "#{locale}/#{device}/#{feature}.png"]
@@ -291,6 +307,21 @@ class Screenshots
       output, status = Open3.capture2e("xcrun", "simctl", "status_bar", id, "clear")
       warn output unless status.success?
     end
+  end
+
+  def validate_display(device, id)
+    specification = DEVICES.fetch(device)
+    return unless specification[:display]
+
+    displays = JSON.parse(command("xcrun", "devicectl", "device", "info", "displays", "--quiet",
+                                  "--device", id, "--json-output", "-")).fetch("result").fetch("displays")
+    active = displays.find do |display|
+      display["active"] && display["nativeSize"].sort == specification.fetch(:dimensions).sort
+    end
+    return active if active
+
+    posture = device.end_with?("outer") ? "Closed" : "Open"
+    raise "Select #{posture} for iPhone Duo in Device Hub before capturing #{device}. Run each display separately."
   end
 
   def dimensions(path)

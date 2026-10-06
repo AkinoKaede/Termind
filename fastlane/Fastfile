@@ -34,7 +34,7 @@ end
 
 require_relative "lib/screenshot_frames"
 
-desc "Add device frames with frameit (devices, scenes, locales, input, output, ipad_frame, mac_frame, plan)"
+desc "Add device frames with frameit (devices, scenes, locales, input, output, iphone_frame, ipad_frame, mac_frame, plan)"
 lane :frames do |options|
   runner = ScreenshotFrames.new(options)
   if options[:plan].to_s == "true"
