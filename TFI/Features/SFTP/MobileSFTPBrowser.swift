@@ -59,7 +59,8 @@ struct MobileSFTPBrowser: View {
                         }
                     },
                     onRefresh: { await channel.reload() },
-                    bottomContentInset: bottomContentInset
+                    bottomContentInset: bottomContentInset,
+                    surface: .plain
                 ) { item in
                     switch item {
                     case .parent:
@@ -81,7 +82,7 @@ struct MobileSFTPBrowser: View {
                     .allowsHitTesting(false)
                 }
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(Color(uiColor: .systemBackground))
         }
     }
 
