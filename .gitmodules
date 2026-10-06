@@ -9,3 +9,6 @@
 	path = libtailscale-spm
 	url = https://github.com/AkinoKaede/libtailscale-spm.git
 	branch = main
+[submodule "com.akinokaede.termind"]
+	path = com.akinokaede.termind
+	url = https://github.com/AkinoKaede/com.akinokaede.termind.git

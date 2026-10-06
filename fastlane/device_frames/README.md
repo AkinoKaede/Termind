@@ -21,3 +21,15 @@ The unmodified template is 2300×3000. Its transparent screen opening is exactly
 it for landscape captures and produces a 3000×2300 composition. Neither the
 screenshot nor the frame is resized. The pinned frameit library has no built-in
 M5 frame, so the lane registers this device at runtime.
+
+## MacBook Pro narrow frame
+
+Mac Overview compositions use the existing narrow-bezel MacBook Pro artwork,
+prepared locally as `.build/frameit-assets/macbook_pro_template.png`. Supply an
+alternate location with `mac_frame:/absolute/path/to/frame.png`. Keep the source
+artwork outside version control and retain its original usage terms.
+
+The prepared transparent template is 4260×2620, with a 3454×2243 screen opening
+at (403, 74). The native 3024×1964 capture scales proportionally into this opening.
+Its black full-screen camera strip remains visible at the top; no desktop or
+personal system UI is added. A missing template fails before publishing outputs.

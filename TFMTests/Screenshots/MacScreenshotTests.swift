@@ -25,7 +25,38 @@ import Testing
             window.contentMinSize = .zero
             window.appearance = NSAppearance(named: .aqua)
             window.setFrame(NSRect(origin: .zero, size: configuration.windowSize), display: true)
-            window.center()
+            var captureSize = CGSize(
+                width: configuration.windowSize.width * 2,
+                height: configuration.windowSize.height * 2)
+            if configuration.scene == .workspace {
+                let screen = try #require(
+                    NSScreen.screens.first { screen in
+                        guard
+                            let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+                        else {
+                            return false
+                        }
+                        return CGDisplayIsBuiltin(number.uint32Value) != 0
+                    }, "Mac screenshots require the built-in display")
+                window.setFrameOrigin(
+                    NSPoint(
+                        x: screen.frame.midX - window.frame.width / 2,
+                        y: screen.frame.midY - window.frame.height / 2))
+                window.collectionBehavior.insert(.fullScreenPrimary)
+                window.toggleFullScreen(nil)
+                for _ in 0..<100 {
+                    if window.styleMask.contains(.fullScreen) { break }
+                    try await Task.sleep(for: .milliseconds(50))
+                }
+                try #require(window.styleMask.contains(.fullScreen))
+                try await Task.sleep(for: .seconds(2))
+                captureSize = CGSize(
+                    width: screen.frame.width * screen.backingScaleFactor,
+                    height: screen.frame.height * screen.backingScaleFactor)
+            } else {
+                window.center()
+            }
+            defer { if window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) } }
             window.contentView?.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .seconds(1))
             window.contentView?.layoutSubtreeIfNeeded()
@@ -88,7 +119,7 @@ import Testing
             let language = configuration.language.rawValue
             FileHandle.standardOutput.write(
                 Data(
-                    "TERMIND_MAC_SCREENSHOT_READY \(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n"
+                    "TERMIND_MAC_SCREENSHOT_READY \(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\t\(Int(captureSize.width))\t\(Int(captureSize.height))\n"
                         .utf8)
             )
 

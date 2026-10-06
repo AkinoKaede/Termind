@@ -11,7 +11,13 @@ historical schemas, and the container factory belong exclusively to Persistence.
 stay with their app; shared modules must never depend on an app target.
 `TermindMCPBridge/` builds `termind-mcp` for macOS only. Tests are separated into
 `FrameworkTests/`, `TFMTests/`, and `TFITests/` with matching targets.
-`LandingPage/` is the Astro site. Utilities belong in `Scripts/`.
+`com.akinokaede.termind/` is the public website and assets submodule. Its root is
+an independent Astro project; `assets/` and `design/` inside it own marketing
+and brand assets. Initialize it with `git submodule update --init com.akinokaede.termind`
+only for website or asset work. Native app builds do not require it. Utilities
+and screenshot tooling stay in the main repository; see `Scripts/ASSET_WORKFLOW.md`.
+Commit and push asset changes via SSH before updating the main repository's gitlink;
+keep the public HTTPS clone URL in `.gitmodules`.
 
 The agent runtime is `AgentKit`, a separate open-source package developed in the sibling `../AgentKit` repository and consumed as a versioned remote SPM dependency on `github.com/AkinoKaede/AgentKit`, pinned in `Package.resolved`. It owns the loop, the approval gate, the provider adapters, the MCP client, and the built-in tools that know nothing about hosts. Termind owns the SSH/SFTP tools and registers them through `TermindAgentTools`. Never add SSH, SFTP, UI, or the name Termind to that package.
 
@@ -49,8 +55,8 @@ Treat `openwiki/` as durable just-in-time engineering context. Start with `openw
 - `cd ../AgentKit && swift build && swift test` builds and tests the agent package on its own.
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test` runs the default macOS and shared Swift tests. Tests that show windows or take focus are opt-in.
 - `xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge` checks Swift formatting. AgentKit passes the same command over `Sources Tests` and must keep passing it.
-- `cd LandingPage && npm ci && npm run dev` installs locked web dependencies and starts Astro locally.
-- `cd LandingPage && npm run build` type-checks and emits the production site to `LandingPage/dist/`.
+- `cd com.akinokaede.termind && npm ci && npm run dev` installs locked web dependencies and starts Astro locally.
+- `cd com.akinokaede.termind && npm run build` type-checks and emits the production site to `com.akinokaede.termind/dist/`.
 
 ## Coding Style & Naming Conventions
 

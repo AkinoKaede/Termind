@@ -86,15 +86,7 @@ import TermindApplication
         }
 
         var windowSize: CGSize {
-            switch scene {
-            case .command:
-                CGSize(width: 1_022, height: 640)
-            case .workspace, .agent, .hosts, .metrics, .metricsDetail, .appSettings:
-                CGSize(
-                    width: Metrics.Window.defaultWidth,
-                    height: Metrics.Window.defaultHeight
-                )
-            }
+            CGSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
         }
 
         func makeHostLibrary() -> HostLibraryModel {

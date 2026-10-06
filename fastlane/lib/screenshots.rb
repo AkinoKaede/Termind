@@ -8,13 +8,22 @@ require "securerandom"
 # TFMTests/TFITests; scan owns all Xcode build/test invocations.
 class Screenshots
   ROOT = File.expand_path("../..", __dir__)
+  ASSET_DIRECTORY = "com.akinokaede.termind".freeze
+
+  def self.require_assets!(root)
+    directory = File.join(root, ASSET_DIRECTORY)
+    return if File.exist?(File.join(directory, ".git")) && File.directory?(File.join(directory, "assets"))
+
+    raise "Initialize the website and assets first: git submodule update --init com.akinokaede.termind"
+  end
+
   LOCALES = { "en" => ["US", "en_US"], "zh-Hans" => ["CN", "zh_CN"], "zh-Hant" => ["TW", "zh_TW"] }.freeze
   MAC_SCENES = {
-    "hosts" => ["vault", "mac", 2360, 1480],
-    "workspace" => ["workspace", "mac", 2360, 1480],
-    "agent" => ["assistant", "mac", 2360, 1480],
-    "command" => ["command-generator", "mac", 2044, 1280],
-    "metrics" => ["metrics", "mac-overview", 2360, 1480]
+    "hosts" => ["vault", "mac"],
+    "workspace" => ["workspace", "mac"],
+    "agent" => ["assistant", "mac"],
+    "command" => ["command-generator", "mac"],
+    "metrics" => ["metrics", "mac-overview"]
   }.freeze
   MOBILE_SCENES = %w[vault sftp ssh metrics assistant].freeze
   DEVICES = {
@@ -42,7 +51,8 @@ class Screenshots
     if platform == :ios && !@runtime.match?(/\Acom\.apple\.CoreSimulator\.SimRuntime\.iOS-27-\d+(?:-\d+)?\z/)
       raise ArgumentError, "Screenshots require an iOS/iPadOS 27 runtime: #{@runtime}"
     end
-    @output = File.expand_path(options[:output] || "Marketing/Screenshots/Captures", root)
+    @default_output = !options[:output]
+    @output = File.expand_path(options[:output] || "#{ASSET_DIRECTORY}/assets/captures", root)
     @derived = File.join(root, ".build", "fastlane-screenshots", platform.to_s)
     @run_id = "#{Time.now.utc.strftime('%Y%m%d-%H%M%S')}-#{SecureRandom.hex(4)}"
     @run_directory = File.join(@derived, "runs", @run_id)
@@ -56,6 +66,7 @@ class Screenshots
   end
 
   def run(&scan)
+    self.class.require_assets!(@root) if @default_output
     @scan = scan
     FileUtils.mkdir_p(@derived)
     # Shared products and simulator presentation cannot be used by two runners.
@@ -163,33 +174,46 @@ class Screenshots
   def capture_mac(scene, language, destination)
     label = "#{scene}-#{language}"
     xctestrun = test_configuration(language, label, { "TERMIND_MAC_SCREENSHOTS" => "1" },
-                                  ["--termind-demo=#{scene}:#{language}"])
+                                  ["--termind-demo=#{scene}:#{language}", "-statusBar.expanded", "YES"])
     options = scan_options(destination, label).merge(
       xctestrun: xctestrun, only_testing: ["TFMTests/MacScreenshotTests"], test_without_building: true
     )
     captured = File.join(@run_directory, "#{label}.png")
     did_capture = false
+    native_size = nil
     capture_during_test(options) do
       next if did_capture
       log = File.join(options.fetch(:buildlog_path), "Termind-TFM.log")
       next unless File.exist?(log)
       payload = File.read(log)[/TERMIND_MAC_SCREENSHOT_READY ([^\r\n]+)/, 1]
       next unless payload
-      ready_scene, ready_language, window, token, active, key = payload.split("\t")
+      ready_scene, ready_language, window, token, active, key, screen_width, screen_height = payload.split("\t")
       unless ready_scene == scene && ready_language == language && window.match?(/\A\d+\z/) &&
              !token.to_s.empty? && active == "active" && key == "key"
         raise "Capture window was not ready and focused: #{payload}"
       end
+      native_size = [Integer(screen_width), Integer(screen_height)]
+      raise "Invalid capture size" unless native_size.all?(&:positive?)
       command("screencapture", "-l", window, "-o", captured)
       did_capture = true
     end
     raise "No focused-window capture received for #{label}" unless did_capture
-    feature, prefix, width, height = MAC_SCENES.fetch(scene)
-    if dimensions(captured) == [width + 4, height + 4]
+    feature, prefix = MAC_SCENES.fetch(scene)
+    actual = dimensions(captured)
+    width, height = native_size
+    if scene == "workspace"
+      # Full-screen windows can exclude the camera strip. Never capture personal UI.
+      unless actual[0] == width && actual[1] <= height && height - actual[1] <= 160
+        raise "Unexpected full-screen capture #{actual.inspect}; built-in display is #{native_size.inspect}"
+      end
+      if actual != native_size
+        command("magick", captured, "-background", "black", "-gravity", "south", "-extent", "#{width}x#{height}", captured)
+      end
+    elsif actual == [width + 4, height + 4]
       command("sips", "-c", height.to_s, width.to_s, captured)
     end
-    validate_dimensions(captured, [width, height])
-    promote([[captured, "#{feature}/#{prefix}-#{language.downcase}.png"]])
+    validate_dimensions(captured, native_size)
+    promote([[captured, "#{language.downcase}/mac/#{prefix == 'mac-overview' ? 'metrics_overview' : feature.tr('-', '_')}.png"]])
   ensure
     FileUtils.rm_f(xctestrun) if xctestrun
   end
@@ -234,13 +258,11 @@ class Screenshots
     )
     captures = {}
     tokens = []
-    control = nil
     capture_during_test(options) do
-      unless control
-        container, status = Open3.capture2e("xcrun", "simctl", "get_app_container", id, "com.akinokaede.termind", "data")
-        next unless status.success?
-        control = File.join(container.strip, "Documents", "screenshot-capture-control")
-      end
+      # XCTest may reinstall the host between locales and replace its data container.
+      container, status = Open3.capture2e("xcrun", "simctl", "get_app_container", id, "com.akinokaede.termind", "data")
+      next unless status.success?
+      control = File.join(container.strip, "Documents", "screenshot-capture-control")
       ready = File.join(control, "ready")
       next unless File.exist?(ready)
       feature, ready_device, locale, token, request_id = File.read(ready).strip.split("\t")
@@ -256,7 +278,7 @@ class Screenshots
         command("xcrun", "simctl", "io", id, "screenshot", "--type=png", captured)
       end
       validate_dimensions(captured, DEVICES.fetch(device).fetch(:dimensions))
-      captures[feature] = [captured, "#{feature}/#{device}-#{locale}.png"]
+      captures[feature] = [captured, "#{locale}/#{device}/#{feature}.png"]
       tokens << token
       FileUtils.touch(File.join(control, "ack-#{token}"))
     end
@@ -284,6 +306,7 @@ class Screenshots
   # Only publish after scan and every expected capture have succeeded. Preserve
   # originals and their hashes before replacing any selected source.
   def promote(captures)
+    self.class.require_assets!(@root) if @default_output
     captures.each do |source, relative|
       raise "Missing capture: #{source}" unless File.file?(source)
       destination = File.join(@output, relative)

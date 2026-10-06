@@ -5,47 +5,28 @@ require_relative "screenshots"
 # read-only, and the website's existing feature/file names remain stable.
 class ScreenshotFrames
   DEVICES = %w[iphone ipad mac].freeze
-
-  module MacFrameDetection
-    def mac?
-      device.id == "mac"
-    end
-  end
-
-  module MacFrameBackground
-    attr_accessor :top_space_above_device
-
-    # This lane composes a native window on a prepared laptop background, with
-    # no title layout. Avoid the mobile padding/density path (Mac density is nil).
-    def should_skip?
-      false
-    end
-
-    def complex_framing
-      put_device_into_background(generate_background)
-    end
-
-    def generate_background
-      MiniMagick::Image.open(@config.fetch("background"))
-    end
-  end
+  WEBSITE_SCENES = {
+    "iphone" => %w[assistant ssh vault], "ipad" => %w[metrics sftp vault], "mac" => %w[workspace]
+  }.freeze
 
   def initialize(options = {}, root: Screenshots::ROOT)
     @root = root
+    @mac_frame = File.expand_path(options[:mac_frame] || ".build/frameit-assets/macbook_pro_template.png", root)
     @ipad_frame = File.expand_path(options[:ipad_frame] || ".build/frameit-assets/ipad-pro-13-m5.png", root)
     selector = Screenshots.new(:ios, {}, environment: {}, root: root)
     @devices = selector.selection(options[:devices], DEVICES, DEVICES, "devices")
     @locales = selector.selection(options[:locales], Screenshots::LOCALES.keys, Screenshots::LOCALES.keys, "locales")
     @scenes = options[:scenes]
-    @input = File.expand_path(options[:input] || "Marketing/Screenshots/Captures", root)
-    @output = File.expand_path(options[:output] || "Marketing/Screenshots/DeviceFrames", root)
+    @uses_default_assets = !options[:input] || !options[:output]
+    @input = File.expand_path(options[:input] || "#{Screenshots::ASSET_DIRECTORY}/assets/captures", root)
+    @output = File.expand_path(options[:output] || "#{Screenshots::ASSET_DIRECTORY}/assets/device_frames", root)
     @jobs = @devices.flat_map do |device|
       scenes = device == "mac" ? ["workspace"] : Screenshots::MOBILE_SCENES
-      selected = selector.selection(@scenes, scenes, scenes, "#{device} scenes")
+      selected = selector.selection(@scenes, WEBSITE_SCENES.fetch(device), scenes, "#{device} scenes")
       selected.product(@locales).map do |scene, language|
-        relative = "#{scene}/#{device}-#{language.downcase}"
+        relative = "#{language.downcase}/#{device}/#{scene}"
         { device: device, input: File.join(@input, "#{relative}.png"),
-          output: File.join(@output, "#{relative}-framed.png") }
+          output: File.join(@output, "#{relative}.png") }
       end
     end
   end
@@ -55,15 +36,9 @@ class ScreenshotFrames
   end
 
   def run
+    Screenshots.require_assets!(@root) if @uses_default_assets
     require "frameit"
     require "fastimage"
-    # fastlane 2.240.1 compares the full name ("Apple MacBook") with
-    # "MacBook", which incorrectly selects the mobile editor for Mac frames.
-    unless Frameit::Screenshot.ancestors.include?(MacFrameDetection)
-      Frameit::Screenshot.prepend(MacFrameDetection)
-      # The same release's Mac editor still calls the removed fetch_config API.
-      Frameit::MacEditor.prepend(MacFrameBackground)
-    end
     unless Frameit::Devices.const_defined?(:IPAD_PRO_13_CUSTOM)
       Frameit::Devices.const_set(:IPAD_PRO_13_CUSTOM, Frameit::Device.new(
         "ipad-pro-13-custom", "Apple iPad Pro 13-inch (M5)", 20,
@@ -74,8 +49,12 @@ class ScreenshotFrames
       raise "Import the official iPad Pro (M5) 13-inch Space Black portrait PNG first; " \
             "see fastlane/device_frames/README.md or pass ipad_frame:/path/to/frame.png"
     end
+    if @devices.include?("mac") && FastImage.size(@mac_frame) != [4260, 2620]
+      raise "Import the narrow MacBook Pro template first; see fastlane/device_frames/README.md " \
+            "or pass mac_frame:/path/to/frame.png"
+    end
     @jobs.each do |job|
-      expected = job[:device] == "mac" ? [2360, 1480] : Screenshots::DEVICES.fetch(job[:device]).fetch(:dimensions)
+      expected = job[:device] == "mac" ? [3024, 1964] : Screenshots::DEVICES.fetch(job[:device]).fetch(:dimensions)
       actual = FastImage.size(job[:input])
       raise "Recapture #{job[:input]}: expected native #{expected.join('x')}, found #{actual.inspect}" unless actual == expected
     end
@@ -93,7 +72,6 @@ class ScreenshotFrames
         FileUtils.cp(@ipad_frame, template)
       end
       # Keep assets below device_frames so frameit never mistakes them for captures.
-      background = prepare_mac_background(stage) if @devices.include?("mac")
       pending = @jobs.each_with_index.map do |job, index|
         work = File.join(stage, index.to_s)
         FileUtils.mkdir_p(work)
@@ -106,18 +84,16 @@ class ScreenshotFrames
                        when "ipad"
                          configuration["default"] = { "offset" => { "offset" => "+118+124", "width" => 2064 } }
                          "iPad Pro 13-inch (M5)"
-                       when "mac"
-                         configuration["default"] = {
-                           "background" => Pathname.new(background).relative_path_from(Pathname.new(work)).to_s,
-                           "offset" => { "offset" => "+570+190", "width" => 2770, "titleHeight" => 0 }
-                         }
-                         "MacBook"
                        end
         File.write(File.join(work, "Framefile.json"), JSON.generate(configuration))
         frame_options = { path: work, force_device_type: force_device, use_platform: "IOS" }
         frame_options[:force_orientation_block] = ->(_) { :landscape_left } if job[:device] == "ipad"
-        yield(frame_options)
         rendered = File.join(work, "#{job[:device]}_framed.png")
+        if job[:device] == "mac"
+          compose_mac(source, rendered)
+        else
+          yield(frame_options)
+        end
         # frameit logs some image errors without failing the lane. Verify output
         # explicitly, and publish nothing unless every requested frame succeeded.
         size = FastImage.size(rendered)
@@ -137,16 +113,11 @@ class ScreenshotFrames
     end
   end
 
-  def prepare_mac_background(stage)
-    assets = File.join(stage, "device_frames")
-    FileUtils.mkdir_p(assets)
-    background = File.join(assets, "mac-background.png")
-    template = File.join(Frameit::FrameDownloader.templates_path, "Apple Macbook Pro 16 Space Gray.png")
-    # An owned gradient fills the display; frameit places the native window into
-    # this MacBook background using the Framefile offset and width above.
-    command("magick", template, "(", "-size", "3072x1920", "gradient:#164c64-#072337", ")",
-            "-geometry", "+419+98", "-compose", "DstOver", "-composite", background)
-    background
+  def compose_mac(source, output)
+    # Match the native display aspect ratio to the narrow template aperture.
+    # The capture already contains the black camera strip used in full screen.
+    command("magick", @mac_frame, "(", source, "-resize", "3454x", ")",
+            "-gravity", "northwest", "-geometry", "+403+74", "-compose", "DstOver", "-composite", output)
   end
 
   def command(*arguments)
