@@ -255,14 +255,14 @@ final class AppCommandRegistry {
                     subtitle: String(localized: AppStrings.Common.action), symbol: MenuSymbol.moveToNewWindow,
                     section: .actions, keywords: ["window", "move"], target: .moveWorkspaceToNewWindow(workspaceID)
                 ))
-            commands.append(
-                AppCommandDescriptor(
-                    id: "action.show-assistant", title: String(localized: AppStrings.Assistant.showAssistantInSidebar),
-                    subtitle: String(localized: AppStrings.Common.action), symbol: "sidebar.left",
-                    section: .actions,
-                    keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
-                ))
         }
+        commands.append(
+            AppCommandDescriptor(
+                id: "action.show-assistant", title: String(localized: AppStrings.Assistant.showAssistant),
+                subtitle: String(localized: AppStrings.Common.action), symbol: "sidebar.left",
+                section: .actions,
+                keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
+            ))
         return commands
     }
 }

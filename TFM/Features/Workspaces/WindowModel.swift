@@ -263,14 +263,13 @@ final class WindowModel {
         }
     }
 
-    /// Opens the shared column and selects the current Workspace's assistant.
+    /// Opens the Workspace's Assistant sidebar, or the full Assistant on other pages.
     /// Repeating the command is intentionally idempotent; hiding the column is
     /// the native Toggle Sidebar command's job.
     func showAssistant() {
-        guard selectedWorkspace != nil else { return }
         refreshSessionContext()
         sidebar.isPresented = true
-        sidebarMode = .assistant
+        activateSidebarMode(.assistant)
     }
 
     var hostChooser: HostChooserPurpose? {

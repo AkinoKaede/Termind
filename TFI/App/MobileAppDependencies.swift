@@ -24,6 +24,7 @@ struct MobileAppDependencies {
         MobileWorkspaceSceneRouting.activate
     var closeWorkspaceSession: @MainActor (String, @escaping @MainActor (any Error) -> Void) -> Void =
         MobileWorkspaceSceneRouting.close
+    var openWorkspaceSessionIDs: @MainActor () -> Set<String> = MobileWorkspaceSceneRouting.openSessionIDs
     var makeForwardings: (HostLibraryModel) -> PortForwardingController = { PortForwardingController(hosts: $0) }
 
     static func live() -> MobileAppDependencies {

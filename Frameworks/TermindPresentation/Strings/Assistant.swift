@@ -571,8 +571,8 @@ extension AppStrings {
         public static var executeADestructiveCommandConfirmation: LocalizedStringResource {
             "Execute a destructive command?"
         }
-        public static var showAssistantInSidebar: LocalizedStringResource {
-            "Show Assistant in Sidebar"
+        public static var showAssistant: LocalizedStringResource {
+            "Show Assistant"
         }
     }
 }

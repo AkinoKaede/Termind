@@ -11,6 +11,13 @@ enum MobileWorkspaceSceneRouting {
     static let activityType = "com.akinokaede.termind.open-workspace"
     private static let workspaceIDKey = "workspaceID"
 
+    static func openSessionIDs() -> Set<String> {
+        Set(
+            UIApplication.shared.openSessions
+                .filter { $0.role == .windowApplication }
+                .map(\.persistentIdentifier))
+    }
+
     static func activity(for workspaceID: UUID) -> NSUserActivity {
         let activity = NSUserActivity(activityType: activityType)
         activity.userInfo = [workspaceIDKey: workspaceID.uuidString]

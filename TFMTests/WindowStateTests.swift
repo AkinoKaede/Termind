@@ -14,6 +14,40 @@ import struct TermindDomain.Host
 @Suite
 @MainActor
 struct WindowStateTests {
+    @Test(arguments: [WindowDestination.vault, .metrics, .settings, .assistant])
+    func showAssistantWorksOutsideWorkspacesWithoutReplacingItsNavigation(_ destination: WindowDestination) {
+        let window = WindowModel()
+        window.showAssistantArchive()
+        window.selectedDestination = destination
+        window.showsSidebar = false
+
+        window.showAssistant()
+        window.showAssistant()
+
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.showsSidebar)
+        #expect(window.sidebarMode == .assistant)
+        #expect(window.isAssistantArchivePresented)
+        #expect(window.assistantLibrary.conversations.isEmpty)
+    }
+
+    @Test func showAssistantKeepsTheCurrentWorkspaceAndConversation() {
+        let window = WindowModel()
+        let conversation = window.assistantLibrary.createConversation()
+        let workspace = Workspace(pane: Pane(.empty))
+        window.open(workspace)
+        window.openAssistantInSidebar(conversation.id)
+        window.showsSidebar = false
+        window.sidebarMode = .navigation
+
+        window.showAssistant()
+        window.showAssistant()
+
+        #expect(window.selectedWorkspace === workspace)
+        #expect(window.showsSidebar && window.sidebarMode == .assistant)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
+    }
+
     @Test
     func sshAndTelnetPanesUseDistinctProtocolSymbols() {
         let host = Host(

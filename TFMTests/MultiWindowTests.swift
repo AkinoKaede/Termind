@@ -404,6 +404,31 @@ struct MultiWindowTests {
         #expect(!unregistered.isClosed)
     }
 
+    @Test
+    func closeAllWindowsRespectsEachNativeVetoAndClosesEveryApprovedWindow() throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        let models = (0..<3).map { _ in WindowModel() }
+        let windows = models.map { _ in nativeWindow() }
+        let approvals = models.map { _ in CloseApproval() }
+        defer { for window in windows { window.close() } }
+        for index in models.indices {
+            approvals[index].allowsClose = index != 1
+            windows[index].delegate = approvals[index]
+            app.mainWindows.register(windows[index], model: models[index], requestID: nil)
+        }
+
+        app.mainWindows.closeAllWindows()
+
+        #expect(approvals.map(\.requests) == [1, 1, 1])
+        #expect(models.map(\.isClosed) == [true, false, true])
+        approvals[1].allowsClose = true
+
+        app.mainWindows.closeAllWindows()
+
+        #expect(approvals.map(\.requests) == [1, 2, 1])
+        #expect(models.allSatisfy { $0.isClosed })
+    }
+
     private final class CloseApproval: NSObject, NSWindowDelegate {
         var allowsClose = false
         var requests = 0

@@ -407,6 +407,14 @@ final class MainWindowCoordinator {
         entries.first(where: { $0.model === model })?.window?.performClose(nil)
     }
 
+    func closeAllWindows() {
+        // Closing a window removes its entry. Snapshot first and keep native confirmation in the loop.
+        let windows = entries.compactMap { entry in
+            entry.model?.isClosed == false ? entry.window : nil
+        }
+        for window in windows { window.performClose(nil) }
+    }
+
     func close(_ native: NSWindow) {
         guard let entry = entries.first(where: { $0.window === native }), let model = entry.model else { return }
         recordSize(entry)

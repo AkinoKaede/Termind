@@ -21,9 +21,8 @@ struct TermindCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.window) private var window
 
-    private var closeTitle: LocalizedStringResource {
-        guard let workspace = window?.selectedWorkspace else { return AppStrings.Workspace.closeWindow }
-        return workspace.isSplit ? AppStrings.Workspace.closePaneAction : AppStrings.Workspace.closeWorkspace
+    private var closeShortcuts: WindowCloseShortcuts {
+        WindowCloseShortcuts(hasWorkspace: window?.selectedWorkspace != nil)
     }
 
     var body: some Commands {
@@ -162,19 +161,21 @@ struct TermindCommands: Commands {
 
             Divider()
 
-            // Close Other Workspaces is the same verb one item down, so it goes
-            // without an icon of its own.
-            Button(closeTitle, systemImage: MenuSymbol.closeWorkspace) {
+            Button(AppStrings.Workspace.closeWindow.swiftUIKey, systemImage: MenuSymbol.closeWorkspace) {
                 guard let window else { return }
-                app.mainWindows.closeSelectionOrWindow(in: window)
+                app.mainWindows.closeWindow(in: window)
             }
-            .termindShortcut("w")
+            .termindShortcut(closeShortcuts.closeWindow)
             .disabled(window == nil)
-            Button(AppStrings.Workspace.closeOtherWorkspaces.swiftUIKey) {
-                guard let window, let id = window.selectedWorkspaceID else { return }
-                window.closeOthers(than: id)
+            Button(AppStrings.Workspace.closeAllWindows.swiftUIKey) {
+                app.mainWindows.closeAllWindows()
             }
-            .termindShortcut("w", modifiers: [.command, .option])
+            .termindShortcut(closeShortcuts.closeAllWindows)
+            .disabled(window == nil)
+            Button(AppStrings.Workspace.closeWorkspace.swiftUIKey) {
+                window?.closeSelected()
+            }
+            .termindShortcut(closeShortcuts.closeWorkspace)
             .disabled(window?.selectedWorkspace == nil)
             Button(AppStrings.Workspace.reopenClosedWorkspace.swiftUIKey, systemImage: MenuSymbol.reopenWorkspace) {
                 window?.reopenLastClosed()
@@ -192,14 +193,14 @@ struct TermindCommands: Commands {
         // shortcuts for P2/P4, and P2 can put them wherever the real commands
         // end up.
         CommandGroup(after: .sidebar) {
-            Button(AppStrings.Assistant.showAssistantInSidebar.swiftUIKey, systemImage: MenuSymbol.showAssistant) {
+            Button(AppStrings.Assistant.showAssistant.swiftUIKey, systemImage: MenuSymbol.showAssistant) {
                 guard let window else { return }
                 withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
                     window.showAssistant()
                 }
             }
             .termindShortcut("i", modifiers: [.command, .option])
-            .disabled(window?.selectedWorkspace == nil)
+            .disabled(window == nil)
 
             Divider()
 
@@ -242,29 +243,6 @@ struct TermindCommands: Commands {
                 window?.selectPrevious()
             }
             .termindShortcut("[", modifiers: [.command, .shift])
-            .disabled(window?.workspaces.isEmpty != false)
-
-            Divider()
-
-            // ⌘1…⌘8 by sidebar position, ⌘9 to the last Workspace — the convention every
-            // browser and terminal shares.
-            //
-            // One glyph for the whole run, the way Safari lists its tabs, and the
-            // same one the Navigator draws beside a merged Workspace. Giving each
-            // entry the symbol of what it holds would be readable one line at a
-            // time and noise read down the column.
-            ForEach(1...8, id: \.self) { index in
-                Button(AppStrings.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: MenuSymbol.workspace) {
-                    window?.select(index: index - 1)
-                }
-                .termindShortcut(AppShortcutKey.character(Character("\(index)")))
-                .disabled((window?.workspaces.count ?? 0) < index)
-            }
-            Button(AppStrings.Workspace.lastWorkspace.swiftUIKey, systemImage: MenuSymbol.workspace) {
-                guard let window else { return }
-                window.select(index: window.workspaces.count - 1)
-            }
-            .termindShortcut("9")
             .disabled(window?.workspaces.isEmpty != false)
 
             Divider()

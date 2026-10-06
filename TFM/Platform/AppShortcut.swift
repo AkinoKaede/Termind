@@ -101,6 +101,14 @@ final class AppShortcutRegistry {
 }
 
 extension View {
+    func termindShortcut(_ shortcut: KeyboardShortcut?) -> some View {
+        if let shortcut {
+            AppShortcutRegistry.shared.register(
+                AppShortcutRegistration(.character(shortcut.key.character), modifiers: shortcut.modifiers))
+        }
+        return keyboardShortcut(shortcut)
+    }
+
     func termindShortcut(
         _ key: AppShortcutKey,
         modifiers: EventModifiers = .command,

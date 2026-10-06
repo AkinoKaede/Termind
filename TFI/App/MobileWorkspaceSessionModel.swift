@@ -52,6 +52,8 @@ final class MobileWorkspaceSessionModel {
     }
     private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor]
     private var workspaceDisplayOrder: [MobileWorkspace.ID]
+    private var reopenStack: [MobileWorkspace.ReopenState] = []
+    var canReopen: Bool { !isDiscarded && reopenStack.contains(where: canReopen) }
     private(set) var isDiscarded = false
     @ObservationIgnored private unowned let app: MobileAppModel
 
@@ -76,6 +78,7 @@ final class MobileWorkspaceSessionModel {
     }
 
     func releaseForRecovery() {
+        reopenStack.removeAll()
         manuallyUnreadIDs.removeAll()
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -94,6 +97,7 @@ final class MobileWorkspaceSessionModel {
 
     func discard() {
         closeAll()
+        reopenStack.removeAll()
         isDiscarded = true
     }
 
@@ -228,10 +232,12 @@ final class MobileWorkspaceSessionModel {
         return true
     }
 
-    func close(_ id: UUID) {
+    func close(_ id: UUID, rememberForReopen: Bool = true) {
+        if !rememberForReopen { reopenStack.removeAll { $0.descriptor.id == id } }
         manuallyUnreadIDs.remove(id)
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
+        if rememberForReopen { rememberClosedWorkspaces([id]) }
         app.workspaceDidClose(id)
         if let workspace = workspaces.first(where: { $0.id == id }) {
             workspace.didChangeState = nil
@@ -251,6 +257,7 @@ final class MobileWorkspaceSessionModel {
     func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
         let knownIDs = Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id))
         guard knownIDs.contains(id), knownIDs.count > 1 else { return }
+        rememberClosedWorkspaces(knownIDs.subtracting([id]))
 
         let closing = workspaces.filter { $0.id != id }
         manuallyUnreadIDs = manuallyUnreadIDs.intersection([id])
@@ -269,6 +276,7 @@ final class MobileWorkspaceSessionModel {
     func closeAll() {
         manuallyUnreadIDs.removeAll()
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
+        rememberClosedWorkspaces(Set(workspaceDisplayOrder))
         let closing = workspaces
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -282,6 +290,38 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
+    private func rememberClosedWorkspaces(_ ids: Set<UUID>) {
+        for item in orderedWorkspaceItems where ids.contains(item.id) {
+            reopenStack.append(item.workspace?.reopenState ?? .init(descriptor: item.descriptor))
+        }
+        if reopenStack.count > 10 { reopenStack.removeFirst(reopenStack.count - 10) }
+    }
+
+    func forgetClosedWorkspaces(for hostID: Host.ID) {
+        reopenStack.removeAll { $0.descriptor.hostID == hostID }
+    }
+
+    private func canReopen(_ state: MobileWorkspace.ReopenState) -> Bool {
+        !state.connectionOrigin.allowsPersistence || app.library.host(state.descriptor.hostID) != nil
+    }
+
+    func reopenLastClosed() -> MobileWorkspace.ID? {
+        guard !isDiscarded else { return nil }
+        while let state = reopenStack.popLast() {
+            guard canReopen(state) else { continue }
+            let workspace = MobileWorkspace(
+                descriptor: state.descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+                terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
+                transientHost: state.transientHost, connectionRoute: state.connectionRoute,
+                usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
+                externalSFTPResourcePath: state.externalSFTPResourcePath,
+                externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
+            addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
+            return workspace.id
+        }
+        return nil
+    }
+
     /// Publish before connecting so repeated selection in this window shares one initial attempt.
     @discardableResult
     func openWorkspace(_ id: UUID) -> MobileWorkspace? {
@@ -289,7 +329,7 @@ final class MobileWorkspaceSessionModel {
         if let workspace = workspaces.first(where: { $0.id == id }) { return workspace }
         guard let descriptor = savedWorkspaceDescriptors.first(where: { $0.id == id }) else { return nil }
         guard app.library.host(descriptor.hostID) != nil else {
-            close(id)
+            close(id, rememberForReopen: false)
             return nil
         }
         let workspace = MobileWorkspace(

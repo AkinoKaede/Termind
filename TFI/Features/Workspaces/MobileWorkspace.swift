@@ -1265,6 +1265,25 @@ final class MobileWorkspace: Identifiable {
         disconnect()
     }
 
+    /// Connection intent only: closed runtimes, entered credentials and one-shot commands are not retained.
+    struct ReopenState {
+        let descriptor: MobileWorkspaceDescriptor
+        var transientHost: Host? = nil
+        var connectionRoute: SSHConnectionRoute? = nil
+        var usernameHint: String? = nil
+        var connectionOrigin: RemoteConnectionOrigin = .library
+        var externalSFTPResourcePath: String? = nil
+        var externalSFTPMustBeDirectory = false
+    }
+
+    var reopenState: ReopenState {
+        ReopenState(
+            descriptor: descriptor, transientHost: transientHost, connectionRoute: connectionRoute,
+            usernameHint: usernameHint, connectionOrigin: connectionOrigin,
+            externalSFTPResourcePath: externalSFTPResourcePath,
+            externalSFTPMustBeDirectory: externalSFTPMustBeDirectory)
+    }
+
     func disconnect() {
         commandHistory.cancelLoading()
         commandMonitor.endConnection()

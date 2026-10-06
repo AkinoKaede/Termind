@@ -168,6 +168,10 @@ final class MobileSceneModel {
         selectedDestination = .assistant
     }
 
+    func showAssistant() {
+        selectedDestination = .assistant
+    }
+
     func openNewHost() {
         selectedDestination = .vault
         editingHost = Host(name: "", host: "")
@@ -340,19 +344,44 @@ final class MobileSceneModel {
         closeWorkspace(activeWorkspace.id)
     }
 
+    func reopenLastClosedWorkspace() {
+        guard let id = workspaceSession.reopenLastClosed() else { return }
+        selectWorkspace(id)
+    }
+
     func closeSelectionOrWindow() {
         guard !workspaceSession.isDiscarded else { return }
         if activeWorkspace != nil {
             closeActiveWorkspace()
         } else {
-            // UIKit's discard callback owns cleanup; a rejected request must preserve this session.
-            let logger = app.logging.makeLogger(label: "termind.window")
-            app.closeWorkspaceSession(workspaceSession.id) { error in
-                let error = error as NSError
-                logger.warning(
-                    "Window close request failed",
-                    metadata: ["domain": .string(error.domain), "code": .stringConvertible(error.code)])
-            }
+            closeWindow()
+        }
+    }
+
+    func closeWindow() {
+        guard !workspaceSession.isDiscarded else { return }
+        requestWindowClose(sessionID: workspaceSession.id)
+    }
+
+    func closeAllWindows() {
+        guard !workspaceSession.isDiscarded else { return }
+        let sessionIDs = app.openWorkspaceSessionIDs()
+        for id in sessionIDs.sorted() where id != workspaceSession.id {
+            requestWindowClose(sessionID: id)
+        }
+        if sessionIDs.contains(workspaceSession.id) {
+            requestWindowClose(sessionID: workspaceSession.id)
+        }
+    }
+
+    private func requestWindowClose(sessionID: String) {
+        // UIKit's discard callback owns cleanup; a rejected request must preserve this session.
+        let logger = app.logging.makeLogger(label: "termind.window")
+        app.closeWorkspaceSession(sessionID) { error in
+            let error = error as NSError
+            logger.warning(
+                "Window close request failed",
+                metadata: ["domain": .string(error.domain), "code": .stringConvertible(error.code)])
         }
     }
 

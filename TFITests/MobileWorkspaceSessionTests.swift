@@ -13,6 +13,128 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func reopenRestoresTheOwningWindowsWorkspaceWithFreshHistoryAndRouting() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let owner = MobileSceneModel(app: app, sessionID: "owner")
+        let other = MobileSceneModel(app: app, sessionID: "other")
+        owner.open(hostID: fixture.host.id, kind: .sftp)
+        owner.activatePendingWorkspace()
+        let original = try #require(owner.activeWorkspace)
+        #expect(owner.workspaceSession.renameWorkspace(original.id, to: "Files"))
+        other.open(hostID: fixture.host.id, kind: .ssh)
+        other.activatePendingWorkspace()
+        let otherWorkspace = try #require(other.activeWorkspace)
+
+        owner.closeActiveWorkspace()
+        #expect(owner.workspaceSession.canReopen)
+        #expect(!other.workspaceSession.canReopen)
+        #expect(try fixture.store.load().sessions["owner", default: []].isEmpty)
+        owner.openSettings()
+        owner.reopenLastClosedWorkspace()
+        owner.activatePendingWorkspace()
+
+        let reopened = try #require(owner.activeWorkspace)
+        #expect(reopened !== original)
+        #expect(reopened.descriptor == original.descriptor)
+        #expect(owner.selectedDestination == .workspaces)
+        reopened.sftpHistory.record(kind: .directory, path: "/srv")
+        #expect(reopened.sftpHistory.entries().first?.path == "/srv")
+        #expect(other.activeWorkspace === otherWorkspace)
+        #expect(!owner.workspaceSession.canReopen)
+        #expect(try fixture.store.load().sessions["owner"] == [reopened.descriptor])
+        owner.reopenLastClosedWorkspace()
+        #expect(owner.workspaceSession.workspaces.count == 1)
+    }
+
+    @Test func reopenUsesLastClosedOrderForDormantAndBulkClosedWorkspaces() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let records = (0..<3).map {
+            MobileWorkspaceDescriptor(hostID: fixture.host.id, title: "Workspace \($0)", kind: .ssh)
+        }
+        fixture.defaults.set(try JSONEncoder().encode(records), forKey: MobileWorkspaceStore.key)
+        let app = try fixture.makeApp()
+        let session = app.workspaceSession(for: "owner")
+        #expect(session.workspaces.isEmpty)
+
+        session.closeOtherWorkspaces(than: records[0].id)
+        #expect(session.reopenLastClosed() == records[2].id)
+        #expect(session.reopenLastClosed() == records[1].id)
+        #expect(!session.canReopen)
+        session.closeAll()
+        #expect(session.reopenLastClosed() == records[1].id)
+        #expect(session.reopenLastClosed() == records[2].id)
+        #expect(session.reopenLastClosed() == records[0].id)
+        #expect(session.reopenLastClosed() == nil)
+    }
+
+    @Test func reopenKeepsExternalConnectionsTransientAndDoesNotReplayOneShotCommands() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        scene.open(try #require(URL(string: "ssh://tester@external.invalid:2222")))
+        scene.activatePendingWorkspace()
+        let external = try #require(scene.activeWorkspace)
+        scene.closeActiveWorkspace()
+        scene.reopenLastClosedWorkspace()
+        let reopened = try #require(scene.activeWorkspace)
+        #expect(reopened.id == external.id)
+        #expect(reopened.isExternalTemporaryConnection)
+        #expect(reopened.temporaryLoginAddress == external.temporaryLoginAddress)
+        #expect(reopened.presentationHost?.port == 2222)
+        #expect(scene.workspaceSession.savedWorkspaceDescriptors.isEmpty)
+        #expect(app.library.host(external.descriptor.hostID) == nil)
+
+        scene.execute(Snippet(title: "One shot", body: "echo one-shot"), on: [fixture.host.id])
+        #expect(scene.activeWorkspace?.pendingInitialCommand == "echo one-shot")
+        scene.closeActiveWorkspace()
+        scene.reopenLastClosedWorkspace()
+        #expect(scene.activeWorkspace?.descriptor.hostID == fixture.host.id)
+        #expect(scene.activeWorkspace?.pendingInitialCommand == nil)
+        #expect(scene.activeWorkspace?.commandHistory.record("echo after-reopen") != nil)
+    }
+
+    @Test func reopenHistoryIsBoundedAndClearedWhenTheWindowIsDiscarded() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let session = app.workspaceSession(for: "owner")
+        var closed: [UUID] = []
+        for _ in 0..<12 {
+            let id = try #require(session.open(hostID: fixture.host.id, kind: .ssh))
+            session.close(id)
+            closed.append(id)
+        }
+        var reopened: [UUID] = []
+        while let id = session.reopenLastClosed() { reopened.append(id) }
+        #expect(reopened == Array(closed.suffix(10).reversed()))
+        session.closeAll()
+        #expect(session.canReopen)
+        app.discardWorkspaceSessions(["owner"])
+        #expect(!session.canReopen)
+        #expect(session.reopenLastClosed() == nil)
+    }
+
+    @Test func deletingAHostForgetsClosedWorkspacesAndDoesNotCreateNewReopenEntries() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let session = app.workspaceSession(for: "owner")
+        let id = try #require(session.open(hostID: fixture.host.id, kind: .ssh))
+        session.close(id)
+        _ = session.open(hostID: fixture.host.id, kind: .sftp)
+        #expect(session.canReopen)
+
+        #expect(app.deleteHost(fixture.host.id))
+
+        #expect(!session.canReopen)
+        #expect(session.reopenLastClosed() == nil)
+        #expect(session.workspaces.isEmpty)
+    }
+
     @Test func agentForwardingStaysWithTheConversationScene() async throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
@@ -676,6 +798,59 @@ struct MobileWorkspaceSessionTests {
         #expect(app.error == nil)
         first.closeSelectionOrWindow()
         #expect(requestedSessions == ["a"])
+    }
+
+    @Test func explicitWindowCloseKeepsSelectedWorkspaceUntilNativeDiscard() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        scene.open(hostID: fixture.host.id, kind: .ssh)
+        scene.activatePendingWorkspace()
+        let workspace = try #require(scene.activeWorkspace)
+        var requestedSessions: [String] = []
+        app.closeWorkspaceSession = { id, _ in requestedSessions.append(id) }
+
+        scene.closeWindow()
+
+        #expect(requestedSessions == ["owner"])
+        #expect(scene.activeWorkspace === workspace)
+        #expect(!scene.workspaceSession.isDiscarded)
+        app.discardWorkspaceSessions(["owner"])
+        #expect(scene.workspaceSession.workspaces.isEmpty)
+        #expect(scene.workspaceSession.isDiscarded)
+    }
+
+    @Test func closeAllWindowsSnapshotsNativeSessionsAndRetainsRejectedWindows() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let first = MobileSceneModel(app: app, sessionID: "first")
+        let second = MobileSceneModel(app: app, sessionID: "second")
+        first.open(hostID: fixture.host.id, kind: .ssh)
+        second.open(hostID: fixture.host.id, kind: .sftp)
+        let retainedWorkspace = try #require(second.workspaceSession.workspaces.first)
+        var nativeSessions: Set<String> = ["first", "second", "background"]
+        var requestedSessions: [String] = []
+        app.openWorkspaceSessionIDs = { nativeSessions }
+        app.closeWorkspaceSession = { id, failed in
+            requestedSessions.append(id)
+            if id == "second" {
+                failed(NSError(domain: "WindowCloseTest", code: 1))
+            } else {
+                nativeSessions.remove(id)
+                app.discardWorkspaceSessions([id])
+            }
+        }
+
+        first.closeAllWindows()
+
+        #expect(requestedSessions == ["background", "second", "first"])
+        #expect(first.workspaceSession.isDiscarded)
+        #expect(second.workspaceSession.workspaces.first === retainedWorkspace)
+        #expect(try fixture.store.load().sessions["second"]?.count == 1)
+        #expect(!second.workspaceSession.isDiscarded)
+        #expect(app.error == nil)
     }
 
     @Test func rejectedWindowCloseKeepsWorkspacesAndSavedRecordsWithoutAnAlert() throws {

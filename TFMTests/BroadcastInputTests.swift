@@ -457,6 +457,7 @@ struct BroadcastInputTests {
                 AppShortcutRegistration("b", modifiers: [.command, .shift]),
                 AppShortcutRegistration("w"),
                 AppShortcutRegistration("w", modifiers: [.command, .shift]),
+                AppShortcutRegistration("w", modifiers: [.command, .option]),
                 AppShortcutRegistration("d", modifiers: [.command, .shift]),
                 AppShortcutRegistration(.rightArrow, modifiers: [.command, .option]),
                 AppShortcutRegistration(.downArrow, modifiers: [.command, .option]),

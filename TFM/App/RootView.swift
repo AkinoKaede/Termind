@@ -77,6 +77,7 @@ struct RootView: View {
         .id(window.sidebar.initialLayoutGeneration)
         .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
         .background {
+            WorkspaceNumberShortcuts(window: window)
             MainWindowRegistration(coordinator: app.mainWindows, model: window, requestID: requestID)
             WindowToolbarSearchHost()
             WindowActivityReader(

@@ -143,6 +143,7 @@ final class MobileAppModel {
     private var discardedSessionIDs: Set<String> = []
     var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void
     var closeWorkspaceSession: @MainActor (String, @escaping @MainActor (any Error) -> Void) -> Void
+    var openWorkspaceSessionIDs: @MainActor () -> Set<String>
 
     let outbox: OutboxRunner
     private var sceneSessionIDs: [UUID: String] = [:]
@@ -176,6 +177,7 @@ final class MobileAppModel {
         keyExportServices = connectionCoordinator.keyExportServices()
         activateWorkspaceSession = dependencies.activateWorkspaceSession
         closeWorkspaceSession = dependencies.closeWorkspaceSession
+        openWorkspaceSessionIDs = dependencies.openWorkspaceSessionIDs
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =
@@ -463,8 +465,9 @@ final class MobileAppModel {
 
     private func closeWorkspaces(for hostID: UUID) {
         for session in workspaceSessions {
+            session.forgetClosedWorkspaces(for: hostID)
             for item in session.orderedWorkspaceItems where item.descriptor.hostID == hostID {
-                session.close(item.id)
+                session.close(item.id, rememberForReopen: false)
             }
         }
         workspaceSnapshot.unassigned.removeAll { $0.hostID == hostID }
@@ -738,7 +741,7 @@ final class MobileAppModel {
         for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
         let recoveredIDs = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
         for session in workspaceSessions {
-            for workspaceID in recoveredIDs { session.close(workspaceID) }
+            for workspaceID in recoveredIDs { session.close(workspaceID, rememberForReopen: false) }
         }
         for id in ids { recoveredWorkspaceIDs[id] = nil }
         for session in workspaceSessions where ids.contains(session.id) { session.discard() }

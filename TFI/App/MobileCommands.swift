@@ -21,10 +21,11 @@ nonisolated enum MobileShortcut {
     static let newChat = KeyboardShortcut("t", modifiers: [.command, .option])
     static let newHost = KeyboardShortcut("n", modifiers: [.command, .shift])
     static let generateCommand = KeyboardShortcut("i", modifiers: .command)
+    static let showAssistant = KeyboardShortcut("i", modifiers: [.command, .option])
     static let find = KeyboardShortcut("f", modifiers: .command)
     static let findNext = KeyboardShortcut("g", modifiers: .command)
     static let findPrevious = KeyboardShortcut("g", modifiers: [.command, .shift])
-    static let closeWorkspace = KeyboardShortcut("w", modifiers: .command)
+    static let reopenWorkspace = KeyboardShortcut("t", modifiers: [.command, .shift])
     static let nextWorkspace = KeyboardShortcut("]", modifiers: [.command, .shift])
     static let previousWorkspace = KeyboardShortcut("[", modifiers: [.command, .shift])
     static let send = KeyboardShortcut(.return, modifiers: .command)
@@ -44,6 +45,10 @@ struct MobileCommands: Commands {
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
     @FocusedValue(\.mobileScene) private var scene
 
+    private var closeShortcuts: WindowCloseShortcuts {
+        WindowCloseShortcuts(hasWorkspace: scene?.canCloseWorkspace == true)
+    }
+
     var body: some Commands {
         CommandGroup(replacing: .appSettings) {
             Button(AppStrings.Navigation.settings.swiftUIKey, systemImage: "gearshape") { scene?.openSettings() }
@@ -51,15 +56,17 @@ struct MobileCommands: Commands {
                 .disabled(scene == nil)
         }
 
+        // iPad's File menu flattens Divider/Section inside replaced command groups. Separate replacement
+        // placements preserve the three File sections; groups beside a replaced placement are discarded.
         CommandGroup(replacing: .newItem) {
             Button(AppStrings.Workspace.newWindow.swiftUIKey, systemImage: "macwindow.badge.plus") {
                 openWindow(id: TermindIOSApp.mainWindowID)
             }
             .keyboardShortcut(MobileShortcut.newWindow)
             .disabled(!supportsMultipleWindows)
+        }
 
-            Divider()
-
+        CommandGroup(replacing: .saveItem) {
             Button(AppStrings.Common.connect.swiftUIKey, systemImage: "network") { scene?.openConnectionPicker() }
                 .keyboardShortcut(MobileShortcut.connect)
                 .disabled(scene == nil)
@@ -98,19 +105,32 @@ struct MobileCommands: Commands {
                 .disabled(scene?.canUseTerminalCommands != true)
         }
 
-        CommandGroup(replacing: .saveItem) {
-            Button(
-                scene?.canCloseWorkspace == true
-                    ? AppStrings.Workspace.closeWorkspace.swiftUIKey : AppStrings.Workspace.closeWindow.swiftUIKey,
-                systemImage: "xmark"
-            ) {
-                scene?.closeSelectionOrWindow()
+        CommandGroup(replacing: .importExport) {
+            Button(AppStrings.Workspace.closeWindow.swiftUIKey, systemImage: "xmark") {
+                scene?.closeWindow()
             }
-            .keyboardShortcut(MobileShortcut.closeWorkspace)
+            .keyboardShortcut(closeShortcuts.closeWindow)
             .disabled(scene == nil)
+            Button(AppStrings.Workspace.closeAllWindows.swiftUIKey) { scene?.closeAllWindows() }
+                .keyboardShortcut(closeShortcuts.closeAllWindows)
+                .disabled(scene == nil)
+            Button(AppStrings.Workspace.closeWorkspace.swiftUIKey) { scene?.closeActiveWorkspace() }
+                .keyboardShortcut(closeShortcuts.closeWorkspace)
+                .disabled(scene?.canCloseWorkspace != true)
+            Button(AppStrings.Workspace.reopenClosedWorkspace.swiftUIKey, systemImage: "arrow.uturn.backward") {
+                scene?.reopenLastClosedWorkspace()
+            }
+            .keyboardShortcut(MobileShortcut.reopenWorkspace)
+            .disabled(scene?.workspaceSession.canReopen != true)
         }
 
-        CommandMenu(AppStrings.Navigation.workspaces.swiftUIKey) {
+        CommandGroup(after: .sidebar) {
+            Button(AppStrings.Assistant.showAssistant.swiftUIKey, systemImage: "sparkles") { scene?.showAssistant() }
+                .keyboardShortcut(MobileShortcut.showAssistant)
+                .disabled(scene == nil)
+        }
+
+        CommandGroup(after: .windowArrangement) {
             Button(AppStrings.Workspace.nextWorkspace.swiftUIKey, systemImage: "chevron.forward") {
                 scene?.selectNextWorkspace()
             }
@@ -122,20 +142,6 @@ struct MobileCommands: Commands {
             .keyboardShortcut(MobileShortcut.previousWorkspace)
             .disabled(scene?.hasWorkspaces != true)
 
-            Divider()
-
-            ForEach(1...8, id: \.self) { index in
-                Button(AppStrings.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: "terminal") {
-                    scene?.selectWorkspace(at: index - 1)
-                }
-                .keyboardShortcut(MobileShortcut.workspace(index))
-                .disabled((scene?.workspaceCount ?? 0) < index)
-            }
-            Button(AppStrings.Workspace.lastWorkspace.swiftUIKey, systemImage: "terminal") {
-                scene?.selectLastWorkspace()
-            }
-            .keyboardShortcut(MobileShortcut.workspace(9))
-            .disabled(scene?.hasWorkspaces != true)
         }
     }
 }

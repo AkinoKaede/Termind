@@ -266,6 +266,10 @@ extension AppStrings {
             "Close Window"
         }
 
+        public static var closeAllWindows: LocalizedStringResource {
+            "Close All Windows"
+        }
+
         public static var closeThisWindowConfirmation: LocalizedStringResource {
             "Close this window?"
         }

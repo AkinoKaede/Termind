@@ -5822,6 +5822,23 @@
         }
       }
     },
+    "Close All Windows" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭所有窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉所有視窗"
+          }
+        }
+      }
+    },
     "Close All Workspaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25238,19 +25255,19 @@
         }
       }
     },
-    "Show Assistant in Sidebar" : {
+    "Show Assistant" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在侧边栏显示助手"
+            "value" : "显示助手"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在側邊欄顯示助手"
+            "value" : "顯示助手"
           }
         }
       }

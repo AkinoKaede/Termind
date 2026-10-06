@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -10,7 +11,31 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileShortcutTests {
-    @Test func shortcutMapMatchesDesktopAndHasNoDuplicates() {
+    @Test(arguments: MobileDestination.allCases, [nil, .archived] as [MobileAssistantLibraryRoute?])
+    func showAssistantWorksFromEveryPageAndPreservesSceneState(
+        destination: MobileDestination, route: MobileAssistantLibraryRoute?
+    ) throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let scene = MobileSceneModel(app: app, sessionID: "owner")
+        let other = MobileSceneModel(app: app, sessionID: "other")
+        scene.assistant.conversation.composer.draft = "Keep this draft"
+        let conversationID = scene.assistant.conversation.id
+        scene.assistantLibraryRoute = route
+        scene.selectedDestination = destination
+
+        scene.showAssistant()
+        scene.showAssistant()
+
+        #expect(scene.selectedDestination == .assistant)
+        #expect(scene.assistantLibraryRoute == route)
+        #expect(scene.assistant.conversation.id == conversationID)
+        #expect(scene.assistant.conversation.composer.draft == "Keep this draft")
+        #expect(other.selectedDestination == .vault)
+    }
+
+    @Test(arguments: [true, false])
+    func shortcutMapMatchesDesktopAndHasNoDuplicates(hasWorkspace: Bool) {
         #expect(MobileShortcut.settings == KeyboardShortcut(",", modifiers: .command))
         #expect(MobileShortcut.newWindow == KeyboardShortcut("n", modifiers: .command))
         #expect(MobileShortcut.connect == KeyboardShortcut("t", modifiers: .command))
@@ -18,10 +43,11 @@ struct MobileShortcutTests {
         #expect(MobileShortcut.newChat == KeyboardShortcut("t", modifiers: [.command, .option]))
         #expect(MobileShortcut.newHost == KeyboardShortcut("n", modifiers: [.command, .shift]))
         #expect(MobileShortcut.generateCommand == KeyboardShortcut("i", modifiers: .command))
+        #expect(MobileShortcut.showAssistant == KeyboardShortcut("i", modifiers: [.command, .option]))
         #expect(MobileShortcut.find == KeyboardShortcut("f", modifiers: .command))
         #expect(MobileShortcut.findNext == KeyboardShortcut("g", modifiers: .command))
         #expect(MobileShortcut.findPrevious == KeyboardShortcut("g", modifiers: [.command, .shift]))
-        #expect(MobileShortcut.closeWorkspace == KeyboardShortcut("w", modifiers: .command))
+        #expect(MobileShortcut.reopenWorkspace == KeyboardShortcut("t", modifiers: [.command, .shift]))
         #expect(MobileShortcut.nextWorkspace == KeyboardShortcut("]", modifiers: [.command, .shift]))
         #expect(MobileShortcut.previousWorkspace == KeyboardShortcut("[", modifiers: [.command, .shift]))
         #expect(MobileShortcut.send == KeyboardShortcut(.return, modifiers: .command))
@@ -29,6 +55,10 @@ struct MobileShortcutTests {
         #expect(MobileShortcut.formDefault == KeyboardShortcut(.return, modifiers: []))
         #expect(MobileShortcut.formCancel == KeyboardShortcut(.escape, modifiers: []))
 
+        let close = WindowCloseShortcuts(hasWorkspace: hasWorkspace)
+        #expect(close.closeWindow == KeyboardShortcut("w", modifiers: hasWorkspace ? [.command, .shift] : .command))
+        #expect(close.closeAllWindows == KeyboardShortcut("w", modifiers: [.command, .option]))
+        #expect(close.closeWorkspace == (hasWorkspace ? KeyboardShortcut("w", modifiers: .command) : nil))
         let shortcuts =
             [
                 MobileShortcut.settings,
@@ -38,17 +68,20 @@ struct MobileShortcutTests {
                 MobileShortcut.newChat,
                 MobileShortcut.newHost,
                 MobileShortcut.generateCommand,
+                MobileShortcut.showAssistant,
                 MobileShortcut.find,
                 MobileShortcut.findNext,
                 MobileShortcut.findPrevious,
-                MobileShortcut.closeWorkspace,
+                MobileShortcut.reopenWorkspace,
+                close.closeWindow,
+                close.closeAllWindows,
                 MobileShortcut.nextWorkspace,
                 MobileShortcut.previousWorkspace,
                 MobileShortcut.send,
                 MobileShortcut.stop,
                 MobileShortcut.formDefault,
                 MobileShortcut.formCancel,
-            ] + (1...9).map(MobileShortcut.workspace)
+            ] + (1...9).map(MobileShortcut.workspace) + [close.closeWorkspace].compactMap { $0 }
         #expect(Set(shortcuts).count == shortcuts.count)
     }
 
