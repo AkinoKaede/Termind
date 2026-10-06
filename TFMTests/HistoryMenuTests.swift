@@ -56,17 +56,31 @@ struct HistoryMenuTests {
 
 @Suite @MainActor
 struct HistoryMenuRecordTests {
+    @Test func closedWindowLabelsUseTheFirstNameAndCorrectPlural() {
+        func title(_ count: Int) -> String {
+            var value = AppStrings.History.closedWindow("Server", count: count)
+            value.locale = Locale(identifier: "en")
+            return String(localized: value)
+        }
+        #expect(title(1) == "Server")
+        #expect(title(2) == "Server (and 1 more workspace)")
+        #expect(title(3) == "Server (and 2 more workspaces)")
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func nativeRecordMenusKeepProtocolImagesAndOpenTheChosenEvent(language: String) throws {
         let host = Host(name: "Server", host: "server.example")
-        let now = Date()
+        let now = Calendar.current.startOfDay(for: Date()).addingTimeInterval(43_200)
         let today = Calendar.current.startOfDay(for: now)
         let earlier = ConnectionHistoryEntry(hostID: host.id, kind: .sftp, connectedAt: today.addingTimeInterval(1))
         let yesterday = ConnectionHistoryEntry(hostID: host.id, kind: .ssh, connectedAt: today.addingTimeInterval(-1))
-        let history = ConnectionHistoryModel(entries: [earlier, yesterday])
+        let recent = (1...14).map {
+            ConnectionHistoryEntry(hostID: host.id, kind: .ssh, connectedAt: today.addingTimeInterval(Double($0 * 60)))
+        }
+        let history = ConnectionHistoryModel(entries: [earlier, yesterday] + recent)
         let current = try #require(history.record(kind: .ssh, for: host.id, at: now))
         let snapshot = ConnectionHistoryMenuSnapshot(
-            history: history, library: HostLibraryModel(hosts: [host]), devices: DeviceDirectoryModel())
+            history: history, library: HostLibraryModel(hosts: [host]), devices: DeviceDirectoryModel(), now: now)
         var opened: [UUID] = []
         let menu = NSHostingMenu(
             rootView: HistoryMenuRecords(
@@ -77,15 +91,15 @@ struct HistoryMenuRecordTests {
         menu.update()
         MenuImageVisibilityController.apply(to: menu)
         let items = menu.items.filter { !$0.isSeparatorItem }
-        try #require(items.count == 3)
+        try #require(items.count == 17)
         let currentItem = try #require(items.first)
-        #expect(currentItem.title.contains("SSH"))
+        #expect(currentItem.title == host.name)
         #expect(currentItem.image != nil)
-        let todayMenu = try #require(items[1].submenu)
+        let todayMenu = try #require(items[15].submenu)
         todayMenu.update()
         MenuImageVisibilityController.apply(to: todayMenu)
         let sftpItem = try #require(todayMenu.items.first)
-        #expect(sftpItem.title.contains("SFTP"))
+        #expect(sftpItem.title == host.name)
         #expect(sftpItem.image != nil)
         #expect(currentItem.image?.name() != sftpItem.image?.name())
         if #available(macOS 27.0, *) {

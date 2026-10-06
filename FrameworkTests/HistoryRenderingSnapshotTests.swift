@@ -6,18 +6,17 @@ import Testing
 
 @Suite @MainActor
 struct HistoryRenderingSnapshotTests {
-    @Test func failedClearKeepsLaunchRecordsReadable() throws {
+    @Test func failedClearKeepsHistoryReadable() throws {
         let repository = HistoryRepository()
         let model = ConnectionHistoryModel(repository: repository)
         let entry = try #require(model.record(kind: .ssh, for: UUID()))
         repository.failsClear = true
         model.clearAll()
         #expect(model.entries().map(\.id) == [entry.id])
-        #expect(model.currentLaunchEntryIDs.contains(entry.id))
         #expect(model.storageError != nil)
         repository.failsClear = false
         model.clearAll()
-        #expect(model.entries().isEmpty && model.currentLaunchEntryIDs.isEmpty)
+        #expect(model.entries().isEmpty)
         #expect(model.storageError == nil)
     }
 

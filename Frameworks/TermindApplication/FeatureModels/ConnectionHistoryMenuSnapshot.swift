@@ -23,9 +23,9 @@ public struct ConnectionHistoryMenuDay: Identifiable {
     public var id: Date { date }
 }
 
-/// A read-only projection. Synced events never become events from this launch.
+/// The latest records from today, with overflow and earlier records grouped by local calendar day.
 public struct ConnectionHistoryMenuSnapshot {
-    public let currentLaunch: [ConnectionHistoryMenuRow]
+    public let recentToday: [ConnectionHistoryMenuRow]
     public let days: [ConnectionHistoryMenuDay]
 
     @MainActor
@@ -42,12 +42,15 @@ public struct ConnectionHistoryMenuSnapshot {
                 entry: entry, host: host,
                 deviceName: history.isLocal(entry) ? nil : devices.name(for: entry.sourceDeviceID))
         }
-        currentLaunch = rows.filter { history.currentLaunchEntryIDs.contains($0.id) }
-        let older = rows.filter { !history.currentLaunchEntryIDs.contains($0.id) }
+        let referenceDate = now ?? history.menuReferenceDate
+        recentToday = Array(
+            rows.filter { calendar.isDate($0.entry.connectedAt, inSameDayAs: referenceDate) }.prefix(15))
+        let displayed = Set(recentToday.map(\.id))
+        let older = rows.filter { !displayed.contains($0.id) }
         let grouped = Dictionary(grouping: older) { calendar.startOfDay(for: $0.entry.connectedAt) }
         days = grouped.keys.sorted(by: >).map { date in
             ConnectionHistoryMenuDay(
-                date: date, isToday: calendar.isDate(date, inSameDayAs: now ?? history.menuReferenceDate),
+                date: date, isToday: calendar.isDate(date, inSameDayAs: referenceDate),
                 rows: grouped[date] ?? [])
         }
     }

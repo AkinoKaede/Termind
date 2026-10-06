@@ -9,6 +9,7 @@ enum MobileWorkspaceSceneRouting {
     }
 
     static let activityType = "com.akinokaede.termind.open-workspace"
+    static let closedWindowActivityType = "com.akinokaede.termind.reopen-window"
     private static let workspaceIDKey = "workspaceID"
 
     static func openSessionIDs() -> Set<String> {
@@ -27,6 +28,21 @@ enum MobileWorkspaceSceneRouting {
     static func workspaceID(from activity: NSUserActivity) -> UUID? {
         guard activity.activityType == activityType,
             let value = activity.userInfo?[workspaceIDKey] as? String
+        else { return nil }
+        return UUID(uuidString: value)
+    }
+
+    static func createWindow(_ recordID: UUID, failed: @escaping @MainActor () -> Void) {
+        let activity = NSUserActivity(activityType: closedWindowActivityType)
+        activity.userInfo = ["closedRecordID": recordID.uuidString]
+        UIApplication.shared.requestSceneSessionActivation(nil, userActivity: activity, options: nil) { _ in
+            MainActor.assumeIsolated { failed() }
+        }
+    }
+
+    static func closedRecordID(from activity: NSUserActivity) -> UUID? {
+        guard activity.activityType == closedWindowActivityType,
+            let value = activity.userInfo?["closedRecordID"] as? String
         else { return nil }
         return UUID(uuidString: value)
     }

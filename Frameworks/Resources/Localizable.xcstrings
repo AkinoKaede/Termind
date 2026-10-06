@@ -135,6 +135,40 @@
         }
       }
     },
+    "%@ (and %lld more workspaces)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（以及另外%2$lld个工作区）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（以及另外%2$lld個工作區）"
+          }
+        }
+      }
+    },
+    "%@ (and 1 more workspace)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（以及另外1个工作区）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（以及另外1個工作區）"
+          }
+        }
+      }
+    },
     "%@ (default)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21680,23 +21714,6 @@
         }
       }
     },
-    "Recent Closed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近关闭"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近關閉"
-          }
-        }
-      }
-    },
     "Recent Workspaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21710,6 +21727,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近工作區"
+          }
+        }
+      }
+    },
+    "Recently Closed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近關閉"
           }
         }
       }
@@ -22431,6 +22465,23 @@
         }
       }
     },
+    "Reopen Last Closed Window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新打开上次关闭的窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新開啟上次關閉的視窗"
+          }
+        }
+      }
+    },
     "Reopen Last Closed Workspace" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22444,6 +22495,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新開啟上次關閉的工作區"
+          }
+        }
+      }
+    },
+    "Reopen Window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新打开窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新開啟視窗"
           }
         }
       }

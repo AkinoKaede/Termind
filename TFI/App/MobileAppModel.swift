@@ -141,6 +141,9 @@ final class MobileAppModel {
     // precisely the workspaces recovered from that window, even if another window already received them.
     private var recoveredWorkspaceIDs: [String: Set<UUID>] = [:]
     private var discardedSessionIDs: Set<String> = []
+    var closedWorkspaceStates: [UUID: [MobileWorkspace.ReopenState]] = [:]
+    var pendingClosedWindows: Set<UUID> = []
+    var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void
     var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void
     var closeWorkspaceSession: @MainActor (String, @escaping @MainActor (any Error) -> Void) -> Void
     var openWorkspaceSessionIDs: @MainActor () -> Set<String>
@@ -175,6 +178,7 @@ final class MobileAppModel {
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
         keyExportServices = connectionCoordinator.keyExportServices()
+        createWorkspaceWindow = dependencies.createWorkspaceWindow
         activateWorkspaceSession = dependencies.activateWorkspaceSession
         closeWorkspaceSession = dependencies.closeWorkspaceSession
         openWorkspaceSessionIDs = dependencies.openWorkspaceSessionIDs
@@ -739,6 +743,19 @@ final class MobileAppModel {
         discardedSessionIDs.formUnion(ids)
         orphanedSessionIDs.subtract(ids)
         for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
+        // A native discard can arrive after reconciliation moved the disappearing window's workspaces.
+        for id in ids {
+            if let recovered = recoveredWorkspaceIDs[id], !recovered.isEmpty {
+                let states = workspaceSessions.flatMap(\.orderedWorkspaceItems)
+                    .filter { recovered.contains($0.id) }
+                    .map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
+                rememberClosedWorkspaces(states, isWindow: true)
+            } else if hasBoundWorkspaceSession, !workspaceSessions.contains(where: { $0.id == id }),
+                let descriptors = workspaceSnapshot.sessions[id]
+            {
+                rememberClosedWorkspaces(descriptors.map { .init(descriptor: $0) }, isWindow: true)
+            }
+        }
         let recoveredIDs = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
         for session in workspaceSessions {
             for workspaceID in recoveredIDs { session.close(workspaceID, rememberForReopen: false) }
@@ -752,6 +769,14 @@ final class MobileAppModel {
             for id in ids { workspaceSnapshot.sessions[id] = nil }
             persistWorkspaceSnapshot()
         }
+    }
+
+    func containsWorkspace(_ id: UUID) -> Bool {
+        workspaceSessions.contains { session in session.orderedWorkspaceItems.contains { $0.id == id } }
+    }
+
+    var recentlyClosedStore: RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>> {
+        workspaceStore.recentlyClosed
     }
 
     func saveWorkspaceDescriptors(_ descriptors: [MobileWorkspaceDescriptor], for id: String) {

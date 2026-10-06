@@ -545,8 +545,17 @@ final class WindowModel {
         }
     }
 
-    var canReopen: Bool { !reopenStack.isEmpty }
+    var closedHistory: () -> [RecentlyClosedRecord<ClosedWorkspaceRecord>] = { [] }
+    var rememberClosedWorkspace: ((Workspace) -> Void)?
+    var rememberClosedWindow: (([Workspace], UUID?) -> Void)?
+    var restoreClosedRecord: ((UUID) -> Void)?
+    var canReopen: Bool {
+        !isClosed && (restoreClosedRecord == nil ? !reopenStack.isEmpty : !closedHistory().isEmpty)
+    }
+    var reopensWindow: Bool { closedHistory().first?.isWindow == true }
     var recentlyClosedWorkspaces: [Workspace] { Array(reopenStack.reversed()) }
+
+    func forgetClosedWorkspace(_ id: UUID) { reopenStack.removeAll { $0.id == id } }
     var confirmsClearConnectionHistory = false
     var historyOperationError: String?
 
@@ -1381,6 +1390,7 @@ final class WindowModel {
 
     func closeForWindow() {
         guard !isClosed else { return }
+        rememberClosedWindow?(workspaces, selectedWorkspaceID)
         isClosed = true
         for workspace in workspaces {
             workspace.disconnectConnections()
@@ -1482,7 +1492,8 @@ final class WindowModel {
 
     private func rememberForReopen(_ workspace: Workspace) {
         reopenStack.append(workspace)
-        if reopenStack.count > 10 { reopenStack.removeFirst(reopenStack.count - 10) }
+        rememberClosedWorkspace?(workspace)
+        if reopenStack.count > 15 { reopenStack.removeFirst(reopenStack.count - 15) }
     }
 
     func closeWorkspaces(for hostID: Host.ID) {
@@ -1499,11 +1510,16 @@ final class WindowModel {
     }
 
     func reopenLastClosed() {
-        guard let id = reopenStack.last?.id else { return }
+        let candidate = restoreClosedRecord == nil ? reopenStack.last?.id : closedHistory().first?.id
+        guard let id = candidate else { return }
         reopenClosedWorkspace(id)
     }
 
     func reopenClosedWorkspace(_ id: Workspace.ID) {
+        if let restoreClosedRecord {
+            restoreClosedRecord(id)
+            return
+        }
         guard let index = reopenStack.firstIndex(where: { $0.id == id }) else { return }
         let workspace = reopenStack.remove(at: index)
         workspace.prepareForReopen()

@@ -1,4 +1,6 @@
 import Foundation
+import TermindDomain
+import TermindInfrastructure
 
 /// Device-local connection intent only. Credentials, commands and live session state never enter this store.
 /// One app-owned store writes the complete snapshot, so saves from different windows cannot overwrite each other.
@@ -20,11 +22,13 @@ final class MobileWorkspaceStore {
     }
 
     private enum StoreError: Error { case invalidSnapshot }
+    let recentlyClosed: RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>>
     private let defaults: UserDefaults?
     private var canSave = true
 
     init(defaults: UserDefaults?) {
         self.defaults = defaults
+        recentlyClosed = RecentlyClosedStore(defaults: defaults, key: "mobile.recentlyClosed.v2")
     }
 
     func load() throws -> Snapshot {

@@ -14,7 +14,7 @@ struct ConnectionHistoryMenuTests {
         return value
     }
 
-    @Test func launchRecordsExcludeSyncedEventsAndResetOnRestart() throws {
+    @Test func todayIncludesSyncedEventsAndDoesNotChangeOnRestart() throws {
         let host = Host(name: "Server", host: "server.example")
         let local = UUID()
         let repository = InMemoryConnectionHistoryRepository()
@@ -30,16 +30,34 @@ struct ConnectionHistoryMenuTests {
 
         let menu = ConnectionHistoryMenuSnapshot(
             history: history, library: library, devices: devices, now: now, calendar: calendar)
-        #expect(menu.currentLaunch.map(\.id) == [second.id, first.id])
-        #expect(menu.days.count == 1)
-        #expect(menu.days.first?.isToday == true)
-        #expect(menu.days.first?.rows.map(\.id) == [synced.id])
+        #expect(menu.recentToday.map(\.id) == [synced.id, second.id, first.id])
+        #expect(menu.days.isEmpty)
 
         let restarted = ConnectionHistoryModel(repository: repository, sourceDeviceID: local)
         let afterRestart = ConnectionHistoryMenuSnapshot(
             history: restarted, library: library, devices: devices, now: now, calendar: calendar)
-        #expect(afterRestart.currentLaunch.isEmpty)
-        #expect(afterRestart.days.first?.rows.map(\.id) == [synced.id, second.id, first.id])
+        #expect(afterRestart.recentToday.map(\.id) == [synced.id, second.id, first.id])
+        #expect(afterRestart.days.isEmpty)
+    }
+
+    @Test func todayOverflowMovesIntoDateGroupsWithoutLosingOrDuplicatingRecords() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let history = ConnectionHistoryModel()
+        let today = calendar.startOfDay(for: now)
+        let yesterday = try #require(history.record(kind: .ssh, for: host.id, at: today.addingTimeInterval(-60)))
+        let entries = try (0..<18).map { index in
+            try #require(history.record(kind: .ssh, for: host.id, at: today.addingTimeInterval(Double(index + 1))))
+        }
+        let menu = ConnectionHistoryMenuSnapshot(
+            history: history, library: HostLibraryModel(hosts: [host]), devices: DeviceDirectoryModel(),
+            now: today.addingTimeInterval(3600), calendar: calendar)
+        #expect(menu.recentToday.map(\.id) == entries.suffix(15).reversed().map(\.id))
+        #expect(menu.days.map(\.isToday) == [true, false])
+        #expect(menu.days.first?.rows.map(\.id) == entries.prefix(3).reversed().map(\.id))
+        #expect(menu.days.last?.rows.map(\.id) == [yesterday.id])
+        let displayed = menu.recentToday + menu.days.flatMap(\.rows)
+        #expect(displayed.count == history.entries().count)
+        #expect(Set(displayed.map(\.id)).count == displayed.count)
     }
 
     @Test func dateGroupsFollowLocalDaysAndOmitMissingHosts() {
@@ -54,36 +72,40 @@ struct ConnectionHistoryMenuTests {
         let library = HostLibraryModel(hosts: [host])
         let menu = ConnectionHistoryMenuSnapshot(
             history: history, library: library, devices: devices, now: now, calendar: calendar)
-        #expect(menu.days.map(\.isToday) == [true, false])
-        #expect(menu.days.flatMap(\.rows).map(\.id) == [recent.id, earlier.id])
+        #expect(menu.recentToday.map(\.id) == [recent.id])
+        #expect(menu.days.map(\.isToday) == [false])
+        #expect(menu.days.flatMap(\.rows).map(\.id) == [earlier.id])
 
         var shifted = calendar
         shifted.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
         let localMenu = ConnectionHistoryMenuSnapshot(
             history: history, library: library, devices: devices, now: today.addingTimeInterval(120), calendar: shifted)
-        #expect(localMenu.days.count == 1)
-        #expect(localMenu.days.first?.rows.map(\.id) == [recent.id, earlier.id])
+        #expect(localMenu.days.isEmpty)
+        #expect(localMenu.recentToday.map(\.id) == [recent.id, earlier.id])
         let tomorrow = ConnectionHistoryMenuSnapshot(
             history: history, library: library, devices: devices,
             now: today.addingTimeInterval(86_400), calendar: calendar)
+        #expect(tomorrow.recentToday.isEmpty)
         #expect(tomorrow.days.allSatisfy { !$0.isToday })
     }
 
     @Test func unavailableProtocolsStayVisibleAndClearRemovesBothSections() throws {
         var host = Host(name: "Server", host: "server.example")
         host.sshEnabled = false
-        let old = ConnectionHistoryEntry(hostID: host.id, kind: .sftp, connectedAt: now)
+        let old = ConnectionHistoryEntry(
+            hostID: host.id, kind: .sftp, connectedAt: calendar.startOfDay(for: now).addingTimeInterval(-60))
         let history = ConnectionHistoryModel(entries: [old])
         let library = HostLibraryModel(hosts: [host])
         let devices = DeviceDirectoryModel()
-        _ = try #require(history.record(kind: .ssh, for: host.id))
-        let before = ConnectionHistoryMenuSnapshot(history: history, library: library, devices: devices)
-        #expect(before.currentLaunch.first?.canOpen == false)
+        _ = try #require(history.record(kind: .ssh, for: host.id, at: now))
+        let before = ConnectionHistoryMenuSnapshot(
+            history: history, library: library, devices: devices, now: now, calendar: calendar)
+        #expect(before.recentToday.first?.canOpen == false)
         #expect(before.days.first?.rows.first?.canOpen == false)
         history.clearAll()
-        let after = ConnectionHistoryMenuSnapshot(history: history, library: library, devices: devices)
-        #expect(after.currentLaunch.isEmpty && after.days.isEmpty)
-        #expect(history.currentLaunchEntryIDs.isEmpty)
+        let after = ConnectionHistoryMenuSnapshot(
+            history: history, library: library, devices: devices, now: now, calendar: calendar)
+        #expect(after.recentToday.isEmpty && after.days.isEmpty)
         #expect(library.host(host.id) != nil)
     }
 }

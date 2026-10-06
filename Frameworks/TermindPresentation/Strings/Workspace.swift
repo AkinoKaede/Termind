@@ -369,6 +369,9 @@ extension AppStrings {
         public static var newWindow: LocalizedStringResource {
             "New Window"
         }
+        public static var reopenClosedWindow: LocalizedStringResource {
+            "Reopen Last Closed Window"
+        }
         public static var reopenClosedWorkspace: LocalizedStringResource {
             "Reopen Last Closed Workspace"
         }

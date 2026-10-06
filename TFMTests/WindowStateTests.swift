@@ -1367,11 +1367,11 @@ struct WindowStateTests {
     }
 
     @Test
-    func individuallyClosedPanesShareTheTenItemReopenLimit() {
+    func individuallyClosedPanesShareTheFifteenItemReopenLimit() {
         let survivor = Pane(.empty)
         let workspace = Workspace(pane: survivor)
         let window = WindowModel(workspaces: [workspace])
-        let closedPanes = (0..<11).map { _ in Pane(.empty) }
+        let closedPanes = (0..<16).map { _ in Pane(.empty) }
         for pane in closedPanes {
             workspace.splitFocusedPane(axis: .horizontal, with: pane)
             window.closePane(pane.id)
@@ -1382,7 +1382,7 @@ struct WindowStateTests {
             window.reopenLastClosed()
             if let pane = window.selectedWorkspace?.focusedPane { reopenedIDs.append(pane.id) }
         }
-        #expect(reopenedIDs == closedPanes.suffix(10).reversed().map(\.id))
+        #expect(reopenedIDs == closedPanes.suffix(15).reversed().map(\.id))
         #expect(workspace.panes.map(\.id) == [survivor.id])
 
         window.closePane(reopenedIDs[0])

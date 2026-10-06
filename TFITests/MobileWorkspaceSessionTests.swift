@@ -13,6 +13,85 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func closedRecordsAcrossLaunchesShareOneListAndAreConsumedAcrossWindows() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let firstApp = try fixture.makeApp()
+        let owner = MobileSceneModel(app: firstApp, sessionID: "first")
+        owner.open(hostID: fixture.host.id, kind: .sftp)
+        owner.activatePendingWorkspace()
+        let closed = try #require(owner.activeWorkspace)
+        owner.closeActiveWorkspace()
+
+        let nextApp = try fixture.makeApp()
+        let window = MobileSceneModel(app: nextApp, sessionID: "second")
+        let other = MobileSceneModel(app: nextApp, sessionID: "other")
+        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [closed.id])
+        window.open(hostID: fixture.host.id, kind: .ssh)
+        window.activatePendingWorkspace()
+        let current = try #require(window.activeWorkspace)
+        window.closeActiveWorkspace()
+        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [current.id, closed.id])
+        window.reopenLastClosedWorkspace()
+        #expect(window.workspaceSession.recentlyClosedWorkspaces.map(\.id) == [closed.id])
+        window.reopenLastClosedWorkspace()
+        window.activatePendingWorkspace()
+        #expect(window.activeWorkspace?.descriptor.kind == .sftp)
+        #expect(window.activeWorkspace !== closed)
+        #expect(!other.workspaceSession.canReopen)
+        #expect(!window.workspaceSession.canReopen)
+        let thirdApp = try fixture.makeApp()
+        #expect(thirdApp.closedWorkspaceRecords.isEmpty)
+    }
+
+    @Test func discardedWindowsAreGroupedAndReopenedInANewSession() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let source = MobileSceneModel(app: app, sessionID: "source")
+        source.open(hostID: fixture.host.id, kind: .ssh)
+        source.open(hostID: fixture.host.id, kind: .sftp)
+        let ids = source.workspaceSession.orderedWorkspaceItems.map(\.id)
+        app.discardWorkspaceSessions(["source"])
+        let record = try #require(app.closedWorkspaceRecords.first)
+        #expect(record.isWindow)
+        #expect(record.items.map(\.id) == ids)
+        #expect(app.closedWorkspaceRecords.count == 1)
+        let current = MobileSceneModel(app: app, sessionID: "current")
+        var requests: [UUID] = []
+        app.createWorkspaceWindow = { id, _ in requests.append(id) }
+        current.reopenLastClosedWorkspace()
+        current.reopenLastClosedWorkspace()
+        #expect(requests == [record.id])
+        #expect(current.workspaceSession.orderedWorkspaceItems.isEmpty)
+        #expect(app.closedWorkspaceRecords.count == 1)
+        let destination = MobileSceneModel(app: app, sessionID: "destination")
+        let selected = app.restoreClosedWindow(record.id, into: destination.workspaceSession)
+        #expect(selected == ids.first)
+        #expect(destination.workspaceSession.orderedWorkspaceItems.map(\.id) == ids)
+        #expect(app.closedWorkspaceRecords.isEmpty)
+        #expect(app.restoreClosedWindow(record.id, into: destination.workspaceSession) == nil)
+    }
+
+    @Test func windowChildRestoreAndFailedNewWindowRequestsPreserveRemainingRecords() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let app = try fixture.makeApp()
+        let source = MobileSceneModel(app: app, sessionID: "source")
+        source.open(hostID: fixture.host.id, kind: .ssh)
+        source.open(hostID: fixture.host.id, kind: .sftp)
+        app.discardWorkspaceSessions(["source"])
+        let record = try #require(app.closedWorkspaceRecords.first)
+        let current = MobileSceneModel(app: app, sessionID: "current")
+        let first = try #require(record.items.first)
+        #expect(current.workspaceSession.reopenClosedItem(first.id, in: record.id) == first.id)
+        #expect(app.closedWorkspaceRecords.first?.items.count == 1)
+        app.createWorkspaceWindow = { _, failed in failed() }
+        current.reopenLastClosedWorkspace()
+        #expect(app.closedWorkspaceRecords.first?.items.count == 1)
+        #expect(app.pendingClosedWindows.isEmpty)
+    }
+
     @Test func recentClosedCanRestoreAnOlderItemWithoutConsumingTheNewest() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
@@ -46,7 +125,7 @@ struct MobileWorkspaceSessionTests {
 
         owner.closeActiveWorkspace()
         #expect(owner.workspaceSession.canReopen)
-        #expect(!other.workspaceSession.canReopen)
+        #expect(other.workspaceSession.canReopen)
         #expect(try fixture.store.load().sessions["owner", default: []].isEmpty)
         owner.openSettings()
         owner.reopenLastClosedWorkspace()
@@ -120,14 +199,14 @@ struct MobileWorkspaceSessionTests {
         let app = try fixture.makeApp()
         let session = app.workspaceSession(for: "owner")
         var closed: [UUID] = []
-        for _ in 0..<12 {
+        for _ in 0..<17 {
             let id = try #require(session.open(hostID: fixture.host.id, kind: .ssh))
             session.close(id)
             closed.append(id)
         }
         var reopened: [UUID] = []
         while let id = session.reopenLastClosed() { reopened.append(id) }
-        #expect(reopened == Array(closed.suffix(10).reversed()))
+        #expect(reopened == Array(closed.suffix(15).reversed()))
         session.closeAll()
         #expect(session.canReopen)
         app.discardWorkspaceSessions(["owner"])
@@ -713,6 +792,8 @@ struct MobileWorkspaceSessionTests {
         #expect(first.workspaceSession.workspaces.count == 1)
         #expect(first.workspaceSession.workspaces.first?.id != original.id)
         #expect(app.workspaceOwner(original.id) == nil)
+        #expect(app.closedWorkspaceRecords.first?.isWindow == true)
+        #expect(app.closedWorkspaceRecords.first?.items.map(\.id) == [original.id])
         #expect(second.workspaceSession.open(hostID: fixture.host.id, kind: .ssh) == nil)
     }
 

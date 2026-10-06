@@ -233,29 +233,67 @@ struct TermindCommands: Commands {
             Divider()
 
             Menu {
-                ForEach(window?.recentlyClosedWorkspaces ?? []) { workspace in
-                    Button {
-                        window?.reopenClosedWorkspace(workspace.id)
-                    } label: {
-                        Label {
-                            Text(verbatim: workspace.title(in: app.hostLibrary))
-                        } icon: {
-                            Image(nsImage: MenuImageVisibilityController.markedImage(systemName: workspace.symbol))
+                ForEach(app.closedWorkspaceRecords) { record in
+                    if record.isWindow {
+                        Menu {
+                            Button {
+                                app.reopenClosedRecord(record.id, in: window)
+                            } label: {
+                                HistoryMenuLabel(AppStrings.History.reopenWindow, symbol: "macwindow")
+                            }
+                            Divider()
+                            ForEach(record.items) { item in
+                                Button {
+                                    guard let window else { return }
+                                    app.restoreClosedRecord(record.id, into: window, itemID: item.id)
+                                } label: {
+                                    Label {
+                                        Text(verbatim: item.title)
+                                    } icon: {
+                                        Image(
+                                            nsImage: MenuImageVisibilityController.markedImage(systemName: item.symbol))
+                                    }
+                                }
+                                .disabled(window == nil)
+                            }
+                        } label: {
+                            Label {
+                                Text(
+                                    AppStrings.History.closedWindow(
+                                        record.items.first?.title ?? "", count: record.items.count))
+                            } icon: {
+                                Image(
+                                    nsImage: MenuImageVisibilityController.markedImage(
+                                        systemName: record.items.first?.symbol ?? "macwindow"))
+                            }
+                        }
+                    } else if let item = record.items.first {
+                        Button {
+                            app.reopenClosedRecord(record.id, in: window)
+                        } label: {
+                            Label {
+                                Text(verbatim: item.title)
+                            } icon: {
+                                Image(nsImage: MenuImageVisibilityController.markedImage(systemName: item.symbol))
+                            }
                         }
                     }
                 }
             } label: {
                 HistoryMenuLabel(AppStrings.History.recentClosed, symbol: "clock.arrow.circlepath")
             }
-            .disabled(window?.canReopen != true)
+            .disabled(app.closedWorkspaceRecords.isEmpty)
 
             Button {
-                window?.reopenLastClosed()
+                if let record = app.closedWorkspaceRecords.first { app.reopenClosedRecord(record.id, in: window) }
             } label: {
-                HistoryMenuLabel(AppStrings.Workspace.reopenClosedWorkspace, symbol: MenuSymbol.reopenWorkspace)
+                HistoryMenuLabel(
+                    app.closedWorkspaceRecords.first?.isWindow == true
+                        ? AppStrings.Workspace.reopenClosedWindow : AppStrings.Workspace.reopenClosedWorkspace,
+                    symbol: MenuSymbol.reopenWorkspace)
             }
             .termindShortcut("t", modifiers: [.command, .shift])
-            .disabled(window?.canReopen != true)
+            .disabled(app.closedWorkspaceRecords.isEmpty)
 
             HistoryMenuRecords(
                 snapshot: ConnectionHistoryMenuSnapshot(

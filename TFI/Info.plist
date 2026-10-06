@@ -41,6 +41,7 @@
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.akinokaede.termind.open-workspace</string>
+		<string>com.akinokaede.termind.reopen-window</string>
 	</array>
 	<key>TermindCloudKitEnvironment</key>
 	<string>$(ICLOUD_CONTAINER_ENVIRONMENT)</string>

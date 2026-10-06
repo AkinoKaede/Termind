@@ -137,12 +137,35 @@ struct MobileCommands: Commands {
             Divider()
 
             Menu {
-                ForEach(scene?.workspaceSession.recentlyClosedWorkspaces ?? []) { descriptor in
-                    Button {
-                        scene?.reopenClosedWorkspace(descriptor.id)
-                    } label: {
-                        HistoryMenuLabel(
-                            verbatim: descriptor.title, symbol: descriptor.kind.symbol)
+                ForEach(scene?.workspaceSession.recentlyClosedRecords ?? []) { record in
+                    if record.isWindow {
+                        Menu {
+                            Button(AppStrings.History.reopenWindow.swiftUIKey, systemImage: "macwindow") {
+                                scene?.workspaceSession.requestClosedWindow(record.id)
+                            }
+                            Divider()
+                            ForEach(record.items) { item in
+                                Button {
+                                    guard let scene,
+                                        let id = scene.workspaceSession.reopenClosedItem(item.id, in: record.id)
+                                    else { return }
+                                    scene.selectWorkspace(id)
+                                } label: {
+                                    HistoryMenuLabel(verbatim: item.title, symbol: item.kind.symbol)
+                                }
+                            }
+                        } label: {
+                            HistoryMenuLabel(
+                                AppStrings.History.closedWindow(
+                                    record.items.first?.title ?? "", count: record.items.count),
+                                symbol: record.items.first?.kind.symbol ?? "macwindow")
+                        }
+                    } else if let descriptor = record.items.first {
+                        Button {
+                            scene?.reopenClosedWorkspace(record.id)
+                        } label: {
+                            HistoryMenuLabel(verbatim: descriptor.title, symbol: descriptor.kind.symbol)
+                        }
                     }
                 }
             } label: {
@@ -153,7 +176,10 @@ struct MobileCommands: Commands {
             Button {
                 scene?.reopenLastClosedWorkspace()
             } label: {
-                HistoryMenuLabel(AppStrings.Workspace.reopenClosedWorkspace, symbol: "arrow.uturn.backward")
+                HistoryMenuLabel(
+                    scene?.workspaceSession.reopensWindow == true
+                        ? AppStrings.Workspace.reopenClosedWindow : AppStrings.Workspace.reopenClosedWorkspace,
+                    symbol: "arrow.uturn.backward")
             }
             .keyboardShortcut(MobileShortcut.reopenWorkspace)
             .disabled(scene?.workspaceSession.canReopen != true)

@@ -69,6 +69,12 @@ struct MobileBoundSceneRoot: View {
                     consumePendingQuickAction: delegate.consumePendingQuickAction
                 )
                 .onAppear { delegate.bind(to: app) }
+                .task(id: scenePhase == .active ? delegate.pendingClosedWindowID : nil) {
+                    guard scenePhase == .active, let id = delegate.consumePendingClosedWindowID() else { return }
+                    if let workspaceID = app.restoreClosedWindow(id, into: scene.workspaceSession) {
+                        scene.selectWorkspace(workspaceID)
+                    }
+                }
                 .task(id: scenePhase == .active ? delegate.pendingWorkspaceID : nil) {
                     guard scenePhase == .active, delegate.pendingWorkspaceID != nil else { return }
                     await Task.yield()

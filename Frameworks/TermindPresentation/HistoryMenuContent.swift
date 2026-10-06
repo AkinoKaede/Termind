@@ -55,9 +55,9 @@ public struct HistoryMenuRecords: View {
     }
 
     public var body: some View {
-        if !snapshot.currentLaunch.isEmpty {
+        if !snapshot.recentToday.isEmpty {
             Divider()
-            rows(snapshot.currentLaunch)
+            rows(snapshot.recentToday)
         }
         if !snapshot.days.isEmpty {
             Divider()
@@ -92,12 +92,5 @@ public struct HistoryMenuRecords: View {
         }
     }
 
-    private func title(_ row: ConnectionHistoryMenuRow) -> String {
-        var parts = [
-            row.host.name, row.entry.kind.label,
-            row.entry.connectedAt.formatted(.dateTime.hour().minute().locale(locale)),
-        ]
-        if let device = row.deviceName { parts.append(device) }
-        return parts.joined(separator: " · ")
-    }
+    private func title(_ row: ConnectionHistoryMenuRow) -> String { row.host.name }
 }

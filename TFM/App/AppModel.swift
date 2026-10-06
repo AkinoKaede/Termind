@@ -147,6 +147,8 @@ final class AppModel {
     private let agentBackgroundCommands: AgentBackgroundCommands
     private let outboxRunner: OutboxRunner?
     private let snippetTimestampFallback: Date
+    var closedWorkspaceInstances: [UUID: [Workspace]] = [:]
+    let recentlyClosedStore: RecentlyClosedStore<RecentlyClosedRecord<ClosedWorkspaceRecord>>
     private let settingsDefaults: UserDefaults
     private let shutdownDependencies: AppShutdownDependencies?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
@@ -206,6 +208,8 @@ final class AppModel {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         settingsDefaults = dependencies.settingsDefaults
+        recentlyClosedStore = RecentlyClosedStore(
+            defaults: dependencies.settingsDefaults, key: "desktop.recentlyClosed.v2")
         snippetTimestampFallback = SnippetTimestamp.fallback(in: dependencies.settingsDefaults)
         assistantConversations = dependencies.assistantConversations ?? AssistantConversationStore()
         shutdownDependencies = dependencies.shutdown
@@ -705,6 +709,12 @@ final class AppModel {
         AssistantExecutionController.titleContext(for: conversation)
     }
 
+    func forgetClosedWorkspaces(_ ids: Set<UUID>) {
+        for window in windows.values.compactMap(\.value) {
+            for id in ids { window.forgetClosedWorkspace(id) }
+        }
+    }
+
     func unregisterWindow(_ window: WindowModel) {
         windows[ObjectIdentifier(window)] = nil
         onboarding.windowClosed(window)
@@ -715,6 +725,12 @@ final class AppModel {
         configureConnectionHistory(in: window)
         window.connectionCoordinator = connections
         window.hostStore = hosts
+        window.closedHistory = { [weak self] in self?.closedWorkspaceRecords ?? [] }
+        window.rememberClosedWorkspace = { [weak self] in self?.rememberClosedWorkspaces([$0]) }
+        window.rememberClosedWindow = { [weak self] workspaces, selected in
+            self?.rememberClosedWorkspaces(workspaces, isWindow: true, selectedID: selected)
+        }
+        window.restoreClosedRecord = { [weak self, weak window] id in self?.reopenClosedRecord(id, in: window) }
         window.metricsModel = serverMetrics
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)

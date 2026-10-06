@@ -39,17 +39,19 @@ final class MainWindowCoordinator {
     private final class Request {
         weak var source: WindowModel?
         let move: Move?
+        let closedRecordID: UUID?
         let showsMetrics: Bool
         let metricsHostID: UUID?
         let layout: Layout
         let screenPoint: CGPoint?
 
         init(
-            source: WindowModel? = nil, move: Move? = nil,
+            source: WindowModel? = nil, move: Move? = nil, closedRecordID: UUID? = nil,
             showsMetrics: Bool = false, metricsHostID: UUID? = nil, layout: Layout, screenPoint: CGPoint? = nil
         ) {
             self.source = source
             self.move = move
+            self.closedRecordID = closedRecordID
             self.showsMetrics = showsMetrics
             self.metricsHostID = metricsHostID
             self.layout = layout
@@ -217,6 +219,12 @@ final class MainWindowCoordinator {
     }
 
     @discardableResult
+    func reopenClosedWindow(_ id: UUID, from source: WindowModel?) -> UUID? {
+        if let pending = requests.first(where: { $0.value.closedRecordID == id }) { return pending.key }
+        return request(Request(closedRecordID: id, layout: sourceLayout(from: source)))
+    }
+
+    @discardableResult
     func moveWorkspace(_ id: UUID, from source: WindowModel, at screenPoint: CGPoint? = nil) -> UUID? {
         guard !source.isClosed, source.workspaces.contains(where: { $0.id == id }) else { return nil }
         return move(.workspace(id), from: source, at: screenPoint)
@@ -310,7 +318,9 @@ final class MainWindowCoordinator {
             // A tear-off should appear at the release point immediately, without
             // another document-opening animation after the drag completes.
             if request.screenPoint != nil { native.animationBehavior = .none }
-            if let workspace = request.takeWorkspace() {
+            if let closedRecordID = request.closedRecordID {
+                app?.restoreClosedRecord(closedRecordID, into: model)
+            } else if let workspace = request.takeWorkspace() {
                 model.open(workspace)
                 model.refreshSessionContext()
                 model.reconcileSidebarMode()

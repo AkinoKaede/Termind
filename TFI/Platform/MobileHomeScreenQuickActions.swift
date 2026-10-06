@@ -89,6 +89,7 @@ enum MobileHomeScreenQuickActions {
 final class MobileSceneDelegate: NSObject, UIWindowSceneDelegate, ObservableObject {
     @Published private(set) var sessionID: String?
     @Published private(set) var pendingWorkspaceID: UUID?
+    @Published private(set) var pendingClosedWindowID: UUID?
     private(set) weak var app: MobileAppModel?
     @Published private(set) var pendingQuickAction: MobileHomeScreenQuickAction?
 
@@ -132,8 +133,17 @@ final class MobileSceneDelegate: NSObject, UIWindowSceneDelegate, ObservableObje
     }
 
     func receiveWorkspaceActivity(_ activity: NSUserActivity) {
+        if let id = MobileWorkspaceSceneRouting.closedRecordID(from: activity) {
+            pendingClosedWindowID = id
+            return
+        }
         guard let id = MobileWorkspaceSceneRouting.workspaceID(from: activity) else { return }
         pendingWorkspaceID = id
+    }
+
+    func consumePendingClosedWindowID() -> UUID? {
+        defer { pendingClosedWindowID = nil }
+        return pendingClosedWindowID
     }
 
     func consumePendingWorkspaceID() -> UUID? {

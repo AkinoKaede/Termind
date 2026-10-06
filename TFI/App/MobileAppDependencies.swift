@@ -20,6 +20,8 @@ struct MobileAppDependencies {
     var container: ModelContainer? = nil
     var workspaceStore: MobileWorkspaceStore? = nil
     var liveActivities: MobileLiveActivityController? = nil
+    var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void =
+        MobileWorkspaceSceneRouting.createWindow
     var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void =
         MobileWorkspaceSceneRouting.activate
     var closeWorkspaceSession: @MainActor (String, @escaping @MainActor (any Error) -> Void) -> Void =

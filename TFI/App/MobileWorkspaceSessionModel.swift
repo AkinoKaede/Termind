@@ -52,11 +52,12 @@ final class MobileWorkspaceSessionModel {
     }
     private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor]
     private var workspaceDisplayOrder: [MobileWorkspace.ID]
-    private var reopenStack: [MobileWorkspace.ReopenState] = []
-    var canReopen: Bool { !recentlyClosedWorkspaces.isEmpty }
+    var canReopen: Bool { !isDiscarded && !app.closedWorkspaceRecords.isEmpty }
+    var reopensWindow: Bool { app.closedWorkspaceRecords.first?.isWindow == true }
+    var recentlyClosedRecords: [RecentlyClosedRecord<MobileWorkspaceDescriptor>] { app.closedWorkspaceRecords }
     var recentlyClosedWorkspaces: [MobileWorkspaceDescriptor] {
         guard !isDiscarded else { return [] }
-        return reopenStack.reversed().filter(canReopen).map(\.descriptor)
+        return app.closedWorkspaceRecords.filter { !$0.isWindow }.flatMap(\.items)
     }
     private(set) var isDiscarded = false
     @ObservationIgnored private unowned let app: MobileAppModel
@@ -82,7 +83,6 @@ final class MobileWorkspaceSessionModel {
     }
 
     func releaseForRecovery() {
-        reopenStack.removeAll()
         manuallyUnreadIDs.removeAll()
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -100,8 +100,10 @@ final class MobileWorkspaceSessionModel {
     }
 
     func discard() {
-        closeAll()
-        reopenStack.removeAll()
+        guard !isDiscarded else { return }
+        let states = orderedWorkspaceItems.map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
+        app.rememberClosedWorkspaces(states, isWindow: true)
+        closeAll(rememberForReopen: false)
         isDiscarded = true
     }
 
@@ -237,7 +239,6 @@ final class MobileWorkspaceSessionModel {
     }
 
     func close(_ id: UUID, rememberForReopen: Bool = true) {
-        if !rememberForReopen { reopenStack.removeAll { $0.descriptor.id == id } }
         manuallyUnreadIDs.remove(id)
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
@@ -277,10 +278,10 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
-    func closeAll() {
+    func closeAll(rememberForReopen: Bool = true) {
         manuallyUnreadIDs.removeAll()
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
-        rememberClosedWorkspaces(Set(workspaceDisplayOrder))
+        if rememberForReopen { rememberClosedWorkspaces(Set(workspaceDisplayOrder)) }
         let closing = workspaces
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -296,38 +297,46 @@ final class MobileWorkspaceSessionModel {
 
     private func rememberClosedWorkspaces(_ ids: Set<UUID>) {
         for item in orderedWorkspaceItems where ids.contains(item.id) {
-            reopenStack.append(item.workspace?.reopenState ?? .init(descriptor: item.descriptor))
+            app.rememberClosedWorkspaces([item.workspace?.reopenState ?? .init(descriptor: item.descriptor)])
         }
-        if reopenStack.count > 10 { reopenStack.removeFirst(reopenStack.count - 10) }
     }
 
     func forgetClosedWorkspaces(for hostID: Host.ID) {
-        reopenStack.removeAll { $0.descriptor.hostID == hostID }
-    }
-
-    private func canReopen(_ state: MobileWorkspace.ReopenState) -> Bool {
-        !state.connectionOrigin.allowsPersistence || app.library.host(state.descriptor.hostID) != nil
+        app.forgetClosedWorkspaces(for: hostID)
     }
 
     func reopenLastClosed() -> MobileWorkspace.ID? {
-        guard let id = recentlyClosedWorkspaces.first?.id else { return nil }
-        return reopenClosedWorkspace(id)
+        guard !isDiscarded, let record = app.closedWorkspaceRecords.first else { return nil }
+        if record.isWindow {
+            app.requestClosedWindow(record.id)
+            return nil
+        }
+        return reopenClosedWorkspace(record.id)
     }
 
     func reopenClosedWorkspace(_ id: MobileWorkspace.ID) -> MobileWorkspace.ID? {
-        guard !isDiscarded,
-            let index = reopenStack.firstIndex(where: { $0.descriptor.id == id && canReopen($0) })
-        else { return nil }
-        let state = reopenStack.remove(at: index)
-        let workspace = MobileWorkspace(
-            descriptor: state.descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
-            terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
-            transientHost: state.transientHost, connectionRoute: state.connectionRoute,
-            usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
-            externalSFTPResourcePath: state.externalSFTPResourcePath,
-            externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
-        addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
-        return workspace.id
+        guard !isDiscarded else { return nil }
+        return app.restoreClosedRecord(id, into: self)
+    }
+
+    func reopenClosedItem(_ itemID: UUID, in recordID: UUID) -> UUID? {
+        guard !isDiscarded else { return nil }
+        return app.restoreClosedRecord(recordID, into: self, itemID: itemID)
+    }
+
+    func requestClosedWindow(_ id: UUID) { app.requestClosedWindow(id) }
+
+    func restoreClosedStates(_ states: [MobileWorkspace.ReopenState]) {
+        for state in states {
+            let workspace = MobileWorkspace(
+                descriptor: state.descriptor, hosts: app.library, transfers: app.transfers, sftpEdits: app.sftpEdits,
+                terminalSettings: app.terminalSettings, connectionServices: app.workspaceConnectionServices,
+                transientHost: state.transientHost, connectionRoute: state.connectionRoute,
+                usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
+                externalSFTPResourcePath: state.externalSFTPResourcePath,
+                externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
+            addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
+        }
     }
 
     /// Publish before connecting so repeated selection in this window shares one initial attempt.
