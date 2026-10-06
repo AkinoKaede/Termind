@@ -47,7 +47,7 @@ struct MobileContentRegionsTests {
         for edge in [HorizontalEdge.leading, .trailing] {
             var layout = MobileToolbarLayout(verticalEdge: edge)
             #expect(layout.showsWorkspaceTabs)
-            #expect(layout.usesIconSwitcher)
+            #expect(!layout.usesIconSwitcher)
             layout.verticalEdge = nil
             #expect(!layout.showsWorkspaceTabs)
             #expect(!layout.usesIconSwitcher)

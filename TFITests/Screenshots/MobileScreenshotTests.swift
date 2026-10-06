@@ -393,6 +393,8 @@ private struct ScreenshotTabShell<Content: View>: View {
                 Tab(feature.title.swiftUIKey, systemImage: feature.symbol, value: feature.id) {
                     if feature.id == selected {
                         content
+                            // Use the same adaptive toolbar layout as the app shell.
+                            .mobileToolbarEnvironment()
                     } else {
                         NavigationStack { Color.clear }
                     }

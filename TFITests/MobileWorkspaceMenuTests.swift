@@ -7,8 +7,11 @@ import UIKit
 
 @Suite(.requiresKeyWindow, .serialized) @MainActor
 struct MobileWorkspaceMenuTests {
-    @Test(arguments: [false, true])
-    func switcherIncludesOpenedAndDormantWorkspaceDescriptorsInOrder(iconSwitcher: Bool) async throws {
+    @Test(arguments: [false, true], [HorizontalEdge?.none, .leading, .trailing])
+    func switcherIncludesOpenedAndDormantWorkspaceDescriptorsInOrder(
+        isTopBar: Bool, verticalEdge: HorizontalEdge?
+    ) async throws {
+        let iconSwitcher = isTopBar
         let app = try MobileAppModel(inMemory: true)
         let opened = MobileWorkspaceDescriptor(hostID: UUID(), title: "Opened", kind: .ssh)
         let dormant = MobileWorkspaceDescriptor(hostID: UUID(), title: "Dormant", kind: .sftp)
@@ -23,7 +26,7 @@ struct MobileWorkspaceMenuTests {
                 selectWorkspace: { _ in }, renameWorkspace: { _ in }, canCloseMultipleWorkspaces: true,
                 openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in }
             )
-            .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: iconSwitcher))
+            .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: isTopBar, verticalEdge: verticalEdge))
         ) { navigation in
             let source =
                 iconSwitcher
@@ -37,8 +40,11 @@ struct MobileWorkspaceMenuTests {
         }
     }
 
-    @Test(arguments: [false, true])
-    func assistantSwitcherRemovesTheUnreadIconWhenTheConversationIsRead(iconSwitcher: Bool) async throws {
+    @Test(arguments: [false, true], [HorizontalEdge?.none, .leading, .trailing])
+    func assistantSwitcherRemovesTheUnreadIconWhenTheConversationIsRead(
+        isTopBar: Bool, verticalEdge: HorizontalEdge?
+    ) async throws {
+        let iconSwitcher = isTopBar
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app, sessionID: "notification-menu")
         await scene.assistant.load()
@@ -51,7 +57,7 @@ struct MobileWorkspaceMenuTests {
         second.markNotificationsUnread()
         try await withNavigation(
             MobileAssistantView(app: app, model: scene.assistant, libraryRoute: .constant(nil))
-                .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: iconSwitcher))
+                .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: isTopBar, verticalEdge: verticalEdge))
         ) { navigation in
             for unread in [true, false] {
                 if !unread { second.markNotificationsRead() }

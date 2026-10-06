@@ -6,7 +6,7 @@ struct MobileToolbarLayout: Equatable {
     var verticalEdge: HorizontalEdge?
 
     var isVertical: Bool { verticalEdge != nil }
-    var usesIconSwitcher: Bool { isTopBar || isVertical }
+    var usesIconSwitcher: Bool { isTopBar }
     var showsWorkspaceTabs: Bool { isTopBar || isSidebar || isVertical }
 }
 
