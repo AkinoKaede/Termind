@@ -153,7 +153,7 @@ struct HostsPageView: ManagedCardPage {
                 }
                 Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) { editGroup(group) }
                 Divider()
-                DestructiveMenuButton(AppStrings.Vault.deleteGroup) { requestDelete(group) }
+                DestructiveMenuButton(AppStrings.Common.delete) { requestDelete(group) }
             }
         } else if case .ungrouped = section.id {
             let isExpanded = section.isExpanded ?? true

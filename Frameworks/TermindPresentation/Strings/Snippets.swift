@@ -12,10 +12,6 @@ extension AppStrings {
             "Add a host before choosing default targets."
         }
 
-        public static var deletePackage: LocalizedStringResource {
-            "Delete Package"
-        }
-
         public static var deletePackageAndSnippets: LocalizedStringResource {
             "Delete Package and Snippets"
         }

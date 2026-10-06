@@ -684,7 +684,7 @@ struct MobileVaultView: View {
                         groupEditorRequest = GroupEditorRequest(groupID: group.id, parentID: group.parentID)
                     }
                     Divider()
-                    Button(AppStrings.Vault.deleteGroup.swiftUIKey, systemImage: "trash", role: .destructive) {
+                    Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                         requestDelete(group)
                     }
                 } label: {

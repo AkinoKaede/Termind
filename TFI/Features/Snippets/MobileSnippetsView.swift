@@ -209,7 +209,7 @@ struct MobileSnippetsView: View {
                             packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
-                    Button(AppStrings.Snippets.deletePackage.swiftUIKey, systemImage: "trash", role: .destructive) {
+                    Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                         deletingPackage = package
                     }
                 } label: {

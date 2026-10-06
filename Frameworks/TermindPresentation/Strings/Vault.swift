@@ -80,10 +80,6 @@ extension AppStrings {
             "Data Bits"
         }
 
-        public static var deleteGroup: LocalizedStringResource {
-            "Delete Group"
-        }
-
         public static var deleteGroupAndHosts: LocalizedStringResource {
             "Delete Group and Hosts"
         }

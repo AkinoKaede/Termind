@@ -8522,23 +8522,6 @@
         }
       }
     },
-    "Delete Group" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除组"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除組"
-          }
-        }
-      }
-    },
     "Delete Group and Hosts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8692,23 +8675,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除已知主機？"
-          }
-        }
-      }
-    },
-    "Delete Package" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除包"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除包"
           }
         }
       }
@@ -32243,13 +32209,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未打包"
+            "value" : "未包装"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未打包"
+            "value" : "未包裝"
           }
         }
       }

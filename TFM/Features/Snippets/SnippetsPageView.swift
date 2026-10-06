@@ -128,7 +128,7 @@ struct SnippetsPageView: ManagedCardPage {
                         openPackageEditor(packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
-                    DestructiveMenuButton(AppStrings.Snippets.deletePackage) {
+                    DestructiveMenuButton(AppStrings.Common.delete) {
                         state.confirmation = .deletePackage(package)
                     }
                 }
