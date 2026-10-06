@@ -71,7 +71,7 @@ matrix without building or opening windows:
 ```sh
 bundle exec fastlane mac screenshots scenes:agent locales:zh-Hant
 bundle exec fastlane ios screenshots scenes:ssh,sftp devices:ipad locales:zh-Hans,zh-Hant
-bundle exec fastlane ios screenshots devices:ipad runtime:com.apple.CoreSimulator.SimRuntime.iOS-27-0
+bundle exec fastlane ios screenshots devices:ipad runtime:com.apple.CoreSimulator.SimRuntime.iOS-27-1
 bundle exec fastlane ios screenshots plan:true
 ```
 
@@ -95,19 +95,19 @@ the downstream workflow described below.
 produces Command Generator, and `agent` produces Assistant. Metrics detail is a
 development demo only; do not retain its captures as marketing assets.
 
-The mobile lane requires iOS/iPadOS 27 and defaults to the 27.0 runtime.
+The mobile lane requires iOS/iPadOS 27 and defaults to the 27.1 runtime.
 It checks both the simulator model identifier and the raw pixel dimensions:
 
 | Selector | Capture device | Native capture size |
 | --- | --- | --- |
-| `iphone` | iPhone 17 Pro Max (6.9-inch), portrait | 1320×2868 |
+| `iphone` | iPhone 18 Pro Max (6.9-inch), portrait | 1320×2868 |
 | `ipad` | iPad Pro 13-inch (M5), landscape | 2752×2064 |
 
 Create the exact simulators once if they are missing:
 
 ```sh
-xcrun simctl create "iPhone 17 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max com.apple.CoreSimulator.SimRuntime.iOS-27-0
-xcrun simctl create "iPad Pro 13-inch (M5)" com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB com.apple.CoreSimulator.SimRuntime.iOS-27-0
+xcrun simctl create "iPhone 18 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max com.apple.CoreSimulator.SimRuntime.iOS-27-1
+xcrun simctl create "iPad Pro 13-inch (M5)" com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB com.apple.CoreSimulator.SimRuntime.iOS-27-1
 ```
 
 The lane does not resize iPhone captures or substitute another device. Existing
@@ -159,7 +159,7 @@ iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in all t
 locales. Use `scenes:` explicitly when another composition is needed.
 The lane stages source copies and publishes
 `<locale>/<device>/<feature>.png` only after every selected output succeeds. Old Pro captures
-must be recaptured on iPhone 17 Pro Max before framing; they are rejected by size.
+must be recaptured on iPhone 18 Pro Max before framing; they are rejected by size.
 
 - iPhone uses frameit's iPhone 17 Pro Max Silver frame at native screenshot size.
 - iPad uses Apple's official iPad Pro (M5) 13-inch Space Black PNG as a custom

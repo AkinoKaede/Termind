@@ -39,7 +39,7 @@ class ScreenshotsTests < Minitest::Test
     capture = runner(:ios, { devices: "ipad", locales: "zh-Hant", scenes: "ssh,sftp" },
                      { "TERMIND_SCREENSHOT_DEVICES" => "iphone", "TERMIND_SCREENSHOT_LOCALES" => "en" })
     capture.define_singleton_method(:command) do |*args|
-      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
+      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-1" => [
         { "name" => "iPad Pro 13-inch (M5)", "udid" => "ipad-id",
           "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB" }
       ] })
@@ -52,9 +52,9 @@ class ScreenshotsTests < Minitest::Test
   def test_a_renamed_pro_cannot_be_used_as_the_pro_max_capture_device
     capture = runner(:ios, devices: "iphone")
     capture.define_singleton_method(:command) do |*args|
-      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
-        { "name" => "iPhone 17 Pro Max", "udid" => "wrong-model",
-          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro" }
+      JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-1" => [
+        { "name" => "iPhone 18 Pro Max", "udid" => "wrong-model",
+          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro" }
       ] })
     end
     assert_raises(RuntimeError) { capture.find_devices }

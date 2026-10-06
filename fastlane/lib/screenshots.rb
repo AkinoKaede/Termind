@@ -27,7 +27,7 @@ class Screenshots
   }.freeze
   MOBILE_SCENES = %w[vault sftp ssh metrics assistant].freeze
   DEVICES = {
-    "iphone" => { name: "iPhone 17 Pro Max", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+    "iphone" => { name: "iPhone 18 Pro Max", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max",
                   dimensions: [1320, 2868] },
     "ipad" => { name: "iPad Pro 13-inch (M5)", type: "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
                 dimensions: [2752, 2064] }
@@ -47,7 +47,7 @@ class Screenshots
     @devices = platform == :mac ? ["mac"] : selection(
       options[:devices] || environment["TERMIND_SCREENSHOT_DEVICES"], DEVICES.keys, DEVICES.keys, "devices"
     )
-    @runtime = options[:runtime] || environment["TERMIND_SCREENSHOT_RUNTIME"] || "com.apple.CoreSimulator.SimRuntime.iOS-27-0"
+    @runtime = options[:runtime] || environment["TERMIND_SCREENSHOT_RUNTIME"] || "com.apple.CoreSimulator.SimRuntime.iOS-27-1"
     if platform == :ios && !@runtime.match?(/\Acom\.apple\.CoreSimulator\.SimRuntime\.iOS-27-\d+(?:-\d+)?\z/)
       raise ArgumentError, "Screenshots require an iOS/iPadOS 27 runtime: #{@runtime}"
     end
