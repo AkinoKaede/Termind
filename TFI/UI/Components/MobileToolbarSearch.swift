@@ -50,6 +50,7 @@ private final class MobileToolbarSearchController: UIViewController, UISearchCon
     private var presentation: Binding<Bool>?
     private var onSubmit: () -> Void = {}
     private var isEnabled = false
+    private var isVisible = false
     private var isDismissing = false
     private weak var owner: UIViewController?
     private var previousDefinesPresentationContext = false
@@ -79,9 +80,18 @@ private final class MobileToolbarSearchController: UIViewController, UISearchCon
         DispatchQueue.main.async { [weak self] in self?.synchronize() }
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        isVisible = true
         synchronize()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Tab and navigation stacks retain their children. Release the native
+        // presentation before another page takes over the shared toolbar.
+        isVisible = false
+        removeSearch()
     }
 
     override func didMove(toParent parent: UIViewController?) {
@@ -99,7 +109,7 @@ private final class MobileToolbarSearchController: UIViewController, UISearchCon
     }
 
     private func synchronize() {
-        guard isEnabled else {
+        guard isEnabled, isVisible else {
             removeSearch()
             return
         }
@@ -161,7 +171,7 @@ private final class MobileToolbarSearchController: UIViewController, UISearchCon
     }
 
     func willPresentSearchController(_ searchController: UISearchController) {
-        guard isEnabled, !isDismissing else {
+        guard isEnabled, isVisible, !isDismissing else {
             searchController.isActive = false
             return
         }

@@ -9,6 +9,60 @@ import UIKit
 @Suite(.serialized, .requiresKeyWindow)
 @MainActor
 struct MobileTerminalSearchIntegrationTests {
+    @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp])
+    func leavingWorkspaceSearchRestoresVaultNavigationAcrossResizing(kind: ConnectionHistoryEntry.Kind) async throws {
+        let fixture = try SearchFixture(kind: kind, fullRoot: true)
+        defer { fixture.close() }
+        let scene = try #require(fixture.scene)
+        try await fixture.settle()
+        let tabs = try #require(fixture.tabController)
+        let workspaceSearch = try #require(fixture.searchController)
+
+        for _ in 0..<2 {
+            workspaceSearch.isActive = true
+            try await fixture.settle()
+            workspaceSearch.searchBar.becomeFirstResponder()
+            try await fixture.enter("deploy")
+            #expect(workspaceSearch.isActive)
+            scene.selectedDestination = .vault
+            try await fixture.settle()
+            #expect(!workspaceSearch.isActive)
+            #expect(!fixture.workspace.find.isPresented)
+            #expect(!workspaceSearch.searchBar.searchTextField.isFirstResponder)
+            // Retained pages still receive model updates while another tab is visible.
+            if kind == .sftp {
+                fixture.workspace.sftpChannel.query = "deploy updated"
+            } else {
+                fixture.workspace.find.updateQuery("deploy updated")
+            }
+            try await fixture.settle()
+            #expect(!workspaceSearch.isActive)
+
+            let vaultSearch = try #require(fixture.searchController)
+            #expect(vaultSearch !== workspaceSearch)
+            vaultSearch.isActive = true
+            try await fixture.settle()
+            // Vault uses SwiftUI's search delegate, so drive UIKit's dismissal
+            // rather than calling the workspace adapter's cancel callback.
+            vaultSearch.isActive = false
+            try await fixture.settle()
+            #expect(!vaultSearch.isActive)
+            for (width, height): (CGFloat, CGFloat) in [(900, 600), (600, 900)] {
+                fixture.resize(width: width, height: height)
+                try await fixture.settle()
+                #expect(!tabs.isTabBarHidden)
+                #expect(fixture.searchController === vaultSearch)
+                #expect(!vaultSearch.isActive)
+            }
+
+            scene.selectedDestination = .workspaces
+            try await fixture.settle()
+            #expect(fixture.searchController === workspaceSearch)
+            #expect(!workspaceSearch.isActive)
+            #expect(workspaceSearch.searchBar.text == "deploy updated")
+        }
+    }
+
     enum Dismissal: CaseIterable {
         case native
         case terminalThenNative
@@ -171,17 +225,28 @@ private final class SearchFixture {
     let window: UIWindow
     let previous: UIWindow?
     let host: UIViewController
+    let scene: MobileSceneModel?
 
-    init(kind: ConnectionHistoryEntry.Kind, fullWorkspace: Bool = false) throws {
+    init(kind: ConnectionHistoryEntry.Kind, fullWorkspace: Bool = false, fullRoot: Bool = false) throws {
         app = try MobileAppModel(inMemory: true)
         workspace = MobileWorkspace(
             descriptor: .init(hostID: UUID(), title: "Search", kind: kind), hosts: app.library)
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         previous = scene.keyWindow
         window = UIWindow(windowScene: scene)
-        if fullWorkspace {
+        if fullRoot {
+            let model = MobileSceneModel(app: app, sessionID: "search-navigation-test")
+            model.workspaceSession.acceptRecovery(
+                .init(workspaces: [workspace], descriptors: [workspace.descriptor], order: [workspace.id]))
+            model.selectedDestination = .workspaces
+            model.workspaceID = workspace.id
+            self.scene = model
+            host = UIHostingController(rootView: MobileRootView(app: app, scene: model))
+        } else if fullWorkspace {
+            self.scene = nil
             host = UIHostingController(rootView: WorkspaceSearchFixtureContent(app: app, workspace: workspace))
         } else {
+            self.scene = nil
             host = UIHostingController(rootView: SearchFixtureContent(workspace: workspace))
         }
         window.rootViewController = host
@@ -189,6 +254,14 @@ private final class SearchFixture {
     }
 
     var searchController: UISearchController? { searchController(in: host) }
+
+    var tabController: UITabBarController? {
+        func find(in controller: UIViewController) -> UITabBarController? {
+            if let tabs = controller as? UITabBarController { return tabs }
+            return controller.children.lazy.compactMap { find(in: $0) }.first
+        }
+        return find(in: host)
+    }
 
     func enter(_ text: String) async throws {
         let field = try #require(searchController?.searchBar.searchTextField)
@@ -205,6 +278,14 @@ private final class SearchFixture {
 
     func settle() async throws { try await Task.sleep(for: .milliseconds(700)) }
 
+    func resize(width: CGFloat, height: CGFloat) {
+        let frame = CGRect(x: 0, y: 0, width: width, height: height)
+        window.frame = frame
+        host.view.frame = frame
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+    }
+
     func close() {
         window.endEditing(true)
         window.isHidden = true
@@ -214,6 +295,12 @@ private final class SearchFixture {
     }
 
     private func searchController(in controller: UIViewController) -> UISearchController? {
+        if let tabs = controller as? UITabBarController, let selected = tabs.selectedViewController {
+            return searchController(in: selected)
+        }
+        if let navigation = controller as? UINavigationController, let top = navigation.topViewController {
+            return searchController(in: top)
+        }
         if let search = controller.navigationItem.searchController { return search }
         for child in controller.children {
             if let search = searchController(in: child) { return search }
