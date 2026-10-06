@@ -15,9 +15,6 @@ extension TerminalPreferences {
         darkCustomConfiguration = defaults.string(forKey: SettingsKey.terminalCustomConfigurationDark) ?? ""
         lightCustomConfiguration = defaults.string(forKey: SettingsKey.terminalCustomConfigurationLight) ?? ""
         shellIntegration = defaults.object(forKey: SettingsKey.shellIntegration) as? Bool ?? shellIntegration
-        remoteWindowTitleInMenuBar =
-            defaults.object(forKey: SettingsKey.remoteWindowTitleInMenuBar) as? Bool
-            ?? remoteWindowTitleInMenuBar
         copyOnSelect = defaults.bool(forKey: SettingsKey.terminalCopyOnSelect)
         pasteOnRightClick = defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick)
     }
@@ -30,7 +27,6 @@ extension TerminalPreferences {
         defaults.set(darkCustomConfiguration, forKey: SettingsKey.terminalCustomConfigurationDark)
         defaults.set(lightCustomConfiguration, forKey: SettingsKey.terminalCustomConfigurationLight)
         defaults.set(shellIntegration, forKey: SettingsKey.shellIntegration)
-        defaults.set(remoteWindowTitleInMenuBar, forKey: SettingsKey.remoteWindowTitleInMenuBar)
         defaults.set(copyOnSelect, forKey: SettingsKey.terminalCopyOnSelect)
         defaults.set(pasteOnRightClick, forKey: SettingsKey.terminalPasteOnRightClick)
     }

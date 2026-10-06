@@ -159,7 +159,6 @@ struct SettingsSyncTests {
         preferences.darkCustomConfiguration = "background = #112233\nfont-family = Menlo"
         preferences.lightCustomConfiguration = "background = #ffffff"
         preferences.shellIntegration = false
-        preferences.remoteWindowTitleInMenuBar = false
         preferences.copyOnSelect = true
         preferences.pasteOnRightClick = true
         try source.saveTerminal(preferences)

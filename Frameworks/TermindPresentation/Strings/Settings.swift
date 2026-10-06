@@ -673,10 +673,6 @@ extension AppStrings {
             "Show Secret"
         }
 
-        public static var showTerminalTitleInMenuBar: LocalizedStringResource {
-            "Show Terminal Title in Menu Bar"
-        }
-
         public static var skill: LocalizedStringResource {
             "Skill"
         }

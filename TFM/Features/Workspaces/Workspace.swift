@@ -9,7 +9,6 @@ import struct TermindDomain.Host
 protocol WorkspaceLifecycleRouting: AnyObject {
     func workspace(_ workspace: Workspace, closePaneAfterSSHSessionExit paneID: Pane.ID)
     func workspaceContextDidChange(_ workspace: Workspace)
-    func workspaceRemoteWindowTitleDidChange(_ workspace: Workspace)
 }
 
 /// One workspace in the workspace bar: a tree of panes.
@@ -40,7 +39,6 @@ final class Workspace: Identifiable {
             guard focusedPaneID != oldValue else { return }
             cancelCommandGeneration()
             lifecycleRouter?.workspaceContextDidChange(self)
-            lifecycleRouter?.workspaceRemoteWindowTitleDidChange(self)
         }
     }
     /// `nil` means the title tracks the focused pane.
@@ -427,11 +425,6 @@ extension Workspace: SSHSessionInputRouting {
     func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel) {
         guard focusedPane.sshSession === sshSession else { return }
         lifecycleRouter?.workspaceContextDidChange(self)
-    }
-
-    func sshSessionDidChangeRemoteWindowTitle(_ sshSession: SSHSessionModel) {
-        guard focusedPane.sshSession === sshSession else { return }
-        lifecycleRouter?.workspaceRemoteWindowTitleDidChange(self)
     }
 
     /// Shell EOF is a successful completion, so it closes the shell's pane.

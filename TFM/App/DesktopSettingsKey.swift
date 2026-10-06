@@ -35,7 +35,6 @@ nonisolated enum DesktopSettingsKey {
     static var isShellIntegrationEnabled: Bool {
         UserDefaults.standard.object(forKey: SettingsKey.shellIntegration) as? Bool ?? true
     }
-    static let defaultRemoteWindowTitleInMenuBarEnabled = true
     static let onboardingQuickOpenCompleted = "onboarding.quickOpen.completed"
     static let onboardingStatusBarPathCompleted = "onboarding.statusBarPath.completed"
     static let onboardingCommandGeneratorCompleted = "onboarding.commandGenerator.completed"

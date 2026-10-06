@@ -33,7 +33,6 @@ public nonisolated enum SettingsKey {
     public static let iCloudSyncEnabled = "icloud.sync.enabled"
     public static let metricsSyncEnabled = "metrics.sync.enabled"
     public static let metricsSyncEnvironment = "metrics.sync.environment"
-    public static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
     public static let settingsSyncEnabled = "settings.sync.enabled"
     public static let settingsSyncEnvironment = "settings.sync.environment"
     public static let shellIntegration = "terminal.shellIntegration"

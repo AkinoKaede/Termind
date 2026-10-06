@@ -658,10 +658,6 @@ private struct TerminalSettings: View {
                         .foregroundStyle(.secondary)
                     }
                 }
-
-                Toggle(
-                    AppStrings.Settings.showTerminalTitleInMenuBar.swiftUIKey,
-                    isOn: binding(\.remoteWindowTitleInMenuBar))
             }
         }
         .onAppear {

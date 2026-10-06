@@ -20,7 +20,6 @@ protocol SSHSessionInputRouting: AnyObject {
         didChangeWorkingDirectory workingDirectory: String?
     )
     func sshSessionDidChangeRemoteSystemInfo(_ sshSession: SSHSessionModel)
-    func sshSessionDidChangeRemoteWindowTitle(_ sshSession: SSHSessionModel)
     func closeSSHSessionPane(afterExit sshSession: SSHSessionModel)
 }
 
@@ -41,9 +40,6 @@ final class SSHSessionModel: Identifiable {
         didSet {
             if !status.isLive, status != .connecting { commandMonitor.endConnection() }
             statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID)
-            if status.isLive != oldValue.isLive {
-                inputRouter?.sshSessionDidChangeRemoteWindowTitle(self)
-            }
         }
     }
     var workingDirectory: String? {
@@ -89,20 +85,6 @@ final class SSHSessionModel: Identifiable {
     /// Whether the remote shell accepted Termind's authenticated OSC integration.
     var shellIntegrationAvailable: Bool = false
     private(set) var integratedShell: String?
-    /// The most recent OSC 0/2 title reported by this SSH connection.
-    ///
-    /// Ghostty owns parsing and publishes the value through `TerminalViewState`.
-    /// Keep a session-scoped copy here so reconnecting can discard a title from
-    /// the old remote shell even though the long-lived terminal surface survives.
-    private(set) var remoteWindowTitle: String? {
-        didSet {
-            guard remoteWindowTitle != oldValue else { return }
-            inputRouter?.sshSessionDidChangeRemoteWindowTitle(self)
-        }
-    }
-    var menuBarWindowTitle: String? {
-        status.isLive ? remoteWindowTitle : nil
-    }
     private(set) var remoteSystemInfo: RemoteSystemInfo? {
         didSet {
             guard remoteSystemInfo != oldValue else { return }
@@ -150,7 +132,6 @@ final class SSHSessionModel: Identifiable {
     @ObservationIgnored lazy var terminalUpload = TerminalUploadModel(session: self)
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
-    private var remoteWindowTitleObservation: AnyCancellable?
     /// The live terminal's frozen route and credential IDs. Password, Key, and
     /// passphrase material are resolved only for each attempted transfer
     /// connection and never retained here. Cleared with the SSH connection.
@@ -267,7 +248,6 @@ final class SSHSessionModel: Identifiable {
         relay.owner = self
         commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         observeWorkingDirectory(from: surface.state, through: relay)
-        observeRemoteWindowTitle(from: surface.state, through: relay)
     }
 
     var agentTemporaryTarget: AgentHostTarget? {
@@ -375,7 +355,6 @@ final class SSHSessionModel: Identifiable {
     private func startConnection(using store: any RemoteSessionHostStore) {
         commandMonitor.endConnection()
         resetCommandGeneratorShellState()
-        remoteWindowTitle = nil
         homeResolution = .unavailable
         let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         workingDirectory = nil
@@ -778,7 +757,6 @@ final class SSHSessionModel: Identifiable {
         commandMonitor.endConnection()
         startsOnMount = false
         resetCommandGeneratorShellState()
-        remoteWindowTitle = nil
         workingDirectory = nil
         homeResolution = .unavailable
         transferSnapshot = nil
@@ -803,7 +781,6 @@ final class SSHSessionModel: Identifiable {
 
     func stopReconnecting() {
         guard let reconnectState else { return }
-        remoteWindowTitle = nil
         connection.stopRecovery()
         connectionAttemptID = nil
         connectionTask?.cancel()
@@ -915,7 +892,6 @@ final class SSHSessionModel: Identifiable {
     /// Workspace instead; transport failures remain visible for reconnection.
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
         resetCommandGeneratorShellState()
-        remoteWindowTitle = nil
         workingDirectory = nil
         homeResolution = .unavailable
         transferSnapshot = nil
@@ -956,7 +932,6 @@ final class SSHSessionModel: Identifiable {
 
     private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
-        remoteWindowTitle = nil
         connectionAttemptID = nil
         connectionTask?.cancel()
         connectionTask = nil
@@ -1132,21 +1107,6 @@ final class SSHSessionModel: Identifiable {
         workingDirectoryObservation = state.$workingDirectory.sink { [weak relay] path in
             Task { @MainActor in
                 relay?.owner?.workingDirectory = path?.isEmpty == false ? path : nil
-            }
-        }
-    }
-
-    /// Mirrors Ghostty's parsed OSC 0/2 title into the SSH connection's
-    /// lifecycle. `TerminalViewState.title` deliberately outlives a transport;
-    /// the copy does not, preventing a reconnected shell from inheriting the
-    /// previous shell or foreground program's menu-bar title.
-    private func observeRemoteWindowTitle(
-        from state: TerminalViewState,
-        through relay: SSHSessionRelay
-    ) {
-        remoteWindowTitleObservation = state.$title.sink { [weak relay] title in
-            MainActor.assumeIsolated {
-                relay?.owner?.remoteWindowTitle = RemoteWindowTitle.sanitized(title)
             }
         }
     }
