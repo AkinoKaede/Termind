@@ -250,8 +250,8 @@ extension AppStrings {
             "Workspace Templates"
         }
 
-        public static var yourTerminalWithJudgment: LocalizedStringResource {
-            "Your terminal, with judgment."
+        public static var commandWithEaseStayInControl: LocalizedStringResource {
+            "Command with ease, stay in control."
         }
 
         public static var cancelOperation: LocalizedStringResource {

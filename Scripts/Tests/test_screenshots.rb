@@ -49,18 +49,18 @@ class ScreenshotsTests < Minitest::Test
     assert_equal ["zh-Hant"], capture.plan[:locales]
   end
 
-  def test_a_renamed_pro_max_cannot_be_used_as_the_pro_capture_device
+  def test_a_renamed_pro_cannot_be_used_as_the_pro_max_capture_device
     capture = runner(:ios, devices: "iphone")
     capture.define_singleton_method(:command) do |*args|
       JSON.generate("devices" => { "com.apple.CoreSimulator.SimRuntime.iOS-27-0" => [
-        { "name" => "iPhone 17 Pro", "udid" => "wrong-model",
-          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max" }
+        { "name" => "iPhone 17 Pro Max", "udid" => "wrong-model",
+          "deviceTypeIdentifier" => "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro" }
       ] })
     end
     assert_raises(RuntimeError) { capture.find_devices }
-    capture.define_singleton_method(:dimensions) { |_| [1320, 2868] }
+    capture.define_singleton_method(:dimensions) { |_| [1206, 2622] }
     assert_raises(RuntimeError) do
-      capture.validate_dimensions("pro-max.png", Screenshots::DEVICES.fetch("iphone").fetch(:dimensions))
+      capture.validate_dimensions("pro.png", Screenshots::DEVICES.fetch("iphone").fetch(:dimensions))
     end
   end
 
@@ -191,7 +191,7 @@ class ScreenshotsTests < Minitest::Test
       end
       ""
     end
-    capture.define_singleton_method(:dimensions) { |_| [1206, 2622] }
+    capture.define_singleton_method(:dimensions) { |_| [1320, 2868] }
     containers = [old_container, new_container]
     status = Object.new
     status.define_singleton_method(:success?) { true }
@@ -279,23 +279,26 @@ class ScreenshotFramesTests < Minitest::Test
   def test_explicit_frame_paths_work_without_submodule_and_keep_source_bytes
     FileUtils.remove_entry(File.join(@root, "com.akinokaede.termind"))
     source = File.join(@root, "review-input/en/iphone/vault.png")
-    png(source, 1206, 2622)
+    png(source, 1320, 2868)
     original_hash = Digest::SHA256.file(source).hexdigest
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en",
                                     input: "review-input", output: "review-output" }, root: @root)
     downloader = Object.new
     downloader.define_singleton_method(:frames_exist?) { true }
     Frameit::FrameDownloader.stub(:new, downloader) do
-      runner.run { |options| png(File.join(options.fetch(:path), "iphone_framed.png"), 1350, 2760) }
+      runner.run do |options|
+        assert_equal "iPhone 17 Pro Max", options.fetch(:force_device_type)
+        png(File.join(options.fetch(:path), "iphone_framed.png"), 1458, 3006)
+      end
     end
     assert File.exist?(File.join(@root, "review-output/en/iphone/vault.png"))
     assert_equal original_hash, Digest::SHA256.file(source).hexdigest
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind"))
   end
 
-  def test_rejects_old_pro_max_sources_before_calling_frameit
+  def test_rejects_pro_sources_before_calling_frameit
     source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone/vault.png")
-    png(source, 1320, 2868)
+    png(source, 1206, 2622)
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en" }, root: @root)
     called = false
     assert_raises(RuntimeError) { runner.run { called = true } }
@@ -305,7 +308,7 @@ class ScreenshotFramesTests < Minitest::Test
 
   def test_missing_frameit_output_keeps_all_existing_outputs_and_sources
     %w[en zh-hans].each do |locale|
-      png(File.join(@root, "com.akinokaede.termind/assets/captures/#{locale}/iphone/vault.png"), 1206, 2622)
+      png(File.join(@root, "com.akinokaede.termind/assets/captures/#{locale}/iphone/vault.png"), 1320, 2868)
     end
     destination = File.join(@root, "com.akinokaede.termind/assets/device_frames/en/iphone/vault.png")
     FileUtils.mkdir_p(File.dirname(destination))

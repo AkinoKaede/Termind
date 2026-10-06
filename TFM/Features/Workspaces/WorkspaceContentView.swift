@@ -834,7 +834,7 @@ struct WelcomeView: View {
     private var welcomeGreetings: [String] {
         [
             String(localized: AppStrings.Workspace.helloIMTermind),
-            String(localized: AppStrings.Workspace.yourTerminalWithJudgment),
+            String(localized: AppStrings.Workspace.commandWithEaseStayInControl),
             String(localized: AppStrings.Workspace.sshAndSftpWithAnAssistantAtHand),
         ]
     }

@@ -27,8 +27,8 @@ class Screenshots
   }.freeze
   MOBILE_SCENES = %w[vault sftp ssh metrics assistant].freeze
   DEVICES = {
-    "iphone" => { name: "iPhone 17 Pro", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
-                  dimensions: [1206, 2622] },
+    "iphone" => { name: "iPhone 17 Pro Max", type: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+                  dimensions: [1320, 2868] },
     "ipad" => { name: "iPad Pro 13-inch (M5)", type: "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
                 dimensions: [2752, 2064] }
   }.freeze

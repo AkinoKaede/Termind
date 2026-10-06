@@ -6349,6 +6349,23 @@
         }
       }
     },
+    "Command with ease, stay in control." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随心发令，从容掌控。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隨心發令，從容掌控。"
+          }
+        }
+      }
+    },
     "Commands" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34145,23 +34162,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
-          }
-        }
-      }
-    },
-    "Your terminal, with judgment." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的终端，自有判断。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的終端，自有判斷。"
           }
         }
       }

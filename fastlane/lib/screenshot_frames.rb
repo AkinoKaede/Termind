@@ -80,7 +80,7 @@ class ScreenshotFrames
         configuration = framefile.merge("default" => {})
         force_device = case job[:device]
                        when "iphone"
-                         "iPhone 17 Pro"
+                         "iPhone 17 Pro Max"
                        when "ipad"
                          configuration["default"] = { "offset" => { "offset" => "+118+124", "width" => 2064 } }
                          "iPad Pro 13-inch (M5)"

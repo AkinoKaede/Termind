@@ -100,18 +100,18 @@ It checks both the simulator model identifier and the raw pixel dimensions:
 
 | Selector | Capture device | Native capture size |
 | --- | --- | --- |
-| `iphone` | iPhone 17 Pro (6.3-inch), portrait | 1206×2622 |
+| `iphone` | iPhone 17 Pro Max (6.9-inch), portrait | 1320×2868 |
 | `ipad` | iPad Pro 13-inch (M5), landscape | 2752×2064 |
 
 Create the exact simulators once if they are missing:
 
 ```sh
-xcrun simctl create "iPhone 17 Pro" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro com.apple.CoreSimulator.SimRuntime.iOS-27-0
+xcrun simctl create "iPhone 17 Pro Max" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max com.apple.CoreSimulator.SimRuntime.iOS-27-0
 xcrun simctl create "iPad Pro 13-inch (M5)" com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB com.apple.CoreSimulator.SimRuntime.iOS-27-0
 ```
 
-The lane does not resize iPhone captures or substitute a Pro Max. Existing
-`com.akinokaede.termind/assets/app_store/*/iphone-6.5` artwork uses a separate 1284×2778 composition canvas;
+The lane does not resize iPhone captures or substitute another device. Existing
+`com.akinokaede.termind/assets/app_store/*/iphone-6.9` artwork uses a separate 1320×2868 composition canvas;
 that folder describes the final artwork, not the screenshot device. Recapturing
 does not regenerate those downstream assets automatically.
 
@@ -158,10 +158,10 @@ selected jobs without changing files. Defaults include only website-used scenes:
 iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in all three
 locales. Use `scenes:` explicitly when another composition is needed.
 The lane stages source copies and publishes
-`<locale>/<device>/<feature>.png` only after every selected output succeeds. Old Pro Max captures
-must be recaptured on iPhone 17 Pro before framing; they are rejected by size.
+`<locale>/<device>/<feature>.png` only after every selected output succeeds. Old Pro captures
+must be recaptured on iPhone 17 Pro Max before framing; they are rejected by size.
 
-- iPhone uses frameit's iPhone 17 Pro Silver frame at native screenshot size.
+- iPhone uses frameit's iPhone 17 Pro Max Silver frame at native screenshot size.
 - iPad uses Apple's official iPad Pro (M5) 13-inch Space Black PNG as a custom
   frameit device. Its opening matches the native capture exactly, with no resize.
   Import the PNG once as described in the local frame templates section below, or pass
