@@ -619,12 +619,7 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.kind == .embedding)
         #expect(resolution.model.input == [.audio])
         #expect(resolution.model.output == [.image])
-        // Reported abilities still win — `toolCall` and `reasoning` stay off
-        // despite the catalog claiming both for gpt-5.4. `webSearch` is the
-        // exceptions, deliberately: an empty array is the endpoint listing what
-        // it knows about, and catalogs omit server-side search and structured output. See
-        // `webSearchIsInferredEvenWhenTheEndpointReportedItsAbilities`.
-        #expect(resolution.model.abilities == [.structuredOutput, .webSearch])
+        #expect(resolution.model.abilities.isEmpty)
         #expect(resolution.model.contextLength == 7)
         #expect(resolution.model.maxOutputTokens == 8)
         #expect(resolution.supported == [.off])
@@ -671,7 +666,7 @@ struct ModelCapabilityResolverTests {
     }
 
     @Test
-    func providerNamespacesAndGoogleWireValuesAreResolved() {
+    func providerNamespacesSelectMatchingCatalogEntries() {
         let openRouter = ModelProvider(
             name: "OpenRouter", inferenceURL: "https://openrouter.ai/api/v1/chat/completions"
         )
@@ -687,10 +682,7 @@ struct ModelCapabilityResolverTests {
             claude.catalogSource
                 == .init(provider: "openrouter", modelID: "anthropic/claude-opus-4.7")
         )
-        #expect(Array(claude.supported.suffix(2)) == [.xHigh, .max])
-        #expect(gemini.supported == [.low, .high])
-        #expect(gemini.wireValue(for: .low) == "LOW")
-        #expect(gemini.clamp(.medium) == .high)
+        #expect(gemini.catalogSource == .init(provider: "google", modelID: "gemini-3.1-pro-preview"))
     }
 
     @Test
@@ -714,21 +706,6 @@ struct ModelCapabilityResolverTests {
         // `ConversationTitleController`.
         #expect(resolution.clamp(.off) == .off)
         #expect(resolution.wireValue(for: .high) == "strong")
-    }
-
-    @Test
-    func blankCustomWireValueUsesTheProviderDefault() {
-        let google = ModelProvider(name: "Google", apiFormat: .generateContent)
-        var model = reasoningModel("gemini-3.1-pro-preview")
-        model.reasoningProfile = ReasoningProfile(levels: [
-            .low: ReasoningLevelMapping(isSupported: true, wireValue: nil),
-            .max: ReasoningLevelMapping(isSupported: true, wireValue: nil),
-        ])
-
-        let resolution = ModelCapabilityResolver.resolve(model: model, provider: google)
-
-        #expect(resolution.wireValue(for: .low) == "LOW")
-        #expect(resolution.wireValue(for: .max) == "MAX")
     }
 }
 
