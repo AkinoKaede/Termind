@@ -85,6 +85,12 @@ import Testing
                 window.makeMain()
                 window.makeKey()
                 if NSApp.isActive, window.isKeyWindow {
+                    // Deliver a move inside the window before leaving it. Warping
+                    // straight outside can leave SwiftUI row hover state behind
+                    // when the move is delivered to another window or the menu bar.
+                    let contentFrame = window.convertToScreen(window.contentLayoutRect)
+                    movePointer(to: NSPoint(x: contentFrame.midX, y: contentFrame.maxY - 8))
+                    try await Task.sleep(for: .milliseconds(200))
                     movePointer(to: NSPoint(x: window.frame.midX, y: window.frame.maxY + 16))
                     // Activation can be transient while test hosts launch and exit.
                     // Require the focused appearance to stay active through rendering.

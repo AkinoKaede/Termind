@@ -288,7 +288,7 @@ class ScreenshotFramesTests < Minitest::Test
     File.write(File.join(@root, "com.akinokaede.termind/.git"), "gitdir: fixture")
     FileUtils.mkdir_p(File.join(@root, "fastlane"))
     FileUtils.cp(File.expand_path("../../fastlane/Framefile.json", __dir__), File.join(@root, "fastlane"))
-    png(File.join(@root, ".build/frameit-assets/iphone-18-pro-max.png"), 1470, 3000)
+    frame_template(File.join(@root, ".build/frameit-assets/iphone-18-pro-max.png"), 1470, 3000)
     @templates = File.join(@root, "templates")
     FileUtils.mkdir_p(@templates)
   end
@@ -305,6 +305,66 @@ class ScreenshotFramesTests < Minitest::Test
     data += chunk.call("IDAT", Zlib.deflate(("\0" * (width * 3 + 1)) * height)) + chunk.call("IEND", "")
     FileUtils.mkdir_p(File.dirname(path))
     File.binwrite(path, data)
+  end
+
+  def frame_template(path, width, height)
+    FileUtils.mkdir_p(File.dirname(path))
+    ScreenshotFrames.new.command("magick", "-size", "#{width}x#{height}", "xc:none",
+                                 "-fill", "none", "-stroke", "black", "-strokewidth", "40",
+                                 "-draw", "roundrectangle 40,40,#{width - 41},#{height - 41},100,100", path)
+  end
+
+  def test_screen_mask_removes_exterior_corners_without_fading_content
+    runner = ScreenshotFrames.new
+    template = File.join(@root, "rounded-frame.png")
+    runner.command("magick", "-size", "120x180", "xc:none", "-fill", "none", "-stroke", "black",
+                   "-strokewidth", "8", "-draw", "roundrectangle 8,8,111,171,25,25",
+                   "-fill", "black", "-stroke", "none", "-draw", "rectangle 50,8,70,28", template)
+    [0, -90, 90].each do |rotation|
+      landscape = !rotation.zero?
+      source = File.join(@root, "screen.png")
+      runner.command("magick", "-size", landscape ? "160x100" : "100x160", "xc:#327abe", source)
+      runner.mask_screen(source, template, "+10+10", rotation: rotation)
+      assert_equal(landscape ? [160, 100] : [100, 160], FastImage.size(source))
+      center = landscape ? "80,50" : "50,80"
+      assert_equal "1", runner.command("magick", source, "-format", "%[fx:p{#{center}}.a]", "info:").strip
+      assert_equal "0", runner.command("magick", source, "-format", "%[fx:p{0,0}.a]", "info:").strip
+      assert_equal "50,122,190", runner.command("magick", source, "-format",
+                                               "%[fx:round(255*p{#{center}}.r)],%[fx:round(255*p{#{center}}.g)],%[fx:round(255*p{#{center}}.b)]", "info:").strip
+      notch = { 0 => "50,5", -90 => "5,50", 90 => "155,50" }.fetch(rotation)
+      assert_equal "0", runner.command("magick", source, "-format", "%[fx:p{#{notch}}.a]", "info:").strip
+    end
+  end
+
+  def test_screen_mask_rejects_an_open_bezel
+    runner = ScreenshotFrames.new
+    template = File.join(@root, "open-frame.png")
+    source = File.join(@root, "screen.png")
+    runner.command("magick", "-size", "120x180", "xc:none", template)
+    png(source, 100, 160)
+    original = Digest::SHA256.file(source).hexdigest
+    assert_raises(RuntimeError) { runner.mask_screen(source, template, "+10+10") }
+    assert_equal original, Digest::SHA256.file(source).hexdigest
+  end
+
+  def test_mac_composition_clips_corners_and_preserves_source_and_content
+    template = File.join(@root, "mac-frame.png")
+    runner = ScreenshotFrames.new({ mac_frame: template }, root: @root)
+    runner.command("magick", "-size", "4260x2620", "xc:none", "-fill", "none",
+                   "-stroke", "black", "-strokewidth", "20",
+                   "-draw", "roundrectangle 392,73,3867,2326,100,100", template)
+    source = File.join(@root, "capture.png")
+    output = File.join(@root, "composed.png")
+    runner.command("magick", "-size", "3024x1964", "xc:#327abe", source)
+    original = Digest::SHA256.file(source).hexdigest
+    runner.compose_mac(source, output)
+    assert_equal [4260, 2620], FastImage.size(output)
+    assert_equal original, Digest::SHA256.file(source).hexdigest
+    # The old rectangular placement leaked here, outside the curved bezel.
+    assert_equal "0", runner.command("magick", output, "-format", "%[fx:p{402,83}.a]", "info:").strip
+    assert_equal "1", runner.command("magick", output, "-format", "%[fx:p{2130,1200}.a]", "info:").strip
+    assert_equal "50,122,190", runner.command("magick", output, "-format",
+                                             "%[fx:round(255*p{2130,1200}.r)],%[fx:round(255*p{2130,1200}.g)],%[fx:round(255*p{2130,1200}.b)]", "info:").strip
   end
 
   def test_default_frames_only_include_website_used_scenes
@@ -372,7 +432,7 @@ class ScreenshotFramesTests < Minitest::Test
       source = File.join(@root, "input/en/#{device}/vault.png")
       template = File.join(@root, "#{device}.png")
       png(source, *native)
-      png(template, *frame)
+      frame_template(template, *frame)
       source_hash = Digest::SHA256.file(source).hexdigest
       options = { devices: device, scenes: "vault", locales: "en", input: "input", output: "output",
                   "iphone_duo_#{display}_frame".to_sym => template }
@@ -382,7 +442,7 @@ class ScreenshotFramesTests < Minitest::Test
             assert_equal name, configuration.fetch(:force_device_type)
             framefile = JSON.parse(File.read(File.join(configuration.fetch(:path), "Framefile.json")))
             assert_equal({ "offset" => offset, "width" => native.min }, framefile.fetch("default").fetch("offset"))
-            assert_equal :landscape_left, configuration.fetch(:force_orientation_block).call(nil) if display == "inner"
+            assert_equal :landscape_right, configuration.fetch(:force_orientation_block).call(nil) if display == "inner"
             png(File.join(configuration.fetch(:path), "#{device}_framed.png"), *(display == "inner" ? frame.reverse : frame))
           end
         end

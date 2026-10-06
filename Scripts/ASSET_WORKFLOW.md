@@ -164,14 +164,21 @@ inherit a collapsed bar or change the user's saved preference.
 
 Mac Vault shows two demo workspaces with matching connected host indicators;
 other hosts are disconnected and no SFTP transfers are seeded. Workspace selects
-only `nginx.conf` in SFTP. The Mac capture test moves the pointer out of the
-content and temporarily disables mouse events to prevent hover highlights.
+only `nginx.conf` in SFTP. Before capture, the Mac test delivers a pointer move
+inside the window to clear any stale SwiftUI row hover, then moves the pointer
+out of the content and temporarily disables mouse events. Moving directly
+outside can leave a hovered row highlighted in the captured image.
 
 In Figma, keep Mac artwork 02–06 as native windows in all three languages.
-Artwork 01 retains the three-device composition. Replace screenshot layers while
+Mac and iPad artwork 01 retain the three-device composition. iPhone artwork 01
+uses two devices with aligned bottom edges: iPhone Assistant fully visible in
+the right foreground (width 820), with Mac Workspace enlarged behind it (width
+1800). The Mac layer deliberately extends left of the clipping Product imagery
+frame; only part of the laptop is shown. No iPad appears in this composition.
+Keep the existing export filenames. Replace screenshot layers while
 preserving their geometry, text, shared shadows, and stacking order, then export
 the affected boards as opaque RGB JPGs with an sRGB ICC profile. Refresh the mobile
-layers in all three existing platform Overview sets when iPhone or iPad sources change.
+layers wherever they appear in the existing Overview sets when their sources change.
 
 Both lanes keep builds pinned with `-onlyUsePackageVersionsFromResolvedFile`.
 Run the orchestration regression checks with `bundle exec ruby Scripts/Tests/test_screenshots.rb`.
@@ -201,8 +208,8 @@ must be recaptured on iPhone 18 Pro Max before framing; they are rejected by siz
   Import the PNG once as described in the local frame templates section below, or pass
   `ipad_frame:/path/to/portrait.png`. The licensed source artwork stays local.
 - Mac Workspace fills the MacBook frame with the full-screen app capture.
-  Capture aspect ratio is preserved with black padding where the template screen
-  differs. No wallpaper or Dock is composited. Other Mac scenes stay as native
+  Capture aspect ratio is preserved while trimming the top of the black camera
+  strip to match the aperture. No wallpaper or Dock is composited. Other Mac scenes stay as native
   window captures for final artwork.
 
 Frame dimensions now come from frameit. Astro imports image metadata directly,
@@ -233,7 +240,9 @@ Keep the licensed originals local. Copy the two Star White portrait PNGs:
 Alternate paths use `iphone_duo_outer_frame:` and `iphone_duo_inner_frame:` lane
 options. The outer template is 1574×2194 with a 1398×2034 opening at (88, 80).
 The inner template is 2247×3093 with a 2007×2853 opening at (120, 120).
-The inner frame rotates for landscape output (3093×2247). Both preserve the
+The inner frame rotates clockwise (`landscape_right`) for landscape output
+(3093×2247), placing the volume buttons along the top edge near the right corner.
+The screen mask rotates with it; screenshot content stays upright. Both preserve the
 native screenshot scale. The lane registers them as custom
 frameit devices and checks source and template sizes before publishing outputs.
 
@@ -263,15 +272,36 @@ M5 frame, so the lane registers this device at runtime.
 
 ### MacBook Pro narrow frame
 
-Mac Overview compositions use the existing narrow-bezel MacBook Pro artwork,
+Mac Overview compositions use Apple's MacBook Pro M5 16-inch Space Black PNG,
 prepared locally as `.build/frameit-assets/macbook_pro_template.png`. Supply an
 alternate location with `mac_frame:/absolute/path/to/frame.png`. Keep the source
 artwork outside version control and retain its original usage terms.
 
-The prepared transparent template is 4260×2620, with a 3454×2243 screen opening
-at (403, 74). The native 3024×1964 capture scales proportionally into this opening.
-Its black full-screen camera strip remains visible at the top; no desktop or
-personal system UI is added. A missing template fails before publishing outputs.
+Download the MacBook Pro M5 bezel from Apple's Design Resources and accept its
+license locally. Remove only the 220-pixel transparent top margin from the
+official 4260×2840 PNG:
+
+```sh
+magick "/Volumes/Bezel-MacBook-Pro-M5/PNG/MacBook Pro M5 16-inch Space Black.png" \
+  -crop 4260x2620+0+220 +repage .build/frameit-assets/macbook_pro_template.png
+```
+
+The prepared transparent template is 4260×2620, with a 3456×2234 screen opening
+at (402, 83). The native 3024×1964 capture scales proportionally to 3456×2245;
+11 pixels are trimmed from its black full-screen camera strip to fill the opening.
+No desktop or personal system UI is added. Do not reuse a template extracted from
+a composed screenshot: it can retain wallpaper or mismatched rounded corners.
+A missing template fails before publishing outputs.
+
+### Screen aperture masks
+
+Before composition, the framing lane masks staged captures to the enclosed
+transparent screen opening in each official template, including iPad and Mac.
+The opaque bezel separates this opening from the transparent exterior; an open
+bezel fails validation. Landscape masks rotate with the frame. This prevents
+rectangular capture corners from appearing outside thin bezels and preserves
+opaque screen content. Raw captures remain unchanged. Regenerate device frames
+and refresh their Figma image layers and marketing exports after a mask change.
 
 ## Brand and icon exports
 

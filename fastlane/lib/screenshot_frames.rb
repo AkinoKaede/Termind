@@ -115,14 +115,19 @@ class ScreenshotFrames
                          configuration["default"] = { "offset" => {
                            "offset" => specification.fetch(:offset), "width" => specification.fetch(:width)
                          } }
+                         mask_screen(source, @custom_frames.fetch(job[:device]), specification.fetch(:offset),
+                                     rotation: job[:device] == "iphone-duo-inner" ? 90 : 0)
                          specification.fetch(:name)
                        when "ipad"
                          configuration["default"] = { "offset" => { "offset" => "+118+124", "width" => 2064 } }
+                         mask_screen(source, @ipad_frame, "+118+124", rotation: -90)
                          "iPad Pro 13-inch (M5)"
                        end
         File.write(File.join(work, "Framefile.json"), JSON.generate(configuration))
         frame_options = { path: work, force_device_type: force_device, use_platform: "IOS" }
-        if %w[ipad iphone-duo-inner].include?(job[:device])
+        if job[:device] == "iphone-duo-inner"
+          frame_options[:force_orientation_block] = ->(_) { :landscape_right }
+        elsif job[:device] == "ipad"
           frame_options[:force_orientation_block] = ->(_) { :landscape_left }
         end
         rendered = File.join(work, "#{job[:device]}_framed.png")
@@ -151,10 +156,37 @@ class ScreenshotFrames
   end
 
   def compose_mac(source, output)
-    # Match the native display aspect ratio to the narrow template aperture.
-    # The capture already contains the black camera strip used in full screen.
-    command("magick", @mac_frame, "(", source, "-resize", "3454x", ")",
-            "-gravity", "northwest", "-geometry", "+403+74", "-compose", "DstOver", "-composite", output)
+    # The official M5 16-inch aperture is 3456x2234 after removing the
+    # template's 220px transparent top margin. Preserve the capture's aspect
+    # ratio and trim only 11px from its black full-screen camera strip.
+    Dir.mktmpdir("mac-screen-", File.dirname(output)) do |directory|
+      screen = File.join(directory, "screen.png")
+      command("magick", source, "-resize", "3456x", "-gravity", "south",
+              "-extent", "3456x2234", screen)
+      mask_screen(screen, @mac_frame, "+402+83")
+      command("magick", @mac_frame, "-colorspace", "sRGB", screen, "-gravity", "northwest", "-geometry", "+402+83",
+              "-compose", "DstOver", "-composite", output)
+    end
+  end
+
+  def mask_screen(source, template, offset, rotation: 0)
+    # The template has transparent pixels both inside the display and outside
+    # the device. Its opaque bezel separates them. Remove the exterior region
+    # before framing so rectangular capture corners cannot escape the bezel.
+    mask = File.join(File.dirname(source), "screen-mask.png")
+    command("magick", template, "-alpha", "extract", "-threshold", "99%", "-negate",
+            "-fill", "black", "-draw", "color 0,0 floodfill", mask)
+    center = command("magick", mask, "-format", "%[fx:p{w/2,h/2}]", "info:").strip
+    raise "No enclosed screen aperture in #{template}" unless center == "1"
+
+    dimensions = FastImage.size(source)
+    dimensions = dimensions.reverse unless rotation.zero?
+    arguments = ["magick", mask, "-crop", "#{dimensions.join('x')}#{offset}", "+repage"]
+    arguments += ["-rotate", rotation.to_s] unless rotation.zero?
+    command(*arguments, mask)
+    command("magick", source, "-alpha", "set", "(", mask, "-alpha", "copy", ")",
+            "-compose", "DstIn", "-composite", source)
+    FileUtils.rm_f(mask)
   end
 
   def command(*arguments)
