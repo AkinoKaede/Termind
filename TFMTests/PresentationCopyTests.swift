@@ -18,7 +18,7 @@ struct PresentationCopyTests {
                     NativeMenuEntry(title: String("Custom server")),
                 ])
         ]
-        for language in ["en", "zh-Hans", "zh-Hant"] {
+        for language in ["en", "ja", "zh-Hans", "zh-Hant"] {
             let locale = Locale(identifier: language)
             let menu = NativeMenuEntry.menu(entries, locale: locale)
             #expect(
@@ -31,7 +31,7 @@ struct PresentationCopyTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 7])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"], [0, 1, 7])
     func fileDeletionKeepsLiteralPathsAndLocalizesItsRemainder(language: String, remaining: Int) {
         let locale = Locale(identifier: language)
         let title = AppLocalization.resolve(AppStrings.SFTP.deleteConfirmation("file.txt"), locale: locale)
@@ -54,7 +54,7 @@ struct PresentationCopyTests {
         #expect(!message.contains("NSLanguage"))
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 2])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"], [0, 1, 2])
     func groupDeletionUsesTheRequestedLanguageAndPreservesPluralRules(language: String, count: Int) {
         let locale = Locale(identifier: language)
         let withoutGroups = AppStrings.Vault.groupDeletionMessage(
@@ -80,7 +80,7 @@ struct PresentationCopyTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"])
     func snippetCountsKeepZeroSingularAndPluralMeanings(language: String) {
         let locale = Locale(identifier: language)
         for count in 0...2 {
@@ -110,7 +110,7 @@ struct PresentationCopyTests {
         }
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"])
     func modelAccessibilityOnlyIncludesAvailableConfiguration(language: String) {
         let locale = Locale(identifier: language)
         #expect(
@@ -142,7 +142,7 @@ struct PresentationCopyTests {
         #expect(AppLocalization.resolve(reasoning, locale: locale).contains("High"))
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [0, 1, 2])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"], [0, 1, 2])
     func transferConflictsKeepTheirCount(language: String, count: Int) {
         let message = AppLocalization.resolve(
             AppStrings.SFTP.existingItemsMessage(count: count), locale: Locale(identifier: language))
@@ -169,7 +169,7 @@ struct PresentationCopyTests {
     }
 
     @MainActor
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(arguments: ["en", "ja", "zh-Hans", "zh-Hant"])
     func swiftUIResourceBridgePreservesEnvironmentLanguageAndMarkdown(language: String) throws {
         let locale = Locale(identifier: language)
         let resource = AppStrings.Settings.terminalConfigurationExplanation

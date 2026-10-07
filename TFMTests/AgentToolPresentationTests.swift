@@ -994,6 +994,7 @@ struct AgentToolPresentationTests {
         ]
         let locales: [(String, String?, String?)] = [
             ("en", nil, nil),
+            ("ja", "「", "」"),
             ("zh-Hans", "“", "”"),
             ("zh-Hant", "「", "」"),
         ]
@@ -1182,6 +1183,29 @@ struct AgentToolPresentationTests {
                 AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: language))
                     == expected)
         }
+        #expect(
+            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: "ja"))
+                == "2個のファイルの書き込みが完了しました。ファイルの書き込みに失敗しました")
+    }
+
+    @Test
+    func japaneseApprovalUsesTheActionAndHostInJapaneseWordOrder() {
+        let request = AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(id: "approval", name: "ssh_exec", arguments: .object(["command": .string("pwd")]))
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "ssh_exec", summary: "Execute over SSH", inputSchema: .object([:]), target: .host,
+                approvalPolicy: .ask,
+                presentation: .init(
+                    symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                    actionKind: .run)),
+            userIntent: "Inspect"
+        )
+        let presentation = AgentToolPresentation.approval(
+            for: request, hostName: "web-01", locale: Locale(identifier: "ja-JP"))
+        #expect(presentation.title == "web-01でコマンドを実行")
     }
 
     @Test

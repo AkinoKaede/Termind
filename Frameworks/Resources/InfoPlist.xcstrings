@@ -11,6 +11,12 @@
             "value" : "Termind"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32,6 +38,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "Termind"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Termind"
           }
         },
@@ -59,6 +71,12 @@
             "value" : "Termind uses the camera to attach photos to your chat."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットに写真を添付するために、Termindがカメラを使用します。"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -82,6 +100,12 @@
             "value" : "Authenticate to use your SSH keys."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH鍵を使用するために認証します。"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -103,6 +127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind connects to servers and model providers on your local network."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termindがローカルネットワーク上のサーバやモデルプロバイダに接続します。"
           }
         },
         "zh-Hans" : {
@@ -129,6 +159,12 @@
             "value" : "Termind uses the microphone to transcribe speech into your chat draft."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声をチャットの下書きに文字起こしするために、Termindがマイクを使用します。"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -151,6 +187,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TermindはAppleの音声認識を使用して録音をテキストに変換します。システム設定や言語の対応状況によっては、Appleが音声をオンラインで処理する場合があります。"
           }
         },
         "zh-Hans" : {
@@ -177,6 +219,12 @@
             "value" : "Connect"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -194,6 +242,12 @@
     "Termind SFTP Items" : {
       "extractionState" : "manual",
       "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind SFTP項目"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",

@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 
 @testable import Termind
@@ -22,6 +23,12 @@ struct AppLanguageTests {
         AppLanguage.store(.english, in: defaults)
         #expect(AppLanguage.stored(in: defaults) == .english)
         #expect(defaults.stringArray(forKey: "AppleLanguages") == ["en"])
+
+        AppLanguage.store(.japanese, in: defaults)
+        #expect(AppLanguage.stored(in: defaults) == .japanese)
+        #expect(defaults.stringArray(forKey: "AppleLanguages") == ["ja"])
+        #expect(AppLanguage.japanese.locale.identifier == "ja")
+        #expect(AppLanguage.japanese.displayName == "日本語")
 
         AppLanguage.store(.simplifiedChinese, in: defaults)
         #expect(AppLanguage.stored(in: defaults) == .simplifiedChinese)
@@ -84,6 +91,19 @@ struct AppLanguageTests {
         #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant")) == "設定")
     }
 
+    @Test(arguments: ["ja", "ja-JP", "ja_JP"])
+    func japaneseLocalesResolveAppCopyAndPreserveInterpolations(identifier: String) {
+        let locale = Locale(identifier: identifier)
+        #expect(AppLocalization.string("Settings", locale: locale) == "設定")
+        #expect(AppLocalization.resolve(AppStrings.Common.cancel, locale: locale) == "キャンセル")
+        let host = "web-01"
+        let command = "uptime"
+        #expect(
+            AppLocalization.string("Ran “\(command)” on \(host)", locale: locale)
+                == "web-01で「uptime」を実行しました")
+        #expect(AppLocalization.string("\(3) files", locale: locale) == "3個のファイル")
+    }
+
     @Test(arguments: [("zh-Hans", "词元"), ("zh-Hant", "符元")])
     func assistantTokenCountsUseModelTerminology(language: String, unit: String) {
         let locale = Locale(identifier: language)
@@ -125,9 +145,9 @@ struct AppLanguageTests {
         for (key, arguments) in interpolations.sorted(by: { $0.key < $1.key }) {
             let entry = try #require(strings[key] as? [String: Any], "Missing forwarding template: \(key)")
             let localizations = try #require(entry["localizations"] as? [String: Any])
-            for language in ["zh-Hans", "zh-Hant"] {
-                let chinese = try #require(localizations[language] as? [String: Any])
-                let unit = try #require(chinese["stringUnit"] as? [String: Any])
+            for language in ["ja", "zh-Hans", "zh-Hant"] {
+                let localization = try #require(localizations[language] as? [String: Any])
+                let unit = try #require(localization["stringUnit"] as? [String: Any])
                 let translation = try #require(unit["value"] as? String)
                 let placeholders = translation.matches(of: /%(?:[1-9][0-9]*\$)?@/)
                 #expect(placeholders.count == arguments.count, "Placeholder mismatch: \(language) \(key)")
@@ -164,9 +184,9 @@ struct AppLanguageTests {
             let localizations = try #require(entry["localizations"] as? [String: Any])
             let english = try #require(localizations["en"] as? [String: Any])
             #expect(pluralForms(in: english).keys.sorted() == ["one", "other"])
-            for language in ["zh-Hans", "zh-Hant"] {
-                let chinese = try #require(localizations[language] as? [String: Any])
-                #expect(pluralForms(in: chinese).keys.sorted() == ["other"])
+            for language in ["ja", "zh-Hans", "zh-Hant"] {
+                let localization = try #require(localizations[language] as? [String: Any])
+                #expect(pluralForms(in: localization).keys.sorted() == ["other"])
             }
         }
     }

@@ -82,7 +82,7 @@ nonisolated public enum AgentToolPresentation {
         if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale, approval: true) {
             let action = localizedActionVerb(operation.action, locale: locale)
             let title =
-                isChinese(locale)
+                usesLocalizedActionTemplates(locale)
                 ? localized("Approval tool action: \(action) \(operation.activity)", locale: locale)
                 : uppercaseFirst(actionName(operation.action, form: .infinitive, locale: locale)) + " "
                     + operation.activity
@@ -92,14 +92,14 @@ nonisolated public enum AgentToolPresentation {
         guard let kind = actionKind(for: card) else {
             let action = localized(AppStrings.Assistant.run(activity), locale: locale)
             guard let hostName, !hostName.isEmpty else { return action }
-            if isChinese(locale) {
+            if usesLocalizedActionTemplates(locale) {
                 return localized("Approval action target: \(action) \(hostName)", locale: locale)
             }
             return "\(action) on \(hostName)"
         }
 
         let action = localizedActionVerb(kind, locale: locale)
-        if isChinese(locale) {
+        if usesLocalizedActionTemplates(locale) {
             guard let hostName, !hostName.isEmpty else {
                 return localized("Approval tool action: \(action) \(activity)", locale: locale)
             }
@@ -284,6 +284,10 @@ nonisolated public enum AgentToolPresentation {
         }
         let clauses = order.compactMap { key in
             grouped[key].map { batchClause($0, locale: locale) }
+        }
+        if locale.language.languageCode?.identifier == "ja" {
+            // These clauses are sentences. The enumeration comma cannot join them.
+            return clauses.joined(separator: "。")
         }
         if locale.language.languageCode?.identifier == "zh" {
             return clauses.joined(separator: "，")
@@ -630,7 +634,7 @@ nonisolated public enum AgentToolPresentation {
             return RenderedOperation(text: activityName(.suggestion, locale: locale), isArgumentValue: false)
         }
         guard let presentation = card.descriptor.presentation else {
-            if isChinese(locale),
+            if usesLocalizedActionTemplates(locale),
                 let recovered = recoveredBuiltInOperation(
                     for: card, locale: locale
                 )
@@ -1058,9 +1062,12 @@ nonisolated public enum AgentToolPresentation {
         state: AgentToolCard.State, activity: String, isArgumentValue: Bool,
         target: String?, locale: Locale
     ) -> String {
-        if isChinese(locale) {
+        if usesLocalizedActionTemplates(locale) {
             let action = localizedActionVerb(kind, locale: locale)
-            let displayedActivity = isArgumentValue ? "“\(activity)”" : activity
+            let displayedActivity =
+                isArgumentValue
+                ? (locale.language.languageCode?.identifier == "ja" ? "「\(activity)」" : "“\(activity)”")
+                : activity
             let rendered: String =
                 switch state {
                 case .proposed, .reviewing:
@@ -1129,9 +1136,9 @@ nonisolated public enum AgentToolPresentation {
     ) -> String {
         // Commands already carry their own shell punctuation. English reads
         // more naturally without another pair of prose quotes around the
-        // entire command, while Chinese uses quotation marks to separate the
+        // entire command, while Chinese and Japanese use quotation marks to separate the
         // command from the surrounding sentence.
-        if !isChinese(locale) {
+        if !usesLocalizedActionTemplates(locale) {
             return switch kind {
             case .sshPreparingCommand:
                 target.map { "Preparing to run \(activity) on \($0)" }
@@ -1208,7 +1215,7 @@ nonisolated public enum AgentToolPresentation {
         _ kind: AgentToolDescriptor.Presentation.ActionKind,
         form: ActionForm, locale: Locale
     ) -> String {
-        if isChinese(locale) { return localizedActionVerb(kind, locale: locale) }
+        if usesLocalizedActionTemplates(locale) { return localizedActionVerb(kind, locale: locale) }
         let forms: ActionForms =
             switch kind {
             case .ask: .init(infinitive: "ask", progressive: "Asking", past: "Asked")
@@ -1286,8 +1293,8 @@ nonisolated public enum AgentToolPresentation {
         }
     }
 
-    private static func isChinese(_ locale: Locale) -> Bool {
-        locale.language.languageCode?.identifier == "zh"
+    private static func usesLocalizedActionTemplates(_ locale: Locale) -> Bool {
+        ["zh", "ja"].contains(locale.language.languageCode?.identifier ?? "")
     }
 
     private static func activityName(

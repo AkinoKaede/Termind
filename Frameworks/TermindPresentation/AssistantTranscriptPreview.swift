@@ -22,6 +22,8 @@
                     "**检查上游服务。**\n先读取 `nginx` 日志，再核对监听端口；暂不更改配置。"
                 case .traditionalChinese:
                     "**檢查上游服務。**\n先讀取 `nginx` 日誌，再核對監聽連接埠；暫不變更設定。"
+                case .japanese:
+                    "**上流サービスを確認します。**\nまず`nginx`のログを読み、待ち受けポートを確認します。設定はまだ変更しません。"
                 case .system, .english:
                     "**Inspect the upstream service.**\nRead the `nginx` logs, then check listening ports before changing configuration."
                 }
@@ -41,6 +43,7 @@
                     switch language {
                     case .simplifiedChinese: "连接上游服务失败：连接被拒绝。"
                     case .traditionalChinese: "連線至上游服務失敗：連線遭拒。"
+                    case .japanese: "上流サービスに接続できませんでした：接続が拒否されました。"
                     case .system, .english: "connect() failed: connection refused"
                     }
                 cards[1].result = AgentToolResult(

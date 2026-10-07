@@ -27,6 +27,7 @@ public nonisolated enum AppLocalization {
             switch locale.language.languageCode?.identifier {
             case "zh": locale.language.script?.identifier == "Hant" ? "zh-Hant" : "zh-Hans"
             case "en": "en"
+            case "ja": "ja"
             default: nil
             }
         guard let localization,
@@ -40,6 +41,7 @@ public nonisolated enum AppLocalization {
 public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
+    case japanese = "ja"
     case simplifiedChinese = "zh-Hans"
     case traditionalChinese = "zh-Hant"
 
@@ -49,6 +51,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: String(localized: "Follow System")
         case .english: "English"
+        case .japanese: "日本語"
         case .simplifiedChinese: "简体中文"
         case .traditionalChinese: "繁體中文"
         }
@@ -87,7 +90,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch language {
         case .system:
             defaults.removeObject(forKey: "AppleLanguages")
-        case .english, .simplifiedChinese, .traditionalChinese:
+        case .english, .japanese, .simplifiedChinese, .traditionalChinese:
             defaults.set([language.rawValue], forKey: "AppleLanguages")
         }
     }
@@ -96,7 +99,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: .autoupdatingCurrent
         case .english: Locale(identifier: "en")
-        case .simplifiedChinese, .traditionalChinese: Locale(identifier: rawValue)
+        case .japanese, .simplifiedChinese, .traditionalChinese: Locale(identifier: rawValue)
         }
     }
 }

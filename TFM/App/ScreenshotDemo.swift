@@ -29,12 +29,12 @@ import TermindApplication
                     return "Pass --termind-demo only once."
                 case .invalidFormat(let value):
                     return "Invalid Demo argument \(value). Expected "
-                        + "--termind-demo=<hosts|workspace|agent|command|metrics|metrics-detail|app-settings>:<en|zh-Hans|zh-Hant>."
+                        + "--termind-demo=<hosts|workspace|agent|command|metrics|metrics-detail|app-settings>:<en|ja|zh-Hans|zh-Hant>."
                 case .unknownScene(let value):
                     return
                         "Unknown Demo scene \(value). Expected hosts, workspace, agent, command, metrics, metrics-detail, or app-settings."
                 case .unknownLanguage(let value):
-                    return "Unknown Demo language \(value). Expected en or zh."
+                    return "Unknown Demo language \(value). Expected en, ja, zh-Hans, or zh-Hant."
                 }
             }
         }
@@ -78,6 +78,7 @@ import TermindApplication
             let language: AppLanguage
             switch languageValue {
             case "en": language = .english
+            case "ja": language = .japanese
             case "zh-Hans": language = .simplifiedChinese
             case "zh-Hant": language = .traditionalChinese
             default: throw ParseError.unknownLanguage(languageValue)
@@ -147,10 +148,10 @@ import TermindApplication
 
             let session = SSHSessionModel.demo(host: host)
             let pane = Pane(.sshSession(session))
-            pane.customTitle = text(en: "nginx diagnostics", zhHans: "Nginx 诊断", zhHant: "Nginx 診斷")
+            pane.customTitle = text(en: "nginx diagnostics", zhHans: "Nginx 诊断", zhHant: "Nginx 診斷", ja: "nginxの診断")
             let workspace = Workspace(pane: pane)
             workspace.customTitle = text(
-                en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷")
+                en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷", ja: "本番環境の診断")
             workspace.focusedPaneID = pane.id
 
             let conversation = ConversationModel.demo(language: language)
@@ -192,12 +193,12 @@ import TermindApplication
             let first = Pane(.sshSession(firstSession))
             first.customTitle =
                 showsCommandResult
-                ? text(en: "nginx logs", zhHans: "Nginx 日志", zhHant: "Nginx 日誌")
+                ? text(en: "nginx logs", zhHans: "Nginx 日志", zhHant: "Nginx 日誌", ja: "nginxのログ")
                 : "api-01"
             let sftpChannel = SFTPChannelModel.demo(hostID: saved[0].id)
             sftpChannel.selection = ["/etc/nginx/nginx.conf"]
             let sftp = Pane(.sftpChannel(sftpChannel))
-            sftp.customTitle = text(en: "nginx config", zhHans: "Nginx 配置", zhHant: "Nginx 設定")
+            sftp.customTitle = text(en: "nginx config", zhHans: "Nginx 配置", zhHant: "Nginx 設定", ja: "nginxの設定")
             let secondSession =
                 showsCommandResult
                 ? SSHSessionModel.demo(host: saved[1])
@@ -231,8 +232,8 @@ import TermindApplication
             workspace.focusedPaneID = first.id
             workspace.customTitle =
                 showsCommandResult
-                ? text(en: "Log investigation", zhHans: "日志调查", zhHant: "日誌調查")
-                : text(en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷")
+                ? text(en: "Log investigation", zhHans: "日志调查", zhHant: "日誌調查", ja: "ログの調査")
+                : text(en: "Production diagnostics", zhHans: "生产环境诊断", zhHant: "正式環境診斷", ja: "本番環境の診断")
             workspace.broadcastsInput = !showsCommandResult
             if showsCommandResult {
                 workspace.commandGeneratorState = .inserted(targetCount: 1)
@@ -277,10 +278,11 @@ import TermindApplication
                 ]).joined(separator: "\r\n")
         }
 
-        private func text(en: String, zhHans: String, zhHant: String) -> String {
+        private func text(en: String, zhHans: String, zhHant: String, ja: String) -> String {
             switch language {
             case .simplifiedChinese: zhHans
             case .traditionalChinese: zhHant
+            case .japanese: ja
             case .system, .english: en
             }
         }

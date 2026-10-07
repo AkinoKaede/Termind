@@ -16,6 +16,7 @@ import TermindPresentation
         func parsesEverySceneAndLanguageCombination() throws {
             let languages: [(argument: String, language: AppLanguage)] = [
                 ("en", .english),
+                ("ja", .japanese),
                 ("zh-Hans", .simplifiedChinese),
                 ("zh-Hant", .traditionalChinese),
             ]
@@ -96,7 +97,7 @@ import TermindPresentation
 
         @Test
         func vaultCaptureStatusesMatchItsTwoWorkspacesInEveryLanguage() throws {
-            for language in [AppLanguage.english, .simplifiedChinese, .traditionalChinese] {
+            for language in [AppLanguage.english, .japanese, .simplifiedChinese, .traditionalChinese] {
                 let configuration = ScreenshotDemoConfiguration(scene: .hosts, language: language)
                 let hosts = configuration.makeHostLibrary()
                 let window = configuration.makeWindow(hosts: hosts)

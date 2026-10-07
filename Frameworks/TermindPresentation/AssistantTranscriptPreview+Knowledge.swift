@@ -10,6 +10,7 @@
             switch language {
             case .simplifiedChinese: prose = "部署之前先检查状态，并保留可复用的验证步骤。"
             case .traditionalChinese: prose = "部署之前先檢查狀態，並保留可重用的驗證步驟。"
+            case .japanese: prose = "デプロイ前に状態を確認し、再利用できる検証手順を残してください。"
             case .english, .system: prose = "Check status before deploying and retain reusable verification steps."
             }
             let body = Array(repeating: prose, count: 80).joined(separator: "\n")
