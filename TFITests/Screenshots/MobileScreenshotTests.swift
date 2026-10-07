@@ -25,7 +25,7 @@ struct MobileScreenshotTests {
         if let language = ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_LOCALE"] {
             return [language]
         }
-        return ["en", "zh-Hans", "zh-Hant"]
+        return ["en", "zh-Hans", "zh-Hant", "ja"]
     }
 
     @Test func renderScenes() async throws {
@@ -83,8 +83,8 @@ struct MobileScreenshotTests {
         language: String, connectionServices: MobileWorkspaceConnectionServices = .live
     ) throws -> MobileAppModel {
         let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connectionServices)
-        let production = HostGroup(name: text(language, "Production", "生产环境", "正式環境"))
-        let edge = HostGroup(name: text(language, "Edge", "边缘节点", "邊緣節點"))
+        let production = HostGroup(name: text(language, "Production", "生产环境", "正式環境", "本番環境"))
+        let edge = HostGroup(name: text(language, "Edge", "边缘节点", "邊緣節點", "エッジ"))
         app.library.upsert(production)
         app.library.upsert(edge)
         let hosts = [
@@ -133,7 +133,8 @@ struct MobileScreenshotTests {
         try #require(workspace.connected)
         if kind == .sftp {
             #expect(
-                app.testWorkspaceSession.renameWorkspace(id, to: text(language, "Production files", "生产文件", "正式環境檔案")))
+                app.testWorkspaceSession.renameWorkspace(
+                    id, to: text(language, "Production files", "生产文件", "正式環境檔案", "本番環境のファイル")))
             try #require(workspace.sftpChannel.files.count == 6)
         }
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -298,7 +299,7 @@ struct MobileScreenshotTests {
             .appending(path: "screenshots", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         let device = captureDevice
-        let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
+        let locale = language.lowercased()
         let featureDirectory = outputDirectory.appending(path: name, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: featureDirectory, withIntermediateDirectories: true)
         let output = featureDirectory.appending(path: "\(device)-\(locale).png")
@@ -322,7 +323,7 @@ struct MobileScreenshotTests {
         try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
         let token = UUID().uuidString
         let device = captureDevice
-        let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
+        let locale = language.lowercased()
         let ready = control.appending(path: "ready")
         let ack = control.appending(path: "ack-\(token)")
         let captureID = try #require(ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_CAPTURE_ID"])
@@ -344,15 +345,18 @@ struct MobileScreenshotTests {
     private func screenshotBackButton(language: String) -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
             Button(action: {}) {
-                Label(text(language, "Workspaces", "工作区", "工作區"), systemImage: "chevron.left")
+                Label(text(language, "Workspaces", "工作区", "工作區", "ワークスペース"), systemImage: "chevron.left")
             }
         }
     }
 
-    private func text(_ language: String, _ english: String, _ simplified: String, _ traditional: String) -> String {
+    private func text(
+        _ language: String, _ english: String, _ simplified: String, _ traditional: String, _ japanese: String
+    ) -> String {
         switch language {
         case "zh-Hans": simplified
         case "zh-Hant": traditional
+        case "ja": japanese
         default: english
         }
     }

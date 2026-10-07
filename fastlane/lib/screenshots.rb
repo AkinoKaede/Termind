@@ -22,7 +22,7 @@ class Screenshots
     raise "Initialize the website and assets first: git submodule update --init com.akinokaede.termind"
   end
 
-  LOCALES = { "en" => ["US", "en_US"], "zh-Hans" => ["CN", "zh_CN"], "zh-Hant" => ["TW", "zh_TW"] }.freeze
+  LOCALES = { "en" => ["US", "en_US"], "zh-Hans" => ["CN", "zh_CN"], "zh-Hant" => ["TW", "zh_TW"], "ja" => ["JP", "ja_JP"] }.freeze
   MAC_SCENES = {
     "hosts" => ["vault", "mac"],
     "workspace" => ["workspace", "mac"],

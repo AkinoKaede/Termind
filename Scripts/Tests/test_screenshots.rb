@@ -93,6 +93,16 @@ class ScreenshotsTests < Minitest::Test
     assert_equal ["unchanged"], document["FrameworkTests"]["CommandLineArguments"]
   end
 
+  def test_japanese_capture_configures_japan_region_and_locale
+    capture = runner(:ios, locales: "ja")
+    target = {}
+    capture.configure_xctestrun({ "TFITests" => target }, "ja", {}, [])
+    assert_equal "ja", target["TestLanguage"]
+    assert_equal "JP", target["TestRegion"]
+    assert_equal ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"], target["CommandLineArguments"]
+    assert ScreenshotFrames.new({ locales: "ja" }, root: @root).plan.all? { |job| job[:output].include?("/ja/") }
+  end
+
   def test_test_plan_format_updates_only_the_capture_target
     capture = runner(:mac)
     target = { "BlueprintName" => "TFMTests" }
@@ -374,7 +384,7 @@ class ScreenshotFramesTests < Minitest::Test
 
   def test_default_frames_only_include_website_used_scenes
     jobs = ScreenshotFrames.new({}, root: @root).plan
-    assert_equal 21, jobs.size
+    assert_equal 7 * Screenshots::LOCALES.size, jobs.size
     refute jobs.any? { |job| job[:input].end_with?("/ipad-15/ssh.png", "/iphone-6.3/metrics.png") }
     explicit = ScreenshotFrames.new({ devices: "ipad", scenes: "ssh", locales: "en" }, root: @root).plan
     assert_equal 1, explicit.size
