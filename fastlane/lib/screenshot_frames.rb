@@ -5,6 +5,7 @@ require_relative "screenshots"
 # read-only, and the website's existing feature/file names remain stable.
 class ScreenshotFrames
   DEVICES = %w[iphone iphone-duo-outer iphone-duo-inner ipad mac].freeze
+  TEMPLATE_DIRECTORY = "com.akinokaede.termind/assets/device_templates".freeze
   CUSTOM_FRAMES = {
     "iphone" => { name: "iPhone 18 Pro", size: [1350, 2760], offset: "+72+69", width: 1206,
                   color: "Silver", template: "iphone-18-pro" },
@@ -18,11 +19,11 @@ class ScreenshotFrames
 
   def initialize(options = {}, root: Screenshots::ROOT)
     @root = root
-    @mac_frame = File.expand_path(options[:mac_frame] || ".build/frameit-assets/macbook-pro-14-template.png", root)
-    @ipad_frame = File.expand_path(options[:ipad_frame] || ".build/frameit-assets/ipad-pro-13-m5.png", root)
+    @mac_frame = File.expand_path(options[:mac_frame] || "#{TEMPLATE_DIRECTORY}/macbook-pro-14-template.png", root)
+    @ipad_frame = File.expand_path(options[:ipad_frame] || "#{TEMPLATE_DIRECTORY}/ipad-pro-13-m5.png", root)
     @custom_frames = CUSTOM_FRAMES.to_h do |device, specification|
       option = device.tr("-", "_").concat("_frame").to_sym
-      [device, File.expand_path(options[option] || ".build/frameit-assets/#{specification[:template] || device}.png", root)]
+      [device, File.expand_path(options[option] || "#{TEMPLATE_DIRECTORY}/#{specification[:template] || device}.png", root)]
     end
     selector = Screenshots.new(:ios, {}, environment: {}, root: root)
     @devices = selector.selection(options[:devices], %w[iphone ipad mac], DEVICES, "devices")
@@ -53,8 +54,9 @@ class ScreenshotFrames
     (@devices & CUSTOM_FRAMES.keys).each do |device|
       specification = CUSTOM_FRAMES.fetch(device)
       unless FastImage.size(@custom_frames.fetch(device)) == specification.fetch(:size)
-        raise "Import the official #{specification.fetch(:name)} #{specification.fetch(:color)} portrait PNG first; " \
-              "see openwiki/operations/marketing-assets-and-app-icons.md or pass #{device.tr('-', '_')}_frame:/path/to/frame.png"
+        raise "Missing or invalid #{specification.fetch(:name)} template: #{@custom_frames.fetch(device)}. " \
+              "Restore templates from the assets repository (git submodule update --init com.akinokaede.termind); " \
+              "or pass #{device.tr('-', '_')}_frame:/path/to/frame.png"
       end
       constant = device.tr("-", "_").upcase
       unless Frameit::Devices.const_defined?(constant)
@@ -72,11 +74,13 @@ class ScreenshotFrames
       ))
     end
     if @devices.include?("ipad") && FastImage.size(@ipad_frame) != [2300, 3000]
-      raise "Import the official iPad Pro (M5) 13-inch Space Black portrait PNG first; " \
-            "see openwiki/operations/marketing-assets-and-app-icons.md or pass ipad_frame:/path/to/frame.png"
+      raise "Missing or invalid iPad template: #{@ipad_frame}. " \
+            "Restore templates from the assets repository (git submodule update --init com.akinokaede.termind); " \
+            "or pass ipad_frame:/path/to/frame.png"
     end
     if @devices.include?("mac") && FastImage.size(@mac_frame) != [3860, 2320]
-      raise "Import the narrow MacBook Pro template first; see openwiki/operations/marketing-assets-and-app-icons.md " \
+      raise "Missing or invalid Mac template: #{@mac_frame}. " \
+            "Restore templates from the assets repository (git submodule update --init com.akinokaede.termind); " \
             "or pass mac_frame:/path/to/frame.png"
     end
     @jobs.each do |job|

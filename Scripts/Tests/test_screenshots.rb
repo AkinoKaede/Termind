@@ -299,7 +299,7 @@ class ScreenshotFramesTests < Minitest::Test
     File.write(File.join(@root, "com.akinokaede.termind/.git"), "gitdir: fixture")
     FileUtils.mkdir_p(File.join(@root, "fastlane"))
     FileUtils.cp(File.expand_path("../../fastlane/Framefile.json", __dir__), File.join(@root, "fastlane"))
-    frame_template(File.join(@root, ".build/frameit-assets/iphone-18-pro.png"), 1350, 2760)
+    frame_template(File.join(@root, "com.akinokaede.termind/assets/device_templates/iphone-18-pro.png"), 1350, 2760)
     @templates = File.join(@root, "templates")
     FileUtils.mkdir_p(@templates)
   end
@@ -400,12 +400,14 @@ class ScreenshotFramesTests < Minitest::Test
   end
 
   def test_explicit_frame_paths_work_without_submodule_and_keep_source_bytes
+    template = File.join(@root, "external-template.png")
+    FileUtils.mv(File.join(@root, "com.akinokaede.termind/assets/device_templates/iphone-18-pro.png"), template)
     FileUtils.remove_entry(File.join(@root, "com.akinokaede.termind"))
     source = File.join(@root, "review-input/en/iphone-6.3/vault.png")
     png(source, 1206, 2622)
     original_hash = Digest::SHA256.file(source).hexdigest
     runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en",
-                                    input: "review-input", output: "review-output" }, root: @root)
+                                    input: "review-input", output: "review-output", iphone_frame: template }, root: @root)
     downloader = Object.new
     downloader.define_singleton_method(:frames_exist?) { true }
     Frameit::FrameDownloader.stub(:templates_path, @templates) do
@@ -421,6 +423,26 @@ class ScreenshotFramesTests < Minitest::Test
     assert File.exist?(File.join(@root, "review-output/en/iphone-6.3/vault.png"))
     assert_equal original_hash, Digest::SHA256.file(source).hexdigest
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind"))
+  end
+
+  def test_default_template_works_without_a_local_build_cache
+    source = File.join(@root, "com.akinokaede.termind/assets/captures/en/iphone-6.3/vault.png")
+    png(source, 1206, 2622)
+    refute Dir.exist?(File.join(@root, ".build"))
+    runner = ScreenshotFrames.new({ devices: "iphone", scenes: "vault", locales: "en" }, root: @root)
+    downloader = Object.new
+    downloader.define_singleton_method(:frames_exist?) { true }
+    Frameit::FrameDownloader.stub(:templates_path, @templates) do
+      Frameit::FrameDownloader.stub(:new, downloader) do
+        runner.run do |options|
+          installed = File.join(@templates, "Apple iPhone 18 Pro Silver.png")
+          assert_equal Digest::SHA256.file(File.join(@root, "com.akinokaede.termind/assets/device_templates/iphone-18-pro.png")).hexdigest,
+                       Digest::SHA256.file(installed).hexdigest
+          png(File.join(options.fetch(:path), "iphone_framed.png"), 1350, 2760)
+        end
+      end
+    end
+    assert_equal [1350, 2760], FastImage.size(File.join(@root, "com.akinokaede.termind/assets/device_frames/en/iphone-6.3/vault.png"))
   end
 
   def test_rejects_pro_max_sources_before_calling_frameit
@@ -471,6 +493,7 @@ class ScreenshotFramesTests < Minitest::Test
     runner = ScreenshotFrames.new({ devices: "iphone-duo-inner", locales: "en" }, root: @root)
     error = assert_raises(RuntimeError) { runner.run { flunk "frameit must not start" } }
     assert_includes error.message, "iphone_duo_inner_frame:"
+    assert_includes error.message, "git submodule update --init com.akinokaede.termind"
     refute Dir.exist?(File.join(@root, "com.akinokaede.termind/assets/device_frames"))
   end
 
