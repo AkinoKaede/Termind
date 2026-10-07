@@ -26,6 +26,7 @@ class Screenshots
   MAC_SCENES = {
     "hosts" => ["vault", "mac"],
     "workspace" => ["workspace", "mac"],
+    "workspace-window" => ["workspace-window", "mac"],
     "agent" => ["assistant", "mac"],
     "command" => ["command-generator", "mac"],
     "metrics" => ["metrics", "mac-overview"]
@@ -184,8 +185,11 @@ class Screenshots
 
   def capture_mac(scene, language, destination)
     label = "#{scene}-#{language}"
-    xctestrun = test_configuration(language, label, { "TERMIND_MAC_SCREENSHOTS" => "1" },
-                                  ["--termind-demo=#{scene}:#{language}", "-statusBar.expanded", "YES"])
+    demo_scene = scene == "workspace-window" ? "workspace" : scene
+    environment = { "TERMIND_MAC_SCREENSHOTS" => "1" }
+    environment["TERMIND_MAC_SCREENSHOT_WINDOWED"] = "1" if scene == "workspace-window"
+    xctestrun = test_configuration(language, label, environment,
+                                  ["--termind-demo=#{demo_scene}:#{language}", "-statusBar.expanded", "YES"])
     options = scan_options(destination, label).merge(
       xctestrun: xctestrun, only_testing: ["TFMTests/MacScreenshotTests"], test_without_building: true
     )
@@ -199,7 +203,7 @@ class Screenshots
       payload = File.read(log)[/TERMIND_MAC_SCREENSHOT_READY ([^\r\n]+)/, 1]
       next unless payload
       ready_scene, ready_language, window, token, active, key, screen_width, screen_height = payload.split("\t")
-      unless ready_scene == scene && ready_language == language && window.match?(/\A\d+\z/) &&
+      unless ready_scene == demo_scene && ready_language == language && window.match?(/\A\d+\z/) &&
              !token.to_s.empty? && active == "active" && key == "key"
         raise "Capture window was not ready and focused: #{payload}"
       end

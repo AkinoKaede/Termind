@@ -28,7 +28,7 @@ import Testing
             var captureSize = CGSize(
                 width: configuration.windowSize.width * 2,
                 height: configuration.windowSize.height * 2)
-            if configuration.scene == .workspace {
+            if configuration.scene == .workspace, environment["TERMIND_MAC_SCREENSHOT_WINDOWED"] != "1" {
                 let screen = try #require(
                     NSScreen.screens.first { screen in
                         guard
