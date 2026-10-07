@@ -1,5 +1,5 @@
 {
-  "originHash" : "289fd4765cd352f7e6c42b83a996dcc0e094b80d702510ffea18fb4328ffdc0d",
+  "originHash" : "3e81c11f7e95db321267fafb4222531159b6a2f6a2e2d18a87b3fc6ce2cf1caf",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AkinoKaede/AgentKit.git",
       "state" : {
-        "revision" : "d6f4692de8f30d8836b2e83ffcd5ddfcd7f1fdfc",
-        "version" : "0.19.0"
+        "revision" : "8108c9bb87c546860cfc1769571e115af919fe8a",
+        "version" : "0.19.1"
       }
     },
     {
