@@ -17,7 +17,7 @@ struct SFTPContextMenuTests {
         let menu = NativeMenuEntry.menu(entries)
         #expect(
             menu.items.map(\.title) == [
-                "Open", "Open With", "Download", "", "Copy", "Copy As", "Paste", "Rename",
+                "Open", "Open With", "Download", "", "Copy", "Copy as", "Paste", "Rename",
                 "Edit Permissions", "Delete", "", "New Folder", "Upload", "Refresh",
             ])
         #expect(!menu.autoenablesItems)
@@ -53,7 +53,7 @@ struct SFTPContextMenuTests {
         let multiple = snapshot(first, targets: [first, second]).entries(applications: applications) { _ in }
         #expect(
             multiple.map(\.title) == [
-                "Download 2 Items", "", "Copy 2 Items", "Copy As", "Paste", "Delete 2 Items", "",
+                "Download 2 Items", "", "Copy 2 Items", "Copy as", "Paste", "Delete 2 Items", "",
                 "New Folder", "Upload", "Refresh",
             ])
         #expect(multiple[3].children.map(\.title) == ["Names", "Paths"])

@@ -10044,29 +10044,6 @@
         }
       }
     },
-    "Copy As" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "名前またはパスをコピー"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制为"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "複製為"
-          }
-        }
-      }
-    },
     "Copy Cancelled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10293,6 +10270,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製此路由的OpenSSH指令。"
+          }
+        }
+      }
+    },
+    "Copy as" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前またはパスをコピー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制为"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製為"
           }
         }
       }

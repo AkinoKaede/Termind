@@ -24,7 +24,7 @@ extension AppStrings {
         }
 
         public static var copyAs: LocalizedStringResource {
-            "Copy As"
+            "Copy as"
         }
 
         public static func copyItems(_ count: Int) -> LocalizedStringResource {

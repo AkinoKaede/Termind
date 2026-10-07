@@ -47,27 +47,31 @@ struct MobileSFTPBrowser: View {
             MobileSFTPPathBar(channel: channel, connected: connected)
             Divider()
             ZStack {
-                MobileNativeList(
-                    items: items,
-                    estimatedRowHeight: 68,
-                    refreshID: AnyHashable([connected, channel.isRefreshing]),
-                    onSelect: { item in
-                        guard connected else { return }
+                GeometryReader { geometry in
+                    MobileNativeList(
+                        items: items,
+                        estimatedRowHeight: 68,
+                        refreshID: AnyHashable([
+                            AnyHashable(connected), AnyHashable(channel.isRefreshing), AnyHashable(geometry.size.width),
+                        ]),
+                        onSelect: { item in
+                            guard connected else { return }
+                            switch item {
+                            case .parent(let path): Task { await channel.openDirectory(path) }
+                            case .file(let file): open(file)
+                            }
+                        },
+                        onRefresh: { await channel.reload() },
+                        bottomContentInset: bottomContentInset,
+                        surface: .plain
+                    ) { item in
                         switch item {
-                        case .parent(let path): Task { await channel.openDirectory(path) }
-                        case .file(let file): open(file)
-                        }
-                    },
-                    onRefresh: { await channel.reload() },
-                    bottomContentInset: bottomContentInset,
-                    surface: .plain
-                ) { item in
-                    switch item {
-                    case .parent:
-                        parentRow
-                    case .file(let file):
-                        MobileSFTPFileDeletion(file: file, delete: delete) { requestDelete in
-                            fileRow(file, requestDelete: requestDelete)
+                        case .parent:
+                            parentRow
+                        case .file(let file):
+                            MobileSFTPFileDeletion(file: file, delete: delete) { requestDelete in
+                                fileRow(file, previewWidth: geometry.size.width, requestDelete: requestDelete)
+                            }
                         }
                     }
                 }
@@ -102,7 +106,63 @@ struct MobileSFTPBrowser: View {
         .accessibilityLabel(AppStrings.SFTP.parentDirectory.swiftUIKey)
     }
 
-    private func fileRow(_ file: RemoteFile, requestDelete: @escaping () -> Void) -> some View {
+    private func fileRow(_ file: RemoteFile, previewWidth: CGFloat, requestDelete: @escaping () -> Void) -> some View {
+        MobileSFTPFileRowContent(file: file)
+            .contentShape(.rect)
+            .contextMenu {
+                Button(AppStrings.Common.open.swiftUIKey, systemImage: "arrow.up.right") { open(file) }
+                if !file.isDirectory {
+                    Button(AppStrings.SFTP.openWithProgress.swiftUIKey, systemImage: "arrow.up.forward.app") {
+                        openWith(file)
+                    }
+                    .disabled(!connected)
+                    if canImportEditedCopy(file) {
+                        Button(
+                            AppStrings.SFTP.importEditedCopyProgress.swiftUIKey, systemImage: "square.and.arrow.down"
+                        ) {
+                            importEditedCopy(file)
+                        }
+                    }
+                }
+                Button(AppStrings.SFTP.download.swiftUIKey, systemImage: "square.and.arrow.down") { download(file) }
+                Divider()
+                Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(file) }
+                Menu(AppStrings.SFTP.copyAs.swiftUIKey, systemImage: "doc.on.doc") {
+                    Button(AppStrings.Common.name.swiftUIKey) { UIPasteboard.general.string = file.name }
+                    Button(AppStrings.SFTP.path.swiftUIKey) {
+                        UIPasteboard.general.string = RemoteShellCommand.escapeArgument(file.path)
+                    }
+                }
+                Button(AppStrings.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard") { paste() }
+                Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil") { rename(file) }
+                Button(AppStrings.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield") { editPermissions(file) }
+                Divider()
+                Button(
+                    AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: requestDelete
+                )
+            } preview: {
+                MobileSFTPFilePreview(file: file, width: previewWidth)
+            }
+            .accessibilityHint(file.isDirectory ? Text(AppStrings.Common.open) : Text(AppStrings.SFTP.download))
+    }
+}
+
+/// The lifted preview must carry its own background; the list's UIKit background stays behind.
+struct MobileSFTPFilePreview: View {
+    let file: RemoteFile
+    let width: CGFloat
+
+    var body: some View {
+        MobileSFTPFileRowContent(file: file)
+            .frame(width: width)
+            .background(Color(uiColor: .systemBackground))
+    }
+}
+
+private struct MobileSFTPFileRowContent: View {
+    let file: RemoteFile
+
+    var body: some View {
         HStack(spacing: 14) {
             Image(systemName: file.kind.symbol)
                 .font(.system(size: file.isDirectory ? 28 : 25))
@@ -135,36 +195,6 @@ struct MobileSFTPBrowser: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
-        .contentShape(.rect)
-        .contextMenu {
-            Button(AppStrings.Common.open.swiftUIKey, systemImage: "arrow.up.right") { open(file) }
-            if !file.isDirectory {
-                Button(AppStrings.SFTP.openWithProgress.swiftUIKey, systemImage: "arrow.up.forward.app") {
-                    openWith(file)
-                }
-                .disabled(!connected)
-                if canImportEditedCopy(file) {
-                    Button(AppStrings.SFTP.importEditedCopyProgress.swiftUIKey, systemImage: "square.and.arrow.down") {
-                        importEditedCopy(file)
-                    }
-                }
-            }
-            Button(AppStrings.SFTP.download.swiftUIKey, systemImage: "square.and.arrow.down") { download(file) }
-            Divider()
-            Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(file) }
-            Menu(AppStrings.SFTP.copyAs.swiftUIKey, systemImage: "doc.on.doc") {
-                Button(AppStrings.Common.name.swiftUIKey) { UIPasteboard.general.string = file.name }
-                Button(AppStrings.SFTP.path.swiftUIKey) {
-                    UIPasteboard.general.string = RemoteShellCommand.escapeArgument(file.path)
-                }
-            }
-            Button(AppStrings.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard") { paste() }
-            Button(AppStrings.Common.rename.swiftUIKey, systemImage: "pencil") { rename(file) }
-            Button(AppStrings.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield") { editPermissions(file) }
-            Divider()
-            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: requestDelete)
-        }
-        .accessibilityHint(file.isDirectory ? Text(AppStrings.Common.open) : Text(AppStrings.SFTP.download))
     }
 }
 
