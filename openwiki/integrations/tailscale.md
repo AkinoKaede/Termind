@@ -48,10 +48,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T20:56:45.458Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T20:56:45.458Z
 ---
 
 # Tailscale groups, embedded nodes, and SSH
@@ -179,7 +179,7 @@ The active-node monitor polls every three seconds, applies changed Exit Node pre
 
 Peer forms show MagicDNS, addresses, online state, operating system, expiry and last-seen information. Discovery ping distinguishes a direct endpoint, peer relay, DERP region and unknown route; invalid/nonfinite latency or server error fails. The presented form owns its once-per-second ping task and last 30 latency samples; dismissal cancels it. Ping success proves discovery reachability, not SSH permission or a successful login.
 
-When debugging, first distinguish Pro denial, device enrollment, pending Exit Node, missing SSH advertisement, host-key mismatch, browser policy approval and remote username. For external-service data handling, inspect `LandingPage/src/components/PrivacyPolicy.astro`; its Tailscale disclosure is separate from optional Termind Crashlytics reporting.
+When debugging, first distinguish Pro denial, device enrollment, pending Exit Node, missing SSH advertisement, host-key mismatch, browser policy approval and remote username. For external-service data handling, inspect `com.akinokaede.termind/src/components/PrivacyPolicy.astro`; its Tailscale disclosure is separate from optional Termind Crashlytics reporting.
 
 ## Focused verification
 

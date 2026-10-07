@@ -8,14 +8,10 @@ sources:
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
-  - id: openwiki-source-d2e7cb31d1a80790818ed440
-    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalHighlightSettingsModel.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
   - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
-  - id: openwiki-source-4fa88a1531df1670329dabc9
-    resource: repo://Frameworks/TermindDomain/Sessions/TerminalHighlightPreferences.swift
   - id: openwiki-source-bcf5761569fe8b5098014524
     resource: repo://Frameworks/TermindPersistence/SettingsSyncStore.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -46,10 +42,10 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift
   - id: openwiki-source-821c6451f936b3390d26080d
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
-  - id: openwiki-source-76bfec2a5f9d38c73ab870c3
-    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalKeywordHighlighting.swift
   - id: openwiki-source-0d0e7ce62874bbaca379e0eb
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
+  - id: openwiki-source-01fd62d857f198c9f92cb8a5
+    resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-60d390fe6fbfea55a2a8230a
@@ -122,8 +118,6 @@ sources:
     resource: repo://TFM/Features/Ports/PortForwardingView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
-  - id: openwiki-source-af7fbbca079c2cb6201a5151
-    resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift
   - id: openwiki-source-c661b665fc19c6bd43499b01
     resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -174,10 +168,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # UI state and presentation principles
@@ -283,7 +277,7 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 `TerminalThemeOptions` is the read-only, appearance-filtered theme browser model. It preserves missing, empty and wrong-appearance stored names and shows `TerminalThemeAvailabilityNotice` when the selected base is unavailable; rendering chooses an appearance-specific default without repairing storage on entry. Each app's light/dark browser has a custom tile and separately editable custom configuration. Tapping a catalog tile calls `TerminalSettingsModel.selectTheme`, which saves the chosen name **and disables that appearance's custom overlay atomically**; tapping Custom calls `selectCustomTheme`, enabling the overlay without changing the saved base name. Successful selection goes Back on desktop or dismisses the mobile browser; save failure retains the page and shows `storageError`. Rendering applies resolved base theme, enabled custom overlay, then device-local typography in that order. Desktop custom editing debounces autosave, flushes on disappearance and imports UTF-8 files; mobile opens a draft `MobileEditorSheet` and explicitly saves the custom text. Theme previewing and opening Settings alone do not write preferences. Tests cover font membership/precedence/controller identity, theme fallback and overlays with zero writes on opening desktop Settings, and mobile controls in English and both Chinese scripts.
 
-Terminal keyword highlighting is a separate synchronized preference. Both Settings shells expose the shared rule editor: Domain supplies fixed built-in rules and bounded custom rules, Application validates and saves edits before publication, and Presentation converts colors and matching modes into Ghostty runtime rules. A remote pattern unsupported by the current engine is skipped while usable rules remain active. The desktop and mobile terminal views apply the resulting rules without replacing their native surfaces.
+The app-owned keyword-highlighting editor, rule model and shared runtime modifier were retired. Terminal Settings now exposes theme, local typography and shell-integration choices, not synchronized highlighting rules. V52 removes historical highlighting storage, and Settings preparation/receipt excludes inactive legacy records without replacing other preferences. Preserve historical schema shapes rather than recreating the deleted UI; see [Ghostty Terminal Integration](ghostty-terminal-integration.md) and [Persistent Data and Secrets](persistence-and-secrets.md).
 
 Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
 

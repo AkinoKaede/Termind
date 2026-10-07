@@ -12,18 +12,22 @@ sources:
     resource: repo://.swift-format
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-6c477adbd17d240038ac8d60
+    resource: repo://com.akinokaede.termind/package.json
+  - id: openwiki-source-fcca55af6fa67b76822099ae
+    resource: repo://com.akinokaede.termind/README.md
+  - id: openwiki-source-a6a2820ffcf779217cd84d9e
+    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
+  - id: openwiki-source-48fb5cabce8010d9034f072c
+    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
+  - id: openwiki-source-7af97a29763d6f133e4b4851
+    resource: repo://fastlane/Fastfile
+  - id: openwiki-source-cf46ee9dde9e2af41c84b62f
+    resource: repo://fastlane/lib/screenshots.rb
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
-  - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
-    resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
-  - id: openwiki-source-103853faf6b28763354a1c79
-    resource: repo://LandingPage/package.json
-  - id: openwiki-source-c76cbada020604024adadb22
-    resource: repo://LandingPage/README.md
-  - id: openwiki-source-554fe71f1ba6efebee0d020c
-    resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
     resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
@@ -32,14 +36,10 @@ sources:
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
-  - id: openwiki-source-caa5d720c9123cdab2a47976
-    resource: repo://Scripts/prepare-local-ghostty-workspace.sh
-  - id: openwiki-source-6a4176e7d97bf05b3983882c
-    resource: repo://Scripts/run-mac-marketing-screenshots.sh
-  - id: openwiki-source-9621f35145a32a9f8391084b
-    resource: repo://Scripts/run-mobile-marketing-screenshots.sh
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
+  - id: openwiki-source-4a3da903a25eadf04e18c0fe
+    resource: repo://Scripts/Tests/test_screenshots.rb
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
@@ -52,6 +52,8 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-5147eea728b12cb304c33011
+    resource: repo://TFITests/KeyWindowTestTrait.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
@@ -66,32 +68,34 @@ sources:
     resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
+  - id: openwiki-source-779ce1e482a2591d146f565f
+    resource: repo://TFITests/Screenshots/MobileScreenshotTests.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-dc392b9979d99f5026bdeadf
     resource: repo://TFMTests/PresentationCopyTests.swift
-  - id: openwiki-source-6dffacb05c6053dcaab19d80
-    resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
+  - id: openwiki-source-db017475c6e5a30e0527fd60
+    resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Build, Test, and Release
 
-This is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The Astro landing page is a separate Node workspace under `LandingPage/`.
+This is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The public Astro website and assets are an independent Git submodule at `com.akinokaede.termind`, with its Node project at that root.
 
 Choose the narrowest quiet check that proves the changed behavior, then expand to the affected target or default suite before delivery. Preserve complete failure output: a green unrelated build is not evidence that the changed feature works.
 
 ## Baseline safety rules
 
 - **Use the resolved package graph.** Every ordinary Xcode build, test, and screenshot build must retain `-onlyUsePackageVersionsFromResolvedFile`. Without it, Xcode may resolve newer dependencies instead of testing the revisions recorded in `Package.resolved`.
-- **Keep artifacts and secrets local.** Never commit secrets, local `.env` files, generated build products, `DerivedData/`, `.build/`, `build/`, `*.xcresult`, `LandingPage/dist/`, `node_modules/`, or user-specific Xcode state. `.gitignore` excludes local environment files but explicitly permits `.env.example` and `.env.*.example` templates; inspect the staged diff rather than assuming ignored files cannot be staged.
+- **Keep artifacts and secrets local.** Never commit secrets, local `.env` files, generated build products, `DerivedData/`, `.build/`, `build/`, `*.xcresult`, `com.akinokaede.termind/dist/`, `node_modules/`, or user-specific Xcode state. `.gitignore` excludes local environment files but explicitly permits `.env.example` and `.env.*.example` templates; inspect the staged diff rather than assuming ignored files cannot be staged.
 - **Keep commits focused.** State the outcome, affected layers, and verification in the PR; include bilingual UI screenshots where the change calls for them. Run the Chinese localization check as part of every commit pipeline, including code-only changes.
 - **Validate the owner boundary as well as behavior.** A dependency, persistence, or framework-ownership change should include the focused architecture boundary tests; platform/UI changes need the relevant platform target and feature tests.
 
@@ -179,17 +183,30 @@ Do not treat gated mobile integration suites as part of routine default coverage
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileEditorToolbarTests
 ```
 
-`TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the command-line opt-in; Xcode forwards it to the test host as `TERMIND_MOBILE_UI_TESTS=1`. Check the actual suite annotation before choosing a gate: other key-window suites (for example batch startup, workspace windows and paywall rendering) use the same opt-in, but not every test that mounts a window does. `MobileAdaptiveLayoutTests` is a separate serialized, **ungated** suite: it mounts `MobileRootView` in a temporary key `UIWindow`, resizes size classes and widths, checks tab and navigation identity, drafts, scroll/focus/marked text, and attaches captures across English and both Chinese locales. Its fixture restores the prior key window after each run. Because it also uses process-wide UIKit state, target it narrowly with `-parallel-testing-enabled NO` when investigating adaptive behavior rather than assuming it has the suite-level opt-in:
+`TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the command-line opt-in; Xcode forwards it to the test host as `TERMIND_MOBILE_UI_TESTS=1`. Check the actual suite/test annotation before choosing a gate. `MobileAdaptiveLayoutTests` is serialized and puts `.requiresKeyWindow` on its native-window cases; pure width-classification logic still runs by default. Its native fixtures preserve tab/navigation identity, drafts, scrolling/focus/marked text across English and both Chinese layouts and restore the previous key window. Opt into those cases explicitly:
 
 ```sh
-xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileAdaptiveLayoutTests
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileAdaptiveLayoutTests
 ```
 
-`MobileMetricsJourneyTests` is **also serialized and ungated**: it mounts a temporary key window with an injected metrics sampler, then hides it, restores the prior key window, and shuts down the metrics core. Its three-language journey keeps keyboard-interactive authentication in the metrics detail route across width changes and large type, checks that submitting both fields reaches the sampler only once, and records PNG attachments plus files in the system temporary `termind-metrics-journey` directory. Since this suite manipulates process-wide UIKit state and creates captures, run it deliberately with an installed simulator and nonparallel execution when changing metrics navigation or authentication; do not claim it is skipped in a default run:
+`MobileMetricsJourneyTests` is a serialized **key-window-gated** suite. Its three-language fixture preserves keyboard-interactive authentication across widths and large type, restores the prior key window and shuts down the sampler, and emits review PNGs. Those cases are skipped without opt-in; a default green run is not native presentation evidence:
 
 ```sh
-xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileMetricsJourneyTests
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileMetricsJourneyTests
 ```
+
+### Marketing capture and framing
+
+App-owned fastlane lanes use `run_tests` (scan) over hosted `MacScreenshotTests` and `MobileScreenshotTests`, not XCUITest snapshot helpers. They build once with resolved packages, run serially and promote only validated successful batches after backing up old bytes. Mac defaults to full-screen 14-inch Workspace in three locales and requires macOS 27 plus active/key 2× native capture. Mobile defaults to five scenes on exact iPhone 18 Pro/iPad M5 devices and iOS 27.0; Duo outer/inner are separate opt-in 27.1 display batches. `fastlane frames` reads captures, applies local licensed Apple templates and aperture masks to staged copies, and validates all renders before publication.
+
+```sh
+bundle exec fastlane mac screenshots plan:true
+bundle exec fastlane ios screenshots plan:true
+bundle exec fastlane frames plan:true
+bundle exec ruby Scripts/Tests/test_screenshots.rb
+```
+
+Planning and Ruby checks do not open windows. Actual Mac capture takes desktop focus; do not run it routinely. `Scripts/run-mac-screenshots.sh` / `run-mobile-screenshots.sh` delegate to these lanes. Initialize the public asset submodule only for asset work; explicit external review paths remain supported. The canonical [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) owns setup, Ruby requirements, selectors, runtime/posture, handshake, template imports/licenses, Figma and 72-board export details.
 
 ### Commerce validation
 
@@ -214,15 +231,16 @@ AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localiz
 ../AgentKit/Scripts/build-localizations.sh
 ```
 
-## Landing-page validation
+## Public website validation and asset publishing
 
-`LandingPage/` is an independent private Astro package. Its production build runs both `astro check` and `astro build`, emitting output to `LandingPage/dist/`:
+Initialize `com.akinokaede.termind` only for website/asset work. Its independent public Astro project requires Node 22.12+ and emits `dist/` at the submodule root:
 
 ```sh
-cd LandingPage && npm ci && npm run build
+git submodule update --init com.akinokaede.termind
+(cd com.akinokaede.termind && npm ci && npm run build)
 ```
 
-Use `npm ci` when reproducing the locked dependency graph; use `npm run dev` for local iteration. For website changes, visually check English and Chinese routes in addition to the build. The site keeps its screenshot inputs deliberately narrow: it imports an explicit allowlist of framed assets rather than copying full-resolution captures into `public/`. `dist/`, `.astro/`, and `node_modules/` are generated and must remain uncommitted.
+Use locked `npm ci` and `npm run dev` for iteration. The build performs Astro checking before generation and transforms a typed frame allowlist from `assets/device_frames` into AVIF/WebP/JPEG; never copy captures into `public/`. Visually check `/`, `/zh-hans/`, `/zh-hant/`, the `/zh/` compatibility redirect and narrow layouts. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`. Native app builds do not depend on this checkout.
 
 ## AgentKit: release, bump, and re-resolve
 
@@ -252,23 +270,11 @@ This shows the required ordering from a host-neutral package change through Term
 
 Do not skip the release or resolve steps: a project-file bump alone does not establish the exact revision used in ordinary builds, and local sibling edits are invisible to that build. Likewise, do not casually refresh the lock file during unrelated work—the resolved graph is a reproducibility boundary.
 
-### Ghostty fork is a different pin workflow
+### Ghostty direct upstream dependency
 
-`libghostty-spm/` is a maintenance submodule tracking the fork's `termind` branch; initialize it with `git submodule update --init libghostty-spm` for package maintenance. Xcode uses an up-to-next-major version requirement from `2.2.2026100303`, with that release selected in the lockfile, independently of the local submodule checkout. Push fork changes to `termind`, then update the submodule gitlink, project minimum version and `Package.resolved` together. If changing `Patches/ghostty/`, first ship a new fork XCFramework release and update its `Package.swift` URL and checksum before advancing the app pin. Otherwise a local submodule edit or stale binary URL can misleadingly appear to be part of a passing app build when it is not. See [Ghostty Fork Maintenance](ghostty-fork-maintenance.md) for patch application, local workspace preparation, package tests and the full release sequence.
+Ghostty now comes directly from `Lakr233/libghostty-spm`, with up-to-next-major minimum and resolved version `2.2.2026100501` at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink.
 
-For unreleased native Ghostty work, the explicit local override is a different validation route:
-
-1. Build `libghostty-spm/BinaryTarget/GhosttyKit.xcframework` using the package's `build.sh` first.
-2. Run `Scripts/prepare-local-ghostty-workspace.sh` from the app checkout.
-3. Build through the generated workspace rather than the ordinary project:
-
-   ```sh
-   xcodebuild -workspace build/KeywordHighlighting/Termind.xcworkspace -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
-   ```
-
-The helper requires the local XCFramework's `Info.plist`, copies `Package.local.swift` as the staged `Package.swift`, symlinks `Sources`, `Tests`, and `BinaryTarget`, and copies the app lockfile into `build/KeywordHighlighting/Termind.xcworkspace`. It refuses to replace an existing non-symlink staging entry. This ignored workspace does not change committed app pins: report its results as **local override verification**, not verification of the released remote binary. Ordinary `-project` builds still consume the resolved remote release; publishing and advancing that release remains necessary for delivery.
-
-The project requirement and lockfile were rechecked for this documentation update; their existing Ghostty version agrees. No dependency bump, local binary build, or successful build/test execution is implied by that source inspection.
+Update the upstream requirement and `Package.resolved` together, then use resolved-only TFM and TFI builds and the affected adapter tests. Grouping, localization and upload policy remain Termind-owned around the package's separate touch/selection hooks. Package internals need their own source/test review; a host test or pin inspection is not a binary-release or live interaction result. See [Ghostty Dependency Updates](ghostty-fork-maintenance.md).
 
 ## Release-oriented checklist
 
@@ -276,10 +282,10 @@ The project requirement and lockfile were rechecked for this documentation updat
 2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes.
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-appstrings.sh` alongside `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
-5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
-6. Keep visible-window, gated mobile key-window integration, gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout and metrics-journey suites deliberately without parallel testing for relevant UI changes; they are not disabled by the mobile UI gate.
-7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.
-8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files. For Ghostty fork work, align the pushed revision, submodule gitlink, project minimum version and lockfile; refresh the XCFramework URL/checksum first if patches change.
+5. For website changes, run `cd com.akinokaede.termind && npm ci && npm run build` and inspect English and both Chinese routes.
+6. Keep visible-window and mobile key-window gates off routinely. For affected native UI cases, opt in with the exact flags above, disable mobile parallel testing and narrow the suite; adaptive key-window cases and Metrics Journey are not default coverage.
+7. Regenerate changed native captures through scan, then matching frameit outputs and Figma layers/final JPGs; follow the asset guide's licenses, dimensions, localized visual review and SSH-first publication.
+8. For AgentKit work, complete release → minimum-version bump → re-resolve and commit both dependency files. For direct Ghostty updates, align the upstream requirement and lockfile and validate both native adapters.
 9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing. A green build or test run is not proof of StoreKit purchase/restore or deployed storefront configuration: record the actual executed suites and follow the separate commerce release verification.
 
 CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](port-forwarding-benchmarks.md).

@@ -57,7 +57,7 @@ sources:
 generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 ## Scope and operating model

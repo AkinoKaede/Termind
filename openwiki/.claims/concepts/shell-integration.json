@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d98b21817fe9f0c76f2e5e2968b1a9440842a6761f6358d74a530de60e54f4f6",
+  "pageVersion": "sha256:5b90f2296f92794029073ed6f4df3062975ec6a6be9299c59e5d32a27a207ce6",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
       "statement": "The PTY worker requests a PTY and environment before starting the shell, then conditionally queues shell integration bootstrap; environment-request denial is nonfatal while other errors fail setup.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1216-L1325",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1047-L1156",
           "version": "repo-lines-v1:sha256:badcddee68ad5f16f59d5a4042eb42eb19027af3537873f616c5d066d3b3af79:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3MWNhYzE4M2MyMDgzYzJiZTAyZWQ0ZDdiNDUyZTA4OTQzMjhjMTdjY2YzNzUyMDBhOTk4ZjYzYmQ1ZDdlYzlmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhOGUwMmJkMzI0ZWZiZDUyNzg3ZDI1OWFlNDAyYWJiYWQ1MDkwNTEyNDY3ZDI3ODk1YzZhYzA5MmE3Y2JlZWRmIn0"
         }
       ]
@@ -21,7 +21,7 @@
           "version": "repo-lines-v1:sha256:8b433137dfb79d25b281cccb1b9b74a08e101fade6a195941d7efef9ed518886:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNmIwMDE5YjA2YWFlZmNiZTIxMjg4ZTBlMTNjZGU5ZDcwYjAyMzk3MmVmNzg3MWVkNTc4NmQyZTA0MTgzYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L396-L407",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L375-L386",
           "version": "repo-lines-v1:sha256:2d7c1067ff14563a949bc78654462b0d48bfbecd9e225171047a45b65099a66d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1MTZiODA1NzQxMzg1ZDNmN2U1M2MzZDViNGQzNzgwMjQxN2IwMmIxMWU0MmIwYzJkMjIzNTI0YTgwM2ZhZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTYxMDRkNmVhZjFmMmNjNmE3ZmQ4NzhmN2M4YmYxOTUyMmQ4NmE3OWRmMGU5ZjU5YmNkZWQ1M2U1ZWE4MjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMDQ0Y2I3YTNhNDZmYTMxNTcxYjczMTkxOGU0ZjRlNDJiNGFlNWM4YTkyZDhmYjhkZmY2M2VjNjU4NWE3YjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwNWRhNmVjM2Q5NDQwNjFjMGNiOTljZTcxZTE0YzhlMDQ4YjcxMTcxNjFlYzJhYjdmMDY0ZGM2NTFhYzU2NzkifQ"
         },
         {
@@ -72,7 +72,7 @@
         },
         {
           "resource": "repo://TFMTests/ShellIntegrationBootstrapTests.swift",
-          "version": "repo-file-v1:sha256:1251f7f9e903f0a58cc819516506a38a542a3516478e58afc37f072a6cd85a76"
+          "version": "repo-file-v1:sha256:7c5bec96bc498293f360cf7565d45e6182e021509c5cb56a93eddbe568a01435"
         }
       ]
     },
@@ -85,7 +85,7 @@
           "version": "repo-lines-v1:sha256:74cdd9b244ac68c465c400c9040848f8b2053b4492dec1aa9bd0e9ec9aedd348:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0NGQ3NmExODQ0NTFjNWJkMDRkZGMxNDBkMGUxOTU3MjAwYjkxNmJjMTNkNzFlYzExYjY3Y2FlNmU1YTZhYmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5MTEzOTczOTcwNzFmOWUzYzYwNGZhNDU5NjhlMDk3YTMxYWQ1ZWEyYTA0NzlhZGI1OGFkMjgyYzc1MzIzNjUifQ"
         },
         {
-          "resource": "repo://TFMTests/CommandHistoryTests.swift#L229-L354",
+          "resource": "repo://TFMTests/CommandHistoryTests.swift#L219-L344",
           "version": "repo-lines-v1:sha256:e8c2c07dbd22ef8efcf468c9b425adf26a32e3e1051c398a0357f7232ade3678:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNjY2NzRiZDE4MjM2ODFjZjM4MWRjMDk2NDMwNGQxYTljYjg5OTgyZjhhNGVkMjY5YjE4MTQ1YTM2NzBjOWZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmOGU4N2M0ZjVmMWU3NjkyMzI3NDY1YjNjYmRiOTdlYWY0NmE5YmU3YzFjNjhlNDE5NWMwNmU3MTRmYTdjZmVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         }
       ]
@@ -99,7 +99,7 @@
           "version": "repo-lines-v1:sha256:3e6230723817be9c2324274e0104892ee2f3c5552d466142eb172c2d680ce7be:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyMDMwZjQwMTk1YjcyNmE0NTNjMWI2NmRmMDAyN2FlY2JhNzU1MGZiODhjNTgzYTIwYzY3MDNlNGMzODFjYzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkZjYwMzc2M2ZmN2FlZTk5M2E0MDFmYTI4NGI2ODg2MTNlMzVjYTEwMTFkMDg1Y2NiOWJmMWM0YTlhZWEwNzIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1736-L1812",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1567-L1643",
           "version": "repo-lines-v1:sha256:faa30a3a8eb7a45c92df42852ff29595139fec4eda159482a2977c4a042f84db:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzNmQ4MDA2NzFiYzAyYTRkNzhjZDFlNTliZGI5Y2Q1ZTMxZmI4NDUyNmJiOGE1N2I1OTgwMTM0OGYyNDVkMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4YmMzMjQ1OTg4ZmE3MTU5NGQ3NzdhMWMwZGRjNTEyMGY0NDQ3YzA3ODUxNzMxNTI0ZmI3ZmM3NzU3NDJhMzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3ZmQyNzBkYTFjOGNiN2Y1NjhiMWRmMDBhNzFlMTMwMTcxZmJlY2RkNmJiNDkzNGUzNzkxMWI0OGJkMGRmNTAifQ"
         },
         {
@@ -114,11 +114,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:9c50f474786d79ebe66874050d6a7fcac518d844ae025e5e9bf09277354b019a"
+          "version": "repo-file-v1:sha256:38211fbcc14ac724b1dcf4ce775cd5f3a8032776ff5b5970ab5c0d4d93e59d6e"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:47bed72c5e01acb108945d29a53a400ba7e2915b6e235956b2667108dafec886"
+          "version": "repo-file-v1:sha256:0aed99f567d9ffa37a82a3ed0385a291553375f2cb448336edf99b30a4d06243"
         }
       ]
     },
@@ -138,15 +138,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:fb2c6a49e4c411c7845266be08d098b13b6d705a98b61ce767aedb418e79d3db"
+          "version": "repo-file-v1:sha256:4bc50b80a32ea1ea45e00a7419e6fb6a1412007fc0abd337fa6d111a40096d11"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1322-L1357",
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1338-L1373",
           "version": "repo-lines-v1:sha256:bb75913b83f6e4abd38227bc4d58bc000fe80c50e4c5358d8fb2a8dc5d155aa2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMDIyZjljOWE3NTNkYmFkMWJjMmIxYWExMDNhZDcyMmYyODZjMzdjN2JkY2NlNjc3OTJhMjUxZjJlOTA4NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0N2UxYjRmODc2MDY4MmU2NjZjNDQzZTE2NmEzZjU5MDdkYTdhOGE3OGI5ZTU2ZGYyNmFlNzg2YmMwOWNjNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxNjI5MjA1YjhhMzE1N2MxYWNhOTRiOTExYjRlMWRkM2IwN2NiOWI3Y2Q1NDY3OThiNzc2ZGJjYjhkMmJiZDAifQ"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:47bed72c5e01acb108945d29a53a400ba7e2915b6e235956b2667108dafec886"
+          "version": "repo-file-v1:sha256:0aed99f567d9ffa37a82a3ed0385a291553375f2cb448336edf99b30a4d06243"
         }
       ]
     },
@@ -210,7 +210,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:fb2c6a49e4c411c7845266be08d098b13b6d705a98b61ce767aedb418e79d3db"
+          "version": "repo-file-v1:sha256:4bc50b80a32ea1ea45e00a7419e6fb6a1412007fc0abd337fa6d111a40096d11"
         }
       ]
     },
@@ -239,7 +239,7 @@
       "statement": "A per-terminal TerminalCommandMonitor selects OSC 133 completions until a shell-integration available event switches that connection to private start/finish events; it ignores subsequent OSC 133 reports, requires a pending start for a private finish, and resets source and running command across connections.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L49-L86",
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L48-L85",
           "version": "repo-lines-v1:sha256:ccab43bf42c472050075b540582121f582b6f153ed041243b7679deb08b19e94:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2MTc3NDc5NmQwYjFmMzljYzAzZDkzMzEyZTVlYmNmNWJhYzU5NDNjOGU0MGMyMTI0ODdiNGMzNzFkMGEyOTQifQ"
         },
         {
@@ -262,7 +262,7 @@
         },
         {
           "resource": "repo://TFMTests/CommandNotificationTests.swift",
-          "version": "repo-file-v1:sha256:5e557892e090510680b2e29a6849baf4789a1b465bdb203b6534fc25376b186c"
+          "version": "repo-file-v1:sha256:977ed9b1349e11357392f9319415374dde8ea7c236936d40f6bdceb528309a27"
         }
       ]
     },
@@ -271,7 +271,7 @@
       "statement": "For private hook completions the monitor uses a valid nonnegative finite reported duration or falls back to nonnegative elapsed uptime, and consumes the pending command once so duplicate or unmatched finishes do not create another completion.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L49-L70",
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L48-L69",
           "version": "repo-lines-v1:sha256:73d362608852535adc1f5f8d0c39a08fe31c3c78883bb73febe175dcf1f5a580:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OThmMWIzODRjMzY4Yjg2YmQ3ZGNlNjBjZDBhY2QwYjllYTY2MzFkOTA4MDA3YmFiNWMwMzFmZWI2MjRhMTgifQ"
         },
         {
@@ -285,7 +285,7 @@
       "statement": "Unread completion accounting is independent of alert eligibility: background completions increment unread before settings filtering, focused completions clear it, and markRead explicitly resets it; alerts depend on enabled notification settings, terminal mode, focus and minimum duration.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L11-L46",
+          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L10-L45",
           "version": "repo-lines-v1:sha256:8fe0fa96dc1259a3e539a19445a2089115324b1b05fcd2836a4607cf7437d507:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MzBhZmY2OGE4OTY2ZGQ4NmRlMTdjY2FlM2Y4OTQ4NjQzYzkwYzUwYTYxNDBlMWI2NDljNmNjZGVhOTcwZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MzNjOTcyYzExZjI2NWM0M2JlMWY3ODI5NjIzMGZlMjcxZjk4YjRhOTZjOGYwZGU1Yjg3NTdlNjZiYzY1MTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4OGMwMmE3MjgzMjBhYjVmN2QyZWEzNmY4MzE4NjY0NTQ2NTE0YjU1NjE0MzUzOThjZGEyNDBhMTg2MzIwNmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1MzU5MDBjZmY5ZTJmYWUxN2VkMGEyZTExYjFiZWM0MTU4NDE5YzY1MzRlMjFiN2ZlNjFhMzgyNGM0MGMxNjMifQ"
         },
         {
@@ -315,7 +315,7 @@
           "version": "repo-lines-v1:sha256:8be2bbfbc0856746a631f20060b0012f6656132ff1ecd2489cd9789dfa6895d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5NDhiM2U3YTMzMWUxYzVmYmQwNDA5Nzg2NmNkYjA1ZTkyZTBiNzIyZDhmOGJlOTY4MzFmYWUxYTRmNGU0NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5OTM3NGRjMmU0MGFkZmQ0ODEwMzRmMDAzMDQzMTk4MDYxODRlOWUwMjBiZjYyYmQ4MWRlZDFhNzM5NzIyNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L101-L119",
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L93-L111",
           "version": "repo-lines-v1:sha256:f3802266af183f0f1695b2d185fd5c843dff63a3f369a06fef9a9168b6efc853:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
@@ -349,6 +349,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-04T16:22:58.117Z"
+    "at": "2026-10-06T18:02:45.153Z"
   }
 }

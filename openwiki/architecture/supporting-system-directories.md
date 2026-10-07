@@ -12,30 +12,38 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
-  - id: openwiki-source-ea04d3d10088e2d554646adf
-    resource: repo://Design/Brand/README.md
+  - id: openwiki-source-54a517e25bf7220eb9067177
+    resource: repo://com.akinokaede.termind/assets/README.md
+  - id: openwiki-source-0246c48ce8a82949613e5d20
+    resource: repo://com.akinokaede.termind/design/README.md
+  - id: openwiki-source-6c477adbd17d240038ac8d60
+    resource: repo://com.akinokaede.termind/package.json
+  - id: openwiki-source-fcca55af6fa67b76822099ae
+    resource: repo://com.akinokaede.termind/README.md
+  - id: openwiki-source-a6a2820ffcf779217cd84d9e
+    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
+  - id: openwiki-source-f2e3c2208232f6d2e4b142f5
+    resource: repo://com.akinokaede.termind/src/layouts/BaseLayout.astro
+  - id: openwiki-source-54475365456bc7ee7b3ac1b2
+    resource: repo://com.akinokaede.termind/src/lib/comparisons/index.ts
+  - id: openwiki-source-99625a4586d759ede6543036
+    resource: repo://com.akinokaede.termind/src/lib/comparisons/termind.ts
+  - id: openwiki-source-37c59bb67bf496fd4a44f0ab
+    resource: repo://com.akinokaede.termind/src/lib/i18n.ts
+  - id: openwiki-source-48fb5cabce8010d9034f072c
+    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
+  - id: openwiki-source-dcb2f8763c6c52696557ae46
+    resource: repo://com.akinokaede.termind/src/lib/pricing.ts
+  - id: openwiki-source-4c22145572a82f1dd48f37e0
+    resource: repo://fastlane/lib/screenshot_frames.rb
+  - id: openwiki-source-cf46ee9dde9e2af41c84b62f
+    resource: repo://fastlane/lib/screenshots.rb
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-23be2440342b8fbbefe69214
     resource: repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift
   - id: openwiki-source-581eed02dfaf161420cc4d9d
     resource: repo://FrameworkTests/Fixtures/README.md
-  - id: openwiki-source-103853faf6b28763354a1c79
-    resource: repo://LandingPage/package.json
-  - id: openwiki-source-c76cbada020604024adadb22
-    resource: repo://LandingPage/README.md
-  - id: openwiki-source-f894c24280d3caaaf2b6dcdf
-    resource: repo://LandingPage/src/components/ScreenshotPicture.astro
-  - id: openwiki-source-d2984266929be0fa570924e0
-    resource: repo://LandingPage/src/layouts/BaseLayout.astro
-  - id: openwiki-source-dde6f9f425dc38df06be00d6
-    resource: repo://LandingPage/src/lib/i18n.ts
-  - id: openwiki-source-554fe71f1ba6efebee0d020c
-    resource: repo://LandingPage/src/lib/marketingImages.ts
-  - id: openwiki-source-af8475d091e6a266ad69723f
-    resource: repo://LandingPage/src/pages/zh/index.astro
-  - id: openwiki-source-446ef49ac8edac86b5511fe5
-    resource: repo://Marketing/README.md
   - id: openwiki-source-d32eeff4d814c0dbd05e14b8
     resource: repo://Scripts/benchmark-port-forwarding.py
   - id: openwiki-source-790223eb6fb4a24b2cf2d359
@@ -44,16 +52,12 @@ sources:
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
-  - id: openwiki-source-caa5d720c9123cdab2a47976
-    resource: repo://Scripts/prepare-local-ghostty-workspace.sh
-  - id: openwiki-source-6a4176e7d97bf05b3983882c
-    resource: repo://Scripts/run-mac-marketing-screenshots.sh
-  - id: openwiki-source-9621f35145a32a9f8391084b
-    resource: repo://Scripts/run-mobile-marketing-screenshots.sh
   - id: openwiki-source-a90133154199a9c011127920
     resource: repo://Scripts/Tests/test_bump_version.py
   - id: openwiki-source-a1213a08e73ca7ac095748f3
     resource: repo://Scripts/Tests/test_port_forwarding_benchmark.py
+  - id: openwiki-source-4a3da903a25eadf04e18c0fe
+    resource: repo://Scripts/Tests/test_screenshots.rb
   - id: openwiki-source-2241f95e71114ed235d89f10
     resource: repo://Scripts/update-pi-model-catalog.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -70,6 +74,8 @@ sources:
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
   - id: openwiki-source-8d34d9ba6456e86e57933569
     resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
+  - id: openwiki-source-779ce1e482a2591d146f565f
+    resource: repo://TFITests/Screenshots/MobileScreenshotTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -80,14 +86,14 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-  - id: openwiki-source-6dffacb05c6053dcaab19d80
-    resource: repo://TFMTests/Screenshots/Marketing/MacMarketingScreenshotTests.swift
+  - id: openwiki-source-db017475c6e5a30e0527fd60
+    resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Supporting Systems Ownership Guide
@@ -100,15 +106,15 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
-The other submodule paths are not automatically build inputs either: `.gitmodules` declares `libssh2-spm` and a `libghostty-spm` maintenance checkout tracking `termind`. Xcode references their remote packages instead: `libssh2-spm` at exact version `2.0.3-termind-4`, and `libghostty-spm` with an up-to-next-major requirement from `2.2.2026100303`, selected in `Package.resolved`. For Ghostty fork maintenance, update the submodule gitlink and both Xcode dependency records together after pushing the fork; follow [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the pin/update procedure rather than assuming an edit to a local submodule changes the app build.
+Maintenance checkout presence is not an Xcode build input: `libssh2-spm` tracks `termind`, while Xcode consumes its remote exact `2.0.3-termind-4` release. Ghostty is different: there is no local Ghostty maintenance submodule or staging override. Xcode consumes `Lakr233/libghostty-spm` directly, with an up-to-next-major requirement and resolved version `2.2.2026100501`. Keep its requirement and resolution aligned; see [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md).
 
 ### Maintenance checkouts versus build inputs
 
-Maintenance checkouts and resolved build inputs are separate. An initialized checkout may track a different maintenance commit than the released package pin; its presence alone does not change an ordinary Xcode build. `.gitmodules`, the Xcode package requirements, and `Package.resolved` establish the integration boundary; they do not verify fork manifests, patches, binary contents, or internal tests. Initialize the relevant checkout before inspecting or changing those internals. Keep Ghostty fork internals and release operations in [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md), and app build/release procedures in [Build and Release](../operations/build-test-and-release.md).
+Maintenance checkouts and resolved build inputs are separate. An initialized checkout may track a different maintenance commit than the released package pin; its presence alone does not change an ordinary Xcode build. `.gitmodules`, the Xcode package requirements, and `Package.resolved` establish the integration boundary; they do not verify fork manifests, patches, binary contents, or internal tests. Initialize the relevant checkout before inspecting or changing those internals. Keep the direct Ghostty dependency boundary in [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md), and app build/release procedures in [Build and Release](../operations/build-test-and-release.md).
 
 `libtailscale-spm` follows the same separation: `.gitmodules` declares a checkout tracking `main`, while Xcode requires the remote package through `upToNextMinorVersion` from `1.0.2`, resolved to `1.0.2` at `098e6b69ea128f3a55bc560f005a3e851123dc99`. Its `TailscaleKit` product is linked by `TermindRemoteInfrastructure`; Termind's `LibTailscaleNodeSession` is the app-side adapter that owns the embedded node. The checkout is not a native feature owner or the default source of that product.
 
-There is one explicit Ghostty development override: [prepare-local-ghostty-workspace.sh](../../Scripts/prepare-local-ghostty-workspace.sh) creates `build/KeywordHighlighting/Termind.xcworkspace` with a staged local package, without changing the committed project requirements or pins. It requires an already-built `libghostty-spm/BinaryTarget/GhosttyKit.xcframework/Info.plist`, copies `Package.local.swift` as the staged `Package.swift`, links `Sources`, `Tests`, and `BinaryTarget`, and copies the app's resolution file into the workspace. It fails if the binary is missing or an existing staging entry would require replacing a non-symlink. This opt-in workspace is distinct from ordinary `-project Termind.xcodeproj` builds; preparing it does not publish a fork release or advance the app's remote dependency.
+The former keyword-highlighting local Ghostty workspace and preparation script were removed. Do not use the retired local-fork release/staging instructions for the current upstream package.
 
 ## MCP bridge and desktop server
 
@@ -165,7 +171,7 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | `TFITests` | Flat mobile suites: app/scene ownership, workspace/session behavior, backgrounding, editor/Assistant behavior, adaptive layout, and screenshots. |
 | `Benchmarks/PortForwarding` | Standalone forwarding benchmark executable over shared-framework SPI; not hosted by an app or test bundle. |
 | `Scripts` | Flat executable utilities grouped by function below. |
-| `Scripts/Tests` | Python regression tests for version bumping and forwarding-benchmark tooling. |
+| `Scripts/Tests` | Python resource/version and benchmark checks, plus Ruby regression tests for screenshot capture/frame orchestration. |
 | `StoreKit` | Local StoreKit product/test configuration; not the production entitlement implementation. |
 
 The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. Its runner exercises local, remote, and dynamic forwarding, jump hosts, duplex/mixed traffic, and idle CPU; it waits for the connection pool before recording JSON `FORWARDING_METRIC` lines and disconnects on both success and failure. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions, runs repetitions and connection limits, and fails if the executable emits no metrics; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload. The `TFM` scheme tests `TFMTests` and `FrameworkTests`; use an iOS simulator for `TFITests`. Architecture guards also check cross-layer imports, persistence ownership and feature boundaries, so an ownership refactor should update the focused source-level guard and functional tests together; these guards do not execute the forwarding benchmark. Visible-window macOS, StoreKit, and mobile key-window integration suites have separate opt-in gates rather than running in routine test invocations.
@@ -174,13 +180,13 @@ The script root has multiple independent workflows:
 
 - **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/update-pi-model-catalog.sh` requires an explicit Pi version, records npm commit/integrity, preserves model type/input/output, and deduplicates `(provider, id)` entries preferring chat over image over other types; missing output defaults by model type. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
 - **Remote fixtures and benchmarks:** SSH authentication, OpenSSH forwarding, and Telnet fixtures; native/external forwarding runners and their shared benchmark helpers.
-- **Screenshots and assets:** Mac/mobile capture runners, screenshot-demo launcher, and reproducible device-frame generation. `run-mac-marketing-screenshots.sh` requires macOS 27, defaults to the workspace scene in `en`, `zh-Hans`, and `zh-Hant`, and accepts scene/locale filters. It builds `TFM` for testing with resolved dependencies, starts only `MacMarketingScreenshotTests` for each selection, waits for its focused-key-window readiness marker, checks capture dimensions, backs up existing files, then copies captures into `Marketing/Screenshots/Captures`. A missing readiness marker, lost focus, failing test, or wrong dimensions aborts instead of silently producing a replacement image. The mobile runner similarly uses a pinned `TFI` build, iOS 27 simulators and locale-specific capture tests, and only copies a locale's images after its test and expected-count checks pass.
+- **Screenshots and assets:** `fastlane/Fastfile` runs scan over app-owned `MacScreenshotTests` / `MobileScreenshotTests`, not XCUITest snapshot helpers. The Mac lane requires macOS 27 and defaults to Workspace in three locales; its focused native-window marker, scan status and dimensions gate promotion. The iOS lane defaults to iPhone 18 Pro and iPad M5 on 27.0; Duo inner/outer are separate opt-in 27.1 display batches. A unique ready/ack handshake and exact native pixels gate each device/locale scene set. Both lanes share a nonblocking lock, preserve pinned packages and back up replaced sources with SHA-256 manifests. `Scripts/run-mac-screenshots.sh` and `run-mobile-screenshots.sh` delegate to these lanes; `fastlane frames` stages read-only source copies and publishes only after every selected frame succeeds. The full commands, licensed template imports, mask mechanics and Figma delivery contract are in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
 Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) to choose tests and [Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md) for measurement semantics. Routine documentation validation does not imply these app or wire suites have run.
 
-## LandingPage — independent Astro website
+## Public website and asset submodule
 
-Paths below are relative to `LandingPage`. This is a separate Node/Astro build, not a Swift framework or embedded app web view.
+Paths below are relative to `com.akinokaede.termind`, an independent public Git repository and Astro build. Native builds do not require it; initialize it only for website/asset work. Commit and push reviewed asset changes via SSH before updating the application's gitlink; retain the HTTPS clone URL in `.gitmodules`. It is not a Swift framework or embedded app web view.
 
 | Directory | Responsibility |
 | --- | --- |
@@ -202,23 +208,24 @@ Marketing screenshots are imported from the asset pipeline, not copied wholesale
 
 | Directory | Responsibility |
 | --- | --- |
-| `Marketing/AppStore` | Final store-ready artwork. Children `en`, `zh-hans`, and `zh-hant` divide locale; each contains `mac`, `iphone-6.5`, and `ipad-13` device sets. |
-| `Marketing/Screenshots/Captures` | Full-resolution source captures grouped by feature, with platform and locale in the asset identity. Source stage, not web-optimized output. |
-| `Marketing/Screenshots/DeviceFrames` | Reproducible device-framed PNGs derived from captures, likewise grouped by feature. The website imports an allowlisted subset. |
-| `Design/Brand` | Brand master artwork and visual guidance; separate from app icon documents and exported marketing deliverables. |
+| `assets/app_store/<locale>/<platform>` | Opaque sRGB JPGs: six boards per `mac`, `iphone-6.3`, `ipad-13`, `iphone-duo` across three locales (72 current boards). iPhone's two-device Overview is named `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. |
+| `assets/captures/<locale>/<device>` | Full-resolution native sources in `iphone-6.3`, `ipad-15`, `mac-14`, and separate Duo inner/outer directories; source identity is locale/device/feature, not feature-first. |
+| `assets/device_frames/<locale>/<device>` | Native-scale reproducible PNGs from frameit and local licensed Apple templates. Masks apply only to staged copies; website imports an allowlisted subset, including Duo. |
+| `design/brand`, `design/paywall` | Brand master and remote paywall handoff artwork. Native `AppIcon.icon` documents remain with TFM/TFI. |
 
 **Arrows below mean asset production or consumption, not code dependencies.**
 
 ```mermaid
 flowchart TB
-    Native["Native demo and screenshot fixtures"] --> Capture["Scripts / capture runners"]
-    Capture --> Raw["Marketing / Screenshots / Captures"]
-    Raw --> Frames["Scripts / device-frame generation"]
-    Frames --> Framed["Marketing / Screenshots / DeviceFrames"]
-    Framed --> Images["LandingPage / src / lib image allowlist"]
-    Images --> Astro["Astro optimized AVIF / WebP / JPEG"]
-    Raw -.->|artwork composition workflow| Store["Marketing / AppStore / locale / device"]
-    Brand["Design / Brand"] -.->|visual source and guidance| Store
+    Native["App-owned native fixtures"] --> Capture["fastlane scan and system capture"]
+    Capture --> Raw["Asset submodule / captures / locale / device"]
+    Raw --> Frames["frameit and local licensed templates"]
+    Frames --> Framed["Asset submodule / device_frames"]
+    Framed --> Images["Astro typed image allowlist"]
+    Images --> Astro["Optimized AVIF / WebP / JPEG"]
+    Raw -.->|Figma composition| Store["Asset submodule / app_store"]
+    Framed -.->|Figma image layers| Store
+    Brand["Asset submodule / design"] -.->|visual source| Store
 ```
 
 The diagram distinguishes source captures, derived web frames, and separate final App Store compositions.
@@ -243,4 +250,4 @@ Local dependency/build caches such as `node_modules`, `.build`, `build`, and web
 
 Return to the [Module Map](module-map.md) or the [Engineering Quickstart](../quickstart.md).
 
-The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot tests now live under `TFMTests/Screenshots/Marketing/` and `TFITests/Screenshots/Marketing/`; runners still select suites by their Swift type.
+The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot suites live directly under `TFMTests/Screenshots/` and `TFITests/Screenshots/`; lanes select suites by Swift type. The website Hero is Mac Workspace plus Duo outer Assistant, while App Store Overview compositions remain platform-specific.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e17c781703e6957babd42a4dcb7fde70a2883fd648092bf92564375411661411",
+  "pageVersion": "sha256:86a462a26ff969484606685cb9f53743b4aa3a2499d9240992e2fda478a84d0a",
   "claims": [
     {
       "id": "claim_2995a0e9234344e9a73843aeaeb9e9b2",
@@ -15,11 +15,11 @@
           "version": "repo-lines-v1:sha256:edec8f0cb4ab5bad3e188e683a209ce4b4ce9bbbba4edb898d4901020ae13a6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYTBmYzFlZDkwNzU2Y2Q0YzkzNjQ0MDliYzdkYTRkNjc1ODVkOWZkY2ZlMjg1NmIwYTYyNjFlNGI4ODMxNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZDQ1Y2FiZjNiMDQ3YTdhNWJlNzU2MDE3OTk3YjA0ZjAwYzJlOGM2YWEzZDczYmMyZjg4ODY1YTQ2ZmNmNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4ZmQ5M2Q5Njg3NWRhZGM5ZTg0YmZiOWU1NTRkM2JmOGVlMDIyNWNhNWVjYzk4ZmJiODdjMWVlMjFmZDVkZDUifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L299-L314",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L302-L317",
           "version": "repo-lines-v1:sha256:2819a588e65b11b00207c774ab382c30322dcbb4c0d124bb4c6f7078cf568f92:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Mzc4YjMzNGM4NjQzODNkMWJkN2EwNTg4YTI5YjkyMDkzNTJhNzc0NmZjYzkzMDMzODEwYzkzY2E0ZDEwNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiOWUzMjRjYmNhZWY3NmI5NmIzYzlkNjJjNTE0NjUwZWZkYzllZWQ4MTdhMTg2OTRkODUzMzQ4MGM4YjI3OTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3Zjk0NWUwZWY2NGZiMjJlNmY2MDgzY2NkOWQ3ZmZmYjRkZmEyZTg5OWZkZDA4NjNiZWJlNDI0OThhNWUwZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MzU2Mjk4YTVhZDU0NjMzNWY4NDgyOGVhOGY0MWY0NzE4OGZkODA4ZDcxMjA2MmEyNjljNzlmNmQ4YmY5ZjIifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L178-L183",
+          "resource": "repo://TFM/App/TermindApp.swift#L176-L181",
           "version": "repo-lines-v1:sha256:504aa7ecd10af6a55edff113125b3274bff4a9385b0b6bd1b6544b72532bc4ba:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZlZDU5MWYyZDYyZjQxZTQ4Nzg0N2ExNzFjNjM5NWJhMDhhZjlhNDI0YjU4MjEyNTMwNWUzZTQwZjkxZTFjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTc5OGFhYWVlMGFlZGQzMzY0ZjQ3Yzc2ZWJhMTU2OTU1YjM1YmI2M2VkZmFjNGU0ZDJmNzgzZDE4NGFlYmY1NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU0Y2Q2MTc1M2MyNmQxMzE2MmUxODIyMmU4NjMxYWUzMTcwYmE2NWMzOGRjMWU0YmJkZmYwNjdkMTczMGQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWFiMTYxNDVjMDA0OWU4Y2Y2MjM5YmVkZGQ0YmE3ZTIxNDQ2ZjZkYWUyZjVlNmU3NWM0ZWY2NGYyYjU2ODVjZSJ9"
         }
       ]
@@ -111,7 +111,7 @@
       "statement": "Native status requires a Peer field and retains offline diagnostic peers; only peers with stable IDs/DNS names in the network map and outside sharee nodes are accepted, and the library projects only SSH-advertising peers as managed Hosts.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2489-L2517",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2485-L2513",
           "version": "repo-lines-v1:sha256:4b5080fd513215a0659f304f111c125151b137e2382195fe2424999583fdf6e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZTk5OTkzYTNiMGExMGZjMjQ2ZWNlZjg4ODk1ZDZlN2E0NGI4NDQwZGI5ZTM5OTU1MzM4NjM4ZTNiYzk0N2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3Nzc3ZjhmM2I4MWEzYTgzOWNlOTE0Mjk1ZjMxZTAxMjIwMDQwMTgzODZjNTdkZTBiNTBkZTFmYWM1NjM4NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1ZTg1MWI0MzIyMmRjNTk4MmQ3OTU5YWNmMjVmNzNiMDc4NDA4YWY4ZTlhZWY3MTEzZjMzNGZhYTJiN2JiZDIifQ"
         },
         {
@@ -129,11 +129,11 @@
       "statement": "Managed Host saves modify group preferences while preserving managed address/name/port/authentication; ordinary identities/proxy/jumps/Telnet/agent forwarding are rejected, and managed targets cannot be jump, key-export or forwarding targets.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2519-L2547",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2515-L2543",
           "version": "repo-lines-v1:sha256:a2a3282d3eff15d07821fe83870cd09b02826fb52629ab1ebfad6f52465af2fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1MzczMGE2Mzc5M2Q0YTA0YzVlOWI4MDkyYTdkNWU3ODdlMzUxMWQ4NzJhN2EzYzIxOGQwMDc3ZjIwNmZlNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkZGFmMDcxMTg1MmJmNzFlMDEzY2RjYjc1MWQ3NzgwZDVkOTdlZThmYzZhM2RmYjMyZjg5MjEyNWMwYmU3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzM2JjYjMwNWNhNDQ5YTY2NTA5NDhjNTQ5OTc2ZWRlN2E1NGJlMWQ0NGUzZjA2MmUzYmY5ZTEzMTE4NDQ3OGIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L920-L929",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L916-L925",
           "version": "repo-lines-v1:sha256:9e85b8be78770bd523da8806421adf2b28730f37434638aaf8f0dfc8aceb0127:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhMDc2ZDIyZDE1YTg5MmMzYzc1NDBhNGE5NDFiMmI3YmVmM2NkOTZhMDk5NTUzOTc0YTUzN2VlODE3Yzk5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwYWNjYTBiMmQzOGIxMjcxM2Y2MzRhZDU1Y2I0OTAwOGM5N2E5NzcwYWY4N2YzYzkzZDMzZmU2ODUxYTMyODkifQ"
         }
       ]
@@ -151,7 +151,7 @@
           "version": "repo-lines-v1:sha256:4a824789662cc256de3524cb56d3384789385a00122bd7a2e0ae87ded6d1ae40:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NTJiNTkzZWE2ZjAxNzhlZTlhN2M1MWYxNGZkNWZmOGVkZDg1NTBkZWFhYWVhYzg2MmFlOWU5N2ZlNzcxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMWNmNDM1YmU0YmM0M2E4NjljZTI4OGViODAyMjI4OGRlZjYzNTAyY2ViYTA4Zjg4YTg2MmJkNGZmMThlZDIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2442-L2487",
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L2438-L2483",
           "version": "repo-lines-v1:sha256:35dff10766b2c0fe57c14c1f2b1d4303f00180066cd367cd61a280218e4bdc70:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NzdkODU3ZGM2NWZmMGVmMGIzYTUzMDk0N2IyMjhlZjkwZmQyYmE3OTAwNmFjMjEwMGQ3OTVmYmRlNGEwMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOTRlNDM3ZTBiMzU0ODQ0MTNmZmU0ZjhhMGViMzdhYzNmYTA1ZDZiZjhjZDA0ZGI5NGM0NDdhMTc0MTM5OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3YzA5NTVhNWU4ZmUzMTBhZDJlOTFmYzY5MDY0NDhmMzUyNzEzYjNmZGEwMTcyMDBjMDQwMDJmYTRlNDcxMDMifQ"
         },
         {
@@ -173,11 +173,11 @@
           "version": "repo-lines-v1:sha256:53381b7fa0900e2e7b7ef2c30e58d77c29cbd991d26a72fea2227dc010b236b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZjlhNGZhMTdkOWJiNzQ4MmVmZmQ4M2EyNmI2ODc3OWRlOTNlYWMwYjgzZGFlMDAxMmY1OWUyYjk4YjRmOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1Mzg5YzgyN2Q5NTE4MzNmNTA0OTEwNDhlODYzOTU4ZWMyZjEwODM3ZDc3OWJmZWQ2YmQyOTZhNzE0MmI4ZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiZWZiMjJhNzliOGIxMTRjODYyODMzMGZjYWE1NjI1MTUzMDZlODVlNzFjYzU2Y2U5MzUyMmNjMmE5OGE0MmEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1050-L1081",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L904-L935",
           "version": "repo-lines-v1:sha256:75663736af797c0afbc77fa63d1747e0aa5bc23ae65973d740a0f3ddccaffbad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0OTE0ODdkNDdmMGM3ZDdlNjU2NzdlNmNmNzBlYjZmMTMwNDU1Y2Q0YzRkMjQ2MjI5YWE5YTNjYzkxNzdiMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDJmNzMzYzk3OWYxOWJkNTE4OWM1OGNkZjk5MzZjNWEwZTJjMDRkZDM0ZjU5NWQ0ODAzNzAwZWZmNTNiYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2Zjg2YmQ3OTIzZjkzYThlMzhmZjMzNzNhMjBlNDlkMDRlMDMzOGE4ZTI5Yjg0MzQ5Y2E1NTg5YmY2YmZlMzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4YzZiYmYzNmQyNjRiNGM4NjRhNzk1ZWRmYmFmMjAwNDUyZTI5MTNkMzNmZWQ0OTFkY2E4MzM1Y2U2ZmY2OTAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1008-L1015",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L862-L869",
           "version": "repo-lines-v1:sha256:c10653ff913a7ca3624e0fadcc5d7a7fe53f7f654f5caa3fb67ee43c9c9e28e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM5NjhiNTQ3ZDM2MmE1Njk0OWQxNjUxNmFiZTQyNDVjZWUwZmE3ZjYwOWM0MDNkNWVkM2Y3NjU0MTcxODBiOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzE5OTg1ZjI4NDViZWM5Y2NhNTAzNzI2YWFlNWQ3NGIwOWNiYjNhZjNlNDIwM2QwNGIzYTkxN2EyODU3ZTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzgzN2Y0OTE5ZDYzNTNmZTkzN2RkZDQ0ODcwNDYyNzU5NjVjM2JiZjZhZTlkOWJmODU1MWI5OTM0MTgyZDA4ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJiZmQ4YTMzYjQ3OGM2Mjg5ZTkzYjI3NWUxZmU5NGRlMDAyNGZmYTIxYjAwZDAxYjFkYzNiNzdmMmZjNDhhNyJ9"
         },
         {
@@ -275,6 +275,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-04T14:45:13.763Z"
+    "at": "2026-10-06T20:56:45.458Z"
   }
 }

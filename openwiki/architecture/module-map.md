@@ -90,10 +90,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T20:56:45.458Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T20:56:45.458Z
 ---
 
 # Module and Product Map
@@ -102,7 +102,7 @@ Termind has **two native apps and six shared frameworks**, not one framework per
 
 ## Reading this map
 
-The companion guides cover each module root and its functional children, including second-level directories such as `TFM/Features/SFTP`, `TFI/Application/Connections`, and `LandingPage/src/pages`. For frameworks, the module root is `Frameworks/Termind…`, not the enclosing `Frameworks` folder. Deeper functional divisions are included where useful. Flat modules are explicitly identified rather than assigned imaginary subdirectories. Repeated locale, device, and asset-catalog leaves are grouped.
+The companion guides cover each module root and its functional children, including second-level directories such as `TFM/Features/SFTP`, `TFI/Application/Connections`, and `com.akinokaede.termind/src/pages`. For frameworks, the module root is `Frameworks/Termind…`, not the enclosing `Frameworks` folder. Deeper functional divisions are included where useful. Flat modules are explicitly identified rather than assigned imaginary subdirectories. Repeated locale, device, and asset-catalog leaves are grouped.
 
 | Guide | Scope |
 | --- | --- |
@@ -172,7 +172,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 
 **AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMajorVersion` requirement starting at `0.19.0`, and `Package.resolved` pins version `0.19.0` at revision `d6f4692de8f30d8836b2e83ffcd5ddfcd7f1fdfc`. Use `-onlyUsePackageVersionsFromResolvedFile` when building to require that committed pin rather than silently re-resolving. A local checkout edit alone will not change the Xcode build; release the package change, update the project requirement, and re-resolve the pin together. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. Do not substitute the sibling working tree's version for the resolved Xcode revision.
 
-**Other local checkout boundaries:** `.gitmodules` also lists `libssh2-spm/` and `libghostty-spm/`, but Xcode references remote `AkinoKaede` package URLs rather than either checkout. `libssh2-spm` is required at exact version `2.0.3-termind-4` (resolved revision `7ca39b8bcaf408351e8b6e4f449d2a39959bab49`); `libghostty-spm` uses an up-to-next-major requirement starting at `2.2.2026100303`, resolved to that version at `fc5444ea40e9d7c6204bd5dd46d23a884e987181`. Changing local fork source or a submodule gitlink alone is not a change to the Xcode package input: update the remote release/revision, project requirement and resolution as appropriate. `libtailscale-spm` is also a maintenance submodule: Xcode uses a remote `upToNextMinorVersion` requirement starting at `1.0.2`, resolved to `1.0.2` at `098e6b69ea128f3a55bc560f005a3e851123dc99`; its `TailscaleKit` product links directly into Remote Infrastructure. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) and [Build, Test, and Release](../operations/build-test-and-release.md)).
+**Maintenance versus remote dependency boundaries:** `.gitmodules` lists `libssh2-spm/`, but Xcode consumes its remote exact version `2.0.3-termind-4` (resolved revision `7ca39b8bcaf408351e8b6e4f449d2a39959bab49`). Ghostty comes directly from `Lakr233/libghostty-spm`, with no local Ghostty maintenance submodule: its up-to-next-major requirement starts at `2.2.2026100501`, and resolution pins that version at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. A maintenance gitlink alone does not change Xcode's package input; release and update the remote requirement/resolution together as appropriate. `libtailscale-spm` is also a maintenance submodule: Xcode uses a remote `upToNextMinorVersion` requirement starting at `1.0.2`, resolved to `1.0.2` at `098e6b69ea128f3a55bc560f005a3e851123dc99`; its `TailscaleKit` product links directly into Remote Infrastructure. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) and [Build, Test, and Release](../operations/build-test-and-release.md)).
 
 ## How responsibilities meet
 

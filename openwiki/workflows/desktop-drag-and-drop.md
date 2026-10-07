@@ -54,10 +54,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Desktop workspace drag and drop
@@ -212,7 +212,7 @@ The request stores a weak source, the move identity, a layout snapshot (ordinary
 
 Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
 
-These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate the reopen stack. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
+These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate app-owned recently-closed history. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
 
 Closing the source window removes its pending requests. A pane closed before registration cannot be resurrected by a late destination; an already-created scene may remain empty. A restored scene with no pending request retains its restored geometry and does not replay the move.
 

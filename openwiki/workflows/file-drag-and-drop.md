@@ -76,10 +76,10 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-feb0ce87e6f1433273c91c11
     resource: repo://TFMTests/TerminalPathDragTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # File Drag and Drop
@@ -204,9 +204,9 @@ Evidence: [TFM adapter](../../TFM/Features/AI/ConversationTranscriptView.swift#L
 
 Shell Integration emits the working directory through OSC 7. Ghostty parses it; desktop `SSHSessionModel` and mobile `MobileWorkspace` observe that terminal state. `TerminalUploadAvailability.problem` requires a connected session, a transfer configuration, and a resolved nonempty working directory. It asks the user to wait for the shell prompt when the directory is unavailable; the transfer does not guess `/` or the user's home. The actual gate checks this state, rather than a separate “integration enabled” Boolean. See [Shell Integration](../concepts/shell-integration.md) for hook installation and reporting.
 
-On TFM, a local drop becomes `TerminalTransferRequest.local`; a valid registered SFTP token becomes `.remote`. After the upload-availability checks, `prepareTerminalTransfer` cancels prior preparation and captures the normalized directory, connection-attempt ID, and a new preparation ID. It prefers an independent SFTP connection from the SSH connection snapshot. If opening it fails while the attempt is still current, `TerminalUploadConnectionResolver` can open an SFTP channel on the PTY connection; cancellation must not trigger that fallback.
+On TFM, local drops become `TerminalTransferRequest.local` and registered SFTP tokens become `.remote`. The **SSH-session-owned `TerminalUploadModel`**, not SwiftUI view state, checks availability, cancels prior preparation and captures the normalized directory, connection-attempt ID and new preparation ID. It prefers an independent SFTP connection; `TerminalUploadConnectionResolver` can fall back to a PTY SFTP channel only while the attempt is current and not cancelled.
 
-The temporary `SFTPChannelModel` prepares the local upload or remote-copy batch. After awaits, cancellation and connection-generation checks prevent an old preparation from publishing into a new session. Conflicts present Replace / Skip / Keep Both; otherwise the batch is enqueued. Enqueue dispatches to the corresponding local/remote planner, then releases the temporary channel owner. Disconnect/reconnect or disappearance cancels pending terminal preparation; already queued transfer lifetimes belong to the coordinator/context, not the view.
+The temporary `SFTPChannelModel` prepares a local/remote batch. Cancellation and generation checks prevent stale publication; conflicts ask Replace / Skip / Keep Both and other batches enqueue immediately. Enqueue releases the temporary owner while admitted transfers retain their coordinator/context references. SwiftUI disappearance now unbinds only that view's upload token—it does not cancel session-owned preparation merely because a surface is rehosted. The retained model preserves pending state through pane moves; disconnect/reconnect and explicit cancellation retire it.
 
 On TFI, `MobileWorkspace.prepareUpload` rejects non-file URLs or an unavailable transfer snapshot/destination, then captures a preparation ID, connection generation and destination. SSH opens an independent SFTP client from the snapshot (without the desktop PTY fallback); an SFTP Workspace borrows its browser client. After connection and home-directory lookup, and again after local upload preflight, it checks cancellation, preparation ID, generation and destination. It creates a donated transfer context only for the SSH client; the browser uses its existing context. Conflicts leave a pending batch for policy selection; a conflict-free batch enqueues immediately. Cancellation or preparation failure disconnects an owned client, while enqueue and pending-batch cancellation release its donated owner. Admitted queue references retain the transport independently of the Workspace.
 
@@ -228,7 +228,7 @@ Mobile upload preparation and ownership handoff; cancellation does not turn a st
 
 Post-drop `WorkspaceUploadNotice` reports preparing, queued, or rejected. A queued notice reports admission, not completion. SSH failures use transient notices rather than taking terminal focus with an operation alert; mobile SFTP failures use its browser operation-error path.
 
-Evidence: [OSC 7 producer](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L439-L476), [desktop observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1093-L1104), [mobile observation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L295-L299), [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L3-L26), [desktop resolver/request](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L8-L73), [desktop preparation/enqueue](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L248-L398), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1311-L1414), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1563-L1644).
+Evidence: [OSC 7 producer](../../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L439-L476), [desktop observation](../../TFM/Features/Terminal/SSHSessionModel.swift#L1093-L1104), [mobile observation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L295-L299), [availability](../../Frameworks/TermindApplication/Transfers/WorkspaceUploadNotice.swift#L3-L26), [desktop resolver/request](../../TFM/Features/Terminal/TerminalUploadModel.swift#L1-L83), [session-owned preparation/enqueue](../../TFM/Features/Terminal/TerminalUploadModel.swift#L135-L254), [view-owned binding](../../TFM/Features/Terminal/TerminalPlaceholderView.swift#L47-L95), [mobile preparation](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1414-L1505), [mobile enqueue/cancellation/errors](../../TFI/Features/Workspaces/MobileWorkspace.swift#L1563-L1644).
 
 ## SFTP uploads and desktop remote-file dragging
 

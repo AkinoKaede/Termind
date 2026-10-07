@@ -54,7 +54,7 @@ class ScreenshotFrames
       specification = CUSTOM_FRAMES.fetch(device)
       unless FastImage.size(@custom_frames.fetch(device)) == specification.fetch(:size)
         raise "Import the official #{specification.fetch(:name)} #{specification.fetch(:color)} portrait PNG first; " \
-              "see Scripts/ASSET_WORKFLOW.md or pass #{device.tr('-', '_')}_frame:/path/to/frame.png"
+              "see openwiki/operations/marketing-assets-and-app-icons.md or pass #{device.tr('-', '_')}_frame:/path/to/frame.png"
       end
       constant = device.tr("-", "_").upcase
       unless Frameit::Devices.const_defined?(constant)
@@ -73,10 +73,10 @@ class ScreenshotFrames
     end
     if @devices.include?("ipad") && FastImage.size(@ipad_frame) != [2300, 3000]
       raise "Import the official iPad Pro (M5) 13-inch Space Black portrait PNG first; " \
-            "see Scripts/ASSET_WORKFLOW.md or pass ipad_frame:/path/to/frame.png"
+            "see openwiki/operations/marketing-assets-and-app-icons.md or pass ipad_frame:/path/to/frame.png"
     end
     if @devices.include?("mac") && FastImage.size(@mac_frame) != [3860, 2320]
-      raise "Import the narrow MacBook Pro template first; see Scripts/ASSET_WORKFLOW.md " \
+      raise "Import the narrow MacBook Pro template first; see openwiki/operations/marketing-assets-and-app-icons.md " \
             "or pass mac_frame:/path/to/frame.png"
     end
     @jobs.each do |job|

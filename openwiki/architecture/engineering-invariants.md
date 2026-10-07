@@ -90,8 +90,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
-  - id: openwiki-source-353d364de99f80858a5abfd5
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV50SnippetModels.swift
   - id: openwiki-source-ba9bcaaf5c4be2ca83356c1a
     resource: repo://Frameworks/TermindPersistence/VaultWireV1Validation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -108,6 +106,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-9dfd0d1178e2ed5b33263580
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-b9bae3a52f35a3a412f81e10
@@ -166,8 +166,6 @@ sources:
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-7431229315ca54a8d8633a3c
     resource: repo://TFI/Features/Settings/MobileTerminalThemeView.swift
-  - id: openwiki-source-3c85f29e2d0bdf3d44f4e0e8
-    resource: repo://TFI/Features/Terminal/MobileTerminalListPresentation.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
@@ -192,8 +190,6 @@ sources:
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-c9618f94f83d3b529a9860e1
     resource: repo://TFITests/MobileBackgroundControllerTests.swift
-  - id: openwiki-source-16ec96bd78162e7e62effd0e
-    resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
@@ -208,6 +204,8 @@ sources:
     resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
+  - id: openwiki-source-49f0fac89c69b4a04f428496
+    resource: repo://TFM/Features/Terminal/SerialSessionModel.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
@@ -234,10 +232,10 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T20:49:22.614Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T20:49:22.614Z
 ---
 
 # Engineering invariants
@@ -260,7 +258,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V51 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V52 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -272,7 +270,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V51 schema/plan; each app composition root retains its startup container
+  migration. `makeContainer` fixes the complete V52 schema/plan; each app composition root retains its startup container
   for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
   app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
   store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
@@ -291,18 +289,18 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V51 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V52 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
   asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
   retaining scoped quarantine), V41 (shared notification preferences), V42 (agent-message provenance, chat creation
   relations and durable collaboration delivery receipts), V43 (public MCP OAuth settings), V44 (Host model fields), and
-  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup; V51 adds Snippet colors through a lightweight migration, freezing the pre-color V1–V50 Snippet entity. Snippet Vault records now read V1/V2 and write V2; V1 encoding rejects colored values rather than silently dropping color. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup; V51 adds Snippet colors through a lightweight migration, freezing the pre-color V1–V50 Snippet entity; V52 removes the retired terminal keyword-highlighting preference model through another lightweight migration. Snippet Vault records now read V1/V2 and write V2; V1 encoding rejects colored values rather than silently dropping color. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
 ### Notification ownership and delivery
 
-`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; V51 retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
+`NotificationPreferences` is shared Settings state, not a per-window toggle: V41 introduced `PersistentNotificationPreferences`, journaled as a `NotificationPreferencesItem` in Settings sync; the current schema retains it. Defaults enable notifications with separate Assistant, terminal and SFTP modes set to *unfocused*, terminal system delivery and a five-second minimum. `NotificationSettingsModel` validates and commits edits before publishing them; a failed load records a storage error and suppresses initial authorization rather than requesting permission from fallback defaults. Initial authorization is requested at most once **per model instance**, including concurrent calls from scenes and later reactivation, only when `usesSystemNotifications` is true. Bell-only terminal delivery avoids that request only if Assistant and SFTP system-delivered modes are also off (or notifications are disabled); enabling either can require permission. Remote application refreshes the model without echoing another local write. See `FrameworkTests/NotificationPreferencesTests.swift` for the V40-to-current migration/reopen, record round-trip, invalid-duration, permission and failure checks.
 
 ```mermaid
 sequenceDiagram
@@ -513,9 +511,13 @@ The shared coordinators decide eligibility and the native routers navigate witho
   and background probe Channels never inherit them; there is no shell-command fallback.
 - Independent SSH and Telnet Charsets are Vault-synced and snapshotted by each connection attempt. SSH Charset covers
   PTY text, exec commands/output and SFTP path names; Telnet Charset covers application bytes after IAC/NVT processing.
-  File contents and raw command input remain byte-transparent. Invalid terminal or Serial stream sequences are discarded
-  with one session-visible error, while exec and SFTP operations fail before returning replacement text or mutating a
-  different path. Serial Charset is temporary session configuration.
+  File contents and raw command input remain byte-transparent. Charset conversion preserves byte-stream continuity:
+  valid sequences convert, malformed/unrepresentable bytes pass through unchanged, incomplete characters remain buffered
+  until the next fragment or finish, and unavailable iconv falls back to unchanged bytes. SSH PTY, Telnet and Serial deliver
+  that output rather than discarding an entire batch with a charset error. The legacy recovery parameter no longer selects
+  a rejecting conversion mode. Value APIs use the same converter; Swift string decoding can display replacement characters
+  for bypassed invalid UTF-8, so do not promise that exec/path conversion fails before returning replacement text or changing
+  a path. Protocol/path validation is a separate boundary. Serial Charset is temporary session configuration.
 - SSH worker owns PTY dimensions; retain latest valid authentication-time size/pixels. EAGAIN window-change packets keep
   original dimensions and finish before the newest request without blocking other I/O. Disconnect clears resize state;
   retired auth cannot install a PTY/clear replacement dimensions. Ghostty computes grid. Resize failure is diagnostic only.

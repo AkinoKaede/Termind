@@ -6,20 +6,24 @@ tags: [ghostty, terminal, menus, macos, ios, integration]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-1e3a2ac8356020fd3ea569c9
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFind.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
-  - id: openwiki-source-76bfec2a5f9d38c73ab870c3
-    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalKeywordHighlighting.swift
+  - id: openwiki-source-01fd62d857f198c9f92cb8a5
+    resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
-  - id: openwiki-source-105d05d558f14996921a83f6
-    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-f7aa24af0100c1767226879a
@@ -54,15 +58,15 @@ sources:
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Ghostty Terminal Integration
 
-Termind uses the pinned remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves. See [Ghostty Fork Maintenance](../operations/ghostty-fork-maintenance.md) for the package revision and binary release boundary.
+Termind uses the pinned remote `libghostty-spm` package for terminal parsing, rendering and native input. SSH, Telnet and desktop serial transports remain Termind-owned. Each terminal supplies Ghostty's `InMemoryTerminalSession` with received bytes, outgoing writes and resize callbacks; a `TerminalViewState` and native view live with the session or workspace rather than with a transient SwiftUI mount. This preserves the grid, selection and scrollback across navigation and desktop pane moves. The package is consumed directly from `Lakr233/libghostty-spm`, with no local Ghostty maintenance submodule. See [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) for requirement/resolution alignment.
 
 ## Shared Find lifecycle and native dismissal
 
@@ -130,7 +134,7 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 `MobileWorkspace.configureTerminalUpload` installs handlers only for SSH workspaces. The submenu is absent when no file-upload handler is bound, and both child actions are disabled when the live workspace cannot upload. Each handler checks availability again when invoked, so an earlier visible menu cannot submit an upload after the connection or destination becomes unavailable. `uploadTargetProblem` is the workspace's connection, transfer-configuration and working-directory gate; the shell must report a usable directory through OSC 7. This upload is available without a Pro entitlement. See [Shell Integration](shell-integration.md) for working-directory reporting.
 
-**Package evidence boundary:** this page derives the app contract from Termind's overrides and tests, not an audit of package internals. The repository records the remote package pin and submodule, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the fork's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
+**Package evidence boundary:** this page derives the app contract from Termind's overrides and tests, not an audit of package internals. The repository records the direct upstream remote package pin, and the host overrides/tests establish the touch-hook contract used by Termind. They do not establish the package's long-press or tap gestures, internal selection dispatch, clipboard implementation, indirect-pointer menu routing, or older-OS menu fallback. In particular, do not infer whether the touch Upload File submenu appears in an indirect-pointer menu. Inspect the pinned package source and test the targeted interaction before changing those behaviors. Group titles, localization and upload authorization belong in the Termind subclass; package interaction internals remain a separate maintenance boundary.
 
 ### macOS secondary-click menu
 
@@ -144,7 +148,7 @@ Desktop `PersistentTerminalViewOwner` creates the in-memory backend, `TerminalVi
 
 Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for terminal workspaces, hiding it and disabling interaction rather than replacing it. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
 
-Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. It applies the chosen base, optional custom commands and then device-local font overrides; app command notifications force Ghostty's `notify-on-command-finish` to `never` so the Termind notification coordinator owns delivery. The shared keyword-highlighting modifier converts synchronized domain rules into Ghostty runtime rules and applies only rules accepted by the current engine. Domain defines fixed built-in rules plus bounded custom rules; Application persists changes before publishing them, Persistence stores the preferences in V46, and Settings sync distributes them. Both platform surfaces update highlighting in place.
+Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. It applies the chosen base, optional custom commands and then device-local font overrides; app command notifications force Ghostty's `notify-on-command-finish` to `never` so the Termind notification coordinator owns delivery. The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
 
 ## Focused checks
 
@@ -152,7 +156,7 @@ Shared Presentation maps Termind palettes and the Ghostty theme catalog into lig
 - [MobileTerminalSearchTests](../../TFITests/MobileTerminalSearchTests.swift) uses a real UIWindow and UISearchController, gated by `TERMIND_MOBILE_UI_TESTS=1`. It covers repeated native, terminal-then-native and programmatic dismissal, retained queries/filters, and search-controller/native-terminal identity across connection journeys. Its full-workspace SSH fixture also checks unchanged native surface, output and connection generation through repeated reopening with empty, matching and missing queries.
 - [MobileShortcutTests](../../TFITests/MobileShortcutTests.swift) covers F3 direction and Escape returning to Ghostty when Find is closed. [TerminalFindTests](../../TFMTests/TerminalFindTests.swift) covers desktop retained query and binding syntax.
 - `TFMTests/TerminalContextMenuTests.swift` covers blank-space Paste/Select All, conditional Copy, right-click-paste with Option bypass, live Upload File availability and stale pane-binding teardown.
-- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both touch contexts, pasteboard-dependent action expectations, editing/upload/system group ordering, absent handlers and enabled/disabled children. Package gesture mechanics require the pinned fork's own source and tests; they were not inspected as part of this host-adapter update.
-- `TFMTests/TerminalKeywordHighlightingTests.swift`, `TFITests/MobileTerminalHighlightingTests.swift` and `FrameworkTests/TerminalHighlightPreferencesTests.swift` cover rule validation, rendering and preference persistence. Use the resolved-only Xcode build for either app; package changes also need the fork's own tests and release sequence.
+- [MobileTerminalUploadMenuTests](../../TFITests/MobileTerminalUploadMenuTests.swift) checks both touch contexts, pasteboard-dependent action expectations, editing/upload/system group ordering, absent handlers and enabled/disabled children. Package gesture mechanics require the pinned upstream package's own source and tests; they were not inspected as part of this host-adapter update.
+- `FrameworkTests/RetiredTerminalHighlightingTests.swift` opens V46/V51 stores, checks cleanup after upgrading/reopening, retires pending uploads and verifies malformed legacy records do not disrupt other settings. The old highlighting/rendering suites were removed. Use resolved-only Xcode builds and test both host adapters after changing the upstream dependency; no Termind fork release is required.
 
 For upload destination and drop behavior, continue with [File Drag and Drop](../workflows/file-drag-and-drop.md). For theme browser and settings ownership, see [UI Design and Shared Presentation](ui-design-principles.md). For test scope, see [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).

@@ -6,6 +6,28 @@ tags: [commerce, revenuecat, localization, product-surfaces, marketing, widgets]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-6c477adbd17d240038ac8d60
+    resource: repo://com.akinokaede.termind/package.json
+  - id: openwiki-source-fcca55af6fa67b76822099ae
+    resource: repo://com.akinokaede.termind/README.md
+  - id: openwiki-source-b634183c73c9477c2202d629
+    resource: repo://com.akinokaede.termind/src/components/FAQPage.astro
+  - id: openwiki-source-5648b67f3d37254607060707
+    resource: repo://com.akinokaede.termind/src/components/PrivacyPolicy.astro
+  - id: openwiki-source-a6a2820ffcf779217cd84d9e
+    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
+  - id: openwiki-source-16bccb8478ca6b4daf81709b
+    resource: repo://com.akinokaede.termind/src/components/SecurityPage.astro
+  - id: openwiki-source-fe020c65073a73518a5b3793
+    resource: repo://com.akinokaede.termind/src/components/TelegramOffer.astro
+  - id: openwiki-source-f2e3c2208232f6d2e4b142f5
+    resource: repo://com.akinokaede.termind/src/layouts/BaseLayout.astro
+  - id: openwiki-source-37c59bb67bf496fd4a44f0ab
+    resource: repo://com.akinokaede.termind/src/lib/i18n.ts
+  - id: openwiki-source-48fb5cabce8010d9034f072c
+    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
+  - id: openwiki-source-4b6325b8da6c6aee4867267a
+    resource: repo://com.akinokaede.termind/src/pages/index.astro
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
     resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
@@ -46,32 +68,6 @@ sources:
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
-  - id: openwiki-source-103853faf6b28763354a1c79
-    resource: repo://LandingPage/package.json
-  - id: openwiki-source-f0779f80638e6627908c8c6b
-    resource: repo://LandingPage/src/components/FAQPage.astro
-  - id: openwiki-source-5baf0062039839de504579b5
-    resource: repo://LandingPage/src/components/PrivacyPolicy.astro
-  - id: openwiki-source-5ad91e277f88907c2d0f0649
-    resource: repo://LandingPage/src/components/SecurityPage.astro
-  - id: openwiki-source-b724e68ad26b53dbd855ad75
-    resource: repo://LandingPage/src/components/TelegramOffer.astro
-  - id: openwiki-source-d2984266929be0fa570924e0
-    resource: repo://LandingPage/src/layouts/BaseLayout.astro
-  - id: openwiki-source-dde6f9f425dc38df06be00d6
-    resource: repo://LandingPage/src/lib/i18n.ts
-  - id: openwiki-source-554fe71f1ba6efebee0d020c
-    resource: repo://LandingPage/src/lib/marketingImages.ts
-  - id: openwiki-source-b2ebcc8a950d710d84cc72db
-    resource: repo://LandingPage/src/pages/index.astro
-  - id: openwiki-source-ac522d7166ed6cab8810aff7
-    resource: repo://LandingPage/src/pages/privacy.astro
-  - id: openwiki-source-187b04e794008a30238ae2ed
-    resource: repo://LandingPage/src/pages/security.astro
-  - id: openwiki-source-8eb8641552ec93160c79c7fb
-    resource: repo://LandingPage/src/pages/zh-hant/privacy.astro
-  - id: openwiki-source-446ef49ac8edac86b5511fe5
-    resource: repo://Marketing/README.md
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
     resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
@@ -112,10 +108,6 @@ sources:
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-  - id: openwiki-source-b8fca76c89564e16eccfbb53
-    resource: repo://TFM/App/MCPServerController.swift
-  - id: openwiki-source-873894299539cce9a737a860
-    resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-2b65afedbf9d80b1d387f50a
     resource: repo://TFM/App/ScreenshotDemo.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -124,8 +116,6 @@ sources:
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-bf08592e56aa88a7189a7fb5
     resource: repo://TFM/Features/KnownHosts/KnownHostsPageView.swift
-  - id: openwiki-source-a0f4f642e37695357bc9150d
-    resource: repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -134,10 +124,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 ## Commerce ownership and configuration
@@ -214,9 +204,9 @@ Ordinary product labels illustrate the split: iOS Vault search opens Snippets an
 
 `TermindWidgets` contains a workspace Live Activity, not another workspace engine. The app serializes activity updates, restores at most one active activity, starts only after explicit workspace intent and ends it when workspaces are gone. Its payload excludes credentials and terminal output, bounds focused-first summaries to six, and routes only strict workspace-list and UUID workspace deep links. DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans` or `zh-Hant` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
-`LandingPage/` is a separately built Astro site (`npm run build` runs `astro check && astro build`); its explicit framed-image allowlist imports directly from Marketing and emits optimized formats rather than serving source screenshots from `public`. English `/`, Simplified `/zh-hans/` and Traditional `/zh-hant/` site copy is selected by its own `i18n.ts` (Traditional conversion plus overrides), not `.xcstrings` or `AppleLanguages`. `FAQPage.astro` owns the public free/Pro and BYOK/third-party AI billing descriptions, Family Sharing and macOS-only built-in MCP disclosure. The homepage Telegram draw offers a **chance** at a redemption code, not another plan or guaranteed trial; Apple determines redemption eligibility. Site FAQ and native gates should be reconciled whenever entitlement behavior changes.
+The independent `com.akinokaede.termind` website/assets submodule contains the Astro project at its root (`npm run build` runs `astro check && astro build`). Its typed framed-image allowlist imports directly from `assets/device_frames/<locale>/<device>` and emits optimized formats rather than copying source screenshots into `public`. The current Hero combines Mac Workspace and Duo outer Assistant; SSH, SFTP, Metrics and Assistant use intentionally different selected form factors. English `/`, Simplified `/zh-hans/` and Traditional `/zh-hant/` use site-local `i18n.ts` (Taiwan Traditional conversion plus terminology overrides), not `.xcstrings` or `AppleLanguages`. The homepage and FAQ lead with an AI-driven remote workspace, BYOK, controlled permissions, built-in Tailscale and optional device-local Hermes Memory. `FAQPage.astro` separately owns free/Pro, third-party API billing, Family Sharing and Mac-only MCP disclosures. The Telegram draw offers a **chance** at a redemption code, not a plan or guaranteed trial; Apple determines redemption eligibility. Reconcile that copy with native gates when behavior changes.
 
-The site serves security and privacy components through locale wrappers and `BaseLayout`, which owns navigation, canonical/alternate links and browser-local site language selection independently of app settings. The public `PrivacyPolicy.astro` covers local data, optional private iCloud/Keychain synchronization, Apple purchase handling **and RevenueCat purchase validation, entitlement synchronization and paywall service**, anonymous ID association on restoring an Apple purchase, AI/search/remote connections, camera/speech, diagnostics and data/deletion controls. It states that only site-language preference is stored locally by the website, while the host may process standard server logs. `SecurityPage.astro` describes Keychain, known-host checking, AI permissions and the Mac-only loopback MCP server and warns about authenticated clients invoking exposed tools; marketing disclosure is not a substitute for runtime security tests. iOS App Settings links to the public privacy and support pages. Do not claim native paywall privacy/EULA links from source: any legal links in the remote paywall are dashboard-owned and must be checked there. For public-copy changes run `cd LandingPage && npm run build` and inspect all three language routes; catalog checks do not validate Astro content. For privacy or commerce changes, reconcile the website statement against RevenueCat configuration and SDK behavior.
+The site serves security and privacy components through locale wrappers and `BaseLayout`, which owns navigation, canonical/alternate links and browser-local site language selection independently of app settings. The public `PrivacyPolicy.astro` covers local data, optional private iCloud/Keychain synchronization, Apple purchase handling **and RevenueCat purchase validation, entitlement synchronization and paywall service**, anonymous ID association on restoring an Apple purchase, AI/search/remote connections, camera/speech, diagnostics and data/deletion controls. It states that only site-language preference is stored locally by the website, while the host may process standard server logs. `SecurityPage.astro` describes Keychain, known-host checking, AI permissions and the Mac-only loopback MCP server and warns about authenticated clients invoking exposed tools; marketing disclosure is not a substitute for runtime security tests. iOS App Settings links to the public privacy and support pages. Do not claim native paywall privacy/EULA links from source: any legal links in the remote paywall are dashboard-owned and must be checked there. For public-copy changes run `cd com.akinokaede.termind && npm ci && npm run build` and inspect all three language routes; catalog checks do not validate Astro content. For privacy or commerce changes, reconcile the website statement against RevenueCat configuration and SDK behavior.
 
 ## Focused change checklist
 

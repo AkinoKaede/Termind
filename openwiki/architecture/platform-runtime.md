@@ -110,10 +110,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Platform Startup and Runtime Composition
@@ -299,7 +299,7 @@ The app model wires cross-service invalidation at construction. Local `deleteHos
 
 ### Scene-local navigation and native-window workspace ownership
 
-`MobileSceneDelegate` supplies its UIKit session's persistent identifier. `MobileQuickActionSceneRoot` waits for that ID and keys `MobileBoundSceneRoot` by it; the bound root initially renders a loading child, then creates its `MobileSceneModel` in an asynchronous `.task` if absent and retains it in `@State`. This keeps registration of observable app state out of view construction and body evaluation. `MobileRootView` retains the resulting scene in `@State`, reports `scenePhase` to the shared app model and exposes a focused scene value. The root uses a sidebar-adaptable `TabView` with a `NavigationStack` per feature. The scene model owns destination and workspace selection, presentations and assistant navigation. Its Workspace/Transfers destination and Connection Picker/Batch Startup sheet each use one optional enum with derived compatibility accessors, avoiding competing Boolean routes. It but obtains its `MobileWorkspaceSessionModel` from the app by persistent session ID. Assistant conversation storage remains shared while scene-specific drafts and selection remain independent.
+`MobileSceneDelegate` supplies its UIKit session's persistent identifier. `MobileQuickActionSceneRoot` waits for that ID and keys `MobileBoundSceneRoot` by it; the bound root initially renders a loading child, then creates its `MobileSceneModel` in an asynchronous `.task` if absent and retains it in `@State`. This keeps registration of observable app state out of view construction and body evaluation. `MobileRootView` retains the resulting scene in `@State`, reports `scenePhase` to the shared app model and exposes a focused scene value. The root uses a sidebar-adaptable `TabView` with a `NavigationStack` per feature. The scene model owns destination and workspace selection, presentations and assistant navigation. Its Workspace/Transfers destination and Connection Picker/Batch Startup sheet each use one optional enum with derived compatibility accessors, avoiding competing Boolean routes. It obtains its `MobileWorkspaceSessionModel` from the app by persistent session ID. Assistant conversation storage remains shared while scene-specific drafts and selection remain independent.
 
 The UIKit `MobileSceneDelegate` holds a pending Home Screen quick action per scene; `MobileBoundSceneRoot` passes its action and one-shot consumer into `MobileRootView`. The root consumes it on change and asks its own `MobileSceneModel` to open the connection picker or open a recent Host using the Host's **current** preferred connection kind. Unknown shortcuts are rejected; a missing or unusable Host presents the workspace-unavailable alert instead of restoring a stale session. The shortcut list is refreshed from local connection history and host changes, limited to three openable recent Hosts.
 

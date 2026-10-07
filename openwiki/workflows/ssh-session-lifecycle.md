@@ -14,8 +14,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-7ca30f0e781e8c2df826b47a
+    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
+  - id: openwiki-source-cd3e43e60522274ce1f1908b
+    resource: repo://Frameworks/TermindApplication/SSHSecret.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
@@ -56,6 +60,8 @@ sources:
     resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-3f37062f55fb57a9f2e97f35
+    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
@@ -91,7 +97,7 @@ sources:
 generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # SSH session lifecycle

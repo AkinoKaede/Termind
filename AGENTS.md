@@ -15,7 +15,8 @@ stay with their app; shared modules must never depend on an app target.
 an independent Astro project; `assets/` and `design/` inside it own marketing
 and brand assets. Initialize it with `git submodule update --init com.akinokaede.termind`
 only for website or asset work. Native app builds do not require it. Utilities
-and screenshot tooling stay in the main repository; see `Scripts/ASSET_WORKFLOW.md`.
+and screenshot tooling stay in the main repository; see
+`openwiki/operations/marketing-assets-and-app-icons.md` for the asset workflow.
 Commit and push asset changes via SSH before updating the main repository's gitlink;
 keep the public HTTPS clone URL in `.gitmodules`.
 

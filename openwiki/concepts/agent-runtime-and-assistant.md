@@ -86,8 +86,6 @@ sources:
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
-  - id: openwiki-source-b360f8803ec98b554faad9bb
-    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -117,7 +115,7 @@ sources:
 generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Agent runtime and assistant ownership

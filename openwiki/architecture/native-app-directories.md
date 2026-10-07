@@ -4,6 +4,8 @@ title: Native App Responsibilities
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
 sources:
+  - id: openwiki-source-37bc639f87948ef96358b680
+    resource: repo://Frameworks/TermindInfrastructure/RecentlyClosedStore.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -88,6 +90,8 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
+  - id: openwiki-source-e23b71e7deab33832fd92796
+    resource: repo://TFM/App/RecentlyClosedWorkspaces.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -142,16 +146,14 @@ sources:
     resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-fd9941ab51756d8c4518a8e6
     resource: repo://TFMTests/MetricsMenuNavigationTests.swift
-  - id: openwiki-source-a22920a2a9767ac44e072c9f
-    resource: repo://TFMTests/MultiWindowTests.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Native App Responsibilities
@@ -276,7 +278,7 @@ For this seam, `TFITests/MobileTerminalSearchTests.swift` provides serialized, o
 - **`Features/Vault` and specialist editors:** Desktop Vault is a pinned window destination: `WindowModel` retains its page, selected manager items and optional work-detail route; `VaultView` dispatches the manager page and `VaultWorkspaceView` mounts the detail without replacing the list's identity. Inline dirty navigation offers save, discard or cancel; explicit editor cancellation offers keep editing or discard, busy editors block transitions, and a failed save does not proceed. Mobile Vault renders grouped host cards and links to credentials, forwarding, snippets, known hosts and History. Local search, sheets and confirmations do not own the library or sessions. `MobileHostEditor` maintains host/custom-identity drafts and validates protocol, port, authentication and environment before saving via the host library. `MobileKnownHostsView` edits validated trust entries via `app.knownHosts` and surfaces save failures. Deleting a host through `MobileAppModel.deleteHost` closes matching workspaces **in every session and saved snapshot**, invalidates SFTP edits, cancels transfers, stops forwarding, removes metrics, requests deletion and starts the outbox; moving that into a card would omit lifecycle effects.
 - **Vault History:** The SwiftUI History view is in `Features/Vault/MobileVaultView.swift`, but `Application/Workspaces/MobileConnectionHistory.swift` resolves rows against hosts and device names, filters search, limits results to 50 and permits opening only enabled host protocols. A recorded event for a now-disabled protocol remains visible but cannot be opened. Delete and clear-all call `app.connectionHistory`. Vault search forwards queries into dedicated pushed resource screens, while Metrics results switch the top-level destination. `TFITests/MobileConnectionPickerTests.swift` covers History search/limit and disabled-protocol actions; mobile Vault feature tests cover menu protocol filtering and group/host operations.
 - **`Features/Settings`, `SFTP`, `Transfers`:** Mobile `MobileSettingsView` links app, notification, terminal, connection, AI and sync forms to `MobileAppModel` services; `MobileSyncSettingsView` sends toggles through `app.setSyncEnabled` instead of starting cloud coordinators itself. Desktop `SettingsPageView` switches window-local routes and reads shared `AppModel` capabilities. SFTP browser/channel models manage browsing and edit presentation; process-level `SFTPTransferCoordinator` lives in shared Remote Infrastructure and is retained by app composition. Mobile has a separate `Features/Transfers` queue surface; desktop browsers now consume the existing Host library directly; the obsolete `TransferLibraryModel` forwarding facade was removed. Closing a screen must not cancel unrelated work.
-- **`Features/Sidebar` and `Workspaces`:** Desktop Sidebar is a per-window column, not an app-global navigator. Desktop Workspaces manages window layout and panes; closing a workspace disconnects its connections and retains at most ten closed workspaces for reopening, while closing a window disconnects every workspace and clears that stack. Mobile `Features/Workspaces` provides the runtime and list/detail, but scene-local `App/MobileWorkspaceSessionModel` owns the collection, reconnection and descriptor mutations; `MobileAppModel` aggregates across sessions for background work and host deletion. Moving session ownership across those boundaries changes native-window lifetime, not just file organization.
+- **`Features/Sidebar` and `Workspaces`:** Desktop Sidebar is a per-window column, not an app-global navigator. Desktop Workspaces manages window layout and panes; closing a workspace disconnects its connections and records recoverable metadata through the app-owned recently-closed store. Closing a window records its grouped workspaces and selected item before disconnecting them, rather than clearing a window-local reopening stack. The shared local store retains at most 15 records; eligible layouts persist across launches, and reopening consumes a record only after a destination exists. Live transport continuity is not preserved by close/reopen; only a move keeps the running connection. Mobile `Features/Workspaces` provides the runtime and list/detail, but scene-local `App/MobileWorkspaceSessionModel` owns the collection, reconnection and descriptor mutations; `MobileAppModel` aggregates across sessions for background work and host deletion. Moving session ownership across those boundaries changes native-window lifetime, not just file organization.
 
 The native `UI/Managed` grids and `UI/Components` interaction helpers do not acquire resource ownership merely by rendering a manager. For deeper behavior, see [Desktop UI](desktop-ui.md), [Mobile UI](mobile-ui.md), and [Platform Runtime](platform-runtime.md); return to the [Module Map](module-map.md) for dependencies.
 

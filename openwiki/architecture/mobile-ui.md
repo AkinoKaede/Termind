@@ -100,6 +100,8 @@ sources:
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
+  - id: openwiki-source-5147eea728b12cb304c33011
+    resource: repo://TFITests/KeyWindowTestTrait.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
@@ -110,6 +112,8 @@ sources:
     resource: repo://TFITests/MobileCardTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-3b5dfa3155eaaa073934e287
+    resource: repo://TFITests/MobileContentRegionsTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-f4b87eae375fa9241ff8cb35
@@ -134,10 +138,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
   - id: openwiki-source-cc27a76170a8c672a70e388a
     resource: repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T16:22:58.117Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -306,7 +310,7 @@ flowchart LR
 
 Reserved geometry determines usable content and optional Assistant pane placement without replacing its native children.
 
-Production reserved-region and vertical-toolbar queries require both the `TERMIND_HAS_IOS_27_1_SDK` compilation gate and runtime availability. On older builds/systems the reader falls back to no reserved regions, while previews/tests can inject regions through the environment. The presence of deterministic fold-like tests is not a claim of verification on every physical device.
+Production reserved-region and vertical-toolbar queries use the current SDK directly and are gated by iOS 27.1 runtime availability, not a separate `TERMIND_HAS_IOS_27_1_SDK` compilation flag. On older systems the reader falls back to no reserved regions, while previews/tests can inject regions through the environment. The presence of deterministic fold-like tests is not a claim of verification on every physical device.
 
 `MobilePaneLayout` retains a valid size per child index and places the same children into their new frames. Covered content keeps a valid size rather than replacing or reparenting its native surface. The layout must be paired with opacity, hit-testing and accessibility gates: parked geometry alone does not make a covered view noninteractive.
 
@@ -314,7 +318,7 @@ Production reserved-region and vertical-toolbar queries require both the `TERMIN
 
 - A terminal workspace uses the largest **continuous** region instead of splitting one terminal across a division.
 - Assistant uses the first split region for the transcript and bottom-aligns its interaction surface in the second. Without a split, it subtracts measured interaction height from the continuous transcript region.
-- A top or vertical navigation arrangement uses an icon-based workspace/conversation switcher; the ordinary arrangement can use the navigation title menu.
+- Only top-bar navigation uses an icon-based Workspace/conversation switcher. Vertical toolbars keep app tabs visible but use the navigation title menu, as do ordinary bottom arrangements; sidebar placement also preserves workspace tabs. Returning to bottom placement clears the vertical presentation without changing runtime ownership.
 - Cards adapt to their measured container width, not a global “iPad has two columns” rule. Accessibility Dynamic Type forces one column.
 
 ## Connection journeys are runtime state, not scene navigation
@@ -462,7 +466,7 @@ Implemented principles:
 5. **Keep app work out of transient view lifetimes.** Scene routes select shared work; they do not own every connection or Agent run.
 6. **Hide covered interaction as well as pixels.** Hit testing and accessibility must follow the visible region.
 
-Native-window coverage has two different execution contracts. `MobileMetricsJourneyTests` is a serialized, **not environment-gated** UIKit-hosted integration suite: it installs a temporary high-level **key** window, restores the previous key window in `defer`, and uses an injected Metrics sampler to create a real keyboard-interactive challenge without a network connection. Across en/zh-Hans/zh-Hant, 430/600/1024-point widths and accessibility text, it checks the challenge ID and two input fields survive detail pop/push and resizing, with no segmented control or presented sheet; entering the answer leads to live Metrics with one connection attempt and no extra modal. `MobileConnectionJourneyRenderingTests` lives under `TFITests/Screenshots/` and its entire suite, including keyboard-interactive rendering, requires `TERMIND_JOURNEY_SCREENSHOTS=1`. The forwarded-connection journey rendering suite is separately gated by `TERMIND_MOBILE_UI_TESTS=1` and asks for parallel testing to be disabled. Do not infer from the opt-in suite that every test which steals the key window is opt-in, or from the default-running Metrics test that an offscreen `UIHostingController` alone proves focus, native navigation or sheet behavior. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test strategy.
+Native-window coverage has distinct explicit opt-in contracts. `MobileMetricsJourneyTests` is a serialized, **key-window-gated** UIKit-hosted integration suite (`TERMIND_MOBILE_UI_TESTS=1`): it installs a temporary high-level **key** window, restores the previous key window in `defer`, and uses an injected Metrics sampler to create a real keyboard-interactive challenge without a network connection. Across en/zh-Hans/zh-Hant, 430/600/1024-point widths and accessibility text, it checks the challenge ID and two input fields survive detail pop/push and resizing, with no segmented control or presented sheet; entering the answer leads to live Metrics with one connection attempt and no extra modal. `MobileConnectionJourneyRenderingTests` lives under `TFITests/Screenshots/` and its entire suite, including keyboard-interactive rendering, requires `TERMIND_JOURNEY_SCREENSHOTS=1`. The forwarded-connection journey rendering suite is separately gated by `TERMIND_MOBILE_UI_TESTS=1` and asks for parallel testing to be disabled. Do not infer that an offscreen `UIHostingController` alone proves focus, native navigation or sheet behavior; run these key-window suites explicitly with parallel testing disabled. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader test strategy.
 
 `MobileAdaptiveLayoutTests` mounts `MobileRootView` in a UIKit window and checks the same native `UITabBarController` with five selectable destinations over simulated 1024/600/375/320-point widths, regular/compact traits, large/accessibility Dynamic Type, and English, Simplified and Traditional Chinese locales. In compact mode it asserts all five tab labels are visible; on regular iPad widths the system bar can scroll. Other tests retain Assistant conversation/draft and Metrics navigation through resizing, check title-menu/icon switchers and Settings edit sheets, and isolate two scene models. Injected division and occlusion changes verify Metrics keeps the same native list and scroll offset and Assistant keeps its conversation, transcript `ListScrollView`, focused composer and Chinese marked text; a save-in-flight test preserves a sheet and failure feedback through width changes. These are simulated layout and injected-geometry tests, not proof of every physical device or SDK availability branch.
 

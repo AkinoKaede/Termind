@@ -6,6 +6,12 @@ tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, r
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-5dfa08b38d4057cd9511944e
+    resource: repo://com.akinokaede.termind/assets/app_store/en/iphone-6.3/01_overview.jpg
+  - id: openwiki-source-1986cfc76f4d1b495b68b29b
+    resource: repo://com.akinokaede.termind/assets/app_store/en/mac/01_three_screens.jpg
+  - id: openwiki-source-54a517e25bf7220eb9067177
+    resource: repo://com.akinokaede.termind/assets/README.md
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -22,14 +28,6 @@ sources:
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
-  - id: openwiki-source-ef9b991e118d6fe8b7fbee55
-    resource: repo://Marketing/AppStore/en/mac/01-three-screens.jpg
-  - id: openwiki-source-3882fc675d1b99ff0f2ba4c3
-    resource: repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg
-  - id: openwiki-source-b130fb70b5ba4d89364e1196
-    resource: repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg
-  - id: openwiki-source-446ef49ac8edac86b5511fe5
-    resource: repo://Marketing/README.md
   - id: openwiki-source-9fc915d39c61b81a60426eb3
     resource: repo://StoreKit/Termind.storekit
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -50,6 +48,8 @@ sources:
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-873894299539cce9a737a860
+    resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
@@ -60,10 +60,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-03T22:38:13.888Z" }
+generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-04T14:45:13.763Z
+    at: 2026-10-06T18:02:45.153Z
 ---
 
 # Storefront commerce release checks
@@ -144,5 +144,5 @@ Both wrappers refuse purchase initiation if access already exists, mark operatio
 
 1. Reconcile product IDs, types, group, Family Sharing, introductory eligibility and grace settings in App Store Connect **and** entitlement-to-product mapping, offering/paywall rules and localized disclosure in RevenueCat. Test new versus used-offer accounts, trial-to-paid renewal, cancellation through expiry, billing retry with and without grace, refunds, Family Sharing and lifetime restoration across Mac, iPhone and iPad. Record Sandbox results separately from the fixture and production configuration review.
 2. Run the default shared/macOS tests as described in [Build, validation, localization and dependency release operations](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
-3. Check the final localized **storefront imagery** separately from the paywall. `Marketing/AppStore/en`, `Marketing/AppStore/zh-hans` and `Marketing/AppStore/zh-hant` contain Mac, iPhone 6.5-inch and iPad 13-inch sets of six JPG boards; review language, dimensions, platform promises and offer claims against current storefront terms before upload. These are final boards, distinct from the capture/device-frame inputs for the website. See [Marketing assets and app icons](marketing-assets-and-app-icons.md) for the production workflow.
+3. Check final localized **storefront imagery** separately from the paywall. The independent public submodule's `assets/app_store/{en,zh-hans,zh-hant}` contains six JPG boards per `mac`, `iphone-6.3`, `ipad-13` and `iphone-duo` set (72 total), at 2880×1800, 1206×2622, 2752×2064 and 2853×2007 respectively. iPhone Overview is `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. Review language, composition, opaque RGB/sRGB profile, platform promises and offer claims against current App Store requirements before upload. These final Figma boards are separate from native captures and frames used by the website, and dimensions alone do not prove upload acceptance. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for native scan/frameit, template rights, composition/export and SSH-first publication.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.
