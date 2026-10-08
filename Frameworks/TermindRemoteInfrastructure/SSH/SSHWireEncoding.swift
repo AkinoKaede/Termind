@@ -22,4 +22,14 @@ nonisolated enum SSHWireEncoding {
             .replacingOccurrences(of: "=", with: "")
         return "SHA256:\(digest)"
     }
+
+    /// The value of one ASCII hexadecimal digit, or nil for any other byte.
+    static func hexDigit(_ byte: UInt8) -> UInt8? {
+        switch byte {
+        case 0x30...0x39: byte - 0x30
+        case 0x41...0x46: byte - 0x41 + 10
+        case 0x61...0x66: byte - 0x61 + 10
+        default: nil
+        }
+    }
 }

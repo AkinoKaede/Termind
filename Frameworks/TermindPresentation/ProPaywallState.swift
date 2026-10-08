@@ -30,22 +30,31 @@ public nonisolated struct ProPaywallState {
             case .expired: state = "expired"
             case .revoked: state = "revoked"
             }
-        default:
+        case .purchased(let ownership):
             canManageSubscription = false
+            isFamilyShared = ownership == .familyShared
             expiresAt = nil
-            if case .purchased(.familyShared) = status {
-                isFamilyShared = true
-            } else {
-                isFamilyShared = false
-            }
-            switch status {
-            case .loading: state = "loading"
-            case .free: state = "free"
-            case .purchased: state = "lifetime"
-            case .verificationFailed: state = "unverified"
-            case .unrestrictedForTesting: state = "development"
-            case .subscription: preconditionFailure("Handled above")
-            }
+            state = "lifetime"
+        case .loading:
+            canManageSubscription = false
+            isFamilyShared = false
+            expiresAt = nil
+            state = "loading"
+        case .free:
+            canManageSubscription = false
+            isFamilyShared = false
+            expiresAt = nil
+            state = "free"
+        case .verificationFailed:
+            canManageSubscription = false
+            isFamilyShared = false
+            expiresAt = nil
+            state = "unverified"
+        case .unrestrictedForTesting:
+            canManageSubscription = false
+            isFamilyShared = false
+            expiresAt = nil
+            state = "development"
         }
     }
 }

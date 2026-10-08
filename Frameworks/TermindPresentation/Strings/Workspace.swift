@@ -258,10 +258,6 @@ extension AppStrings {
             "Cancel operation"
         }
 
-        public static var closePaneAction: LocalizedStringResource {
-            "Close Pane"
-        }
-
         public static var closeWindow: LocalizedStringResource {
             "Close Window"
         }

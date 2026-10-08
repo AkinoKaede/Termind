@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// Editing policy for single-line UI fields, not a transformation of stored data or secrets.
 public nonisolated enum SingleLineTextInput {

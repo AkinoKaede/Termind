@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import TermindApplication
 import TermindDomain
 

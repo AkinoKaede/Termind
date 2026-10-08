@@ -625,7 +625,8 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
         var index = 0
         while index < bytes.count {
             if bytes[index] == 0x25, index + 2 < bytes.count,
-                let high = hex(bytes[index + 1]), let low = hex(bytes[index + 2])
+                let high = SSHWireEncoding.hexDigit(bytes[index + 1]),
+                let low = SSHWireEncoding.hexDigit(bytes[index + 2])
             {
                 decoded.append(high << 4 | low)
                 index += 3
@@ -637,15 +638,6 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
         let decodedData = Data(decoded)
         return (try? RemoteCharsetStreamConverter.decode(decodedData, charset: charset))
             ?? String(decoding: decodedData, as: UTF8.self)
-    }
-
-    private static func hex(_ byte: UInt8) -> UInt8? {
-        switch byte {
-        case 0x30...0x39: byte - 0x30
-        case 0x41...0x46: byte - 0x41 + 10
-        case 0x61...0x66: byte - 0x61 + 10
-        default: nil
-        }
     }
 
     private static func duration(milliseconds text: Substring) -> TimeInterval? {

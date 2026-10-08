@@ -7897,29 +7897,6 @@
         }
       }
     },
-    "Close Pane" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ペインを閉じる"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭窗格"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉窗格"
-          }
-        }
-      }
-    },
     "Close Window" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -1602,12 +1602,14 @@ private enum NativeTranscriptFactory {
         }
     }
 
+    /// `AgentToolDetail.Tint` shares `BatchTint`'s vocabulary, so the color
+    /// mapping has one owner.
     private static func detailColor(_ tint: AgentToolDetail.Tint) -> NSColor {
         switch tint {
-        case .secondary: .secondaryLabelColor
-        case .warning: .systemOrange
-        case .success: .systemGreen
-        case .failure: .systemRed
+        case .secondary: batchColor(.secondary)
+        case .warning: batchColor(.warning)
+        case .success: batchColor(.success)
+        case .failure: batchColor(.failure)
         }
     }
 
