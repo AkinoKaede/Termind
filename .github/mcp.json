@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "openwiki": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "--offline",
+        "--",
+        "openwiki",
+        "mcp",
+        "--host",
+        "copilot"
+      ]
+    }
+  }
+}

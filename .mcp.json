@@ -9,7 +9,7 @@
         "openwiki",
         "mcp",
         "--host",
-        "omp"
+        "claude-code"
       ],
       "directTools": true
     }
