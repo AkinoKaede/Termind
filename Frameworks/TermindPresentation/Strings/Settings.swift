@@ -605,6 +605,14 @@ extension AppStrings {
             "Relaunch Now"
         }
 
+        public static var showStatusBar: LocalizedStringResource {
+            "Show Status Bar"
+        }
+
+        public static var hideStatusBar: LocalizedStringResource {
+            "Hide Status Bar"
+        }
+
         public static var removeHeader: LocalizedStringResource {
             "Remove header"
         }

@@ -397,6 +397,7 @@ struct SettingsFormPage<Content: View>: View {
 
 private struct AppSettings: View {
     @Environment(AppModel.self) private var app
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @AppStorage(DesktopSettingsKey.showMetricsInMenuBar) private var showMetricsInMenuBar = true
     @AppStorage(DesktopSettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
     @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
@@ -418,6 +419,10 @@ private struct AppSettings: View {
     var body: some View {
         Section(AppStrings.Settings.appearance.swiftUIKey) {
             Toggle(AppStrings.Settings.showInMenuBar.swiftUIKey, isOn: $showMetricsInMenuBar)
+            Toggle(
+                AppStrings.Settings.showStatusBar.swiftUIKey,
+                isOn: $showsStatusBar
+            )
             Picker(
                 AppStrings.Settings.theme.swiftUIKey,
                 selection: Binding(

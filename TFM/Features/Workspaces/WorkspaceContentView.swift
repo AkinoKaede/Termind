@@ -16,6 +16,7 @@ struct WorkspaceContentView: View {
     let workspace: Workspace
     let isActive: Bool
 
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @Environment(WindowModel.self) private var window
 
     var body: some View {
@@ -32,7 +33,10 @@ struct WorkspaceContentView: View {
                 CommandGeneratorOverlay(state: workspace.commandGeneratorState)
                     .padding(Metrics.Space.l)
                     // Above the floating status capsule, not on top of it.
-                    .padding(.bottom, Metrics.StatusBar.overlayClearance)
+                    .padding(
+                        .bottom,
+                        Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar)
+                    )
                     .zIndex(20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }

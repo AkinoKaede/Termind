@@ -858,6 +858,49 @@ final class WindowModel {
         vaultWorkRoute = nil
     }
 
+    func canOpenCompanionSession(from sessionID: UUID) -> Bool {
+        companionSessionSource(sessionID) != nil
+    }
+
+    /// Resolve the owning pane again at dispatch, not the pane that happened to
+    /// have focus when a native context menu was constructed.
+    @discardableResult
+    func openCompanionSession(from sessionID: UUID, placement: SessionOpenPlacement) -> Workspace? {
+        guard let source = companionSessionSource(sessionID) else { return nil }
+        if placement == .currentWorkspace {
+            select(source.workspace.id)
+            source.workspace.focus(source.pane.id)
+        }
+        if source.pane.sshSession != nil {
+            return openSFTPChannel(host: source.host, initialPath: source.path, placement: placement)
+        }
+        return openSSHSession(host: source.host, initialPath: source.path, placement: placement)
+    }
+
+    private func companionSessionSource(_ sessionID: UUID) -> (
+        workspace: Workspace, pane: Pane, host: Host, path: String
+    )? {
+        for workspace in workspaces {
+            for pane in workspace.panes {
+                let path: String
+                if let session = pane.sshSession, session.id == sessionID {
+                    guard session.status.isLive, let directory = session.workingDirectory, !directory.isEmpty else {
+                        return nil
+                    }
+                    path = directory
+                } else if let channel = pane.sftpChannel, channel.id == sessionID {
+                    guard channel.status == .connected, !channel.path.isEmpty else { return nil }
+                    path = channel.path
+                } else {
+                    continue
+                }
+                guard let hostID = pane.hostID, let host = hostStore?.host(hostID) else { return nil }
+                return (workspace, pane, host, path)
+            }
+        }
+        return nil
+    }
+
     @discardableResult
     func openSSHSession(
         host: Host,

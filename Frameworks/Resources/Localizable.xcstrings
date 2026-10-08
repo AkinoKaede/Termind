@@ -17449,6 +17449,29 @@
         }
       }
     },
+    "Hide Status Bar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステータスバーを非表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏状态栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隱藏狀態列"
+          }
+        }
+      }
+    },
     "Hide details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25091,6 +25114,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟Termind"
+          }
+        }
+      }
+    },
+    "Open Transfers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "転送を開く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开传输"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟傳輸"
           }
         }
       }
@@ -34108,6 +34154,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示工作階段詳細資訊"
+          }
+        }
+      }
+    },
+    "Show Status Bar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステータスバーを表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示状态栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示狀態列"
           }
         }
       }

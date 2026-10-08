@@ -94,6 +94,8 @@
     final class TermindTerminalView: TerminalView {
         var uploadFiles: (() -> Void)?
         var canUploadFiles: (() -> Bool)?
+        var openSFTP: ((SessionOpenPlacement) -> Void)?
+        var canOpenSFTP: (() -> Bool)?
         var inputCapture: TerminalInteractiveInputCapture?
         var copyOnSelect = false
         var pasteOnRightClick = false
@@ -249,7 +251,44 @@
                 upload.isEnabled = canUploadFiles?() == true
                 menu.addItem(upload)
             }
+            if openSFTP != nil {
+                menu.addItem(.separator())
+                let item = NSMenuItem(
+                    title: String(localized: AppStrings.SFTP.openWithSftp), action: nil, keyEquivalent: "")
+                item.image = MenuImageVisibilityController.markedImage(systemName: MenuSymbol.sftp)
+                item.isEnabled = canOpenSFTP?() == true
+                let submenu = NSMenu()
+                submenu.autoenablesItems = false
+                for (title, symbol, action) in [
+                    (
+                        AppStrings.Workspace.inCurrentWorkspace, MenuSymbol.currentWorkspace,
+                        #selector(openSFTPInCurrentWorkspace(_:))
+                    ),
+                    (
+                        AppStrings.Workspace.inNewWorkspace, MenuSymbol.newWorkspace,
+                        #selector(openSFTPInNewWorkspace(_:))
+                    ),
+                ] {
+                    let child = NSMenuItem(title: String(localized: title), action: action, keyEquivalent: "")
+                    child.target = self
+                    child.image = MenuImageVisibilityController.markedImage(systemName: symbol)
+                    child.isEnabled = item.isEnabled
+                    submenu.addItem(child)
+                }
+                item.submenu = submenu
+                menu.addItem(item)
+            }
             return menu
+        }
+
+        @objc private func openSFTPInCurrentWorkspace(_: Any?) {
+            guard canOpenSFTP?() == true else { return }
+            openSFTP?(.currentWorkspace)
+        }
+
+        @objc private func openSFTPInNewWorkspace(_: Any?) {
+            guard canOpenSFTP?() == true else { return }
+            openSFTP?(.newWorkspace)
         }
 
         @objc private func uploadFromContextMenu(_: Any?) {
@@ -334,6 +373,29 @@
         private var nextMountOrdinal: UInt64 = 0
 
         private var uploadBindingID: UUID?
+        private var sftpBindingID: UUID?
+
+        func bindSFTP(action: @escaping (SessionOpenPlacement) -> Void, isAvailable: @escaping () -> Bool) -> UUID {
+            let id = UUID()
+            sftpBindingID = id
+            terminalView.openSFTP = action
+            terminalView.canOpenSFTP = isAvailable
+            return id
+        }
+
+        func updateSFTPAvailability(for id: UUID, isAvailable: @escaping () -> Bool) {
+            guard sftpBindingID == id else { return }
+            terminalView.canOpenSFTP = isAvailable
+        }
+
+        @discardableResult
+        func unbindSFTP(_ id: UUID) -> Bool {
+            guard sftpBindingID == id else { return false }
+            sftpBindingID = nil
+            terminalView.openSFTP = nil
+            terminalView.canOpenSFTP = nil
+            return true
+        }
 
         /// Bindings follow their presenting pane. A late disappearance from the old pane
         /// must not remove the replacement pane's menu or cancel its pending transfer.

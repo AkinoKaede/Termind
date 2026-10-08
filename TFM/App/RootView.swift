@@ -10,6 +10,7 @@ import TermindPresentation
 /// views stay mounted while another destination is in front, preserving terminal
 /// grids, scrollback, and SFTP state.
 struct RootView: View {
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
@@ -54,7 +55,7 @@ struct RootView: View {
                 // to a Workspace no longer resizes the content area — and so the
                 // bar reads as belonging to the session it describes.
                 .overlay(alignment: .bottomTrailing) {
-                    if case .workspace = window.selectedDestination {
+                    if case .workspace = window.selectedDestination, showsStatusBar {
                         StatusBarView()
                             .padding(Metrics.StatusBar.floatingInset)
                     }
@@ -283,7 +284,8 @@ struct RootView: View {
     }
 
     private var onboardingPathContext: OnboardingPathContext? {
-        guard isStatusBarExpanded, let pane = window.selectedWorkspace?.focusedPane,
+        guard showsStatusBar, isStatusBarExpanded,
+            let pane = window.selectedWorkspace?.focusedPane,
             let hostID = pane.hostID
         else { return nil }
         switch pane.content {
@@ -321,12 +323,14 @@ struct RootView: View {
         case .statusBarPath:
             EdgeInsets(
                 top: Metrics.Space.xl, leading: Metrics.Space.xl,
-                bottom: Metrics.StatusBar.overlayClearance, trailing: Metrics.Space.xl
+                bottom: Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar),
+                trailing: Metrics.Space.xl
             )
         case .commandGenerator:
             EdgeInsets(
                 top: Metrics.Space.xl, leading: Metrics.Space.xl,
-                bottom: Metrics.StatusBar.overlayClearance, trailing: Metrics.Space.xl
+                bottom: Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar),
+                trailing: Metrics.Space.xl
             )
         case .quickOpen, nil:
             EdgeInsets(

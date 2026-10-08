@@ -22,8 +22,10 @@ nonisolated enum StatusBarPresentation {
     static func collapsedGlyph(
         hasSessionContext: Bool,
         status: ConnectionStatus,
-        hasTransfers: Bool
+        hasTransfers: Bool,
+        isEnabled: Bool = true
     ) -> StatusBarCollapsedGlyph? {
+        guard isEnabled else { return nil }
         // The connection wins when there is one. A transfer is a thing that is
         // happening; the connection is the thing you are looking at, and the
         // dot's colour is the only state worth a glance while collapsed.
@@ -65,6 +67,7 @@ nonisolated enum StatusBarTransferPresentation {
 /// prompt lives on the left. Anything else anchored to the bottom of a pane
 /// clears it by `Metrics.StatusBar.overlayClearance`.
 struct StatusBarView: View {
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -88,7 +91,8 @@ struct StatusBarView: View {
         StatusBarPresentation.collapsedGlyph(
             hasSessionContext: showsSessionContext,
             status: status,
-            hasTransfers: hasTransfers
+            hasTransfers: hasTransfers,
+            isEnabled: showsStatusBar
         )
     }
 

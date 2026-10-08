@@ -166,6 +166,10 @@ nonisolated enum Metrics {
         /// on whether a transfer happens to be running is worse than one that
         /// always sits in the same place.
         static let overlayClearance: CGFloat = height + floatingInset * 2
+
+        static func overlayClearance(isEnabled: Bool) -> CGFloat {
+            isEnabled ? overlayClearance : 0
+        }
     }
 
     /// The assistant transcript: message bubbles and the Markdown inside them.

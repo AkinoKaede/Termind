@@ -38,6 +38,11 @@ struct TransferCenterPopover: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    if transferItems.isEmpty {
+                        Text(AppStrings.SFTP.noTransfers)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: Metrics.TransferCenter.estimatedRowHeight)
+                    }
                     ForEach(transferItems) { item in
                         VStack(spacing: 0) {
                             TransferCenterRow(
@@ -57,7 +62,7 @@ struct TransferCenterPopover: View {
                     }
                 }
             }
-            .frame(height: Metrics.TransferCenter.listHeight(itemCount: transferItems.count))
+            .frame(height: Metrics.TransferCenter.listHeight(itemCount: max(1, transferItems.count)))
         }
         .frame(width: Metrics.TransferCenter.width)
         .confirmationDialog(

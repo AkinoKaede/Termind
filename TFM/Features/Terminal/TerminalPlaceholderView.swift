@@ -21,12 +21,14 @@ struct TerminalPlaceholderView: View {
     /// retained pre-journey terminal surface underneath it.
     let closePane: () -> Void
 
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var terminalFocused: Bool
     @State private var uploadConflictPresented = false
     @State private var uploadBindingID: UUID?
+    @State private var sftpBindingID: UUID?
 
     private var uploads: TerminalUploadModel { sshSession.terminalUpload }
 
@@ -58,10 +60,18 @@ struct TerminalPlaceholderView: View {
                 uploadBindingID = sshSession.terminalViewOwner.bindUpload(
                     action: chooseUploadFiles,
                     isAvailable: { isVisible && uploads.uploadTargetProblem == nil })
+                sftpBindingID = sshSession.terminalViewOwner.bindSFTP(
+                    action: { window.openCompanionSession(from: sshSession.id, placement: $0) },
+                    isAvailable: { isVisible && window.canOpenCompanionSession(from: sshSession.id) })
                 sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
             }
             .onChange(of: isVisible) {
+                if let sftpBindingID {
+                    sshSession.terminalViewOwner.updateSFTPAvailability(
+                        for: sftpBindingID,
+                        isAvailable: { isVisible && window.canOpenCompanionSession(from: sshSession.id) })
+                }
                 guard let uploadBindingID else { return }
                 sshSession.terminalViewOwner.updateUploadAvailability(
                     for: uploadBindingID, isAvailable: { isVisible && uploads.uploadTargetProblem == nil })
@@ -86,6 +96,8 @@ struct TerminalPlaceholderView: View {
                 terminalFocused = false
                 if let uploadBindingID { sshSession.terminalViewOwner.unbindUpload(uploadBindingID) }
                 uploadBindingID = nil
+                if let sftpBindingID { sshSession.terminalViewOwner.unbindSFTP(sftpBindingID) }
+                sftpBindingID = nil
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { TerminalFontCatalog.shared.refresh() }
@@ -109,7 +121,10 @@ struct TerminalPlaceholderView: View {
         if let notice = uploads.notice {
             TerminalUploadOverlay(notice: notice, homeResolution: sshSession.homeResolution)
                 // Above the floating status capsule, not on top of it.
-                .padding(.bottom, Metrics.StatusBar.overlayClearance)
+                .padding(
+                    .bottom,
+                    Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar)
+                )
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
         }
     }

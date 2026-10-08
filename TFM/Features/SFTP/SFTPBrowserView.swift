@@ -190,6 +190,7 @@ struct SFTPBrowserView: View {
     let externalRemoteDrop: SFTPRemoteDropRequest?
     let closePane: () -> Void
 
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
     @Environment(AppModel.self) private var app
     @Environment(\.locale) private var locale
     @Environment(WindowModel.self) private var window
@@ -230,7 +231,8 @@ struct SFTPBrowserView: View {
             }
         )
         .padding(.horizontal, 12)
-        .padding(.bottom, Metrics.StatusBar.overlayClearance)
+        .padding(
+            .bottom, Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar))
     }
 
     private var deleteConfirmationMessage: String {
@@ -511,6 +513,19 @@ struct SFTPBrowserView: View {
             Button(AppStrings.Common.paste.swiftUIKey, systemImage: MenuSymbol.paste) { pasteRemoteItems() }
                 .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
             Divider()
+            Menu(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
+                Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
+                    window.openCompanionSession(from: sftpChannel.id, placement: .currentWorkspace)
+                }
+                Button(AppStrings.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
+                    window.openCompanionSession(from: sftpChannel.id, placement: .newWorkspace)
+                }
+            }
+            .disabled(!window.canOpenCompanionSession(from: sftpChannel.id))
+            Button(AppStrings.SFTP.openTransfers.swiftUIKey, systemImage: "arrow.up.arrow.down") {
+                app.mainWindows.showTransfers()
+            }
+            Divider()
             if sftpChannel.showsHiddenFiles {
                 Button(AppStrings.SFTP.hideHiddenFiles.swiftUIKey, systemImage: MenuSymbol.hideHiddenFiles) {
                     sftpChannel.showsHiddenFiles = false
@@ -678,7 +693,11 @@ struct SFTPBrowserView: View {
         SFTPFileNativeList(
             items: fileListItems(layout: layout),
             scrollRequest: fileScrollRequest,
-            bottomContentInset: editedFiles.isEmpty ? 0 : editOverlayHeight + Metrics.StatusBar.overlayClearance + 12,
+            bottomContentInset: editedFiles.isEmpty
+                ? 0
+                : editOverlayHeight
+                    + Metrics.StatusBar.overlayClearance(isEnabled: showsStatusBar)
+                    + 12,
             onBackgroundClick: clearFileSelection
         ) { item in
             fileListRow(item, layout: layout)

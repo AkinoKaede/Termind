@@ -17,6 +17,7 @@ import struct TermindDomain.Host
 /// here. It is app-wide and there is exactly one, so injection costs nothing.
 struct TermindCommands: Commands {
     let app: AppModel
+    @AppStorage(DesktopSettingsKey.showStatusBar) private var showsStatusBar = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
@@ -198,6 +199,16 @@ struct TermindCommands: Commands {
             }
             .termindShortcut("i", modifiers: [.command, .option])
             .disabled(window == nil)
+
+            Button(
+                (showsStatusBar ? AppStrings.Settings.hideStatusBar : AppStrings.Settings.showStatusBar).swiftUIKey
+            ) {
+                showsStatusBar.toggle()
+            }
+
+            Button(AppStrings.SFTP.openTransfers.swiftUIKey, systemImage: "arrow.up.arrow.down") {
+                app.mainWindows.showTransfers()
+            }
 
             Divider()
 
