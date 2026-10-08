@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0af691ed3d308165943f558e0c2d658dbcb0d5c5fce6cb60f93648edc9a9fd70",
+  "pageVersion": "sha256:843b9f39b7ab2ed54dff0234ddd3c2bb1d7609a50386cf52fdca6242de7f768e",
   "claims": [
     {
       "id": "claim_5ca6241ea6cc4ebbb915ccbe304f8430",
@@ -591,10 +591,24 @@
           "version": "repo-lines-v1:sha256:4f712a18e105810cd91bdaf587887f3190df250f4eaee7fd2ea20ddfe83aef17:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDM1NzNmMjU1NmM3MjdmOWZkYmZlZTU5YTg5ZmIxMjlhY2Y1OTk1OTFiZTc2ZjI2MzY0OGVmMGJlMmE4NDkxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTU5ZDE0ZTg1NjMzYjFkNjI1YWUzZGVmMDc2MmRlMTNhM2ExNWYzNTcyY2Q3YmE4MGRlMTEyN2RhMmVhOGEwYyJ9"
         }
       ]
+    },
+    {
+      "id": "claim_8c20429179d84425933f6552a26693e8",
+      "statement": "Desktop SFTP-to-SSH companion actions use the connected source session ID and current directory with a saved host, selecting the source pane for current-workspace placement; reciprocal SSH-to-SFTP actions require a live terminal with a known working directory.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift",
+          "version": "repo-file-v1:sha256:1ffb4de484ec21bb2012bcd1ed6aa17b4d112561bb26f6a4594a13d03359eba0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L861-L903",
+          "version": "repo-lines-v1:sha256:2bf6b66d9487f9e8bd949655c7b26a0b0e1c980f551e849d7b2f94f8c98d4df2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNWExZGEyNWRhODNlM2MxMGIwMmU3MWJhMTRkZGI3NDRiZTczMzhiZDhhZDcwNjEyNDcxZWQxZWMwOWM1ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhMTkwNjc4ZjgyMmI3OGI2MTgyNjFlNGFmZTkwNzFlYTZjNGQyZTU1YzMzZDg4M2MxOGJmNDYzZWY4OWVjMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4YjI5NDg0YTZiOGZmMmNjOTk3ODVlODYxYjkwYWY3ZTBmMjc4NzUwMjRkYmI4YTBiOTQ5YzgwMmU5Njk4MWQifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

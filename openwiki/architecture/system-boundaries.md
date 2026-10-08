@@ -80,10 +80,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # System boundaries and dependency direction
@@ -207,7 +207,7 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The project declares `upToNextMajorVersion` from `0.19.0`, and the committed `Package.resolved` file pins the Xcode build. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree; an uncommitted sibling change cannot affect Termind.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The project declares `upToNextMajorVersion` from `0.19.1`, and the committed `Package.resolved` file pins the Xcode build. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree; an uncommitted sibling change cannot affect Termind.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 

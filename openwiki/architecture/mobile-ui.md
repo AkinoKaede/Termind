@@ -62,6 +62,8 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-5503f969776cb509a7d69160
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
+  - id: openwiki-source-0ee0bcd5856c22431d9c737a
+    resource: repo://TFI/Features/SFTP/MobileSFTPBrowser.swift
   - id: openwiki-source-ce7d4a756cab9f8f7915dc0a
     resource: repo://TFI/Features/SFTP/MobileSFTPPreviewState.swift
   - id: openwiki-source-a88ccceb978a169c1cce67ac
@@ -124,6 +126,8 @@ sources:
     resource: repo://TFITests/MobileMetricsJourneyTests.swift
   - id: openwiki-source-a8fe0369546b05fdb8d24cb6
     resource: repo://TFITests/MobileOperationConfirmationTests.swift
+  - id: openwiki-source-ac74fac80e51d2d02f9f5799
+    resource: repo://TFITests/MobileSFTPFilePreviewTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
@@ -138,10 +142,10 @@ sources:
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
   - id: openwiki-source-cc27a76170a8c672a70e388a
     resource: repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # iOS and iPadOS UI and Scene Ownership
@@ -368,6 +372,8 @@ Each `MobileWorkspace` retains a `MobileTerminalSurface` and its native terminal
 Presentation cleanup is narrower than session shutdown: workspace view disappearance disables external Open With presentation and window drop handling, unbinds terminal upload-menu callbacks, clears the captured upload target and drop targeting, and cancels drop loading. UIKit search teardown separately calls `disconnect()` on its bridge. Neither is itself the instruction to disconnect the workspace: session `close` explicitly calls `workspace.close()` and removes its runtime and descriptor. Drop handling requires a visible detail and an active scene; destination or connection-generation changes cancel loading so an invisible or changed detail does not accept a late upload as though it were foreground. See [File Drag and Drop](../workflows/file-drag-and-drop.md) for payload and upload boundaries.
 
 Command-generation and upload notices are overlays in the usable region; they do not take over hit testing. File previews, edit-copy export, transfer sheets and conflict alerts remain explicit temporary presentations over the workspace rather than new session owners. `MobileFileImportState` retains the selected download/edit target when importer dismissal arrives before its result; `takeTarget()` consumes it once, and reopening replaces a cancelled request. `MobileSFTPPreviewState` stages an exported copy while previewing or dismissing, and promotes it only in `previewDidDismiss`; dismissing the export clears it, and a new preview discards the old pending export.
+
+SFTP context-menu previews reuse the row content at the measured list width and paint their own system background: the UIKit list background is not part of a lifted preview. Width is included in the native list refresh identity so resizing updates previews. The focused preview tests render files and directories at narrow/wide widths, light/dark appearances and English/Simplified Chinese locales, checking an opaque background rather than an arbitrary image byte count.
 
 ### Native toolbar search lifecycle
 

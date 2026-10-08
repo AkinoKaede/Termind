@@ -46,10 +46,10 @@ sources:
     resource: repo://FrameworkTests/Fixtures/README.md
   - id: openwiki-source-d32eeff4d814c0dbd05e14b8
     resource: repo://Scripts/benchmark-port-forwarding.py
+  - id: openwiki-source-c6328be86432b33a68051c73
+    resource: repo://Scripts/check-cjk-localization.py
   - id: openwiki-source-790223eb6fb4a24b2cf2d359
     resource: repo://Scripts/check-mcp-bridge.py
-  - id: openwiki-source-41a7ded3800c9422f058a3ef
-    resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-a90133154199a9c011127920
@@ -90,10 +90,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:46:25.102Z
 ---
 
 # Supporting Systems Ownership Guide
@@ -102,7 +102,7 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 ## AgentKit — separately versioned package
 
-`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.19.0`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
+`.gitmodules` declares `AgentKit` as a submodule, but **the app builds the remote versioned Swift package, not the submodule or the sibling `../AgentKit` working tree**. `project.pbxproj` declares `https://github.com/AkinoKaede/AgentKit.git` with `upToNextMajorVersion` starting at `0.19.1`; Xcode builds the committed `Package.resolved` pin. Use `-onlyUsePackageVersionsFromResolvedFile` so ordinary app builds do not silently advance the pin. [Repository guidance](../../AGENTS.md) assigns the host-neutral loop, approvals, providers, MCP **client**, and built-in tools to the separately released package; this is an ownership contract, not an inspection of its current remote source.
 
 The Xcode product dependencies are the verifiable local integration boundary: `AgentKit` is linked by both apps and by `TermindDomain`, `TermindApplication`, and `TermindPersistence` (as well as test targets); `AgentKitScrubber` is linked by the desktop app, `TermindRemoteInfrastructure`, and desktop tests. Both product references point to the same remote package. Do not infer the package manifest's internal target/dependency layout from product names. Termind's own `TermindAgentTools` registers host, SSH, and SFTP tools alongside runtime built-ins and composes their presenters; host-specific code stays outside AgentKit. `ArchitectureBoundaryTests` prevents app-local redefinitions of selected AgentKit-owned runtime types by scanning Swift declarations in the desktop app tree; this is a source-level guard against shadowing imports, not a test of the package's own implementation. For changes spanning repositories, test and tag/push AgentKit in `../AgentKit` first, then update the app's Xcode minimum version and resolved revision in the same app-side commit. Package localization and tests are operated from the separate AgentKit repository; verify them against the released package revision when changing that boundary. See [Assistant Runtime](../concepts/agent-runtime-and-assistant.md) and [Build and Release](../operations/build-test-and-release.md).
 
@@ -178,9 +178,9 @@ The standalone benchmark reads fixture metadata, enforces the host's 1–64 conn
 
 The script root has multiple independent workflows:
 
-- **Release and resource maintenance:** version bumping, Chinese-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/update-pi-model-catalog.sh` requires an explicit Pi version, records npm commit/integrity, preserves model type/input/output, and deduplicates `(provider, id)` entries preferring chat over image over other types; missing output defaults by model type. `Scripts/check-zh-localization.sh` checks catalog normalization before validating JSON with `jq`, then rejects missing or unfinished `zh-Hans`/`zh-Hant` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
+- **Release and resource maintenance:** version bumping, CJK-localization validation, shared presentation-copy checking, Linux-distribution icon refresh, and model-catalog refresh. `Scripts/update-pi-model-catalog.sh` requires an explicit Pi version, records npm commit/integrity, preserves model type/input/output, and deduplicates `(provider, id)` entries preferring chat over image over other types; missing output defaults by model type. `Scripts/check-cjk-localization.py` checks catalog normalization and JSON structure, positional format arguments and plural shape, then rejects missing or unfinished `zh-Hans`/`zh-Hant`/`ja` translations and spacing violations; by default it checks both app catalogs, not AgentKit's catalog.
 - **Remote fixtures and benchmarks:** SSH authentication, OpenSSH forwarding, and Telnet fixtures; native/external forwarding runners and their shared benchmark helpers.
-- **Screenshots and assets:** `fastlane/Fastfile` runs scan over app-owned `MacScreenshotTests` / `MobileScreenshotTests`, not XCUITest snapshot helpers. The Mac lane requires macOS 27 and defaults to Workspace in three locales; its focused native-window marker, scan status and dimensions gate promotion. The iOS lane defaults to iPhone 18 Pro and iPad M5 on 27.0; Duo inner/outer are separate opt-in 27.1 display batches. A unique ready/ack handshake and exact native pixels gate each device/locale scene set. Both lanes share a nonblocking lock, preserve pinned packages and back up replaced sources with SHA-256 manifests. `Scripts/run-mac-screenshots.sh` and `run-mobile-screenshots.sh` delegate to these lanes; `fastlane frames` stages read-only source copies and publishes only after every selected frame succeeds. The full commands, licensed template imports, mask mechanics and Figma delivery contract are in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
+- **Screenshots and assets:** `fastlane/Fastfile` runs scan over app-owned `MacScreenshotTests` / `MobileScreenshotTests`, not XCUITest snapshot helpers. The Mac lane requires macOS 27 and defaults to Workspace in four locales; its focused native-window marker, scan status and dimensions gate promotion. The iOS lane defaults to iPhone 18 Pro and iPad M5 on 27.0; Duo inner/outer are separate opt-in 27.1 display batches. A unique ready/ack handshake and exact native pixels gate each device/locale scene set. Both lanes share a nonblocking lock, preserve pinned packages and back up replaced sources with SHA-256 manifests. `Scripts/run-mac-screenshots.sh` and `run-mobile-screenshots.sh` delegate to these lanes; `fastlane frames` stages read-only source copies and publishes only after every selected frame succeeds. The full commands, licensed template imports, mask mechanics and Figma delivery contract are in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
 Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) to choose tests and [Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md) for measurement semantics. Routine documentation validation does not imply these app or wire suites have run.
 
@@ -196,6 +196,7 @@ Paths below are relative to `com.akinokaede.termind`, an independent public Git 
 | `src/pages` | English route entry points for the landing page and support/legal/information pages. |
 | `src/pages/zh-hans` | Simplified Chinese routes, including the email-offer page. |
 | `src/pages/zh-hant` | Traditional Chinese routes. |
+| `src/pages/ja` | Japanese routes, including pricing, comparisons and support. |
 | `src/pages/zh` | Legacy Chinese redirects to the current Simplified Chinese routes, not another independently authored locale. |
 | `src/styles` | Global styles, tokens, typography, and responsive/interaction styling. |
 | `public` | Directly served static assets such as app icon, brand mark, and favicon. |
@@ -208,7 +209,7 @@ Marketing screenshots are imported from the asset pipeline, not copied wholesale
 
 | Directory | Responsibility |
 | --- | --- |
-| `assets/app_store/<locale>/<platform>` | Opaque sRGB JPGs: six boards per `mac`, `iphone-6.3`, `ipad-13`, `iphone-duo` across three locales (72 current boards). iPhone's two-device Overview is named `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. |
+| `assets/screenshots/<locale>/<platform>` | Opaque sRGB JPGs: six boards per `mac`, `iphone-6.3`, `ipad-13`, `iphone-duo` across four locales (96 current boards). iPhone's two-device Overview is named `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. |
 | `assets/captures/<locale>/<device>` | Full-resolution native sources in `iphone-6.3`, `ipad-15`, `mac-14`, and separate Duo inner/outer directories; source identity is locale/device/feature, not feature-first. |
 | `assets/device_frames/<locale>/<device>` | Native-scale reproducible PNGs from frameit and local licensed Apple templates. Masks apply only to staged copies; website imports an allowlisted subset, including Duo. |
 | `design/brand`, `design/paywall` | Brand master and remote paywall handoff artwork. Native `AppIcon.icon` documents remain with TFM/TFI. |
@@ -223,7 +224,7 @@ flowchart TB
     Frames --> Framed["Asset submodule / device_frames"]
     Framed --> Images["Astro typed image allowlist"]
     Images --> Astro["Optimized AVIF / WebP / JPEG"]
-    Raw -.->|Figma composition| Store["Asset submodule / app_store"]
+    Raw -.->|Figma composition| Store["Asset submodule / screenshots"]
     Framed -.->|Figma image layers| Store
     Brand["Asset submodule / design"] -.->|visual source| Store
 ```
@@ -250,4 +251,4 @@ Local dependency/build caches such as `node_modules`, `.build`, `build`, and web
 
 Return to the [Module Map](module-map.md) or the [Engineering Quickstart](../quickstart.md).
 
-The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot suites live directly under `TFMTests/Screenshots/` and `TFITests/Screenshots/`; lanes select suites by Swift type. The website Hero is Mac Workspace plus Duo outer Assistant, while App Store Overview compositions remain platform-specific.
+The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese, and Japanese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot suites live directly under `TFMTests/Screenshots/` and `TFITests/Screenshots/`; lanes select suites by Swift type. The website Hero is Mac Workspace plus Duo outer Assistant and an iPhone SSH alternative, while App Store Overview compositions remain platform-specific.

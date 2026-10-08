@@ -52,16 +52,18 @@ sources:
     resource: repo://TFM/Features/Terminal/TelnetSessionModel.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-5e2670d68f19777e2dd312ea
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Ghostty Terminal Integration
@@ -141,6 +143,8 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 `TermindTerminalView.selectionMenuPoint(at:)` allows the default menu even on blank terminal space, while captured remote mouse mode suppresses the host menu. Its `selectionContextMenu()` uses Ghostty's Copy item only when Ghostty reports a selection, localizes that title, then adds Paste and Select All. Paste is disabled without pasteable text or file URLs and takes Ghostty's `paste_from_clipboard` binding. Upload File appears only while a pane has bound an upload action; its enabled state reads the current visibility and upload-target problem, and the action checks that gate again before invoking the file picker.
 
 Desktop's **Paste on Right Click** preference changes the gesture: an ordinary secondary click pastes and does not open the menu, while Option-secondary-click still opens it. Remote mouse capture remains Ghostty-owned. The session's `PersistentTerminalViewOwner` binds upload actions with an ID; updates or teardown from an old pane cannot disable or remove the menu installed by a replacement pane. On disappearance the current pane unbinds its ID. The menu therefore follows the presenting pane even when SwiftUI reparents the same native terminal.
+
+The desktop menu also offers **Open with SFTP** in the current or a new workspace when the SSH pane binds a companion action. Menu construction and dispatch both check current availability. Its binding uses a separate identity token, so stale pane teardown cannot remove a replacement binding. WindowModel resolves the source by session ID and requires a live session, known working directory and saved host, rather than relying on current focus.
 
 ## Surface and appearance flow
 

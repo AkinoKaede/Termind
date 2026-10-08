@@ -146,8 +146,8 @@ sources:
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
     resource: repo://Scripts/check-appstrings.swift
-  - id: openwiki-source-41a7ded3800c9422f058a3ef
-    resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-c6328be86432b33a68051c73
+    resource: repo://Scripts/check-cjk-localization.py
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -224,18 +224,16 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-  - id: openwiki-source-dc392b9979d99f5026bdeadf
-    resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-06T20:49:22.614Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T20:49:22.614Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Engineering invariants
@@ -283,7 +281,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](system-boundaries.md).
-- App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` (the latter checks canonical formatting, catalog validity, completed translations and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary.
+- App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant`/`ja` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `python3 Scripts/check-cjk-localization.py` (the latter checks canonical formatting, catalog validity, completed Chinese/Japanese translations, positional format arguments, plural shape and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary. The old Chinese-only shell checker has been removed; older command references in contributor guidance are stale, not an additional executable check.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace

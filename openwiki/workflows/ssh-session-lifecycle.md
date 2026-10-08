@@ -4,6 +4,8 @@ title: SSH session lifecycle
 description: Traces host selection, one-shot SSH preparation, routed trust and authentication, transport ownership, and desktop and mobile workspace teardown. Distinguishes window sessions from app-owned Agent connections and mobile restoration intent.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 sources:
+  - id: openwiki-source-b7659044185b653107841c20
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionAuthenticationContinuation.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-d69fe1c34dca9a13f42d2dbc
@@ -92,12 +94,16 @@ sources:
     resource: repo://TFMTests/ConnectionJourneyTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
+  - id: openwiki-source-da61dbcdf7f720ccca8efaad
+    resource: repo://TFMTests/RemoteSessionAuthenticationContinuationTests.swift
+  - id: openwiki-source-9973cf687c50c9e4a1095c83
+    resource: repo://TFMTests/RemoteSessionConnectionControllerTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:46:25.102Z
 ---
 
 # SSH session lifecycle
@@ -207,6 +213,10 @@ A configuration carries credentials only for one physical connection attempt. It
 Credentials may be a password, software private key and optional passphrase, Secure Enclave key, FIDO2 Security Key, or the marker `.interactionRequired`. Authentication tries the resolved configuration at the relevant hop or destination. Security Key credentials come from the key's Vault metadata rather than a Keychain private-key lookup, for both jumps and destination. An interactive request supplies a signing callback: the route and destination authentication exchanges use it to sign the SSH public-key challenge, with the current hop's host identity; cancelling the exchange wakes the waiting transport queue and ignores late signing results. When an operation forbids interaction, `SSHConnectionRequest.enforcingInteractionPolicy()` replaces credentials requiring a passphrase or user presence, including all Security Keys, with `.interactionRequired`, clears software secret material, makes host-key authorization throw `SSHInteractionRequired`, and permits only informational keyboard-interactive rounds (no prompts and not a Tailscale browser-approval banner). This is how silent additional connections avoid unexpectedly displaying password, trust, MFA, Touch ID, or device-password UI. See [SSH Security Key Authentication](../concepts/ssh-security-key-authentication.md) for registration, Vault metadata, signing and forwarding limits.
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
+
+Desktop terminal and SFTP models now share `RemoteSessionAuthenticationContinuing`: it re-resolves the prompt host through route → library → temporary destination, validates a nonempty trimmed username, stages one-use proxy or SSH credentials, and invokes the model’s synchronous save policy before connecting. After staging, continuation clears the prompt and sets the journey to connecting before the save callback. A failed save does not connect; the model presents the error. A successful save policy then starts an explicit connection. Proxy submissions use the entered username, not an old proxy username. Save and error presentation remain model-owned, and these callbacks are never retained.
+
+`RemoteSessionConnectionController` centralizes attempt state: begin resets the journey and starts a pending route, finish accepts only the current token, and clear invalidates that token and route. Its live progress callback ignores replaced and cleared attempts. Transport recovery runs teardown before resetting the journey and invoking the model’s scheduled-state closure; the reconnect task does not own the transport or reconstruct secrets.
 
 ## Transport and channel ownership
 

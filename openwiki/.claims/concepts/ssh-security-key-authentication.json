@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8cf416f46e2401d09254da644b48bd32c6a5853687903fbd86083b3d85af9622",
+  "pageVersion": "sha256:6cad39d6c9decdee69767b72382b05012368dfebb835c64c0eff92b73aef7989",
   "claims": [
     {
       "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:4bc50b80a32ea1ea45e00a7419e6fb6a1412007fc0abd337fa6d111a40096d11"
+          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift",
@@ -326,7 +326,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

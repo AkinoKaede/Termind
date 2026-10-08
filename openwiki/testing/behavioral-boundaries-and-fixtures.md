@@ -158,6 +158,10 @@ sources:
     resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-c7d015a20982da4e8b0599d1
     resource: repo://TFMTests/MetricsJourneyRenderingTests.swift
+  - id: openwiki-source-da61dbcdf7f720ccca8efaad
+    resource: repo://TFMTests/RemoteSessionAuthenticationContinuationTests.swift
+  - id: openwiki-source-9973cf687c50c9e4a1095c83
+    resource: repo://TFMTests/RemoteSessionConnectionControllerTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
@@ -168,10 +172,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Behavioral Tests and Fixtures
@@ -294,6 +298,8 @@ These tests do not prove unknown-field round trips through an actual historical 
 The suite also keeps `StoreKit` out of the Infrastructure commerce adapter, confines Firebase SDK imports to Infrastructure, and checks production plists start with diagnostics collection disabled. Its targeted source checks keep forwarding/authentication ownership out of broad UI/app layers and require additional-connection owners to retain reference-only snapshots rather than full connection configurations. It additionally scans for `@Model` outside Persistence and uses the SwiftSyntax-backed `Scripts/swiftdata-repository-declarations.sh` parser to reject **declarations** of `SwiftData*Repository` elsewhere without mistaking references, strings or comments for ownership violations. It checks app-local `AppStrings` redeclarations and a bounded list of AgentKit-owned type names, limits `ListViewKit` imports to approved native-list workloads, and keeps the forwarding benchmark independent of the app/test target. It scans CloudKit delegate files for lifecycle batch/provider/quarantine/conflict calls, and checks that `CloudSyncLifecycle` keeps its 250-record boundary without SwiftData or Persistence imports. These are source-level guardrails (mostly literal import/token checks), not proof of runtime behavior: run the CloudKit safety and lifecycle fixtures for blocked uploads and recovery. Run this suite when moving code, changing dependencies or persistence ownership, or crossing AgentKit and CloudKit boundaries.
 
 Security-sensitive tests should make the boundary explicit with a memory secret store and an authentication responder, never production secrets. `AgentHostAuthenticationTests` verifies that one-use credentials can configure an SSH/SFTP attempt without mutating the Vault unless saving was requested; it also covers route-order prompting for a jump host and destination, prompt/connection coalescing for concurrent work, cancellation before SFTP opens, rejected-credential retry, and stale authentication generations. These are safety contracts: a future refactor must not persist an ephemeral secret, merge unrelated challenges, or let an old callback erase newer authentication state.
+
+`RemoteSessionAuthenticationContinuationTests` covers shared SSH/proxy continuation ordering: credentials stage before the model’s save policy, failed saves never connect, proxy submissions use the entered trimmed username, and disconnect clears one-use maps. `RemoteSessionConnectionControllerTests` holds retry sleep to check teardown before journey/retry, cancellation on disconnect, route → library → temporary-destination host lookup, and rejection of progress from replaced or cleared attempts. These deterministic tests do not open real connections.
 
 The complementary shared `SSHInteractionPolicyTests` covers noninteractive follow-on connections. An `SSHAdditionalConnectionSnapshot` retains route and authentication references rather than credential material, and an interaction-forbidden request must not surface host-key or keyboard-interactive UI. Protected-key credentials become an interaction-required marker while a password fallback remains usable; runtime `SSHSecret` values are consumable once and clearing a copied connection configuration invalidates every credential copy.
 

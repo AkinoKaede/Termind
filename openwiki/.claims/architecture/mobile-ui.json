@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0996c20405c8e49f624b0dd4dd5eccfc1c76199ba3a846dac41864bc9db746f6",
+  "pageVersion": "sha256:3d4e0b256340d33732e91a6b0925f04762249f7f133b7d3fe999d561526ab846",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -1247,10 +1247,28 @@
           "version": "repo-lines-v1:sha256:894a95f99f89d6b8385da63cf1c335df3498dbdc65dbda799ac5dfe5b40df123:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzQ4NTU1OTlhZjc3MzExYjZhMTNmOTI1ZjBhMDdmOWY4NzI2OWJlNzE3Njc2NTM5YzU4ODIzYjI2MjMzYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlNDkyMzUzYzJjN2JiYzI5N2Y4Y2VmYzJkODdjMTgwZGJmYTJhOTRjZDc1ZGEzZDc3MTIwZmMyOTlhMjFjMWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5MDkxZmJlNmRlMTQ1NzU3N2Y1YWI3ZTRhZDkyMzljYTg4ZWI4NzU5MTg0NTAxZTJiZGNiNzAyYzFkN2E4ZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhZWY0NDEzMDNkMzg5OWE0MDUxZTcwN2QzN2YyYWQ2NjVlMjljOGFjOTZhOWJmMjA5NTE5ZTBjYzA1ZDMzZjcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_b58d45a4ddec4ee5a57c6fd19bde356f",
+      "statement": "Mobile SFTP context-menu previews use shared row content at the measured list width with an explicit system background; width participates in native-list refresh identity, and rendering tests check opaque backgrounds across widths, appearances and English/Chinese locales.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/SFTP/MobileSFTPBrowser.swift#L107-L166",
+          "version": "repo-lines-v1:sha256:d6637499d8e5042930bb1f54f5128030f346aa6ba7e7b8ca9c38a1171fbdcfc1:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5N2U2YWNkOTZjOTZlOWY5MWZlMWE0ZjgxNDNiZmMyNjVmYzI4MTNlNjcwMWU1ZmU4MzY0ZWMzYWVhZDI0NDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYTZmMjQzM2U0OWNhMGNjMmQwZjM4NTM0MDUzZjViYmU3NGUwNDBhYzAxNDQzMzc3NjJmYjVhODdiMjg1OGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0NzU2MDZmOTE1YjA5NWUxMTFkMzY1N2U0NWU5NjhmOWNiMTAyNDVjZGM0MDg1OGNlMzBmOGEyYzU0NDJjZGYifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/SFTP/MobileSFTPBrowser.swift#L50-L79",
+          "version": "repo-lines-v1:sha256:142ba8ba3e133d04aa9d3a1f60c55e1cb529425fb5b8a27ffe613074f8160a50:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkZWNhMWEyZGM3NjUxNzBjNGU3NmUzYzRmOGYyZjJjMTVhNTY2MmYxZjM3Mjc3MzJhMTI3ODVjYWM2NDBiZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YjZjZWZkMTc0ZGFhNjY1MTY0MWJhNmE4OTg3MmNhMWM3NjAyYjZkYzBhMDY0ODgxODU0MTA1ZDY2NWNmMGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZDJiOTRmYmI5ODVkMWFiYmEyNzYzODBmYzI4OWNmY2RlOGE4ZGI1ZTEwZWRiZGE3NGU4NDA4ZTUyZDU1MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlYzc4ZGZiODVmNTAyNzYyMDljMmYyOGM1YTNkOTllY2ExY2FiNTg5NjU1Mzk2NjkzZTdkMTFkY2NkNDEyODQifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileSFTPFilePreviewTests.swift",
+          "version": "repo-file-v1:sha256:3cbc0a6e6d3e68905d4e48d95cd8212edb75465295940e9879dbdb50a6e9f1f5"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

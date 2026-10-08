@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:785b4476a29ba47bf25237eab9ed94d551070b45d48ec81b19a14f93b3e86d1c",
+  "pageVersion": "sha256:c6aedbc65556d8b8c4c14193d21b23e80c451792b17623eaa1917e1b35b447d6",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -85,8 +85,8 @@
       "statement": "Mac and mobile wrappers both present RevenueCatUI PaywallView with controller-derived ProPaywallState custom variables, show loading and unconfigured-service fallbacks, block initiating purchases while access exists, refresh after completed purchase or restore and suppress the first post-purchase SDK dismissal to leave the account variant visible; remote dashboard content rather than local shared paywall code owns offer layout.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L50",
-          "version": "repo-lines-v1:sha256:e29a45c55bdeced5ae2280f67e091838306050ef397bcb034b69ebaac8320461:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L59",
+          "version": "repo-lines-v1:sha256:de32f3b5361f4438e6369d3f96af0b84f708b9102ffdc1742ecf8c734ad14bb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L13-L69",
@@ -118,19 +118,19 @@
     },
     {
       "id": "claim_bfdb3849716843bd941c4d567891acf5",
-      "statement": "Final storefront imagery lives in the independent asset submodule's three locale app_store directories, with six opaque RGB/sRGB JPG boards per mac, iphone-6.3, ipad-13 and iphone-duo set (72 total), separate from capture/frame inputs. iPhone Overview is 01_overview.jpg; other platforms retain 01_three_screens.jpg.",
+      "statement": "Final storefront imagery lives in the independent asset submodule's four locale screenshots directories, with six opaque RGB/sRGB JPG boards per mac, iphone-6.3, ipad-13 and iphone-duo set (96 total), separate from capture/frame inputs. iPhone Overview is 01_overview.jpg; other platforms retain 01_three_screens.jpg.",
       "evidence": [
         {
           "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:59522e4ab83c4e31013a35fad3b55e12233b39a6c6d8848087e4d18ae7ec524a"
+          "version": "repo-file-v1:sha256:de2ae13c89af67e8029b26b9d2dd77853ab50d62f58d39447f04d222fdbbd745"
         },
         {
-          "resource": "repo://com.akinokaede.termind/assets/app_store/en/iphone-6.3/01_overview.jpg",
-          "version": "repo-file-v1:sha256:c0a810086c469c63cfe2ebe89d1812ac3644fc7402dcf2b91abc6f6380fa8c59"
+          "resource": "repo://com.akinokaede.termind/assets/screenshots/en/iphone-6.3/01_overview.jpg",
+          "version": "repo-file-v1:sha256:1b9d8166815723e333c1087432706ea1a3ac29f0d46de28d601530eb7cb77275"
         },
         {
-          "resource": "repo://com.akinokaede.termind/assets/app_store/en/mac/01_three_screens.jpg",
-          "version": "repo-file-v1:sha256:f00e423bf5cafbbaccbeeeef65ddbbd4896f6920816ddb37cb48925945f430b5"
+          "resource": "repo://com.akinokaede.termind/assets/screenshots/en/mac/01_three_screens.jpg",
+          "version": "repo-file-v1:sha256:63b602625855439b16738d629bb03611fa2163c0e2dcf43e098edf87c0630dbe"
         }
       ]
     },
@@ -240,7 +240,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:bf91d80b864b44cadcc325d950bf5b61024eb1bbc562308067e835ff0490e1d3"
+          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
         }
       ]
     },
@@ -277,8 +277,8 @@
           "version": "repo-lines-v1:sha256:fa6b621059f54165badf21b98f7748bac8e2ff6ecfc165da20b0ab9076ef82b5:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNTI0N2U0ZDM4MTk4MGY2MDRlOGEzZjdlZTk1N2I0MmI0MzM1MjI2OTcyNGVhMGEzMTVhNGJhM2JhYzkxOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyOWM1Zjc3YjVjZTI0ODU0M2UyMGFjOWRkZGFhNjU3OTY5MzZhMmM4ZDE2N2NjMzRiZGM1MDM3N2RhYjg2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L50",
-          "version": "repo-lines-v1:sha256:e29a45c55bdeced5ae2280f67e091838306050ef397bcb034b69ebaac8320461:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/ProPaywallState.swift#L4-L59",
+          "version": "repo-lines-v1:sha256:de32f3b5361f4438e6369d3f96af0b84f708b9102ffdc1742ecf8c734ad14bb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NmYzMDY0M2JlYTcyNjdiODM1YWY2NGM0ZWRjNmU5ODRjZWNmZDIwZDU1NmRkZmEwNmIyY2RkMDMyNjEyNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift#L57-L69",
@@ -299,7 +299,7 @@
           "version": "repo-file-v1:sha256:745e8c2e8dcc699c101608cca8f95539416317555b72c1f360786d14138b0551"
         },
         {
-          "resource": "repo://TFM/App/RootView.swift#L158-L181",
+          "resource": "repo://TFM/App/RootView.swift#L159-L182",
           "version": "repo-lines-v1:sha256:a7fdc7232ebb91e7bb7e70a9235181f28591257980bb737c5bfd10fe054d2974:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZWFkMDY0ZDFiNDdiZWI5OTM4ZDY2NDViNzMwOWY0YjViMDYwMDE3YmY3MzEyYTM5NjRmZDZkOTNiMWQ0MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4N2RiNmZmZTg1OTY2YzdmMWNhZjRlYWJiMzI2NThhM2FkNjFkZjE3NThjM2I0ZjI2ODUxZDY2MWRiNWUwNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMWY0NjFlYzQ4OGZjOGM3MDJkMjIxZjljM2JlNWE4Y2Q4YzRmMjE4ZmZmMjYzMGI4Y2ZlYzE4NTVkMWQ1OWEifQ"
         },
         {
@@ -332,7 +332,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

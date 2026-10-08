@@ -3,9 +3,6 @@ type: dependency-operations
 title: Ghostty Dependency Updates
 description: Update the direct upstream Ghostty Swift Package pin while preserving app-owned menu, input, surface and upload boundaries.
 tags: [ghostty, dependencies, spm, macos, ios, terminal]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -24,6 +21,9 @@ sources:
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
 generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+verified:
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Ghostty Dependency Updates

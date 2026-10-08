@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7a7ad9a3b15cb7a00270d7332095b363d18180573e3ac854394ec9b78043efc8",
+  "pageVersion": "sha256:72e9d588d53d2699eafa58cb89e24fd163bf96703009dbf0d10d1db4159b9e22",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -380,7 +380,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:be4720333fec7711ae772a5e38ce95411587251279e7bf5c1cfc23f14c52ec45"
+          "version": "repo-file-v1:sha256:1f9c2221300c6e82d4a539f738405066b0d50137bd597304b70a16e0fe2b0b71"
         },
         {
           "resource": "repo://TFM/Features/Settings/SyncSettings.swift",
@@ -864,7 +864,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:be4720333fec7711ae772a5e38ce95411587251279e7bf5c1cfc23f14c52ec45"
+          "version": "repo-file-v1:sha256:1f9c2221300c6e82d4a539f738405066b0d50137bd597304b70a16e0fe2b0b71"
         },
         {
           "resource": "repo://TFMTests/SettingsNavigationTests.swift",
@@ -965,10 +965,32 @@
           "version": "repo-lines-v1:sha256:1d969520df8c3b18e68ebd6a8cde24b8781d4cf0406e3f675d53b5d68b3e7904:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyMzU0N2MyNmU1YThiNGQyYzIwMDQ3MWMzZTk1MDQxM2M4YmU0ZmFlYWFmNDBlM2MzNGRjNzM1MTM3N2E2NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiNmE5NzQ5ZDM1Y2Y3MGZlMGFjODBmYjEwNzVmYTFhMGVmNmU2YzI1NjVhNjAyMzhmNGM1OTdmMjg0MTBiM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjMGUxOTMzMjNmMDM4NmY2ZDZjNzcyMDdkNGJjMjZkMGFkMjg5ZGVmOGNkOGFkYjdmODViYTAxM2QzODM4NmMifQ"
         }
       ]
+    },
+    {
+      "id": "claim_46c331d086904cadad5c0bdfba42fbc5",
+      "statement": "Desktop Show Status Bar is a default-enabled app-wide local UserDefaults preference shared by Settings and the View menu, separate from expanded/collapsed state and cloud-synced Settings records.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/DesktopSettingsKey.swift",
+          "version": "repo-file-v1:sha256:79d4e8f175f139291a421a2d9921ca5c48088711d1abfe4c1848c221a403dfe0"
+        },
+        {
+          "resource": "repo://TFM/App/RootView.swift#L13-L64",
+          "version": "repo-lines-v1:sha256:dbf67f7def33928b4ed071f71d650cf5f27f66c21bf9113071508b0fef3af688:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5MDQ0M2NjMzYwNWJkYjZlOTY0NGM3NWM2Y2U0Yzk5Nzc1NTU5ZDU2ZDk2YjY2OWVlMjQ5NjlmMjFmOTU4NDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYmI4OTUwMzEzMmUxYmJmMGQ5ZDRmNDNjMWUxODRhOWU1ZWVjZDllNTk5NWI3Njg3N2RhYWM0Y2QzMjg1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjNTU1MWVmMGYwNjg2YWU5YmQ5ZGVhNDM5YjljMzFiNzQ0OWJmZTA3OTcwNmEzMTZhNTU0NmE5ZWFlYWVkMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0NzBkOGY3MmI0YjAwNGMzZmE5NDU4MGMzOTY0ZmJmZmViMTkxMmRlZTJlNWEzYWFkZTVkYWJlMWI3Mjc2NjgifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindCommands.swift#L54-L61",
+          "version": "repo-lines-v1:sha256:f1480c9d76d4ad3256dde048ffc24849d552ef6c52b90ac23d6eb1ce19dd1ac7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGNkYzk2YWRkNWNmNzk0MjU4NTJkMjk0YzEwYTg3YjcwNjNhODUxMjc5YzNhMjg1ZTNiZDkxNWIxYTNlZTMwZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzI0OTc4ZWIwNWRlOWQ1YWVlMzdkZTY1OTk3OGUxMWU2NjI5NDY1OTQ1OTA4YmE3YTAwNDBkMWU2NTc4YWU5YSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDZkODkzMTA4ZTRiODQwYzhmNmQxMDA3NzQxMTdiMjI4Y2JkMDY5YTYxN2M4OGYyZDZkOThmOTJjZGM0MTEwZSJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L488-L497",
+          "version": "repo-lines-v1:sha256:c64fe45f4ec6aea1b884b63a3932f06a12580990fa7b67f29e8615201817788d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MTJjZTU0OTZmZTJkOTVhMTQ0NTJiNWNmNzgxZTU4MWU1M2E1ODY2Y2JjNTNlODZlMTUxMjM4N2EzNTJjNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViODcwNGZjMjdlYzdmMzcwMDAxZmY4NmEwM2Y1OTExY2VlM2FhZDAwMjU5OGVmMDAxMmFiMzU5OWMyZmFjMDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxMzNiMTMyOWM1MmM0ZjVjOGIxNzk1YWVjNmM3MzgwNDY5MmQ0MDYzNThhMmY2NDIxOThlZDViMzE5ZTQ4ZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkMzFiOWFlMDJkZTMzNTc5YTg3NzYzODQ4OTdjNGVhNTc1NmZhZTgzMmNiOTU5OGM1ZjU4ZmUzMDA2MzExM2EifQ"
+        }
+      ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

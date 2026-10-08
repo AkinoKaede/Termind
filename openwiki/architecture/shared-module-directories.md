@@ -168,8 +168,8 @@ sources:
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-985b6a509f7d84d0b5153a7a
     resource: repo://Scripts/check-appstrings.sh
-  - id: openwiki-source-41a7ded3800c9422f058a3ef
-    resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-c6328be86432b33a68051c73
+    resource: repo://Scripts/check-cjk-localization.py
   - id: openwiki-source-66092b0aa632065907bc7606
     resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -198,15 +198,15 @@ sources:
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Shared module ownership guide
 
-The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. This is a **static build/bundle boundary**, distinct from runtime dependency injection: apps construct concrete services and pass them into Application ports; a framework's source directory does not imply that its resources live in that framework's bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.19.0**, and `Package.resolved` currently pins **0.19.0**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
+The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. This is a **static build/bundle boundary**, distinct from runtime dependency injection: apps construct concrete services and pass them into Application ports; a framework's source directory does not imply that its resources live in that framework's bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.19.1**, and `Package.resolved` currently pins **0.19.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
 
 ## TermindDomain — portable values and rules
 
@@ -320,7 +320,7 @@ Root files provide shared SwiftUI forms, transcript/tool-card presentation state
 
 `Frameworks/Resources` is a synchronized group attached to TFM, TFI, TermindWidgets and FrameworkTests, **not** to the six shared framework targets: framework code must not assume `Bundle(for:)` contains this data. It includes `Localizable.xcstrings` and `InfoPlist.xcstrings`, `PrivacyInfo.xcprivacy` (nontracking crash/diagnostic/device-ID disclosures and accessed-API reasons), shared accent/distribution assets, Linux icon JSON and separately stored upstream licensing, plus Pi model catalog/overrides; platform-specific icons remain app-owned. `LinuxDistributionIconCatalog` looks in `Bundle.main`, prefers exact distribution ID then like IDs and returns no result if the catalog/distribution is unavailable. AgentKit owns model capability resolution, so do not assume its model-file bundle search from this repository.
 
-Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog in the sibling package repository, but Xcode consumes the **resolved remote release**, not edits in that checkout. Add finished `zh-Hans`/`zh-Hant` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-zh-localization.sh` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from an explicitly supplied Simple Icons version; no runtime icon fetch is needed.
+Keep app-facing resource definitions in `TermindPresentation/Strings` and translations in the product catalog; AgentKit text uses its own catalog in the sibling package repository, but Xcode consumes the **resolved remote release**, not edits in that checkout. Add finished `zh-Hans`/`zh-Hant`/`ja` translations, run `Scripts/check-appstrings.sh` and `Scripts/check-cjk-localization.py` together with relevant `PresentationCopyTests`/`AppLanguageTests`. These are manually managed catalogs: do not prune copy based on a single target's stale extraction flag; use `Scripts/normalize-string-catalogs.py --write` and leave generated symbols disabled. `Scripts/update-linux-distribution-icons.sh` regenerates mapping, assets and license material from an explicitly supplied Simple Icons version; no runtime icon fetch is needed.
 
 ## Change and verification seams
 

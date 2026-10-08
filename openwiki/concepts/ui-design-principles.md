@@ -168,10 +168,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:46:25.102Z
 ---
 
 # UI state and presentation principles
@@ -194,7 +194,7 @@ Shared values and fields are consumed by two independently owned UI shells.
 
 `TermindPresentation` contains reusable SwiftUI sections, rows, formatting and localized resources. `ArchitectureBoundaryTests` bans app, AppKit/UIKit, storage, remote infrastructure and commerce-framework imports in this layer, but does **not** ban SwiftUI; another test restricts `ListViewKit` to approved native-list workloads. Native terminal, list, pasteboard and focus adapters belong to the apps. Share deterministic row construction and binding-based fields, not window selection, scene stacks, connection teardown, credential resolution or repository mutation.
 
-`AppStrings` supplies resource-backed, on-demand copy to both apps; app-local `AppStrings` declarations are prohibited. `.swiftUIKey` bridges a `LocalizedStringResource` for SwiftUI APIs requiring `LocalizedStringKey` without discarding interpolation metadata. When an API accepts the resource itself, use that overload: `confirmationDialog` titles should receive the resource directly, not `.swiftUIKey`, because UIKit-backed presentation can otherwise expose interpolated locale metadata. For native menus, `AppLocalization.resolve` uses the requested locale and matching app-bundle localization rather than freezing copy at declaration time. Presentation tests exercise English, Simplified Chinese and Traditional Chinese menus, interpolation and SwiftUI rendering. Keep wording variants separate from route and save policy.
+`AppStrings` supplies resource-backed, on-demand copy to both apps; app-local `AppStrings` declarations are prohibited. `.swiftUIKey` bridges a `LocalizedStringResource` for SwiftUI APIs requiring `LocalizedStringKey` without discarding interpolation metadata. When an API accepts the resource itself, use that overload: `confirmationDialog` titles should receive the resource directly, not `.swiftUIKey`, because UIKit-backed presentation can otherwise expose interpolated locale metadata. For native menus, `AppLocalization.resolve` uses the requested locale and matching app-bundle localization rather than freezing copy at declaration time. Presentation tests exercise English, Japanese, Simplified Chinese and Traditional Chinese menus, interpolation and SwiftUI rendering. Keep wording variants separate from route and save policy.
 
 ### Settings navigation belongs to each shell
 
@@ -324,7 +324,7 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into three languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 

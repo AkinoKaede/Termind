@@ -46,6 +46,10 @@ sources:
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-396f97a332870d48c065d7e9
     resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
+  - id: openwiki-source-61a7b49f0fef771653753f14
+    resource: repo://TFM/Features/SFTP/SFTPBrowserView.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-83498f1ebb2addd4dded3bc1
@@ -54,10 +58,10 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 ## Scope and operating model
@@ -84,6 +88,8 @@ Browser actions are two-phase rather than mutating during drag/drop preparation:
 Conflict inspection precedes mutation. Preflight identifies conflicting directories and targets without creating, deleting, or queuing a transfer; directory resolution is the first operation allowed to mutate the destination. Recursive removal validates each listed child’s name and expected path before descending, then removes children before their parent, preventing a malformed server entry from redirecting deletion. [^conflict-preflight] [^safe-recursive-delete]
 
 For a same-host remote copy, planning rejects copying a file onto itself and rejects a directory target within the source subtree before conflict handling. Cross-host work is still a direct SFTP-to-SFTP stream: it does not materialize a local intermediary. When endpoint channels share the same SSH transport, the implementation alternates bounded reads and writes; otherwise it relays bytes through an in-process socket pair while download and upload run together. Both paths validate source size/identity and write a temporary destination before rename. [^self-copy-guard] [^copy-streaming]
+
+Desktop SFTP context menus can open an SSH companion in the current or a new workspace at the browser’s current directory. This creates a normal host session; it does not turn a transfer transport into a terminal. The action resolves the source SFTP pane by session ID, requires its connected state and nonempty path plus a saved host, and selects that pane before current-workspace placement. The reciprocal terminal action opens SFTP at the live terminal’s known working directory.
 
 ## Admission, fairness, and SSH topology
 

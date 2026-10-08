@@ -102,6 +102,12 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-37c42ec0ebc182c487dd27aa
+    resource: repo://TFM/App/DesktopSettingsKey.swift
+  - id: openwiki-source-873894299539cce9a737a860
+    resource: repo://TFM/App/RootView.swift
+  - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
+    resource: repo://TFM/App/TermindCommands.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
@@ -110,10 +116,10 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Settings, Vault, Metrics, History, Device, and Cloud Sync
@@ -129,6 +135,8 @@ On macOS, `WindowModel` owns a per-window `settingsRoute` separate from app-wide
 Leaving a provider draft discards it only if unnamed and unconfigured; a new MCP draft with no valid name/namespace is deleted, whereas a skill with written content but no title is kept as a draft. Navigating between provider and its models does not prematurely clean it up. These route transitions act on shared app models rather than starting CloudKit directly. [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L107-L113), [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L213-L245), [SettingsPageView](repo://TFM/Features/Settings/SettingsPageView.swift#L343-L365).
 
 `SettingsKey` contains local `UserDefaults` keys for both UI/selection and mirrors of synced preferences; being a key in this enum does **not** imply it is a cloud record. `SettingsSyncSnapshot.recordPayloads` determines what Settings actually journals: AI providers, MCP servers, roles, skills, web search, terminal, SSH, SFTP, workspace and notification preferences. Retired terminal highlighting no longer participates in that snapshot or active sync. In contrast diagnostic consent (`diagnostics.crashReportingConsent`, retained to avoid resetting earlier choices), debug visibility/logging, review-invitation history and terminal font family/size/follow-theme are device-local. Consent is an optional per-installation choice, not a synced notification preference or a cloud toggle: absence requires a choice and never enables reporting; `DiagnosisController` persists an explicit choice before applying it to the reporter. Terminal theme and integration preferences *do* enter the Settings snapshot even though they are mirrored to defaults. [SettingsKey](repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L78), [SettingsSyncStore](repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [DiagnosisController](repo://Frameworks/TermindApplication/FeatureModels/DiagnosisController.swift#L9-L32), [DiagnosisTests](repo://FrameworkTests/DiagnosisTests.swift#L9-L50).
+
+The desktop Show Status Bar toggle is a separate app-wide, device-local `DesktopSettingsKey.showStatusBar` default, enabled initially and shared by Settings and the View menu. It does not add a Settings sync record or per-window durable preference. Hiding it removes the root overlay and its reserved clearance; expanded/collapsed state remains separate.
 
 ## Selection and app ownership
 

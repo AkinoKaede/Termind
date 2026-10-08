@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:59ee03e5b0b1c1ac09ba47c1882f7869dcf2e00f6f71e44384e49fff9783de25",
+  "pageVersion": "sha256:3d12dee415abfdf049b384076d5ec11e7637b264b0bc033b1b6a83f65bea714b",
   "claims": [
     {
       "id": "claim_cb8c68c7e50f4794ae6ed98e8c1c58c8",
@@ -21,7 +21,7 @@
       "statement": "The desktop pane native receiver is the outermost overlay above Ghostty/Table content and is active only for the visible Workspace while no window layout drag is underway; SSH receives local files, private SFTP items and private terminal paths, SFTP receives files and private SFTP items, Telnet/Serial receive only terminal paths, and empty panes have no receiver.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L483",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L428-L487",
           "version": "repo-lines-v1:sha256:1cf4f020054920eb029c849554dd7efdffbb543f977d091ae94b167ac79a1dfb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxYzQ5NDZlZmE1YjM5ZTFmMWJlOWMzMDI2ZDE2NDM3YjY0MjMyYzBmNjBjMjg0OTc2OTcwNmVmOGMyMDhiZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxNGI4NjAzODcwZDZiZGEzMDMzMTcxYTExOThjOTBlODBjMTdjM2EyMjYyZDZhZDA0OWZiOGQ3MGE0MGRhODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlNmY2MjcyY2M1ODJiODAyYjY3ZTNiYzJjYjVkNjA2OGQ1ZTgxOWJjOGY0YWI4NWFkMGE5NGM4YzVkMzNkNjcifQ"
         }
       ]
@@ -173,7 +173,7 @@
           "version": "repo-lines-v1:sha256:e282f215b83eb15eb87a2976aaf3f6981372d0e1a1e4e9c693585ee94c833671:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGRiZWEzMjZlY2VkYTQ4ZmIxNDE1YWNjZjY1ZmMwYjFmYjhiYmM4MDdmYmY4MGM5NTdiOTc2MTkxOTEzNzhlMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzZhNTY3Yzc0YmE4MGRlMzE1Y2E3ODQ2MDY0ODNkYzExOGJjNDQ4NGRlMTg2NzMzZDc1NDIxNTI2NTdkYTdhYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTRiNDRlZjEyYjQ5ODFjYjYxMTBmOGM2YWUwZmNkMjAwYjI0MzI0ZDNkOWVmM2IwODBlNmUxYzg1MmRmY2YxNCJ9"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1100-L1111",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L1047-L1058",
           "version": "repo-lines-v1:sha256:e2f457272ead2c5dd9fc5f53b8eb18475602d050860c414cab16b73647a9d5c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1YzA0Y2I0YzM4ZTY3Zjk5ZmQxYmY5NTQ3NmQ0Zjg2ZTM0ZmNlNWU2N2E1ZjVmZDE4ZmRiNTYwYjJmN2UwZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlYTQyYzk5OGVlMmQ2MjA4ODM4ZThhYTVmNzdlYjA3MmMxMDJhMGUwZjU4M2U3Mjk3NTFhZjdjM2RlNWY4OTAifQ"
         }
       ]
@@ -205,8 +205,8 @@
       "statement": "The SSH-session-owned desktop TerminalUploadModel captures destination, connection generation and preparation ID, prefers an independent SFTP connection and only falls back to a PTY channel while current/noncancelled, then prepares a local/remote batch. View disappearance unbinds its own upload token instead of cancelling session-owned preparation during rehosting.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Terminal/TerminalPlaceholderView.swift#L79-L94",
-          "version": "repo-lines-v1:sha256:e9a7fed3592c5d2262b8e7f2733b2098dde9aabaf7acf1d2e245f94af7a97b62:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzQ3ODY0YjdiY2FhMTU1Mjg4MmE3MWRiNDY0NGVhZGI3OTM2MjZhNmU4MTIyYTQ5ZjhhNTE4NDRiOWZhM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjNThjYTg2NmYxNjZlOTQxNTE2MTAzM2FiYTRmNzljNDczNWRiOTE0NzEwOWNkZTExZTU1YmQ1ODZlODMxODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmNDJlNmMxM2RhOTczNzRkNWFhMjJiNGQ4NmM1Njk0N2NlODY5YjE0NDkyZmJlZjU4Y2VhNjFkYzk5OGIxY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0YTU4YTRlZDdmZDBkNTJlN2U2NjA1MDhkZWQ5ZDM0MWY0ZWFkODczODY5MzQ3M2UyNjhlZTA1YzA1NDgwNzAifQ"
+          "resource": "repo://TFM/Features/Terminal/TerminalPlaceholderView.swift#L89-L106",
+          "version": "repo-lines-v1:sha256:f5256fc8080d28df14a9ecd298f673ee7d2d244fbefbc44fc2ac4ff8c25cc64d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzQ3ODY0YjdiY2FhMTU1Mjg4MmE3MWRiNDY0NGVhZGI3OTM2MjZhNmU4MTIyYTQ5ZjhhNTE4NDRiOWZhM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjNThjYTg2NmYxNjZlOTQxNTE2MTAzM2FiYTRmNzljNDczNWRiOTE0NzEwOWNkZTExZTU1YmQ1ODZlODMxODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmNDJlNmMxM2RhOTczNzRkNWFhMjJiNGQ4NmM1Njk0N2NlODY5YjE0NDkyZmJlZjU4Y2VhNjFkYzk5OGIxY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0YTU4YTRlZDdmZDBkNTJlN2U2NjA1MDhkZWQ5ZDM0MWY0ZWFkODczODY5MzQ3M2UyNjhlZTA1YzA1NDgwNzAifQ"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalUploadModel.swift#L135-L222",
@@ -260,11 +260,11 @@
         },
         {
           "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift",
-          "version": "repo-file-v1:sha256:4ce9ea081b1f1d9c625ffe357a2748edc00bdd397ba0f35fadac8b2bba6b1522"
+          "version": "repo-file-v1:sha256:1ffb4de484ec21bb2012bcd1ed6aa17b4d112561bb26f6a4594a13d03359eba0"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalPlaceholderView.swift",
-          "version": "repo-file-v1:sha256:20d200969d293c3cf8ec0fbd11a82c43563352f424cf438ee0e3c1890deb51b8"
+          "version": "repo-file-v1:sha256:9a7b8012a680fedc1f6aa3cef34d0dccad8585e338a56c1b7f51a24c5b9a6228"
         }
       ]
     },
@@ -273,11 +273,11 @@
       "statement": "A desktop non-directory SFTP drag also exposes a public lazy file promise that downloads the dragged file into a unique temporary directory when requested, whereas directory rows publish only the private remote payload.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift#L1126-L1139",
+          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift#L1149-L1162",
           "version": "repo-lines-v1:sha256:a1f86f3b159021cbdcaceb1366568565d3a17870b110f8cd4ad84a4c2bb8eab5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1MWQzOWNiNzc4OWE4YjM1MWY4ZDBkYWFmMDg4NDUxY2U5N2JjM2YzMGUwNTIyZTlhZTVkY2I1ZjQ1YjVjN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4ZDE1YTU4NGE1ZDUzMGMzNzg2YzAyYzlmY2JjMzdiZjQ2MDNiOTc5ZmNlMWEyOTNhMmNiNjhmZDIwYjBmODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliNmRjNGJmMTA4ZDZlOTdiOGUyMzNhNzBmOWE1OWVkMDljYjUwNDczYmNhYWM3MzU3ZTRjMWU1NjZiZDUyZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxZjk2ZWRmZTYxMDA2NGFmZGM2MDczM2JjOGQyZmIyMTc0NTNlY2FhMTQ1MWY3NDdlNGYwN2JhNDE3MzExNmUifQ"
         },
         {
-          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift#L1192-L1226",
+          "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift#L1215-L1249",
           "version": "repo-lines-v1:sha256:3644bf33118bcf9623909eb6fd62d4ebce063b608d84f39a1342c80c6c15dea3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNTc5OGZlMGYzZWJiNmE4NzQyODdjOGQ2YTA1MjY3YTg2ZGVlOGU1ZGEyZjEwYTRmOWNmNDdhMTg2ZDgxNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4ZDE1YTU4NGE1ZDUzMGMzNzg2YzAyYzlmY2JjMzdiZjQ2MDNiOTc5ZmNlMWEyOTNhMmNiNjhmZDIwYjBmODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhNDAwYWYyZWUyMDI2MTE0ZTQ3MDM5NDAzMTJhOGY0NjI3YjhlNTk5YzJiZjI4YjU0Yjc2MDZkNTkzMGU0YmUifQ"
         }
       ]
@@ -313,7 +313,7 @@
           "version": "repo-lines-v1:sha256:e8262e448625c0b7c12c55d724f853d6fc386fb458a67eddfa493963d6569565:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMjEzNzkzYmZmMTQwNWJmYmY3NTNkNzYyNTZkMjZkMGEzNTRiOGI4MWMwMGEwYWY0ODc1MjAwZDJmZWUzNWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjYzQ0M2ZkYjNlYjQ4MmEwODJhZTUzMzAwYzI4MjE0OGM5YjVlMzVmY2NiOGM3MDgxZGFjNWFjOTM5ODc2YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjODllOTcxM2YwNDBjYWM1MjgyYmE0MjA5MTZiNmRkNDU4Y2ZlYjlhYzc0YmViZTBiZDBiMDA4Y2NhZTZkYmYifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L485-L544",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L489-L548",
           "version": "repo-lines-v1:sha256:1d9028c46fcab54b59351dfcb3f6785f4189006604f465eb9d2b16ec795b529b:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMWNlNGUxM2VhMDlmMDQ1NjFiNjMyZjlhNGVlNjE1ZWFmNTFjMGFmMmEwOTAzYThjNGUxYzBhZTIxMTlmOGMifQ"
         }
       ]
@@ -363,11 +363,11 @@
       "statement": "Status-bar working-directory and SFTP-directory drags expose shell-escaped private terminal-path text without advertising a file URL; dropping it on an SSH, Telnet or Serial pane focuses that pane and pastes into its mounted visible terminal instead of starting an upload, while SFTP panes do not accept the path payload.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/StatusBar/StatusBarView.swift#L266-L311",
+          "resource": "repo://TFM/Features/StatusBar/StatusBarView.swift#L270-L315",
           "version": "repo-lines-v1:sha256:10d29a15eb315081054a2437558d3000a72bc887164115cc45f2b61fc437f65f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMzg4ODVmMTVkYjQwNmY1ZTYxZWE0NmZiMjJlZDE2M2U3ZGI4MmQ5YzQxOTExZDg1YmEwZDU3YmUxZjI2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYjU0ZWExMzcxYTcxZmU1MTg4ZWUxN2Q2YjgxMzcyZTg2NmM3MmZiMDVmNGIwM2VhNGY5NDljYTNiYjYwNTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyN2Q0MGM1NTNmOTRiZTFjM2NmYTA0MjFlZjA0OTFmNjJjNGVlY2YzZTMzOGE2NmM2ZWQzZTIwMzFhNTU0NWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5M2YzN2NjNjcxMWY3YmMyZDYyYTExNDFkYzFiMWMxYTk0Y2RkZDRmZjczM2MxOTM1ZTQxMzZmM2Q2NGJhMDQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L152-L165",
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L154-L167",
           "version": "repo-lines-v1:sha256:eb5cd8806c79077ad4e782dba74f8867acf1ab63aca898a9ee45d2d899664c30:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2ZDhjMGU3M2RkOWNhNmExZTg3M2FjZjQyNTliOTJkZDZlN2U2YjIxNGE1ODJiNmU4YWUyNGUzNzlmYTcxN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdlN2FmNjkyNTUyNmIyNTUzZTU0YjdjN2Y5NGVhNjA4ZDI2YzgyZmE0YzVkYjRiZjI3MjM3YjYyYTcyMjBjYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMDFkOTJhZTJlOWZlZGU1NWYzYzA3ZTVkNmUwNWVlYmExZTlhOGFhMDI2ODI5NDg5MTg0NjVlMTY1N2Q2MGYifQ"
         },
         {
@@ -375,7 +375,7 @@
           "version": "repo-lines-v1:sha256:c79bee90bcd0e3ce47de593f9e57617fb83aba7263ca566cb96f639b6e326256:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhY2NkYjBiZDY0YzA1MTgxYWE1ODNiMTQ5ZTZhOWRmYmE4YTY0NmM5MGQ0YjQ2ZmY2YThlYmZkYjkxZDU0ZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkOGIzOGE0ODU0NDJmNDFjODY4OGNhMWQ1YTE0M2FhZmRlMWIzY2M1OGM2ZDZjNzMxNzdkYTEzOWIyMjU1ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L456-L569",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L460-L573",
           "version": "repo-lines-v1:sha256:ad57f70a1f07681571c49503fee8b1b641b8bbf3493b31e90ea56cf92b5fb89a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMDIwNDMyZGM0NzRhZjdlZmNjZWJjMGU0NWQwM2MyMWJjNzk2NGVjM2VmOTQxNmY4OTZkZTA1ZTZjNDgwMzM0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1N2M0ZmY1ZmNhMjBlMzg5NGY3N2ZmNjQ5NGNhZjZlZGQ1NjcxYmYxNzdmMjJlZjAxNzQwZTczYTE2MDE3NzljIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjYTZjOTMwZDVjZTcyOWI2ZGQwM2QyMzdmZjBhZGE2ZWU1OTg1OTA0ZjExODJiYjc1Mjg4NDVjNTZiODg5OWVmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiYjg5ZDU5YzIxNzBhMGVhZjlmNDQ3NmJlYzI0Yzk4ZWI3ZWE0YjFjZWE2OGQ0OTJkNjhjZDcwMzhmZDQxNGJkIn0"
         }
       ]
@@ -385,7 +385,7 @@
       "statement": "The embedded desktop terminal provides a path-only fallback receiver that registers only when mounted and visible, checks the copy operation and valid path again on entry and performance, and declines path drops when unmounted.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L102-L165",
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L104-L167",
           "version": "repo-lines-v1:sha256:d0dcf06f6efd9901a465221272ac491a7b8323ae22a42d58834a0e38ab6280b0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1MGI3Y2JmNWQxMmM0YTBiOGU0YTFjODc1YzM5NjIyNTBjYWMxODVmNTJhNjg0MTUwZDgxYWM2M2JlMDNhODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1MDdjYWNlMWIzMGNkNGJmZTJjYzZhOTc4NzdjZTI3ZGE2MDgzY2Y2NDFiNTYxNGM0M2NjNDc1N2Q5YWVmYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMDFkOTJhZTJlOWZlZGU1NWYzYzA3ZTVkNmUwNWVlYmExZTlhOGFhMDI2ODI5NDg5MTg0NjVlMTY1N2Q2MGYifQ"
         },
         {
@@ -400,15 +400,15 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/SFTP/SFTPBrowserView.swift",
-          "version": "repo-file-v1:sha256:4ce9ea081b1f1d9c625ffe357a2748edc00bdd397ba0f35fadac8b2bba6b1522"
+          "version": "repo-file-v1:sha256:1ffb4de484ec21bb2012bcd1ed6aa17b4d112561bb26f6a4594a13d03359eba0"
         },
         {
           "resource": "repo://TFM/Features/Terminal/TerminalPlaceholderView.swift",
-          "version": "repo-file-v1:sha256:20d200969d293c3cf8ec0fbd11a82c43563352f424cf438ee0e3c1890deb51b8"
+          "version": "repo-file-v1:sha256:9a7b8012a680fedc1f6aa3cef34d0dccad8585e338a56c1b7f51a24c5b9a6228"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift",
-          "version": "repo-file-v1:sha256:3cb3882a6e74795968a7a22301f7f3376f84b96b3d9f1734d2b6dfaf2f9ef15c"
+          "version": "repo-file-v1:sha256:f1c97dda065d603e4b5ba77682cfb552f11b933570780beecbbb8b149f74d181"
         },
         {
           "resource": "repo://TFM/UI/Components/FileURLDropTarget.swift",
@@ -490,7 +490,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

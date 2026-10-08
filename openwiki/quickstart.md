@@ -116,10 +116,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:46:25.102Z
 ---
 
 # Termind Engineering Quickstart
@@ -162,7 +162,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | SwiftData, secrets, migrations, settings, CloudKit | [Persistent Data, Migrations, and Secrets](concepts/persistence-and-secrets.md), [Settings and Cloud Sync](workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](operations/cloudkit-release-readiness.md). Select repository/migration tests or `CloudSyncLifecycleTests`, `CloudSyncSafetyTests` and coordinator tests for sync changes. |
 | MCP server, external upload/download, stdio bridge | [MCP Server, Transfers, and Stdio Bridge](integrations/mcp-server-and-bridge.md); run token, server-session, transfer or bridge tests. |
 | Commerce, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](operations/storefront-commerce-release.md), [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](operations/build-test-and-release.md). Choose bilingual catalog, app/language, screenshot, StoreKit or website checks. |
-| **Asset production, scan capture, frameit, Figma and App Store exports** | [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md) is the canonical workflow: exact native iPhone Pro/Duo/iPad/Mac pixels and postures, licensed frame templates/masks, 72 four-platform JPG boards, current website compositions and SSH-first submodule publication. Use `plan:true` and Ruby checks without opening app windows. |
+| **Asset production, scan capture, frameit, Figma and App Store exports** | [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md) is the canonical workflow: exact native iPhone Pro/Duo/iPad/Mac pixels and postures, licensed frame templates/masks, 96 four-platform JPG boards, current website compositions and SSH-first submodule publication. Use `plan:true` and Ruby checks without opening app windows. |
 | Deterministic fixture or test seam | [Behavioral Tests and Fixtures](testing/behavioral-boundaries-and-fixtures.md); run the narrow behavioral regression before the affected target suite. |
 
 ## 2. Preserve the changed boundary
@@ -173,7 +173,7 @@ These are routing reminders, not replacements for the detailed guides.
 
 - `TermindDomain` defines portable rules; `TermindApplication` owns ports/use cases; `TermindPersistence` owns SwiftData models, repositories and container construction; infrastructure implements services; `TermindPresentation` owns reusable SwiftUI content/copy. Apps assemble concrete dependencies and native UI.
 - `ArchitectureBoundaryTests` enforces **root-specific** restrictions, not an all-UI-framework ban. Its five non-presentation shared-framework rule rejects app targets and `AppKit`, `UIKit`, `IOKit`, `ServiceManagement`. Presentation allows `SwiftUI` and contains existing conditional platform helpers; its selected source-pattern/import/construction rules reject app-target, storage, concrete-service and commerce coupling. Those checks are not a blanket compiler-enforced prohibition on every platform symbol. Shared Application cannot import Infrastructure, Persistence or SwiftData. Desktop Application/Features and mobile layers have their own checks; selected roots also guard concrete construction, AgentKit type duplication and SwiftData ownership. Fix the boundary rather than bypassing the test; see [System Boundaries](architecture/system-boundaries.md).
-- AgentKit is a separately versioned, host-neutral remote package owning the loop, approvals, providers, MCP client and built-in tools. Termind owns SSH/SFTP tools and registers them additively. Xcode's requirement starts at `0.19.0` under `upToNextMajorVersion`; the sibling working tree is not the resolved build. Cross-repository work means test/release `../AgentKit`, update `minimumVersion` in `Termind.xcodeproj/project.pbxproj`, and re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` together.
+- AgentKit is a separately versioned, host-neutral remote package owning the loop, approvals, providers, MCP client and built-in tools. Termind owns SSH/SFTP tools and registers them additively. Xcode's requirement starts at `0.19.1` under `upToNextMajorVersion`; the sibling working tree is not the resolved build. Cross-repository work means test/release `../AgentKit`, update `minimumVersion` in `Termind.xcodeproj/project.pbxproj`, and re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` together.
 - Ghostty comes directly from `Lakr233/libghostty-spm`, with an up-to-next-major requirement and resolved version `2.2.2026100501` at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. There is no local Ghostty maintenance submodule or Termind native-binary release prerequisite. Align requirement/resolution and validate both adapters; package internals require separate review. See [Ghostty Dependency Updates](operations/ghostty-fork-maintenance.md).
 
 ### Native lifetimes and presentation
@@ -202,7 +202,7 @@ xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' 
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test
 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
 xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge
-Scripts/check-zh-localization.sh
+python3 Scripts/check-cjk-localization.py
 ```
 
 Use an installed iPhone/iPad simulator for `TFI` tests. For the search integration regression, replace the destination below with one installed locally:
@@ -219,8 +219,8 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 
 ### Copy, web, and release checks
 
-- Define app copy in shared `TermindPresentation/Strings`; new/changed English text needs finished `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`. Catalogs are manually managed: after edits run `Scripts/normalize-string-catalogs.py --write`, `Scripts/check-appstrings.sh`, and `Scripts/check-zh-localization.sh` (requires `jq`). Run the Chinese check even without intended copy changes; use `AppLanguageTests` for language behavior.
-- Website/asset work: initialize `com.akinokaede.termind` only when needed; `(cd com.akinokaede.termind && npm ci && npm run build)`, then inspect `/`, `/zh-hans/`, `/zh-hant/` and the `/zh/` redirect. Source assets live in the independent submodule; commit/push reviewed assets via SSH before updating the parent gitlink, keeping the public HTTPS clone URL.
+- Define app copy in shared `TermindPresentation/Strings`; new/changed English text needs finished `zh-Hans`, `zh-Hant` and `ja` translations in `Frameworks/Resources/Localizable.xcstrings`. Catalogs are manually managed: after edits run `Scripts/normalize-string-catalogs.py --write`, `Scripts/check-appstrings.sh`, and `python3 Scripts/check-cjk-localization.py`. Run the CJK check even without intended copy changes; use `AppLanguageTests` for language behavior.
+- Website/asset work: initialize `com.akinokaede.termind` only when needed; `(cd com.akinokaede.termind && npm ci && npm run build)`, then inspect `/`, `/zh-hans/`, `/zh-hant/`, `/ja/` and the `/zh/` redirect. Source assets live in the independent submodule; commit/push reviewed assets via SSH before updating the parent gitlink, keeping the public HTTPS clone URL.
 - Screenshot tooling stays app-owned: fastlane scan captures native sources, frameit composes staged copies with licensed templates, and Figma final artwork/website frames are distinct derived deliverables. Do not invoke capture just to validate documentation.
 - Before submitting, inspect the diff for secrets, generated artifacts, cross-layer imports and accidental `Package.resolved` churn. Use [Build, Test, and Release](operations/build-test-and-release.md) and the routed operations pages for CloudKit deployment, StoreKit/Sandbox validation, marketing assets and [forwarding benchmark measurement](operations/port-forwarding-benchmarks.md). Former StoreKit trial/catalog test files are removed; live purchases require Sandbox validation.
 

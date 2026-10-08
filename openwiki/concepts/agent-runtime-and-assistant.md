@@ -112,17 +112,17 @@ sources:
     resource: repo://TFMTests/MCPServerToolsTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # Agent runtime and assistant ownership
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.19.0); ordinary Xcode builds consume the resolved remote package, not the reference or sibling checkout. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.19.0** at revision `d6f4692de8f30d8836b2e83ffcd5ddfcd7f1fdfc` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.19.1); ordinary Xcode builds consume the resolved remote package, not the reference or sibling checkout. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.19.1** at revision `8108c9bb87c546860cfc1769571e115af919fe8a` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 

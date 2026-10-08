@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5b90f2296f92794029073ed6f4df3062975ec6a6be9299c59e5d32a27a207ce6",
+  "pageVersion": "sha256:697464471353b8b5ffdacc0d9227402f39bed5199fa0aeda011940d107d15ea2",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
       "statement": "The PTY worker requests a PTY and environment before starting the shell, then conditionally queues shell integration bootstrap; environment-request denial is nonfatal while other errors fail setup.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1047-L1156",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1039-L1148",
           "version": "repo-lines-v1:sha256:badcddee68ad5f16f59d5a4042eb42eb19027af3537873f616c5d066d3b3af79:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3MWNhYzE4M2MyMDgzYzJiZTAyZWQ0ZDdiNDUyZTA4OTQzMjhjMTdjY2YzNzUyMDBhOTk4ZjYzYmQ1ZDdlYzlmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhOGUwMmJkMzI0ZWZiZDUyNzg3ZDI1OWFlNDAyYWJiYWQ1MDkwNTEyNDY3ZDI3ODk1YzZhYzA5MmE3Y2JlZWRmIn0"
         }
       ]
@@ -21,7 +21,7 @@
           "version": "repo-lines-v1:sha256:8b433137dfb79d25b281cccb1b9b74a08e101fade6a195941d7efef9ed518886:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNmIwMDE5YjA2YWFlZmNiZTIxMjg4ZTBlMTNjZGU5ZDcwYjAyMzk3MmVmNzg3MWVkNTc4NmQyZTA0MTgzYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L375-L386",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L390-L401",
           "version": "repo-lines-v1:sha256:2d7c1067ff14563a949bc78654462b0d48bfbecd9e225171047a45b65099a66d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1MTZiODA1NzQxMzg1ZDNmN2U1M2MzZDViNGQzNzgwMjQxN2IwMmIxMWU0MmIwYzJkMjIzNTI0YTgwM2ZhZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTYxMDRkNmVhZjFmMmNjNmE3ZmQ4NzhmN2M4YmYxOTUyMmQ4NmE3OWRmMGU5ZjU5YmNkZWQ1M2U1ZWE4MjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMDQ0Y2I3YTNhNDZmYTMxNTcxYjczMTkxOGU0ZjRlNDJiNGFlNWM4YTkyZDhmYjhkZmY2M2VjNjU4NWE3YjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwNWRhNmVjM2Q5NDQwNjFjMGNiOTljZTcxZTE0YzhlMDQ4YjcxMTcxNjFlYzJhYjdmMDY0ZGM2NTFhYzU2NzkifQ"
         },
         {
@@ -95,12 +95,12 @@
       "statement": "PTY output passes through bootstrap suppression, OSC command-event filtering, OSC 7 path charset rewriting, and streaming conversion to UTF-8 before native terminal output; home is separately parsed from bootstrap metadata.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L183-L278",
-          "version": "repo-lines-v1:sha256:3e6230723817be9c2324274e0104892ee2f3c5552d466142eb172c2d680ce7be:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyMDMwZjQwMTk1YjcyNmE0NTNjMWI2NmRmMDAyN2FlY2JhNzU1MGZiODhjNTgzYTIwYzY3MDNlNGMzODFjYzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkZjYwMzc2M2ZmN2FlZTk5M2E0MDFmYTI4NGI2ODg2MTNlMzVjYTEwMTFkMDg1Y2NiOWJmMWM0YTlhZWEwNzIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L183-L275",
+          "version": "repo-lines-v1:sha256:e7ea57fa715adb612cda6efc399b9228eae034c7e3ac707b780e2faf8a354e91:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1567-L1643",
-          "version": "repo-lines-v1:sha256:faa30a3a8eb7a45c92df42852ff29595139fec4eda159482a2977c4a042f84db:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzNmQ4MDA2NzFiYzAyYTRkNzhjZDFlNTliZGI5Y2Q1ZTMxZmI4NDUyNmJiOGE1N2I1OTgwMTM0OGYyNDVkMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4YmMzMjQ1OTg4ZmE3MTU5NGQ3NzdhMWMwZGRjNTEyMGY0NDQ3YzA3ODUxNzMxNTI0ZmI3ZmM3NzU3NDJhMzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3ZmQyNzBkYTFjOGNiN2Y1NjhiMWRmMDBhNzFlMTMwMTcxZmJlY2RkNmJiNDkzNGUzNzkxMWI0OGJkMGRmNTAifQ"
+          "version": "repo-lines-v1:sha256:d33d8b111c7a01e5017ced6b22ff85a27835bec48ee05d125134f6a42cf912a4:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMzY0OTE1Y2UzY2EzM2E4MjM0MWE5Njg4ODg4OWNkNGVhNzdiMjlkMDJiMDQ4NzM5Zjk4MjAxNzA3NWQxYjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3YzU1MmRmMjA3MGEwNGJiZDMzYzI3MWM5OWI1YzEyM2ZiMTE0ZDM4OTYyMjQxY2MwMmUyY2VlNzViMWQwYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMzVmNTk4M2ViZmJhMjcwYzJhYzFkNzNkYjg3YWIzOTIyNzZlZGI4YWQ3NTZhYmY2MzkyNjg1OGNmYTgzZDgifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L236-L286",
@@ -118,7 +118,7 @@
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:0aed99f567d9ffa37a82a3ed0385a291553375f2cb448336edf99b30a4d06243"
+          "version": "repo-file-v1:sha256:e30860453cad04e78730557669f75dbbb6e60a3e2b275fab369d332637d82ccb"
         }
       ]
     },
@@ -138,7 +138,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:4bc50b80a32ea1ea45e00a7419e6fb6a1412007fc0abd337fa6d111a40096d11"
+          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1338-L1373",
@@ -146,7 +146,7 @@
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:0aed99f567d9ffa37a82a3ed0385a291553375f2cb448336edf99b30a4d06243"
+          "version": "repo-file-v1:sha256:e30860453cad04e78730557669f75dbbb6e60a3e2b275fab369d332637d82ccb"
         }
       ]
     },
@@ -164,15 +164,15 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L271-L303",
-          "version": "repo-lines-v1:sha256:6fa9b9e5ec6d89be04013de8295273409b36440d41f7b763f87d7954be9d741f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMDU5N2M3YWRmYjk2YjIzNGVlZjdkNmU0ODIyYTIyZjE1NGY2YjllZWFhNjNjMWVhZWI5NDBjZDFjN2U1MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTdjNjc4MDQ0MGNlOWE4YWMwNGE3MDg5ZTU0NzA2MzJkMTFkMTE5ODUwZTBiNWI2M2QxNTU3NjA5ZGI2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YjY5NDk1MDQzYTMzYzMzMTZkMWI2ZjAwYmFkZGFhNDU1N2Q5YjM3ODgyZTQxYTI4NTNhZDc3MDJlZjE1ZTIifQ"
+          "version": "repo-lines-v1:sha256:6fa9b9e5ec6d89be04013de8295273409b36440d41f7b763f87d7954be9d741f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMDU5N2M3YWRmYjk2YjIzNGVlZjdkNmU0ODIyYTIyZjE1NGY2YjllZWFhNjNjMWVhZWI5NDBjZDFjN2U1MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTdjNjc4MDQ0MGNlOWE4YWMwNGE3MDg5ZTU0NzA2MzJkMTFkMTE5ODUwZTBiNWI2M2QxNTU3NjA5ZGI2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyNDIyOTA4ZTdmZDE4YzdkY2M5MTA4NzYyZjQ0NGFhNmFjOTJlN2JhZDExYzE1NTc3NjkxYTJlNGE2NTg5N2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YjY5NDk1MDQzYTMzYzMzMTZkMWI2ZjAwYmFkZGFhNDU1N2Q5YjM3ODgyZTQxYTI4NTNhZDc3MDJlZjE1ZTIifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L560-L582",
           "version": "repo-lines-v1:sha256:e0fb88f4862196c1af7373f2defde926f9b478da5cccd145bb6bf083d5461c34:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1MWFmOTgzNjEwZjY3NjhkNzBlZThmYWNkYTVjZWE1NmRmY2NjNTUzNmNhNjJiZTg4ZWE2OTU3YzEwNTVkYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMjZiODNmZjI0NzRkNDBjNGM0ODYxMzBiZTFmMDNlMDJhMzhmZjE5MTNlY2IyMDg5Yjg5ZTk3MTkwZmFlMDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlN2Q2NWE0NDYzYjM1MTNmZGZmZjUzOWQ2Y2JiZDBmY2VlNGE0MmVkYTdhNzYxZjU0Y2M2M2ZhYzNkOWZmZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5OGMyYmVjZGI1YzgxMDU4NTg3Y2RmZTViMmQyYmRiMGFkNWE5MGNmZjI5ZGI1OWI2YjNkMWM5MzUzODUzOGIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L621-L640",
-          "version": "repo-lines-v1:sha256:8d0803aa4a42b30a41d018fc29e047944d7476e4f4e33e09d2ae4518692f5f9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2IyY2U5NmMzNzY4MzljOTc3MjUwOTgwMTQwNzlmNTA5YmViYzBlNzJhNzFlMjBmM2ZjYWYzYTkzZjdjN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjMjYxMGM5ZDRlZGY2ZjBjYTk4ZGRlOGE3NDg0NTIyYTU2N2QyOGE0NTlmZmIxNDgyOGZjYTFkMmVjMTgxYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MzJhMDM2OWQ4ZjMxNmYwOTcyNzVhYWQ5YzA0MzFhYjI3YWZjZDVlOGE5NDAxNTk3MDU1NjE3MTI4ZjNjZDAifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L621-L641",
+          "version": "repo-lines-v1:sha256:6c1f29f16351a8ecbc83b9193867779c7377ade6ccdfff77889595e72ea574b7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2IyY2U5NmMzNzY4MzljOTc3MjUwOTgwMTQwNzlmNTA5YmViYzBlNzJhNzFlMjBmM2ZjYWYzYTkzZjdjN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjMjYxMGM5ZDRlZGY2ZjBjYTk4ZGRlOGE3NDg0NTIyYTU2N2QyOGE0NTlmZmIxNDgyOGZjYTFkMmVjMTgxYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMTllNzI3MTVkNGVkYTkxNzVkMTRiYzU3N2YyOWRhZTZmNzhjY2M1Yzg5MmIzZjI3NjdlZTNjYTczZWYzMGYifQ"
         }
       ]
     },
@@ -185,8 +185,8 @@
           "version": "repo-lines-v1:sha256:d993b57e4ee07fe64963235749b3d1da91c896eb37a806687ec3a4924fae8690:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYzBiNjNlMjc4YjhiYWZjNThhZjEyZWU1NDUxOGMxZTEzZjEzYThkNmY4N2JmNDlhNzJiYjEzYjc5MTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L183-L273",
-          "version": "repo-lines-v1:sha256:154252fa67e4aa6bc5030188590b02acc141d0e793335df9f6d8f5be22e10850:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwZTQxZGRjNzZkNWU0NWE0Yzc2MWIwZjY1ZTI3NjI0YTQyMjkyNWUzMzg2MTAyZjNlMzZjMzA3M2EzMTIyNjgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L183-L275",
+          "version": "repo-lines-v1:sha256:e7ea57fa715adb612cda6efc399b9228eae034c7e3ac707b780e2faf8a354e91:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
     },
@@ -200,7 +200,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift",
-          "version": "repo-file-v1:sha256:573ab549bcdebd5b2125351cdeaafcd17fb72f6403db3ceef43e6ddb3f7d75e3"
+          "version": "repo-file-v1:sha256:4ac4970a2f5c00877fedc22fd042a85cadc61443830e4a4d6cafcd87cf82f22e"
         }
       ]
     },
@@ -210,7 +210,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:4bc50b80a32ea1ea45e00a7419e6fb6a1412007fc0abd337fa6d111a40096d11"
+          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
         }
       ]
     },
@@ -348,7 +348,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "by": "openwiki/0.7.1",
+    "at": "2026-10-08T13:28:49.393Z"
   }
 }

@@ -78,8 +78,8 @@ sources:
     resource: repo://TFMTests/TerminalPathDragTests.swift
 generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
 verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+  - by: openwiki/0.7.1
+    at: 2026-10-08T13:28:49.393Z
 ---
 
 # File Drag and Drop
