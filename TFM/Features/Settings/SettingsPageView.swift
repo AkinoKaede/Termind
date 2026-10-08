@@ -550,7 +550,7 @@ private struct StartupSettings: View {
                 }
             }
 
-            Toggle(AppStrings.Settings.openHiddenAtLogin.swiftUIKey, isOn: $opensQuietly)
+            Toggle(AppStrings.Settings.startMinimizedToSystemTray.swiftUIKey, isOn: $opensQuietly)
                 .disabled(!loginItem.isEnabled)
 
             if loginItem.requiresApproval {

@@ -561,10 +561,6 @@ extension AppStrings {
             "Open at Login"
         }
 
-        public static var openHiddenAtLogin: LocalizedStringResource {
-            "Open Hidden at Login"
-        }
-
         public static var openLoginItemsSettings: LocalizedStringResource {
             "Open Login Items Settings"
         }
@@ -695,6 +691,10 @@ extension AppStrings {
 
         public static var skills: LocalizedStringResource {
             "Skills"
+        }
+
+        public static var startMinimizedToSystemTray: LocalizedStringResource {
+            "Start minimized to system tray"
         }
 
         public static var startup: LocalizedStringResource {

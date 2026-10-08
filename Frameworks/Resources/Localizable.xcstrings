@@ -24930,29 +24930,6 @@
         }
       }
     },
-    "Open Hidden at Login" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログイン時に非表示で起動"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录时隐藏打开"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登入時隱藏開啟"
-          }
-        }
-      }
-    },
     "Open It" : {
       "comment" : "A button that opens a path.",
       "extractionState" : "manual",
@@ -35346,6 +35323,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開始新的對話"
+          }
+        }
+      }
+    },
+    "Start minimized to system tray" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動時にシステムトレイに最小化"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动时最小化到系统托盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動時最小化至系統匣"
           }
         }
       }
