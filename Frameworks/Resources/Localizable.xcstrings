@@ -7897,6 +7897,29 @@
         }
       }
     },
+    "Close Transfers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "転送を閉じる"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭传输"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉傳輸"
+          }
+        }
+      }
+    },
     "Close Window" : {
       "extractionState" : "manual",
       "localizations" : {

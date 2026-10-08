@@ -111,6 +111,10 @@ extension AppStrings {
             "Open Transfers"
         }
 
+        public static var closeTransfers: LocalizedStringResource {
+            "Close Transfers"
+        }
+
         public static var octalPermissions: LocalizedStringResource {
             "Octal permissions"
         }

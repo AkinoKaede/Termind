@@ -24,7 +24,8 @@ struct TermindCommands: Commands {
     @FocusedValue(\.window) private var window
 
     private var closeShortcuts: WindowCloseShortcuts {
-        WindowCloseShortcuts(hasWorkspace: window?.selectedWorkspace != nil)
+        WindowCloseShortcuts(
+            hasWorkspace: !app.mainWindows.isTransfersWindowKey && window?.selectedWorkspace != nil)
     }
 
     var body: some Commands {
@@ -164,21 +165,26 @@ struct TermindCommands: Commands {
             Divider()
 
             Button(AppStrings.Workspace.closeWindow.swiftUIKey, systemImage: MenuSymbol.closeWorkspace) {
+                if app.mainWindows.isTransfersWindowKey {
+                    app.mainWindows.closeTransfers()
+                    return
+                }
                 guard let window else { return }
                 app.mainWindows.closeWindow(in: window)
             }
             .termindShortcut(closeShortcuts.closeWindow)
-            .disabled(window == nil)
+            .disabled(window == nil && !app.mainWindows.isTransfersWindowKey)
             Button(AppStrings.Workspace.closeAllWindows.swiftUIKey) {
                 app.mainWindows.closeAllWindows()
             }
             .termindShortcut(closeShortcuts.closeAllWindows)
             .disabled(window == nil)
             Button(AppStrings.Workspace.closeWorkspace.swiftUIKey) {
+                guard !app.mainWindows.isTransfersWindowKey else { return }
                 window?.closeSelected()
             }
             .termindShortcut(closeShortcuts.closeWorkspace)
-            .disabled(window?.selectedWorkspace == nil)
+            .disabled(app.mainWindows.isTransfersWindowKey || window?.selectedWorkspace == nil)
 
         }
 
@@ -206,8 +212,12 @@ struct TermindCommands: Commands {
                 showsStatusBar.toggle()
             }
 
-            Button(AppStrings.SFTP.openTransfers.swiftUIKey, systemImage: "arrow.up.arrow.down") {
-                app.mainWindows.showTransfers()
+            Button(
+                (app.mainWindows.isTransfersWindowOpen
+                    ? AppStrings.SFTP.closeTransfers : AppStrings.SFTP.openTransfers).swiftUIKey,
+                systemImage: "arrow.up.arrow.down"
+            ) {
+                app.mainWindows.toggleTransfers()
             }
 
             Divider()

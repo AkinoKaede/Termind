@@ -522,8 +522,12 @@ struct SFTPBrowserView: View {
                 }
             }
             .disabled(!window.canOpenCompanionSession(from: sftpChannel.id))
-            Button(AppStrings.SFTP.openTransfers.swiftUIKey, systemImage: "arrow.up.arrow.down") {
-                app.mainWindows.showTransfers()
+            Button(
+                (app.mainWindows.isTransfersWindowOpen
+                    ? AppStrings.SFTP.closeTransfers : AppStrings.SFTP.openTransfers).swiftUIKey,
+                systemImage: "arrow.up.arrow.down"
+            ) {
+                app.mainWindows.toggleTransfers()
             }
             Divider()
             if sftpChannel.showsHiddenFiles {

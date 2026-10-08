@@ -76,8 +76,22 @@ final class MainWindowCoordinator {
     @ObservationIgnored var createScene: ((UUID) -> Void)?
     @ObservationIgnored private var isTerminating = false
     @ObservationIgnored private var transfersWindow: NSWindow?
+    private(set) var isTransfersWindowOpen = false
+    private(set) var isTransfersWindowKey = false
     private(set) var paywallOwnerID: ObjectIdentifier?
     private var fullScreenWindows: Set<ObjectIdentifier> = []
+
+    func toggleTransfers() {
+        if isTransfersWindowOpen {
+            closeTransfers()
+        } else {
+            showTransfers()
+        }
+    }
+
+    func closeTransfers() {
+        transfersWindow?.performClose(nil)
+    }
 
     func showTransfers() {
         guard !isTerminating, let app else { return }
@@ -98,6 +112,8 @@ final class MainWindowCoordinator {
             window.center()
             window.makeKeyAndOrderFront(nil)
         }
+        isTransfersWindowOpen = true
+        isTransfersWindowKey = transfersWindow?.isKeyWindow == true
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -116,7 +132,7 @@ final class MainWindowCoordinator {
                 }
             })
         for name in [
-            NSWindow.willCloseNotification, NSWindow.didBecomeKeyNotification,
+            NSWindow.willCloseNotification, NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
             NSWindow.didResizeNotification, NSWindow.didEndLiveResizeNotification,
             NSWindow.willEnterFullScreenNotification, NSWindow.didEnterFullScreenNotification,
             NSWindow.willExitFullScreenNotification, NSWindow.didExitFullScreenNotification,
@@ -133,6 +149,20 @@ final class MainWindowCoordinator {
     }
 
     private func handle(_ notification: Notification.Name, for native: NSWindow) {
+        if native === transfersWindow {
+            switch notification {
+            case NSWindow.willCloseNotification:
+                isTransfersWindowOpen = false
+                isTransfersWindowKey = false
+            case NSWindow.didBecomeKeyNotification:
+                isTransfersWindowKey = true
+            case NSWindow.didResignKeyNotification:
+                isTransfersWindowKey = false
+            default:
+                break
+            }
+            return
+        }
         guard let entry = entries.first(where: { $0.window === native }), let model = entry.model else { return }
         switch notification {
         case NSWindow.willCloseNotification:
