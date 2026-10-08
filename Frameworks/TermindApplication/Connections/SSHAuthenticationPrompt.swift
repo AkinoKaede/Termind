@@ -52,8 +52,8 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
 }
 
 /// Shared projection from route metadata and staged submissions into the
-/// presentation-only authentication prompt. Connection lifetimes, retries,
-/// and credential persistence remain owned by each feature.
+/// presentation-only authentication prompt. The connection controller coordinates
+/// continuation and retries; features supply credential persistence policies.
 @MainActor
 public enum SSHAuthenticationPromptResolver {
     public static func host(

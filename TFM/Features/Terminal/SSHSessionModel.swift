@@ -28,7 +28,7 @@ protocol SSHSessionInputRouting: AnyObject {
 /// The screen buffer lives inside libghostty. This model bridges its in-memory
 /// terminal backend to one SSH session and exposes connection state to SwiftUI.
 @Observable
-final class SSHSessionModel: Identifiable {
+final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     let commandHistory = CommandHistoryModel()
     var id: UUID { commandHistory.sessionID }
     /// Never optional. Termind ships no local terminal — the App Sandbox has no
@@ -57,9 +57,6 @@ final class SSHSessionModel: Identifiable {
         return displayPath(workingDirectory)
     }
 
-    func displayPath(_ path: String) -> String {
-        RemotePath.displayed(path, home: homeResolution)
-    }
     let commandMonitor = TerminalCommandMonitor()
     private var commandObservation: TerminalCommandObservation?
     var hasUnreadOutput: Bool = false
@@ -106,7 +103,10 @@ final class SSHSessionModel: Identifiable {
     /// Set when this connection needs a login or credentials. The terminal view
     /// presents the editor; the sshSession remains disconnected until it receives
     /// either Continue or Continue and Save.
-    var pendingAuthentication: SSHAuthenticationPrompt?
+    var pendingAuthentication: SSHAuthenticationPrompt? {
+        get { connection.pendingAuthentication }
+        set { connection.pendingAuthentication = newValue }
+    }
     let connection = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connection.journey }
 
@@ -122,8 +122,11 @@ final class SSHSessionModel: Identifiable {
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
     private(set) var connectionAttemptID: UUID? {
-        didSet {
-            if connectionAttemptID != oldValue {
+        get { connection.connectionAttemptID }
+        set {
+            let oldValue = connection.connectionAttemptID
+            connection.connectionAttemptID = newValue
+            if newValue != oldValue {
                 terminalUpload.cancelPendingUpload()
                 commandHistory.cancelLoading()
             }
@@ -137,13 +140,25 @@ final class SSHSessionModel: Identifiable {
     /// connection and never retained here. Cleared with the SSH connection.
     private(set) var transferSnapshot: SSHAdditionalConnectionSnapshot?
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
-    var connectionRoute: SSHConnectionRoute?
+    var connectionRoute: SSHConnectionRoute? {
+        get { connection.connectionRoute }
+        set { connection.connectionRoute = newValue }
+    }
     var connectionOrigin: RemoteConnectionOrigin = .library
     var isExternalTemporaryConnection: Bool { !connectionOrigin.allowsPersistence }
-    private var transientHost: Host?
+    private var transientHost: Host? {
+        get { connection.transientHost }
+        set { connection.transientHost = newValue }
+    }
     private var usernameHint: String?
-    private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
-    private var suppliedProxyAuthentications: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
+    private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] {
+        get { connection.suppliedAuthentications }
+        set { connection.suppliedAuthentications = newValue }
+    }
+    private var suppliedProxyAuthentications: [Host.ID: SSHProxyAuthenticationSubmission] {
+        get { connection.suppliedProxyAuthentications }
+        set { connection.suppliedProxyAuthentications = newValue }
+    }
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] {
         get { connection.temporaryHostKeys }
         set { connection.temporaryHostKeys = newValue }
@@ -224,7 +239,6 @@ final class SSHSessionModel: Identifiable {
     ) {
         self.hostID = hostID
         self.title = title
-        self.transientHost = transientHost
         self.usernameHint = usernameHint
         self.pendingInitialCommand = initialCommand.map {
             PendingInitialCommand(
@@ -245,6 +259,7 @@ final class SSHSessionModel: Identifiable {
             }
         )
         terminalSurface = surface
+        self.transientHost = transientHost
         relay.owner = self
         commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         observeWorkingDirectory(from: surface.state, through: relay)
@@ -659,88 +674,38 @@ final class SSHSessionModel: Identifiable {
 
     func continueAuthentication(
         identityID: Identity.ID?, username: String, password: String?, passphrase: String?,
-        keyID: SSHKeyRef.ID?, save: Bool,
-        using store: any RemoteSessionHostStore
+        keyID: SSHKeyRef.ID?, save: Bool, using store: any RemoteSessionHostStore
     ) {
-        let selectedIdentity = identityID.flatMap { store.identity($0) }
-        let trimmedUsername = ((pendingAuthentication?.isProxy == true ? nil : selectedIdentity?.username) ?? username)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedUsername.isEmpty else { return }
-        guard let prompt = pendingAuthentication,
-            var host = connectionHost(prompt.host.id, using: store)
-        else { return }
-
-        if prompt.isProxy {
-            let submission = SSHProxyAuthenticationSubmission(
-                username: trimmedUsername, password: password, identityID: selectedIdentity?.id)
-            do {
-                if save {
-                    host = try store.saveProxyAuthentication(
-                        submission, for: host, selectedIdentity: selectedIdentity,
-                        suppliedPassword: password)
-                }
-                suppliedProxyAuthentications[host.id] = submission
-                pendingAuthentication = nil
-                connectionJourney.resume()
-                connect(using: store)
-            } catch {
-                requestProxyAuthentication(
-                    for: host, using: store, failureMessage: error.localizedDescription)
+        connection.continueAuthentication(
+            identityID: identityID, username: username, password: password, passphrase: passphrase,
+            keyID: keyID, save: save, destinationID: hostID, using: store
+        ) { host, submission in
+            if host.id == hostID { usernameHint = submission.username }
+            connectionRoute?.usernames[host.id] = submission.username
+        } saveIdentity: { host, submission, selectedIdentity in
+            if let route = connectionRoute {
+                let saved = try store.saveConnectionRoute(
+                    route, authentication: submission, authenticationHostID: host.id, suppliedPassword: password)
+                adoptSavedRoute(saved, replacing: route, using: store)
+            } else {
+                let saved = try store.saveAuthentication(
+                    submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password)
+                if saved.id == hostID { transientHost = saved }
             }
-            return
-        }
-
-        if prompt.requiresPassphrase {
-            do {
-                suppliedAuthentications[host.id] = try store.passphraseSubmission(
-                    for: prompt, existing: suppliedAuthentications[host.id], passphrase: passphrase, save: save)
-                pendingAuthentication = nil
-                connectionJourney.resume()
-                connect(using: store)
-            } catch {
-                var failed = prompt
-                failed.failureMessage = error.localizedDescription
-                pendingAuthentication = failed
+        } onFailure: { failure in
+            switch failure {
+            case .proxy(let host, let error):
+                requestProxyAuthentication(for: host, using: store, failureMessage: error.localizedDescription)
+            case .identity(let host, let username, let keyID, _, let error):
+                requestAuthentication(
+                    for: host, username: username, selectedKeyID: keyID,
+                    failureMessage: error.localizedDescription,
+                    requiresPassphrase:
+                        keyID.flatMap { store.key($0) }.map { store.requiresPassphraseEntry(for: $0) } == true)
             }
-            return
+        } connect: {
+            connect(using: store)
         }
-
-        let submittedKeyID = selectedIdentity?.keyID ?? keyID
-        do {
-            let submission = try store.authenticationSubmission(
-                username: trimmedUsername, password: password, passphrase: passphrase,
-                keyID: submittedKeyID, selectedIdentity: selectedIdentity
-            )
-            suppliedAuthentications[host.id] = submission
-            if host.id == hostID { usernameHint = trimmedUsername }
-            connectionRoute?.usernames[host.id] = trimmedUsername
-            pendingAuthentication = nil
-            connectionJourney.resume()
-
-            if save {
-                if let route = connectionRoute {
-                    let saved = try store.saveConnectionRoute(
-                        route, authentication: submission, authenticationHostID: host.id, suppliedPassword: password
-                    )
-                    adoptSavedRoute(saved, replacing: route, using: store)
-                } else {
-                    host = try store.saveAuthentication(
-                        submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password
-                    )
-                    if host.id == hostID { transientHost = host }
-                }
-            }
-        } catch {
-            requestAuthentication(
-                for: host, username: trimmedUsername,
-                selectedKeyID: submittedKeyID, failureMessage: error.localizedDescription,
-                requiresPassphrase:
-                    submittedKeyID.flatMap { store.key($0) }.map { store.requiresPassphraseEntry(for: $0) } == true
-            )
-            return
-        }
-
-        connect(using: store)
     }
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
@@ -763,9 +728,6 @@ final class SSHSessionModel: Identifiable {
         pendingInitialCommand = nil
         pendingConnectionStartupCommand = nil
         commandExcludedFromHistory = nil
-        pendingAuthentication = nil
-        suppliedAuthentications.removeAll()
-        suppliedProxyAuthentications.removeAll()
         connectionAttemptID = nil
         connection.disconnect()
         connectionTask?.cancel()
@@ -851,7 +813,7 @@ final class SSHSessionModel: Identifiable {
                 ),
                 shellIntegrationEnabled: isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
-                progress: progressHandler(attemptID: attemptID)
+                progress: connection.progressHandler(attemptID: attemptID)
             )
             try Task.checkCancellation()
             guard connectionAttemptID == attemptID else { throw CancellationError() }
@@ -931,29 +893,20 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
-        resetCommandGeneratorShellState()
-        connectionAttemptID = nil
-        connectionTask?.cancel()
-        connectionTask = nil
-        if let ssh { Task { await ssh.disconnect() } }
-        ssh = nil
-        transferSnapshot = nil
-        status = .reconnecting
-        let host = connectionHost(hostID, using: store)
-        if let connectionRoute, let host {
-            connectionJourney.begin(
-                host: host, route: connectionRoute.hosts, purpose: .sshSession,
-                username: connectionRoute.usernames[host.id], mode: .reconnection
-            )
-        } else {
-            connection.presentReconnectJourney(
-                host: host, using: store, purpose: .sshSession,
-                username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
-            )
-        }
-        connection.scheduleRecovery(after: message) { [weak self, weak store] in
-            guard let self, let store else { return }
-            self.startConnection(using: store)
+        connection.scheduleReconnect(
+            after: message, hostID: hostID, using: store,
+            purpose: .sshSession, route: connectionRoute, usernameHint: usernameHint
+        ) {
+            resetCommandGeneratorShellState()
+            connectionAttemptID = nil
+            connectionTask?.cancel()
+            connectionTask = nil
+            if let ssh { Task { await ssh.disconnect() } }
+            ssh = nil
+            transferSnapshot = nil
+            status = .reconnecting
+        } retry: { [weak self] store in
+            self?.startConnection(using: store)
         }
     }
 
@@ -1017,14 +970,8 @@ final class SSHSessionModel: Identifiable {
         connectionJourney.waitForProxyAuthentication(at: host.id, failure: failureMessage)
     }
 
-    private func progressHandler(attemptID: UUID) -> SSHRouteProgressHandler {
-        connection.progressHandler(attemptID: attemptID) { [weak self] id in
-            self?.connectionAttemptID == id
-        }
-    }
-
     func connectionHost(_ id: Host.ID, using store: any RemoteSessionHostStore) -> Host? {
-        connectionRoute?.host(id) ?? store.host(id) ?? (id == hostID ? transientHost : nil)
+        connection.connectionHost(id, destinationID: hostID, using: store)
     }
 
     private func adoptSavedRoute(

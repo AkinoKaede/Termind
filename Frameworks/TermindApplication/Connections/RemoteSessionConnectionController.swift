@@ -104,6 +104,19 @@ public final class SSHHostKeyAuthorizationCoordinator {
 /// connection journey and retry lifecycle shown by both Terminal and SFTP.
 @Observable
 public final class RemoteSessionConnectionController {
+    public var connectionRoute: SSHConnectionRoute?
+    public var transientHost: Host?
+    public var connectionAttemptID: UUID?
+    public var pendingAuthentication: SSHAuthenticationPrompt?
+    public var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
+    public var suppliedProxyAuthentications: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
+
+    public func connectionHost(
+        _ id: Host.ID, destinationID: Host.ID, using store: any RemoteSessionHostStore
+    ) -> Host? {
+        connectionRoute?.host(id) ?? store.host(id) ?? (id == destinationID ? transientHost : nil)
+    }
+
     public let journey = ConnectionJourney()
     public let securityKeySigning = SecurityKeySigningCoordinator()
     public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
@@ -125,6 +138,9 @@ public final class RemoteSessionConnectionController {
     }
 
     public func disconnect() {
+        pendingAuthentication = nil
+        suppliedAuthentications.removeAll()
+        suppliedProxyAuthentications.removeAll()
         keyboardAuthenticationID = nil
         keyboardAuthentication.cancelAll()
         securityKeySigning.cancel()
@@ -158,6 +174,33 @@ public final class RemoteSessionConnectionController {
 
     public func pauseForUserInteraction() {
         reconnect.pauseForUserInteraction()
+    }
+
+    /// Retire channel-owned work before presenting recovery or arming a retry.
+    /// Only terminal sessions supply their frozen route for the recovery journey.
+    public func scheduleReconnect(
+        after message: String, hostID: Host.ID, using store: any RemoteSessionHostStore,
+        purpose: ConnectionPurpose, route: SSHConnectionRoute? = nil, usernameHint: String? = nil,
+        teardown: () -> Void,
+        retry: @escaping @MainActor (any RemoteSessionHostStore) -> Void
+    ) {
+        teardown()
+        let host = connectionHost(hostID, destinationID: hostID, using: store)
+        if let route, let host {
+            journey.begin(
+                host: host, route: route.hosts, purpose: purpose,
+                username: route.usernames[host.id], mode: .reconnection
+            )
+        } else {
+            presentReconnectJourney(
+                host: host, using: store, purpose: purpose,
+                username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
+            )
+        }
+        scheduleRecovery(after: message) { [weak store] in
+            guard let store else { return }
+            retry(store)
+        }
     }
 
     @discardableResult
@@ -236,6 +279,12 @@ public final class RemoteSessionConnectionController {
     public func waitForHostKey(_ prompt: SSHHostKeyPrompt, hostID: Host.ID) {
         reconnect.pauseForUserInteraction()
         journey.waitForHostKey(at: hostID, fingerprint: prompt.observation.fingerprint)
+    }
+
+    public func progressHandler(
+        attemptID: UUID
+    ) -> SSHRouteProgressHandler {
+        progressHandler(attemptID: attemptID) { [weak self] in self?.connectionAttemptID == $0 }
     }
 
     public func progressHandler(

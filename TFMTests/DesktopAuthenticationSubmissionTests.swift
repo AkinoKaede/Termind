@@ -9,6 +9,38 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct DesktopAuthenticationSubmissionTests {
+    @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp])
+    func failedIdentitySaveRepromptsWithoutChangingTheLibrary(kind: ConnectionHistoryEntry.Kind) throws {
+        let key = protectedKey()
+        let identity = Identity(
+            name: "Unavailable", username: "deploy", credentialRef: "missing-password", keyID: key.id)
+        let host = Host(name: "Server", host: "server.invalid")
+        let store = HostLibraryModel(
+            hosts: [host], keys: [key], identities: [identity], secrets: InMemorySecretStore())
+        let session = DesktopAuthenticationSession(kind: kind, host: host)
+        defer { session.disconnect() }
+        session.ssh?.connect(using: store)
+        session.sftp?.connect(using: store)
+
+        session.submit(
+            identityID: identity.id, username: "ignored", password: "replacement",
+            keyID: nil, save: true, store: store)
+
+        let prompt = try #require(session.prompt)
+        #expect(prompt.failureMessage?.isEmpty == false)
+        #expect(store.host(host.id) == host)
+        #expect(store.identity(identity.id) == identity)
+        if let ssh = session.ssh {
+            #expect(ssh.status == .disconnected)
+            #expect(prompt.username == "deploy")
+            #expect(prompt.selectedKeyID == key.id)
+        }
+        if let sftp = session.sftp {
+            #expect(sftp.status == .disconnected)
+            #expect(sftp.operationError == prompt.failureMessage)
+        }
+    }
+
     @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp], [false, true])
     func unsavedInputPreservesSelectionAndPassphraseContinuation(kind: ConnectionHistoryEntry.Kind, selected: Bool)
         throws

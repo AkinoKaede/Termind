@@ -1,5 +1,16 @@
 import Foundation
 
+@MainActor
+public protocol RemotePathDisplaying {
+    var homeResolution: RemoteHomeResolutionState { get }
+}
+
+extension RemotePathDisplaying {
+    public func displayPath(_ path: String) -> String {
+        RemotePath.displayed(path, home: homeResolution)
+    }
+}
+
 public nonisolated enum RemotePath {
     public struct Component: Identifiable, Equatable, Sendable {
         public var name: String
