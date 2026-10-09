@@ -601,10 +601,6 @@ extension AppStrings {
             "\(effort) provider value"
         }
 
-        public static var relaunchNow: LocalizedStringResource {
-            "Relaunch Now"
-        }
-
         public static var showStatusBar: LocalizedStringResource {
             "Show Status Bar"
         }

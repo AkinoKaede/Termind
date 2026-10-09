@@ -29693,29 +29693,6 @@
         }
       }
     },
-    "Relaunch Now" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今すぐ再起動"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即重新启动"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即重新啟動"
-          }
-        }
-      }
-    },
     "Remote" : {
       "extractionState" : "manual",
       "localizations" : {

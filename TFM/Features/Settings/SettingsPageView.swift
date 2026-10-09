@@ -447,12 +447,12 @@ private struct AppSettings: View {
             }
 
             if selectedLanguage != launchLanguage {
-                LabeledContent {
-                    Button(AppStrings.Settings.relaunchNow.swiftUIKey) { AppRelauncher.relaunch() }
-                } label: {
-                    Text(AppStrings.Settings.theNewLanguageWillBeUsedAfterTermindRelaunches)
-                        .foregroundStyle(.secondary)
-                }
+                Text(
+                    verbatim: AppLocalization.resolve(
+                        AppStrings.Settings.theNewLanguageWillBeUsedAfterTermindRelaunches,
+                        locale: selectedLanguage.locale)
+                )
+                .foregroundStyle(.secondary)
             }
         }
 

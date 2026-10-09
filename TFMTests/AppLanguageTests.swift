@@ -91,6 +91,19 @@ struct AppLanguageTests {
         #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant")) == "設定")
     }
 
+    @Test(arguments: [
+        (AppLanguage.english, "The new language will be used after Termind relaunches."),
+        (.japanese, "新しい言語はTermindの再起動後に適用されます。"),
+        (.simplifiedChinese, "重新启动Termind后将使用新语言。"),
+        (.traditionalChinese, "重新啟動Termind後將使用新語言。"),
+    ])
+    func languageChangeNoticeUsesTheSelectedLanguage(language: AppLanguage, expected: String) {
+        #expect(
+            AppLocalization.resolve(
+                AppStrings.Settings.theNewLanguageWillBeUsedAfterTermindRelaunches,
+                locale: language.locale) == expected)
+    }
+
     @Test(arguments: ["ja", "ja-JP", "ja_JP"])
     func japaneseLocalesResolveAppCopyAndPreserveInterpolations(identifier: String) {
         let locale = Locale(identifier: identifier)
