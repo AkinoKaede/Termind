@@ -6,12 +6,8 @@ tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, r
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
-  - id: openwiki-source-1567525f52f2dc52e8afcb31
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/iphone-6.3/01_overview.jpg
-  - id: openwiki-source-191ab616f24d4d986601e4cb
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/mac/01_three_screens.jpg
+  - id: openwiki-source-cf46ee9dde9e2af41c84b62f
+    resource: repo://fastlane/lib/screenshots.rb
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -60,10 +56,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 # Storefront commerce release checks
@@ -144,5 +140,5 @@ Both wrappers refuse purchase initiation if access already exists, mark operatio
 
 1. Reconcile product IDs, types, group, Family Sharing, introductory eligibility and grace settings in App Store Connect **and** entitlement-to-product mapping, offering/paywall rules and localized disclosure in RevenueCat. Test new versus used-offer accounts, trial-to-paid renewal, cancellation through expiry, billing retry with and without grace, refunds, Family Sharing and lifetime restoration across Mac, iPhone and iPad. Record Sandbox results separately from the fixture and production configuration review.
 2. Run the default shared/macOS tests as described in [Build, validation, localization and dependency release operations](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
-3. Check final localized **storefront imagery** separately from the paywall. The independent public submodule's `assets/screenshots/{en,zh-hans,zh-hant,ja}` contains six JPG boards per `mac`, `iphone-6.3`, `ipad-13` and `iphone-duo` set (96 total), at 2880×1800, 1206×2622, 2752×2064 and 2853×2007 respectively. iPhone Overview is `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. Review language, composition, opaque RGB/sRGB profile, platform promises and offer claims against current App Store requirements before upload. These final Figma boards are separate from native captures and frames used by the website, and dimensions alone do not prove upload acceptance. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for native scan/frameit, template rights, composition/export and SSH-first publication.
+3. Check final localized **storefront imagery** separately from the paywall. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout available for this repair is empty, so no current board count, filenames, final canvas dimensions or image profiles are verified here. Establish the release inventory from the inspected checkout; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.

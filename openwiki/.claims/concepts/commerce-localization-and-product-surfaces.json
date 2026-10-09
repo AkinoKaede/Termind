@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0d2ed5a484b6d2e221490c7a609879a7aa8163f51b9469982eb932d741d9a271",
+  "pageVersion": "sha256:bfcc767924aef1756c700892275c7dd731393511422da859052a8d6bd27080e0",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -202,19 +202,19 @@
     },
     {
       "id": "claim_d41780eea21b46cba74c60f6d4ae01b5",
-      "statement": "The independent com.akinokaede.termind website/assets submodule contains the Astro project at its root; build runs astro check then astro build and imports a typed allowlist of native-scale frames instead of public-directory source copies.",
+      "statement": "The parent repository identifies com.akinokaede.termind as an independent public website/assets submodule with an Astro project at its root, documents initialization only for website or asset work and an npm build workflow, and states that native builds do not require it; those parent-repository instructions do not verify the submodule's current implementation or deployed content.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
+          "resource": "repo://.gitmodules#L12-L14",
+          "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGU4MjMyOGU4YjdlOThiZGQwMDBjZGNlMTEwNDA0YTEyYzI5MDE2YjY4NWIyZWYzOWJkYjk2OGM0YWE5YzA4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/package.json",
-          "version": "repo-file-v1:sha256:72831c4186784ecf365ee64baec06d0b7f41d3075a2d0630a6e77ba876b102ad"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/src/lib/marketingImages.ts",
-          "version": "repo-file-v1:sha256:a2ea1343388f3c01d27bddd01bd4466b30f659d21379cc801eb43e9efb673910"
+          "resource": "repo://AGENTS.md#L59-L60",
+          "version": "repo-lines-v1:sha256:d504b70e9953b1673814e4a03529f8f9eaa4802dc7b5f6a97452cca5f1da8b38:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0OGEwZDI3OGNhZGI2NDA1NzY1ZDYxYTY1OTljOTUzODZmZGQ3OWRiMGUyOGM5ZDY2N2MwNDdjNWIwNTJhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
         }
       ]
     },
@@ -541,38 +541,6 @@
       ]
     },
     {
-      "id": "claim_95a8260b49d74cc2968da0e4a7fc247a",
-      "statement": "FAQPage owns public free/Pro, Family Sharing, device-specific MCP and third-party AI billing disclosures independently of native catalogs; website i18n selects English/Simplified Chinese, Taiwan Traditional conversion with terminology overrides, or explicit/dictionary Japanese with English fallback.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/FAQPage.astro",
-          "version": "repo-file-v1:sha256:7d3e950ad4274181a68fa485b941a8589af0f0c75ba5c98fee213961e285fc6d"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/i18n.ts",
-          "version": "repo-file-v1:sha256:4263ba73fd4ff4ed0033883d05166aa52bd00cfdde26c9064c844ea5de580284"
-        }
-      ]
-    },
-    {
-      "id": "claim_6c1dd9a802cb4f5da898eb04d9802228",
-      "statement": "Allowlisted website frames come directly from assets/device_frames/<locale>/<device>. Astro generates optimized AVIF/WebP/JPEG renditions rather than copying source PNGs into public; Hero now combines Mac Workspace and Duo outer Assistant.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro",
-          "version": "repo-file-v1:sha256:b681fc11c50f4bd3eadc1f0353c4e82f2c3045624b95273efed055d1ae414bfa"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/marketingImages.ts",
-          "version": "repo-file-v1:sha256:a2ea1343388f3c01d27bddd01bd4466b30f659d21379cc801eb43e9efb673910"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/pages/index.astro#L49-L66",
-          "version": "repo-lines-v1:sha256:2e4c189ebd03eb8d4380b0b2940384215b1c1f59a1e4e609d4e55c1c4d077106:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0NDRhMzFkOGVjN2U4OGY4NTU3MTUyNmJmMjdjOTU4ODIwZGZmZDI5ZjY4NTIxZDBjMDViNzcwNWExZjE4YjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4YTA3ZGRiMTVlNDU0Y2EwZjFlMWVmMWJhYTM3NDNmMjRkYmQwZDhhY2ZhOTg2M2ZiMDliY2FlNmMwOWY5NTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmOTczMjdmMTFjNTEyNTQ1MGE3MjA2OWE2N2NmZDcwYjhlNDU3MmZlOTA5MjY4ZjMzM2NmOGQ0M2YwYjI2NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5YmIxNzg1NjY3NGM1NWQzNmFkNWY5MzMxODQ2ZTViMjU1ZGIyNmZhNzEwZTVmY2EzNmZjZmM4NzY1YjRiZjcifQ"
-        }
-      ]
-    },
-    {
       "id": "claim_540a60063eb44573908e556045122744",
       "statement": "The catalog normalizer defaults to the two shared app catalogs, marks entries manual without deleting stale translations, rejects duplicate JSON keys before any batch write, and checks or writes Xcode-compatible serialization; AgentKit's separately owned runtime catalog requires its own localization build step.",
       "evidence": [
@@ -591,66 +559,6 @@
         {
           "resource": "repo://Scripts/normalize-string-catalogs.py#L75-L135",
           "version": "repo-lines-v1:sha256:acafddbd3ad206083278d7098fca95c901e69f05dc302c0c6aa10a670de2f29a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NzM4ZGMyM2M2MGY0NDZjMTRkNzEzZjlkYjg2ZDVjYjVjMjk3MjkyN2I0NTFmMmYyNzlmY2FjOGVjM2QzOTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlNzU5NjJjZjg3ZGJiYjM1NjM5NGE3MTczMzkxZDM1ODAxY2U5NDc2YWIyM2U4ZDkzMGQ5Mjg2YzA2ZThhYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2YjQ2ZTE4OWVkMmVhMzgxM2ViNzk2NGY3MGIzZDEwY2Q1MWUxYTBiMmRjZGFjYTg5ODdkMTRjZjkwNzc2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlZDc4MDI1NDRlMzE5ZGRjMzE5MTBlYWI0NTBiZjVlMjU3MTZkYzQ0ZDg1YmFiOGY3ODY4MmNiZGQxNTMzN2UifQ"
-        }
-      ]
-    },
-    {
-      "id": "claim_808ab8be06da44ba8bd8cefd30a8ba16",
-      "statement": "Locale route wrappers serve separate public security/privacy components through BaseLayout, which owns navigation, canonical/alternate links and browser-local website language preference independent of native app settings.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/PrivacyPolicy.astro#L1-L20",
-          "version": "repo-lines-v1:sha256:c89665570a5be68902519fb4cd8c965230b0fe05c2231e47c316301669c42ab6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MmQ3MTExMDNkNTBhNDM3ODMwYzZmYmNkMDRmYjRiYWI0OWEwZjgyZjZkMjZkMWM3OTFjNmU4NDg4ZGQwOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjMDVjNWM4NmYwOTljN2Q1ZTYzYjU3NDgwNDFjMDU1YTMxMGJmN2NhZjQxMGQzMGUwZWExYTdjMzYzNmY5MTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhNDRhMzJiZjM0ODBlNzRhMTQ2MTdkNmNiMGJjMGI2OWFhN2YwZmRiZjI2OGNhNjM4NTkzZDk4ZGZiMzY4YzEifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/SecurityPage.astro#L1-L25",
-          "version": "repo-lines-v1:sha256:11cb683df30d409fa81d4c215d5b30b241f0820cf5836961baf723fdfa58c35d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MmQ3MTExMDNkNTBhNDM3ODMwYzZmYmNkMDRmYjRiYWI0OWEwZjgyZjZkMjZkMWM3OTFjNmU4NDg4ZGQwOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1YzIzMTcyMjYxNjYzYTczZmE4MmJkZjg1MDljOGExNTFmMDE1ODkwMWJmNGY1NzY5OWFiNzNkOTg3ZDUxOWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyMGVmNmViNDJmZjZiYjdhNTE5OWMxNzg2YTA4Yjc3YzA2Njc0ZDQzMTkwN2QzNTU4YjE5NDk0M2YwMWNkZDIifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/layouts/BaseLayout.astro",
-          "version": "repo-file-v1:sha256:df2a99ddca09bde7895ff721f3da265364d2eac612ec50567a73a919e0e01a7b"
-        }
-      ]
-    },
-    {
-      "id": "claim_f69e52008c8243f0934c6832a1311bf9",
-      "statement": "The public privacy policy discloses local/iCloud/Keychain data, Apple purchases and RevenueCat validation/paywalls/anonymous associations, optional network/AI/diagnostics and deletion controls, plus website-local language preference and possible hosting logs; it is public disclosure rather than independent runtime proof.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/PrivacyPolicy.astro#L192-L225",
-          "version": "repo-lines-v1:sha256:547fbaa1197fab731fd9fe55670ce3d091a7446374b2fe3c61da66b075deddbb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxODU2NmVjMTkzNjZlNGY4MGFhMTMxMTBiYTY1YjFmMzExYjM2ODY2Y2UyYzk2MTJkZDU0NDhjYWI3NWNmYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxZGNlN2U0ODMyZmE3M2FmY2FmNGRmODBlM2YxMzYyMWExYzUxMTg0MTk4NjcyYmI2YTU0N2RiZTg4YTg0M2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1YmE2Y2U1MzU0ZTczOWI4NTA1ZmY2ZDA2YjlhOThjMGYxMzVjODQ0MTM1M2I1MmI5NGRkZmIwMDI1Nzk4MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMTE1NTEyMjc5YzUyMzdjYTU1NzhjNjkzOTU4MDI3MmZkOTI2MjMxYWI0NDBiM2VjMGI3NWY1MWFmNjg3NTgifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/PrivacyPolicy.astro#L42-L110",
-          "version": "repo-lines-v1:sha256:fb28427e9c68a58ef201bca27b508e773c3eb3df64b327068f08339ae65de2c3:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2ZWMzMTAxY2U5ZTk3M2QzNDRjYzZkMzgxZGNhZGRiNDFhYWZmNzRiMDBkMGQ3MGEzMmZmZWU4ZGZiZGIzMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlYjFmOWQxN2IyZTUxZDkyNjRmYjQ1NzY3YWRlYjRlZjc5ZWFkZTIyZTQ0ZGUzZDY5MjE4MTdkNzU0MWYzOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhYjg1MGQxMjc3M2Y2ZDkzMDczZTFmYjdkOGMzZjBhYjQ0OGI1ZmQ4YTZlM2ZjOTJmYzYxOTU3ZDYzN2IwMjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxZTVjZmY3MzM2MmQ3OGE4MjAyZWEwYmE1OTU3NjE5OWU1YjcxZTU0ZmYyNjY2NWE0NTQ3MzA0NzMyNDQwNWMifQ"
-        }
-      ]
-    },
-    {
-      "id": "claim_fe27d63a736d4a9e83a24d494f99b6e9",
-      "statement": "Public security copy describes Keychain and one-shot secret cleanup, Known Hosts, configurable Assistant permissions and opt-in Mac loopback MCP with a local bearer token/tool controls. It warns authenticated MCP calls need not each prompt; compare disclosures with runtime rather than treating copy as a security proof.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/SecurityPage.astro#L179-L236",
-          "version": "repo-lines-v1:sha256:0743b1a927f8bd9629993023a02bd3c204d932f02bdd56c888ebc2927a55a1c8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllNTkxNmQzNGZmOGIyNjExZjQ1NGE5OTc4NmNmZGNhZTg1YTE1NTdmYzU2N2Q1OWJlYmUzYTZhZTk5YjgwN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjZjRiZDhhYjVmNmViN2RlZWQwNWUxYjllMzlmZmM2M2JmYmNhOGJjMDQ3YTI4YWEzZWEzMWY5Mjc4M2Y2ODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1ZTlhMDkyMWE2YTQyZWYyNmVlYzJiNjg3Mzk3YzgwMTI1MzU0MjI4ZjU2OWNlOGRlODAxZTQxOThjYzNjMjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhZmNiYTcwZmY4NmQ5OTZmNzkxZjk3NTdmMjU3NWMwYThjYjQyM2UxM2Y0YzA2YzA5ZGRjY2NmMjVmMDVlYWYifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/SecurityPage.astro#L57-L113",
-          "version": "repo-lines-v1:sha256:e90036745d48ec59e79d3c5b52e5a1ae9a1cd42bb382cbe59ac4e37371ac458d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2NDk4MjRmMTFjYzI4ODE2OWNkNjNhYjE4NmUzY2M2MzU5Y2JlZjAyMDYxMTM0ZTViNjk1Zjg1ODYzMzJkZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwNTYzMDRiMGVlYWJkODhhZDRjYmRkNjBiZGY0NjY1MWFkODU3YWQxZTAxMDRlNDJhYmZmNmIwNDNhZThlYTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwNmZkNjVkZTBiMDI1ZTU5MWFhNTM2YmU1MWY2ODg5MzQ2OWUzZThmMGIxN2NlNjI2N2E5NGM1ZjllM2I0ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NGQyY2ViZjFmYzZkMzYxMGY3MWRkNDlhOGY3YjAxMzE2Y2Y2MjE0MzFlYTYwMDU2NjA0NGRhMDY3YmI5YmIifQ"
-        }
-      ]
-    },
-    {
-      "id": "claim_fd496eced2b3448bab7ef2f1d48b316b",
-      "statement": "The homepage TelegramOffer is a Thursday draw for a chance at a Pro redemption code, with channel/group/bot links and explicit no-guaranteed-win and Apple eligibility/validity conditions; it is not a StoreKit plan or guaranteed trial.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/TelegramOffer.astro#L1-L53",
-          "version": "repo-lines-v1:sha256:c6c043c9f2aa3b373b1c3aa8db0586560e693c55f5c52f06322fdae69f16e01a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MmQ3MTExMDNkNTBhNDM3ODMwYzZmYmNkMDRmYjRiYWI0OWEwZjgyZjZkMjZkMWM3OTFjNmU4NDg4ZGQwOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNzdiOGFhYzE3MDFjMjA5ZjRhNzc0MjRkM2Y1NmY2YTI2OTQ3MWJkNGU2OGZiMzRjYzc5YjE1NDQzYzMyNGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjYmEwMjU4MTI2NzU2M2YwYWI5MDQwY2E4NWE5ZTAyNzgyZTM0ZGMyZmM2YzE3MWNiZmNkM2VmZDFmYWM5YzQifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/pages/index.astro#L212-L220",
-          "version": "repo-lines-v1:sha256:e75569c870d319c423e44eaf3f65b5d6812873c2db4fcc7fd42515e80f513b2d:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGZhNzRjMWM3YWZiNTExMzBjNTczN2Y4YWJkZjFhN2JhMGI5MTZiMWRiMjg0ZDBmOTdiYzAyY2E1ZGI0ZWY0NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTA1NjMwNGIwZWVhYmQ4OGFkNGNiZGQ2MGJkZjQ2NjUxYWQ4NTdhZDFlMDEwNGU0MmFiZmY2YjA0M2FlOGVhMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmZjMTU5YzljNThlYTIzYzM2MjE2MDBjMmZjMTNjMzVmM2U4Zjc5MGFiY2U1NzI2YjJhODMyMjYyN2VkNGUyOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjZiODk4NWM5MTU5MDJmNTI0MDQzNWZlMWI5N2Q3NTZjNDFiZWRkMjdjNjU3ZWQxYzgxOThlYmI3ZTZhYWRiNiJ9"
         }
       ]
     },
@@ -731,20 +639,6 @@
       ]
     },
     {
-      "id": "claim_a1fec8fea6384874a33e571818f80df9",
-      "statement": "Homepage and FAQ now frame Termind as an AI-driven remote workspace with BYOK, chosen permissions, embedded Tailscale and optional device-local Hermes Memory; third-party API costs and retrieved-memory data sharing remain separate from Pro pricing and local storage.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/FAQPage.astro#L51-L103",
-          "version": "repo-lines-v1:sha256:5d7c158b0aead7cd556e5e6db4c0fc7483c6f7fd91040f79dd16f6631fab6197:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmZGZjNzc5MzA3N2VlZjcxYWI2ZTEzZDRhNGJkYzZiYmYxZDI2NTZiZDI1NTY1ZTI3N2YzNzBjMmU4MzYwNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwM2U5MTVhNmQ5NzFmNWEyNzA3ZGY5N2VjNTQ0ZmJlMjJiYzAzNTcxMWExODI3ZWY3MjE5NWM5NWZiYzNhNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0MjA1NjgyYzViMDg1ODk2NmVlMGM0MmU0NDU4NTBkMTgzZTA3N2EwMjI5N2E5MGZmMGFmNTUzODRmZTE1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjMjVjNzEzZGM5NTJkZTE3ZmI5ZDk3ZTlhNjE4MGE5MWI3OTM1ODE4ZDI1MDJjNGVhYTJkYTcwNjM5NmRjMWQifQ"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/pages/index.astro#L12-L36",
-          "version": "repo-lines-v1:sha256:62b1ed98b322567601f26f9bb963976a7f6b4d0143906407d621ac8267febb54:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0MTQ2NGYwNTc2MGVjMzcyZGM0NmE0ODZmZDVhYmVkOTgzMTUxNGQ0YWU4NmIxYjJiMzQ2MjRlNjVjYzc1YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4M2I3OWQ2MGQyNTFkMTZmMDcxZDVkMjJhNDZhNzc0YTRmYzM1NGRjMTMwYzdjMjFhZGZjYzQwMDU4NDgwOTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlNTQxMTZkZTNjNGMyYTllYjhjYzQyN2MxOTIyMWZiMzM4NTI0NzFjMjIwY2ZhMjc4Mzg1ZWMzMWU5YTc1YTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0NzUyZTNjMGY3NWYwZjlmNjVlOGJkMTYwNDQyOWI2ZjUyZmMxOTJjMTI5ZTJhMDg1NDE2N2FkNDhjM2Q5OTgifQ"
-        }
-      ]
-    },
-    {
       "id": "claim_11df68d8a0f3451d916866174b64eb64",
       "statement": "AppLanguage supports Japanese with a canonical ja preference; AppLocalization maps ja, ja-JP and ja_JP to the app-bundle Japanese catalog, with tests for resource resolution, reordered interpolation and other-only plurals.",
       "evidence": [
@@ -760,7 +654,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-09T00:05:26.272Z"
   }
 }

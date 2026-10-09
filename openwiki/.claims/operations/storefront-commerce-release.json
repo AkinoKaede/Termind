@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c6aedbc65556d8b8c4c14193d21b23e80c451792b17623eaa1917e1b35b447d6",
+  "pageVersion": "sha256:d5a99c50d2acfa0cfa618499e38eaae356213ee5fa1bbf6312cfa277e3083175",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -118,19 +118,19 @@
     },
     {
       "id": "claim_bfdb3849716843bd941c4d567891acf5",
-      "statement": "Final storefront imagery lives in the independent asset submodule's four locale screenshots directories, with six opaque RGB/sRGB JPG boards per mac, iphone-6.3, ipad-13 and iphone-duo set (96 total), separate from capture/frame inputs. iPhone Overview is 01_overview.jpg; other platforms retain 01_three_screens.jpg.",
+      "statement": "Final storefront imagery requires separate release verification in the initialized independent website/assets checkout: inspect its current delivery contract and actual localized files to establish inventory, filenames, canvas sizes, opacity and embedded profiles, then review composition, platform promises, offer claims and intended App Store upload acceptance. Parent screenshot-tool dimensions describe native capture inputs, not verified final board dimensions or upload acceptance; no fixed current board inventory or Overview filenames are established by the available empty checkout.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:de2ae13c89af67e8029b26b9d2dd77853ab50d62f58d39447f04d222fdbbd745"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/assets/screenshots/en/iphone-6.3/01_overview.jpg",
-          "version": "repo-file-v1:sha256:1b9d8166815723e333c1087432706ea1a3ac29f0d46de28d601530eb7cb77275"
+          "resource": "repo://fastlane/lib/screenshots.rb#L18-L43",
+          "version": "repo-lines-v1:sha256:a09bb6e64d69126097c4f6b45683e1d6952c470147ac712e7387684225acd382:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzNWEzOTE2MjQ0YTZhYmIwMmM4Y2ZiZTFhMjIwZTUxMjNjZDQ1MDQwZDZjYTZjNjU4YjU3M2MwNmZhODg1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzYzYyZmE1OGExYmQ5MzViNzQwZWUwMWZlMzI5ZTc0Y2Q3Mjg3MTFhNDk3Yzk3M2I3MGZkOGQxZDQ2NThlNDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxN2I3NGYwMmY3MDM3YjM1YWNlMDRkNzNmNTQzNzlhMjllNmQ1MzVmODMxMWE2MmMwOWEwMzkyNTdkMDhkM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4YjI1YTVlNTI1YTI1NjhiODBmZDA4OTgyNmUzMThiNTQ3Yjg3ODk0NzVlY2MxZDhiNGFlMzFiYzk4NjJiZjYifQ"
         },
         {
-          "resource": "repo://com.akinokaede.termind/assets/screenshots/en/mac/01_three_screens.jpg",
-          "version": "repo-file-v1:sha256:63b602625855439b16738d629bb03611fa2163c0e2dcf43e098edf87c0630dbe"
+          "resource": "repo://fastlane/lib/screenshots.rb#L66-L81",
+          "version": "repo-lines-v1:sha256:14e4300122b499c9067ad530d97544041f6c6aa93bcd23abb210dc88d24d82ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZGQyNzdlN2EwNjQyNWRjNDJlZjJiNzcxOGUxNTAxNDJjM2VmMzdhMTgwOWIxMWVmZTUzNWQ4ZjEwOTQ0YjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmRhZTVlNDdhNjVlNWQ0OGVhNWJhNDY0YWUyMDljZmJjZjdjMDFhM2RhYmNiZmY1NTdhYTNiMjNhNGE5YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxYTA4OTI4MDI4YTViOTA0NDJiNTE2Zjc0NmRmZGQ2ZmE3MmZlMjlmYWI0MjM2Y2QxYTVmYTAwNTdjZGI3OGEifQ"
         }
       ]
     },
@@ -332,7 +332,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-09T00:05:26.272Z"
   }
 }

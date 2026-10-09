@@ -1,33 +1,13 @@
 ---
 type: product-surface-concept
-title: Commerce, localization and product surfaces
+title: Commerce, Localization and Product Surfaces
 description: Explains RevenueCat-derived Pro access and remote paywalls, native language and copy ownership, and the separate app, widget, screenshot, and public-site product surfaces.
 tags: [commerce, revenuecat, localization, product-surfaces, marketing, widgets]
 sources:
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-6c477adbd17d240038ac8d60
-    resource: repo://com.akinokaede.termind/package.json
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
-  - id: openwiki-source-b634183c73c9477c2202d629
-    resource: repo://com.akinokaede.termind/src/components/FAQPage.astro
-  - id: openwiki-source-5648b67f3d37254607060707
-    resource: repo://com.akinokaede.termind/src/components/PrivacyPolicy.astro
-  - id: openwiki-source-a6a2820ffcf779217cd84d9e
-    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
-  - id: openwiki-source-16bccb8478ca6b4daf81709b
-    resource: repo://com.akinokaede.termind/src/components/SecurityPage.astro
-  - id: openwiki-source-fe020c65073a73518a5b3793
-    resource: repo://com.akinokaede.termind/src/components/TelegramOffer.astro
-  - id: openwiki-source-f2e3c2208232f6d2e4b142f5
-    resource: repo://com.akinokaede.termind/src/layouts/BaseLayout.astro
-  - id: openwiki-source-37c59bb67bf496fd4a44f0ab
-    resource: repo://com.akinokaede.termind/src/lib/i18n.ts
-  - id: openwiki-source-48fb5cabce8010d9034f072c
-    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
-  - id: openwiki-source-4b6325b8da6c6aee4867267a
-    resource: repo://com.akinokaede.termind/src/pages/index.astro
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
     resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
@@ -124,10 +104,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 ## Commerce ownership and configuration
@@ -188,13 +168,15 @@ sequenceDiagram
     Controller-->>Native: updated access and processing
 ```
 
+The native sheet delegates purchase and restore operations to RevenueCatUI and refreshes controller access on completion.
+
 The platform views observe purchase/restore start, completion, cancellation and failure to update `isProcessing`; purchase initiation is refused if access already exists. Completion refreshes access but **does not close** the paywall: after purchase the first SDK dismissal request is ignored so the account variant can be displayed; subsequent dismissal or the close control dismisses it. Disappearing cancels the processing indicator. `ProPaywallStateTests` covers mapping of subscription phases, ownership, missing date and failed verification; `RevenueCatCommerceTests` covers remote-completion behavior, streamed grants and revocations, racing/coalesced refreshes, deadline resolution, configuration rejection and recovery from fetch errors. The old `ProOfferPresentationTests` and `ProPaywallPresentationTests` are absent. A purchase, Restore Purchase or remote layout is not integration-tested by these unit tests.
 
 ## Review and app localization
 
 `AppReviewController` budgets StoreKit review *attempts*, not prompt presentations or ratings: after an active workspace-to-review-page transition it requires seven days since first use, three active local dates, five foreground workspace minutes, no request in the current version and a 120-day cooldown. It waits three seconds and records the attempt before calling the platform request API; navigation, focus/surface changes and blocked commerce or modal UI cancel a pending invitation. The explicit review link records an attempt as well. XCTest disables the live invitation policy.
 
-App UI copy, including platform-specific strings and the native paywall **fallback** text, belongs to semantic `LocalizedStringResource` definitions in `Frameworks/TermindPresentation/Strings` and the shared manual `Frameworks/Resources/Localizable.xcstrings`; `InfoPlist.xcstrings` owns bundle metadata. Keep diagnostic codes, protocol values like remote paywall `state`, identifiers and user-authored content outside translated UI copy. RevenueCat's dashboard paywall text and StoreKit product metadata are **separate** copy owners. The app catalogs must have finished `zh-Hans`, `zh-Hant` and `ja` units for changed English keys. `Scripts/normalize-string-catalogs.py --write` canonicalizes catalog format and manual extraction without deleting stale keys or changing translations and refuses duplicate JSON keys before writing; `Scripts/check-cjk-localization.py` checks both app catalogs by default for normalization, valid JSON, Chinese/Japanese completion, positional format arguments, other-only plural shape and locale-specific spacing. The separate AgentKit runtime catalog needs its own localization build step; the Astro website does not consume native strings. `Scripts/check-appstrings.sh` detects selected app-local UI literals via SwiftSyntax and `ArchitectureBoundaryTests` guards the shared copy owner, but neither proves all UI text is localized.
+App UI copy, including platform-specific strings and the native paywall **fallback** text, belongs to semantic `LocalizedStringResource` definitions in `Frameworks/TermindPresentation/Strings` and the shared manual `Frameworks/Resources/Localizable.xcstrings`; `InfoPlist.xcstrings` owns bundle metadata. Keep diagnostic codes, protocol values like remote paywall `state`, identifiers and user-authored content outside translated UI copy. RevenueCat's dashboard paywall text and StoreKit product metadata are **separate** copy owners. The app catalogs must have finished `zh-Hans`, `zh-Hant` and `ja` units for changed English keys. `Scripts/normalize-string-catalogs.py --write` canonicalizes catalog format and manual extraction without deleting stale keys or changing translations and refuses duplicate JSON keys before writing; `Scripts/check-cjk-localization.py` checks both app catalogs by default for normalization, valid JSON, Chinese/Japanese completion, positional format arguments, other-only plural shape and locale-specific spacing. The separate AgentKit runtime catalog needs its own localization build step; native catalog checks do not establish website copy correctness. `Scripts/check-appstrings.sh` detects selected app-local UI literals via SwiftSyntax and `ArchitectureBoundaryTests` guards the shared copy owner, but neither proves all UI text is localized.
 
 `AppLanguage` writes an explicit `en`, `zh-Hans`, `zh-Hant` or `ja` choice to `AppleLanguages`, clears that override for Follow System, migrates legacy Simplified Chinese tags and leaves unsupported preferences following the system. `AppLocalization` resolves imperative copy from the appropriate main-bundle localization, including regional Traditional Chinese. Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests preference migration, regional catalog lookup, assistant/security-token terminology, forwarding placeholder order and selected plural resources. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
 
@@ -204,14 +186,18 @@ Ordinary product labels illustrate the split: iOS Vault search opens Snippets an
 
 `TermindWidgets` contains a workspace Live Activity, not another workspace engine. The app serializes activity updates, restores at most one active activity, starts only after explicit workspace intent and ends it when workspaces are gone. Its payload excludes credentials and terminal output, bounds focused-first summaries to six, and routes only strict workspace-list and UUID workspace deep links. DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans`, `zh-Hant` or `ja` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
-The independent `com.akinokaede.termind` website/assets submodule contains the Astro project at its root (`npm run build` runs `astro check && astro build`). Its typed framed-image allowlist imports directly from `assets/device_frames/<locale>/<device>` and emits optimized formats rather than copying source screenshots into `public`. The current Hero combines Mac Workspace and Duo outer Assistant; SSH, SFTP, Metrics and Assistant use intentionally different selected form factors. English `/`, Simplified `/zh-hans/` Traditional `/zh-hant/` and Japanese `/ja/` use site-local `i18n.ts` (Taiwan Traditional conversion plus terminology overrides; Japanese uses explicit copy or its English-keyed dictionary, falling back to English), not `.xcstrings` or `AppleLanguages`. The homepage and FAQ lead with an AI-driven remote workspace, BYOK, controlled permissions, built-in Tailscale and optional device-local Hermes Memory. `FAQPage.astro` separately owns free/Pro, third-party API billing, Family Sharing and Mac-only MCP disclosures. The Telegram draw offers a **chance** at a redemption code, not a plan or guaranteed trial; Apple determines redemption eligibility. Reconcile that copy with native gates when behavior changes.
+### Website evidence boundary
 
-The site serves security and privacy components through locale wrappers and `BaseLayout`, which owns navigation, canonical/alternate links and browser-local site language selection independently of app settings. The public `PrivacyPolicy.astro` covers local data, optional private iCloud/Keychain synchronization, Apple purchase handling **and RevenueCat purchase validation, entitlement synchronization and paywall service**, anonymous ID association on restoring an Apple purchase, AI/search/remote connections, camera/speech, diagnostics and data/deletion controls. It states that only site-language preference is stored locally by the website, while the host may process standard server logs. `SecurityPage.astro` describes Keychain, known-host checking, AI permissions and the Mac-only loopback MCP server and warns about authenticated clients invoking exposed tools; marketing disclosure is not a substitute for runtime security tests. iOS App Settings links to the public privacy and support pages. Do not claim native paywall privacy/EULA links from source: any legal links in the remote paywall are dashboard-owned and must be checked there. For public-copy changes run `cd com.akinokaede.termind && npm ci && npm run build` and inspect all four language routes; catalog checks do not validate Astro content. For privacy or commerce changes, reconcile the website statement against RevenueCat configuration and SDK behavior.
+[Repository guidelines](../../AGENTS.md) identify `com.akinokaede.termind/` as the independently maintained public website and assets submodule, with an Astro project at its root; [.gitmodules](../../.gitmodules) records its external repository. Native builds do not require that checkout. For website or asset work, initialize it with `git submodule update --init com.akinokaede.termind` and inspect the checked-out source before making claims about the site.
+
+**The submodule directory is empty in this checkout.** This repair therefore does not verify current homepage composition, FAQ wording, promotions or redemption offers, public prices, privacy/security disclosures, locale routes or fallback behavior, browser language storage, canonical links, or the screenshot/image optimization pipeline. Previous descriptions of those surfaces are not evidence of the current public site. Native entitlement configuration and tests establish app behavior, not website promises.
+
+Once source is available, follow the documented website workflow (`cd com.akinokaede.termind && npm ci && npm run build`) and inspect the actual routes, translations, images and disclosures. The workflow is documented in the parent repository; the submodule's build scripts and output have not been inspected here. Verify the deployed public site separately when assessing what users currently see. Do not infer website language behavior from `AppLanguage`, or legal disclosures from SDK configuration. Any privacy/EULA links and visible legal copy in the remote native paywall must also be checked in RevenueCat rather than inferred from the native wrappers.
 
 ## Focused change checklist
 
-- Entitlements: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests and platform-specific gate tests. Check live RevenueCat entitlement configuration, account migration, remote paywall and sandbox purchases separately from the local StoreKit metadata fixture.
-- Language/copy: run `Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `Scripts/check-cjk-localization.py`, `PresentationCopyTests` and `AppLanguageTests`; review remote RevenueCat dashboard copy and actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).
-- Public copy: compare FAQ, privacy policy and storefront disclosures with actual entitlement and sync behavior; build Astro and visually check all languages. Site-only copy and remote paywall content are not validated by native string tests.
-
-Public comparison and pricing pages share `src/lib/comparisons/` and `src/lib/pricing.ts`; the current public USD labels are $2.59 annually and $7.99 lifetime. These marketing values do not establish a live storefront offer. Tailscale disclosures describe the embedded node and external control/network processing; native Pro availability follows the Tailscale feature gate.
+- Native entitlement policy and gates: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests and platform-specific gate tests. Check live entitlement configuration and account migration separately from the local StoreKit metadata fixture. [RevenueCat configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift) and [service configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift) explain the native SDK boundary, not public-site promises.
+- RevenueCat dashboard-owned paywalls and legal copy: inspect the remote layouts, visibility rules, translations, offer terms and legal destinations independently. Compare them with the native [paywall variable contract](../../Frameworks/TermindPresentation/ProPaywallState.swift), [mobile wrapper](../../TFI/Features/Commerce/MobileProView.swift), [desktop wrapper](../../TFM/Features/Commerce/ProPaywallView.swift) and [state tests](../../FrameworkTests/ProPaywallStateTests.swift). These tests verify status mapping, not remote wording or live purchases.
+- Apple storefront metadata: verify live product availability, localized descriptions, prices, introductory-offer eligibility, Family Sharing and purchase/restore behavior in App Store Connect and Sandbox. Neither website prices nor the local fixture establish the offer a particular user receives. See [Storefront Commerce Release Checks](../operations/storefront-commerce-release.md).
+- App catalogs: run `Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `Scripts/check-cjk-localization.py`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).
+- Independently authored website claims: obtain the website source and inspect the deployed site before comparing its FAQ, offers, prices, privacy/security disclosures and localized routes with native entitlement and sync behavior. Build and visually check the routes actually present in that checkout. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.

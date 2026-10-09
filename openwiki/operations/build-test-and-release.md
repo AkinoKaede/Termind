@@ -12,14 +12,6 @@ sources:
     resource: repo://.swift-format
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-6c477adbd17d240038ac8d60
-    resource: repo://com.akinokaede.termind/package.json
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
-  - id: openwiki-source-a6a2820ffcf779217cd84d9e
-    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
-  - id: openwiki-source-48fb5cabce8010d9034f072c
-    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
@@ -80,10 +72,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:46:25.102Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 # Build, Test, and Release
@@ -233,14 +225,14 @@ AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localiz
 
 ## Public website validation and asset publishing
 
-Initialize `com.akinokaede.termind` only for website/asset work. Its independent public Astro project requires Node 22.12+ and emits `dist/` at the submodule root:
+Initialize `com.akinokaede.termind` only for website/asset work; native app builds do not require it. The submodule is empty in this checkout, so its README, manifest and Astro image sources cannot be inspected here. Before website or asset verification, initialize the independent project and inspect its own manifest and guidance for runtime requirements, script definitions, image handling and current routes. Do not infer a Node minimum, exact npm-script implementation, generated image formats or route inventory from the parent repository.
 
 ```sh
 git submodule update --init com.akinokaede.termind
 (cd com.akinokaede.termind && npm ci && npm run build)
 ```
 
-Use locked `npm ci` and `npm run dev` for iteration. The build performs Astro checking before generation and transforms a typed frame allowlist from `assets/device_frames` into AVIF/WebP/JPEG; never copy captures into `public/`. Visually check `/`, `/zh-hans/`, `/zh-hant/`, `/ja/`, the `/zh/` compatibility redirect and narrow layouts. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`. Native app builds do not depend on this checkout.
+The parent repository's `AGENTS.md` supports locked `npm ci`, `npm run dev` for local Astro iteration, and `npm run build` for type-checking and production output to `com.akinokaede.termind/dist/`. These are the locally documented entrypoints, not an audit of the unavailable submodule's scripts. Web changes must pass the separate production build and visual review of English and `/zh/` routes as directed by `AGENTS.md`; confirm current route behavior and any additional locale/image checks against the initialized site's guidance. Generated `dist/`, `.astro/` and `node_modules/` stay uncommitted. Commit/push reviewed assets via SSH first, then update the parent gitlink; retain the public HTTPS clone URL in `.gitmodules`.
 
 ## AgentKit: release, bump, and re-resolve
 
@@ -282,7 +274,7 @@ Update the upstream requirement and `Package.resolved` together, then use resolv
 2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes.
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-appstrings.sh` alongside `python3 Scripts/check-cjk-localization.py` for every commit; complete Chinese and Japanese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
-5. For website changes, run `cd com.akinokaede.termind && npm ci && npm run build` and inspect English, Japanese and both Chinese routes.
+5. For website changes, initialize the submodule and inspect its own manifest and guidance, then run `cd com.akinokaede.termind && npm ci && npm run build`. Visually review English and `/zh/` as required by `AGENTS.md`, plus any current routes required by the site's own guidance.
 6. Keep visible-window and mobile key-window gates off routinely. For affected native UI cases, opt in with the exact flags above, disable mobile parallel testing and narrow the suite; adaptive key-window cases and Metrics Journey are not default coverage.
 7. Regenerate changed native captures through scan, then matching frameit outputs and Figma layers/final JPGs; follow the asset guide's licenses, dimensions, localized visual review and SSH-first publication.
 8. For AgentKit work, complete release → minimum-version bump → re-resolve and commit both dependency files. For direct Ghostty updates, align the upstream requirement and lockfile and validate both native adapters.

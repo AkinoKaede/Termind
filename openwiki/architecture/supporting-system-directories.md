@@ -12,28 +12,6 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
-  - id: openwiki-source-0246c48ce8a82949613e5d20
-    resource: repo://com.akinokaede.termind/design/README.md
-  - id: openwiki-source-6c477adbd17d240038ac8d60
-    resource: repo://com.akinokaede.termind/package.json
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
-  - id: openwiki-source-a6a2820ffcf779217cd84d9e
-    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
-  - id: openwiki-source-f2e3c2208232f6d2e4b142f5
-    resource: repo://com.akinokaede.termind/src/layouts/BaseLayout.astro
-  - id: openwiki-source-54475365456bc7ee7b3ac1b2
-    resource: repo://com.akinokaede.termind/src/lib/comparisons/index.ts
-  - id: openwiki-source-99625a4586d759ede6543036
-    resource: repo://com.akinokaede.termind/src/lib/comparisons/termind.ts
-  - id: openwiki-source-37c59bb67bf496fd4a44f0ab
-    resource: repo://com.akinokaede.termind/src/lib/i18n.ts
-  - id: openwiki-source-48fb5cabce8010d9034f072c
-    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
-  - id: openwiki-source-dcb2f8763c6c52696557ae46
-    resource: repo://com.akinokaede.termind/src/lib/pricing.ts
   - id: openwiki-source-4c22145572a82f1dd48f37e0
     resource: repo://fastlane/lib/screenshot_frames.rb
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
@@ -90,10 +68,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:46:25.102Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 # Supporting Systems Ownership Guide
@@ -186,52 +164,47 @@ Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fi
 
 ## Public website and asset submodule
 
-Paths below are relative to `com.akinokaede.termind`, an independent public Git repository and Astro build. Native builds do not require it; initialize it only for website/asset work. Commit and push reviewed asset changes via SSH before updating the application's gitlink; retain the HTTPS clone URL in `.gitmodules`. It is not a Swift framework or embedded app web view.
+[Repository guidance](../../AGENTS.md) identifies `com.akinokaede.termind/` as an independent public website and assets repository with an Astro project at its root; `assets/` and `design/` own marketing and brand assets. Utilities and screenshot tooling remain in the parent repository. Native app builds do not require this submodule. Initialize it only for website or asset work:
 
-| Directory | Responsibility |
-| --- | --- |
-| `src/components` | Reused page/section content for FAQ, privacy, security, support and offers; redirects; responsive screenshot rendering. |
-| `src/layouts` | Shared document shell, metadata, navigation, and site-level composition. |
-| `src/lib` | Locale/path/copy helpers, Traditional Chinese conversion/term adjustments, and the explicit marketing-image import allowlist. |
-| `src/pages` | English route entry points for the landing page and support/legal/information pages. |
-| `src/pages/zh-hans` | Simplified Chinese routes, including the email-offer page. |
-| `src/pages/zh-hant` | Traditional Chinese routes. |
-| `src/pages/ja` | Japanese routes, including pricing, comparisons and support. |
-| `src/pages/zh` | Legacy Chinese redirects to the current Simplified Chinese routes, not another independently authored locale. |
-| `src/styles` | Global styles, tokens, typography, and responsive/interaction styling. |
-| `public` | Directly served static assets such as app icon, brand mark, and favicon. |
-| `public/brands` | Small third-party/product brand artwork used by the site. |
-| Root configuration | Astro/TypeScript/package configuration and locked web dependencies. |
+```sh
+git submodule update --init com.akinokaede.termind
+```
 
-Marketing screenshots are imported from the asset pipeline, not copied wholesale into `public`. `npm ci` installs locked dependencies; `npm run dev` runs local Astro, and `npm run build` performs `astro check && astro build`, transforming allowlisted frames into responsive outputs. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md).
+Commit and push reviewed asset changes via SSH **before** updating the application's gitlink. Keep the public HTTPS clone URL declared in [`.gitmodules`](../../.gitmodules).
+
+**Evidence boundary:** the submodule directory is empty in this checkout. Its website implementation and asset inventory are unavailable for inspection, not demonstrated to have been deleted. This guide therefore does not assert its current Astro directory structure, locale routes or redirects, pricing/comparison implementation, image import allowlist or transforms, final store-board inventory, or design-master layout. Initialize the submodule and inspect its own source before changing those internals. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the related product boundary.
+
+The parent repository documents `cd com.akinokaede.termind && npm ci && npm run dev` for installing locked dependencies and starting Astro, and `cd com.akinokaede.termind && npm run build` for type-checking and emitting the production site to `com.akinokaede.termind/dist/`. These are documented operating commands, not verification of the unavailable package scripts or image-generation behavior.
 
 ## Marketing and design assets
 
-| Directory | Responsibility |
-| --- | --- |
-| `assets/screenshots/<locale>/<platform>` | Opaque sRGB JPGs: six boards per `mac`, `iphone-6.3`, `ipad-13`, `iphone-duo` across four locales (96 current boards). iPhone's two-device Overview is named `01_overview.jpg`; other platforms retain `01_three_screens.jpg`. |
-| `assets/captures/<locale>/<device>` | Full-resolution native sources in `iphone-6.3`, `ipad-15`, `mac-14`, and separate Duo inner/outer directories; source identity is locale/device/feature, not feature-first. |
-| `assets/device_frames/<locale>/<device>` | Native-scale reproducible PNGs from frameit and local licensed Apple templates. Masks apply only to staged copies; website imports an allowlisted subset, including Duo. |
-| `design/brand`, `design/paywall` | Brand master and remote paywall handoff artwork. Native `AppIcon.icon` documents remain with TFM/TFI. |
+The paths below are **destinations and inputs configured by the parent repository's Ruby tooling**, relative to `com.akinokaede.termind`; they are not an inventory of files present in the empty checkout.
 
-**Arrows below mean asset production or consumption, not code dependencies.**
+| Path | Locally evidenced responsibility |
+| --- | --- |
+| `assets/captures/<locale>/<device>` | Default full-resolution native capture destination and frame input. Device directories map to `iphone-6.3`, `ipad-15`, `mac-14`, `iphone-duo-inner`, and `iphone-duo-outer`. |
+| `assets/device_frames/<locale>/<device>/<scene>.png` | Default derived PNG destination; the frame planner preserves locale/device/scene identity from the capture input. Locale directory names are lowercased. |
+| `assets/device_templates` | Default local template input for frame generation; required template dimensions are checked before rendering. Template paths can be overridden. |
+| `assets/`, `design/` | Marketing and brand ownership assigned by `AGENTS.md`; final store artwork and design-master contents must be verified in the initialized asset repository. |
+
+Default capture output requires the submodule's `.git` marker and `assets/` directory, failing with an initialization instruction before building when they are absent. Default frame input or output uses the same prerequisite. An explicit capture `output` bypasses that default destination requirement; framing can operate outside the submodule when both `input` and `output` are supplied, with valid external templates where needed. This is an asset-tooling prerequisite, not a native app-build dependency.
+
+**Arrows below mean locally evidenced asset production or consumption, not code dependencies.**
 
 ```mermaid
 flowchart TB
     Native["App-owned native fixtures"] --> Capture["fastlane scan and system capture"]
-    Capture --> Raw["Asset submodule / captures / locale / device"]
-    Raw --> Frames["frameit and local licensed templates"]
-    Frames --> Framed["Asset submodule / device_frames"]
-    Framed --> Images["Astro typed image allowlist"]
-    Images --> Astro["Optimized AVIF / WebP / JPEG"]
-    Raw -.->|Figma composition| Store["Asset submodule / screenshots"]
-    Framed -.->|Figma image layers| Store
-    Brand["Asset submodule / design"] -.->|visual source| Store
+    Capture --> Raw["Configured captures / locale / device"]
+    Raw --> Frames["Staged copies and frame composition"]
+    Templates["Validated local device templates"] --> Frames
+    Frames --> Framed["Configured device_frames / locale / device"]
 ```
 
-The diagram distinguishes source captures, derived web frames, and separate final App Store compositions.
+The diagram shows parent-owned capture production and frame consumption, without asserting an uninspected website or App Store composition pipeline.
 
-The App Store branch represents a separate artwork workflow, not a claim that the frame generator automatically emits final store compositions. Asset conventions and capture verification live in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
+`ScreenshotFrames` defaults to iPhone, iPad, and Mac and a parent-defined `WEBSITE_SCENES` subset; Duo displays are selectable separately. That selector is not proof of the website's current imports. Frame generation validates native source dimensions and template dimensions, masks staged copies, uses frameit for mobile frames and local composition for Mac, and checks that every requested render produced a valid image before publishing any selected frame. Sources remain read-only; this tool does not establish how final App Store artwork is composed.
+
+`Scripts/Tests/test_screenshots.rb` covers missing-submodule failures before capture/frame work, explicit external paths, default scene selection, native-size rejection, source-byte preservation, and withholding publication when a requested frame is missing. These are focused orchestration regressions, not tests of the unavailable website. Asset commands and capture verification are described in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
 ## Project metadata and documentation tooling
 
@@ -251,4 +224,4 @@ Local dependency/build caches such as `node_modules`, `.build`, `build`, and web
 
 Return to the [Module Map](module-map.md) or the [Engineering Quickstart](../quickstart.md).
 
-The website’s comparison and pricing routes share `src/lib/comparisons/` evidence and features plus `src/lib/pricing.ts` public prices across English, Simplified and Traditional Chinese, and Japanese. Legacy `/zh/` routes redirect. These public prices are separate from RevenueCat’s live purchase offering. Screenshot suites live directly under `TFMTests/Screenshots/` and `TFITests/Screenshots/`; lanes select suites by Swift type. The website Hero is Mac Workspace plus Duo outer Assistant and an iPhone SSH alternative, while App Store Overview compositions remain platform-specific.
+Screenshot suites live directly under `TFMTests/Screenshots/` and `TFITests/Screenshots/`; lanes select suites by Swift type.

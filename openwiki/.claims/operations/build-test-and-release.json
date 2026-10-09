@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6b5cc5c4f0ab2658bcd0f5a5afd8a821945aa1660956f2121b608efc7d245f75",
+  "pageVersion": "sha256:70bd137630ed40d98fd9a13e4fd39b1db016e8aa7e131c550d7d8521a25bf340",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -96,15 +96,15 @@
     },
     {
       "id": "claim_9001476115de4dc3a10921fa323b9f08",
-      "statement": "The public com.akinokaede.termind root project uses locked npm ci and npm run build, which runs astro check then astro build and emits dist/ independently of native builds.",
+      "statement": "AGENTS.md documents the independent public Astro submodule's locked npm ci, npm run dev and npm run build entrypoints, describing the build as type-checking and emitting com.akinokaede.termind/dist/; website/asset work requires initialization, while native builds do not require the submodule. Its unavailable manifest must be inspected after initialization before relying on runtime requirements or exact script implementation.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/package.json",
-          "version": "repo-file-v1:sha256:72831c4186784ecf365ee64baec06d0b7f41d3075a2d0630a6e77ba876b102ad"
+          "resource": "repo://AGENTS.md#L59-L60",
+          "version": "repo-lines-v1:sha256:d504b70e9953b1673814e4a03529f8f9eaa4802dc7b5f6a97452cca5f1da8b38:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0OGEwZDI3OGNhZGI2NDA1NzY1ZDYxYTY1OTljOTUzODZmZGQ3OWRiMGUyOGM5ZDY2N2MwNDdjNWIwNTJhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
         }
       ]
     },
@@ -404,19 +404,15 @@
     },
     {
       "id": "claim_69843718608d4e2c81ad7d770de060cf",
-      "statement": "The public website imports a typed allowlist from assets/device_frames and optimizes it through Astro rather than copying captures into public/. Web changes require the separate production build and visual review of English, Japanese and both Chinese routes.",
+      "statement": "AGENTS.md requires web changes to pass npm run build and visual review of English and /zh/ routes. The parent guidance does not establish an image pipeline, output formats or complete locale-route inventory; those verification details require inspecting the initialized independent website's own guidance and sources.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro",
-          "version": "repo-file-v1:sha256:b681fc11c50f4bd3eadc1f0353c4e82f2c3045624b95273efed055d1ae414bfa"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/marketingImages.ts",
-          "version": "repo-file-v1:sha256:a2ea1343388f3c01d27bddd01bd4466b30f659d21379cc801eb43e9efb673910"
+          "resource": "repo://AGENTS.md#L66-L68",
+          "version": "repo-lines-v1:sha256:6997a1a7c8b75f5e00768cec37c6a6baf7027c2733ed3a9a1a5cb3e483809e4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjBlZjRjY2FhNGI0NTRlNjA4YTJkMmI1YzIyOTk4OThlMjQ1MGE5OTJlMWI3MmI4M2EzMGI3ZjFlMWJhMjE5MCJ9"
         }
       ]
     },
@@ -608,7 +604,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:46:25.102Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-09T00:05:26.272Z"
   }
 }

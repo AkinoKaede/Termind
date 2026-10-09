@@ -1,37 +1,13 @@
 ---
 type: asset-production-operations
 title: Marketing Assets and App Icons
-description: Produce localized native screenshots with fastlane scan, compose licensed device frames with frameit, update Figma App Store artwork and the Astro website, and publish the independent public asset repository safely.
+description: Capture localized native screenshots and generate staged device frames with parent-owned tooling. Separate locally verified safety guarantees from external artwork, website and publication checks.
 tags: [marketing, screenshots, fastlane, frameit, figma, app-store, app-icons, localization, submodules]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-9d1cdc833f68c72853be544c
-    resource: repo://com.akinokaede.termind/assets/device_templates/README.md
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
-  - id: openwiki-source-1beb83680deb027575ce860d
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/ipad-13/06_vault.jpg
-  - id: openwiki-source-1567525f52f2dc52e8afcb31
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/iphone-6.3/01_overview.jpg
-  - id: openwiki-source-06f4e072229f411c6142631a
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/iphone-6.3/06_vault.jpg
-  - id: openwiki-source-e59b74b9283797e61056daf9
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/iphone-duo/06_vault.jpg
-  - id: openwiki-source-191ab616f24d4d986601e4cb
-    resource: repo://com.akinokaede.termind/assets/screenshots/en/mac/01_three_screens.jpg
-  - id: openwiki-source-f1efb5f71d3031470d795428
-    resource: repo://com.akinokaede.termind/public/app_icon.png
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
-  - id: openwiki-source-a6a2820ffcf779217cd84d9e
-    resource: repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro
-  - id: openwiki-source-48fb5cabce8010d9034f072c
-    resource: repo://com.akinokaede.termind/src/lib/marketingImages.ts
-  - id: openwiki-source-4b6325b8da6c6aee4867267a
-    resource: repo://com.akinokaede.termind/src/pages/index.astro
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
   - id: openwiki-source-aec5c30e7c4ab1864f968273
@@ -80,15 +56,17 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 # Marketing Assets and App Icons
 
-This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; the public website, captures, frames, final App Store artwork and design masters belong to the independent `com.akinokaede.termind` submodule. Native app resources must not acquire a dependency on that submodule.
+This is the operational home for Termind's asset workflow. Capture tooling and native fixtures belong to the application repository; `AGENTS.md` assigns the public website and marketing/brand assets to the independent `com.akinokaede.termind` submodule. Native builds do not require that checkout.
+
+**Verification boundary:** at baseline `20f67cdc0b0e88115415c20af2cda7e12f51dfa6`, the available submodule directory is empty. Its asset/template READMEs, image files and website source cannot be inspected here. This is an uninitialized checkout, not evidence that those assets were removed. Paths and dimensions below describe parent tooling contracts, not an inventory of existing external files. No focus-taking captures or visual artwork approval were performed for this documentation repair.
 
 The former MockUPhone pipeline, feature-first `Marketing/` layout, `LandingPage/` project and Pro Max captures are obsolete. The current pipeline uses **fastlane `run_tests` (scan)** with hosted Swift Testing fixtures, **frameit** plus local Apple templates, locale/device-first asset paths, iPhone 18 Pro and optional Duo displays, and native 14-inch Mac Workspace captures. This is not XCUITest `snapshot` automation.
 
@@ -106,30 +84,31 @@ Ordinary pinned native builds do not need the website/assets checkout. Default c
 | --- | --- | --- |
 | Full-resolution app captures | `com.akinokaede.termind/assets/captures/<locale>/<device>/` | Replaced only by a successful validated capture batch; read-only to framing. |
 | Derived device PNGs | `com.akinokaede.termind/assets/device_frames/<locale>/<device>/` | Reproducible from captures and local licensed templates. |
-| Final Figma boards | `com.akinokaede.termind/assets/screenshots/<locale>/<platform>/` | Opaque RGB JPEGs with an sRGB profile, not transparent frame intermediates. |
-| Brand and Pro imagery | `com.akinokaede.termind/design/brand/` and `design/paywall/` | Public handoff assets; preserve brand and third-party rights. |
+| External final artwork and design masters | Submodule-owned marketing/brand assets according to `AGENTS.md` | Inspect the initialized checkout separately for actual folders, filenames, compositions and image profiles. |
 | Platform Icon Composer sources | `TFM/Resources/AppIcon.icon`, `TFI/Resources/AppIcon.icon` | App-owned, compiled by Xcode independently of public assets. |
 | Tooling, tests, Ruby lockfile | `fastlane/`, `Scripts/`, `TFMTests/Screenshots/`, `TFITests/Screenshots/`, `Gemfile.lock` | Application-owned orchestration and fixtures. |
 
-Asset filenames use lowercase underscore-separated words. Locale directories are `en`, `zh-hans`, `zh-hant`, `ja`; lane locale options are `en`, `zh-Hans`, `zh-Hant`, `ja`. Capture/frame directories are `iphone-6.3`, `ipad-15`, `mac-14`, `iphone-duo-outer`, `iphone-duo-inner`. Command selectors remain `iphone`, `ipad`, `mac` and the two explicit Duo selectors. **App Store canvas names are a separate namespace**: `iphone-6.3`, `ipad-13`, `mac`, `iphone-duo`.
+Tool-generated filenames use lowercase underscore-separated words. Locale directories are `en`, `zh-hans`, `zh-hant`, `ja`; lane locale options are `en`, `zh-Hans`, `zh-Hant`, `ja`. Capture/frame directories are `iphone-6.3`, `ipad-15`, `mac-14`, `iphone-duo-outer`, `iphone-duo-inner`. Command selectors remain `iphone`, `ipad`, `mac` and the two explicit Duo selectors. Final store canvas naming must be verified separately.
 
-After reviewing English, Japanese and both Chinese variants, commit and push the asset repository **first**, via SSH, then commit its updated gitlink in the application repository. Keep the public HTTPS clone URL in `.gitmodules`; use an SSH push URL rather than changing that clone URL. Cloudflare Pages deploys the asset repository's `main` branch from its root. Credentials, console links, internal release records and licensed source downloads must stay out of the public repository.
+Commit and push reviewed asset changes **first**, via SSH, then commit the updated gitlink in the application repository. Keep the public HTTPS clone URL in `.gitmodules`; use an SSH push URL rather than changing that clone URL. Deployment configuration is not verified by the parent repository. Keep credentials, internal release records and licensed source downloads out of public changes.
 
 ```mermaid
 flowchart LR
-    Fixtures[App-owned native fixtures] --> Scan[fastlane scan and system capture]
-    Scan --> Captures[Public source captures]
-    Captures --> Frames[frameit and local Apple templates]
-    Frames --> Website[Astro image allowlist]
-    Captures --> Figma[Figma compositions]
-    Frames --> Figma
-    Figma --> Store[Opaque sRGB App Store JPGs]
-    Website --> Public[Push asset repository first]
-    Store --> Public
-    Public --> Gitlink[Update application gitlink]
+    Fixtures[App-owned native fixtures] --> Scan[Serialized pinned scan and system capture]
+    Scan --> Validate[Validate scan success and native pixels]
+    Validate --> Captures[Back up and promote captures]
+    Captures --> Stage[Read-only sources copied to framing stage]
+    Templates[Validate explicit or default templates] --> Stage
+    Stage --> Frames[Render all and validate before publication]
+    Captures -.-> External[Separately inspect external composition and site consumption]
+    Frames -.-> External
+    External --> Review[Review external outputs and public diff]
+    Review --> Push[Push asset repository via SSH first]
+    Push --> Gitlink[Update application gitlink]
 ```
+The solid production stages are parent-owned tooling; dotted edges mark external consumption that requires separate inspection.
 
-Capture success does not regenerate frames, Figma layers, final boards or the website deployment automatically.
+Capture success does not regenerate downstream compositions or verify website deployment.
 
 ## Tool setup and safe preview
 
@@ -145,7 +124,7 @@ bundle exec fastlane ios screenshots plan:true
 bundle exec fastlane frames plan:true
 ```
 
-`Gemfile` pins fastlane; `fastlane/Framefile.json` pins the downloaded frame asset version. frameit downloads that version on first use; the five custom templates are versioned in the asset submodule, with source notes and checksums. ImageMagick is required for masks, Mac framing and optional camera-strip padding.
+`Gemfile` pins fastlane; `fastlane/Framefile.json` pins the downloaded frame asset version. frameit downloads that version on first use. The parent runner expects five custom template paths; their presence, provenance notes and checksums require inspection of the initialized asset checkout. ImageMagick is required for masks, Mac framing and optional camera-strip padding.
 
 Mac capture opens and focuses the real Termind window and moves the pointer. Run it only when desktop focus is available. Planning and framing do not open app windows. Do not enable screenshot or visible-window gates for routine verification.
 
@@ -169,8 +148,8 @@ Environment defaults are `TERMIND_MAC_SCREENSHOT_SCENES`, `TERMIND_MAC_SCREENSHO
 | Mac selector | Capture filename under `<locale>/mac-14/` | Content |
 | --- | --- | --- |
 | `hosts` | `vault.png` | Vault and two demo workspaces. |
-| `workspace` | `workspace.png` | Full-screen Workspace used in Overview and website imagery. |
-| `workspace-window` | `workspace_window.png` | Ordinary 2360×1480 Workspace window for Mac board 02. |
+| `workspace` | `workspace.png` | Full-screen Workspace; source accepted by Mac framing. |
+| `workspace-window` | `workspace_window.png` | Ordinary 2360×1480 Workspace window; downstream board usage is unverified. |
 | `agent` | `assistant.png` | Workspace with contextual Assistant. |
 | `command` | `command_generator.png` | Command Generator; ordinary-size native window. |
 | `metrics` | `metrics_overview.png` | Metrics overview only. |
@@ -183,7 +162,7 @@ A failed scan, absent scene, duplicate request or incorrect native image size bl
 
 ## Mobile devices, runtime and display posture
 
-The capture lane requires an iOS/iPadOS **27.x** runtime. iPhone 18 Pro and iPad Pro use **27.0**; Duo uses **27.1** in the current workflow. Duo-only selections default to 27.1 and other selections to 27.0. The installed 27.1 runtime supports Duo rather than substituting an iPhone/iPad, so capture those matrices separately. The runner matches the exact simulator name **and model identifier** and verifies raw pixels; renaming a Pro Max simulator or resizing an old capture cannot satisfy it.
+The capture lane requires an iOS/iPadOS **27.x** runtime. Duo-only selections default to 27.1 and other selections to 27.0; explicit runtime overrides remain supported. Installed runtime/device availability must be checked locally, and Duo displays should be captured in separate posture-specific batches. The runner matches the exact simulator name **and model identifier** and verifies raw pixels; renaming a Pro Max simulator or resizing an old capture cannot satisfy it.
 
 | Selector | Device/orientation | Native pixels | Asset directory |
 | --- | --- | --- | --- |
@@ -238,6 +217,7 @@ sequenceDiagram
     Lane->>Lane: Verify every expected scene and back up originals
     Lane->>Assets: Promote staged captures
 ```
+The mobile handshake validates identity and native dimensions before acknowledging scenes; promotion follows successful scan completion and complete-set validation.
 
 The runner rediscovers the app container while waiting because XCTest can reinstall the host between locales. Each scene has a token and the whole batch a capture ID; missing acknowledgment times out the test. A direct fixture invocation **without** system-capture mode writes rendered PNGs to the host's `Documents/screenshots/<feature>/<device>-<locale>.png`, not the public capture tree. Those review renderings are not the release compositor pipeline.
 
@@ -274,13 +254,13 @@ bundle exec fastlane frames devices:iphone-duo-inner scenes:sftp
 bundle exec fastlane frames devices:mac locales:en
 ```
 
-The default is 28 jobs: iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in four locales. **Duo remains opt-in even though the current website uses Duo imagery**; explicitly refresh its outer Assistant and inner SFTP (or all five scenes when building App Store compositions). Mac frames support Workspace only; other Mac sources remain native windows for final artwork.
+The default is 28 jobs: iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault, and Mac Workspace, in four locales. **Duo remains opt-in**; explicit Duo selectors default to all five mobile scenes. `WEBSITE_SCENES` is the parent selection policy, not proof of current site consumption. Mac frames support Workspace only.
 
 `input:` and `output:` support review directories; supply **both** to work without the submodule. `plan:true` lists jobs without importing templates or changing images. Every selected source/template size is checked before rendering. The lane stages copies, masks their screen apertures, renders all selected jobs, verifies each PNG, then publishes `<locale>/<device>/<feature>.png`. A frameit action that only logs an error and omits an output still fails publication. Validation prevents a failed render batch from replacing existing frames; per-file rename does not make the final publication loop crash-atomic. Raw captures are never masked or resized.
 
 ### Local licensed templates
 
-The asset submodule versions the five prepared templates under `assets/device_templates/`, with source notes and checksums. Restore that checkout before framing; explicit frame-path overrides remain available. Apple and fastlane artwork remains subject to its owners’ usage terms; public access grants no additional rights. The download/preparation references below explain provenance rather than a required first-run manual import. Do not reconstruct templates from already-composed screenshots.
+The parent runner defaults to five template paths under `assets/device_templates/`, with explicit frame-path overrides. The table records enforced dimensions and composition offsets, **not verified existing files or provenance**. Initialize and inspect the checkout, confirm usage rights and source/checksum records independently, or provide reviewed templates via overrides. Public access alone grants no additional rights. Download references below are unverified preparation guidance, not proof of template provenance. Do not reconstruct templates from composed screenshots.
 
 | Frame | Local template | Portrait template and opening | Result/orientation |
 | --- | --- | --- | --- |
@@ -308,54 +288,29 @@ Override with `mac_frame:/absolute/path/to/frame.png`. The native screen fills t
 
 ### Screen masks and regeneration
 
-Official PNGs are transparent both outside the device and inside its display. The lane extracts the enclosed screen aperture, flood-fills the exterior away, validates that the bezel encloses the screen, crops to the exact source opening and rotates the mask with landscape templates. It applies the mask only to a staged copy so rectangular capture corners and notches cannot leak outside thin bezels. Opaque screen pixels and native scale are retained. An open bezel fails validation. After mask/template changes, regenerate frames **and** replace their Figma layers and final marketing exports.
+The mask algorithm expects transparency both outside the device and inside its display, separated by an opaque bezel. The lane extracts the enclosed screen aperture, flood-fills the exterior away, validates that the bezel encloses the screen, crops to the exact source opening and rotates the mask with landscape templates. It applies the mask only to a staged copy so rectangular capture corners and notches cannot leak outside thin bezels. Opaque screen pixels and native scale are retained. An open bezel fails validation. After mask/template changes, regenerate frames **and** replace their Figma layers and final marketing exports.
 
-## Website imagery and product messaging
+## External composition, website and store delivery
 
-The Astro project lives at the **submodule root**, not `LandingPage/`. `src/lib/marketingImages.ts` imports a small typed allowlist directly from `assets/device_frames` and returns Astro image metadata. `ScreenshotPicture.astro` generates resized AVIF, WebP and JPEG renditions with a fallback background and forwards scoped style attributes to preserve component styling. Do not copy raw screenshots or frame PNGs into `public/`; use metadata-driven dimensions and inspect layout styles when aspect ratios change.
+`AGENTS.md` identifies the submodule root as an independent Astro project and documents `npm run build` as type-checking and emitting `dist/`. That parent guidance does not verify current website imports, responsive Hero composition, routes, copy, image renditions or deployment settings.
 
-Current website compositions are not interchangeable with App Store Overview boards:
+Before publishing, initialize and inspect the external repository separately:
 
-- Hero includes **Mac Workspace, Duo outer Assistant and an iPhone SSH alternative**; responsive styles control the visible composition.
-- SSH uses iPhone 18 Pro; SFTP uses Duo inner landscape; Metrics uses iPad; Assistant uses Duo outer; Vault combines iPad and iPhone. Mac Workspace also appears in the desktop section.
-- Product framing is now explicitly **AI-driven remote workspace**: “Your servers. Within reach.” / “远程工作，随手即达。” BYOK and user-controlled permissions lead the message, with built-in Tailscale, optional device-local Hermes Memory, and a separate Mac-only MCP section.
-- Keep Command Generator's insert-without-Return distinction, free Mac multi-pane/broadcast features, and Pro boundaries consistent with app sources. Benchmark copy is a specific historical loopback measurement, not a promise of general Internet or SFTP throughput; use [Forwarding Benchmarks](port-forwarding-benchmarks.md) for its scope.
+- Read its current asset and template documentation and inspect actual images. Establish board inventory, filenames, canvas sizes, opacity and embedded profiles from those files rather than capture dimensions.
+- Inspect site consumers and styles to determine which frames are used and whether changed aspect ratios affect responsive layouts. Do not infer consumption from the Ruby `WEBSITE_SCENES` constant.
+- Inspect any design master and handoff instructions before replacing layers or exporting. No Figma node IDs, plugin/export requirements, board geometry, fonts or locale-specific typography are verified here.
+- Review all selected locales at 100% and in contact sheets. Native chrome, keyboard, clipping and focused Mac appearance need visual review beyond dimension checks.
+- Check [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) for intended uploads. Transparent device-frame PNGs are intermediates; frame success is not store acceptance.
 
-Formal routes are `/`, `/zh-hans/`, `/zh-hant/`, `/ja/`; `/zh/` is the Simplified Chinese compatibility redirect. Root-only language detection respects a manual locale choice. The Apple CTA uses the silhouette, not an emoji. Keep exact localized messaging with the website implementation, rather than hard-coding the former slogan as a permanent copy requirement. Brand styling uses pale surfaces, blue accents and editorial serif headings; native app UI remains a separate design boundary.
-
-## Figma and App Store delivery
-
-Before authoring, connect the Figma plugin to the intended Termind file, inspect existing pages/components/variables/styles/fonts, and revalidate node IDs. Do not reuse old IDs or claim a live Figma inspection without performing it. Reuse the existing design system, author/review English first, then Japanese and both Chinese locales. Preserve native product imagery rather than fabricating missing UI.
-
-The checked-in delivery is **96 boards**: four locales × four platforms × six. Review by the actual current asset tree, not the obsolete 54-board/6.5-inch checklist.
-
-| Output folder | Final canvas | Boards 02–06 |
-| --- | --- | --- |
-| `mac` | 2880×1800 | Workspace, Metrics, Assistant, Vault, Command Generator. |
-| `iphone-6.3` | 1206×2622 | SSH, SFTP, Metrics, Assistant, Vault. |
-| `ipad-13` | 2752×2064 | SSH, SFTP, Metrics, Assistant, Vault. |
-| `iphone-duo` | 2853×2007 | SSH, SFTP, Metrics, Assistant, Vault. |
-
-Use **`01_overview.jpg` for iPhone artwork**; Mac, iPad and Duo retain `01_three_screens.jpg`. Preserve the current platform-specific export names rather than reintroducing the old iPhone filename. Replace screenshot layers without changing their intended geometry, copy, shared shadows or stacking order. Downstream App Store artwork does not regenerate merely because a capture changed.
-
-- **Mac 02–06:** native windows in all four languages; no laptop frame or additional fake titlebar. Mac/iPad 01 retain the three-device composition.
-- **iPhone 01:** two devices with aligned bottom edges. iPhone Assistant is fully visible in the right foreground; Mac Workspace is enlarged behind it with compact overlap. The Mac extends left beyond the clipping Product imagery frame, intentionally showing only part of the laptop. **No iPad** appears.
-- **Duo:** the `App Store iPhone Duo` Figma page has six landscape boards per locale. SSH/SFTP/Assistant use the inner display; Metrics/Vault use the outer. Overview combines Mac Workspace, Duo inner SFTP and Duo outer Vault, with no iPad. Its platform label is “FLEXIBLE” / “灵活变换” / “靈活變換”. This board's inner Assistant is distinct from the website's outer Assistant.
-- Whenever sources change, also replace mobile layers in any Overview compositions where they appear, not only their standalone feature board.
-
-Transparent frame PNGs are intermediate design assets, not App Store uploads. Check [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) for the selected current device/canvas. Export at 1× as opaque, high-quality **RGB JPEGs with an embedded sRGB ICC profile**. In Figwright, use `save_screenshots` with `format: "JPG"`, `scale: 1`; `get_screenshot` is only size-capped review. If adding a missing profile, avoid recompression and verify decoded RGB equality. Keep helper exports, manifests, previews, temporary PNGs and `.DS_Store` out of delivery.
-
-Review each board at 100%, plus locale/platform contact sheets. Verify changed image bytes, Chinese terminology/fonts, unchanged layer geometry and clipping, native chrome, software keyboard, Mac focused traffic lights and shadows. Correct dimensions alone are not visual approval or proof that App Store accepts a future upload.
-
-Additional store surfaces are the shared `header/header.png` (3840×1646) and localized `search_results/<locale>/search_results.png` (3840×2560), exported as opaque RGB PNGs with embedded sRGB profiles. Japanese artwork uses upright Hiragino Sans; Mac Command Generator headlines use two vertical columns read right-to-left with punctuation preserved.
+This page makes no current claim about a 96-board inventory, Overview filenames, header/search artwork, Hero device selection, public icon contents or template checksums. After capture/frame changes, downstream composition and site consumption require intentional review; tooling does not automatically publish them.
 
 ## Brand, layered app icons and Pro handoff
 
-The master brand mark is `com.akinokaede.termind/design/brand/termind.svg`; website variants live in `public/brand_mark.svg` and `public/favicon.svg`. Preserve transparent backgrounds, white window fills, gray outlines and the blue terminal chevron without adding an app-icon mask.
+External brand masters and website variants must be inspected in the initialized submodule before editing; their contents and styling are not verifiable here.
 
 Platform `AppIcon.icon` documents remain app-owned and selected as `AppIcon` by Xcode. Their SVG groups are Terminal, FrontWindow, MiddleWindow, BackWindow; preserve order, shared-square platform declaration, lighting, disabled glass/specular/translucency, no Terminal shadow and the subtle 0.08 neutral window shadows. Icon Composer/Xcode own platform padding, masks and compatibility renditions. Do not introduce another flattened appiconset or manually generated size matrix. Build both platform sources with pinned dependencies; TestFlight processing is a separate release check, and a temporary macOS bundle identifier can bypass local icon cache during manual review.
 
-Export the website's **separate** icon rendition from the Mac source:
+A separate website rendition can be exported from the Mac source to an initialized, reviewed external checkout. The following is a manual export example, not verification that `public/app_icon.png` exists or matches either native source:
 
 ```sh
 "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" \
@@ -390,27 +345,14 @@ git diff --check
 
 The Ruby regression suite covers absent-submodule fail-before-write behavior, external review paths, selector validation, pinned scan configuration, native-device rejection, capture failures/backup hashes, camera-strip padding, container reinstalls, Duo display selection, native-scale composition, aperture masks and all-render-before-publish failure handling. Native fixtures and Figma/website rendering still need their own opt-in/manual validation; this guide does not claim a fresh capture or visual approval.
 
-For website work:
+The Ruby suite uses temporary repositories, mocked scan/system commands and synthetic PNGs/templates. Its failure-propagation, byte-preservation and mask-pixel checks establish orchestration behavior, not correctness of real Apple templates, final artwork or the live site. Neighboring native fixtures enforce focused-window and software-keyboard conditions only when explicitly enabled. The suite was inspected, not executed, for this repair.
+
+For website work after initialization:
 
 ```sh
 (cd com.akinokaede.termind && npm ci && npm run build)
 ```
 
-Check English, Japanese and both Chinese routes, `/zh/` redirects, desktop/narrow layouts, focus and reduced motion, as well as changed images. Node.js 22.12+ is the documented site prerequisite; the build performs Astro checking before emitting `dist/`.
-
-For App Store delivery:
-
-```sh
-asset_root=com.akinokaede.termind/assets/screenshots
-test "$(find "$asset_root" -type f -name '*.jpg' | wc -l | tr -d ' ')" = 96
-test -z "$(find "$asset_root" -type f ! -name '*.jpg' -print -quit)"
-for platform in mac iphone-6.3 ipad-13 iphone-duo; do
-  find "$asset_root" -path "*/$platform/*.jpg" -print0 \
-    | xargs -0 magick identify -format '%wx%h %[colorspace] %[channels] opaque=%[opaque]\n' \
-    | sort | uniq -c
-done
-```
-
-Expect 24 images at each platform's canvas size. Check actual embedded profiles, not merely the colorspace label; counts are a current delivery inventory, not an app correctness test. Recount after intentionally adding/removing a platform. Preserve per-run failure output and back up originals; do not alter unrelated app assertions or production behavior to satisfy marketing fixtures.
+Confirm prerequisites, actual routes, redirects, responsive layouts and deployment settings from the external checkout before publication. For store delivery, derive an inventory from the inspected files and intended upload requirements rather than asserting a fixed board count. Check embedded profiles, not merely colorspace labels. Preserve per-run failure output and back up originals; do not alter unrelated assertions or production behavior to satisfy marketing fixtures.
 
 See [Supporting Systems](../architecture/supporting-system-directories.md) for repository boundaries, [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.

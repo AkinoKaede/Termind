@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d63df8fa83651d0f3c73973639b1ae0d359c73f31c6f342c42ad3f8a819c9e75",
+  "pageVersion": "sha256:461e81326b943f4056452e95a67a0bf967f59c5afb090aca7d16043e9d071a21",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -127,50 +127,28 @@
       ]
     },
     {
-      "id": "claim_064e94c9f0bc42d8b09bc1a831c38961",
-      "statement": "The independent com.akinokaede.termind Astro project provides English, Simplified and Traditional Chinese, and Japanese routes, shared components/layouts and legacy zh redirects, and imports an explicit device-frame allowlist from assets instead of copies in public/.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/package.json",
-          "version": "repo-file-v1:sha256:72831c4186784ecf365ee64baec06d0b7f41d3075a2d0630a6e77ba876b102ad"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/layouts/BaseLayout.astro",
-          "version": "repo-file-v1:sha256:df2a99ddca09bde7895ff721f3da265364d2eac612ec50567a73a919e0e01a7b"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/i18n.ts",
-          "version": "repo-file-v1:sha256:4263ba73fd4ff4ed0033883d05166aa52bd00cfdde26c9064c844ea5de580284"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/marketingImages.ts",
-          "version": "repo-file-v1:sha256:a2ea1343388f3c01d27bddd01bd4466b30f659d21379cc801eb43e9efb673910"
-        }
-      ]
-    },
-    {
       "id": "claim_007ca03617d6410daff00909e70a2a96",
-      "statement": "The public asset submodule separates native captures, reproducible frame PNGs, opaque RGB sRGB App Store JPGs and brand/paywall design masters. Capture/frame directories are locale/device-first, with native iPhone Pro, iPad, 14-inch Mac and Duo display names; final store canvas folders are independently named.",
+      "statement": "Parent Ruby tooling defaults capture output/frame input to assets/captures and derived PNG output to assets/device_frames in the public submodule, preserving lowercased locale/device/scene identity with iphone-6.3, ipad-15, mac-14 and Duo display directories. Default asset paths require a .git marker and assets directory; explicit capture output or both explicit frame paths bypass that prerequisite with valid templates still needed. The planner selects a parent-defined scene subset, not verified website imports. Framing validates templates and native dimensions, masks staged copies, composes mobile frames via frameit and Mac frames locally, preserves source bytes, and verifies all requested renders before publication; focused Ruby tests cover missing-submodule failures, external paths, selection, dimension rejection and withheld publication on missing renders.",
       "evidence": [
         {
-          "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:de2ae13c89af67e8029b26b9d2dd77853ab50d62f58d39447f04d222fdbbd745"
+          "resource": "repo://Scripts/Tests/test_screenshots.rb#L20-L35",
+          "version": "repo-lines-v1:sha256:61afa32fa8ec764f142140b419e64dc6ee31fcbd1c19cd3cd06b9c11e398ba47:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZjI4NjcxMjFjODNhYjRjOTRmZTBhYjVjZGMwMTk3YTlmNzRiYzUyNzk3YTRkMGEyZWQzYTYzYTA0MjI3MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0YjI2MTMzNDdmOTQzMzE2NGI1N2Y3OTllMmIwMzYxMDU5MzNkY2NkOTJiNzQzNjk2NTQxNzQ3YTk2MWQ3MmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA0MmJhZDAzZjYwNmM5ZjYzZTM4YzI5YzljMTQzMGQ0ZmE1MmI3N2E3Yjk1OTczZmJjOTJmYTIyOTQwNzI5ZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhNGQ3MTE2NzUzNGZjZWY1MDk0NmRjMmFkYmE4YTJiNDg0NzczOWI0ODYwYzBhNzc5YWQxYzU1NTdhYTkwZjAifQ"
         },
         {
-          "resource": "repo://com.akinokaede.termind/design/README.md",
-          "version": "repo-file-v1:sha256:c680cb05157b9b3aa998ce85263c90dfca1f58a2fbc1ea9ee3c56790ccd5308d"
+          "resource": "repo://Scripts/Tests/test_screenshots.rb#L385-L529",
+          "version": "repo-lines-v1:sha256:812c3cfdf42c364c2286c49912882a1269f375384f8f13aafbdeef86481c257b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjMTgwMWYzM2RkNDU5MTI5NGVlNjM5OGRmZWNhZDhmYmFhOTU1ZDI5MjNiMDFlZDBmYjdlOTI5YmRkZjQyMzI4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODMzMmZlNjY3YmM1MWFjNGE1MWJhMGVmZTczNDQ0MWM5MGRlZjU1YzYwYTI2ZDdkYjI3NWVjYmJjZjQyZjE1IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNGE5NjQ2NjE4NjhkZWE2ZGY2ZGVkZWEyNzY2ZDMxZTEyYjljNWZlOWQyYzYyMGNmN2Q2NzEwMTE0NmUzMDc4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         },
         {
-          "resource": "repo://fastlane/lib/screenshot_frames.rb#L20-L44",
-          "version": "repo-lines-v1:sha256:cea2f6a8e1cc3cfbd3a5cedc076807ca097f990c9066bf5635cf915cc69a4f21:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGY3YjI0NjJhNGU4MTcyODNiM2ExYzA0ZjM4Y2Y0YTE4ZmQ4MWMxMTMzMWExODZlNWZiNWFmNzI3MDcxMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmNmQ1ZThhMTM2NGVmM2Q5NzllNTRiZmU1MWVmMTM4NjM5YzBmY2RjMWY2ZDY5NDQ2NDNhNWVhMjBmYTQxOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkYTFkMzdjZmI3YzYyOGZkMTcyOTY2M2IzZmYwMTliODE1MDU4ODhhNzA5NDdhYTUyY2VjNzRmMTE4ZjZjNzMifQ"
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L7-L191",
+          "version": "repo-lines-v1:sha256:31ee13a91fb6ddb2aad33c0dfe2ea64f9f15cf2b38bef6160b83591e18c068e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhNGUyNGZhZTkxZjlhOTE1OWVlZDQ4MTFiZDE5MDUyNTc1NzQzZTlmZjBjNjA4ZWM1ZmUzNDY2NDZhYjJjMDYyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyNmRiNmE1ZTJlN2I2OTVmMDMxMjZhMTM1NmE2ODM0MzMxZTRhMjY3NWUwZGE3NDFiOTU3NTM2YjI3YTNiYTE3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxODM2N2Q0NWUxMGQ0MmYwZWJlYjU2ODgwNWZiNmMzZGNkMmJmMDg2ZTlmYjZiZDc5OWE3MWU4YzRkODg2Y2NmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxZDczYTllYzIzYTEzMzA2OTU3MTZhYmFmMmM5YmExYzEwMjkxZGYxODkzMmRlOGEyM2ZlMmIzMWJiZTM2ZjlmIn0"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L10-L18",
-          "version": "repo-lines-v1:sha256:df66f99050de2639199032ae0fca07cbee241eb117a72732115f69d50d628a47:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjI2YjY5MGRiNDI1OTk3ZGRlZGEyMDMxOGE3YTdhNTQ4MjA3M2Q3YzExMTdmZjJiNWMyMDg3NWZmMGYzNTY0MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTM1YTM5MTYyNDRhNmFiYjAyYzhjZmJlMWEyMjBlNTEyM2NkNDUwNDBkNmNhNmM2NThiNTczYzA2ZmE4ODUxZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmFiZTAxMTI4NTc2OGNhZTBlNWJmMjY3ZThlY2QwNDAxMDUzNGI0YjRjMWU0MzFmMzA2M2IzYjMxMWU1NzJiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTU4ZjY2YzNlZDliZmQ5YzkxYTlkMzJiODI1YmQ5YjUzYWYxZGE2YWNjZmUxZGM4NWQxZjBiMzEyOGZkOWIzZCJ9"
+          "resource": "repo://fastlane/lib/screenshots.rb#L10-L23",
+          "version": "repo-lines-v1:sha256:14eac5c07cd9b4d69e3ca81909da03aaf8db05b05133af79da47a699a9b24e6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyNmI2OTBkYjQyNTk5N2RkZWRhMjAzMThhN2E3YTU0ODIwNzNkN2MxMTE3ZmYyYjVjMjA4NzVmZjBmMzU2NDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhYmUwMTEyODU3NjhjYWUwZTViZjI2N2U4ZWNkMDQwMTA1MzRiNGI0YzFlNDMxZjMwNjNiM2IzMTFlNTcyYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkZTI0YjAyMjU4NWQyYzA4ZjU4ZmFmYzUzZDg0M2E4NmIwYzgyZjU0ZDk1OWE0NWU0OTAxNGQ3N2MxYjRmMDMifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L66-L81",
+          "version": "repo-lines-v1:sha256:14e4300122b499c9067ad530d97544041f6c6aa93bcd23abb210dc88d24d82ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZGQyNzdlN2EwNjQyNWRjNDJlZjJiNzcxOGUxNTAxNDJjM2VmMzdhMTgwOWIxMWVmZTUzNWQ4ZjEwOTQ0YjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmRhZTVlNDdhNjVlNWQ0OGVhNWJhNDY0YWUyMDljZmJjZjdjMDFhM2RhYmNiZmY1NTdhYTNiMjNhNGE5YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxYTA4OTI4MDI4YTViOTA0NDJiNTE2Zjc0NmRmZGQ2ZmE3MmZlMjlmYWI0MjM2Y2QxYTVmYTAwNTdjZGI3OGEifQ"
         }
       ]
     },
@@ -414,23 +392,15 @@
     },
     {
       "id": "claim_b78d8b8a82bc4d0ba497713a74f19645",
-      "statement": "The public submodule's npm ci installs locked web dependencies; npm run build runs Astro checking before production generation and optimized AVIF/WebP/JPEG transforms of allowlisted device frames. Native app builds do not require this separate site build.",
+      "statement": "The parent repository documents npm ci and npm run dev for locked dependency installation and local Astro development, and npm run build for type-checking and production output to com.akinokaede.termind/dist/; native builds do not require this submodule. These instructions do not verify the submodule's package scripts or image transforms.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L14-L21",
           "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/package.json",
-          "version": "repo-file-v1:sha256:72831c4186784ecf365ee64baec06d0b7f41d3075a2d0630a6e77ba876b102ad"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/components/ScreenshotPicture.astro",
-          "version": "repo-file-v1:sha256:b681fc11c50f4bd3eadc1f0353c4e82f2c3045624b95273efed055d1ae414bfa"
+          "resource": "repo://AGENTS.md#L59-L60",
+          "version": "repo-lines-v1:sha256:d504b70e9953b1673814e4a03529f8f9eaa4802dc7b5f6a97452cca5f1da8b38:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0OGEwZDI3OGNhZGI2NDA1NzY1ZDYxYTY1OTljOTUzODZmZGQ3OWRiMGUyOGM5ZDY2N2MwNDdjNWIwNTJhYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWZhOTJmZDQyNWYwN2ViMmIyMWVmN2FjZWM2YmNkZWNkYTZmNzk0MWM1OTI5M2U4YzYyMmRiMjhjOGU4YWY2ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
         }
       ]
     },
@@ -527,32 +497,6 @@
       ]
     },
     {
-      "id": "claim_691e63e327774587bdb5385d7d55caa9",
-      "statement": "Public comparison/pricing routes use shared evidence/features under src/lib/comparisons and centralized public USD prices in src/lib/pricing.ts across four locales; legacy zh redirects remain and public prices are separate from live RevenueCat offerings.",
-      "evidence": [
-        {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/comparisons/index.ts",
-          "version": "repo-file-v1:sha256:3750bce03077f13fdf88987ed9838e0a1f341d17741530c2e3c466c4eeb3ca75"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/comparisons/termind.ts",
-          "version": "repo-file-v1:sha256:235375405f1b1b189cc70a907f29466684e036f598e026e2a5f24cce09455c61"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/i18n.ts",
-          "version": "repo-file-v1:sha256:4263ba73fd4ff4ed0033883d05166aa52bd00cfdde26c9064c844ea5de580284"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/src/lib/pricing.ts",
-          "version": "repo-file-v1:sha256:723353a492a9462cc3b29951d3f9235d678691c0d7c23859f7a5bdd1f9ff8695"
-        }
-      ]
-    },
-    {
       "id": "claim_af3ca6ae33544149a5152238fa0621ec",
       "statement": "libtailscale-spm tracks main as a maintenance submodule, but Xcode consumes its remote package through upToNextMinorVersion from 1.0.2, resolved to 1.0.2 at 098e6b69ea128f3a55bc560f005a3e851123dc99. TailscaleKit links into Remote Infrastructure, whose LibTailscaleNodeSession owns the app-side node.",
       "evidence": [
@@ -600,25 +544,21 @@
     },
     {
       "id": "claim_2bfc5aa8143d4b7c8ce68d8aa49a5af1",
-      "statement": "Website, captures, frames, final store artwork and design masters live in the independent public submodule; native tools/app icons stay application-owned. Reviewed asset changes are pushed via SSH before updating the main gitlink, while the clone URL remains public HTTPS.",
+      "statement": "Repository guidance assigns the independent public Astro website and marketing/brand assets in assets/ and design/ to com.akinokaede.termind, while utilities and screenshot tooling remain parent-owned. Initialization is optional for native builds and intended for website/asset work; asset changes must be pushed via SSH before updating the parent gitlink, retaining the HTTPS clone URL.",
       "evidence": [
         {
-          "resource": "repo://.gitmodules",
-          "version": "repo-file-v1:sha256:4ee3a7b7921786868dacd9587878cad13360d76d1dfe97c44cbf55b8ed8c06e9"
+          "resource": "repo://.gitmodules#L12-L14",
+          "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGU4MjMyOGU4YjdlOThiZGQwMDBjZGNlMTEwNDA0YTEyYzI5MDE2YjY4NWIyZWYzOWJkYjk2OGM0YWE5YzA4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
           "resource": "repo://AGENTS.md#L14-L21",
           "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
-        },
-        {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
         }
       ]
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:46:25.102Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-09T00:05:26.272Z"
   }
 }

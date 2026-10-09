@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ae14a26a1a06b7b6799fc95b20fb0af2d25fb0a99599398d84d474c0af2d9366",
+  "pageVersion": "sha256:e8204b43a111f591306e3848cd2cc998d1530faad8663a3ba3409116f5efb3fa",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -214,11 +214,19 @@
     },
     {
       "id": "claim_b929e9957fc64a1fba4955c60b9c8b83",
-      "statement": "App copy changes require completed simplified and traditional Chinese translations and the localization script, while language behavior changes use AppLanguageTests and website changes require a production build and English/Chinese route checks.",
+      "statement": "App copy changes require completed simplified and traditional Chinese translations and localization validation; AppLanguageTests covers language behavior. Parent guidance requires a production website build and visual English/Chinese checks, but native catalog and commerce policy tests do not verify external website copy, deployed routes or RevenueCat dashboard content. The StoreKit fixture is for manual development; live products, trial eligibility and purchase/restore behavior require RevenueCat and App Store Sandbox validation separately.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L68-L68",
-          "version": "repo-lines-v1:sha256:3ed03b83385d562a6f7ea7ac79c04c902b9b475be6ddf0bfee86bf4f51f11029:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjZhNzFhZDgxY2FlOGI3MGJiZDYwMzkxNzllYTExZmU0OGExODY0YzdmMDcwNzU2MDQwYWJlOTYxNmVhNmMyYSJ9"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L59-L68",
+          "version": "repo-lines-v1:sha256:4978ecd0e4f873f06ce5be18eb877c04851a1b935c222b728a1e635bcdb62cc9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NDhhMGQyNzhjYWRiNjQwNTc2NWQ2MWE2NTk5Yzk1Mzg2ZmRkNzlkYjBlMjhjOWQ2NjdjMDQ3YzViMDUyYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlZDAzYjgzMzg1ZDU2MmE2ZjdlYTdhYzc5YzA0YzkwMmI5YjQ3NWJlNmRkZjBiZmVlODZiZjRmNTFmMTEwMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NjFhYWI3OTVlODYwNDA1NGViZjI3ZTU1ZGZjNDVlNjc5YzMzMjUwZmM3Y2M0YWQ0MDBjMDc5NmVmOWExMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZWY0Y2NhYTRiNDU0ZTYwOGEyZDJiNWMyMjk5ODk4ZTI0NTBhOTkyZTFiNzJiODNhMzBiN2YxZTFiYTIxOTAifQ"
+        },
+        {
+          "resource": "repo://AGENTS.md#L76-L76",
+          "version": "repo-lines-v1:sha256:a941480de8d4cf34c8960e60d06b78e7622c77597f3954bdb4714da0b8c55914:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTk0MTQ4MGRlOGQ0Y2YzNGM4OTYwZTYwZDA2Yjc4ZTc2MjJjNzc1OTdmMzk1NGJkYjQ3MTRkYTBiOGM1NTkxNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTk0MTQ4MGRlOGQ0Y2YzNGM4OTYwZTYwZDA2Yjc4ZTc2MjJjNzc1OTdmMzk1NGJkYjQ3MTRkYTBiOGM1NTkxNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjZhNzFhZDgxY2FlOGI3MGJiZDYwMzkxNzllYTExZmU0OGExODY0YzdmMDcwNzU2MDQwYWJlOTYxNmVhNmMyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiJ9"
         },
         {
           "resource": "repo://AGENTS.md#L80-L101",
@@ -740,23 +748,39 @@
     },
     {
       "id": "claim_bc89ff18e536439f877c18d6c2dd54ea",
-      "statement": "App-owned fastlane scan/frameit tooling produces native captures and licensed-template frames in the independent public website/asset submodule; final Figma artwork is a separate four-platform 96-board RGB/sRGB JPG delivery. Reviewed asset commits are pushed via SSH before parent gitlink updates; native builds need no asset checkout.",
+      "statement": "Parent-owned fastlane scan drives native screenshot fixtures and framing operates on staged copies, defaulting to paths in the independent public website/assets submodule. Planning avoids capture execution; tooling dimensions and selectors establish intermediate production contracts, not current website composition, template licensing or final storefront artwork inventories. Repository guidance makes submodule initialization optional for native builds and necessary for website/asset work, with inspection of its own source required before external changes; reviewed asset commits must be pushed via SSH before parent gitlink updates while retaining the public HTTPS clone URL.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:94b20ace54bc868d4640865a6b168168b31f3d7fd86a987e722ef735fdcefc12"
+          "resource": "repo://.gitmodules#L12-L14",
+          "version": "repo-lines-v1:sha256:c7d6ce76620da3eafc5c9b3ec573712bd83321c656fdee9b33e1623600ee21cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDVlZTM0ZTU3NWVjNjRhODEzMjliZTk1ZWEwZDk3MTFhMTg0MDQ1MTRiNjkyMjhmNDMzODlhOGQ4ZjJjMWUxOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGM4NDY1YjI4NDNjZjc3ZTlmMTE5M2IzOTc0OGMyNjZkYmM5NjJhZGY0ZTlhYjVhMTAxYzcxYTdkYzlhNDlmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGU4MjMyOGU4YjdlOThiZGQwMDBjZGNlMTEwNDA0YTEyYzI5MDE2YjY4NWIyZWYzOWJkYjk2OGM0YWE5YzA4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/README.md",
-          "version": "repo-file-v1:sha256:e22a5e1e43315369dc15d451cbecd8b1dff25fe0755a3e0b20941e2567ab4b9c"
+          "resource": "repo://AGENTS.md#L14-L21",
+          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
         },
         {
-          "resource": "repo://com.akinokaede.termind/assets/README.md",
-          "version": "repo-file-v1:sha256:de2ae13c89af67e8029b26b9d2dd77853ab50d62f58d39447f04d222fdbbd745"
+          "resource": "repo://AGENTS.md#L59-L68",
+          "version": "repo-lines-v1:sha256:4978ecd0e4f873f06ce5be18eb877c04851a1b935c222b728a1e635bcdb62cc9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NDhhMGQyNzhjYWRiNjQwNTc2NWQ2MWE2NTk5Yzk1Mzg2ZmRkNzlkYjBlMjhjOWQ2NjdjMDQ3YzViMDUyYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlZDAzYjgzMzg1ZDU2MmE2ZjdlYTdhYzc5YzA0YzkwMmI5YjQ3NWJlNmRkZjBiZmVlODZiZjRmNTFmMTEwMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NjFhYWI3OTVlODYwNDA1NGViZjI3ZTU1ZGZjNDVlNjc5YzMzMjUwZmM3Y2M0YWQ0MDBjMDc5NmVmOWExMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZWY0Y2NhYTRiNDU0ZTYwOGEyZDJiNWMyMjk5ODk4ZTI0NTBhOTkyZTFiNzJiODNhMzBiN2YxZTFiYTIxOTAifQ"
         },
         {
-          "resource": "repo://fastlane/Fastfile",
-          "version": "repo-file-v1:sha256:66888831bd0be796eeae2c5af639cf7592e40c3a33e6a363a6fdcacb44ff915c"
+          "resource": "repo://fastlane/Fastfile#L8-L45",
+          "version": "repo-lines-v1:sha256:572f864584ee06343a4354bc45e7aa4d43a5b84b6b0e5422b921171af3e360d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1N2YyNWU1NjY1YmUzODg1NmI0ZTk4YTVmM2JjZmI1ZTA5NDEyYWY3NzFjNmVjZmE5Nzk1YjZkMTU1MDI3NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzMyZmU2NjdiYzUxYWM0YTUxYmEwZWZlNzM0NDQxYzkwZGVmNTVjNjBhMjZkN2RiMjc1ZWNiYmNmNDJmMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiOTIyMmQ3MDIwYTY0OWM2ZWVmOTVlYjRkOTAzMjhjZmIwOGM3NDFlY2Y4ZGQ5NWVhOWFiODhiNTY2ZjEzZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L15-L41",
+          "version": "repo-lines-v1:sha256:ab5fb034806b3277938f2d3b7eb46f4b98b516cf99e60c770a6f5c078daac323:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmIwMTVjOTZkZGQyNjM2NWJjYjgyYjA2YTgzNmZmNWVhZjgzOGIyNzlhNWJmNmMzMmFjY2JmMWY3MDViZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkODZjYjRmZDNjNzRhYWU3M2U3NDg2YmM3ZTE5ZmU3ZmNhYmIzZWVkOTJkYzE0OTM1MDE0OGFhN2UwNGQ0YmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YjE3MjRjNTRmZmI2MDI0OWU3NWZiMGY4MjVmZWJlOWMzNDhmZmY5NzI2ZjAyZjRkNjM0ZTU4NDZhYjJjNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1YTU4Zjk2OTkzZDRlMzQ1MmI3OTYxNmRjMTEyYzIwODAxZjk4M2E0MjdhMmI5YzBhMjVkZTU3YzlkMTQ4NGMifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshot_frames.rb#L86-L158",
+          "version": "repo-lines-v1:sha256:1b6ac24f0cfe9ba25621a6ffec74bd34eacc0fa4a24599e6a2d00d351f631a8a:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwNDlkY2EzMGVjYWYxOWE0YzI4NzhmZWI0ZjkwYmJkNTcwODg1YmRmYjMyZmM0NGY0NTVhYjU3ZjA4ZDM2ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1N2RkZDE4NDQ3NjczZDBhN2YzNjlkNmY5NmI2NjZjNGY3M2M4OGQ2NGY5ZGJlM2NhMjI4MzVjY2Y4ZmY3NTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiOWZkNThlMjViMjFhN2ZiYmZmNTZjYWE5NmNlODEyMGViZWU5ZTFmZTMxYmIwYWNjYTdjOGRiOTVjMzM5NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L18-L23",
+          "version": "repo-lines-v1:sha256:53416674d091c02bcd80987ba0f29bcecae957bb8d49f868f23fb5cee49b79d6:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTM1YTM5MTYyNDRhNmFiYjAyYzhjZmJlMWEyMjBlNTEyM2NkNDUwNDBkNmNhNmM2NThiNTczYzA2ZmE4ODUxZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc5ODExYzVmYmUyNWMzZDRlNWYzZDFmZDM1YWI5ZGE2YmNmOGE2OGM1ZWRmOWQ2YmE5N2Y2ODY4NmMzOTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDE3Yjc0ZjAyZjcwMzdiMzVhY2UwNGQ3M2Y1NDM3OWEyOWU2ZDUzNWY4MzExYTYyYzA5YTAzOTI1N2QwOGQzZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGRlMjRiMDIyNTg1ZDJjMDhmNThmYWZjNTNkODQzYTg2YjBjODJmNTRkOTU5YTQ1ZTQ5MDE0ZDc3YzFiNGYwMyJ9"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L66-L81",
+          "version": "repo-lines-v1:sha256:14e4300122b499c9067ad530d97544041f6c6aa93bcd23abb210dc88d24d82ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZGQyNzdlN2EwNjQyNWRjNDJlZjJiNzcxOGUxNTAxNDJjM2VmMzdhMTgwOWIxMWVmZTUzNWQ4ZjEwOTQ0YjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmRhZTVlNDdhNjVlNWQ0OGVhNWJhNDY0YWUyMDljZmJjZjdjMDFhM2RhYmNiZmY1NTdhYTNiMjNhNGE5YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxYTA4OTI4MDI4YTViOTA0NDJiNTE2Zjc0NmRmZGQ2ZmE3MmZlMjlmYWI0MjM2Y2QxYTVmYTAwNTdjZGI3OGEifQ"
         }
       ]
     },
@@ -780,7 +804,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:46:25.102Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-09T00:05:26.272Z"
   }
 }

@@ -8,12 +8,12 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-54a517e25bf7220eb9067177
-    resource: repo://com.akinokaede.termind/assets/README.md
-  - id: openwiki-source-fcca55af6fa67b76822099ae
-    resource: repo://com.akinokaede.termind/README.md
   - id: openwiki-source-7af97a29763d6f133e4b4851
     resource: repo://fastlane/Fastfile
+  - id: openwiki-source-4c22145572a82f1dd48f37e0
+    resource: repo://fastlane/lib/screenshot_frames.rb
+  - id: openwiki-source-cf46ee9dde9e2af41c84b62f
+    resource: repo://fastlane/lib/screenshots.rb
   - id: openwiki-source-1635d0be12e44ef9134ffabc
     resource: repo://Frameworks/TermindApplication/Connections/ConnectionJourney.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
@@ -116,10 +116,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:46:25.102Z
+  - by: openwiki/0.7.0
+    at: 2026-10-09T00:05:26.272Z
 ---
 
 # Termind Engineering Quickstart
@@ -161,8 +161,9 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | Assistant turns, approvals, host tools, skills, memory | [Assistant and Agent Runtime](concepts/agent-runtime-and-assistant.md); target preparation, cancellation, persistence, tools or memory tests. |
 | SwiftData, secrets, migrations, settings, CloudKit | [Persistent Data, Migrations, and Secrets](concepts/persistence-and-secrets.md), [Settings and Cloud Sync](workflows/settings-and-cloud-sync.md), and [CloudKit Release Readiness](operations/cloudkit-release-readiness.md). Select repository/migration tests or `CloudSyncLifecycleTests`, `CloudSyncSafetyTests` and coordinator tests for sync changes. |
 | MCP server, external upload/download, stdio bridge | [MCP Server, Transfers, and Stdio Bridge](integrations/mcp-server-and-bridge.md); run token, server-session, transfer or bridge tests. |
-| Commerce, localized copy, widgets, screenshots, website | [Commerce, Localization, and Product Surfaces](concepts/commerce-localization-and-product-surfaces.md), [Storefront Commerce Release Checks](operations/storefront-commerce-release.md), [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](operations/build-test-and-release.md). Choose bilingual catalog, app/language, screenshot, StoreKit or website checks. |
-| **Asset production, scan capture, frameit, Figma and App Store exports** | [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md) is the canonical workflow: exact native iPhone Pro/Duo/iPad/Mac pixels and postures, licensed frame templates/masks, 96 four-platform JPG boards, current website compositions and SSH-first submodule publication. Use `plan:true` and Ruby checks without opening app windows. |
+| Commerce, localized copy, widgets, website | [Commerce, Localization, and Product Surfaces](concepts/commerce-localization-and-product-surfaces.md) for native ownership and copy; [Build, Test, and Release](operations/build-test-and-release.md) for local validation. Inspect the website's own source before web changes; native catalog and commerce tests do not verify external copy or the deployed site. |
+| **Asset capture, framing, app icons and artwork review** | [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md) owns capture/framing and downstream review. Start with `plan:true` and focused Ruby checks without opening app windows. Tooling dimensions and frame selectors are not evidence of current website composition, template licensing or final store-board inventory; inspect the initialized asset checkout before composition/export changes. |
+| **Live commerce delivery and storefront imagery** | [Storefront Commerce Release Checks](operations/storefront-commerce-release.md) for RevenueCat dashboard, App Store Connect and Sandbox checks, plus review of actual final localized artwork. Local policy tests, manual StoreKit fixtures and native captures do not prove live offers, purchase/restore behavior, remote paywall copy or upload acceptance. |
 | Deterministic fixture or test seam | [Behavioral Tests and Fixtures](testing/behavioral-boundaries-and-fixtures.md); run the narrow behavioral regression before the affected target suite. |
 
 ## 2. Preserve the changed boundary
@@ -220,8 +221,8 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 ### Copy, web, and release checks
 
 - Define app copy in shared `TermindPresentation/Strings`; new/changed English text needs finished `zh-Hans`, `zh-Hant` and `ja` translations in `Frameworks/Resources/Localizable.xcstrings`. Catalogs are manually managed: after edits run `Scripts/normalize-string-catalogs.py --write`, `Scripts/check-appstrings.sh`, and `python3 Scripts/check-cjk-localization.py`. Run the CJK check even without intended copy changes; use `AppLanguageTests` for language behavior.
-- Website/asset work: initialize `com.akinokaede.termind` only when needed; `(cd com.akinokaede.termind && npm ci && npm run build)`, then inspect `/`, `/zh-hans/`, `/zh-hant/`, `/ja/` and the `/zh/` redirect. Source assets live in the independent submodule; commit/push reviewed assets via SSH before updating the parent gitlink, keeping the public HTTPS clone URL.
-- Screenshot tooling stays app-owned: fastlane scan captures native sources, frameit composes staged copies with licensed templates, and Figma final artwork/website frames are distinct derived deliverables. Do not invoke capture just to validate documentation.
+- **Website/asset boundary:** [AGENTS.md](../AGENTS.md) identifies `com.akinokaede.termind/` as an independent Astro website and assets submodule; [.gitmodules](../.gitmodules) records its public HTTPS clone URL. Native app builds do not need it. Initialize it only for website or asset work with `git submodule update --init com.akinokaede.termind`, then inspect its own source, asset documentation and consumers before changing them. The directory is empty in this checkout, so current routes, redirects, website compositions, template licenses and final artwork inventories are unverified—not evidence of deletion. The parent-documented `(cd com.akinokaede.termind && npm ci && npm run build)` workflow is a starting point, not proof of the external build scripts or deployed site. Verify the routes and localized surfaces actually present in that source and the deployed site separately. Commit/push reviewed asset changes via SSH before updating the parent gitlink; keep the public HTTPS clone URL.
+- **Capture versus delivery:** app-owned fastlane scan drives native fixtures; framing works on staged copies and defaults to asset-submodule paths. Use `plan:true` and the marketing guide's focused Ruby checks for quiet orchestration validation, not capture merely to validate documentation. Captures and device frames are intermediates, not verified final Figma/store artwork or website composition. Inspect the external checkout and delivery requirements for downstream edits; use the storefront guide for dashboard, App Store Connect and Sandbox verification. Local fixtures and policy tests do not establish live products, trial eligibility, purchase/restore behavior or remote paywall copy.
 - Before submitting, inspect the diff for secrets, generated artifacts, cross-layer imports and accidental `Package.resolved` churn. Use [Build, Test, and Release](operations/build-test-and-release.md) and the routed operations pages for CloudKit deployment, StoreKit/Sandbox validation, marketing assets and [forwarding benchmark measurement](operations/port-forwarding-benchmarks.md). Former StoreKit trial/catalog test files are removed; live purchases require Sandbox validation.
 
 ### Data reminders
