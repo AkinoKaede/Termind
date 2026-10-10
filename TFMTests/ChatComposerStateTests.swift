@@ -2255,7 +2255,7 @@ struct ChatComposerStateTests {
     }
 
     @Test
-    func editingAUserTurnWithDownstreamToolActivityIsRejectedWithoutChangingHistory() {
+    func editingAUserTurnRemovesDownstreamToolActivity() throws {
         let conversation = ConversationModel()
         let user = conversation.appendUserTurnContent("Question")
         let runID = UUID()
@@ -2279,23 +2279,29 @@ struct ChatComposerStateTests {
                     name: "lookup", summary: "Lookup", inputSchema: .object([:]),
                     target: .local, approvalPolicy: .approve
                 )))
+        conversation.handle(
+            .toolFinished(invocation, AgentToolResult(callID: invocation.call.id, content: "Result")))
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(id: runID, state: .completed, startedAt: .now, finishedAt: .now)))
         #expect(conversation.workGroups.count == 1)
 
-        #expect(!conversation.canEditUserMessage(user.id))
-        #expect(conversation.editUserMessage(user.id, authoredText: "Edited") == nil)
+        #expect(conversation.canEditUserMessage(user.id))
+        let replacement = try #require(conversation.editUserMessage(user.id, authoredText: "Edited"))
 
-        #expect(conversation.workGroups.count == 1)
-        #expect(conversation.toolCards.map(\.invocation.id) == [invocation.id])
+        #expect(conversation.workGroups.isEmpty)
+        #expect(conversation.toolCards.isEmpty)
         #expect(conversation.runSummaries.count == 1)
-        #expect(conversation.runSummaries[runID] != nil)
-        #expect(conversation.transcript.map(\.id) == [user.id, process.id])
+        #expect(conversation.runSummaries[runID] == nil)
+        #expect(conversation.transcript.map(\.id) == [replacement.id])
+        #expect(conversation.messages.map(\.text) == ["Edited"])
     }
 
     @Test(arguments: [
         AgentToolCard.State.proposed, .waitingForApproval, .waitingForUser, .reviewing,
         .running, .completed, .denied, .failed, .interrupted,
     ])
-    func editEligibilityUsesToolOwnershipForEveryLifecycleState(_ state: AgentToolCard.State) {
+    func editingRemovesToolsInEveryLifecycleState(_ state: AgentToolCard.State) throws {
         let instant = Date(timeIntervalSinceReferenceDate: 100)
         let runID = UUID()
         let opening = AgentTranscriptMessage(role: .user, text: "Opening", createdAt: instant)
@@ -2319,8 +2325,11 @@ struct ChatComposerStateTests {
                     target: .local, approvalPolicy: .approve), state: state)
         ]
 
-        #expect(!conversation.canEditUserMessage(opening.id))
+        #expect(conversation.canEditUserMessage(opening.id))
         #expect(conversation.canEditUserMessage(later.id))
+        let replacement = try #require(conversation.editUserMessage(opening.id, authoredText: "Edited"))
+        #expect(conversation.toolCards.isEmpty)
+        #expect(conversation.transcript.map(\.id) == [replacement.id])
     }
 
     @Test

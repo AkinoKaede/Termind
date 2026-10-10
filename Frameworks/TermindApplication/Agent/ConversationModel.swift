@@ -1133,64 +1133,8 @@ public final class ConversationModel: Identifiable {
         guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging,
             !isPersistingAgentPreparationFailure
         else { return false }
-        guard
-            let target = transcript.firstIndex(where: {
-                $0.id == id && $0.role == .user && !$0.isCompaction && $0.origin == nil
-            })
-        else { return false }
-        return !removedSuffixContainsToolActivity(from: target)
-    }
-
-    /// The edit operation removes this entire suffix. Any tool lifecycle in that scope
-    /// makes the user turn immutable, including proposed, denied, failed, and read-only calls.
-    private func removedSuffixContainsToolActivity(from target: Int) -> Bool {
-        let original = transcript[target]
-        let removed = Array(transcript[target...])
-        if removed.contains(where: {
-            $0.role == .tool || !$0.toolCalls.isEmpty || $0.toolCallID != nil || $0.toolName != nil
-        }) {
-            return true
-        }
-
-        let visibleTarget = messages.firstIndex(where: { $0.id == original.id })
-        let visiblePrefix = visibleTarget.map { Array(messages[..<$0]) } ?? []
-        let visibleRemoved = visibleTarget.map { Array(messages[$0...]) } ?? []
-        let removedMessageIDs = Set(removed.map(\.id)).union(visibleRemoved.map(\.id))
-        let keptMessageIDs = Set(transcript[..<target].map(\.id)).union(visiblePrefix.map(\.id))
-        let removedCallIDs = Set(removed.flatMap { $0.toolCalls.map(\.id) })
-        let keptCallIDs = Set(transcript[..<target].flatMap { $0.toolCalls.map(\.id) })
-        let keptRunIDs = Set(keptMessageIDs.compactMap { messageRunIDs[$0] })
-        var removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
-        let orderedRuns = runSummaries.values.sorted {
-            if $0.startedAt != $1.startedAt { return $0.startedAt < $1.startedAt }
-            return $0.id.uuidString < $1.id.uuidString
-        }
-        let targetRunID = messageRunIDs[original.id]
-        if let targetRunID, let runIndex = orderedRuns.firstIndex(where: { $0.id == targetRunID }) {
-            removedRunIDs.formUnion(orderedRuns.dropFirst(runIndex + 1).map(\.id))
-        }
-        return toolCards.contains { card in
-            if let targetRunID {
-                if card.invocation.runID != targetRunID {
-                    if keptRunIDs.contains(card.invocation.runID) { return false }
-                    if removedRunIDs.contains(card.invocation.runID) { return true }
-                }
-            } else if removedRunIDs.contains(card.invocation.runID) {
-                return true
-            }
-            if let source = card.invocation.sourceMessageID {
-                if removedMessageIDs.contains(source) { return true }
-                if keptMessageIDs.contains(source) { return false }
-            }
-            if removedCallIDs.contains(card.invocation.call.id) { return true }
-            if keptCallIDs.contains(card.invocation.call.id) { return false }
-            let resultMessageID = AgentTranscriptMessage.toolResultID(
-                runID: card.invocation.runID, callID: card.invocation.call.id)
-            if removedMessageIDs.contains(resultMessageID) { return true }
-            if keptMessageIDs.contains(resultMessageID) { return false }
-            // Historical cards may not have source ownership. Timestamp is the
-            // conservative fallback already used by persisted truncation.
-            return card.invocation.createdAt >= original.createdAt
+        return transcript.contains {
+            $0.id == id && $0.role == .user && !$0.isCompaction && $0.origin == nil
         }
     }
 

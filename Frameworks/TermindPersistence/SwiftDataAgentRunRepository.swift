@@ -446,27 +446,6 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         guard !originRows.contains(where: { $0.messageID == target.id }) else {
             throw AgentConversationPersistenceError.messageNotFound
         }
-        let keptCallIDs = Set(keptMessages.flatMap(Self.toolCallIDs))
-        let removedCallIDs = Set(removedMessages.flatMap(Self.toolCallIDs))
-        let removedHasToolMessages = removedMessages.contains {
-            $0.role == AgentTranscriptRole.tool.rawValue || $0.toolCallID != nil
-                || $0.toolName != nil || !Self.toolCallIDs($0).isEmpty
-        }
-        let invocations = try context.fetch(FetchDescriptor<PersistentAgentToolInvocation>())
-        let removedHasToolCards = invocations.contains { invocation in
-            if laterRunIDs.contains(invocation.runID) { return true }
-            guard invocation.runID == target.runID else { return false }
-            if let source = invocation.sourceMessageID {
-                if removedMessageIDs.contains(source) { return true }
-                if keptMessages.contains(where: { $0.id == source }) { return false }
-            }
-            if removedCallIDs.contains(invocation.callID) { return true }
-            if keptCallIDs.contains(invocation.callID) { return false }
-            return invocation.createdAt >= target.createdAt
-        }
-        guard !removedHasToolMessages, !removedHasToolCards else {
-            throw AgentConversationPersistenceError.editWouldRemoveTools
-        }
         let removesTargetRun = keptTargetMessages.isEmpty
         let runsToDelete = removesTargetRun ? [runs[targetRunIndex]] + laterRuns : laterRuns
         let runIDsToDelete = Set(runsToDelete.map(\.id))

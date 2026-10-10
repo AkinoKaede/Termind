@@ -42,7 +42,7 @@ struct AgentReplayPersistenceTests {
         #expect(restored.messages.first { $0.role == .tool }?.modelText == "fixed preview")
         #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentMessageReplay>()) == 3)
         let model = ConversationModel(messages: [], transcript: restored.messages)
-        #expect(model.editedUserMessage(first.id, authoredText: "edited") == nil)
+        #expect(model.editedUserMessage(first.id, authoredText: "edited") != nil)
         let editable = try #require(
             model.editedUserMessage(continued.id, authoredText: "edited"))
         #expect(editable.text == "edited")

@@ -832,7 +832,7 @@ struct AgentPersistenceTests {
     }
 
     @Test(arguments: [false, true])
-    func truncationRejectsSuffixToolsWithoutMutatingHistory(_ hasTranscriptCall: Bool) async throws {
+    func truncationRemovesSuffixTools(_ hasTranscriptCall: Bool) async throws {
         let container = try TermindPersistence.makeContainer(inMemory: true)
         let repository = SwiftDataAgentRunRepository(context: container.mainContext)
         let conversationID = UUID()
@@ -852,32 +852,38 @@ struct AgentPersistenceTests {
         let invocation = AgentToolInvocation(
             runID: runID, call: call,
             sourceMessageID: hasTranscriptCall ? answer.id : UUID(), createdAt: instant)
+        let descriptor = AgentToolDescriptor(
+            name: "inspect", summary: "Inspect", inputSchema: .object([:]),
+            target: .local, approvalPolicy: .approve)
+        try await repository.record(.toolProposed(invocation, descriptor), runID: runID)
         try await repository.record(
-            .toolProposed(
-                invocation,
-                AgentToolDescriptor(
-                    name: "inspect", summary: "Inspect", inputSchema: .object([:]),
-                    target: .local, approvalPolicy: .approve)), runID: runID)
+            .toolFinished(invocation, AgentToolResult(callID: call.id, content: "Result")), runID: runID)
+        try await repository.record(
+            .reviewFinished(
+                AgentApprovalRequest(invocation: invocation, descriptor: descriptor, userIntent: "Inspect"),
+                GuardianDecision(verdict: .approve, risk: .low, userAuthorization: .high, reason: "Allowed")),
+            runID: runID)
         let before = try #require(try await repository.loadConversations().first)
         let replacement = AgentTranscriptMessage(role: .user, text: "Replacement")
         let store = AssistantConversationStore()
         store.restore([before])
         let live = try #require(store.conversations.first)
-        #expect(!live.canEditUserMessage(steering.id))
+        #expect(live.canEditUserMessage(steering.id))
         #expect(
             try await AssistantConversationOperations(repository: repository).edit(
-                live, messageID: steering.id, replacement: replacement) == nil)
+                live, messageID: steering.id, replacement: replacement) != nil)
 
-        await #expect(throws: AgentConversationPersistenceError.self) {
-            try await repository.truncateConversation(
-                conversationID, fromUserMessageID: steering.id, replacingWith: replacement)
-        }
-
-        let after = try #require(try await repository.loadConversations().first)
-        #expect(after.messages.map(\.id) == before.messages.map(\.id))
-        #expect(after.toolCards.map(\.invocation.id) == before.toolCards.map(\.invocation.id))
-        #expect(after.toolCards.map(\.state) == before.toolCards.map(\.state))
-        #expect(after.runs == before.runs)
+        let reopened = SwiftDataAgentRunRepository(context: ModelContext(container))
+        let after = try #require(try await reopened.loadConversations().first)
+        let expectedIDs = [opening.id, replacement.id]
+        #expect(after.messages.map(\.id) == expectedIDs)
+        #expect(live.transcript.map(\.id) == expectedIDs)
+        #expect(live.toolCards.isEmpty)
+        #expect(after.toolCards.isEmpty)
+        #expect(after.runs.map(\.id) == [runID, replacement.id])
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentToolInvocation>()) == 0)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentToolResult>()) == 0)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentReviewRecord>()) == 0)
     }
 
     @Test
