@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistent Data, Migrations, and Secrets
+title: Persistence and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -12,6 +12,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-2d98a2885dc21f508f49b749
     resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
+  - id: openwiki-source-a51ca858a040a90d4ab9c1c4
+    resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
@@ -42,8 +44,6 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8a511ce5c3a76863609a6e6e
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycleSafety.swift
-  - id: openwiki-source-8a2e7d4db4b334995f8eaf61
-    resource: repo://Frameworks/TermindPersistence/AgentPersistence.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
     resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
   - id: openwiki-source-33d69cea4b24d60ab000a0cc
@@ -60,6 +60,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-cea80bf19da5e3f99d178655
+    resource: repo://Frameworks/TermindPersistence/PersistentAgentMessageReplay.swift
   - id: openwiki-source-0e8ecbf3896cbf237a679d6a
     resource: repo://Frameworks/TermindPersistence/PersistentNotificationPreferences.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
@@ -136,10 +138,14 @@ sources:
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-c52cd56852d12b2dee153082
+    resource: repo://TFM/App/AppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
     resource: repo://TFM/App/DatabaseStartupGuard.swift
+  - id: openwiki-source-37c42ec0ebc182c487dd27aa
+    resource: repo://TFM/App/DesktopSettingsKey.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -148,13 +154,13 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Persistent Data, Migrations, and Secrets
+# Persistence and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -187,6 +193,10 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 The desktop root opens the container during `TermindApp.init()`: normal launches use the factory's default file-backed configuration (no explicit URL), while DEBUG XCTest and screenshot demos select an in-memory container. Before normal open, `DatabaseStartupGuard` checks for another running instance of the same bundle identifier, including older versions that do **not** use the new lock; a busy store presents an alert and exits, while other open/setup errors are fatal rather than replaced with an empty database. It supplies `KeychainSecretStore` for live composition and passes the same container to the main and authentication-window scenes. A screenshot demo instead constructs demo models and returns before live repository wiring; XCTest uses an in-memory container but disables cloud coordinators (it still constructs a Keychain secret store). The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` when `inMemory` is set or hosts are injected. A supplied container overrides factory construction; otherwise mobile initialization throws on open failure rather than replacing the store. `TermindIOSApp` retains the startup result and `MobileStartupView` injects the container on success or shows an unavailable-data-store view on failure. Data availability is an explicit startup condition.
 
+These are app-lifetime dependencies, not per-window stores: desktop retains `AppModel` alongside the container, and passes the same `KeychainSecretStore` to the Host library, AI configuration/AI secret-location service, and built-in MCP server token storage. MCP client OAuth authorization uses its separate `MCPKeychainCredentialStore` in live composition (an in-memory authorization store in XCTest). The root prepares Settings, Metrics and History persistence before constructing their feature models. `AppDependencies` carries repositories and secret ports into `AppModel`; windows consume the shared application model rather than opening another database or allocating their own secret store.
+
+Not all preferences belong to a cloud replica. `AppLanguage.stored()` reads the local `UserDefaults` choice at desktop launch; storing it updates the local language key and `AppleLanguages`. Desktop appearance, main-window geometry, sidebar state and built-in MCP listener preferences are defaults-backed local settings, not evidence of Settings CloudKit replication. Only explicit journal-backed preference paths described in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) establish replication.
+
 ### Repository projections and atomic mutation
 
 SwiftData rows are persistence representations, not the feature API. `SwiftDataHostRepository` projects `PersistentHost` and `PersistentHostGroup` into `HostLibrarySnapshot` values and publishes revisioned `AsyncStream` changes. Host upserts update or insert the row, then use one commit path that advances a database revision, records Vault mutation information, saves, and only then publishes the mutation. On failure it rolls the `ModelContext` back.
@@ -198,6 +208,8 @@ The platform projections differ around durable deletion. Desktop commits deletio
 Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It deduplicates replayed earlier turns by message ID, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot. V42 adds *sidecars*, rather than modifying historical message rows: a message origin records the source conversation/run/tool call and optional redacted title; a conversation-origin row records chat creation provenance; and a delivery receipt reserves the source run/tool-call pair. `SwiftDataAssistantChatCollaborationStore` reads and writes receipts and creation relations using fresh contexts from the shared container. When a new originated message is saved, its origin insertion marks matching queued receipts delivered in the **same snapshot save**; stale receipt saves or callbacks cannot downgrade a delivered receipt. Origin rows are removed along with message backing during edit/delete; the origin on a user message also prevents editing it as an ordinary user turn.
 
 ### Assistant history edits: one message boundary, one transaction
+
+Replay is backing for the original turn, not a fresh reconstruction from current Host or skill configuration. `PersistentAgentMessageReplay` stores a redacted captured `contextSnapshot` and optional frozen `modelText`; attachment backing is keyed separately by message ID. Snapshot saves deduplicate messages across runs and can add missing replay backing to an already-stored user row when preparation finally freezes its context, without rewriting that historical row. Existing replay backing is not overwritten by later snapshots. Restore rejoins backing by message ID and recovers durable tool output, including its frozen model preview, before compaction projection.
 
 Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
 
@@ -211,9 +223,30 @@ The repository's in-memory retired-ID set includes the edited target run even wh
 
 `AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. Captured missing-model/credential failure now schedules a separate asynchronous save and **only then** calls `recordFailedRun` to adopt and publish the failed run; preparation remains active in its saving-failure phase until this finishes. Preparation cancellation that records interruption also saves its terminal snapshot before adopting and publishing the interrupted state. A save error appends a visible error rather than projecting a successful failed/interrupted adoption. This commit-before-projection rule does not make every stop a durability barrier: `ConversationModel`'s queued-before-start cancellation projects `.cancelled` when it launches a best-effort `prestartPersistence` task, and `stopAndWait` joins the consumer but the save error is swallowed. See [Assistant Runtime](agent-runtime-and-assistant.md) for runtime handoff. Shared replay tests reopen failed/interrupted adoption through a fresh context and cover queued cancellation and captured configuration failure; desktop and mobile fixtures compare same-run prefix history and provenance after edits. These fixtures do not inject a real disk-full or read-only SwiftData failure.
 
+The edited suffix and replacement are handled as a transaction, not a timestamp-based overwrite:
+
+```mermaid
+flowchart TD
+    Request["Edit ordinary user turn"] --> Validate["Validate target and fresh replacement ID"]
+    Validate --> Cut["Find canonical message boundary"]
+    Cut --> Graph["Delete suffix graph and later runs"]
+    Graph --> Prefix["Neutralize retained target-run prefix"]
+    Prefix --> Stage["Insert replacement staging run and backing"]
+    Stage --> Commit{"SwiftData save succeeds"}
+    Commit -->|no| Rollback["Rollback context and retired run IDs"]
+    Commit -->|yes| Project["Apply live history edit"]
+    Project --> Snapshot["First real run snapshot"]
+    Snapshot --> Adopt["Adopt staged message and retire staging ID"]
+    Adopt --> Save["Save real run atomically"]
+```
+
+An edit commits its graph cut before live projection; adoption later transfers the replacement without duplicating its backing.
+
+**Whole-conversation deletion is a distinct path.** `deleteConversation` retires the conversation and its existing run IDs, explicitly deletes result/review/invocation rows and message replay, attachment and origin backing, then removes messages, runs, conversation ordering, model selection and compactions before saving. Late snapshots for that conversation are ignored, and events for its retired runs are ignored. Unlike truncation and snapshot save, this method has no local catch that rolls back the context and restores retired IDs on failure; do not assume all history operations have identical failure semantics. It also does not purge collaboration delivery receipts or conversation-creation relations as part of this graph helper. [AgentPersistenceTests](../../TFMTests/AgentPersistenceTests.swift) checks graph removal, equal-time suffix tools with and without transcript call ownership, same-run prefix retention and staging adoption, rejection of foreign message targets, and explicit compaction-boundary pruning. [AgentReplayPersistenceTests](../../FrameworkTests/AgentReplayPersistenceTests.swift) verifies captured replay/model previews and failed/interrupted adoption through a fresh context.
+
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V52. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; the current local schema is V51. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V52. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; the current local schema is V52. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 V28 is required for existing installed stores. Removing its endpoint made staged migration reject those stores with CoreData error `134504` (unknown model version). `TermindSchemaV28HostModels` restores the historical fields, defaults and model identity from the parent of `b0d35d24`; V30 retains its existing model types and order. Recovery uses the normal container factory and preserves the original database on an opening failure, rather than clearing or rebuilding it.
 

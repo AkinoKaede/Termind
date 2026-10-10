@@ -102,6 +102,8 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-dc041600497a72c229d5eef4
     resource: repo://TFM/UI/Components/ConnectionJourneyView.swift
   - id: openwiki-source-73c75477db0674192248aa00
@@ -116,10 +118,12 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-09T00:05:26.272Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
 # Termind Engineering Quickstart
@@ -133,7 +137,7 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) a
 | Task | Guide and focused check |
 | --- | --- |
 | Module placement, imports, nested directories, shared resources | [Module and Product Map](architecture/module-map.md) → [System Boundaries](architecture/system-boundaries.md). For placement, use [Shared Module Ownership](architecture/shared-module-directories.md), [Native App Responsibilities](architecture/native-app-directories.md), or [Supporting Systems](architecture/supporting-system-directories.md). Run `ArchitectureBoundaryTests` for dependency changes. |
-| Composition, startup failure, window/scene state, backgrounding, quit | [Platform Startup and Runtime Composition](architecture/platform-runtime.md); choose `AppTerminationTests`, `MobileAppTests`, `MobileWorkspaceSessionTests`, or `MobileForwardingLifecycleTests`. |
+| Composition, startup failure, window/scene state, backgrounding, quit | [Platform Runtime and Application Lifecycle](architecture/platform-runtime.md); choose `AppTerminationTests`, `WorkspaceCloseConfirmationTests`, `MobileAppTests`, `MobileWorkspaceSessionTests`, or `MobileForwardingLifecycleTests`. |
 | Desktop Navigator, sidebar, workspaces, Vault, Assistant layout | [macOS UI and Workspace Ownership](architecture/desktop-ui.md); use the relevant window/navigation or layout tests. |
 | Desktop Workspace/Pane sorting, merging, drag-out windows, Assistant reordering | [TFM Drag and Drop](workflows/desktop-drag-and-drop.md); preserve native Workspace List source and live receiver contracts. Start with `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests`, or `AssistantConversationListDropTests`, then the guide's source/cancellation/animation suites. |
 | Mobile tabs, scene routes, cards, editors, terminal continuity | [iOS and iPadOS UI and Scene Ownership](architecture/mobile-ui.md); use `MobileWorkspaceSessionTests` for window-owned connections/routes, `MobileAdaptiveLayoutTests` or `MobileNavigationParityTests` for UI, and `MobileMetricsJourneyTests` for metrics authentication/navigation. |
@@ -189,7 +193,7 @@ These are routing reminders, not replacements for the detailed guides.
 ### Shutdown, sync, and authentication safety
 
 - Mobile phases aggregate across scenes: pause background services only when **all** registered scenes background. Expiration suspends workspaces, stops forwards, pauses transfers and expires Assistant work; an active scene resumes monitoring, memory, workspaces, eligible sync and metrics. Use [Platform Runtime](architecture/platform-runtime.md).
-- Closing the last macOS window never terminates the Debug test host; otherwise menu-bar metrics preferences and running metrics decide. Quit rechecks unuploaded SFTP edits and permits cancellation. Confirmed termination fences new Assistant work, drains cancellation/persistence, stops transfers/MCP and closes agent resources. AppKit receives one reply after cleanup or a three-second fallback; the fallback bounds the reply, **not** asynchronous cleanup completion.
+- Closing the last macOS window never terminates the Debug test host; otherwise menu-bar metrics preferences and running metrics decide. Quit first asks for application-wide confirmation if any registered, nonclosed window has workspaces, then rechecks unuploaded SFTP edits and permits cancellation at either prompt before shutdown. The workspace confirmation defaults Return to Cancel and requires the explicit destructive action; it is separate from the window-close veto. Confirmed termination fences new Assistant work, drains cancellation/persistence, stops transfers/MCP and closes agent resources. AppKit receives one reply after cleanup or a three-second fallback; the fallback starts only after confirmation and bounds the reply, **not** asynchronous cleanup completion. Use `WorkspaceCloseConfirmationTests` for prompt scope/defaults and window veto, and `AppTerminationTests` for drain ordering and once-only replies; follow [Platform Runtime](architecture/platform-runtime.md) and [Desktop UI](architecture/desktop-ui.md) for implementation details.
 - `CloudSyncLifecycle` owns a separate engine/account scope per category: persist a recovery fence before automatic syncing, fetch before authorizing uploads, and reconcile pending changes against the durable journal. Pause, account changes and non-cancellation persistence failures retire/cancel the engine outside delegate context; late completions cannot update its replacement. A build is not a sync migration check: use [CloudKit Release Readiness](operations/cloudkit-release-readiness.md) and the lifecycle/safety/coordinator tests.
 - Shared `ConnectionJourney` tracks route progress and authentication/host-key checkpoints; `ConnectionJourneyRouteView` draws the common route, while apps own prompts/navigation. Use shared state tests, then affected native rendering/metrics fixtures; rendering is not a live SSH test.
 - Security Key references remain external Vault metadata with compatibility normalization; failed metadata writes/deletes roll back, and software keys cannot use external storage. A forbidden SSH interaction policy blocks destination/jump security-key credentials even with optional user presence. Keep silent auxiliary connections from triggering hardware prompts.

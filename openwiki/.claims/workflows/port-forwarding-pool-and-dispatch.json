@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5ee8772a0e33c456214bfb063fbb5dbb33c2dff0126593dd0f2ab23d78e35c93",
+  "pageVersion": "sha256:402ee9807551c18684f8fabd21deb9197aa67a88199193965fe323b99246fab3",
   "claims": [
     {
       "id": "claim_a66f64ff267243989e5b4bbc103576dd",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:42e025d10f660373b02cba5834271b9d07742b518eb381eb0ff513d21c099fff"
+          "version": "repo-file-v1:sha256:bd43f31a4ca2de3488045ee63d072fa8f2a03f8e6201b5f7acd712d20933c1e0"
         }
       ]
     },
@@ -46,15 +46,23 @@
     },
     {
       "id": "claim_62c62fe878ac485da32c2358658364ad",
-      "statement": "Accepted local/dynamic sockets are assigned by least asynchronously reported flow count for that rule, with UUID-sorted round-robin ties and generation checks; assignment neither reserves an optimistic count nor retries another worker after rejection.",
+      "statement": "Accepted local/dynamic sockets are assigned among installed, non-draining published slots by least asynchronously reported flow count for that rule, with UUID-sorted round-robin ties and generation checks; assignment neither reserves an optimistic flow count nor retries another worker after rejection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift#L319-L339",
-          "version": "repo-lines-v1:sha256:0146c08abeae8270031daea34a25749e0d96e7c3a937821e92e69f70638fa848:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmN2NjZTJiZThkYTJiZDg2NTlmYjFkMTNiZDM2MmFjOWYyYWJlYTU3NjI2Mzc5YTc5NWZhNTU5OWUxNjVmMmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjZWYwM2RmM2Y1MmZkNGJlMmQ4MmNmZmQ4NjUwNWNkYzUxZTJlMzk2MWFlYzRiNzZjMTY5MTg0YzQxNGY5NjAifQ"
+          "resource": "repo://TFM/App/AppModel.swift#L70-L115",
+          "version": "repo-lines-v1:sha256:ff243e2c108981e17e05e3c8c659b8f9ec61fdb873f0b90fa32db926c25e0a21:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NmM2MTEwMTIwMzNjMzdhNmYyMDljOWI5ZTY4OTRmNWUyYzU5NDdjNzExZDIyMjdhODU5ZjdkYzk3OTQwNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0NjQ1Njc2MTQ0YzAxNmYyZjA2MzQwZjVhZTk4NjdkYTRlNTY1ODBkZTE0ZGQwYWI1NjE1ODZlNGFmYjIwYzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMWFlMmU4YTZkNjhjMmE5MzQ1NjQ3N2U2MWZjNzIxZjFhMThiMGMwZTIxMjNjNDg2MDRiYmFiNmIzYmFjNzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlNWNkYjFkYTkzZGM5Y2Q4NjFhMDc4OWE2OGRiZmJkYTZkNTY5N2NiZGZhMzgzNGUyMDhjNTRmYTVkZTViYzEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L395-L438",
-          "version": "repo-lines-v1:sha256:97c269f3d0a7648b1af7e3efd9c63d878d03a199c854d67adb03deb5ddd15bbc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MjM5YTMxMTJiZWYyNjMzYTY4Yjg4Nzk1OWViYWZmNmY1ZjY3ODI3NzJlYTA1YTdmNjU0MzBjNGFjZTllOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMTUwOTViMTU2YWFiYjc0YmI0Y2YwYWU5OWE3MzJmNDc1YWMyNjNlOTViNmIwZDNlNWZiOTJhZGQ0MmJiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxNGNiNjJmZjZiMjc5MDAzYjVhNzlkZTA2YmE0MTAxM2ZmY2FlZWE0M2EyZGViZjUxYTZkZTYwZjFlYjMzZDUifQ"
+          "resource": "repo://TFM/Features/Ports/PortForwardingView.swift#L191-L195",
+          "version": "repo-lines-v1:sha256:48c3e341d8f14de2af90f8de2940c8312d641a4075076963cfdf7bf36e516965:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDlkMDExZWMzMWZkMDQ3NWNiYzQ5ZjZiMDBmODQ2MjQ2ZTM5MDgxMjI1OWMzZDUxNTBmOWQwNjNjNmFkMzUxYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWMwOGQwMWIwNmQ3ZjEwODAyZDdiN2VjODViODYwYjBkOTliMDk1ODRiYzdkZDdjNjE3OGU2Y2IyNWFjNTQ2MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTFjZjU5MDQ4ZWQzYjM5NjA4OWFmMmFkYWZmMzMyM2Y1MTMyMGE3NDhjMmMxNDkzMmJlYjdiZGY4MjhjYTlkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTg2MzNlMmJkZTNkMTAyOGMxOTI0ZDAyNjdlMmI5NzQ0NTIxZTFmYjY5YThkYzNiM2MxYTdkMmJmNDAwNjVjMyJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Ports/PortForwardingView.swift#L325-L354",
+          "version": "repo-lines-v1:sha256:b9c6e49e6169ad5e8bf3f850fa3c86547484b995179ffcce3f755806008d6fd5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NGZlYTcwYThiNTU2NjFlYTc1MmE1YTliNjU0MmIzOGQ4N2FhMjdiN2FjZjY4ZjRjOGIwNWUxZGUwOTBlYWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1MDUxZDAxMWQzMDEzNjkzYzhjN2E1NWRlZDFhN2NlMzFmNTRkMGEwODEwZTBlYjkwYTk5YTNmMGUwOTU2NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwNTU3MWU5ZDlhYzA3NDE3NzcyMjg2MjBlNWQ0NjZlOGMwMTk2OWY2NzZiZGVjMzg4MjVlMjJlYmMyNWM5OTAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/PortForwardingJourneyTests.swift#L21-L43",
+          "version": "repo-lines-v1:sha256:0c74bd6a94576675ec4622f4bf429bae63d039ce150018f1e3e82c98da86e5a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiOTM0NTU4ZjY5NjE1ZTYyOTlhMDAyODY0ZjMxOWQ3MTFlYjBmM2NmYWUxODBlZWJlM2I2ZDJhMjVlMTVjYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwYTU3MjRkZmI4MTA0NmFmYjk1YTU0NjM4NTY5MWYxZTRhOGY1NzI2MjM5Njk3YjNmZTkyYmUwY2ZiNGM1ZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkZGEwZWJkNTYzYjYyYjBiNjZkZjgzNTU0M2JlYmIxMTM3Njc1ZTQyYjRkMTU5MzAzZmFjNTFlMTZhZTZjNzgifQ"
         }
       ]
     },
@@ -167,6 +175,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

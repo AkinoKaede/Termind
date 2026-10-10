@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5d2d18d31f2c7a1c6dab2916e7b91d3ae815773f66fe4b24bc577a3e54a928dc",
+  "pageVersion": "sha256:4cf6a62fc6c355a004b9d390a8367264ee27fcdf63e68df111db19ccdfc0a303",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -155,7 +155,7 @@
           "version": "repo-lines-v1:sha256:74d825112c4c6bf034c5574b2ff117fea7e833ade0a321f2a8caec27c19d9deb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGE4ODZkMjJlMjhmYThjZmFkMzg2ZTUzMzlmN2JhNGFmNDEzM2U4NGRmMjU5YTYwNTNjNjJiMzI4ZjQ2Y2U3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5M2IxZTE2YzVlMWYyNGI4Njc3YzQzYjI2ZmYyMGI3ZDM3MGE2OGIyMWIwY2ZlZTA3NmQ4OWNlNmNjYmEwMmFmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMTNhOTQ2OThjNjNhZjM5MmJkMWI0YTZkZWIwZWI5ZjdmYzFlNWVjZTQ0MGM1OTU3MTdkYmEyYjM2ZGJjYTU4In0"
         },
         {
-          "resource": "repo://TFM/App/RootView.swift#L395-L404",
+          "resource": "repo://TFM/App/RootView.swift#L386-L395",
           "version": "repo-lines-v1:sha256:f3e76fe3409f2b446bae7dbcf097ec6627a488879b512df98b753d5f8a05e16f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiZmVmODg3ZmEzNjEwYjA4MDVkN2ZiNTA5Yjk0MjU5OGQ1ZDgyOGU5YmNhMTlhNjM0OWJiMDU4NzcwMzhhOTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2ZmI3ZDYyZTU5NjIxZGEwOGZkN2U4NzViYWRjNjg3MTNiMzk4NWE2OTcwYjgyMTRmNzg5NGY2NmU1MzY0Y2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIxMTI0NDU4ZWE1NjRkODI3NTg3MGQyYzFhMDcwZDU4Yjc1ZGJiZTZhZjNlNWE1MWU4ZDgxNWZjYTgwZDhjZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2ZGJlYTRiYmU0MzNiZGU5ZjY1YzBjMjQ2Njg0NmRkZWNlMjMxMzJlN2YzZmExN2FlNzU4NjExZmVkMWZiN2UifQ"
         },
         {
@@ -216,7 +216,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:1f9c2221300c6e82d4a539f738405066b0d50137bd597304b70a16e0fe2b0b71"
+          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
         },
         {
           "resource": "repo://TFM/Platform/TerminalFontCatalog.swift",
@@ -244,23 +244,23 @@
     },
     {
       "id": "claim_4556ccaeb3eb45819c67c7edb0d5f37b",
-      "statement": "TerminalThemeOptions retains missing/empty/wrong-appearance names and supplies a localized fallback notice. Rendering resolves a copy, applies base/optional overlay/local typography in order and does not repair storage; desktop autosaves/imports custom text while mobile explicitly saves a draft editor.",
+      "statement": "TerminalThemeOptions retains missing/empty/wrong-appearance names and supplies a localized fallback notice. Rendering resolves a copy, applies base/optional overlay/local typography in order and does not repair storage; desktop autosaves/imports custom text in TerminalCustomConfigurationEditorPage while mobile explicitly saves a draft editor.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L14-L77",
-          "version": "repo-lines-v1:sha256:8d020317a85e51dd6cc1a45be81912da9e08c2713ca1d308dd50e07e1d88ab5a:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5YWY2NTk1ZjU3NGMzNDhjM2YzMTcwZTA1Yzc0OWQ1NjBmM2MwNjFiN2RhMTRmMDE1NDE5ZDZiOWFmNThkY2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhN2I2MWI4Mjc5OTgzMjY3Y2ExNjFhN2M0ZjJlNGIxMjgwMmQ4N2Q3ZDQyZGE2ZTY1OWUwZTEwOGQwMTRjZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNkYjdiZjY0ODg2YjgxM2VlMjA0ZWQyMjk2OWZkOGYzODhiOTZlOWMzNGUzNjFiNWMxM2U0YjE5MTA3NWI3NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0NjNhNDZlMDkzZjY0MmFlYmIxZWFjYTM0OWY4MDkwNDhhYTZjNWRjNjMyNmVlOTI4ZTQ5NGU5Y2I2Zjg4MWEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L42-L88",
+          "version": "repo-lines-v1:sha256:e97eab5a85d34d9f7467c119470bf36169bc710e9cb30cd033f92ff3275eab60:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmZDYwMThmMGJjNzZmMDQyNGJmODc5Mjc3NGM2ODI2Njg5MzRjNjJlYTgxYTcwZjA3MjUxYTRmNGNhOTU2MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxY2ViNzRiYzA1Nzg0ZmI3ZDI4ZjU1NzU2NWQyNGU3N2Q4ZDBkMDBiZWZhNDZlNWQ0YTk5YzA1ZTEwMzhhYTkifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalThemeOptions.swift",
           "version": "repo-file-v1:sha256:69d40e9ddfbb5658171ec98e5193832648eb19237ba45be0d53c00740b222c8b"
         },
         {
-          "resource": "repo://TFI/Features/Settings/MobileTerminalThemeView.swift",
-          "version": "repo-file-v1:sha256:6efdee4d31790b38f39bc81896fc9ff5d821e0f2dad36f3f821f3d859f6c6df2"
+          "resource": "repo://TFI/Features/Settings/MobileTerminalThemeView.swift#L19-L60",
+          "version": "repo-lines-v1:sha256:1705e815fe766823deb9aa98b4eff172949bee845c0a870d748e6b4b50270dfc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZjVjYzUzNjJlM2YwODJkZThlZTQ5NmVlOTgxYzU4YjhkNWU2MjAzNThlMTY4MThhYzcxODVhZmY0ODM4YWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
         },
         {
-          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:1f9c2221300c6e82d4a539f738405066b0d50137bd597304b70a16e0fe2b0b71"
+          "resource": "repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift#L110-L170",
+          "version": "repo-lines-v1:sha256:1c95758f537f1a660aff3c223a3d68f6a6015466ffda13022e3a06b9a802780d:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NjY2OGNjZjFjZDBlYzYwYjE1YjY2MDEwZTBjZDJiZjJiNjgzNjA4NmFiYzM3MDgyNzY2YTU4NzdkMWM5NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5OTIzYTUxY2Y0OTdmYWVhNWY5NmU1MGI4ODlkNTZkMTY0MWU5MWVkYmJhOTZkOWE4OGI2ZTMwOTVkNTI5ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         }
       ]
     },
@@ -798,7 +798,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:1f9c2221300c6e82d4a539f738405066b0d50137bd597304b70a16e0fe2b0b71"
+          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
         }
       ]
     },
@@ -982,7 +982,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:46:25.102Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

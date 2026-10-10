@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:efccd4e208efbf5ffeb58914325df9ee75620d3924a843bec8659e05bc60e35f",
+  "pageVersion": "sha256:d24218c79590fcd98003d809565d14803bea7a36c217b18ab04c2fadb38a5b66",
   "claims": [
     {
       "id": "claim_ef9adaabb13c4328899d3e43b56b9fb5",
@@ -79,11 +79,11 @@
           "version": "repo-lines-v1:sha256:0b8fd9199e8804fda784fa842f1fd7b8bade62562fd8eef3075a3ad7135693eb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1OTY5ZjgzZWY0NmUyNDBiYzYwNWE5YjJiZGRjOGE0YWZjMmJiOTYyZjZkMGJiZTljYjFlYzIzMGI0MzdjM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMmNkZTI0ODQ1Y2UzNDIxOGEzYTZlYzZlZjhmYjM3ZmZjZTU1ZDZkNjRlZjk0NTEzMDIxNzMzOGEyOTU1ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlM2EwNWU5ZDY5OGY0YzY1ZjA0MjdlYjM5MjcxMzU0YjhiMjA3MjVjM2NmYjNhOTg5NGU0NTAxYzJjYjAxNGUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L192-L210",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L196-L214",
           "version": "repo-lines-v1:sha256:01874908a5c92a0ef2908dd9b2bb9b43d6333cc57ca3a8a2320586e492979ad4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YjUyOGUyY2Y4NWU1NjdjNDIzNzk3ZjI4ODViYTFhZWRjZThlNmU2MWM1Y2NmZjBiNGFiZTNlYWIzMzUwZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkN2Q3ODI0ZGMxZjYwYTdiY2VlYjc4OWJkMzI0ODk4ZTRkNjgzNDM4YzFmZTM4NzQ3MjJmOGY4Yjg5MTFjYjIifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L100-L117",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L104-L121",
           "version": "repo-lines-v1:sha256:e1b70d29a86051aa53fea2a196d6399b043c77ee9abdaa20c30d2fd865c8e48f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2Y5OTE2NTU5YmM4Mjc2ZDI1YTRiN2RjMTkyNWNiZjcxYzI1NTQ0ZDY0MzI5N2I4MzNkOGM1MTc5OTE3NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5Mzc5Yzg0N2Q1YWE4ZTg0ZjYwN2JmMGQ0NzI3YWE5YWJlYjg4NDkyNTQzZDk5NjhjOGJmOWEwNWQ2ZmNiZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwZmQwNTk4NzdkYjNiNmYzNDYzYjBhOTlhZmNlYTY1YzY0NWJjYTFjYzE4MjYwNDVjYzc5YzBhYzJhZDFiMDIifQ"
         }
       ]
@@ -97,7 +97,7 @@
           "version": "repo-lines-v1:sha256:182e79a48134752c46c88db4a7b71bf6453722854b55eb56c7406f28ff38de7d:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwN2JmNzJkZjdjZDYxMzMyYTIxMTNmZTgwZDdkMjI0MmM0NjI1ZjA2Y2FhNzZlMWE3MWM1YmY1ZmQyMTAyYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1068-L1175",
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1111-L1218",
           "version": "repo-lines-v1:sha256:2c0dd51a6afd0947d86f23419c4e0fde6df86876384115d8aed6a91663b23a97:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMGQ3NjAzOTE4NzFmY2UzZjc1OGY0ZWMwMGMzNmY1NDA1NTQzNzUxNmZjOTU5ZDZiYTc0ZTg3MGE3ODM1NTc5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0NTM0ZmVjZjliMDllMTA2YTA1MzE4MmQ4ODQ3YmFhZjBkYTM4MmZkOWQ4NWQ1ODhkNTJmMTgwZmQyMWRmZjcxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwZTNkMzIwYzI5YjAwNjRlZjdlNzYwNzY2ODdkYTQ4YmVmYWZhNmI3YzlmNDg0ZWE3NzE4ZDI2Y2E2OTE1ODkzIn0"
         }
       ]
@@ -107,7 +107,7 @@
       "statement": "The Pane drag source is attached to eligible title content and starts a native session using a retained mouseDragged event; its transparent background recognizer rejects double-clicks, hidden or clipped sources, text controls and parked panes without delaying ordinary mouse events.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L759-L790",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L763-L794",
           "version": "repo-lines-v1:sha256:941396f3a1af76d552b16f7105ae2d9e315856640223574a78f593ca935c0b94:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0YjVlZjVlZTYyODkxMDdmY2VhNDAyMTEwOWFiYTNhM2IyMzc5YTcyODI4ZWE1YTEwZTJjY2FlY2FiZjMyNjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhZmJkZWFlOTg5N2NjZjgwYWIyMzYwMTM0MDMyMDY5ODU1YWVmYjIxODhmZjQwMWRhOTVkYjM2ZWU1MzVmZWQifQ"
         },
         {
@@ -197,15 +197,15 @@
       "statement": "MainWindowCoordinator deduplicates source/move requests and leaves ownership in the source until native destination registration. Registration consumes a matched request once even if extraction is empty; source close discards pending requests and restored scenes never replay a move.",
       "evidence": [
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L240-L250",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L270-L280",
           "version": "repo-lines-v1:sha256:c5227808da46361610a937bc599dc1298bb128c83a8256599c10314dede9240a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5MTAzNjMwNDU0YzZhOGM3NjA1YTVhNGE0NjA3ODBmNDdjZWJkNzAyNjFkYWUxM2U1NmY5OTQzMzhlMjI2NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMDM5NzA5ODE4YWMzNjZkNGY5N2RlM2YzNDJlYTliNGFiMWEzM2E3NjhmMGQ3ODZjNWEzMTQzZjFjYTQ1ZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1YzNjOGYyMzE4ZDNlNzlmNzJmY2ZlNzdmNDc2ZmY1YjM2NDBiMWI4ZTFkODcwNDVkYTNiYzhlOGM3NTZiYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZjJiOTFiOWJjYTAzNDk1YTFhODRmM2IwODZiOTU4MDhjZjEyMWIyZTVlNWM1NDdiZTNlZDVmOWU4YWRkYTEifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L307-L351",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L337-L381",
           "version": "repo-lines-v1:sha256:8d55f7f4cea1fe28ed3ff9bcb4443438b1e4370c5e939a9e394ea4bf71dfae27:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMWQzZDYzMmM5MThkZmFiYzJkZmViZTQ0MmMxM2I3MDA2YTgxNzlmZjg5MDYyNDk5ZjBmZTMzNzRjYjFkZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNTFjMDIzNTg2OTk0MDFhZDg1ZTkxZjZjNGU1YWQzYWU3ZmU5NGE3YWNjOTc0YTg5MTQ4MzZlNzIzZDg3NDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4MGUyZjE0MWIxN2ZkZmNiM2I2MDY2NjE3NTg3ZWY5OGExOTE5MzQ0NDk3MjViYzUzZjZiMjllMTQ4OGNhOGYifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L428-L440",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L458-L470",
           "version": "repo-lines-v1:sha256:834e2826f2c333ad39ff15294a5120d5cd5f485c0c91883dfb36104c42ea2146:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDA1ZTViMzQxMjg0NzIxNTA5NTE0ODRlN2VkYmNmNjhlYTUyYWE2NDkzYjAyMTdjYjA3OGZmOTdiNTllMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhMmYyZDVlZTRmYWQyYWY1MWEyNjUyOTgyMDliZjYyNTVjYWE3MDlkY2I3NmQxYjY5M2I4OWRjNmU0YmM0OGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkY2VlNWIwMjZkMjYyNTk0MmJmOTE5YmZjMzBlOTZkODY4MDE3YTI5ZmFiYWNhMDgyMmQ1MzAxNTYyYjk3MzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhYzQzNTM2MWVkMTYwNmIxNjg2NDFkZmQ4ZjgyMTc4MmE5NjdlZTkzYmI1NmRhYjBiNDI3Yzg1NjY1YTJlMTQifQ"
         }
       ]
@@ -215,11 +215,11 @@
       "statement": "Whole-workspace transfer preserves the same Workspace and full split layout; split-pane transfer wraps the existing Pane in a new Workspace, whereas a lone pane carries its original Workspace, name and template identity without disconnecting or ending its history event or adding reopen history.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1012-L1024",
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1055-L1067",
           "version": "repo-lines-v1:sha256:315ecac0f0460f320d589dcbff34ee0b23e0b64fda134b351d9978de513918a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4MTk0NTE5ZWZhYzIzYzA2NWIzNTcxNGYzMTdmMTc4YmU5MTM4N2U2MTYwNjYwYTI3MmI0NzhmNWE3NTc1YzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ZmExNDU5MmY0NDQyODUwMzE1MjFjNWE2OGI2YThkNTE5N2VmYWIyMTUzOTY4NTcyY2Q5MzYwMmQzNmM1YTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4OWU5ODNjOTg3NjRjNGIwMjJjMzE3ODczNWU3MjJkZTU5Y2UwZjY4YTg5YzkxNDAyZWQ0NDY0NzkyYWU5ZjQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1342-L1371",
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1385-L1414",
           "version": "repo-lines-v1:sha256:a0a8c30995115f068d16a8f20efd48c39a49db0ed801b58b34a16b05d70c4ec7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1MGRmNGNiMDJlZjZmZmY0MGVjMDk1Y2RjMWRmZDQ0ODZhZmVkMTNkMWZlNTkyMTgwMzQ0NzUyMzBjNTk4Y2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1YTkyZGE1ZDMxNjBmNGNhM2UxYTgxNzkxMzgwZGRmZWZjNzU0ZjQ0Mjg5YmNiYWMyZGI3MDczNzYwOGE1YjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhNmQ4OWYyNDA1OGY0ZWVmNzExNzA4ZTc4ZTBkOTllZjZhY2RmM2RhYzVlZjJiYzdiYTcyMTlhZTk1NWQ1YTkifQ"
         },
         {
@@ -241,19 +241,19 @@
       "statement": "Drag-created windows suppress native opening animation, use the source's ordinary content size, choose the release-point screen and fit a top-centered initial frame within its visible bounds; restored windows without a request keep their system-restored frame.",
       "evidence": [
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L247-L262",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L277-L292",
           "version": "repo-lines-v1:sha256:1e2754219415b86e30e7530ebf743adfa491b01ed35798ff9bb3346ed84815ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0Y2EzOGJlNzAwZmYyMzUxMDJiZjZkZjE5MzZkNDhkNzQ0MDMxYTg5YjQ5YzViNzljNWUyOTAwODdiZDI1MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlNzRiOGQxZmYwZTY2NDcwNTc1YzdiZjE1Yzc5NTgwZTRjMWE4NjAxZTg1OWU2Y2E3ZmY3OGE3NGVmYjk0MDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmOGUyZjc0Y2Q4ODRjZjRlYTI2ODI0YzY1NDdiZGM5ZGQ5MjdlOTcxNGQ1YjJmZTJiNjAyMmMyYjJlMGI2ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlkOWZmMDZjYjAzMWMzNzZhOGI0ZWViOWYwYWMyZGI4OWMzNTljYTZkNzVjZjA1MmQ0YjBkNDRhOTBmMWU5MWYifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L307-L350",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L337-L380",
           "version": "repo-lines-v1:sha256:9d0be27eb9bd671f1d070ef2eb3ba5809494e8faff898faf9afa4dad8330aef8:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMWQzZDYzMmM5MThkZmFiYzJkZmViZTQ0MmMxM2I3MDA2YTgxNzlmZjg5MDYyNDk5ZjBmZTMzNzRjYjFkZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZGJkNDNhODE0ZDU0YzZlOGY1YmYzYzc5NThiYTVmMGJiNDNmNzViNzc5ZWNmYWJjOWEyMzk1ZjRlYzZlMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNTFjMDIzNTg2OTk0MDFhZDg1ZTkxZjZjNGU1YWQzYWU3ZmU5NGE3YWNjOTc0YTg5MTQ4MzZlNzIzZDg3NDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiODU1MjNhOWI3Yjg1ZWIwY2RhNmY1ODQ1OWE5YThiZTgxZmVjZWRmMGYwNGMxZTJjOGU0ODhlZDE1Njg5YzkifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L362-L383",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L392-L413",
           "version": "repo-lines-v1:sha256:9e6c6a9b40996f94777209d15c5a28131830093be76f35107c77414db64aa119:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyYjMyMWFhODY1MzFhNDZlMjRhYjMzNWJlMWViNmRlMTVkNTQ4YjkwNDA0ZWFkN2Q2MzlkYzBkZWJjM2M1M2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwYWRkOTI4YmM2MjRiYTJkNzUzNjI3ZTRiYWI4NGM0MDlkZGQyNjRlZDM1NjM5MDQ1YWFjMGRkMmFkZTVlMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlZDBmNTc5Y2E1NmE0MDc4OWM0YWNmMDFlOGRhNGYxNTg0NjA4NDk2MjA5ZmFkYzg4NzdkMTlhMzcwYzVkY2IifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L535-L542",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L565-L572",
           "version": "repo-lines-v1:sha256:013219a1d45597807fc4f5f32ab31434b02fce6c0f8e74d481aaca80e1f80135:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTRiOWM3YTI5OTYwOGEyMzg5NWQyOTk5MTQzY2JkYTliMTZiZWQ4MDlhNjQzMzEyZTRiYjM5OGUzZmQ0YWJiNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmNiZWIzNDAyYmMwMzM2MDgxYTY3NGVkNTRiZDljZTQ1M2IyNjhlZTk2YWU0ZDgwMWI3MTVjZTcwZGMzNDhjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTcxNmNlZTgwZDM3YzFmNDlhZjZlNWUzYWU4ZTY3Yzk2ZGFjYjc1NTk3ZTAyOGI1OTM2YWY4NTdmODMxODk2NyJ9"
         },
         {
@@ -267,7 +267,7 @@
       "statement": "The pane content drop target is a separate outermost overlay above terminal/table native content and outside the workspace layout receiver; it is enabled only on active supported panes when window layout/conversation drag state is nil. SSH accepts files, SFTP items and terminal paths; SFTP accepts files and SFTP items; Telnet and Serial accept terminal paths only, while empty panes have no content drop target.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L424-L483",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L428-L487",
           "version": "repo-lines-v1:sha256:1cf4f020054920eb029c849554dd7efdffbb543f977d091ae94b167ac79a1dfb:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxYzQ5NDZlZmE1YjM5ZTFmMWJlOWMzMDI2ZDE2NDM3YjY0MjMyYzBmNjBjMjg0OTc2OTcwNmVmOGMyMDhiZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxNGI4NjAzODcwZDZiZGEzMDMzMTcxYTExOThjOTBlODBjMTdjM2EyMjYyZDZhZDA0OWZiOGQ3MGE0MGRhODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlNmY2MjcyY2M1ODJiODAyYjY3ZTNiYzJjYjVkNjA2OGQ1ZTgxOWJjOGY0YWI4NWFkMGE5NGM4YzVkMzNkNjcifQ"
         }
       ]
@@ -351,7 +351,7 @@
           "version": "repo-lines-v1:sha256:3fc204b94144201fa77d7a124886ce1111c1841d7a9b9b1b6a9e399eab11be12:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOGUzNDE0ZDU4NGYyOWIyZTIyN2YwY2VkMWE5YzVhMjFiYTdhMTBhODA5MDRiZWYzZmE0MjZkMTNjOGJiNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZTdlZTY5ZTA1Mjg2Mzk3NTg5NTU3YTc1MGYwMzBmOWM0YzUyN2NiMTU5N2JhMzJjZDQ4NTY3MjQzMmUxOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxYjU3ZDcyNzJmOTVkNDc1NTU3Njk3OWFkYjdiZGFlNzk1ZTA3YzcyODA3NzU2ZGFkMTYyOWIxNDg4ZDY0MjYifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L826-L833",
+          "resource": "repo://TFM/App/AppModel.swift#L834-L841",
           "version": "repo-lines-v1:sha256:3211bbc0146e7aba81189fb9e8e3f3cd93766ff0ab228b78fd76c99982b6ac61:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTBmOWVmNTU1ZmUzZDUyMjY4ZDlhNGNhMWVlMWViM2I3ZmI3NjcwMDk3YzUzZmY5OGNlOTE3ZTI4NTc3Zjc5NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmYwZDc1OTUwZGYwZmY5YTNlZTk2NjM5ZGNjOGZmNWVhZWRiNDBkNjgyYmVhOTI2MjJiNTIwZGQ4ODdkOTNlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmRmMDQzNTFiNTJkZDZiNzI0MTRkOWIxODQwOWNkYmNlYWEzODc5M2E4OWMwNjg0ZTAyZmYwZTViOGE1MjIzNyJ9"
         },
         {
@@ -424,27 +424,15 @@
     },
     {
       "id": "claim_15b78025588f4393b94778c68f475f4b",
-      "statement": "TermindCommands supplies MainWindowCoordinator's scene factory using the UUID-valued main WindowGroup; on the normal workspace scene path after the diagnosis-consent gate, TermindApp configures a fresh destination model from the request before RootView construction, and MainWindowRegistration consumes the move only after the native window is attached.",
+      "statement": "TermindCommands supplies MainWindowCoordinator's scene factory using the UUID-valued main WindowGroup; after the diagnosis-consent gate TermindApp configures a fresh destination model before RootView construction. MainWindowRegistration consumes the move only after native attachment, attaching a forwarding WorkspaceWindowCloseDelegate and establishing full-size content coordinates first. It observes initial and new isDocumentEdited values and clears true values without bypassing native close confirmation. The close proxy honors the forwarded delegate's veto, confirms only for an open model owning workspaces, forwards other supported callbacks, and restores the prior delegate on detachment only if still installed. This leaves registration-time live transfer and stable Workspace/Pane identity and connection/history semantics unchanged. Close-confirmation tests exercise the proxy directly; move tests register directly through the coordinator rather than testing edited-state observation.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/RootView.swift#L73-L85",
-          "version": "repo-lines-v1:sha256:76a7e7d87845d7e2822acb32c9f1ccbfafc9d645e2221fb3dc549f815ae36a4c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5MDFkZDM3NjU2Yzk2MTY4Yzk2ZTUxYzMyNTZiMDdhZWIxZGU0NzY0Yzk4N2VjNmQ3ZThmZTVjMmQ0NWNjZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNzE0MzFmNGM5NzhiOWU2ZjQ4OTJiM2JjN2RiZGY4NTdjZjMwYTdiMzBkNmQwYzY1ZjNiZDE5MjQ4YjhkNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyYTc0OTNmYTgzZDczNmE3YzEzNzZjOWU2MDJlMDZjNjMyMzFlNGE4OWVjMzYzYWMyNmJiYTY2NjUyMGUwNTQifQ"
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L589-L628",
+          "version": "repo-lines-v1:sha256:9264a0364b40c87ccdf0c9f6b6dd0e605dd731a8ce45d308eb7afef0a174674f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlZTkzZTAzMjRhYzVlYTE2MjczOTFlYTI1OGNkYTcwNDcyYTRmYjRhMTdjOGQ1OWUyODg2N2YzYzJmNzk3YmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L224-L252",
-          "version": "repo-lines-v1:sha256:a9f931599e4aa7e061feea57c4593b229ccfbdf3edb2fc6fff197103e36424a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZDNlZjc5MmEwYzE0NDVmOTU3NTQ1NjgyY2FmMWI1NjM2Y2NjNWIxNzE2MDlhMmVkZDFkODNiMjQyMWRiY2UifQ"
-        },
-        {
-          "resource": "repo://TFM/App/TermindCommands.swift#L29-L32",
-          "version": "repo-lines-v1:sha256:8060505668641c6d0b7e265aee0d2d0b2fd4ef184339dab191cb5da15209d401:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmNhOTdkYTkwZTEwNGUyMTFmODUzZjgzNTY3NDcwOTZmYjAzMzRlYjVkODE3MDI1ZmVkZWY3NjA0NTM3NTc5NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjFkODdmM2Y0YzAwNzJkMDYyYjFjOTllZmE0MmZmZWI1YWRlZTRiOGY0OWU1ZjRiOTFmNGVhZjBjZWYyZjQxYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmYyNWE5ZjEyZmYyZmU5YzIyYzE1YjAyMTg1ZDYzZWRkNzhiYTE2YjRhNGUyYzM1NGU0YzU3OTZmOTMwZjI5YSJ9"
-        },
-        {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L265-L268",
-          "version": "repo-lines-v1:sha256:888ff190c58d98866db68a469eb57167acf6ea23655281ab8d385f1692b69996:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjg3ZDYxMjBiNWJiM2Q3N2VkOTFmNzY2NDU4ZDBiNjVmN2JlMDY1MjE4YmNhMDI0MjYxNTk1M2MxOWI4ZGYyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQ0OWViMzY0MDY1ZTlkOWZjYTIxN2UzMWE3MDNhZGVlNTA3MTkwNTAyOTM3MzliZjhmZDljMjZjMjEyYmRiNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjVjZWMyNDgwMDQwZjEzZDdiNGMxNjcyYjE5NDExNzg0MTFjOThkM2ZlNzQxOWNlOGFlYTMwNDQ4MjVjY2NiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGJmYTA4OWJjYTUxYzk2NWUwM2NmNDNmNjI1ZmUyMDg4M2IyOTgwZTkyM2Q1YjQ4NzYxYjcxY2Q1ZTM2ZDBlNCJ9"
-        },
-        {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L575-L594",
-          "version": "repo-lines-v1:sha256:f9e5f3e56f6e49a7dfcec80b5d6990e48211b74570919dad10e3321a80460f38:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1MjM0NjFlMjQwZGI1NWM2ZjdkMGQ4NTU0ZWJlMDM0MWIwOTFmZTk5NWI5YmU1NTNlNjE3MzNlYmM4ZWI1ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJhYzgxZjkyM2QzYmEyMDNmZjZhMmJjOGU5NjFiMmY5NzgzM2I2M2MwYzA5N2RlYTcyMjVlNTU4NDcyNWM2MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://TFM/Platform/WorkspaceCloseConfirmation.swift#L49-L58",
+          "version": "repo-lines-v1:sha256:1334417673ef9cbe3bd175affea8da526314fd71c9664c485136d1f179edc802:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyYmI2ZDU3ODMxMmY2MmZkZDc5Yzg4N2EwY2M2ZWQwNGNkOTA5NDBmMWFhYTdlOWE1MDIwZWY2OTI5MWE5NTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNkNDZhMjkyYjAxNDZmMmI5Y2VkNjQzOTlmZWRiMGM1MjA2OTMzN2IzYzYyZjY5ZDExNzA2NDkyZjNmZjYwNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMzgwNzYzNTkyN2NiYzZiYjExZmYxZTUwNzllMjUwZTgwNjUzYjI1MDIzYzM1MzkxYjI3ZmZmMTkwZTY2ZWIifQ"
         }
       ]
     },
@@ -457,19 +445,19 @@
           "version": "repo-lines-v1:sha256:a9f931599e4aa7e061feea57c4593b229ccfbdf3edb2fc6fff197103e36424a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMDk3ZDRjZTdkZDAyOWU5OGI2YWFkMjViMDFiYzEzNzhjOTdlMzA5YmRjMDY0YTM0ZTI2NTQ4MTFmMTgxYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NWUzNDQwZWZmODhjNGJiYTg5MGEyNzcwZTIxYzE4MmVhNzEzNGUzMWY5MDE3OGI5YTI1YTU2YTFlZWQ2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMmQ5OGU3M2M3ZmQxZDQ4ZjUzNjdjZmY5NGFlNGYzNDlhZTYzZmIyMWRiYzkwZmYxYjZhNDViYjNmOWQ5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZDNlZjc5MmEwYzE0NDVmOTU3NTQ1NjgyY2FmMWI1NjM2Y2NjNWIxNzE2MDlhMmVkZDFkODNiMjQyMWRiY2UifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L247-L273",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L277-L303",
           "version": "repo-lines-v1:sha256:6db7e5ac4c73add58489f6562e0375fd66535e81e7280dab440bea967d5b5588:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0Y2EzOGJlNzAwZmYyMzUxMDJiZjZkZjE5MzZkNDhkNzQ0MDMxYTg5YjQ5YzViNzljNWUyOTAwODdiZDI1MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmOGUyZjc0Y2Q4ODRjZjRlYTI2ODI0YzY1NDdiZGM5ZGQ5MjdlOTcxNGQ1YjJmZTJiNjAyMmMyYjJlMGI2ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0YjI3ZTk0NjE2MDJkZjMwNGQ2MDIxYmI5OTI1ZDAzZGUyYTMwYjNjN2YyOTViMDg4MGEzYjA4MDI1ZmZlODkifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L307-L360",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L337-L390",
           "version": "repo-lines-v1:sha256:9365361ab301fd38e7cf83341c960e6c8e1bc3f16d62d67e12e5b76490e85d2b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMWQzZDYzMmM5MThkZmFiYzJkZmViZTQ0MmMxM2I3MDA2YTgxNzlmZjg5MDYyNDk5ZjBmZTMzNzRjYjFkZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNTFjMDIzNTg2OTk0MDFhZDg1ZTkxZjZjNGU1YWQzYWU3ZmU5NGE3YWNjOTc0YTg5MTQ4MzZlNzIzZDg3NDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkZmEzYzQ2ZGJiMGMxMGNlZTVhNjcwZmJlODVhN2ZiOTVkNzIyZTNmMTZmOGRkZDcxY2M1NGI1NGZiZDg5ZDIifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L362-L401",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L392-L431",
           "version": "repo-lines-v1:sha256:d91c93d97233424edb28debbb70eb1362a462812e32bb3f2fb3d48685343b3b9:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyYjMyMWFhODY1MzFhNDZlMjRhYjMzNWJlMWViNmRlMTVkNTQ4YjkwNDA0ZWFkN2Q2MzlkYzBkZWJjM2M1M2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwYWRkOTI4YmM2MjRiYTJkNzUzNjI3ZTRiYWI4NGM0MDlkZGQyNjRlZDM1NjM5MDQ1YWFjMGRkMmFkZTVlMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjZjk0YmMxNWY3MTllOGUzM2FmNmY1MzE5NDk0NTU1NjQ5OWExMjBmNWI4YWFiNGEzMzQwMjFjMzFhMDRhMGIifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L443-L453",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L473-L483",
           "version": "repo-lines-v1:sha256:ad85ac8844ffb01e79f52e14ca2956d97e99ccde8b3fac7632a425fa1c656c55:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YjhkNmFlODU2MTJmMjNiNWVhZWEzYjAzZGM4YzVhMjQ4MDAyNWRkNWFkMjg1MmNkYTU1MjY0Y2VhNTAyZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliNTkyYTk0MDg4MWUwM2Y5Njk2ZmZjN2VjMzA5YjIwYmZjYzUyNTI5ODAzYjU2YzZiNzY0NjQ1MzZkZGY2NjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM1ZWFmMTA5YmRmZGMzNTA5OGUwYTdhMmFlODQ2MzhjNzQzYTJlNTU5NzRiNTJhYjA3MTE1OTQ1NzNlNWEzZWMifQ"
         },
         {
@@ -483,7 +471,7 @@
       "statement": "MainWindowCoordinator consumes a move request at most once when a destination's native window registers, and ignores subsequent registration of the same native/model pair rather than transferring the layout twice.",
       "evidence": [
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L307-L323",
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L337-L353",
           "version": "repo-lines-v1:sha256:a02031efcd9a90f907daf9de5f05cd1368b89f137edbe29135a8324804171b1b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkMWQzZDYzMmM5MThkZmFiYzJkZmViZTQ0MmMxM2I3MDA2YTgxNzlmZjg5MDYyNDk5ZjBmZTMzNzRjYjFkZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMTI3NDFjN2Y3NDMxN2U3NzliOGYyMjRkYzE0MTE4YjBhMmZiM2JiODc2OWU2ZmM5Y2M3ZDEzNmNlYmY4YWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxNTFjMDIzNTg2OTk0MDFhZDg1ZTkxZjZjNGU1YWQzYWU3ZmU5NGE3YWNjOTc0YTg5MTQ4MzZlNzIzZDg3NDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4NDk0MTcyMmUyNGM4NjQ2NDk3MmJhMmNjYmQ3ZDI1M2YzYjVjYWZhZjFmNTgwZmMyNDlhMGIyMTQ3ZmIxNjgifQ"
         },
         {
@@ -497,7 +485,7 @@
       "statement": "Closing a source window records/disconnects only its still-owned workspaces; previously transferred panes stay connected in their destination until that owner closes, preserving the active history event through the source close.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1341-L1385",
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1384-L1428",
           "version": "repo-lines-v1:sha256:956354a729443fea52681a19a78507477535d8fb0ef7f6e2c6974e8a1ea3449c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkMjhiZGQzZTJkNzRhZDQzODI5MzdjNzk1OWFlMzExZGUyZTllNjMwMzcyNTk1NTJiNTFmODRmNzQzMjFlMjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2OTg4ZTBhNTUyOTU3OGUyZmNkMWYyZWYxNGE1NzZhN2E3MjEzOGUyMjFiYjVkYzEyN2JlMmVlM2MxNmNiYTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViMTZjYzU0NTA2YzNjMGI0ZDQ5YWU0OWFkYzUzMTQ4NzI1MWVkMTYyNjUyZDA5OGZlNTg1MmMzMmRkNjkxZDIifQ"
         },
         {
@@ -515,7 +503,7 @@
           "version": "repo-lines-v1:sha256:0b8fd9199e8804fda784fa842f1fd7b8bade62562fd8eef3075a3ad7135693eb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1OTY5ZjgzZWY0NmUyNDBiYzYwNWE5YjJiZGRjOGE0YWZjMmJiOTYyZjZkMGJiZTljYjFlYzIzMGI0MzdjM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMmNkZTI0ODQ1Y2UzNDIxOGEzYTZlYzZlZjhmYjM3ZmZjZTU1ZDZkNjRlZjk0NTEzMDIxNzMzOGEyOTU1ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlM2EwNWU5ZDY5OGY0YzY1ZjA0MjdlYjM5MjcxMzU0YjhiMjA3MjVjM2NmYjNhOTg5NGU0NTAxYzJjYjAxNGUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L546-L610",
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L550-L614",
           "version": "repo-lines-v1:sha256:a8adc36c5d1d4bff94353d4f1c124c667655eb556bde5bbd4b3aef33d8a57e4f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ZDAxZDFhMTRjNDQ5NGQyYmU3ZDExMWY0ZDI4MDdiNjc3MDQ5NTk1MjRmYzcxNGQyYzVlMjgzNWI4MzQzYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3MTdmMGQ3MzcxYmU5Y2UzMWM0ZTU0ZDZlNWI2NTY0ZWYyNzZkY2UxZjk5OWM3NzVkZjg4ZTAxZDI1MGUzM2YifQ"
         }
       ]
@@ -523,6 +511,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

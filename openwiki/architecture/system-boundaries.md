@@ -1,6 +1,6 @@
 ---
 type: architecture boundaries
-title: System boundaries and dependency direction
+title: System Boundaries
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
@@ -10,24 +10,16 @@ sources:
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
-  - id: openwiki-source-9ee5ed32f6974f5906438e59
-    resource: repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift
   - id: openwiki-source-6f388236eaa573c3c2ba7706
     resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
-  - id: openwiki-source-e4f5ea9b30063cdc7d027956
-    resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
-  - id: openwiki-source-7367aa06bc3b7ce470e78113
-    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-82f1da82c84bec6e60959357
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-303e34b5782a7a14e28cc9f8
     resource: repo://Frameworks/TermindPersistence/PersistentStoreLock.swift
-  - id: openwiki-source-4217f56e034013cb8704d525
-    resource: repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
@@ -70,23 +62,25 @@ sources:
     resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-c52cd56852d12b2dee153082
     resource: repo://TFM/App/AppDependencies.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
     resource: repo://TFM/App/DatabaseStartupGuard.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-  - id: openwiki-source-68b5f4529ef349aac826b1d9
-    resource: repo://TFM/Platform/MacDeviceName.swift
+  - id: openwiki-source-d35453512ef488d0cacdc06e
+    resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# System boundaries and dependency direction
+# System Boundaries
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -178,6 +172,43 @@ Desktop calls `TermindPersistence.makeContainer` with in-memory storage for test
 The app targets are composition roots. `TermindApp` creates the desktop `ModelContainer`, keychain store, sync persistence/coordinators, repositories, connection coordinator, logging, and app-wide `AppModel`; it also supplies `MacDeviceName.current` to the shared device-directory port (trimmed `kern.hostname`, with DeviceKit's `Device.current.safeDescription` as fallback). It injects the shared model and container into its window scenes. `AppDependencies` packages repository, connection, sync, logging, and optional shutdown services for the desktop model and provides an in-memory host repository for tests. On mobile, `MobileAppDependencies.live()` wires logging and one connection coordinator into workspace and metrics services; `testing()` defaults to in-memory storage and replaceable dependencies. `TermindIOSApp` selects one of these at startup and creates one `MobileAppModel`; on success `MobileStartupView` attaches its container to the scene content. The mobile composition uses DeviceKit's description directly for the device-directory port. This is where a concrete implementation or platform value becomes a port supplied to shared feature code.
 
 Do not use this as permission to move live state into the app-wide layer. Durable stores and cross-window coordinators are app-wide; desktop navigation and workspaces are window-owned; mobile navigation is scene-owned; live SSH/SFTP transports remain with the workspace/session that opened them. Refer to [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for the detailed ownership map.
+
+### Native confirmations versus shared operations
+
+Native confirmation is not shared execution policy. Desktop `AssistantView` presents the destructive-delete alert and delegates the accepted action through the window commands. `AppModel` calls shared `AssistantConversationOperations`, removes the conversation from window libraries and transcript caches only when deletion succeeds, and reports storage or scratch-cleanup errors to the windows. Application owns the mutation rules: archive and delete first cancel and join pending agent preparation, refuse a streaming or compacting conversation, and serialize mutations per conversation. Metadata, order, and edited transcript changes are persisted before they are applied to observable state. Delete commits through `AgentRunPersisting` before removing the AgentKit scratch scope; a scratch-removal failure returns successful deletion with a separate cleanup error rather than undoing durable deletion.
+
+Persistence owns the actual conversation graph deletion: `SwiftDataAgentRunRepository` removes runs, messages and their backing, tool results/invocations/reviews, conversation order, model selection, and compactions. Its in-memory deleted-conversation/run fences reject late snapshots and run events in that repository instance, preventing asynchronous writes from resurrecting deleted history. These are storage safeguards, not UI confirmation policy.
+
+Desktop quit likewise belongs to the native app. `AppDelegate.applicationShouldTerminate` returns `.terminateLater`, asks for workspace-close confirmation, rechecks edited SFTP files, and offers a separate cancel/quit-anyway alert for pending uploads. Only after acceptance does it save window size and begin `AppModel.shutdownForTermination()`. The model reuses one cleanup task, cancels pending assistant preparations and all stored conversations before awaiting their drains, and starts MCP shutdown and SFTP cancellation waiting concurrently. After preparation and conversation drains and those service waits finish, it closes agent background commands, then agent connections, then Tailscale. It also stops native notifications, window sessions, forwarding, metrics and other app services. Shared owners still implement cancellation, durable terminal saves, and resource closure; the app selects their ordering.
+
+```mermaid
+sequenceDiagram
+    participant Native as AppDelegate
+    participant App as AppModel
+    participant Agent as Assistant execution and conversations
+    participant Services as MCP and SFTP services
+    participant Resources as Agent resources and Tailscale
+    participant Reply as AppTerminationReplyCoordinator
+    Native->>Native: Confirm workspaces and pending edits
+    Native->>App: shutdownForTermination
+    App->>Agent: Cancel preparation and stop all conversations
+    App->>Services: Start stop and cancellation waits
+    Native->>Reply: Race cleanup against three-second timeout
+    App->>Agent: Await preparation and conversation drains
+    App->>Services: Await service waits
+    App->>Resources: Close background commands then connections then Tailscale
+    Reply-->>Native: Reply once on cleanup or timeout
+```
+
+The native termination reply is bounded even when shared cleanup hangs: the first cleanup completion or default three-second timeout wins, and a late completion cannot reply twice. The timeout is a limit on waiting, not a guarantee that every durable save or resource close finished before process exit.
+
+### Authentication continuation versus feature policy
+
+`RemoteSessionConnectionController.continueAuthentication` centralizes the desktop SSH/SFTP continuation mechanics without retaining its synchronous callbacks. It resolves the prompt host and selected identity, trims the submitted username, stages SSH authentication, clears the prompt and resumes the journey, then invokes the feature's optional save policy before reconnecting. A submission or save failure calls the feature failure callback and does **not** start another attempt. Proxy authentication uses its own store operation before staging/resuming; passphrase failure keeps a prompt with the failure message. Desktop `SSHSessionModel` chooses whether to save a connection route or an individual host identity and how to reconstruct the error prompt. Thus shared continuation does not acquire native presentation or route-persistence policy.
+
+`ArchitectureBoundaryTests.forwardingAndMobileAuthenticationRemainFeatureOwned` enforces a narrower, complementary contract: forwarding must not read `UserDefaults`, `SettingsKey`, or `ExternalAuthentication`, must use `SessionReconnectController` and enforce `.forbidden` interaction, and selected mobile app/root/session composition files must not own `SSHKeyboardInteractiveQueue` or `keyboardAuthentication`. Additional connection owners retain `SSHAdditionalConnectionSnapshot` references rather than putting `SSHConnectionConfiguration` into the transfer context. These checks do not prohibit all feature-level infrastructure imports; they protect selected policy and credential-ownership seams. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection-level flow and [Engineering Invariants](engineering-invariants.md) for change constraints.
+
+Focused regressions are `TFMTests/AppTerminationTests.swift` (all-conversation cancellation, drain-before-close ordering, one-time cleanup, assistant admission fencing, and timeout reply), `TFMTests/RemoteSessionAuthenticationContinuationTests.swift` (stage/save/connect ordering and failed-save suppression), and `FrameworkTests/AssistantConversationOperationsTests.swift` (active-run/compaction guards and storage-failure preservation of visible state). The shutdown tests use injected `AppShutdownDependencies` rather than requiring live transports.
 
 ### Mobile Find: policy, presentation, and feature binding
 

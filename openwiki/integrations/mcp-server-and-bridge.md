@@ -1,9 +1,11 @@
 ---
 type: integration guide
-title: MCP server and bridge integration
+title: MCP Server and Bridge
 description: How the macOS loopback MCP server, stdio bridge, and scoped SFTP transfer tickets work, and how the mobile Assistant instead consumes remote MCP servers with device-local authorization.
 tags: [mcp, macos, ios, loopback, authentication, sftp, bridge]
 sources:
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-3118dfa7dfade14baaccd202
     resource: repo://Frameworks/TermindApplication/FeatureModels/AIConfigurationModel.swift
   - id: openwiki-source-130fa30d2edc07154f39ee38
@@ -32,6 +34,8 @@ sources:
     resource: repo://TFM/App/DesktopSettingsKey.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-8a6e94328a445c3566ef9d57
     resource: repo://TFM/Application/MCPServer/MCPDownloadCoordinator.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -50,6 +54,8 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-a0f4f642e37695357bc9150d
     resource: repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-4cacabcabe7b6b079746d10e
     resource: repo://TFMTests/LoopbackHTTPServerTests.swift
   - id: openwiki-source-b466ff39828d4aa83b5bcd74
@@ -64,13 +70,13 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# MCP server and bridge integration
+# MCP Server and Bridge
 
 Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener and tool/transfer lifecycle and injects the app's external authentication coordinator and audit model; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, configure a manual Bearer credential or OAuth, set per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
 
@@ -94,7 +100,33 @@ flowchart TD
 
 Assistant outbound discovery and desktop inbound serving are separate catalogs and authorization paths; the bridge is only a transport adapter to the inbound listener.
 
-The desktop app explicitly revokes MCP tickets when a host is deleted (including host-deletion outbox handling and remotely applied vault removals), alongside cancelling ordinary SFTP work and SSH connections. On app termination, it stops MCP and waits for ordinary SFTP cancellation before closing shared agent background commands and connections. Mobile host-deletion handling instead cancels its ordinary SFTP transfers; there are no inbound MCP sessions to revoke there.
+The desktop app explicitly revokes MCP tickets when a host is deleted (including host-deletion outbox handling and remotely applied vault removals), alongside cancelling ordinary SFTP work and SSH connections. Mobile host-deletion handling instead cancels its ordinary SFTP transfers; there are no inbound MCP sessions to revoke there.
+
+### Shutdown boundary
+
+The Assistant and inbound MCP server share app-owned host services, so **stopping the listener alone is not sufficient to close the shared SSH resources safely**. `AppModel.shutdownForTermination()` fences new Assistant admissions with `isTerminating`, cancels pending Assistant preparations, and calls `stop()` on every stored conversation before awaiting any of them—not just conversations visible in live windows. It creates `stopAndWait()` drains for those conversations. The preparation cancellation join also covers captured preparation-failure persistence for conversations not yet in the store.
+
+MCP stop and ordinary SFTP cancellation waiting run concurrently with those drains. Only after preparation cancellation, every conversation drain, and both MCP/SFTP stop tasks complete does the app close shared background commands, then shared agent connections, then Tailscale. Repeated termination calls reuse the same cleanup task. The app also synchronously cancels ordinary transfers and external authentication, closes windows, and stops forwarding and other UI/background producers. `MCPServerController.stop()` itself drains transfer coordinators, stops protocol contexts, stops HTTP, then cancels external MCP prompts; it does not close the app-wide agent connection pool.
+
+```mermaid
+flowchart TD
+    Fence["Fence new Assistant admissions"] --> Cancel["Cancel pending preparations and stop all stored conversations"]
+    Cancel --> Prep["Join preparation cancellation and persistence"]
+    Cancel --> Chats["Join conversation stopAndWait drains"]
+    Cancel --> MCPStop["Stop MCP transfers, protocol and HTTP"]
+    Cancel --> SFTPStop["Wait for ordinary SFTP cancellation"]
+    Prep --> Joined["All drains and stops complete"]
+    Chats --> Joined
+    MCPStop --> Joined
+    SFTPStop --> Joined
+    Joined --> Background["Close shared background commands"]
+    Background --> Connections["Close shared agent connections"]
+    Connections --> Tailscale["Shut down Tailscale"]
+```
+
+Desktop termination joins Assistant work and both inbound MCP and ordinary SFTP cleanup before tearing down their shared host resources.
+
+This is the intended cleanup ordering, not an unlimited guarantee that every operation can finish before process exit: the app delegate hands the task to a bounded termination reply coordinator. See [Platform runtime](../architecture/platform-runtime.md) for the wider application lifecycle.
 
 The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurable. The server is off by default and requires the MCP Server Pro entitlement to enable, configure, rotate its token, or change exported tools. These inbound-server preferences are device-local rather than synced AI or remote MCP client settings.
 
@@ -298,6 +330,8 @@ Missing token disables all generated commands; a missing bundled bridge disables
 * Use the server status and connected-client count to distinguish stopped, starting, ready, and failed listener state. Listener failures stop transfers; invalid port/token storage disables activation rather than exposing a partially configured server.
 * To immediately cut off an external client, disable the server or rotate its token. To reduce surface area, disable individual tools; disabling either transfer tool revokes its tickets.
 * Test changes at the correct seam: `MCPAuthorizationTests` checks device-local grant separation, draft rollback and saved-token refresh, endpoint rebinding and retirement, and cancellation of browser authorization callbacks without adding a transcript message. `MCPServerSessionTests` exercises initialization, version/session requirements, tool discovery, legacy SSE, and deletion cancellation without session resurrection; `MCPServerToolsTests` verifies all 18 exports, shared descriptor parity with the acting host subset, excluded tools, disabled invocation, one-shot session-bound secrets, and upload/download ticket creation with connection openers that would fail if called. Its cross-run status lookups fail, and `endSession` removes ticket access and discards secrets/cancels prompts. `MCPUploadTests` and `MCPDownloadTests` cover resume, claim, digest, cancellation, status, and wire behavior; `MCPClientSetupCommandTests` checks exact, shell-safe client registration arguments.
+
+* `AppTerminationTests` guards the shared-resource shutdown boundary: all stored conversations are cancelled even without a live window, terminal saves finish before background commands/connections close, repeated shutdown does not duplicate cleanup, post-fence Assistant admissions and prepared edits cannot start, and an unstored captured failure is joined before resource closure.
 
 ## Related pages
 

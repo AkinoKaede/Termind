@@ -216,8 +216,12 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-29722107a3a9d938ca19ebb4
     resource: repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift
+  - id: openwiki-source-715de8d16be5a3d06ae915ad
+    resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -230,10 +234,12 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
 # Engineering invariants
@@ -735,8 +741,12 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
   user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
   summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
-  and opening-title preservation. The repository rejects an edit if the removed suffix contains tool messages or tool cards, or if the
-  selected user message has agent-message provenance; do not silently erase executed work or collaboration-origin turns. See [Persistent Data](../concepts/persistence-and-secrets.md) for graph cleanup and rollback.
+  and opening-title preservation. Editing **can remove executed tool history**: the transaction deletes suffix-owned invocation,
+  result and review rows while preserving prefix-owned work; legacy cards without recoverable source/call ownership are assigned
+  to the suffix at or after the edit boundary. The selected user message must still have no agent-message provenance, so
+  collaboration-origin turns cannot be edited. Editing history does not undo remote tool effects. Keep live and reopened graphs
+  aligned; `TFMTests/AgentPersistenceTests.swift` covers suffix-tool removal with and without transcript call provenance,
+  same-run prefix preservation, staging adoption and late-write suppression. See [Persistent Data](../concepts/persistence-and-secrets.md) for graph cleanup and rollback.
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
   the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
@@ -843,13 +853,16 @@ RevenueCat is the production purchase/access adapter; the controller gates featu
   temporary trust clears on pause/removal/config change. Free cap atomically three cards including paused, never delete on downgrade; Pro unlimited.
 - Desktop status item/popover receives model explicitly; last window close retains app/monitors, Quit cancels. Sleep/inactive login independently
   suspend; resume only awake/active with Data Protection Keychain available. Native lifecycle stays in `TFM/Platform`.
-- On macOS Quit, the native delegate first rechecks dirty remote edits and offers Cancel/Quit Anyway; confirmed termination
-  requests one idempotent `AppModel.shutdownForTermination()` task. It fences new Assistant admissions, cancels captured
+- On macOS Quit, the native delegate first asks an **application-scoped Workspace confirmation** if any registered live window
+  owns Workspaces, including those hidden behind another destination. Refusal cancels termination before cleanup. This is distinct
+  from pane close and the native per-window close veto. It then rechecks dirty remote edits and offers Cancel/Quit Anyway;
+  only after both gates does confirmed termination request one idempotent `AppModel.shutdownForTermination()` task. It fences new Assistant admissions, cancels captured
   preparations and stops all stored conversations **before** awaiting saves/event drains. MCP and SFTP stop in parallel;
   Agent background commands and connections close after the Assistant drains. Windows, forwarding, metrics, speech,
   transfers and outbox are also retired. The delegate replies after cleanup or a three-second timeout, whichever wins,
   exactly once: the deadline bounds app termination, not a promise that every save has completed. See
-  `TFMTests/AppTerminationTests.swift` for blocked-save, admission-fence and timeout ordering cases.
+  `TFMTests/AppTerminationTests.swift` for blocked-save, admission-fence and timeout ordering cases, and
+  `TFMTests/WorkspaceCloseConfirmationTests.swift` for application/window scope and hidden Workspace checks.
 
 ## Settings replication
 

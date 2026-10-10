@@ -1,7 +1,7 @@
 ---
 type: testing strategy
-title: Behavioral Tests and Fixtures
-description: Map observable shared and platform contracts to deterministic regression fixtures, including terminal Find and mobile search lifecycle coverage. Distinguish native presentation opt-ins, historical-store migration, network seams, and external-package validation.
+title: Behavioral Boundaries and Fixtures
+description: Route observable behavioral changes to focused regression suites and deterministic fixtures. Distinguish persistence and restore boundaries, context accounting, language migration, independent close and Quit vetoes, and deliberate native-presentation opt-ins.
 tags: [testing, regression, fixtures, architecture, persistence, commerce, navigation, ui]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -172,13 +172,13 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Behavioral Tests and Fixtures
+# Behavioral Boundaries and Fixtures
 
 Termind uses Swift Testing to test a behavior at the layer that owns it, rather than treating the test tree as a second implementation. `FrameworkTests/` protects portable framework contracts; `TFMTests/` exercises macOS composition, native interaction, and remote-session behavior; `TFITests/` protects iPhone/iPad composition, scene behavior, and mobile presentation. The targets use `@Suite`, `@Test`, and `#expect`.
 
@@ -241,12 +241,12 @@ Hardware-key compatibility belongs at both the shared and mobile seams. `WebAuth
 
 A message edit inside one run needs a fixture such as `opening → assistant/tool batch → steering → assistant/tool batch`, not just one user turn per run. The regression boundary spans several owners:
 
-- `AgentPersistenceTests.sameRunTruncationPreservesThePrefixAndAtomicallyAdoptsTheReplacement` uses equal timestamps and deliberately reversed UUID order. It restores a compacted conversation through the production store and operations, then checks the retained prefix, neutral completed summary, title, attachments, replay rows, invocations/results/reviews and compaction bases. A legacy prefix invocation has no stored source ID and a later timestamp; its known call ownership must still preserve it. An unknown native-tool-like invocation at the exact cutoff must be removed. Real running/completed snapshots must adopt staging once without changing historical owners, and late old snapshots/events must not regrow the suffix.
+- `AgentPersistenceTests.sameRunTruncationPreservesThePrefixAndAtomicallyAdoptsTheReplacement` uses equal timestamps and deliberately reversed UUID order. It restores a compacted conversation through the production store and operations, then checks the retained prefix, neutral completed summary, title, attachments, replay rows, invocations/results/reviews and compaction bases. A legacy prefix invocation has no stored source ID and a later timestamp; its known call ownership must still preserve it and restore its source message ID. This fixture does not seed an unknown native-tool-like invocation at the cutoff; do not infer that coverage from the prefix case. Real running/completed snapshots must adopt staging once without changing historical owners, and late old snapshots/events must not regrow the suffix.
 - `editingALaterRunOpeningKeepsAnEarlierEmptyRunBeforeTheReplacement` checks an earlier retained run with no messages and a replacement clock older than the retained run. Live and restored staging order must agree. Ordinary replay fixtures give genuinely later runs a later start time instead of relying on random UUID tie order.
 - Shared `AgentReplayPersistenceTests` parameterizes the first real replacement snapshot as `.failed` or `.interrupted`. It checks the single surviving message/run/replay backing and reloads with a new `ModelContext` and repository over the same in-memory container to verify provenance, terminal state, failure and frozen context. This is fresh-context visibility, not a disk-relaunch test.
 - `ChatComposerStateTests.editingSteeringKeepsCompactedSameRunPrefixAndLegacyToolOwnership` checks full visible-prefix retention even when model history is compacted, alongside tool cards, title, plans, compaction records/marks and run-summary chronology through `runStarted`/`runFinished`. Mobile's `swiftDataRestoreAndEditPreserveASameRunPrefixOnMobile` exercises the same repository/store/operations path and compares live and restored message ownership.
 
-Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests.invalidReplacementNeverCallsPersistence` rejects a non-user replacement without invoking truncation; `truncationFailureLeavesInMemoryHistoryUnchanged` throws from a rejecting repository and keeps both visible messages and transcript unchanged. In `AssistantExecutionControllerTests`, `manualCompactionIsRefusedWhileRunPreparationIsActive` holds the memory snapshot barrier and verifies no compaction activity starts; `editFailurePreservesHistoryButUsesTheSynchronouslyCapturedReplacement` checks that rejected truncation preserves history while the attempted replacement retains captured host and plan context. `cancellationAfterSuccessfulEditAdoptsTheInterruptedRunProvenance` holds memory preparation after the edit commits, then checks that the interrupted real run owns the replacement rather than its staging ID. These port-level failure seams do not inject disk-full or read-only failure into a real SwiftData transaction; its rollback path must not be described as fault-injection tested.
+Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests.invalidReplacementNeverCallsPersistence` rejects a non-user replacement without invoking truncation; `truncationFailureLeavesInMemoryHistoryUnchanged` throws from a rejecting repository and keeps both visible messages and transcript unchanged. In `AssistantExecutionControllerTests`, `manualCompactionIsRefusedWhileRunPreparationIsActive` holds the memory snapshot barrier and verifies no compaction activity starts; `editFailurePreservesHistoryButUsesTheSynchronouslyCapturedReplacement` checks that rejected truncation preserves history while the attempted replacement retains captured host and plan context. `cancellationAfterSuccessfulEditAdoptsTheInterruptedRunProvenance` holds memory preparation after the edit commits, then checks that the interrupted real run owns the replacement rather than its staging ID. These port-level failure seams do not inject disk-full or read-only failure into a real SwiftData transaction; its rollback path must not be described as fault-injection tested. The repository's truncation catch does call `context.rollback()`, restores its previous `deletedRunIDs` fence and rethrows. `AgentPersistenceTests.truncationRejectsAMessageOutsideThePersistedConversation` separately checks a real persisted-target rejection leaves the original message intact; it is not a failing-save test.
 
 Use the boundary that the assertion needs as its wait condition. `beginFailedRunPersistence` constructs a failed snapshot and starts a repository-save task, but keeps preparation active and does **not** project `.failed` into the live conversation until `save` succeeds; on save failure it appends an error message instead. `missingModelFailureStaysOwnedUntilSaveAndAllCancellationPathsJoinIt` and `missingCredentialAfterMemoryPreparationProjectsOnlyAfterSaveCompletes` block the first save and verify stop, cancellation, and projection ordering. `credentialAddedAfterCaptureDoesNotReviveTheTurn` and `selectingAnotherConversationDoesNotCancelPreparation` check live `.failed` after preparation and additionally wait for the recording repository's failed snapshot. The fixture's `waitUntilSnapshot(state:)` checks existing snapshots or suspends an actor-owned continuation; `save` records the attempt before resuming matching waiters. A recorded attempt is **not** proof of a completed save: use `completedSnapshots` or the joined preparation where completion is the contract. This does not prove durability across the separate queued-runtime immediate-stop handoff.
 
@@ -267,7 +267,7 @@ sequenceDiagram
     end
 ```
 
-The captured preparation-failure boundary is the repository save, not merely entry into the recording fixture's `save` method.
+The captured preparation-failure boundary is the repository save, not merely entry into the recording fixture's `save` method. The real SwiftData queued-cancellation fixture additionally asserts **zero provider calls**, one `.cancelled` real run, removal of the staging summary, captured payload restoration and `.fullAccess` persistence. Both queued cancellation and captured configuration failure check that the real run starts no earlier than staging, finishes no earlier than its start, and bounds the replacement's message clock. Wait on `stopAndWait()` before constructing the fresh repository; a live cancellation flag alone does not establish completed persistence.
 
 `archiveAndDeleteWaitForCapturedFailurePersistence` additionally waits on the blocked save before mutating metadata or deleting the conversation. `capturedFailureSaveOutlivesReleasedControllerAndConversationHandles` releases both external references while the save is held, then checks completion before they deallocate. These tests protect ownership through the persistence handoff, not process-crash durability. The controller's `failedReplacementSaveCannotBeSupersededOrMutatedBeforeItCompletes` holds a failed-run save after truncation: edit/fork cannot bypass the pending preparation, and after release the failed real run takes the replacement's ownership. `failedSnapshotSaveRetiresPreparationWithoutAdoptingStaging` injects a save error at the repository port instead: the staging owner remains, no failed summary is adopted, an assistant error appears, and no save completes. When changing edit/cancel ordering, also run `cancelledPreparedEditCannotEnterHistoryMutation`, `supersededPreparedEditCannotEnterHistoryMutation`, `cancellationDuringEditJoinsHistoryWorkBeforeRecordingInterruption`, and `supersededPreparationIgnoresAnOlderCancellationCompletion` to keep stale operations from mutating the new history.
 
@@ -394,6 +394,22 @@ The mobile Metrics suite is `.serialized` and **key-window-gated** through `.req
 
 `MobileSettingsPortTests` constructs `MobileAppModel(inMemory: true)` and tests that changing shared SFTP preferences updates transfer limits and strategy immediately—even without opening Settings—and that an applied remote snapshot updates the same coordinator. The small direct `SFTPTransferCoordinator` test verifies invalid limits clamp to usable values. The test app's active scene must not start Vault, History, Device or Settings cloud engines. For provider editing, injected `AISecretStoring` and `AIConfigurationPersisting` failures show that a failed secret write leaves the draft and avoids metadata persistence, and a metadata failure restores the previous secret. A concurrent model refresh survives editing, remote deletion cannot be resurrected by an open draft, and controlled discovery ignores a late response after cancellation or provider deletion. Run these ordinary, no-key-window tests before any settings UI rendering suite.
 
+### Context accounting: compare an incremental projection with its reference
+
+Run `AgentTokenUsageTests` when changing provider usage parsing or the context gauge. Cached input is a subset of the total for OpenAI/Google, but Anthropic's input total adds cache-read and cache-creation counts. Empty-choice or absent-candidate usage chunks must still parse; streaming Chat Completions requests ask for usage while buffered requests omit `stream_options`. Cumulative usage merges by per-field maximum rather than summing chunks.
+
+The estimator separates system prompt, schemas, conversation, tool results and attachments. Measured input-plus-output rescales the parts to sum exactly to the displayed total; unknown context windows produce no share and overfull shares clamp to one. `incrementalTrackerMatchesTheReferenceEstimator` compares streaming/upsert, measurement and removal against the reference estimator. `conversationSnapshotTracksAttachmentsHistoryEditsAndUsage` checks the production `ConversationModel` projection after attachments, tool completion, edits, compaction, usage and fork. `composerDraftEditsNeverRebuildTheContextEstimate` protects a different contract: 100 draft revisions over 300 historical messages neither rebuild nor change the estimate. These are accounting and invalidation regressions, not tokenizer accuracy or live-provider billing validation.
+
+### Language migration: verify stored policy and resolved copy separately
+
+Use `AppLanguageTests` without a window gate. Explicit choices write canonical `en`, `ja`, `zh-Hans` or `zh-Hant` to `AppleLanguages`; Follow System removes that override. Legacy Simplified Chinese identifiers migrate both the preference and override to `zh-Hans`. Unknown values and legacy Traditional Chinese preference identifiers remain unchanged and follow system; this differs from **system locale resolution**, where Traditional Chinese regional locales resolve the Traditional catalog. The suite checks separate Chinese fallback, Japanese interpolation, selected-language relaunch notices, ordered forwarding arguments and catalog plural rules. A catalog-only check is not evidence that an already-running native view changes language without relaunch.
+
+### Window close and Quit: independent scopes, independent vetoes
+
+`WorkspaceCloseConfirmationTests` is serialized but **offscreen**: it constructs `NSAlert` and `NSWindow`, injects confirmation results and invokes delegate methods without making a key or visible window. Do not opt it out merely because it uses AppKit. It checks distinct application/window copy, Cancel as Return's default, an explicit destructive second-button response as the only approval, all-registered-window workspace aggregation, and an empty window closing without confirmation. A cancelled window close preserves the workspace and can be retried; the forwarded delegate can independently veto before confirmation, unrelated delegate callbacks forward, and detach restores the original delegate.
+
+Production Quit is owned separately by `TermindApp.applicationShouldTerminate`: it returns `.terminateLater`, asks the application-scoped workspace confirmation, then rechecks pending SFTP edits and may veto again before starting shutdown. A window-close delegate test does not exercise that app termination path. For shutdown ordering, `AppTerminationTests` holds terminal persistence and verifies cancellation of every stored conversation before waiting, then background-command and connection closure after drains, with repeated cleanup occurring once. `SheetApplicationTerminationTests` checks offscreen mounting/moving/removal restores each window's original modal termination policy. Only `SheetQuitInteractionTests` deliberately makes windows key, focuses sheet fields and sends native Command-Q; it is serialized and `.requiresVisibleWindow`, using a cancelling delegate so the test host does not terminate. Use that opt-in for native Quit reachability, not as proof of real production shutdown or remote paywall layout.
+
 ## Focused additions: drafts, confirmations and resource retirement
 
 - `SnippetColorTests` checks tolerant legacy JSON, unsaved draft isolation, duplicate color, V1/V2 wire/tombstone behavior and a real V50 upgrade through V51 to the current V52 schema followed by saved-color reopen.
@@ -461,7 +477,21 @@ Start with the smallest deterministic regression named in the matrix (for exampl
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test
 ```
 
-For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Keep ordinary framework tests separate from key-window opt-ins. For example, run `-only-testing:FrameworkTests/TerminalFindControllerTests` without a UI environment flag first, then deliberately opt in to the native search suite:
+For assistant edit, restore and accounting changes, begin with these ordinary suites (no native-window opt-in):
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:FrameworkTests/AgentReplayPersistenceTests -only-testing:FrameworkTests/AssistantConversationOperationsTests -only-testing:FrameworkTests/AssistantExecutionControllerTests -only-testing:TFMTests/AgentPersistenceTests -only-testing:TFMTests/ChatComposerStateTests -only-testing:TFMTests/AgentTokenUsageTests
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/AppLanguageTests -only-testing:TFMTests/WorkspaceCloseConfirmationTests -only-testing:TFMTests/SheetApplicationTerminationTests -only-testing:TFMTests/AppTerminationTests
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/RemoteSessionAuthenticationContinuationTests
+```
+
+Filter further to the named test method for the first regression iteration. For real sheet focus and native Quit reachability, deliberately enable the host's `TERMIND_WINDOW_TESTS` gate:
+
+```sh
+TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFMTests/SheetQuitInteractionTests
+```
+
+A skipped opt-in case is not a validated native interaction; verify the test host receives the flag. For mobile changes, build/test the `TFI` scheme against an installed iPhone or iPad simulator. Keep ordinary framework tests separate from key-window opt-ins. For example, run `-only-testing:FrameworkTests/TerminalFindControllerTests` without a UI environment flag first, then deliberately opt in to the native search suite:
 
 ```sh
 TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,id=<SIMULATOR-UDID>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileTerminalSearchIntegrationTests

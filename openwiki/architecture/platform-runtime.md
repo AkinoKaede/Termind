@@ -1,9 +1,11 @@
 ---
 type: architecture
-title: Platform Startup and Runtime Composition
+title: Platform Runtime and Application Lifecycle
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-1ebc16ba1a0b0955956023b5
     resource: repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift
   - id: openwiki-source-875da2c4f1040409e53757af
@@ -86,6 +88,8 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
     resource: repo://TFM/App/TermindCommands.swift
+  - id: openwiki-source-cfe2a6b22338023c37a5b503
+    resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
@@ -96,6 +100,8 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-39248df19c48bb72235c6e8d
@@ -110,13 +116,15 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 ---
 
-# Platform Startup and Runtime Composition
+# Platform Runtime and Application Lifecycle
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -169,6 +177,8 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 ## macOS composition
 
 `TermindPersistence.makeContainer` fixes the shared versioned SwiftData schema and migration plan for both platforms; the entrypoint chooses whether the container is memory-backed or file-backed and retains it, rather than defining separate platform model sets. `TermindApp.init()` is the desktop composition root. It sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language), then, **before opening the disk-backed store**, checks for another nonterminated app with the same bundle identifier. This protects against older installed versions that do not implement store locking. `TermindPersistence.makeContainer` independently acquires an exclusive, nonblocking `.lock` file lease **before SwiftData opens or migrates** the store. The container retains that lease for its lifetime; same-process containers for the canonical URL share it, and the lock file is not unlinked on close. Both an older running instance and a competing lock raise `PersistentStoreAccessError.inUse`: the app presents a database-in-use alert and exits after acknowledgment. Other container or preparation failures call `fatalError` instead of replacing production data with an empty store. The macOS guard and lock are skipped for in-memory launches; the iOS entrypoint instead captures startup failures as a `Result` and displays an unavailable-data screen.
+
+The desktop root captures `launchLanguage` once during initialization and injects its locale into both main and external-authentication scenes. The Settings picker stores a new `AppLanguage` and shows a next-launch notice when it differs from the captured selection; it does **not** automatically quit or relaunch the application. The new selection applies on the next launch, rather than replacing the root's captured locale in place. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 
 After the container opens, the desktop entrypoint cleans previous context attachments, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, connection history, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty.
 
@@ -223,41 +233,63 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 
 A host-opening action is centralized in `AppModel`, which chooses the requested protocol, but it opens into the caller's `WindowModel`. That window assigns one connection-history event to each saved-host SSH, Telnet or SFTP pane. Closing the pane/workspace ends the event before disconnecting, while moving a live pane preserves it and reopening creates a new event. External temporary and Serial panes are not recorded; a crash may leave `endedAt` absent. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
 
-`TermindCommands` registers SwiftUI's `openWindow(id: "main", value:)` factory with `MainWindowCoordinator`. The coordinator assigns a request UUID and keeps layout and optional move information until the new native window is registered. `RootView` installs a `MainWindowRegistration` bridge in its background; its `NSView` waits for its native `NSWindow`, then registers the native window and per-scene model using native content/frame sizing. Registration disables native tabbing without imposing custom titlebar geometry. Registration injects app services, consumes the matching request and transfers a live workspace or pane only after the destination window exists. A restored scene has no pending request, so it retains its system-restored frame instead of inheriting the shared size fallback or replaying a move. The coordinator records normal window sizing at appropriate boundaries and unregisters and closes the model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
+`TermindCommands` registers SwiftUI's `openWindow(id: "main", value:)` factory with `MainWindowCoordinator`. The coordinator assigns a request UUID and keeps layout and optional move information until the new native window is registered. `RootView` installs a `MainWindowRegistration` bridge in its background; its `NSView` waits for its native `NSWindow`, then registers the native window and per-scene model using native content/frame sizing. Registration disables native tabbing; the bridge establishes `.fullSizeContentView` and a transparent titlebar before the coordinator reads or applies sizing. Registration injects app services, consumes the matching request and transfers a live workspace or pane only after the destination window exists. A restored scene has no pending request, so it retains its system-restored frame instead of inheriting the shared size fallback or replaying a move. The coordinator records normal window sizing at appropriate boundaries and unregisters and closes the model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
 
 ### Desktop lifecycle and termination
 
-The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. For quiet login launches it hides the normally constructed window rather than running window-less; a one-shot key-window observer and three-second disarm prevent a later user-opened window from being hidden. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
+The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. For quiet login launches it hides the normally constructed window rather than running window-less; a one-shot key-window observer and three-second disarm prevent a later user-opened window from being hidden. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On Quit, the delegate schedules confirmation in a main-actor task before any cleanup begins.
 
-Shutdown is deliberately idempotent and bounded by the delegate. `applicationShouldTerminate` returns `.terminateLater` while it rechecks external SFTP edits; if pending changes exist and the user cancels the alert, it replies `false`, clears the pending-termination flag and does **not** start cleanup. An accepted quit saves the ordinary window size before cleanup. `shutdownForTermination()` immediately fences assistant admission, cancels pending run preparation, stops the app-wide conversation store (including conversations no longer shown in a registered window) and awaits terminal saves; it also suspends memory and edit monitoring, shuts down metrics and speech, closes registered windows, and cancels SFTP work, external authentication, forwarding and the outbox. It concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools **after** the assistant drains. Repeated calls return the same cleanup task. The delegate replies `true` to macOS when cleanup finishes or after a once-only three-second fallback; that bound applies to the quit reply, **not** a guarantee that every asynchronous drain finished. `applicationWillTerminate` repeats cleanup safely.
+`applicationShouldTerminate` returns `.terminateNow` if no app model is attached. Otherwise it latches `awaitingTermination` and returns `.terminateLater`; duplicate requests while confirmation or cleanup is pending return `.terminateLater` without scheduling another task. The task first asks `WorkspaceCloseConfirmation.application` if any nonclosed registered window has workspaces (regardless of connection status). Only explicit destructive confirmation permits quitting: Cancel is the Return-key default. Next it awaits `sftpEdits.recheck()` and, if unuploaded changes remain, asks a separate SFTP quit-anyway question. Either veto replies `false`, resets the latch and leaves shutdown unstarted, so Quit can be retried. The three-second cleanup fallback does **not** bound these confirmation or recheck stages. See [SFTP Transfer and External Edit](../workflows/sftp-transfer-and-external-edit.md).
+
+An accepted quit saves normal window sizing before invoking `shutdownForTermination()`. Shutdown immediately fences assistant admission, stops notification observers/routing and clears the Dock badge. It cancels pending preparations and stops every conversation in the app-wide store before awaiting any of them, including conversations no longer displayed in a registered window. The preparation drain also joins captured failure persistence for conversations not yet stored. Memory and edit monitoring are suspended, metrics and speech are stopped, registered window models are closed, and SFTP transfers, external authentication, forwarding and the outbox are canceled/stopped.
+
+The retained cleanup task concurrently starts MCP stop and SFTP cancellation waits, joins preparation cancellation and conversation terminal persistence, and awaits both service drains. Only then does it close agent background commands, then agent connection pools, then shut down Tailscale. Repeated shutdown calls reuse that task rather than repeat the asynchronous resource teardown. `AppTerminationReplyCoordinator` races task completion against a three-second fallback and replies `true` exactly once. This bounds the native quit reply after accepted confirmation, **not** completion of every drain; `applicationWillTerminate` safely invokes shutdown again and stops native metrics/appearance observers.
 
 ```mermaid
 sequenceDiagram
-    participant Delegate as AppKit delegate
+    participant Native as AppKit
+    participant Delegate as AppDelegate
+    participant Edits as SFTP edit service
     participant Model as AppModel
-    participant Assistant as Conversation store
+    participant Assistant as Assistant execution and conversations
     participant Services as Runtime services
-    Delegate->>Delegate: Recheck pending external edits
-    alt Quit cancelled
-        Delegate-->>Delegate: Reply false without cleanup
-    else Quit accepted
-        Delegate->>Model: Save window size and start shutdown
-        Model->>Assistant: Fence admission and cancel preparations
-        Model->>Assistant: Stop stored conversations
-        Model->>Services: Close windows and stop runtime work
-        Model->>Assistant: Await terminal persistence
-        Model->>Services: Await MCP and SFTP cancellation
-        Model->>Services: Close agent commands then connection pools
-        alt Cleanup completes first
-            Model-->>Delegate: Cleanup task completes
-        else Three second fallback wins
-            Delegate-->>Delegate: Timeout reached
+    Native->>Delegate: applicationShouldTerminate
+    Delegate-->>Native: terminateLater and latch request
+    Note over Delegate: Duplicate requests return terminateLater only
+    Delegate->>Delegate: Schedule main-actor confirmation task
+    alt Open-workspace confirmation vetoed
+        Delegate-->>Native: Reset latch and reply false
+    else Workspace confirmation accepted or unnecessary
+        Delegate->>Edits: Await recheck
+        Edits-->>Delegate: Current pending changes
+        alt Pending edits and quit-anyway vetoed
+            Delegate-->>Native: Reset latch and reply false
+        else Quit accepted
+            Delegate->>Model: Save window size and start shutdown
+            Model->>Assistant: Fence admission and cancel preparations
+            Model->>Assistant: Stop all stored conversations
+            Model->>Services: Stop monitoring and close window models
+            Model->>Services: Begin MCP and SFTP drains
+            Model->>Assistant: Await preparation and terminal-save drains
+            Model->>Services: Await MCP and SFTP drains
+            Model->>Services: Close agent commands then pools then Tailscale
+            alt Cleanup completes first
+                Model-->>Delegate: Cleanup task completes
+            else Three-second fallback wins
+                Delegate->>Delegate: Fallback fires
+            end
+            Delegate-->>Native: Reply true once
         end
-        Delegate-->>Delegate: Reply true once
     end
 ```
 
-Desktop termination orders assistant draining before agent connection teardown, but the native quit reply can precede completion of that drain.
+Quit confirmation precedes the SFTP recheck and bounded reply race; assistant persistence drains precede agent connection teardown, but the native reply may precede drain completion.
+
+### Native window-close bridge
+
+Closing one main window is a different scope from Quit. `MainWindowRegistrationView` attaches `WorkspaceWindowCloseDelegate` to the native window, preserves the previous delegate and forwards its other selectors. `windowShouldClose` honors the forwarded delegate's veto first, lets empty or already-closed models close without prompting, and asks the window-specific confirmation for populated models. Its reentrancy guard vetoes recursive close requests while the alert is showing. A veto preserves the workspaces and permits a later retry; detaching restores the original delegate. This native veto intentionally stays outside SwiftUI's dismissal dialog, which also participates in Quit.
+
+The same bridge observes `NSWindow.isDocumentEdited` with initial and new values and resets `true` to `false`: workspaces are not documents, so the edited titlebar decoration is suppressed **without removing the native close confirmation**. These are separate responsibilities, not a document-unsaved-state mechanism.
 
 ## Mobile composition
 
@@ -380,7 +412,8 @@ Tests exercise the lifetime contracts rather than merely constructing views. For
 - `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
 - `DatabaseStartupGuardTests` checks that the macOS preflight permits the current process but refuses a second PID, including older versions without the lock. `PersistentStoreLockTests` checks refusal before open/migration, retention until all same-process containers close, release after forced exit without losing Vault data, and isolation of in-memory and separate stores.
 - `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.
-- `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins.
+- `WorkspaceCloseConfirmationTests` verifies application-wide workspace detection, distinct Quit/window alert scopes, Cancel as the Return-key default, explicit destructive acceptance, empty-window bypass, forwarded native veto, retry without workspace loss and delegate restoration. These tests cover alert and native-window contracts; `AppTerminationTests` covers cleanup/reply ordering rather than driving the delegate's modal Quit alerts.
+- `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for fixture policy.
 - `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.
 - `ExternalConnectionURLTests` verifies external desktop connections are temporary and unsaved, including the Telnet-password confirmation boundary.

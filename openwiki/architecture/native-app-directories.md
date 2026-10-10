@@ -1,9 +1,11 @@
 ---
 type: architecture directory guide
-title: Native App Responsibilities
+title: Native App Ownership Reference
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
 sources:
+  - id: openwiki-source-a51ca858a040a90d4ab9c1c4
+    resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-37bc639f87948ef96358b680
     resource: repo://Frameworks/TermindInfrastructure/RecentlyClosedStore.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
@@ -106,8 +108,6 @@ sources:
     resource: repo://TFM/Application/Serial/SerialPortService.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
-  - id: openwiki-source-391dd36408ff1c7fc7c1c335
-    resource: repo://TFM/Features/Settings/MCPSettings.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-61a7b49f0fef771653753f14
@@ -136,8 +136,12 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-824d6a1342361bda8b3634b7
     resource: repo://TFM/Platform/MetricsMenuBarController.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
+  - id: openwiki-source-793d7861000adc19f0c3df01
+    resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f45576cff16b6adfcaeefc0
@@ -150,15 +154,29 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Native App Responsibilities
+# Native App Ownership Reference
 
 `TFM` is the macOS app and `TFI` is the iPhone/iPad app. Both compose the [shared frameworks](shared-module-directories.md), but their directories own platform-specific interaction and lifetime decisions. A directory named `Features` is **not** necessarily views only: desktop sessions live under `Features/Terminal` and window workspaces under `Features/Workspaces`, while mobile connection runtimes live under `Features/Workspaces` and their **per-native-window owner** is `App/MobileWorkspaceSessionModel`. By contrast, `Features/Shell` defines navigation values, not remote shell execution. Paths below are relative to the respective app root.
+
+## Task-to-owner quick reference
+
+| Coding task | Native owner and boundary |
+| --- | --- |
+| Change desktop startup or application Quit | `TFM/App/TermindApp.swift`: `TermindApp` composes shared state; `AppDelegate` owns application-wide confirmation and termination. |
+| Change desktop window dismissal | `TFM/Platform/WorkspaceCloseConfirmation.swift`: `WorkspaceWindowCloseDelegate` vetoes native close; `MainWindowRegistrationView` attaches it. `MainWindowCoordinator` cleans up only after the window actually closes. |
+| Change language selection | Desktop `Features/Settings/SettingsPageView.swift` persists through shared `AppLanguage.store` and displays a next-launch notice. `TermindApp` captures the launch locale; Settings does not own a relauncher. |
+| Change desktop navigation or Settings return | `Features/Workspaces/WindowModel.swift` owns routes; `App/RootView.swift` mounts the persistent deck and destination overlays. |
+| Move a running desktop workspace to another window | `Platform/MainWindowCoordinator.swift` requests the scene and transfers only on native registration. |
+| Change mobile native-window ownership or restoration | `TFI/App/MobileWorkspaceSessionModel.swift`, `MobileAppModel` and `Platform/MobileWorkspaceSceneRouting.swift`, not the workspace list/detail views. |
+| Change app-wide transfers or sync | App composition retains the services; feature screens command them without taking over their lifetime. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md). |
 
 ## Entrypoints and state ownership
 
@@ -197,7 +215,11 @@ App-level services outlive a window or scene's navigation selection; **both desk
 
 Settings is a **window destination**, not a separate shared-service owner. `WindowModel.settingsRoute` remembers the destination it replaced, moves Back to a parent route before closing, then resets to index and returns to the old destination (or Vault if a workspace was removed). `SettingsPageView` assembles forms over app-owned settings: remote MCP editing is Pro-gated and a separate local MCP server route configures the app's server controller, not the HTTP listener. Leaving an editor discards qualifying empty provider, MCP and skill drafts; substantive skill drafts survive, and a new MCP server must lock a unique namespace. This makes a route change different from shutting down sync, transfers or the local server.
 
-`AppDelegate` handles application activation, reopening, quiet login launch and termination. On quit it rechecks pending SFTP edits, can cancel termination if the user refuses to discard them, then saves window size and begins shutdown. Its reply is sent once after cleanup or a three-second timeout. `TFMTests/SettingsNavigationTests.swift` tests route return, missing-workspace fallback and draft handling; `TFMTests/WindowSidebarTests.swift` tests window isolation and the serial-pane fallback. `TFMTests/MultiWindowTests.swift` covers move-on-registration and cancelled moves, `MainWindowSizingTests.swift` checks requested versus restored layout, `MetricsMenuNavigationTests.swift` checks the menu-to-window handoff, and `AppTerminationTests.swift` exercises shutdown ordering.
+`AppDelegate` handles application activation, reopening, quiet login launch and termination. Window dismissal instead belongs to [`WorkspaceWindowCloseDelegate`](../../TFM/Platform/WorkspaceCloseConfirmation.swift), attached by `MainWindowRegistrationView`: it respects the existing delegate's veto, forwards other delegate methods and asks for confirmation only when that window still owns workspaces. Cancel preserves the model and live sessions. Window-close commands use `performClose` so the veto remains in the native path; `MainWindowCoordinator` unregisters and closes the model on `willClose`, not when confirmation is requested. Application Quit has a separate scope: `AppDelegate` first checks `app.hasOpenWorkspaces` across registered windows and asks the application-wide confirmation, then rechecks pending SFTP edits and can cancel again if the user refuses to discard them. Both workspace alerts default Return to Cancel and require the explicit destructive action. Once approved, Quit saves window size and begins shutdown; its reply is sent once after cleanup or a three-second timeout.
+
+Desktop language selection is persistence, not a shutdown action. `SettingsPageView.AppSettings` calls shared `AppLanguage.store`: it writes `SettingsKey.appLanguage`, sets `AppleLanguages` for an explicit language and removes that override for Follow System. `TermindApp` captures `launchLanguage` during initialization and supplies that locale to both its main and external-authentication scenes. The picker does not automatically quit or relaunch the app; when the selection differs from the Settings view's captured language, it displays the next-launch notice in the **selected** language. Change persistence in shared `AppLanguage`, the notice in Settings, and launch-locale injection in `TermindApp`.
+
+`TFMTests/SettingsNavigationTests.swift` tests route return, missing-workspace fallback and draft handling; `TFMTests/WindowSidebarTests.swift` tests window isolation and the serial-pane fallback. `TFMTests/MultiWindowTests.swift` covers move-on-registration and cancelled moves, `MainWindowSizingTests.swift` checks requested versus restored layout, `MetricsMenuNavigationTests.swift` checks the menu-to-window handoff, and `AppTerminationTests.swift` exercises shutdown ordering. `WorkspaceCloseConfirmationTests.swift` checks distinct window/Quit scopes, Cancel defaults, explicit approval, all-window workspace detection, veto preservation, delegate forwarding and empty-window dismissal. `AppLanguageTests.swift` checks persisted language tags, Follow System override removal and selected-language notice localization.
 
 ### Mobile navigation, restoration and lifecycle
 

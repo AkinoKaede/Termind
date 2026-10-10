@@ -1,8 +1,11 @@
 ---
 type: implementation workflow
-title: "Port Forwarding: Multi-Connection Pool and Flow Dispatch"
-description: "Trace forwarding rules through Host-scoped intent, primary and auxiliary SSH workers, local/SOCKS socket dispatch, remote-listener ownership, bounded flow pumps, silent recovery, and ordered teardown."
+title: Port Forwarding Pool and Dispatch
+description: "Trace app-owned forwarding requests through Host-scoped intent, feature-owned authentication, pooled SSH flow dispatch, silent recovery, and lifecycle cleanup."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 sources:
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
@@ -18,17 +21,18 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-f1d91230931f6a1921af6d03
+    resource: repo://TFM/Features/Ports/PortForwardingView.swift
+  - id: openwiki-source-e22355480144bf1b83a6cbde
+    resource: repo://TFMTests/PortForwardingJourneyTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 ---
 
-# Port Forwarding: Multi-Connection Pool and Flow Dispatch
+# Port Forwarding Pool and Dispatch
 
 ## Two scheduling decisions, three kinds of rule
 
@@ -42,11 +46,19 @@ Forwarding first decides **which physical SSH connection owns a newly accepted T
 
 The pool is **not** several sockets jointly carrying one TCP stream. Every flow keeps one worker/channel until closure; existing flows are not migrated or replayed if that worker fails. Remote forwarding does not become multi-worker just because a Host's maximum is greater than one.
 
+## Feature dispatch and app-owned lifetime
+
+On macOS, `AppModel.forwarding` owns the runtime controller; `AppModel.forwardings` is the saved-rule library. The Ports UI opens the editor and calls `app.forwarding.start(rule.id)`. Editors in different windows resolve the same controller context, so navigating away or closing editor work does not cancel another window's authentication or stop the transport. Explicit Journey Cancel is different: it calls `stop` and then closes the editor. This separation keeps forwarding lifetime independent of a terminal pane or editor's visibility.
+
+The forwarding controller owns its authentication continuation and reconnect policy. The embedded Journey submits credentials, host-key decisions, and Retry to that controller with captured prompt/request IDs. It does not route forwarding authentication through app-global `ExternalAuthentication` or read app settings itself; architecture boundary tests guard that separation. Interactive Start/Retry and forbidden-interaction recovery remain distinct boundaries, as described below.
+
 ## Intent, configuration, and runtime ownership
 
 `PortForwardingController.start` validates a saved rule and SSH-enabled Host. It creates or joins a `PortForwardingConnection` context keyed by Host ID; the context contains the route snapshot, shared Journey/authentication surface, connection attempt, active rule presentations, and an effective maximum computed when the context starts. App-supplied limit changes can update that maximum on a live context without rewriting the saved Host setting. Later rules on the same connected context call `startRule` instead of authenticating again. Stop removes that rule's generation; the last active rule retires the context. Route changes, including jumps, invalidate affected contexts. Saved rules themselves are not live listeners.
 
 macOS `AppModel` selects `.hostConfigured`; Host values normalize to `1...64`, default `1`, and the controller caps that saved value by an app-supplied connection limit. Without Pro multi-connection access the effective limit is one; entitlement changes update the limit on existing contexts without changing the saved Host preference. The `.hostConfigured` factory uses `SSHForwardingConnectionPool` even when its current target is one. Mobile composition uses the controller's default `.singleConnection` policy, so a synchronized Host setting can remain stored on mobile without producing the desktop multi-connection topology.
+
+Lowering a live limit does not evict streams already using excess published auxiliaries. The pool marks excess auxiliaries draining, excludes them from new assignments, and disconnects them only after the worker reports no active flows and no assignment is in flight. Pending auxiliary opens/installations can be cancelled immediately. Increasing the limit can retain a draining slot again before it becomes idle.
 
 Three runtime numbers must be read separately:
 
@@ -78,6 +90,8 @@ sequenceDiagram
     Pool->>Primary: or auxiliary acceptShared
 ```
 
+The sequence shows primary authentication, shared-listener setup, and auxiliary publication before flow dispatch.
+
 `connect` first disconnects any previous pool and opens only the primary. Configuring the additional-request resolver calls `fillPool`, but without a local/dynamic registration there is no auxiliary demand. Starting a local/dynamic rule registers it on the current slots, creates **one** listener at the pool level, then fills missing slots. A remote-only rule calls `primary.connection.start` and needs no auxiliaries.
 
 `fillPool` computes:
@@ -96,7 +110,7 @@ Stopping the last non-remote rule removes auxiliary demand, cancels the retry ti
 The pool-local listener accepts up to 32 descriptors in one callback. `assign` then follows this algorithm:
 
 1. Match the rule's current registration generation; close the descriptor if obsolete.
-2. Select published slots whose installed-rule set contains that rule ID.
+2. Select published slots whose installed-rule set contains that rule ID, excluding draining slots.
 3. Find the minimum `counts[slotID][ruleID]`, treating absent counts as zero.
 4. Sort equal-minimum candidates by UUID string; choose `roundRobin % candidateCount`, then increment the pool-wide counter.
 5. Call that worker's `acceptShared`. The worker rechecks connection, rule, generation, non-stopped state and non-remote kind before registering the flow. If it rejects, the pool closes the socket; it does not retry assignment across every slot.
@@ -154,8 +168,39 @@ There are several different tokens, none interchangeable:
 
 This is not stream failover: recovery restores listeners and future connection opportunities, not application protocol state or bytes already sent on failed TCP streams.
 
+### Application termination is not a forwarding drain barrier
+
+`AppModel.shutdownForTermination()` stores an asynchronous cleanup task, then performs synchronous feature shutdown, including `forwarding.stopAll()`, before returning that task. Forwarding is stopped in the calling method, **not** after awaiting MCP or agent cleanup inside the task. `stopAll` immediately removes runtime intent and invalidates generations; rule closure and Host transport disconnect run in controller-owned tasks. The returned termination task does not explicitly join those forwarding cleanup tasks.
+
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant App as AppModel
+    participant Forwarding as Forwarding controller
+    participant Cleanup as Termination task
+    Caller->>App: shutdownForTermination
+    App->>App: cancel pending runs and stop conversations
+    App->>Cleanup: create and store cleanup task
+    App->>App: close windows and cancel transfers
+    App->>Forwarding: stopAll
+    Forwarding->>Forwarding: retire intent and schedule transport cleanup
+    App-->>Caller: return termination task
+    Cleanup->>Cleanup: stop MCP and await SFTP cancellation concurrently
+    Cleanup->>Cleanup: await preparation and conversation drains
+    Cleanup->>Cleanup: join MCP and SFTP cleanup
+    Cleanup->>Cleanup: close agent background commands
+    Cleanup->>Cleanup: close agent connections
+    Cleanup->>Cleanup: shut down Tailscale
+```
+The diagram separates synchronous forwarding retirement from the asynchronous agent/MCP cleanup chain; it is not a forwarding-disconnect completion guarantee.
+
+The cleanup task waits for preparation cancellation and conversation drains, joins MCP/SFTP cleanup, closes agent background commands before agent connections, and finally shuts down Tailscale. Repeated termination calls reuse the stored task. See [Platform Runtime](../architecture/platform-runtime.md) for the broader application lifetime boundary.
+
 ## Focused tests, limits, and troubleshooting
 
+- `PortForwardingJourneyTests` checks shared authentication across windows, editor navigation without cancellation, jump-host deletion, explicit-only Start, peer-preserving Stop, and rejection of retired forms and callbacks.
+- `ArchitectureBoundaryTests.forwardingAndMobileAuthenticationRemainFeatureOwned` guards against controller dependencies on settings/global external authentication and checks forbidden-interaction reconnect wiring.
+- `AppTerminationTests` checks conversation drains before agent resource closure, background-command closure before connection closure, and reuse of termination cleanup. Forwarding retirement placement is established by `AppModel` and controller source, not by a forwarding-drain assertion in that suite.
 - `SSHForwardingPumpTests` is the deterministic low-level seam: short writes, stable retry bytes, ready-queue order, watermarks, half-close, zero-window wakeups, encrypted-buffer allowance and source cancellation.
 - `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering.
 - `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. Source presence or a default suite pass does not mean these wire tests ran.

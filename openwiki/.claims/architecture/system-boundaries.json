@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9873df397941c0bfd1bd9ea5bb241a61d4e6b93f59df8afb75f807d871fe2341",
+  "pageVersion": "sha256:b2b3051a7c3fda79b5fd3db1b349441735a2c20c9ac9ea99751270a074df3d40",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -147,40 +147,12 @@
       "statement": "Connection-history ownership is layered and independent from device naming: Domain defines events that reference sourceDeviceID, Application defines the history model/repository port, and Persistence owns event storage/journal transactions; the reusable DeviceRecord-to-name directory has its own Domain value, Application model/port, and Persistence repository, while TFM supplies trimmed kern.hostname with a DeviceKit fallback and TFI supplies DeviceKit's Device.current.safeDescription directly as their app-owned naming adapters.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift",
-          "version": "repo-file-v1:sha256:bc820384eb0b3010fde22d9c46b6847f41b982a0df9eb04fe5cbd52cb8ffd4d3"
+          "resource": "repo://TFM/App/AppModel.swift#L788-L813",
+          "version": "repo-lines-v1:sha256:3dbd25c27842dbbe5e68b3dec44c23b0726f73db9ce154f48db5df8991632417:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYWY1MjA0Njk5ZGYxZjYyZWVlYjY1ODA5NDM4NWJiYTU2MTI0YThjNmQ4ODJjNmEwN2IxZDZiZTA0MzAyMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjIwYzczZTZlNWY0YzVhODg1OWQ5MzJjOGM2NDFhM2E2MjdiODI4NjYwYTE1YWJkOGVlNjFiY2M5MjEwYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmZTg4YmFiMDgwZmI0NTAyZDg4YTM2MDIxNjY3MjFmYmE3N2RhYzgyMDMxODYwNDg2ODQ0NTcyOTBlM2I5MWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift",
-          "version": "repo-file-v1:sha256:68f529231c8aa605e9668027e609139eee4b28e51794f0a8efbb64b49e291716"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift",
-          "version": "repo-file-v1:sha256:edcf5020f1965dcc1bad5d1b9dc1523cced21a62d1a93f3a1fd079dde25fb37f"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/DeviceRecord.swift",
-          "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift",
-          "version": "repo-file-v1:sha256:9b83815bd041eb47effa2441e8338f6c23c064e853756c2bc4f8fccc20bd5cdb"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
-          "version": "repo-file-v1:sha256:6e7d5f4abe1a0727bae40cc3363e3f1261af7cf38f849021a89a93a9a515a348"
-        },
-        {
-          "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f83323dded23ec74be6130fa9c8ad66d188b5d0cce9cf7f82b226f4f9d58769c"
-        },
-        {
-          "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:41a1df0076d9c73e1485dae94a9d032f2a2b7718c98b662d3dda1bbc08166abb"
-        },
-        {
-          "resource": "repo://TFM/Platform/MacDeviceName.swift",
-          "version": "repo-file-v1:sha256:d884719f29fe1d5e7a8e980adcc5205737202a72bcb9e839ba39c34f0dcb414b"
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L370-L384",
+          "version": "repo-lines-v1:sha256:52f4b873e342548613bd8016a6741e8d58b9eb9d0a7b0abd84782d1996164f38:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMzVkODM0MzQzYjQ5MDY1NDM3ZDAwOTVhYTM4MWQxYWM1MmMxZDE3YWUzZGJhMDA2NDMwZDcyZTYzZTAzM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiYmU4N2FhYjMzOTZhYTNiNWU1MjAxZjFmYWMwNDU4MmRhOTExNTFiOTAzYzhlNWUxMGQxNzNhMjA3ODE4Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0YzhlNDg3MDMxYjBmYmUzMzBmNmZjMzc5MzQzYmE0NGRiOWZmNWNlMzQxYjgxNjkwYjY4YTlmZWQwZjkwZjAifQ"
         }
       ]
     },
@@ -282,7 +254,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:41a1df0076d9c73e1485dae94a9d032f2a2b7718c98b662d3dda1bbc08166abb"
+          "version": "repo-file-v1:sha256:70e07cf8eccc2a01eedb0fd4b9b58f117ebc24b62d26dacb0133a8ad6748bca8"
         }
       ]
     },
@@ -600,7 +572,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

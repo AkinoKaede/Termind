@@ -1,3 +1,3 @@
 # Files
 
-- [Behavioral Tests and Fixtures](behavioral-boundaries-and-fixtures.md) - Map observable shared and platform contracts to deterministic regression fixtures, including terminal Find and mobile search lifecycle coverage. Distinguish native presentation opt-ins, historical-store migration, network seams, and external-package validation.
+- [Behavioral Boundaries and Fixtures](behavioral-boundaries-and-fixtures.md) - Route observable behavioral changes to focused regression suites and deterministic fixtures. Distinguish persistence and restore boundaries, context accounting, language migration, independent close and Quit vetoes, and deliberate native-presentation opt-ins.

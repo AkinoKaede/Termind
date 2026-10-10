@@ -1,11 +1,11 @@
 ---
 type: architecture guide
-title: macOS UI and Workspace Ownership
-description: How macOS window navigation, sidebar modes, workspace sessions and Vault editing routes divide responsibility between AppModel and WindowModel.
+title: Desktop UI and Window Ownership
+description: How desktop navigation and persistent workspace views divide app-wide and per-window state, and how native window registration, close vetoes and application Quit manage their lifetimes.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -79,10 +79,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 ---
 
-# macOS UI and Workspace Ownership
+# Desktop UI and Window Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -149,6 +149,47 @@ sequenceDiagram
 Scene-request handoff: the source keeps the session until the target's native window registers.
 
 A workspace move waits for native destination registration before changing ownership. Repeated requests to move the same workspace or pane from the same source reuse the pending scene request. If no scene factory exists, the request fails without removing the source workspace; closing the source before registration cancels its pending requests and disconnects its sessions, so a late destination cannot resurrect them. A pane moved to another window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](../workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+
+### Weak registration is discovery, not window ownership
+
+`RootView` retains its `WindowModel` in `@State`. `AppModel` registers models in weak boxes, and `MainWindowCoordinator.Entry` holds weak references to both the native `NSWindow` and its model. Pending move requests also hold their source weakly. These registries discover and route to living windows rather than keeping abandoned scenes alive. App registration is idempotent and refuses closed models; native registration prunes dead entries and avoids duplicate window/model pairs. `RootView.onAppear` and the native bridge can therefore both register safely. The bridge retains its close-delegate proxy and attaches it when it gains a native window; this is not a view-disappearance cleanup hook.
+
+### Native window close and application Quit have different scopes
+
+Workspaces are session owners, **not edited documents**. `MainWindowRegistrationView` observes `isDocumentEdited` and resets it to false on its own attached window, suppressing edited decoration without disabling close confirmation. Detaching removes that observation. Native close is owned by `WorkspaceWindowCloseDelegate.windowShouldClose`, not a SwiftUI dismissal confirmation dialog that could also participate in Quit.
+
+The proxy preserves the previous native delegate weakly, forwards other supported delegate selectors, and restores it when moving off that window. For close, it rejects reentrant confirmation, honors the forwarded delegate's veto first, then permits an empty or already-closed model without a workspace prompt. Otherwise it asks to close **this window**, even when Vault, Assistant, Metrics or Settings hides its open workspaces. Cancel preserves the model, sessions and close history and permits a later retry. Both window and application alerts make Cancel the Return-key default; only the explicitly chosen destructive second button approves the operation.
+
+Window commands use `performClose(nil)` rather than bypassing the native veto. `closeSelectionOrWindow` consumes the focused pane when a workspace is selected, including its last pane; only a later invocation with no selected workspace falls back to native window dismissal. `closeWindow` resolves only that model's registered native window. Close All Windows snapshots registered windows and calls `performClose` on each, so one veto does not prevent other approved windows from closing. Transfers remains an auxiliary close target, not a workspace model.
+
+```mermaid
+sequenceDiagram
+    participant Caller as Close button or window command
+    participant Native as NSWindow
+    participant Proxy as WorkspaceWindowCloseDelegate
+    participant Prior as Forwarded delegate
+    participant Coordinator as MainWindowCoordinator
+    participant Model as WindowModel
+    Caller->>Native: performClose
+    Native->>Proxy: windowShouldClose
+    Proxy->>Prior: ask existing delegate if supported
+    alt Existing veto or confirmation canceled
+        Proxy-->>Native: false
+        Note over Native,Model: Window and sessions stay open
+    else Empty model or explicit close approval
+        Proxy-->>Native: true
+        Native->>Coordinator: willClose notification
+        Coordinator->>Coordinator: remove entry and source requests
+        Coordinator->>Model: unregister and closeForWindow
+        Model->>Model: record recovery then disconnect and clear state
+    end
+```
+
+Native window dismissal asks permission before the close notification triggers teardown.
+
+Once `willCloseNotification` arrives, the coordinator records layout, removes the native entry and requests sourced from that model, unregisters the model from `AppModel`, and calls idempotent `closeForWindow()`. That method records recoverable window descriptors before marking the model closed, disconnecting its workspaces, clearing their lifecycle routers, and releasing its workspace collection, drag/presentation state, transcript cache and toolbar focus callback. Other windows' sessions remain untouched. Ordinary destination switching is not this teardown path.
+
+**Quit** instead belongs to `AppDelegate.applicationShouldTerminate`. `AppModel.hasOpenWorkspaces` checks all live, nonclosed weakly registered models, including workspaces hidden by another destination. The delegate returns `.terminateLater` and asks one application-scoped workspace confirmation when needed; cancellation resets its waiting flag and replies false. Approval proceeds to recheck edited SFTP files and, if necessary, a separate pending-upload warning. Only after those gates does termination save the main-window fallback and begin app-wide shutdown, replying true when cleanup finishes or its three-second bound expires. This is separate from the per-window native veto. See [Platform Runtime](platform-runtime.md) for process shutdown and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for transport teardown.
 
 The Transfers window is an auxiliary app-owned window, not a workspace. Its open/key flags drive the View toggle and close-command routing: when Transfers is key, Close Window closes it and Close Workspace is disabled, preventing an old workspace focus value from closing a session. Its notifications do not update main-window size fallback.
 
@@ -321,6 +362,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Change | Focused seams |
 | --- | --- |
 | Scene ownership, sizing, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MainWindowSizingTests` (stored fallback validation, source-size inheritance, restored frames, sidebar width handshake and visible full-screen behavior), `MultiWindowTests`, `WorkspaceWindowMoveTests` (live pane identity and history, lone-pane name, late-registration rejection), `WindowStateTests`, `SettingsNavigationTests`. |
+| Native close veto versus Quit | `WorkspaceCloseConfirmationTests` pins scope-specific wording, Cancel as default, explicit destructive approval, all-window Quit detection, empty-window bypass, retry after veto and delegate forwarding/restoration. `MultiWindowTests` checks pinned-destination cancellation, one-pane-at-a-time close, per-window session isolation, edited-decoration suppression until detach, unregistered fallback safety and independent Close All vetoes. `AppTerminationTests` covers shutdown draining and bounded reply behavior. |
 | Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |

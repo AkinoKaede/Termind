@@ -86,12 +86,20 @@ sources:
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-22e92f96394f292a731fc6fb
+    resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-c40a8f8c27fd537db3a62965
+    resource: repo://TFMTests/DesktopAuthenticationSubmissionTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
   - id: openwiki-source-da61dbcdf7f720ccca8efaad
@@ -100,10 +108,12 @@ sources:
     resource: repo://TFMTests/RemoteSessionConnectionControllerTests.swift
   - id: openwiki-source-fc9dd746ee8dc0791104d397
     resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
-generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
+  - id: openwiki-source-d798805795e92534f3b13250
+    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:46:25.102Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
 # SSH session lifecycle
@@ -214,7 +224,13 @@ Credentials may be a password, software private key and optional passphrase, Sec
 
 Keyboard-interactive is available to routed hops and the target. It preserves host, port, username, connection ID, and round number in the challenge; answer count must exactly equal prompt count. Time spent waiting for the user extends the libssh2 callback budget, while answers themselves are transient and never a cache.
 
-Desktop terminal and SFTP models now share `RemoteSessionAuthenticationContinuing`: it re-resolves the prompt host through route → library → temporary destination, validates a nonempty trimmed username, stages one-use proxy or SSH credentials, and invokes the model’s synchronous save policy before connecting. After staging, continuation clears the prompt and sets the journey to connecting before the save callback. A failed save does not connect; the model presents the error. A successful save policy then starts an explicit connection. Proxy submissions use the entered username, not an old proxy username. Save and error presentation remain model-owned, and these callbacks are never retained.
+Desktop terminal and SFTP models share `RemoteSessionConnectionController.continueAuthentication`. It re-resolves the prompt host through route → library → temporary destination and rejects an empty trimmed username without changing the prompt. The continuation has distinct branches:
+
+- **Identity:** the selected identity supplies username and key selection when present; otherwise entered values are used. Stage the one-use SSH submission and model-specific username/route state, clear the prompt and resume the journey, then run the synchronous model-owned save policy if requested. Only a successful policy (or no requested save) invokes explicit connect. A failed credential save does **not** initiate another connection attempt: the model restores an error-bearing authentication prompt.
+- **Proxy:** use the entered username rather than the selected identity's username. Save proxy authentication first if requested; only afterward stage the separate proxy submission, clear the prompt, resume and connect. A save failure leaves the original prompt and stages no proxy submission.
+- **Protected-key passphrase:** merge through `passphraseSubmission` with the existing SSH submission, optionally saving the key passphrase. Success clears the prompt and connects; failure updates the existing prompt's failure message without connecting.
+
+These synchronous callbacks are never retained. Host-key trust is a separate live-handshake continuation, not an identity submission or a new connection attempt.
 
 `RemoteSessionConnectionController` centralizes attempt state: begin resets the journey and starts a pending route, finish accepts only the current token, and clear invalidates that token and route. Its live progress callback ignores replaced and cleared attempts. Transport recovery runs teardown before resetting the journey and invoking the model’s scheduled-state closure; the reconnect task does not own the transport or reconstruct secrets.
 
@@ -297,12 +313,18 @@ The platform rules intentionally differ:
 | --- | --- | --- |
 | Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores device-local ordered descriptors (workspace ID, Host ID, kind and title) by native scene-session ID. Cold launch loads and prunes them but creates no live workspace, new history event, or connection; the first bound scene atomically consolidates legacy unassigned and previously owned descriptors into one window. Commands, SFTP paths, credentials and transport state are not restored. |
 | Reopen/select and scene ownership | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Opening a dormant descriptor creates one live workspace in its owning scene; selecting it again shares the same initial attempt. Links from another window route to the owning native scene rather than create a duplicate. UIKit scene disconnect alone preserves ownership while its native session exists. Only after reconciling against `UIApplication.shared.openSessions` can a missing session's live workspaces and descriptors move to an active window without reconnecting; persistence must succeed before the handoff. An explicit native discard closes that session's workspaces, including ones handed off earlier. |
-| Background/foreground | Closing a window tears down its workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks pending external edits, then initiates shared shutdown (with a bounded termination reply) and closes every live window. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes only workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. Returning before expiration leaves a healthy connection intact. |
+| Background/foreground | Native window close can be vetoed before any teardown; accepted closure retires only that window's workspace sessions, not app-wide Agent connections, transfers, or services. Quit checks workspaces across windows and pending external edits before shared shutdown and a bounded native termination reply. | Only when all tracked scenes are backgrounded does a background task begin: sync, metrics and outbox are paused and external-edit monitoring is disabled. Its expiration requests workspace suspension, stops forwarding, pauses transfers and cancels Assistant runs; Assistant subsequently closes Agent background commands and pooled connections after conversation drains. An active scene ends the task, resumes only workspaces that recorded foreground-resume intent, rechecks edited files, reconciles sync and restarts metrics/outbox. Returning before expiration leaves a healthy connection intact. |
 | Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes that workspace's live and recent entry and never retries it; deleting a saved Host also removes its live and unopened records across scenes. |
 
 The mobile store accepts legacy arrays and version-one snapshots but does not rewrite them on read: the first native scene binding commits migration, pruning and ownership together. If that save fails, binding is fenced for this launch and exposes a restoration error rather than claiming the same records in another window. An unreadable or invalid snapshot disables subsequent writes, preserving its original bytes even if users open or close workspaces. Scene recovery likewise saves the destination snapshot before transferring any live objects; if saving fails the source retains ownership. A native disconnect is not an explicit discard, and when no active replacement scene exists recovery waits instead of silently closing transports.
 
-Desktop termination is idempotent: `AppModel.shutdownForTermination()` marks the app terminating, cancels pending Assistant preparation and stops conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for Assistant/MCP and SFTP drains before closing background commands and the Agent pool. `AppDelegate` rechecks pending edited-file uploads and can cancel quit **before** starting cleanup; if quit proceeds, it saves the main-window size and replies to macOS when shutdown completes or after the three-second fallback. `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
+### Native window close versus application Quit
+
+Window dismissal is vetoed by `WorkspaceWindowCloseDelegate.windowShouldClose`, attached through the native registration view—not by a SwiftUI dismissal dialog that also participates in Quit. The proxy first respects the existing native delegate's veto, forwards its other delegate methods, and guards reentrant confirmation. An empty or already-closed window needs no workspace warning; a populated window requires explicit destructive confirmation, with Cancel as the Return-key default. Cancelling preserves its model and transports and allows a later close request. Only actual native closure reaches `MainWindowCoordinator`'s `willClose` handling and `WindowModel.closeForWindow()`, which idempotently retires that window's workspace connections.
+
+Quit has application-wide scope. `AppDelegate.applicationShouldTerminate` returns `.terminateLater` and prevents duplicate admission while it checks `AppModel.hasOpenWorkspaces` across all registered, nonclosed windows. If any contains workspaces, it first asks the application-specific destructive confirmation; then it rechecks external edits and may ask a second pending-upload warning. Cancelling either check replies false and resets the pending-termination flag **before** cleanup begins.
+
+After approval, `AppModel.shutdownForTermination()` marks the app terminating and returns the same cleanup task on repeated calls. It cancels pending Assistant preparation and stops all stored conversations, disconnects window workspaces and stops metrics, forwarding, transfers and other app services; it waits for preparation/conversation, MCP and SFTP drains before closing Agent background commands, then the Agent pool and Tailscale. Assistant admission is fenced once termination starts. The delegate saves the main-window size and replies to macOS exactly once when cleanup completes or after the three-second fallback; the deadline bounds the reply, not a guarantee that every drain finished. `applicationWillTerminate` invokes the same shutdown path. Closing the last window does not necessarily quit: the metrics menu setting or running metrics can keep the app and its app-owned Agent services alive. No live workspace transport is reconstructed by native scene restoration.
 
 ```mermaid
 sequenceDiagram
@@ -312,19 +334,25 @@ sequenceDiagram
     participant Windows as WindowModel
     participant Services as Assistant MCP SFTP and Agent
     OS->>Delegate: request quit
-    Delegate->>App: recheck external edits
-    alt user cancels pending upload warning
-        Delegate-->>OS: refuse termination
-    else quit accepted
-        Delegate->>App: shutdownForTermination
-        App->>Windows: close workspaces and transports
-        App->>Services: stop runs MCP and SFTP work
-        Services-->>App: drains complete
-        App->>Services: close background commands and pool
-        alt cleanup finishes first
-            Delegate-->>OS: reply yes
-        else three second deadline
-            Delegate-->>OS: reply yes once
+    Delegate-->>OS: terminateLater
+    Delegate->>App: check workspaces across registered windows
+    alt user cancels workspace warning
+        Delegate-->>OS: reply no and allow later request
+    else workspace confirmation accepted or none needed
+        Delegate->>App: recheck external edits
+        alt user cancels pending upload warning
+            Delegate-->>OS: reply no and allow later request
+        else quit accepted
+            Delegate->>App: shutdownForTermination
+            App->>Windows: close workspaces and transports
+            App->>Services: cancel preparation and stop runs MCP and SFTP
+            Services-->>App: drains complete
+            App->>Services: close background commands then pool and Tailscale
+            alt cleanup finishes first
+                Delegate-->>OS: reply yes once
+            else three second deadline
+                Delegate-->>OS: reply yes once
+            end
         end
     end
 ```
@@ -370,6 +398,8 @@ When changing connection code, preserve these boundaries:
 - Put callbacks from sockets, timers, detached preparation, and authentication behind the current attempt/generation check before touching feature state; clear secrets if preparation is cancelled after resolving them.
 - Have the owner that opened a client retire it on every failed connect and on explicit close; do not transfer a half-open client to a workspace. Do not tie the Agent pool's life to a workspace, window, or Assistant turn.
 - When changing Agent authentication, preserve the separation between temporary per-opening secrets and reusable route-fingerprinted transports; cancel the final prompt waiter, close late opens, and never replay a command after its channel started.
+
+`WorkspaceCloseConfirmationTests` distinguishes window and Quit scopes, verifies Cancel is the default, checks workspace detection across registered windows, and exercises native veto, retry, delegate forwarding and empty-window bypass. `AppTerminationTests` checks repeated shutdown drains resources once, blocks Assistant admission after shutdown, orders background-command and pool closure after drains, and races cleanup against the fallback without duplicate replies. `RemoteSessionAuthenticationContinuationTests` checks identity stage/save/connect ordering and proxy save-before-stage behavior, including no connect on save failure. `DesktopAuthenticationSubmissionTests` runs SSH/SFTP entrypoints against failed saves, blank usernames, selected versus custom credentials, protected-key passphrase continuation and temporary-host saving.
 
 `SSHInteractionPolicyTests` checks silent Security Key blocking on both target and jumps, rejection of trust and prompted keyboard-interactive UI, current-identity additional-connection resolution and one-use secret invalidation. `WebAuthnVaultMetadataTests` proves hardware credentials for both target and jump resolve with a secret store that throws on Keychain access, and checks Vault metadata persistence and sync. `SSHConnectionWorkerLifecycleTests` releases the worker on and off its serial connection queue to catch teardown deadlocks. `ConnectionHistoryTests` checks attempt-time ordering, 250-entry retention, SwiftData persistence and clearing, source-device identity, end-on-pane-close, saved SSH/SFTP opening and deduplicated recents; it also verifies that clearing a host's histories leaves its Host and another host's events intact. `MobileWorkspaceSessionTests` covers independent window ownership, legacy migration and first-binding consolidation without network activity, non-reconnecting live handoff versus explicit discard, and native-session-aware reconciliation; `MobileAppTests` checks cold-launch descriptors without command replay, at-most-once selection and history, explicit retry after first failure, pruning, unreadable snapshot protection, normal SSH exit, and background expiration/foreground resume. `MobileCardTests` checks saved SSH/SFTP history starts on open and ends on close. The highest-value regression coverage is concentrated in `SSHConnectionPreparationTests` and `SSHHostKeyAuthorizationTests`: proxy attribution and one-shot proxy submission, missing proxy-password ownership, username-only and passphrase ordering, secret-read accounting, constraint-versus-Known-Hosts precedence, temporary versus persistent trust, and cancellation of pending trust. `ConnectionJourneyTests` validates endpoint progression, proxy attribution, pending-route behavior, retries, temporary host keys, multi-key trust, and the fact that editing a Host does not relocate Known Hosts. `MobileWorkspace`'s generation guards cover the platform-specific late-callback and foreground-resume boundary. `AgentHostAuthenticationTests` exercise proxy username retention with a missing password identity, password-plus-protected-key passphrase merging, shared exec/SFTP opens, prompt-waiter cancellation, host-key decisions, stale generation failures, post-success secret consumption, and non-replayed SFTP failures. For mobile expiration, inspect `MobileBackgroundController`'s lease behavior as well: expiration calls cancellation synchronously, retires a valid UIKit task exactly once, and treats a failed or synchronous `beginBackgroundTask` as expiration rather than leaving work assumed protected.
 

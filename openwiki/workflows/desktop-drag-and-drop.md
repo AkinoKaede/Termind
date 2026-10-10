@@ -1,6 +1,6 @@
 ---
 type: interaction workflow
-title: Desktop workspace drag and drop
+title: Desktop Drag and Drop
 description: Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 sources:
@@ -12,12 +12,8 @@ sources:
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-  - id: openwiki-source-873894299539cce9a737a860
-    resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-  - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
-    resource: repo://TFM/App/TermindCommands.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-564c1a0cc523e70840b9fc66
@@ -30,6 +26,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-dad03c68d6b805a4170ffc02
+    resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
   - id: openwiki-source-6bb48fd98bdef02c39562aed
     resource: repo://TFM/UI/Components/WorkspaceDragCancellationTracker.swift
   - id: openwiki-source-29722107a3a9d938ca19ebb4
@@ -54,13 +52,13 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Desktop workspace drag and drop
+# Desktop Drag and Drop
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 
@@ -185,6 +183,7 @@ sequenceDiagram
     participant Scene as Main WindowGroup
     participant Source as Source WindowModel
     participant Bridge as MainWindowRegistration
+    participant Native as Destination NSWindow
     participant Target as Target WindowModel
     Drag->>Coordinator: moveWorkspace or movePane with release point
     Coordinator->>Scene: createScene with request UUID
@@ -192,6 +191,9 @@ sequenceDiagram
     Scene->>Target: Construct fresh model
     Scene->>Coordinator: configure model with requested layout
     Scene->>Bridge: Attach native window to RootView bridge
+    Bridge->>Native: Attach forwarding close delegate
+    Bridge->>Native: Observe and clear edited decoration
+    Bridge->>Native: Establish full-size content coordinates
     Bridge->>Coordinator: register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
     Source-->>Coordinator: Existing workspace or pane wrapped in workspace
@@ -200,11 +202,15 @@ sequenceDiagram
     Coordinator->>Target: Bump sidebar layout generation for move
 ```
 
-Scene creation and native registration are distinct phases; the diagram's transfer happens at registration, not at the drop or initial SwiftUI layout.
+Scene creation and native registration are distinct phases; the diagram's transfer happens at registration, after native close-delegate attachment and content-coordinate setup, not at the drop or initial SwiftUI layout.
 
 Request-to-registration transfer keeps the live session in its source until the destination has a native window.
 
 `TermindCommands` installs the `openWindow(id: "main", value: id)` scene factory for the UUID-valued main `WindowGroup`. On the normal workspace scene path (after the diagnosis-consent gate), `TermindApp.makeWindow` creates a fresh `WindowModel` and applies the request's sidebar presentation and preferred width before constructing `RootView`. Its `MainWindowRegistration` bridge calls `register` only after AppKit attaches the native window; the registration view establishes full-size content coordinates before sizing. This keeps scene creation separate from live ownership transfer.
+
+On native attachment, `MainWindowRegistrationView` installs its retained `WorkspaceWindowCloseDelegate` and observes `NSWindow.isDocumentEdited` with initial and new-value delivery, clearing it whenever it becomes true. Workspaces are not documents: suppressing edited decoration does **not** bypass close confirmation. Each registration attempt reattaches the proxy if needed before calling the coordinator. The proxy forwards other delegate callbacks to the existing delegate, honors that delegate's close veto first, and asks for window-scoped confirmation only when the model is still open and owns workspaces. Detaching restores the forwarded delegate only if the proxy is still installed. This native dismissal guard does not change window-local drag ownership, stable Workspace/Pane identity, or move lifecycle semantics; an empty source after its last transfer needs no workspace confirmation.
+
+Evidence: [native attachment and edited decoration](../../TFM/Platform/MainWindowCoordinator.swift#L589-L628), [forwarding close delegate](../../TFM/Platform/WorkspaceCloseConfirmation.swift#L33-L77), [close veto and forwarding tests](../../TFMTests/WorkspaceCloseConfirmationTests.swift#L56-L109).
 
 Live layout ownership changes only when the requested destination window registers.
 
@@ -218,7 +224,7 @@ Closing the source window removes its pending requests. A pane closed before reg
 
 New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. During scene construction `configure` applies sidebar presentation and preferred width; registration reapplies them (and invalidates initial sidebar layout if they differ), sizes the native window, then bumps `sidebar.initialLayoutGeneration` for a move to rebuild the split view at the transferred width. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
 
-Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L214-L265), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L291-L350), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L352-L436), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L517-L576), [scene factory](../../TFM/App/TermindCommands.swift#L29-L32), [scene construction and consent gate](../../TFM/App/TermindApp.swift#L221-L249), [RootView bridge](../../TFM/App/RootView.swift#L75-L89), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1363-L1409), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L249).
+Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L257-L299), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L329-L390), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L392-L470), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L565-L628), [scene factory](../../TFM/App/TermindCommands.swift#L31-L34), [scene construction and consent gate](../../TFM/App/TermindApp.swift#L224-L252), [RootView bridge](../../TFM/App/RootView.swift#L75-L85), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1385-L1430), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L254).
 
 ## Assistant conversation reordering
 
@@ -243,6 +249,7 @@ Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift
 | Return animation or data-source forwarding/replacement | `WorkspaceNavigatorDragAnimationTests`; native split-workspace tear-off also asserts the animation flag at session start. |
 | Whole split Workspace fails to tear off | `WorkspaceNavigatorDropTests.draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout()`: release over another window, one request, original Workspace and pane IDs. |
 | Ownership loss, reconnect, changed history or late request | `WorkspaceWindowMoveTests`: destination delay, duplicate requests, lone-pane identity, closed sources, reversed arrival order and window placement. |
+| Native close veto or lost delegate callbacks after registration | `WorkspaceCloseConfirmationTests`: veto preserves the same workspace, retry, forwarded veto/callbacks, delegate restoration and empty-window dismissal. These tests exercise the proxy directly; the move tests register through the coordinator, not the registration view's edited-state observation. |
 | Assistant hidden receiver or active-row eligibility | `AssistantConversationListDropTests`; `AssistantConversationOperationsTests` covers persistence failure and preserved activity; `WindowStateTests` covers stable manual order. |
 
 Run the offscreen policy, geometry and lifecycle cases without visible-window opt-in first, keeping dependency resolution pinned. The suite selection below also includes three `WorkspaceNavigatorDropTests` mouse/session cases that will be skipped by default; an `NSWindow` fixture alone does not require the gate if it stays offscreen.

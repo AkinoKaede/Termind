@@ -14,14 +14,10 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
-  - id: openwiki-source-6f388236eaa573c3c2ba7706
-    resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
-  - id: openwiki-source-7367aa06bc3b7ce470e78113
-    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-e0d1a5c458c249d9d88ff665
     resource: repo://Frameworks/TermindInfrastructure/Cloud/DeviceSyncCoordinator.swift
   - id: openwiki-source-894539337bc9140a109608f0
@@ -86,14 +82,18 @@ sources:
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-68b5f4529ef349aac826b1d9
+    resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-1c9687bbe3333120d80ab3e8
+    resource: repo://TFMTests/MacDeviceNameTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
 # Module and Product Map
@@ -146,6 +146,8 @@ flowchart TB
     Application --> Domain
 ```
 
+Direct dependencies among the six shared framework targets.
+
 Both `TFM` and `TFI` directly depend on all six frameworks; `TermindDomain` has no shared-target dependency. These are explicit `PBXTargetDependency` edges, not inferred from directory proximity or imports. The diagram also explains why Persistence is not interchangeable with general Infrastructure: Infrastructure can use Persistence, while Persistence must not depend on Infrastructure or Remote Infrastructure. Shared frameworks never depend on an app target. `FrameworkTests` depends on all six shared frameworks, while `TFMTests` and `TFITests` depend on their respective app plus selected shared frameworks; the benchmark does not depend on either app or a test target.
 
 ## Product and package boundaries
@@ -187,7 +189,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 
 The Assistant is a useful change-placement example: `AssistantExecutionController` accepts an injected registry factory, authorization callback, run repository, and title generator; app-specific host services provide tools without making the Application framework construct SSH machinery. On mobile the app model wires `AgentHostServices.live` with its connection coordinator and SFTP scheduler. For speech it supplies `IOSSpeechAudioInput` to the shared transcription service and cancels speech on interruption. The remote-filesystem port similarly separates file policy from the SFTP transfer coordinator; Vault sync reads Persistence-owned journals rather than moving CloudKit policy into the app.
 
-The device directory illustrates why target edges alone are insufficient: `DeviceDirectoryModel` registers the current installation on initialization, caches lookup results, and reports storage errors. The SwiftData repository refuses to resurrect a remotely deleted device during launch registration, but an explicit rename can upsert it; successful writes notify `DeviceSyncCoordinator` through History mutations. Remote application of device records invalidates the model's cache on both platforms. The device and connection-history coordinators share a CloudKit zone but keep separate kind-filtered engines and sync state; the device coordinator is independent of the Vault **record format and journal**, not exempt from the app's Pro/iCloud start/pause policy. See [System Boundaries](system-boundaries.md) for the sync contract.
+The device directory illustrates why target edges alone are insufficient: native composition supplies the installation ID from `VaultSyncJournal` and acquires the display name outside the shared model. Desktop `TermindApp` delegates to the app-owned `MacDeviceName`, which prefers a trimmed, nonempty `kern.hostname` and falls back to `Device.current.safeDescription` when that hostname is unavailable or blank; mobile supplies `Device.current.safeDescription` directly. `MacDeviceNameTests` pins hostname priority and nil, empty, and whitespace fallback behavior. `DeviceDirectoryModel` registers the current installation on initialization, caches lookup results, and reports storage errors. The SwiftData repository refuses to resurrect a remotely deleted device during launch registration, but an explicit rename can upsert it; successful writes notify `DeviceSyncCoordinator` through History mutations. Remote application of device records invalidates the model's cache on both platforms. The device and connection-history coordinators share a CloudKit zone but keep separate kind-filtered engines and sync state; the device coordinator is independent of the Vault **record format and journal**, not exempt from the app's Pro/iCloud start/pause policy. See [System Boundaries](system-boundaries.md) for the sync contract.
 
 This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities. Application owns `TerminalFindController` policy and state; native session/workspace owners inject binding actions and focus callbacks. Dismissal retains the query and can suppress focus restoration, while native resize can suspend engine search and later resume only a presented nonempty query. `MobileWorkspaceSearchModifier` owns the feature-level SSH/Telnet versus SFTP binding choice; the reusable UIKit search bridge does not. `TerminalFindControllerTests` covers retention, empty-query navigation, focus-free dismissal and resize suspension; native shortcut tests pin F3/Escape routing.
 

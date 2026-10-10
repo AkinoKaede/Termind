@@ -1,6 +1,6 @@
 ---
 type: design guide
-title: UI state and presentation principles
+title: UI Design Principles
 description: Source-backed guide to native desktop and mobile settings routes, reusable presentation, terminal appearance selection, and state continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
@@ -118,6 +118,8 @@ sources:
     resource: repo://TFM/Features/Ports/PortForwardingView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
+  - id: openwiki-source-af7fbbca079c2cb6201a5151
+    resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift
   - id: openwiki-source-c661b665fc19c6bd43499b01
     resource: repo://TFM/Features/Settings/TerminalThemePage.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -168,13 +170,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "pi", at: "2026-10-08T13:46:25.102Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:46:25.102Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# UI state and presentation principles
+# UI Design Principles
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 

@@ -1,6 +1,6 @@
 ---
 type: assistant runtime concept
-title: Agent runtime and assistant ownership
+title: Agent Runtime and Assistant
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
@@ -112,13 +112,13 @@ sources:
     resource: repo://TFMTests/MCPServerToolsTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Agent runtime and assistant ownership
+# Agent Runtime and Assistant
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
@@ -276,6 +276,29 @@ For an already-started runtime, stopping requests runtime cancellation, marks ru
 
 The queued-runtime handoff has its own cancellation persistence path. `ConversationModel.start` installs an owner before scheduling its event consumer; if stop wins while that owner is still queued, it constructs a cancelled snapshot from captured request data, starts a separate repository save and `stopAndWait()` joins the consumer that awaits it. If the consumer has entered `AgentRuntime.start`, runtime cancellation and its terminal snapshot path take over. Thus a queued stop need not create a *running* snapshot or call the provider, but a successful queued-cancellation save is durable; the presentation may show cancellation before the save finishes, and the queued save currently swallows repository errors. Do not confuse this handoff with preparation interruption, which is an earlier, separately saved state.
 
+```mermaid
+flowchart TD
+    Stop["Stop or stopAndWait"] --> Prep{"Preparation phase"}
+    Prep -->|Ordinary| Invalidate["Invalidate capture and cancel tracked work"]
+    Invalidate --> Join["Join history and preparation tasks"]
+    Join --> Save["Save interruption and recheck identity"]
+    Prep -->|Saving failure| Failure["Join existing failed save"]
+    Stop --> Owner{"Runtime owner phase"}
+    Owner -->|Queued| Queued["Save captured cancelled snapshot"]
+    Owner -->|Starting or started| Runtime["Request AgentRuntime cancellation"]
+    Stop --> Present["Settle presentation and return human steering"]
+    Queued --> Consumer["Join retained event consumer"]
+    Runtime --> Consumer
+```
+
+Cancellation has separate preparation and runtime owners: `stop` requests cancellation and settles presentation, while `stopAndWait` also joins their tracked work.
+
+### Context estimates and reported usage
+
+`contextEstimate` is an incremental gauge, not a provider billing ledger. `usage` holds the newest turn's provider report rather than cumulative conversation spend; it is not persisted, so reopened conversations start with estimates until another report arrives. Without measured usage it estimates system prompt, captured tool schemas, conversation text, tool results and attachments. Attachment chips share the estimator's text divisor; images use a tile approximation. Provider usage supplies a measured total (`inputTokens + outputTokens`), but the category breakdown is still an estimate rescaled to sum to that total—not provider-reported attribution per category. Cached input is already part of the normalized input total, not an extra amount to add. Provider regressions cover empty-choice/candidate usage chunks, Anthropic cache-read/cache-creation normalization and cumulative-field merging by maxima rather than summation.
+
+The conversation records schemas once during assembly instead of rebuilding a registry on each keystroke. Draft-text edits do not rebuild or change the history estimate; attachments do update it. Raw text and reasoning deltas become visible immediately while context-gauge publication is throttled, with final message events publishing the settled estimate. History editing clears stale measured usage and recomputes for the retained prefix and replacement. A context-window share is unavailable when the window is unknown and clamped when overfull. See the token and composer regressions below before changing this accounting.
+
 ## Approval, secrets, and trust boundaries
 
 Approval is evaluated after schema validation and tool preflight, before execution. Invalid arguments never reach the approval UI or the tool. The policy layer is stronger than permission mode:
@@ -380,13 +403,48 @@ Creation relations are a separate durable sidecar from individual message origin
 
 ### Message-boundary edits and replacement provenance
 
-`AssistantConversationOperations.edit` validates an ordinary replacement user message before persistence and applies the live mutation only after truncation succeeds. Editing is refused if the removed suffix contains any tool call, result or tool lifecycle card (even a proposed, denied or read-only call); a compacted visible suffix and persisted invocation rows are checked too. A retained prefix can keep its own tool graph. This prevents rewriting history after an action was attempted. SwiftData checks cancellation before its synchronous transaction and uses the same canonical order for restore and truncation: runs by start time then UUID, messages by run order then sequence, timestamp, role and UUID. The selected message and everything after it are removed, not automatically its entire run. For `opening → assistant → steering → assistant`, editing the steering turn retains the opening and preceding assistant/tool batch. The retained partial run becomes a neutral `.completed` summary with no old failure and ends at its last retained non-tool message; wholly later runs, including empty ones, are removed.
+`AssistantConversationOperations.edit` validates an ordinary replacement user message before persistence and applies the live mutation only after truncation succeeds. An editable target must still be a non-compaction user row in the model-facing transcript with `origin == nil`; streaming, compaction, archive, history mutation and captured-failure persistence block editing. Ordinary preparation is deliberately supersedable. Origin-bearing cross-chat messages are not human-authored turns and cannot be edited, even though their transcript role is `.user`; SwiftData also rejects an origin-backed target independently of the UI guard.
+
+**Tool activity in the removed suffix does not prevent editing.** Calls, results and cards are removed even for proposed, denied, read-only or completed tools; retained prefix tools keep their graph. This is a history replacement, not an undo of an executed SSH command, transfer or other external effect. SwiftData checks cancellation before its synchronous transaction and uses the same canonical order for restore and truncation: runs by start time then UUID, messages by run order then sequence, timestamp, role and UUID. The selected message and everything after it are removed, not automatically its entire run. For `opening → assistant → steering → assistant`, editing the steering turn retains the opening and preceding assistant/tool batch. The retained partial run becomes a neutral `.completed` summary with no old failure and ends at its last retained non-tool message; wholly later runs, including empty ones, are removed.
 
 Tool cleanup follows ownership before time. Known source-message and run-local call identities distinguish retained prefix tools from removed suffix tools, with results and reviews deleted alongside removed invocations. Restore infers missing legacy source IDs from the raw assistant call grammar; deterministic recovered tool-result IDs receive run ownership. The live projection additionally uses retained result ownership and the full visible prefix when compaction has hidden raw messages from the model transcript. Only invocations/cards without recoverable ownership fall back to `createdAt >= target.createdAt`, conservatively including the exact cutoff. This includes legacy rows and modern provider-native events persisted before their source message reaches a snapshot. Compaction records are removed only when their explicit boundary message is removed; nil-boundary fork bases survive, and live compaction marks are rebuilt. Editing after a retained opening does not clear its title, even when that opening is compacted out of the model transcript; live plans at or after the cutoff are removed.
 
 The replacement is durable before a runtime exists: its message ID also identifies an independent, completed, failure-free staging run containing that one user row and no tool graph. Its start time is placed after the latest retained run if clocks tie or move backward, including when the earlier retained run has no messages. On the first real snapshot containing that staged final user turn, `save` transactionally moves only the staged message to the real run, assigns its snapshot sequence, retains its attachments/replay backing, deletes the staging run and retires its ID. Historical messages replayed into the snapshot keep their existing owners and are not duplicated. Adoption preserves the staging start-time lower bound; subsequent snapshots cannot move it backward, and terminal time is clamped to that start when necessary.
 
 `ConversationModel` mirrors adoption on `runStarted`, successfully saved captured failure, preparation interruption and queued prestart cancellation; `runFinished` retains the adjusted chronology. A committed failed, interrupted or prestart-cancelled replacement therefore has the real run's provenance rather than an abandoned staging summary. Preparation cancellation awaits the interrupted save and rechecks identity before adopting. Missing-model/credential failure instead holds preparation in a `savingFailure` phase: stop, archive and delete wait for its save; it calls `recordFailedRun` only after save success and retires preparation after success or error. A failed save leaves the staging owner intact and shows an error rather than claiming a durable failed run. The queued prestart path projects cancellation before its save completes; use `stopAndWait()` to join it. The persist-before-live contract above specifically concerns the history mutation boundary, not every transient presentation update.
+
+```mermaid
+sequenceDiagram
+    participant UI as Native Assistant UI
+    participant Ctrl as Execution controller
+    participant Ops as Conversation operations
+    participant Repo as SwiftData repository
+    participant Live as Conversation projection
+    UI->>Ctrl: prepareAgentEdit synchronously
+    Ctrl->>Ctrl: preserve authored suffix and attachments
+    Ctrl->>Ctrl: capture fresh context and configuration
+    UI->>Ctrl: performAgentEdit in UI task
+    Ctrl->>Ctrl: check capture identity
+    Ctrl->>Ops: tracked history edit
+    Ops->>Repo: truncate selected user boundary
+    alt transaction fails
+        Repo->>Repo: rollback and restore retired IDs
+        Repo-->>Ctrl: error without live history mutation
+    else commit succeeds
+        Repo->>Repo: keep prefix and stage replacement
+        Repo-->>Ops: committed
+        Ops->>Live: apply persisted replacement
+        Ctrl->>Ctrl: recheck identity before preparation
+        opt current capture produces a real snapshot
+            Ctrl->>Repo: runtime or preparation terminal snapshot
+            Repo->>Repo: adopt staged row and retire staging ID
+        end
+    end
+    UI->>Repo: reopen conversation later
+    Repo-->>Live: restore replay backing and owned tool results
+```
+
+Edit/replay boundary: durable truncation precedes the live replacement, and the real run adopts the staged row without duplicating retained history.
 
 The repository instance retires the edited target run, removed later runs and adopted staging run so late snapshots or durable tool events cannot resurrect the discarded suffix. Truncation and snapshot save roll back SwiftData changes and restore the previous in-memory retired-ID set on error. These rules use the existing schema and Termind's Application/Persistence adapters, without changing AgentKit or its package pin. See [Persistent Data](persistence-and-secrets.md) for the storage contract.
 
@@ -447,6 +505,7 @@ New submissions capture whether they have a memory-session identity before prepa
 The focused tests establish behavior that is important when changing this area:
 
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
+- `TFMTests/AgentTokenUsageTests.swift` covers provider usage normalization, cumulative merging, measured-total rescaling, context-window shares, incremental/reference parity and draft edits that do not rebuild the gauge. `ChatComposerStateTests.swift` checks immediate raw-delta visibility with throttled context publishing and edits that remove downstream tools across every card lifecycle state.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.
 - `FrameworkTests/AssistantChatCollaborationPersistenceTests.swift` checks atomic cross-context receipt confirmation, monotonic delivered state, and creation-relation reopen; `FrameworkTests/AssistantChatCollaborationReviewTests.swift` and `AssistantChatCollaborationEdgeTests.swift` check source/target isolation, retries, planning restrictions, bounded listing, receipt failures and wait/interjection races. `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and reloads through a fresh `ModelContext` and repository to verify durable provenance and replay backing.
 - `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Blocked and failing saves verify that captured failure keeps preparation owned through stop and archive/delete until save completion and only adopts staging on success. `FrameworkTests/AssistantModelSelectionTests.swift` checks draft model seeding, restored choices, unavailable-model repair, and persistence-first model selection.

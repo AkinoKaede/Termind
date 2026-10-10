@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:467dd9cde36fbc898f77544e4e63b07bb479568e1e2ac2a9b4b74c909738007b",
+  "pageVersion": "sha256:6803ca504dbafc122e8d9c9e31a8de437ebcf1e70c38bf244998b701874b5a22",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -168,7 +168,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:14f58c527d4e7bd48d53770f4aa82830f48392d3de991a82f366d4f59abbc88c"
+          "version": "repo-file-v1:sha256:8d4f3a8ffcc25f57b952cf08a82e11a341a4a387f6f156ba1ba6460fb55179cf"
         }
       ]
     },
@@ -246,11 +246,11 @@
     },
     {
       "id": "claim_3b969ef21d1f4b9a9a5de6d84cf1daed",
-      "statement": "The same-run SwiftData edit regression uses equal timestamps, reversed UUIDs, compacted production restoration, legacy and unknown tool ownership, backing-row counts, staging adoption and late-write attempts; the empty-run regression separately proves live/restored ordering when the replacement clock moves backward.",
+      "statement": "The same-run SwiftData edit regression uses equal timestamps, reversed UUIDs, compacted production restoration, a legacy prefix invocation with inferred source ownership, backing-row counts, staging adoption and late-write attempts; it does not seed an unknown cutoff invocation. The empty-run regression separately proves live/restored ordering when the replacement clock precedes the retained run.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AgentPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:61cb2141cc962468a46078875631a0be60a1b726a84fda5ed5093d181ae51247"
+          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L890-L1154",
+          "version": "repo-lines-v1:sha256:7399c2eff1450ed7fe6c461d6cab56b04d04cbd109567e18ec9903aa449e510e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjY1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxYzlhMjg4MzM2YWFlNTM2ZWUyNDBiMGZjMGU5MTI5YzMwYmYzZGZiNmJiNWQwYzI1YThlNTk3ODk2N2Y1Y2Y3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzYWIzNTY3NzNjOTJiZmM4ZTMzOTFjNTRhNmEzMDUyOGE4ZWMxZjI2MTc3NjlkMjUwMjdmNzI1NzA5MDk0NjRiIn0"
         }
       ]
     },
@@ -273,7 +273,7 @@
           "version": "repo-lines-v1:sha256:d337b352f4c959c9d41ff735d806ee5d7b84f73490eb20bbd0c7e4ed6d69643a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxMjNjNGMzNzhiOWZiNzhjM2ZjOWNhMzc0YTNhNjQ0OGE5ZjAzMzJiYWY1ZmEyNDIxMGJjMDc0YjlkMmRmNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1ZjljZmVjYTlmZmQyNDRmMzFjNzdjZmNmNjMzYTA2NmZkZWQyYzI3OGVjNWQ2ZmRiZTU2ODM0NGY1ZWM1N2YifQ"
         },
         {
-          "resource": "repo://TFMTests/ChatComposerStateTests.swift#L2327-L2410",
+          "resource": "repo://TFMTests/ChatComposerStateTests.swift#L2336-L2419",
           "version": "repo-lines-v1:sha256:c62222b56de5a198a7a34c403aeae467a2c6d9500b19185607bbfe80920954d7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzYTZiMTA4ZmJkYTIyOTRkMjBjNmZiOWVmMzk2MDNiMTI3NzFhOTdmMzY2ODM5YWM3ZjUyNmExYWYxNGI3ZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NzZiYzRlZGFlZTk4NTVlZWFkMjc5MDI4ZmZlMDgwMjE5YjQwMzQzMWM1NDA3NDRkZWYzNjgyZmIyYTdhZDYifQ"
         }
       ]
@@ -622,11 +622,11 @@
     },
     {
       "id": "claim_11f4624193ba4db7b308a4795688b4dc",
-      "statement": "Replay fixtures check that a queued cancellation adopts an edited staging turn and preserves its authored text, images, attachments and frozen context on fresh-context restoration, while a captured configuration failure adopts staging only after a failed snapshot is saved; a synthetic V15 migration does not invent historical context or replay rows.",
+      "statement": "Replay fixtures check that queued cancellation adopts edited staging without provider calls and restores authored text, images, attachments and frozen context from a fresh context; captured configuration failure adopts after failed snapshot save. Both join stopAndWait and check fullAccess and start/finish/message clock bounds. Synthetic V15 migration invents no historical context or replay rows.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:14f58c527d4e7bd48d53770f4aa82830f48392d3de991a82f366d4f59abbc88c"
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift#L120-L273",
+          "version": "repo-lines-v1:sha256:17c2d7731ea7e262182b7218552fb04245547463d6d43ac23f1edb1939f6c858:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyYzFmMjZkZmI1ZDU3MWY4ODM3MmRmMzQ2N2NlYzk0YjJiY2QyNzU3MWE2NTJhMGQwNmQ3NGRhMDNjNmYzYWJkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlOGVhZjNlMWRiMjg0ZjZhNmZkNGUwNjZhZTJmYjY1NGFlNjhmZGZjZjNlN2U0ZGNhNGMyZGQyMTRhNDliOWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmNzMxNmM2NWFiYzFjNjZmOTFmM2YzODVjNzkzZDIxMzIzZWI5N2U5MWYzYjRlZmFiNDkzYzBhOGJmNWM1M2RiIn0"
         }
       ]
     },
@@ -1072,7 +1072,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

@@ -4,6 +4,8 @@ title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 sources:
+  - id: openwiki-source-8c4bdfb086f2eff661e05807
+    resource: repo://.github/workflows/localization.yml
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -20,10 +22,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
-  - id: openwiki-source-985b6a509f7d84d0b5153a7a
-    resource: repo://Scripts/check-appstrings.sh
-  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
-    resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-c6328be86432b33a68051c73
     resource: repo://Scripts/check-cjk-localization.py
   - id: openwiki-source-de562e98d49cbf6502c23c13
@@ -72,10 +70,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-09T00:05:26.272Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
 # Build, Test, and Release
@@ -208,14 +206,43 @@ Planning and Ruby checks do not open windows. Actual Mac capture takes desktop f
 
 Define user-facing copy as shared `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` (`AppStrings`), even for one-platform wording; the catalog compiled into each app bundle is `Frameworks/Resources/Localizable.xcstrings`, and bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. Keep identifiers and diagnostic codes with their existing owners. `STRING_CATALOG_GENERATE_SYMBOLS = NO` because `AppStrings` owns the Swift-facing API. Any new or changed English string must ship with finished `zh-Hans`, `zh-Hant` and `ja` translations in the same commit. Preserve placeholders and Chinese punctuation conventions.
 
-The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit run `Scripts/normalize-string-catalogs.py --write` for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter. The normalizer leaves translations intact and does not touch AgentKit's catalog; it rejects duplicate keys or invalid JSON before writing any catalog in a batch and atomically replaces each changed file. `--check` reports drift without writing. Before committing, run both checks (the catalog check uses Python and optionally accepts catalog paths):
+The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit normalize the files for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter:
+
+```sh
+python3 Scripts/normalize-string-catalogs.py --write
+python3 Scripts/normalize-string-catalogs.py --check
+```
+
+The normalizer leaves translations intact and does not touch AgentKit's catalog; it rejects duplicate keys or invalid JSON before writing any catalog in a batch and atomically replaces each changed file. `--check` reports drift without writing. Before committing, run both copy and catalog checks (the catalog check uses Python and optionally accepts catalog paths):
 
 ```sh
 Scripts/check-appstrings.sh
 python3 Scripts/check-cjk-localization.py
 ```
 
-The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. The catalog check runs the normalizer in read-only `--check` mode, then validates JSON, positional format-argument compatibility and other-only CJK plural forms and, for each Chinese/Japanese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid Han/Latin or punctuation spacing for translatable entries (`shouldTranslate != false`). Fix the reported catalog or copy violation rather than bypassing the gate. Run `AppLanguageTests` when language behavior changes; for resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging.
+The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. It requires Xcode's SwiftParser/SwiftSyntax host libraries. The catalog checker imports the normalizer's loader and normalization function and compares normalized bytes to the original without writing; it does not invoke the normalizer's `--check` CLI. It validates JSON, positional format-argument compatibility and other-only CJK plural forms and, for each Chinese/Japanese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid locale-specific spacing for translatable entries (`shouldTranslate != false`). Reordered placeholders must retain their original argument positions and types, including literal `%%` occurrences. Fix the reported catalog or copy violation rather than bypassing the gate.
+
+**Use the current scripts, not the stale shell command in `AGENTS.md`.** `Scripts/check-zh-localization.sh` is no longer available; `python3 Scripts/check-cjk-localization.py` is the workflow-backed replacement and does not require `jq`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when the shared catalogs, normalizer, CJK checker, their Python tests, or the workflow change. Its steps are:
+
+```sh
+python3 -m unittest discover -s Scripts/Tests -p 'test_normalize_string_catalogs.py'
+python3 -m unittest discover -s Scripts/Tests -p 'test_cjk_localization.py'
+python3 Scripts/check-cjk-localization.py
+```
+
+This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, and its path filters do not make it an every-commit check. Keep the local copy and catalog gates in the commit pipeline even for code-only changes. When modifying the validation tools, run the two Python test commands above as well as checking the real catalogs.
+
+### Focused language and presentation regression tests
+
+Use the resolved-package `AppLanguageTests` command above for language-selection or catalog behavior changes. The suite verifies canonical `en`, `ja`, `zh-Hans` and `zh-Hant` overrides; migration of legacy Simplified Chinese preferences; unknown/Traditional Chinese regional preferences continuing to follow the system without rewriting the preference; and removal of `AppleLanguages` when returning to Follow System. It also checks Traditional Chinese system-locale resolution without cross-fallback, the region/flag-dependent Traditional Chinese display name, selected-language relaunch notices, Japanese regional locales and reordered interpolation, Chinese model-token terminology, forwarding-template argument order, and English `one`/`other` versus CJK other-only counted resources. These are routine tests, not visible-window or mobile key-window tests.
+
+For resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/PresentationCopyTests
+```
+
+The Python gates prove catalog structure and translation invariants; these native tests additionally exercise bundle resolution and presentation-resource use. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the ownership context.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 

@@ -1,6 +1,6 @@
 ---
 type: architecture directory guide
-title: Shared module ownership guide
+title: Shared Module Ownership Reference
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
 sources:
@@ -18,12 +18,16 @@ sources:
     resource: repo://Frameworks/Resources/PrivacyInfo.xcprivacy
   - id: openwiki-source-0dc45e296e0ec3d99731a2f2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantChatCollaboration.swift
+  - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-ce9687e1e441c1da9a8f908a
     resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
   - id: openwiki-source-367221086eefa5586eade075
     resource: repo://Frameworks/TermindApplication/Agent/AssistantNotifications.swift
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -150,6 +154,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
+  - id: openwiki-source-247755d873c5d94b0a364217
+    resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -198,13 +204,13 @@ sources:
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Shared module ownership guide
+# Shared Module Ownership Reference
 
 The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. This is a **static build/bundle boundary**, distinct from runtime dependency injection: apps construct concrete services and pass them into Application ports; a framework's source directory does not imply that its resources live in that framework's bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.19.1**, and `Package.resolved` currently pins **0.19.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
 
@@ -262,6 +268,8 @@ sequenceDiagram
     end
 ```
 
+Assistant submission crosses Application capture and Persistence save boundaries before runtime execution or failure projection.
+
 Submission and failure ordering: a rejected selection write stops before capture; saved failures precede observable failure. Collaboration adds an application-owned `AssistantChatCoordinator` and `AssistantChatCollaborationStoring` for created-chat relationships and delivery receipts. The SwiftData implementation deduplicates receipts by source run/tool call; the target message's provenance and queued receipt become delivered in the message-save transaction, not on an earlier in-memory runtime event. Application notification coordination consumes conversation interaction/completion events with injected preferences, focus and sender; consumed suppressed events are not replayed when focus changes.
 
 ## TermindPersistence — stored representations
@@ -270,7 +278,17 @@ Persistence has **no functional subdirectories**. Its root owns the complete Swi
 
 On macOS, file-backed `makeContainer` acquires a per-store nonblocking advisory lock **before** SwiftData opens or migrates the database. Containers in the same process share a lease for canonicalized URLs until the last container closes; another process gets `PersistentStoreAccessError.inUse` instead of opening the store. The stable `.lock` file is not unlinked on release. In-memory containers do not acquire this lock; passing both `inMemory: true` and a URL violates a precondition. Keep container creation through this factory so journals and migration stay under the same store lifetime.
 
-`SwiftDataAgentRunRepository` deduplicates snapshots by message ID across runs and saves frozen replay/context and attachment backing separately from ordinary transcript messages (compaction has its own rows). Restore orders by run and sequence, projects compaction and recovers persisted tool results missing from the last transcript snapshot. Construction marks unfinished runs interrupted. Editing truncates a suffix and stages a replacement user run for adoption by the real run without duplication; conversation deletion removes run/tool/message/replay backing and device-local model selection, and tombstones reject late saves. V42 also stores message origins; inserting an originated message advances a queued delivery receipt in the **same save**. Title writes redact model-influenced text. Application decides when to run, compact or display errors; Persistence decides what survives restart.
+`SwiftDataAgentRunRepository` deduplicates snapshots by message ID across runs and saves frozen replay/context and attachment backing separately from ordinary transcript messages (compaction has its own rows). Restore orders by run and sequence, projects compaction and recovers persisted tool results missing from the last transcript snapshot. Construction marks unfinished runs interrupted. Editing truncates a suffix and stages a replacement user run; a real run adopts the existing message and its replay backing in one save rather than duplicating them, including failed or interrupted preparation and cancellation before runtime dispatch. `ConversationModel` replaces the corresponding staging summary and message-to-run ownership in its live projection. Conversation deletion removes run/tool/message/replay backing and device-local model selection, and repository-local tombstones reject late saves. V42 also stores message origins; inserting an originated message advances a queued delivery receipt in the **same save**. Title writes redact model-influenced text. Application decides when to run, compact or display errors; Persistence decides what survives restart.
+
+### Agent history changes: choose the owner by task
+
+| Task | Shared owner and regression seam |
+| --- | --- |
+| Commit an edited turn before changing live history | Application's `AssistantConversationOperations.edit` calls the injected repository's `truncateConversation` before `ConversationModel.applyPersistedUserMessageEdit`. `AssistantConversationOperationsTests` exercise conversation mutation policy. |
+| Preserve replacement ownership and captured payload across restart | Persistence's `SwiftDataAgentRunRepository.save` adopts staging backing; Application's `ConversationModel` projects the real run. `AgentReplayPersistenceTests` cover failed/interrupted adoption, queued cancellation without a model call, and captured configuration failure, reloading from a fresh context to check one real run and retained text, attachments and frozen context. |
+| Restore recorded results and older history | `AgentReplayPersistenceTests` cover frozen tool-result model projection, snapshot deduplication/deletion and V15 migration without invented historical context. |
+
+Keep replacement adoption and replay backing changes coordinated across Application and Persistence, not in native transcript views. For capture and cancellation control flow see [Assistant Runtime](../concepts/agent-runtime-and-assistant.md); for stored representations and transactional detail see [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-secrets.md).
 
 `GRDBMemoryStore` is an actor with a separate lazily opened `memory.sqlite` and its own migrations for full-text message search, learning activity and memory-reference dates. Constructing disabled memory creates no database files. See [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-secrets.md).
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:70bd137630ed40d98fd9a13e4fd39b1db016e8aa7e131c550d7d8521a25bf340",
+  "pageVersion": "sha256:6bf29a856991f4cb7b59362b99986616b669e153eb464116930925ada8345c89",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -66,11 +66,19 @@
     },
     {
       "id": "claim_ec9d22a2932b42bd80eae69e73f89de5",
-      "statement": "Scripts/check-cjk-localization.py checks canonical manual catalogs and validates zh-Hans, zh-Hant and ja coverage, finished/nonempty translations, positional format arguments, other-only plural shapes and locale-specific spacing.",
+      "statement": "Scripts/check-cjk-localization.py validates canonical manual catalogs and zh-Hans, zh-Hant and ja coverage, finished/nonempty translations, positional format arguments including literal percents, other-only plural shapes and locale-specific spacing. It imports the normalizer loader and normalization function and compares normalized bytes to originals without writing rather than invoking its CLI.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-cjk-localization.py",
-          "version": "repo-file-v1:sha256:179c42fdaca9bf8b59b7bf3f1bf935848d54fa04d91f8e42912d876c4ed99925"
+          "resource": "repo://Scripts/check-cjk-localization.py#L100-L121",
+          "version": "repo-lines-v1:sha256:859479f162087fdbb52728e24aaa2f129f65dce66bdde3d557ab57caf5aea8d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiMzk3OTMzYTI0YTgwMWVlOTIzMzI3YmQ2OWEwMTA0OWMwNzc5MTUwMjFjZjJlYzM5ZGRhNGY4MWFhODM3ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYmUyNzI5YTcwNmVlZjA3YzFjZDRhYjNmNTA5MDhhMzI4NWMzNDZmNDdjYjU4MGJlOTc1YTU2NDRmZTI4MjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0YjEwNjc5N2MzMTM3NDc4OTAyZWUyNDQyM2Y2Y2FlMTNkN2Q2YjUxYjBiZDQ0ODg3YmRkZDlkZTgyOThiY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        },
+        {
+          "resource": "repo://Scripts/check-cjk-localization.py#L14-L18",
+          "version": "repo-lines-v1:sha256:e9bb12958f04d916b6cdbe703db840f90d0381adfa51982e7e7a4d6451cabca4:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjMzNmUzMzdkZmRmOWQ1ZmU0YjBiNGU4ODUyMDc4YzljOGIzYmU0NGUzYTBhNzZlYTA0NDQ1YWIxMGY1NTMzOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWEzZTFiN2Q2NzUwNjk3OTMxMDBmYTlhNTIwMmNmOTk2ZWYzOGUwMjZiYTlmZDYwMmZhODVkOGIwYzk0Mzk4OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTI5ZDY3YWUzOWNkMDFiOWVkNmQ3ZDU3YmVhMWFiOGJiNGUzM2JlNWNlMzRkYjE1N2NlZmY3MTM1MTMyNjhlNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGJjNjljOGZkNTU5OGJkYWYwZTY3NzA0ZjU4MGRmNGM4MTgzN2YxZTQzNzZhODQ2MmJhMzA3OGEyYjEwYTc5OSJ9"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py#L40-L80",
+          "version": "repo-lines-v1:sha256:7613d04f8b5bab096788d801e5e0ea12e8fa55acca7938a1f9e2fdcddc9c0cfb:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2OTRmMDVlN2RhMTg0MTkyMDVlNzliZmZmNGRkODEwZmRlM2FjNTYwOTFiY2I0Y2Y1YzM5ZDM4Yjg2N2I3MjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NDE0Y2MzNDVjYzZkOTE2NWE3YTk5N2VlM2RkZDI1NWUxMTYzMWY0ZGViNDlhNmUyNjMzZTRkYjY5YzUxYWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcwNzM5MjVmOThhMjliODQwZGJjNjZkZjVkYzY3YjFmZGEzNGRkNjYxMWJmZjRiMDhlNzg2MWEzYjhmYWQ1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MWI0NTkyOWYyYmIyM2I2ODVjNTQ3ZjY3ZDhiNmU2NTRlNjQ0OWE2MzlkMmQ3NmY1ZjdlZmNmYTFlZTBjYzkifQ"
         }
       ]
     },
@@ -86,11 +94,11 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests verifies canonical English, Simplified Chinese, Traditional Chinese and Japanese tags, independent Chinese catalog resolution, and Japanese regional tags, reordered interpolation and other-only plurals.",
+      "statement": "AppLanguageTests covers canonical four-language overrides, legacy Simplified Chinese migration, unknown preferences remaining system-following without rewriting, removal of AppleLanguages on Follow System, Traditional Chinese regional resolution and display naming, selected-language notices, Japanese regional interpolation, Chinese token terminology, forwarding-template argument order, and English one/other versus CJK other-only counted resources.",
       "evidence": [
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:644bfcc202f4846774efc6e7747ebf2b66d116e00574ba71ad529716392ed224"
+          "version": "repo-file-v1:sha256:adad98919a8d3c113abaa52b9cfd824370296bf2669c60bee5af4dc74869be1d"
         }
       ]
     },
@@ -304,27 +312,11 @@
     },
     {
       "id": "claim_4f997647e9c54f8caf23bd151004f962",
-      "statement": "The AppStrings check uses SwiftSyntax to scan the macOS and iOS app Swift source for hard-coded presentation literals and fails with locations when such text should move to shared presentation strings; it is run alongside the Chinese catalog check.",
+      "statement": "The AppStrings check scans macOS and iOS Swift source with Xcode-hosted SwiftParser/SwiftSyntax for hard-coded presentation literals and fails with locations; it must be run locally alongside the Python CJK checker because the path-filtered Ubuntu Localization workflow runs only normalization tests, CJK tests and the catalog checker, not AppStrings or native Swift tests.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L80-L87",
-          "version": "repo-lines-v1:sha256:2835b222d3b3bdfe35ffda03412be88c9346b3abd7446df7acfaf14d31dd7aa9:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzRkY2Q2ZjFjNTFjZjNkNGEzYWM4NTBkNTM5N2RlNGJiNGJlMDE5ZWNlMWE4Y2U2M2MzZTIxN2I3MTExMWFjOSJ9"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.sh#L1-L9",
-          "version": "repo-lines-v1:sha256:adde910147e7d0d622ca42489c4ab1b642ddddd27a30b9b74404bfdd958cf5ec:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjg3NWY5Mjg1NDZhZWU3ODU1Y2IxZGI5YWZjOGFiM2YxYThhMzRkNDNkZTViYmQ2MmY3MDc2ZDdiYTlmMzkxNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTg3MmI2ZGY1MTcxN2UwZDZmNDM1Nzc2ODUyYmFiNTQxZTMyMzI0MWZiOWJjYTFlYjNhMWVkYjQ5MjA5YzAxMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.swift#L26-L60",
-          "version": "repo-lines-v1:sha256:d4e79deebc4939cdb718b608da41d76293da4ccd55a64b75d6fd2cd25edc31e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNTVkNTljNDRiY2QxMzk2NmU4N2Y5MDI2NWJhYjZmYzdiNmM1MTA4Nzg4M2Q5YmQyZDM0ODgwYmMyNjYyNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1NmQzNzFhY2NmNmY5MThiYTA2ZjZmNGQ4NDhjZWZiYzcxMmQ3ODFiYzM3NDA3N2VhNmYzMjJhMDBmMGJmNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjZmNmZjI1YzkwYmEwN2M0Y2U3Y2UxNDkxOTEwMWU4M2IwMGRjYmE0YmM1ZWI2NjNjZmRhNDlhNDY5N2ZkNTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.swift#L5-L18",
-          "version": "repo-lines-v1:sha256:092f3212071893f610272a62e0dee5a7c9296cffe95064fc25cc8ed65bc5ce27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYTY4ZDE3MmNlYjAzZWM2MjVmYTAwZDYyY2NkMGIwNGViYjIzOTNjMjRkMzQ1NTU0YjMwNTdmZGU4ZDQ4NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDI0NDU4MmI2ZmIwM2QyM2I4NDE1YWJlY2QzNDZiMGM5ZjQ2NmI2Zjc1MmIwNjgxODljZTdlOWEyZGMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3OTQzZmRkMjkzYzI3Yzk5YmQzZmU4MjlmOGZlY2EzYTFkZjc3MDZmYmMyNTIzZjAxNDE1ZDgzNjA3ZTVhMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NmIxOWU5ODgxNmYxMjE5NjE3ZjQzZTljMTM2ZDZiNTcxMGQ5ZmVmNzAzZmFhNThkMzVkNjY4NGIxMWYwODUifQ"
-        },
-        {
-          "resource": "repo://Scripts/check-appstrings.swift#L64-L87",
-          "version": "repo-lines-v1:sha256:e567e2575025771a0f17f7c9e93126a63ce6c603b8f0c2e32035f9f7731d4860:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1M2I1YzQ2NjY5ZmJhOTI5Y2YxNmEyNmEzM2U2MGVhNWIwYzFkNzg3OTc0ZTMxNzk2OTllMWU5MzMxMTFhMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjZlYjBjY2QyNTMzMWVlNTZkZDAwN2Q2MjczOGQ0NDAxMjIzMWViMmI2NDhmNzhhYjA2ODc5Y2Q5MGNkNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://.github/workflows/localization.yml",
+          "version": "repo-file-v1:sha256:e8814648ef9ea5562999b0422d00e8839a2b9fd86962b6022816b1d656820577"
         }
       ]
     },
@@ -605,6 +597,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-09T00:05:26.272Z"
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

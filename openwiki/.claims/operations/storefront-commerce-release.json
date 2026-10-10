@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d5a99c50d2acfa0cfa618499e38eaae356213ee5fa1bbf6312cfa277e3083175",
+  "pageVersion": "sha256:3848f628519d8c85e0240922e071f7a55949bf7c729ae87a40dbce46ae82e740",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -60,23 +60,23 @@
     },
     {
       "id": "claim_6fa732935af2426fb937e410254e3f76",
-      "statement": "ProAccessController gates Tailscale, Assistant use, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding multi-connection acceleration through current entitlement status; a denied require presents the paywall, while ordinary workspaces and SSH terminal uploads do not require Pro.",
+      "statement": "ProAccessController gates Tailscale, Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding acceleration through entitlement status; denied require presents the paywall, while ordinary workspaces and SSH terminal uploads are free. AppModel defaults to unrestrictedForTesting, but TermindApp explicitly injects live access for normal launches and unrestricted access for tests and DEBUG screenshot demos.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift",
-          "version": "repo-file-v1:sha256:76025c6e263e81a0ac57544e98af80bff29e236d4a70978541a7a99858bb2c62"
+          "resource": "repo://TFM/App/AppModel.swift#L209-L242",
+          "version": "repo-lines-v1:sha256:ff8cc3851059b4caa24ebf4fe199f8dea3713e9ffd025f7264aa3b1ebeacc142:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjYjI0M2VlZjdkMmRhNjllZTVhMDk1YWYyYzYwMWRlMGNjN2Y4NTdjNjNkOTEyM2Y1Zjk1OWYyMjQwMDQ0YjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMGVkNGE5ZGE0MjhlZjdkOTUyZGJjYjE5NDY3MzUzNjE3Nzg5NzFiMWRjNGM5YjgyZmI1MmVhNTZkNmQxZDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlNDJiZGVhNzkxNGMxYzU5M2M0ZGRlNWZhNTZiMjAyMGRkMmZmMjVlZTRiYzkxZDJmNDUyYTNlYTI5YzBlNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiNmUzZWZkN2I3NTRiZDk5OTQ2ZDA4Y2ZiMWJlNzM3N2QxNWNjMjEzMzI1ZWZjZWJiODFiNDBjNjZjNmI4MjkifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift",
-          "version": "repo-file-v1:sha256:2408f5cf552bb95297647b8f10dbb6dce3b944ca798eb88fe375ffec8ec759be"
+          "resource": "repo://TFM/App/TermindApp.swift#L138-L141",
+          "version": "repo-lines-v1:sha256:d7a35235421f01a6dbee1cfc2c3f3947990480cc7da3f8b1eeb7d4eadf443a0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDhlNjgyZDk4YTk0YjFlMTg2YTg3Y2Y2NGVmYWUxOWJjMjBjZWM0MDBkNTdlZWNkMjcwZjM0ZTc3OWMyNDliMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODc1YTE5OTFkY2Q5ZWFkYjc1NGE1NGY4NjUzYzllNWFjMzU3ZTI5ZmQyZmU3MGFlODlkZTFkMWEyYTk0MjMyYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzU5OWMzYWM2ZjU3NDEwODNlODAyYzk2NTUyYTA3MmU3ZjNjZWYxYzJhNTJiMTZkNGU1MmI1Y2Y1MjBiN2EwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2UwNGRiOWI5ZTM5NGZiZGQzM2Q3YWFmYTQ0MGVhODI5OWUxZDcwOWQ4NDRiZmI1ODU1ZTZkNzQ2NzU0OWQ2OCJ9"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:38211fbcc14ac724b1dcf4ce775cd5f3a8032776ff5b5970ab5c0d4d93e59d6e"
+          "resource": "repo://TFM/App/TermindApp.swift#L203-L207",
+          "version": "repo-lines-v1:sha256:253f2766d0bc85c7ef549b033a0be3882596a934bb7d3b0dd68df8cb7101e876:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDIwN2U2MzJmNzgyNWU4MzFiYTM0Y2Y0YTk1ZjE2ODg1ZDg2Y2M2MGRhNWMzZjg2M2U4ZThjZTdhMWM4NTU5YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEwMzQ4MWM1N2QwZjBkYzBmNzZjZDJjYzhiMzYwNGM0ZTgyOTZkYTQxMjJhZGQxOWU4MTc0NWRjN2UzMzFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjcxNzFkMTM3MzE1Y2ZhYWM1ZmQzYTI2MjE0OWFmYjBjYTJkYjg4NTVmZDM0NGRmYjA1MTlmYjA4Mzk2MGNiZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTFlNmNjYWRjNjNiOTViYWJmNjM4MzE1ZGI1YTZjNzhhYjRiMDUyMTViYTMyMmFlYzM1YTI0NThlZmJiOTJhMyJ9"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:42e025d10f660373b02cba5834271b9d07742b518eb381eb0ff513d21c099fff"
+          "resource": "repo://TFM/App/TermindApp.swift#L45-L79",
+          "version": "repo-lines-v1:sha256:1c4e1f549badfa5ca58d54178883bde270bd5b6970dddbf7b834468148ba8d9a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5MGYxODJjOGI0OTgyMDk3OTA2NTZlNmY3YzcyNGVmMTM4YzcxMjBlY2NhMDU4ZDczMmU2ZjU5NTc1ZDQwZWEifQ"
         }
       ]
     },
@@ -191,7 +191,7 @@
           "version": "repo-lines-v1:sha256:913ed5a2e5932b8d1c1573b0cb8b5f3e62894055a3bbc201a4f015959dd657bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3OTMwZTVmMWQwZjllZmQzN2MxY2E3OWNiOTBhNTk2NmQxMzBkM2E5YWE5ZTQ5ODY4YTQyYzI2NzYwMTI5YTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkODcwOThkYmJlNThkNWY2ZTRhYWZkYWU4ZWU1NTRlZTgzNjc0NzQwNDA4MzgwYzk3Nzc5NDkzNzUzOWQwMWQifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L308-L316",
+          "resource": "repo://TFM/App/AppModel.swift#L316-L324",
           "version": "repo-lines-v1:sha256:9fa679389f29e57ac46d0b99df989db851134571fe1f6f46ed910facbf67ddd2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTliYWY3YTY2ZTY5MzhmOTA2ZjExZTg0NTQxNDZhODRhMjQ2ZmFlZWM4ZTliOGY0MTlkNjJjMDVkNTBjNTg1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTkwOWE1M2E2MThkMDI4ZTFkMzAwMGMwYTdhYmNlZWNiZTVmYjM3ZjRlNTExZWZlNDY2NDNmYWQ2ZTY2ODcyZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2MxYzlmM2I2NTRmZjQ4ODhjNjBiY2JlODhlMzVhMDE4MzczOGQzYzM1YjA4MjM3NTc1N2YzMGE5Zjc4MDcxMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzBkYTJjY2ZmZmI5YzRlYzg1MjMwZTk0MzNkZWYwMWU0MjFhYjgyMmQ3YjllZDBhMDhjZDMwYjA4ODhhYmQ1MCJ9"
         },
         {
@@ -333,6 +333,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-09T00:05:26.272Z"
+    "at": "2026-10-10T23:08:14.218Z"
   }
 }

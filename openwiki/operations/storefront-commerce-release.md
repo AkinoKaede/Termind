@@ -1,6 +1,6 @@
 ---
 type: storefront-release-operations
-title: Storefront commerce release checks
+title: Storefront Commerce Release
 description: Release checklist for the local StoreKit product fixture, RevenueCat entitlement and paywall configuration, cross-platform access refresh, and Sandbox validation.
 tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, release]
 sources:
@@ -36,8 +36,6 @@ sources:
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
     resource: repo://TFI/Features/Settings/MobileMCPSettings.swift
-  - id: openwiki-source-492f738896225c6b3acf7d2f
-    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-4f0f9c14c0bea850182fe19b
     resource: repo://TFI/Info.plist
   - id: openwiki-source-25a2df896b93f410289e8512
@@ -56,13 +54,13 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-09T00:05:26.272Z
+    at: 2026-10-10T23:08:14.218Z
 ---
 
-# Storefront commerce release checks
+# Storefront Commerce Release
 
 **Three separate authorities:** `StoreKit/Termind.storekit` is a local catalog fixture, App Store Connect defines the live Apple products and introductory offer, and RevenueCat supplies the configured `termind_pro` entitlement and remotely configured paywall. A fixture product or signed CloudKit capability does not grant Pro. Check the RevenueCat dashboard, Apple storefront and native app together before shipping; do not treat local test prices, screenshots or UI strings as production purchase evidence. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the broader gate and copy ownership map.
 
@@ -88,6 +86,10 @@ Signing is a different check: the targets have distinct `TFI/TFI.entitlements` a
 ## Access and refresh lifecycle
 
 `ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. `ProFeature` covers Tailscale, Assistant, remote MCP, the Mac built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. On Mac `.mcpServer` gates the built-in server; mobile uses `.remoteMCP` for remote connections. The enumeration alone is not a platform availability promise.
+
+For Mac release verification, inspect the **composition root**, not the `AppModel` initializer default: `AppModel` defaults to `.unrestrictedForTesting()`, but `TermindApp` explicitly injects `.live()` for normal launches and `.unrestrictedForTesting()` when running tests. The DEBUG screenshot-demo branch also explicitly injects unrestricted access and returns early. Neither a screenshot nor a directly constructed default `AppModel` demonstrates production entitlement enforcement.
+
+Mac entitlement changes also reconcile runtime services: `accessDidChange` updates Tailscale, Metrics and effective SFTP/port-forwarding connection preferences without requiring a visible settings surface. `RootView` observes status changes to reconcile sync and the built-in MCP server. SFTP integration tests verify that gaining access restores the saved concurrency strategy and losing access uses the free effective strategy without rewriting saved preferences or opening a paywall. Include access gain/loss in release checks, not just initial paywall presentation.
 
 ```mermaid
 flowchart TD
@@ -135,6 +137,12 @@ sequenceDiagram
 Purchase and restore callbacks refresh the controller's entitlement status while the native sheet can remain open on the account variant.
 
 Both wrappers refuse purchase initiation if access already exists, mark operations processing on purchase/restore start and clear processing on completion, cancellation or failure. Completion refreshes entitlement without closing the sheet: the first RevenueCat dismissal request after purchase is suppressed so the account variant remains visible; the close button or subsequent dismissal can close it. Disappearance clears the processing flag. Mac chooses one owner window for the sheet; iOS presents it from `MobileRootView`. Confirm purchase/restore failures and recovery in real UI rather than assuming controller unit tests exercise SDK purchases.
+
+## Language changes are presentation changes
+
+On Mac, the language picker persists `AppLanguage` and displays a relaunch notice when it differs from the launch language. `AppLanguage.store` updates the app setting and Apple's `AppleLanguages` override; Follow System removes that override. RevenueCat reads the stored locale when its SDK is first configured, while the native paywall formats its `date` variable with the view's locale. Relaunch before reviewing a changed language; do not assume changing the setting reconfigures an already-running RevenueCat SDK.
+
+This path does **not** change entitlement resolution, purchase authorization or restore callbacks, and is not a way to reset introductory-offer eligibility. Keep language/copy review separate from account eligibility and transaction validation: verify the actual remote paywall after relaunch, then use the appropriate Sandbox accounts for purchases and restores. The manual StoreKit fixture's English and Chinese strings do not prove RevenueCat dashboard locale coverage.
 
 ## Release validation
 
