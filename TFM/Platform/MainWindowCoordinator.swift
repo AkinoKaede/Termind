@@ -590,12 +590,14 @@ final class MainWindowRegistrationView: NSView {
     private let coordinator: MainWindowCoordinator
     private let model: WindowModel
     private let requestID: UUID?
+    private let closeDelegate: WorkspaceWindowCloseDelegate
     private var documentEditedObservation: NSKeyValueObservation?
 
     init(coordinator: MainWindowCoordinator, model: WindowModel, requestID: UUID?) {
         self.coordinator = coordinator
         self.model = model
         self.requestID = requestID
+        closeDelegate = WorkspaceWindowCloseDelegate(model: model)
         super.init(frame: .zero)
     }
 
@@ -604,9 +606,10 @@ final class MainWindowRegistrationView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        closeDelegate.attach(to: window)
         documentEditedObservation = nil
-        // SwiftUI marks a window with dismissal confirmation as edited. Workspaces
-        // are not documents; suppress that decoration without changing dismissal.
+        // Workspaces are not documents; suppress edited decoration without
+        // changing the native window-close confirmation.
         documentEditedObservation = window?.observe(\.isDocumentEdited, options: [.initial, .new]) { window, change in
             guard change.newValue == true else { return }
             MainActor.assumeIsolated { window.isDocumentEdited = false }
@@ -616,6 +619,7 @@ final class MainWindowRegistrationView: NSView {
 
     func register() {
         guard let window else { return }
+        closeDelegate.attach(to: window)
         // Establish the content coordinate system before reading or applying a
         // size. A separate bridge could otherwise register before this style.
         if !window.styleMask.contains(.fullSizeContentView) { window.styleMask.insert(.fullSizeContentView) }

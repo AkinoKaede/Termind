@@ -469,6 +469,11 @@ struct TermindApp: App {
             if awaitingTermination { return .terminateLater }
             awaitingTermination = true
             Task { @MainActor [weak self] in
+                if app.hasOpenWorkspaces, !WorkspaceCloseConfirmation.application.confirm() {
+                    self?.awaitingTermination = false
+                    NSApp.reply(toApplicationShouldTerminate: false)
+                    return
+                }
                 await app.sftpEdits.recheck()
                 if app.sftpEdits.model.hasPendingChanges {
                     let alert = NSAlert()

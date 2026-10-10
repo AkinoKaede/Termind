@@ -44,6 +44,14 @@ nonisolated enum HostOpenTarget: Hashable, Sendable {
 final class AppModel {
     private var terminationTask: Task<Void, Never>?
     private var isTerminating = false
+
+    var hasOpenWorkspaces: Bool {
+        windows.values.contains { entry in
+            guard let window = entry.value, !window.isClosed else { return false }
+            return !window.workspaces.isEmpty
+        }
+    }
+
     private final class WeakWindow {
         weak var value: WindowModel?
         init(_ value: WindowModel) { self.value = value }

@@ -267,7 +267,19 @@ extension AppStrings {
         }
 
         public static var closeThisWindowConfirmation: LocalizedStringResource {
-            "Close this window?"
+            "Close this Window?"
+        }
+
+        public static var quitTermindConfirmation: LocalizedStringResource {
+            "Quit Termind?"
+        }
+
+        public static var closeTermind: LocalizedStringResource {
+            "Close Termind"
+        }
+
+        public static var quitTermindWarning: LocalizedStringResource {
+            "Quitting Termind will close all open Workspaces and disconnect their sessions."
         }
 
         public static var connectionLinkFailed: LocalizedStringResource {

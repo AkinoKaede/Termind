@@ -7897,6 +7897,29 @@
         }
       }
     },
+    "Close Termind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termindを閉じる"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭Termind"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉Termind"
+          }
+        }
+      }
+    },
     "Close Transfers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8058,7 +8081,7 @@
         }
       }
     },
-    "Close this window?" : {
+    "Close this Window?" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
@@ -28695,6 +28718,29 @@
         }
       }
     },
+    "Quit Termind?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termindを終了しますか？"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出Termind？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出Termind？"
+          }
+        }
+      }
+    },
     "Quit with unuploaded changes?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28714,6 +28760,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍有修改未上傳，確定結束嗎？"
+          }
+        }
+      }
+    },
+    "Quitting Termind will close all open Workspaces and disconnect their sessions." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termindを終了すると、開いているすべてのワークスペースが閉じられ、セッションが切断されます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出Termind将关闭所有打开的工作区并断开其会话连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出Termind將關閉所有開啟的工作區並中斷其工作階段連線。"
           }
         }
       }

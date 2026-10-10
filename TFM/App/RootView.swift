@@ -223,15 +223,6 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             app.connectionHistory.refreshMenuDate()
         }
-        .dismissalConfirmationDialog(
-            AppStrings.Workspace.closeThisWindowConfirmation, shouldPresent: !window.workspaces.isEmpty
-        ) {
-            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
-                .keyboardShortcut(.defaultAction)
-            Button(AppStrings.Workspace.closeWindow.swiftUIKey, role: .destructive) {}
-        } message: {
-            Text(AppStrings.Workspace.closeWindowWarning)
-        }
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.
         .environment(window)
