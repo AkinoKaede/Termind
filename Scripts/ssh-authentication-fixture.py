@@ -117,6 +117,7 @@ class Authentication(paramiko.ServerInterface):
             "password": "password", "password-mfa": "password",
             "publickey": "publickey", "encrypted-key": "publickey",
             "publickey-mfa": "publickey", "reject": "password",
+            "key-password": "publickey,password",
         }.get(username, "keyboard-interactive")
 
     def check_auth_none(self, username):
@@ -129,7 +130,7 @@ class Authentication(paramiko.ServerInterface):
         if username == "password-mfa":
             self.factor = True
             return paramiko.AUTH_PARTIALLY_SUCCESSFUL
-        accepted = username == "password" or (username == "kbd-password" and self.factor)
+        accepted = username in ("password", "key-password") or (username == "kbd-password" and self.factor)
         return paramiko.AUTH_SUCCESSFUL if accepted else paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):

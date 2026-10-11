@@ -1184,8 +1184,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         if libssh2_userauth_authenticated(session) == 1 { return "none" }
         var attempted = false
         var lastMethod = "none"
-        var secureEnclaveError: (any Error)?
-        var lastFailure: String?
+        var failures: [String] = []
         var remaining = credentials
         var attemptedInteractive = false
         var skippedInteractiveCredential = false
@@ -1211,7 +1210,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 try keyboardInteractive.checkCancellation()
                 if let error = keyboardInteractive.error { throw error }
                 if result == 0 { return lastMethod }
-                lastFailure = connectionErrorMessage(session, prefix: "SSH authentication failed", fallbackCode: result)
+                failures.append(connectionErrorDetail(session, fallbackCode: result))
                 methods = try authenticationMethods(username: username, session: session)
                 if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
                 continue
@@ -1232,8 +1231,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         }
                     }
                     if result == 0 { return lastMethod }
-                    lastFailure = connectionErrorMessage(
-                        session, prefix: "SSH authentication failed", fallbackCode: result)
+                    failures.append(connectionErrorDetail(session, fallbackCode: result))
                 }
             case .privateKey(let privateKey, let publicKey, let passphrase, _):
                 guard methods.contains("publickey") else { continue }
@@ -1261,7 +1259,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     }
                 }
                 if result == 0 { return lastMethod }
-                lastFailure = connectionErrorMessage(session, prefix: "SSH authentication failed", fallbackCode: result)
+                failures.append(connectionErrorDetail(session, fallbackCode: result))
             case .securityKey(let credential, let name):
                 guard let keyboardInteractive else { throw SSHInteractionRequired() }
                 attempted = true
@@ -1298,20 +1296,20 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 if let error = signer.error { throw error }
                 if result == 0 { return lastMethod }
                 if result == LIBSSH2_ERROR_AUTHENTICATION_FAILED, signer.stage == "public_key_offer" {
-                    lastFailure = connectionErrorMessage(
-                        session,
-                        prefix: String(
-                            localized:
-                                "The server rejected the username or public key. Check the login user and the key in authorized_keys."
-                        ), fallbackCode: result)
+                    failures.append(
+                        connectionErrorMessage(
+                            session,
+                            prefix: String(
+                                localized:
+                                    "The server rejected the username or public key. Check the login user and the key in authorized_keys."
+                            ), fallbackCode: result))
                 } else {
-                    lastFailure = connectionErrorMessage(
-                        session, prefix: "SSH authentication failed", fallbackCode: result)
+                    failures.append(connectionErrorDetail(session, fallbackCode: result))
                 }
             case .secureEnclave(let credential, let publicKey, _):
                 guard methods.contains("publickey") else { continue }
                 guard let publicBlob = SecureEnclaveKey.publicBlob(from: publicKey) else {
-                    secureEnclaveError = TermindSSHError.library(
+                    failures.append(
                         "The Secure Enclave key has an invalid SSH public key."
                     )
                     continue
@@ -1335,7 +1333,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 // A cancelled/failed system signing prompt must never fall through to another credential.
                 if let error = signer.error { throw error }
                 if result == 0 { return lastMethod }
-                lastFailure = connectionErrorMessage(session, prefix: "SSH authentication failed", fallbackCode: result)
+                failures.append(connectionErrorDetail(session, fallbackCode: result))
             case .interactionRequired:
                 skippedInteractiveCredential = true
             }
@@ -1343,17 +1341,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
         }
         if skippedInteractiveCredential { throw SSHInteractionRequired() }
-        if let secureEnclaveError {
-            throw TermindSSHError.authenticationFailed(secureEnclaveError.localizedDescription)
+        if failures.isEmpty && !attempted {
+            let available = methods.sorted().joined(separator: ", ")
+            throw TermindSSHError.authenticationFailed(
+                connectionErrorMessage(
+                    session, prefix: "No configured credential matches the server methods (\(available))"))
         }
-        let available = methods.sorted().joined(separator: ", ")
-        let prefix =
-            attempted
-            ? "SSH authentication failed"
-            : "No configured credential matches the server methods (\(available))"
-        throw TermindSSHError.authenticationFailed(
-            lastFailure ?? Self.connectionErrorMessage(session, prefix: prefix)
-        )
+        // Shared catalog keys owned by AppStrings.Connections; this layer cannot import Presentation.
+        let details =
+            failures.isEmpty
+            ? connectionErrorDetail(session)
+            : failures.joined(separator: String(localized: "; "))
+        throw TermindSSHError.authenticationFailed(String(localized: "SSH authentication failed: \(details)"))
     }
 
     public static func authenticate(
@@ -1854,12 +1853,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private static func connectionErrorMessage(
         _ session: OpaquePointer, prefix: String, fallbackCode: Int32? = nil
     ) -> String {
+        "\(prefix): \(connectionErrorDetail(session, fallbackCode: fallbackCode))"
+    }
+
+    private static func connectionErrorDetail(
+        _ session: OpaquePointer, fallbackCode: Int32? = nil
+    ) -> String {
         var message: UnsafeMutablePointer<CChar>?
         var length = Int32(0)
         let code = libssh2_session_last_error(session, &message, &length, 0)
         let detail = message.map { String(cString: $0) }?.trimmingCharacters(in: .whitespacesAndNewlines)
         let reason = detail.flatMap { $0.isEmpty ? nil : $0 } ?? "libssh2 error \(fallbackCode ?? code)"
-        return "\(prefix): \(reason) [libssh2 \(fallbackCode ?? code)]"
+        return "\(reason) [libssh2 \(fallbackCode ?? code)]"
     }
 
 }

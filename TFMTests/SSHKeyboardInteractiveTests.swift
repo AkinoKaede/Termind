@@ -10,6 +10,39 @@ import Testing
 /// queue, preparation and cancellation tests run without this external fixture.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
 struct SSHKeyboardInteractiveWireTests {
+    @Test(arguments: [false, true], [false, true])
+    func keyFailureKeepsPasswordFallbackAndCombinesErrorsOnlyWhenItFails(silent: Bool, succeeds: Bool) async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        var request = request(mode: "key-password", fixture: fixture, handler: recorder.handler)
+        request.interactionPolicy = silent ? .forbidden : .allowed
+        request.configuration.expectedHostKeys = [.init(algorithm: .rsa, fingerprint: fixture.hostFingerprint)]
+        request.configuration.credentials = [
+            .privateKey(privateKey: fixture.encryptedPrivateKey, publicKey: nil, passphrase: "wrong-passphrase"),
+            .password(succeeds ? "fixture-password" : "wrong-password"),
+        ]
+        let connection = SSHConnection()
+        do {
+            try await connection.connect(using: request)
+            #expect(succeeds)
+        } catch TermindSSHError.authenticationFailed(let message) {
+            #expect(!succeeds)
+            let prefix = String(localized: "SSH authentication failed: \("")")
+            #expect(message.hasPrefix(prefix))
+            #expect(message.components(separatedBy: prefix).count == 2)
+            let failures = String(message.dropFirst(prefix.count)).components(separatedBy: String(localized: "; "))
+            #expect(failures.count == 2)
+            #expect(failures.first?.contains("private key") == true)
+            #expect(failures.last?.contains("password") == true)
+            #expect(!message.contains("wrong-passphrase") && !message.contains("wrong-password"))
+        } catch {
+            await connection.disconnect()
+            throw error
+        }
+        await connection.disconnect()
+        #expect(await recorder.challenges.isEmpty)
+    }
+
     @Test(arguments: ["none", "password", "kbd", "multi", "push", "password-mfa", "publickey-mfa", "kbd-password"])
     func execAuthenticatesOnTheSameTransport(_ mode: String) async throws {
         let fixture = try fixture()

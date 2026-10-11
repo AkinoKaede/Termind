@@ -2378,6 +2378,36 @@
         }
       }
     },
+    "; " : {
+      "comment" : "Separates the details of successive failed SSH authentication attempts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "; "
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "；"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "；"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "；"
+          }
+        }
+      }
+    },
     "A Workspace template with this name already exists." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32076,6 +32106,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH、SFTP，助手隨行。"
+          }
+        }
+      }
+    },
+    "SSH authentication failed: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH authentication failed: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH認証に失敗しました：%@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH认证失败：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH認證失敗：%@"
           }
         }
       }

@@ -2,6 +2,14 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Connections {
+        public static func sshAuthenticationFailed(_ details: String) -> LocalizedStringResource {
+            "SSH authentication failed: \(details)"
+        }
+
+        public static var authenticationFailureSeparator: LocalizedStringResource {
+            "; "
+        }
+
         public static var authenticationCancelled: LocalizedStringResource {
             "Authentication was cancelled. Retry to continue connecting."
         }

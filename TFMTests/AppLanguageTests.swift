@@ -7,6 +7,21 @@ import Testing
 @testable import Termind
 
 struct AppLanguageTests {
+    @Test(arguments: [
+        ("en", "SSH authentication failed: key detail; password detail"),
+        ("zh-Hans", "SSH认证失败：key detail；password detail"),
+        ("zh-Hant", "SSH認證失敗：key detail；password detail"),
+        ("ja", "SSH認証に失敗しました：key detail；password detail"),
+    ])
+    func authenticationFailuresUseOneLocalizedPrefixAndSemicolon(language: String, expected: String) {
+        let locale = Locale(identifier: language)
+        let separator = AppLocalization.resolve(AppStrings.Connections.authenticationFailureSeparator, locale: locale)
+        let details = ["key detail", "password detail"].joined(separator: separator)
+        #expect(
+            AppLocalization.resolve(AppStrings.Connections.sshAuthenticationFailed(details), locale: locale) == expected
+        )
+    }
+
     @Test
     func missingAndUnknownPreferencesFollowSystem() throws {
         let defaults = try makeDefaults()
