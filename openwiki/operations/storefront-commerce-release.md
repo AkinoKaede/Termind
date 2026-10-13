@@ -1,6 +1,6 @@
 ---
 type: storefront-release-operations
-title: Storefront Commerce Release
+title: Storefront Commerce Release Checks
 description: Release checklist for the local StoreKit product fixture, RevenueCat entitlement and paywall configuration, cross-platform access refresh, and Sandbox validation.
 tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, release]
 sources:
@@ -54,13 +54,13 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# Storefront Commerce Release
+# Storefront Commerce Release Checks
 
 **Three separate authorities:** `StoreKit/Termind.storekit` is a local catalog fixture, App Store Connect defines the live Apple products and introductory offer, and RevenueCat supplies the configured `termind_pro` entitlement and remotely configured paywall. A fixture product or signed CloudKit capability does not grant Pro. Check the RevenueCat dashboard, Apple storefront and native app together before shipping; do not treat local test prices, screenshots or UI strings as production purchase evidence. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the broader gate and copy ownership map.
 
@@ -81,7 +81,25 @@ The fixture marks both products Family Shareable and puts annual in the `Termind
 
 Both targets obtain `TermindRevenueCatAPIKey` and `TermindRevenueCatEntitlementID` from their `Info.plist` build substitutions; the project-level Debug and Release settings both specify a public `appl_` key and the `termind_pro` entitlement. Check **resolved values in the signed release build**, not only source settings: `RevenueCatConfiguration` trims whitespace, rejects missing/placeholder entitlement or invalid/private keys, and accepts `test_` keys only in DEBUG. Invalid configuration gives `.verificationFailed` and an unavailable fallback, not a StoreKit access bypass. The RevenueCat dashboard must map both Apple products to the correct entitlement, configure offerings, remote paywall variants, copy, legal links and restoration, and use the matching Apple app/store credentials. The service uses StoreKit 2, informational entitlement verification, anonymous RevenueCat IDs (not device/iCloud IDs), disabled automatic device-ID collection and the stored app language as preferred RevenueCat UI locale. Test universal Apple purchases across Mac and iOS via explicit restore; anonymous IDs may be aliased through restoration rather than being identical between devices.
 
-Signing is a different check: the targets have distinct `TFI/TFI.entitlements` and `TFM/TFM.entitlements`. Both declare the CloudKit container, webcredentials domain and bundle-derived keychain group; Mac also has App Sandbox with device, network and selected-file permissions. Check provisioning and production iCloud/push environment on signed builds, but do not read StoreKit products, introductory offers or Pro access from these capability declarations.
+Signing is a different check: the targets have distinct `TFI/TFI.entitlements` and `TFM/TFM.entitlements`. Both declare the CloudKit container, webcredentials domain and bundle-derived keychain group; Mac also has App Sandbox with device, network and selected-file permissions. Both app targets use automatic signing. Their source Debug settings select `APS_ENVIRONMENT = development` and `ICLOUD_CONTAINER_ENVIRONMENT = Development`; Release selects `production` and `Production`. The Mac Release configuration still specifies `CODE_SIGN_IDENTITY = "Apple Development"`: a configuration named Release is not evidence of a distribution-signed artifact. Check provisioning and production iCloud/push environment on signed builds, but do not read StoreKit products, introductory offers or Pro access from these capability declarations. See [CloudKit Release Readiness](cloudkit-release-readiness.md) for the separate capability and environment checks.
+
+### Inspect the release artifact, not just the project
+
+For each platform, retain the build-settings output for the actual archive invocation and inspect the app that will be delivered (again after export if signing changes). Check:
+
+- Bundled `TermindRevenueCatAPIKey` and `TermindRevenueCatEntitlementID`: no unresolved `$(...)` macros, the intended public Apple SDK key and `termind_pro`, and no DEBUG-only `test_` key. The `appl_` key is a client configuration identifier, **not a private RevenueCat management credential**; do not place private dashboard/API or Apple signing credentials in these substitutions.
+- Signed identity, team, bundle identifier, provisioning profile and effective entitlements: compare the actual signed values with the intended distribution channel rather than assuming automatic signing or source macros resolved as intended.
+- Push and CloudKit environments, the CloudKit container and keychain group: inspect the resolved signature as well as the bundled `TermindCloudKitEnvironment`. A correct source file alone is insufficient.
+
+For an extracted iOS app, the plist is at `Termind.app/Info.plist`; for Mac it is at `Termind.app/Contents/Info.plist`. Useful inspection commands (replace the path with the actual delivered app) are:
+
+```sh
+plutil -p /path/to/Termind.app/Info.plist
+codesign -dvv /path/to/Termind.app
+codesign -d --entitlements :- /path/to/Termind.app
+```
+
+Use the Mac plist path for the first command when inspecting the Mac app. Record artifact inspection separately from dashboard review and Sandbox transaction results; none of these commands validates live offerings, eligibility or storefront acceptance.
 
 ## Access and refresh lifecycle
 

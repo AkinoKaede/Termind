@@ -100,17 +100,30 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-13T01:46:04.618Z
 ---
 
 # CloudKit Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
-Both target entitlement templates ([TFI](../../TFI/TFI.entitlements), [TFM](../../TFM/TFM.entitlements)) declare CloudKit and `iCloud.com.akinokaede.termind`; their iCloud-container environment and push environment are build-setting substitutions. The [project source settings](../../Termind.xcodeproj/project.pbxproj) select `ICLOUD_CONTAINER_ENVIRONMENT = Development` for Debug and `Production` for Release in each target. These are configuration inputs, not proof of effective signed entitlements or deployed Production schema. Inspect the **signed artifact's** effective entitlements separately from verifying the actual CloudKit schema deployment with authorized management credentials. The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
+Both target entitlement templates ([TFI](../../TFI/TFI.entitlements), [TFM](../../TFM/TFM.entitlements)) declare CloudKit and `iCloud.com.akinokaede.termind`. Their iCloud-container environment uses `$(ICLOUD_CONTAINER_ENVIRONMENT)`; their push environment uses `$(APS_ENVIRONMENT)`. TFI uses the push entitlement key `aps-environment`, while TFM uses `com.apple.developer.aps-environment`.
+
+The [project source settings](../../Termind.xcodeproj/project.pbxproj) select these substitutions for both app targets:
+
+| Target | Configuration | Entitlement template | `ICLOUD_CONTAINER_ENVIRONMENT` | `APS_ENVIRONMENT` |
+| --- | --- | --- | --- | --- |
+| TFI | Debug | `TFI/TFI.entitlements` | `Development` | `development` |
+| TFI | Release | `TFI/TFI.entitlements` | `Production` | `production` |
+| TFM | Debug | `TFM/TFM.entitlements` | `Development` | `development` |
+| TFM | Release | `TFM/TFM.entitlements` | `Production` | `production` |
+
+These are configuration inputs, not proof of effective signed entitlements or deployed Production schema. For each platform's release artifact, inspect the **signed artifact's** effective CloudKit service, container identifier, container environment and platform-specific push entitlement separately from verifying the actual CloudKit schema deployment with authorized management credentials. Keep signed-capability evidence, schema-deployment evidence and the live multi-device results distinct in release sign-off.
+
+The private container is shared by the category coordinators. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings; History defaults on when no preference is stored and does **not** inherit the retired Vault selection or environment. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data. A different CloudKit user is recorded as pending and synchronization stops until explicit merge confirmation; only then does that category reset its old account state, bind the new account, fetch, and allow uploads.
 
 ## Schema inventory
 

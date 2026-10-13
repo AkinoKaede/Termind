@@ -120,10 +120,10 @@ sources:
     resource: repo://TFMTests/WebAuthnSSHTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
 # Termind Engineering Quickstart
@@ -179,6 +179,7 @@ These are routing reminders, not replacements for the detailed guides.
 - `TermindDomain` defines portable rules; `TermindApplication` owns ports/use cases; `TermindPersistence` owns SwiftData models, repositories and container construction; infrastructure implements services; `TermindPresentation` owns reusable SwiftUI content/copy. Apps assemble concrete dependencies and native UI.
 - `ArchitectureBoundaryTests` enforces **root-specific** restrictions, not an all-UI-framework ban. Its five non-presentation shared-framework rule rejects app targets and `AppKit`, `UIKit`, `IOKit`, `ServiceManagement`. Presentation allows `SwiftUI` and contains existing conditional platform helpers; its selected source-pattern/import/construction rules reject app-target, storage, concrete-service and commerce coupling. Those checks are not a blanket compiler-enforced prohibition on every platform symbol. Shared Application cannot import Infrastructure, Persistence or SwiftData. Desktop Application/Features and mobile layers have their own checks; selected roots also guard concrete construction, AgentKit type duplication and SwiftData ownership. Fix the boundary rather than bypassing the test; see [System Boundaries](architecture/system-boundaries.md).
 - AgentKit is a separately versioned, host-neutral remote package owning the loop, approvals, providers, MCP client and built-in tools. Termind owns SSH/SFTP tools and registers them additively. Xcode's requirement starts at `0.19.1` under `upToNextMajorVersion`; the sibling working tree is not the resolved build. Cross-repository work means test/release `../AgentKit`, update `minimumVersion` in `Termind.xcodeproj/project.pbxproj`, and re-resolve `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` together.
+- **Maintenance checkout versus build input:** `libssh2-spm/` is a maintenance checkout, but Xcode consumes the remote exact-version package, not local edits. Release and test changes there before updating the maintenance gitlink, Xcode requirement and resolved pin together. Likewise, AgentKit source work belongs in `../AgentKit`; ordinary app builds consume its remote pin. See [Build, Test, and Release](operations/build-test-and-release.md) for dependency verification.
 - Ghostty comes directly from `Lakr233/libghostty-spm`, with an up-to-next-major requirement and resolved version `2.2.2026100501` at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. There is no local Ghostty maintenance submodule or Termind native-binary release prerequisite. Align requirement/resolution and validate both adapters; package internals require separate review. See [Ghostty Dependency Updates](operations/ghostty-fork-maintenance.md).
 
 ### Native lifetimes and presentation
@@ -199,6 +200,12 @@ These are routing reminders, not replacements for the detailed guides.
 - Security Key references remain external Vault metadata with compatibility normalization; failed metadata writes/deletes roll back, and software keys cannot use external storage. A forbidden SSH interaction policy blocks destination/jump security-key credentials even with optional user presence. Keep silent auxiliary connections from triggering hardware prompts.
 
 ## 3. Validate narrowly, then validate the product
+
+### Build setup and target settings
+
+- **Defaults are not product metadata:** project Debug/Release settings use Swift 6, complete strict concurrency, warnings as errors, approachable concurrency and default `MainActor` isolation. The project build-number default is `56`; `TFM` overrides it to `93`, while `TFI` and `TFIWidgets` use `82`. Marketing version is `1.16.5`. Read the selected target's settings rather than treating project defaults as every product's effective configuration; the MCP bridge and forwarding benchmark explicitly use `nonisolated` default isolation.
+- **Deployment is not capture runtime:** the macOS app minimum is macOS `15.0`; the iPhone/iPad app and widget minimum is iOS `18.0`. Mobile screenshot tooling separately requires an iOS/iPadOS `27` simulator runtime (default `27-0`, or `27-1` for an all-`iphone-duo-` selection). That capture constraint does not raise the app deployment minimum. Follow [Marketing Assets and App Icons](operations/marketing-assets-and-app-icons.md) for capture setup, not routine tests.
+- **Choose the product scheme:** `TFM` explicitly builds `TermindMCPBridge` and the desktop app, and tests `TFMTests` plus `FrameworkTests`; `TFI` builds the mobile app and tests `TFITests` plus `FrameworkTests`. Both schemes use Debug for tests and Release for archives. Detailed signing and release checks belong in [Build, Test, and Release](operations/build-test-and-release.md).
 
 Keep `-onlyUsePackageVersionsFromResolvedFile` so ordinary builds cannot silently move the dependency graph:
 

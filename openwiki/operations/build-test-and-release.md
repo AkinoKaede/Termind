@@ -70,10 +70,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
 # Build, Test, and Release
@@ -122,6 +122,30 @@ xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' 
 ```
 
 Use the matching mobile scheme and a concrete simulator for `TFITests` work. The `TFM` test action includes `TFMTests` and `FrameworkTests`; `TFI` includes `TFITests` and `FrameworkTests`. Typical focused choices are the test file that names the changed feature, `TFMTests/ArchitectureBoundaryTests.swift` for dependency placement, and `TFMTests/AppLanguageTests.swift` for language-selection/catalog behavior. Do not use an unrelated focused test as a substitute for the affected default suite. Check which suites actually ran: a passing default command does not prove a disabled opt-in suite passed.
+
+### Release configuration and version checks
+
+Both shared schemes use **Debug** for Test, Launch, and Analyze, and **Release** for Profile and Archive. Their test actions list both platform and shared test bundles with `skipped = "NO"`; individual Swift Testing gates still decide whether opt-in UI cases execute. A successful default test run therefore proves neither Release compilation nor execution of gated UI cases.
+
+Before release, inspect the target configuration rather than treating the project-level build number as universal. The committed Debug and Release settings agree within each row:
+
+| Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
+| --- | --- | --- | --- |
+| Project defaults | `1.16.5` | `56` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.16.5` | `93` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.16.5` | `82` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.16.5` | `82` | Explicit extension overrides matching the containing mobile app. |
+
+These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
+
+Use resolved-only Release builds for the affected product in addition to the Debug tests above:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
+xcodebuild -project Termind.xcodeproj -scheme TFI -configuration Release -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
+```
+
+A Release simulator build is still not signed-device or distribution verification; follow [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for those checks. The localization symbol-generation setting is inherited separately: the project sets `STRING_CATALOG_GENERATE_SYMBOLS = NO` in both configurations, and neither app nor widget overrides it. Keep that setting disabled even though the app targets enable `SWIFT_EMIT_LOC_STRINGS`; extraction and generated Swift API ownership are different concerns.
 
 ### Find-controller and mobile search regression routes
 
@@ -298,7 +322,7 @@ Update the upstream requirement and `Package.resolved` together, then use resolv
 ## Release-oriented checklist
 
 1. Identify the smallest affected product surface and run its focused tests.
-2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes.
+2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes. For release delivery, also build the affected Release configuration and review app/widget version overrides rather than relying on the project default build number.
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-appstrings.sh` alongside `python3 Scripts/check-cjk-localization.py` for every commit; complete Chinese and Japanese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For website changes, initialize the submodule and inspect its own manifest and guidance, then run `cd com.akinokaede.termind && npm ci && npm run build`. Visually review English and `/zh/` as required by `AGENTS.md`, plus any current routes required by the site's own guidance.

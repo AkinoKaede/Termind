@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Application Lifecycle
+title: Platform Runtime and Service Lifetimes
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -106,8 +106,6 @@ sources:
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-39248df19c48bb72235c6e8d
     resource: repo://TFMTests/AppTestHostTests.swift
-  - id: openwiki-source-d3d065330c730839f5cc6112
-    resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
@@ -118,13 +116,13 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# Platform Runtime and Application Lifecycle
+# Platform Runtime and Service Lifetimes
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -161,6 +159,16 @@ This page explains runtime composition and lifetime boundaries. For the componen
 - [TFM Desktop UI Architecture](desktop-ui.md): window shell, persistent workspace deck, split panes, Vault list/detail, managed cards and native transcript ownership.
 - [TFI Mobile UI Architecture](mobile-ui.md): registered feature stacks, scene-local routes, persistent window-owned workspaces, usable-region layout, mobile toolbars and native input continuity.
 - [UI Design Principles and Shared Presentation Boundaries](../concepts/ui-design-principles.md): what the platforms share, where their visual/input policies intentionally differ, and how to extend them without merging runtime ownership.
+
+## Build platforms and native capabilities
+
+The current Debug and Release configurations keep the apps platform-specific: `TFM` uses `SDKROOT = macosx`, `SUPPORTED_PLATFORMS = macosx` and a macOS 15.0 deployment target; `TFI` uses `SDKROOT = iphoneos`, `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"`, an iOS 18.0 deployment target and `TARGETED_DEVICE_FAMILY = "1,2"` (iPhone and iPad). The `MACOSX_DEPLOYMENT_TARGET` value also present in TFI's settings does not add a macOS build platform. Do not infer a Catalyst or desktop lifecycle from that metadata: the native entrypoints remain `TermindApp` with its AppKit delegate and `TermindIOSApp` with its UIKit delegate. See [Build, Test, and Release](../operations/build-test-and-release.md) for build operations.
+
+Capabilities authorize platform integrations; they do not own service lifetimes:
+
+- **Desktop:** both configurations enable App Sandbox and Hardened Runtime. [TFM's entitlements](../../TFM/TFM.entitlements) permit audio input, serial devices, outgoing network connections, incoming network listeners and user-selected read/write files. These permissions support native runtime services but do not replace their window ownership or accepted-Quit cleanup contracts.
+- **Shared cloud and secrets:** [TFI's entitlements](../../TFI/TFI.entitlements) and TFM's entitlements declare CloudKit container `iCloud.com.akinokaede.termind`, `webcredentials:termind.akinokaede.com`, a bundle-derived Keychain access group and platform-specific APNs entitlement keys. Both apps select development APNs/CloudKit environments in Debug and production environments in Release. CloudKit authorization is separate from the foreground, Pro and user-preference gates described below.
+- **Mobile background execution:** TFI declares `UIBackgroundModes = [remote-notification]` in its Info.plist and enables Live Activities in project settings. Neither declaration is a persistent remote-session execution lease. Remote-notification registration is skipped by the XCTest host; foreground/background session work still uses the finite `UIApplication.beginBackgroundTask` lease managed by `MobileBackgroundController`, with the expiration behavior documented below.
 
 ## Lifetime map
 

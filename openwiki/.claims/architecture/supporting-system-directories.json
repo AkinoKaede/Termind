@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:461e81326b943f4056452e95a67a0bf967f59c5afb090aca7d16043e9d071a21",
+  "pageVersion": "sha256:c19fcff9c6cc7f7d433ce095d40de527bacb39d80322b3459dfa78c901faf3f3",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "version": "repo-file-v1:sha256:55d9f1d8f05678b72ad55f5718f28d3a0fe237aec6d51ad33b093058b4fc3ab7"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -70,7 +70,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "version": "repo-file-v1:sha256:55d9f1d8f05678b72ad55f5718f28d3a0fe237aec6d51ad33b093058b4fc3ab7"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -162,7 +162,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "version": "repo-file-v1:sha256:55d9f1d8f05678b72ad55f5718f28d3a0fe237aec6d51ad33b093058b4fc3ab7"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -559,6 +559,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-09T00:05:26.272Z"
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }

@@ -1,6 +1,6 @@
 ---
 type: architecture directory guide
-title: Native App Ownership Reference
+title: Native App Ownership and Source Landmarks
 description: Ownership guide for macOS and iOS app composition, window and scene state, app-local adapters, native feature UI, and platform services.
 tags: [architecture, macos, ios, directories, lifecycle]
 sources:
@@ -62,12 +62,8 @@ sources:
     resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-d34ac3e852773901d0566033
     resource: repo://TFI/Platform/MobileHomeScreenQuickActions.swift
-  - id: openwiki-source-637644793f7e37cc057eb973
-    resource: repo://TFI/Platform/MobileLiveActivityController.swift
   - id: openwiki-source-8d3004f1cede60c9ccecb4d3
     resource: repo://TFI/Platform/MobileNotificationRouter.swift
-  - id: openwiki-source-ce94d13059ea7e57a90adf59
-    resource: repo://TFI/Platform/MobileSFTPOpenWithPresenter.swift
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-de285e30d853611503042782
@@ -130,8 +126,6 @@ sources:
     resource: repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift
   - id: openwiki-source-68b5f4529ef349aac826b1d9
     resource: repo://TFM/Platform/MacDeviceName.swift
-  - id: openwiki-source-28f740582e7f32c1d0099069
-    resource: repo://TFM/Platform/MacOSSpeechAudioInput.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-824d6a1342361bda8b3634b7
@@ -156,13 +150,13 @@ sources:
     resource: repo://TFMTests/WindowSidebarTests.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# Native App Ownership Reference
+# Native App Ownership and Source Landmarks
 
 `TFM` is the macOS app and `TFI` is the iPhone/iPad app. Both compose the [shared frameworks](shared-module-directories.md), but their directories own platform-specific interaction and lifetime decisions. A directory named `Features` is **not** necessarily views only: desktop sessions live under `Features/Terminal` and window workspaces under `Features/Workspaces`, while mobile connection runtimes live under `Features/Workspaces` and their **per-native-window owner** is `App/MobileWorkspaceSessionModel`. By contrast, `Features/Shell` defines navigation values, not remote shell execution. Paths below are relative to the respective app root.
 
@@ -264,6 +258,16 @@ flowchart TD
 Scene phases and Pro eligibility govern app-wide background and sync services.
 
 Scene registration and entitlement gate app-owned services independently of whichever tab is visible. Notification routing is another app-to-native-scene handoff: `MobileAppModel` aggregates unread Assistant and command-completion counts across sessions, but terminal notification focus requires the workspace to be visible in an active owning scene. `MobileNotificationRouter` keeps a pending terminal, Assistant or transfer target until it can deliver it to an active scene, requests native activation for a different window when appropriate, and ignores failures from superseded activation requests. Assistant conversation data is shared while its selection and composer draft remain scene-local. Home Screen Connect and recent-host shortcuts are generated from app history, then consumed by the receiving scene to open its connection picker or preferred host connection; they do not select an app-global workspace. `TFITests/MobileWorkspaceSessionTests.swift` covers window isolation, legacy migration, handoff, system reclaim versus explicit discard, activity and notification routing, unread ownership and host deletion; opt-in `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows with `TERMIND_MOBILE_UI_TESTS=1` and serialized testing. `TFITests/MobileAppTests.swift` covers background expiration/reentry and shared Assistant conversations with scene-local drafts; `TFITests/MobileBackgroundControllerTests.swift` covers lease replacement, synchronous expiry and invalid IDs; `TFITests/MobileSettingsPortTests.swift` checks the in-memory cloud boundary and settings-to-transfer preference updates.
+
+## Build membership is not runtime ownership
+
+Use [`Termind.xcodeproj/project.pbxproj`](../../Termind.xcodeproj/project.pbxproj) to check what ships, not to infer who owns a session. The app targets use filesystem-synchronized root groups: `TFM` includes its native root plus `Frameworks/Resources`; `TFI` includes its native root, `Frameworks/Resources` and `WorkspaceActivitySupport`. Their `Info.plist` files are membership exceptions and are selected through `INFOPLIST_FILE`, rather than copied as ordinary folder resources. Empty explicit Sources lists therefore do not mean the app has no source membership. `App`, `Application`, `Features` and `Platform` are ownership landmarks inside these app targets, not separate build targets.
+
+Both targets produce `Termind.app`, but desktop compiles the `Termind` module for `macosx` (macOS 15.0 minimum), while mobile compiles `TermindIOS` for `iphoneos iphonesimulator` (iOS 18.0 minimum, device families `1,2`). Both Debug and Release select `AppIcon` and `AccentColor`; their entitlements and plist paths remain app-specific. Desktop also enables App Sandbox and Hardened Runtime. Do not use a product name or a platform-inapplicable deployment setting alone to decide target identity.
+
+The app-local resource directories retain separate `Resources/AppIcon.icon` bundles; desktop additionally keeps `Resources/Assets.xcassets/MenuBarIcon.imageset`, used by `MetricsMenuBarController`. Shared resources are in `Frameworks/Resources`, whose synchronized group is included directly by both apps—not merely implied by a framework dependency.
+
+Embedded products are separate ownership boundaries: `TFM` embeds the `termind-mcp` executable built by `TermindMCPBridge`; `TFI` embeds `TermindWidgets.appex` built by `TermindWidgets`. The extension compiles `TFIWidgets`, `WorkspaceActivitySupport` and the shared resource group. Sharing activity attributes with that extension does not transfer live workspace ownership out of the mobile app's scene sessions. Consult the [Module Map](module-map.md) for broader dependency details and [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection and authentication workflows.
 
 ## Placement: policy, adapters and presentation
 

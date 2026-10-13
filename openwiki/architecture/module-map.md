@@ -1,6 +1,6 @@
 ---
 type: architecture map
-title: Module map and composition roots
+title: Module Map and Composition Roots
 description: Maps Termind's native products, six shared framework dependency targets, composition lifetimes, supporting products and pinned external package inputs.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
@@ -8,8 +8,6 @@ sources:
     resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-7f5c1cb6f348742514987bf8
-    resource: repo://Benchmarks/PortForwarding/main.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
@@ -44,8 +42,6 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-  - id: openwiki-source-a62bfbbc7de13a894444718b
-    resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-dc9295278cc250ed20567540
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -72,8 +68,6 @@ sources:
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4f39e055f4a833394b6a0207
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
-  - id: openwiki-source-d1ffd558b3360478aa85b5af
-    resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -88,12 +82,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-  - id: openwiki-source-0f8d0f9d08d6674698dd054c
-    resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
 # Module and Product Map
@@ -226,5 +218,14 @@ On mobile, `workspaceSession(for:)` consolidates saved descriptors into the firs
 For lifetime diagrams, continue with [Native App Directory Responsibilities](native-app-directories.md) and [Platform Runtime](platform-runtime.md). For change-oriented navigation and verification, return to the [Engineering Quickstart](../quickstart.md).
 
 ## Verifying a boundary change
+
+Read the project metadata as four separate checks; none substitutes for the others:
+
+1. **Build ordering:** follow each native target's `dependencies` IDs to the `PBXTargetDependency` objects and their `target` fields. This is the graph shown above.
+2. **Linkage:** inspect `packageProductDependencies` and the corresponding `PBXFrameworksBuildPhase`. Package products such as `AgentKit`, `TailscaleKit`, and `GhosttyTerminal` are not additional shared-framework target edges.
+3. **Compilation and resources:** inspect `fileSystemSynchronizedGroups`, membership exceptions, and Sources/Resources phases. `Frameworks/Resources` belongs to both apps, `FrameworkTests`, and the widget; `WorkspaceActivitySupport` belongs to `TFI`, `TFITests`, and the widget. These are shared inputs, not independent framework products. Empty explicit phase lists do not imply that synchronized inputs are absent.
+4. **Embedding:** inspect the app's copy phases independently of its dependency list. `TFM` copies `termind-mcp` through **Embed MCP Bridge**; `TFI` copies `TermindWidgets.appex` through **Embed Foundation Extensions**. Building or linking a dependency is not the same as embedding an executable or extension.
+
+For external input changes, compare the remote requirement in `project.pbxproj` with the selected version and revision in `Package.resolved`, not with a maintenance checkout's HEAD.
 
 `TFMTests/ArchitectureBoundaryTests.swift` supplies **source-level** guards alongside the Xcode target graph, not a blanket ban on UI or platform APIs everywhere. Its import scan excludes `Termind` and `TermindIOS` plus AppKit, UIKit, IOKit, and ServiceManagement from Domain, Application, Infrastructure, Remote Infrastructure, and Persistence; the separate Presentation check excludes app imports, storage and implementation modules, StoreKit, AppKit, and UIKit. However, the import helper checks only exact `import Module` lines, and shared Presentation currently uses conditional AppKit/UIKit imports for rendering; treat those platform exclusions as test intentions, not proof that every shared view is platform-agnostic. Domain also excludes storage, transport, and UI libraries; Application excludes concrete implementation imports and selected construction tokens; Persistence excludes Infrastructure and Remote Infrastructure imports. Native UI and feature restrictions are scoped: mobile `Application` excludes UI and storage imports, mobile `UI` excludes storage and Remote Infrastructure imports, desktop `Features` excludes selected storage and transport imports, and feature directories are checked for specific direct construction/access tokens. This does **not** forbid all framework imports in every native feature. The test also rejects declarations of a named subset of AgentKit-owned runtime types in the desktop source tree, not every AgentKit-related type across the repository; Termind still owns host-specific tool registrations. Further checks protect SwiftData model/repository placement and the forwarding benchmark's independence from app/test targets. When moving a capability, inspect both target/package-product edges and the precise test scope. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).

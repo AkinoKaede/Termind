@@ -1,26 +1,22 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:267e535cd563a3cf3299e79802f1bace5c06b2678a69296ef1178fd21434416c",
+  "pageVersion": "sha256:f875814a9a4dd9f9fedee939601cb48d54598637c0c42a44a236bcc9e3615824",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
-      "statement": "Termind builds distinct macOS (`TFM`) and iOS/iPadOS (`TFI`) application targets, while shared framework modules do not import the application targets; the application targets own native UI and lifetime behavior.",
+      "statement": "Termind builds distinct native application targets: TFM supports macosx with macOS 15.0, and TFI supports iphoneos and iphonesimulator with iOS 18.0 and iPhone/iPad device families in Debug and Release. TFI's macOS deployment-target setting does not add a macOS build platform. The app targets own native UI and lifetime behavior, and shared framework modules do not import the application targets.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/TermindIOSApp.swift",
-          "version": "repo-file-v1:sha256:6a65b1e2f4982c35c830a2f0e442cdd84e4398de8643b98c5e25b98f29003436"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2023-L2063",
+          "version": "repo-lines-v1:sha256:ab5e725b9113447d9a632b2e4ef173a8a0f439a5de3516149125cc8f23011de5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzdmNjEzNjdmY2RiMWJjODljNzYzYzk5ZDYxMmFjY2I3ZGZhMzE0Y2FmMzMxZTQ4NDU3ZTA2YzRiYTAwMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0ZmU2NGQ1OTJhMDg5OTY3Nzc1Mzc2YjZhOGI4YmNlZmRhNGUzNTlmNTQ2ODAxYjBlNjJkY2U5Nzg0N2RmYTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkMDc1NDUyYTZmNTE4NTU5MGJhYTU1NjA1N2E4NGM4N2FjZjgyMTliYjlhYTZkOTc0M2NmMWYwOTA0OTQ5M2UifQ"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:70e07cf8eccc2a01eedb0fd4b9b58f117ebc24b62d26dacb0133a8ad6748bca8"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2335-L2375",
+          "version": "repo-lines-v1:sha256:a95bc83db8632563dcd54d2816a5df6e0df6912a578eae7c2683523673ad6947:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:53e741b7d961e2f9774bc4643ee34b59e97b4d2d64bb576eb3c6c44f9e92c3c1"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2585-L2663",
+          "version": "repo-lines-v1:sha256:8a489c66c04dd25fb4c443166ad107722fe146579092cfb93a0cc20919c22bcb:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZTNjMzBkOTA3NzQ0ZGQwOWRkMmJjZjc4NzA3OGJjOGNjYTU1NDYyMzQxMWQxZjFiNGJjMDVhMTlmMDIxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5ZTZjYTAzY2VlOTg1OTZkMzcxOTViOTAxMzMyMTI5ZDhlOWZjNzhjNmU2MjQzMWFhNzhkOTE2M2JkOTAyMTUifQ"
         }
       ]
     },
@@ -855,6 +851,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }

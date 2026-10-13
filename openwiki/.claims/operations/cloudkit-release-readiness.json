@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0272fbb38e8f338c19366a14469f8b902f0c06d1591533951677ed32bf0d688a",
+  "pageVersion": "sha256:399083853e7ef8475a95f894ae6550def97560139def815dd40f46c62c86cea2",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -580,19 +580,31 @@
     },
     {
       "id": "claim_5e7841dbc3bc4c29968f6a7f2d9c5d29",
-      "statement": "The entitlement templates for both targets enable CloudKit in iCloud.com.akinokaede.termind with substituted iCloud and push environments; project build settings select Development for Debug and Production for Release, so effective signed entitlements and Production schema deployment require separate release verification.",
+      "statement": "Both app targets' entitlement templates declare CloudKit in iCloud.com.akinokaede.termind and substitute ICLOUD_CONTAINER_ENVIRONMENT and APS_ENVIRONMENT; TFI uses aps-environment and TFM uses com.apple.developer.aps-environment. Both targets select Development/development for Debug and Production/production for Release. These checked-in signing inputs do not establish effective signed capabilities, deployed Production schema, or successful live multi-device synchronization; those require separate release verification.",
       "evidence": [
         {
-          "resource": "repo://TFI/TFI.entitlements",
-          "version": "repo-file-v1:sha256:627aa95bfbf21cca83244648698c3f49c40c37da6446b577931e8d88715c980e"
+          "resource": "repo://TFI/TFI.entitlements#L9-L20",
+          "version": "repo-lines-v1:sha256:448d83f107439e40468eb1e8c92a39d9481267e2434688afdaa30c18db9c9785:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2MGUxZjQ0MDdmMTgzMzFiMTllM2I3NmJkYzRlZDg3MmZhMTE1NWZjYWViMzgxM2NmZTNlZWU5YjYwNDMyYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMTRiZjVlMDkzZmQxMDE1MjBjZDc2NWViMWE0Y2Y0MzRiYTQ4NmM0YWNhNDIwMDQ3ZmU1NDRhNWE5NDU0ZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2M2RjOTdiYjc0NDkyNDQ1ZDg4MjNmMmM2ZTBlMTYyNDRiMjBkMTA2NDExMDFjNWFlZmMyODBiM2NjMjlkMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMmU4NmI0MGQ4ZjY1OGMwOWU1NmMzZjAwYTdlMDJjMzYwNGIwMGU5MTQ2NzIwN2QzMzhiMDBiNzM4Yzk4MWQifQ"
         },
         {
-          "resource": "repo://TFM/TFM.entitlements",
-          "version": "repo-file-v1:sha256:164a7405fd59a24ea38bdc06270f1289c0f89c2dc4bd8809496cf59d67c71f47"
+          "resource": "repo://TFM/TFM.entitlements#L23-L34",
+          "version": "repo-lines-v1:sha256:5dab44bdc22e370f1b31281e4225338090e5ca4fc92c6e994c1c9e241fee0c04:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYWRhYjQ5MTNjNzFiZjJmZmYzZWIyMTVjNTJiOWVhZGI4NTQ3YmY5ZTE3OTViYWRiNDQyNjgwZmRjYjdkZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkN2VhMWUxODhmYWM0ZGJlNjBlZGM5NzI4ZmU0OGU2Y2I1MGQ4ZjIyNTVmMmRkZDJmMWRiNTYwMWYzZGZhN2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlNmRhZjdjYWRjMzUwYTMwODY1NzJjYjYzOTg0MTgzOTAxMTYyMDIyNTc0Yjg3Mjk4OWJmYTg3ZWNmMTA1NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYTQ1MjAyMGM1ODU3M2MyMDk0ZjdmYWVmODUxM2QzNjY3OGQzMzNjY2VmYWE1NzA4OTE2ZGY0MjkzNTMyMTgifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2023-L2034",
+          "version": "repo-lines-v1:sha256:da2f6777dd4c1a12f134984ebf522fba010767e7961adbd94f96a359ee543535:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzdmNjEzNjdmY2RiMWJjODljNzYzYzk5ZDYxMmFjY2I3ZGZhMzE0Y2FmMzMxZTQ4NDU3ZTA2YzRiYTAwMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwODg4NzQxODQzODQ1YzNhNTZkNjg1MTdjZGEwYzA1NDdmMjg0YmMxMWI5ODcxODYxNGI3M2RhMzJjNjYwN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYjNjZjAxYzkwYWRiNDEzZjlmY2EwMmFjOGQ4MWYwZTEwOTM2MDQwN2U4NmEzYzUwMzk0YmI4M2ZhZjJiODQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2335-L2346",
+          "version": "repo-lines-v1:sha256:2d0eab958aa16a3034dac818707ffe3f3e91a67722d40122295f13266a9f5c01:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZjdmYTI2MWVmMWFlMTM5YjE1NThkZWIyMTM1NGEwYmU3ZGM1YjA0NDdlODc4ODc1NWM5MDgxOTdjM2JiMDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYjNjZjAxYzkwYWRiNDEzZjlmY2EwMmFjOGQ4MWYwZTEwOTM2MDQwN2U4NmEzYzUwMzk0YmI4M2ZhZjJiODQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2585-L2603",
+          "version": "repo-lines-v1:sha256:c3cfa9c8b2e01ea236bfb307a979bfe54d339e28f2edf69fe75a4a050d450ff8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZTNjMzBkOTA3NzQ0ZGQwOWRkMmJjZjc4NzA3OGJjOGNjYTU1NDYyMzQxMWQxZjFiNGJjMDVhMTlmMDIxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwODg4NzQxODQzODQ1YzNhNTZkNjg1MTdjZGEwYzA1NDdmMjg0YmMxMWI5ODcxODYxNGI3M2RhMzJjNjYwN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhMjQ4OTgxNTk2N2U4NTkwMTY4YTU0NDY2MjU2MmMwODY4YWIwMzk3NjA2ZjdkNDM3Mjg1NzAxNTgwZWUxNTcifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2623-L2645",
+          "version": "repo-lines-v1:sha256:e81d8e95ed3d8ec05332d888c93401f4791216db3708a2782c30060b06d4bdcc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNmZiOGVmOGFkNTliY2JkYmNjZDBmNTc3N2QxOTA2MTI5MzY0YmY4MTgyMzgxZTNlZmM4OTM2ZGM1MjRiN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZjdmYTI2MWVmMWFlMTM5YjE1NThkZWIyMTM1NGEwYmU3ZGM1YjA0NDdlODc4ODc1NWM5MDgxOTdjM2JiMDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhMjQ4OTgxNTk2N2U4NTkwMTY4YTU0NDY2MjU2MmMwODY4YWIwMzk3NjA2ZjdkNDM3Mjg1NzAxNTgwZWUxNTcifQ"
         }
       ]
     },
@@ -627,7 +639,7 @@
           "version": "repo-lines-v1:sha256:56c479ee1ba583ccecd03c7f5e7fd6e3c3009d4326b744a8f2637290bf0233b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3Y2E3MWJkZmM2MGVhMzNkYWQ0YWI2NmNkYjBjNmM5MjUzOGY1NDA0NjRkYzY1OGExMTkwYjUyZTc3MGUyMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1MGZiNmUwZThhYmY3YmNiNjdkODIzMzJjMmVlOGZlNzY0NzYzZDFlZjA5ODc4NWM3ZmM4Y2Q1Zjk2ZmRkOGUifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L444-L490",
+          "resource": "repo://TFM/App/AppModel.swift#L452-L498",
           "version": "repo-lines-v1:sha256:25130b9b319c9f47241ee905ce66168408580b290be8e167787b9986392bc3a0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3MDMyZjUzOTcxNDA0YjMxMjM2MmZkYmQ5MzlmOGRlNjYzMGRiNGVhNTQ1Mjk5MTUxNDVlMjNmY2RjNTc0MGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmYjE3NDhmMTc0MjI2OGM0MTNmMjQ3N2VmY2Y3OTNmY2MxYzUxYTAyN2ExMDhhZWIyODljYmRmOWQ2M2M1YWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhNmVkNDJiNDliZDBjNGNkMDNiZmMwMzRkNzZiMzI2NjliZmYwOGYwOTE5OTRkMDUyNTIwODllYmEyNTEwNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYwM2EzMTlkOGZlNzllZTc4ZjIxYjVjMTQxZTAwOWFmMzRlYjAyODQ2MDBjZTQ5MzI0OTk3YTUyZTQ3ZDk5NzUifQ"
         }
       ]
@@ -670,7 +682,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }

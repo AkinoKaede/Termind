@@ -1,6 +1,6 @@
 ---
 type: architecture boundaries
-title: System Boundaries
+title: System Boundaries and Change Placement
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
@@ -74,13 +74,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# System Boundaries
+# System Boundaries and Change Placement
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -102,7 +102,7 @@ flowchart TD
     Package["Resolved AgentKit package"] -.-> Shared
 ```
 
-The diagram shows consumer-to-dependency arrows for explicit shared-framework Xcode target dependencies; the dotted package arrow groups external consumers rather than implying every framework links AgentKit. Both apps depend on all six frameworks; no framework depends on an app. See the [Module and Directory Architecture Map](module-map.md) for the directory-oriented view.
+The diagram shows consumer-to-dependency arrows for explicit shared-framework Xcode target dependencies; the dotted package arrow groups external consumers rather than implying every framework links AgentKit. Both apps depend on all six frameworks; no framework depends on an app. Verify build edges in the [`PBXNativeTarget` and `PBXTargetDependency` sections](../../Termind.xcodeproj/project.pbxproj), and use the [Module and Directory Architecture Map](module-map.md) for the directory-oriented view.
 
 ## Layer responsibilities
 
@@ -120,7 +120,7 @@ The diagram shows consumer-to-dependency arrows for explicit shared-framework Xc
 
 ### Dependency rules that are enforced
 
-`ArchitectureBoundaryTests` checks **specific forbidden import sets per root**, not a blanket prohibition on platform APIs or concrete dependencies. The Xcode target graph expresses current build edges, while the source tests police selected imports and declarations; broader ownership guidance in this page is a convention unless a matching test or target constraint is identified. Its exact-line import scans currently enforce:
+[`ArchitectureBoundaryTests`](../../TFMTests/ArchitectureBoundaryTests.swift) checks **specific forbidden import sets per root**, not a blanket prohibition on platform APIs or concrete dependencies. The Xcode target graph expresses current build edges, while the source tests police selected imports and declarations; broader ownership guidance in this page is a convention unless a matching test or target constraint is identified. Its exact-line import scans currently enforce:
 
 | Scanned source root | Imports rejected by the test |
 | --- | --- |

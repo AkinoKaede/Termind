@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7c497b5410b0b636d3960e0d37b238f16eb679a2e3513576c8764a3211da4707",
+  "pageVersion": "sha256:bb15da886443a1bf0699bde5d99b663406b4de03868fdeec2c3614022336358d",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -672,19 +672,11 @@
     },
     {
       "id": "claim_f7731d3ba5e1434a9fca26bd7392e636",
-      "statement": "Both shared app string catalogs are manually maintained; a single target's stale extraction flag cannot justify removal, and catalog edits require manual keys, Chinese translations and canonical Xcode-compatible formatting with generated catalog symbols disabled in the project.",
+      "statement": "Both shared app string catalogs remain manually maintained, requiring explicit keys and Chinese translations and canonical Xcode-compatible formatting; single-target stale flags do not justify deleting keys. Both project configurations disable generated catalog symbols. The project defaults are Swift 6.0, approachable concurrency, complete strict concurrency, ExistentialAny, MainActor isolation and Swift warnings-as-errors; apps, shared frameworks and tests inherit the isolation default, widgets restate it, and the MCP bridge and forwarding benchmark override it with nonisolated and -parse-as-library. TFMTests only relaxes imported deprecated-declaration diagnostics through -Xcc. Apps enable localization-string emission while all six shared frameworks, FrameworkTests and TFITests disable it. Debug enables testability and -Onone, while Release uses whole-module compilation and disables assertions. TermindWidgets is an iOS/iPadOS extension with extension-only APIs and TFIWidgets-owned source and metadata.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L82-L101",
-          "version": "repo-lines-v1:sha256:d727f084e92599587f11dce4e842982826f500cab97f59a85d9ae52284a2be64:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5ZTRlNzI3Y2I2NDdhZTE3NWIzMzEwOWMyNmE0NzFkMGE2YzdhNzZhOGQxMGNjNDhhNTFiZmU3NDFhYjg0NTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlY2M4MWFjMmYxN2VlYzA0MGM4YzVjNjc2MDg5M2IyZDZiZjJiZDI1YTdjODE5ZDEwYTBjMzFmZjIxOTNjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
-        },
-        {
-          "resource": "repo://Scripts/normalize-string-catalogs.py",
-          "version": "repo-file-v1:sha256:74b12ba10465ed2708e8073d998dbc025768e895edc539e7edad207f4a9299ba"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1906-L2890",
+          "version": "repo-lines-v1:sha256:d3262383c43a7150581e18a3e27f87b64330b680f6af44ce972d1c1723336a23:eyJzZWxlY3RlZExpbmVDb3VudCI6OTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
         }
       ]
     },
@@ -1175,6 +1167,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }

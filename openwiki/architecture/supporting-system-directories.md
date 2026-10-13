@@ -1,6 +1,6 @@
 ---
 type: architecture ownership guide
-title: Supporting Systems Ownership Guide
+title: Supporting Products and Tooling Boundaries
 description: Ownership and integration boundaries for external Swift packages, the MCP bridge, Live Activities, tests, forwarding benchmarks, the Astro site, assets, and maintenance scripts.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
 sources:
@@ -68,13 +68,13 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-09T00:05:26.272Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# Supporting Systems Ownership Guide
+# Supporting Products and Tooling Boundaries
 
 Not every top-level directory is an app module. This guide distinguishes separately built products, a package reference checkout, source-sharing groups, test targets, and development assets. It complements [Shared Framework Directories](shared-module-directories.md) and [Native App Directories](native-app-directories.md).
 

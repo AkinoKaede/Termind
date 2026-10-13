@@ -1,15 +1,11 @@
 ---
 type: architecture directory guide
-title: Shared Module Ownership Reference
+title: Shared Module Ownership and Source Landmarks
 description: Ownership and public seams of Termind's six shared frameworks and product-bundled resources, from domain values and application ports to sync, remote protocols, replay and presentation.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-96ab247f0823a449c632fdd9
-    resource: repo://Frameworks/Resources/LinuxDistributionIcons.json
-  - id: openwiki-source-9f18104a9eafdddd0b6ca08a
-    resource: repo://Frameworks/Resources/LinuxDistributionIcons/SimpleIcons.DISCLAIMER.md
   - id: openwiki-source-1a906e9aae78eda115cd7411
     resource: repo://Frameworks/Resources/ModelCatalogOverrides.json
   - id: openwiki-source-95f55b38dce1a2c2151359fe
@@ -204,13 +200,17 @@ sources:
     resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+  - id: openwiki-source-9973cf687c50c9e4a1095c83
+    resource: repo://TFMTests/RemoteSessionConnectionControllerTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
-# Shared Module Ownership Reference
+# Shared Module Ownership and Source Landmarks
+
+Use the responsibility sections below to choose the owner before editing a shared feature. The [Module Map](module-map.md) is the authority for the full build graph; this page focuses on source seams and runtime ownership.
 
 The six shared modules live under `Frameworks`. Directory placement expresses responsibility, but compiled target membership comes from Xcode's file-system-synchronized groups. `Frameworks/Resources` belongs to product and test bundles, **not** to every framework bundle. This is a **static build/bundle boundary**, distinct from runtime dependency injection: apps construct concrete services and pass them into Application ports; a framework's source directory does not imply that its resources live in that framework's bundle. AgentKit's loop, provider adapters, approval gate and host-independent built-ins are a separate remote Swift package. Xcode declares `https://github.com/AkinoKaede/AgentKit.git` with an up-to-next-major requirement starting at **0.19.1**, and `Package.resolved` currently pins **0.19.1**; the sibling `../AgentKit` checkout is for package development, **not** the tree Xcode builds. To ship a cross-repository change, test and release AgentKit first, then update the Xcode minimum and resolved revision together with the Termind-side integration; build with `-onlyUsePackageVersionsFromResolvedFile` to avoid silently advancing dependencies. See the [Module Map](module-map.md) for target dependencies, [System Boundaries](system-boundaries.md) for injection, and [Native App Directories](native-app-directories.md) for platform owners.
 
@@ -232,6 +232,10 @@ Application uses Domain and AgentKit abstractions; concrete stores, sockets and 
 | `Repositories`, `Transfers` | History, device-directory, import and Vault ports, and `RemoteFileSystem`/basic file and remote-edit operations; bulk SFTP scheduling belongs to Remote Infrastructure. |
 
 `HostLibraryModel` projects saved hosts, groups, identities, keys, snippets, forwarding, transfers, Known Hosts and templates through Vault/secret ports. It holds live connection status separately from persisted `Host` values and notifies the app before host/forwarding deletion so runtime listeners can retire. `DeviceDirectoryModel` registers the installation via its repository, caches lookups until reload, and exposes storage errors rather than committing a failed rename. Persistence's device adapter journals directory changes with History and refuses registration that would resurrect a deleted device; clearing connection-event history does not erase the device directory.
+
+### Interactive connections: shared policy, feature-owned I/O
+
+Start at [`RemoteSessionConnectionController.swift`](../../Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift) for the Terminal/SFTP journey and retry policy, not socket implementation. `scheduleReconnect` calls the feature's teardown closure before presenting recovery or scheduling retry; recovery is armed only after a successful connection. `disconnect` cancels pending authentication, signing, host-key decisions and retry state, clears temporary trust and hides the journey. Progress callbacks check the attempt ID before changing the journey, so replaced or cleared attempts cannot report current progress. [`RemoteSessionConnectionControllerTests`](../../TFMTests/RemoteSessionConnectionControllerTests.swift) verify teardown ordering, disconnect cancellation, route-first host lookup and stale progress rejection. For physical connection, channel and operation admission, see [SSH Multiplexing and Scheduling](../concepts/ssh-multiplexing-and-scheduling.md).
 
 ### Terminal Find: shared policy, native focus transitions
 
@@ -273,6 +277,8 @@ Assistant submission crosses Application capture and Persistence save boundaries
 Submission and failure ordering: a rejected selection write stops before capture; saved failures precede observable failure. Collaboration adds an application-owned `AssistantChatCoordinator` and `AssistantChatCollaborationStoring` for created-chat relationships and delivery receipts. The SwiftData implementation deduplicates receipts by source run/tool call; the target message's provenance and queued receipt become delivered in the message-save transaction, not on an earlier in-memory runtime event. Application notification coordination consumes conversation interaction/completion events with injected preferences, focus and sender; consumed suppressed events are not replayed when focus changes.
 
 ## TermindPersistence — stored representations
+
+Source entrypoints: [`TermindPersistence.swift`](../../Frameworks/TermindPersistence/TermindPersistence.swift) for container creation and store lifetime, [`SwiftDataAgentRunRepository.swift`](../../Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift) for durable assistant history, and [`GRDBMemoryStore.swift`](../../Frameworks/TermindPersistence/GRDBMemoryStore.swift) for the separate memory database. Keep representation changes here and submission policy in Application.
 
 Persistence has **no functional subdirectories**. Its root owns the complete SwiftData model set, frozen historical schemas, migration plan, `TermindPersistence.makeContainer`, Vault and History journals, device-directory and settings adapters, provider/skill records, secret *metadata*, agent replay, collaboration provenance and receipts, and a separate GRDB memory store. Platform entrypoints choose the container URL/lifetime. The factory uses **V52** and explicitly disables SwiftData's automatic CloudKit storage; Infrastructure's coordinators synchronize records using journals instead. V31→V34 replaces host/history/identity shapes and backfills device attribution; V35 adds History journal and capability checkpoints; V36 removes an obsolete import checkpoint; V37 adds scoped record/replica state; V38 adds deletion handoff and asset cleanup; V39 adds conversation model selection; V40 removes retired per-category quarantine while preserving scoped quarantine; V41 adds notification preferences; V42 adds agent-message provenance, created-chat relations and durable delivery receipts; V43 adds public MCP OAuth configuration; V44 replaces the Host model; V45 replaces the SSH key model with Security Key reference metadata; V46 historically adds persisted terminal keyword-highlight preferences; V52 removes that retired preference model via a lightweight migration. These are **local** schema versions, not CloudKit record-format versions. No other module should introduce a competing `@Model` owner.
 
@@ -331,6 +337,8 @@ flowchart TB
 Representative remote execution and monitoring collaboration; arrows describe requests/results, not target dependencies.
 
 ## TermindPresentation — reusable content, not runtime ownership
+
+Source landmarks: [`AppStrings.swift`](../../Frameworks/TermindPresentation/Strings/AppStrings.swift) and semantic copy files under `Strings`, [`TerminalAppearance.swift`](../../Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift) for Ghostty configuration projection, and [`LinuxDistributionIconCatalog.swift`](../../Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift) for bundle-data lookup. Check [`ArchitectureBoundaryTests.swift`](../../TFMTests/ArchitectureBoundaryTests.swift) before adding a dependency.
 
 Root files provide shared SwiftUI forms, transcript/tool-card presentation state, Markdown, metrics, notifications, and formatting. Stateless `HostEditorBindings` projects existing Host/custom-identity drafts while apps retain creation navigation. `SnippetCardContent` shares color, eligible-target count, command risk and timestamp content without owning the surrounding platform surface or interactions; `SFTP` holds file and transfer presentation; `Terminal` maps domain palettes to Ghostty themes, applies custom configuration and typography and exposes font/theme settings. Terminal appearance does not own a PTY or native mounting. `Strings` owns semantic `AppStrings` `LocalizedStringResource` definitions and shared formatting for both apps, including single-platform copy. The `swiftUIKey` bridge preserves interpolation metadata for key-only APIs; pass resources directly to supported dialog-title overloads. Architecture tests prohibit AppKit/UIKit, persistence, infrastructure and remote-infrastructure imports here and app-local `AppStrings` declarations. See [UI Design Principles](../concepts/ui-design-principles.md) and [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md).
 

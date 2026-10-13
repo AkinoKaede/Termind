@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8c105fdaaedeb4598b200ee265c613034c4ec9808e0d71e89eb0df8f953c73a6",
+  "pageVersion": "sha256:85ba253a29e3227b343b89a46a76051249ac4225e8d304ecbdd166c1270fec84",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -166,35 +166,23 @@
     },
     {
       "id": "claim_87d944e250ee4a1e9775c79a37516101",
-      "statement": "Platform folders implement native OS integrations, including desktop window/menu-bar/file and audio services and mobile background, Live Activity, document, camera and terminal services; app resource groups retain platform-specific icons.",
+      "statement": "Platform folders implement native OS integrations, including desktop window/menu-bar/file and audio services and mobile background, Live Activity, document, camera and terminal services; app resource groups retain platform-specific icons. TFM and TFI use filesystem-synchronized native root groups, not separate targets for their internal ownership directories; both directly include Frameworks/Resources and TFI also includes WorkspaceActivitySupport. App Info.plist files are membership exceptions selected through INFOPLIST_FILE. Both produce Termind.app and select AppIcon and AccentColor, but TFM builds Termind for macosx (macOS 15.0 minimum, sandbox and hardened runtime enabled) and TFI builds TermindIOS for iphoneos/iphonesimulator (iOS 18.0 minimum, device families 1,2), with app-specific plist and entitlement paths. TFM embeds termind-mcp from TermindMCPBridge; TFI embeds TermindWidgets.appex, whose target includes TFIWidgets, WorkspaceActivitySupport and shared resources without taking ownership of app live workspaces.",
       "evidence": [
         {
-          "resource": "repo://TFI/Platform/MobileBackgroundController.swift",
-          "version": "repo-file-v1:sha256:75c3d7bda5bf9ce83518666d5801cf3e01f9bbc82ed5acdc557bf17c2c6d4efc"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1228-L1252",
+          "version": "repo-lines-v1:sha256:d94ec5fc098ab716f7104e71260ce19983d0f2f685e03ec784799c882553b630:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlZDFmYTFkMmM5ZWNlYjY4OWU2N2ZhNzg4NGFjMTI4ODc4NjIwNzczODc2NzdmNWMwZmMwM2FlMmYzNTNiNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmYWQxMjFmZGRlZGRmNGU0NzJmYzUyZDgxNDU3Y2VmMThjYmU2ZDg0MzNiMjQ0Y2NmMmYxMjYyNmRmNjc5YzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MGI5MjNjYjkxMDkxM2QwZjMzZDc5NmU3NTEyYTMxNGIyZjllYWY5NzQzYzg1MGQ5NWQ0OTRmMjliMGNlMDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjNzg1NDUyNDAyMGZkNTQ5ZTBjOWMyMGY5MDhjYjYwNTQ3NWFiNmE3NGIwZTc0Nzg3Y2UzNTk0OWU4NjQ1Y2IifQ"
         },
         {
-          "resource": "repo://TFI/Platform/MobileLiveActivityController.swift",
-          "version": "repo-file-v1:sha256:f10587ec652f59536cc9e3051ea887a94999182c3dfc5e3d8852b8f442671a2a"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1569-L1619",
+          "version": "repo-lines-v1:sha256:dab029aaa13b34820036d4aecdcbedf187a3afcd4a1c9b0912aee83d1baef4ca:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3YWNmYzlmOTJkZmE3NzgyN2M0MzQzNmZjZDg0NDM4YTkyOTE2NTBkYjM2MTRhOGNmYjM1MDdmZjRmZWFjZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliNGRhZThiYTlhZDYwZTFjZTIwYmQxZDU0ZmFiY2FjZmI1YjljOTNjZjViODM0NGZiNmU3ZjA3Y2U5NjEwNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMGI2MWM2NDk3ZWYxNDBjOTkwODgxOTc2YjgzMTY2ODhkZjdlNmRmODg1OGNkOWVmYzhkYjFlOTQxZGE4ZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmYjFlMmIxY2Q5MzU5YTA4MzlkMmJmMjE3YjViMmUwNjk4YzVjZTZmMjllMmYxMWNjN2NmNDBkZmZiOTYzYWMifQ"
         },
         {
-          "resource": "repo://TFI/Platform/MobileSFTPOpenWithPresenter.swift",
-          "version": "repo-file-v1:sha256:068a3d1a05a09dc3d5b6dfbfdad789aa6cf00d03871934097408ad7ea90d900a"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L500-L608",
+          "version": "repo-lines-v1:sha256:7967226cdead30bbab038482709f6d3832fc884f8db92ea168060996ea76f673:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmNmM1NGNjN2I5NmRkNjk0M2RlNWRhYTNjMDNhMDViYTc0MTk1M2IyNzE2ZmMzZWFhMDg2YjI2YmY4NGYzNWIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhODc2YTU2ZGZmNmI4NzU1M2I0Yjk3NGM5YTBhOWNlYmIxZmVmYzVlMjcyYmY1Yjc0YjEyMWVlNDc5ZDdiNTc5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJkNmI2MGFhNzY0ZGJjOGNiYmMzNzlhMzViMmFiMmZiNDgwZjM3ODRmOWUxZTUyZTA1OWRhYTNhOTNjYmYyODNlIn0"
         },
         {
-          "resource": "repo://TFM/Platform/MacOSSpeechAudioInput.swift",
-          "version": "repo-file-v1:sha256:e77368e3fdb1387401739cbe782c56dba7843705cb950e968598e01c413ddfd3"
-        },
-        {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift",
-          "version": "repo-file-v1:sha256:0166b9eab07357665f202205a39a6de25af79bfdda707632e8324cb33f129314"
-        },
-        {
-          "resource": "repo://TFM/Platform/MetricsMenuBarController.swift",
-          "version": "repo-file-v1:sha256:9b267de06d33ac7535b5fbcd440449e1217213a0bf7e32d6c8f4dcb36bce0043"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L904-L929",
+          "version": "repo-lines-v1:sha256:6bc18a0a8e51d2f909309a11d6b0f14579d5f4927913b71aad759a18b77c4f50:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4OTFkMmE5MWQ5N2Q2NTQxODU0ZDdiMDQ1MGVhNmQwOTQ2OTA5ZTA5MWExZTQyOWQwY2FlYzhmZmY2ZDNiNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmYWQxMjFmZGRlZGRmNGU0NzJmYzUyZDgxNDU3Y2VmMThjYmU2ZDg0MzNiMjQ0Y2NmMmYxMjYyNmRmNjc5YzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiNzdiODlmYzMxMTdkMDBhNTcyMWU0Y2ViYTY5ZTE3MWQxYzUyN2Q2M2U1NDVjYWRiMTUwZTAxMDg2MDYyNTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIzMTMxODljNDJiNGU1YTY3NDM5MDkzYTc1OGRiOWIyMzQxNGM0YzJjOTY1ZDI0NjcwMjA4MTg2MTVlOTRhMDUifQ"
         }
       ]
     },
@@ -1073,6 +1061,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }

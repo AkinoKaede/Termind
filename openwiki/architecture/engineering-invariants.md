@@ -148,8 +148,6 @@ sources:
     resource: repo://Scripts/check-appstrings.swift
   - id: openwiki-source-c6328be86432b33a68051c73
     resource: repo://Scripts/check-cjk-localization.py
-  - id: openwiki-source-de562e98d49cbf6502c23c13
-    resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -236,10 +234,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-13T01:46:04.618Z
 ---
 
 # Engineering invariants
@@ -247,6 +245,21 @@ verified:
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
 Use [System Boundaries and Dependency Ownership](system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
+
+## Build settings and enforcement scope
+
+Read [the project configurations](../../Termind.xcodeproj/project.pbxproj) at both project and target level before changing compiler policy. A setting absent from a target block is not disabled: the target inherits the project configuration unless it overrides it. These settings apply to this Xcode project's targets, not automatically to separately built remote packages.
+
+| Constraint | Project defaults in Debug and Release | Explicit target exceptions or restatements |
+| --- | --- | --- |
+| Language and concurrency | `SWIFT_VERSION = 6.0`, `SWIFT_APPROACHABLE_CONCURRENCY = YES`, `SWIFT_STRICT_CONCURRENCY = complete`, `SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES` | TFM/TFI and the six shared framework targets inherit these settings; TFMTests, TermindWidgets and both command-line targets also explicitly restate Swift 6.0. |
+| Default isolation | `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` | Apps, shared frameworks and test targets inherit MainActor by default. TermindWidgets explicitly restates MainActor. TermindMCPBridge and TermindPortForwardingBenchmark override it with `nonisolated` in both configurations and use `-parse-as-library`. |
+| Warning policy | `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`, with enabled Clang/GCC warning and analyzer checks | TFMTests adds `$(inherited) -Xcc -Wno-error=deprecated-declarations`; this narrow imported C/Objective-C diagnostic exception does not disable Swift warnings-as-errors. |
+| Localization | `LOCALIZATION_PREFERS_STRING_CATALOGS = YES`, `STRING_CATALOG_GENERATE_SYMBOLS = NO`, `CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES` | TFM and TFI explicitly set `SWIFT_EMIT_LOC_STRINGS = YES`; all six shared frameworks, FrameworkTests and TFITests explicitly set it to `NO`. Do not confuse emission with ownership of the manually maintained catalogs or with generated Swift symbols. |
+
+MainActor is a **declaration default**, not a promise that all work executes on the main thread. Preserve explicit actors, `nonisolated` APIs and Sendable callback boundaries; the callback-isolation guidance below still applies. Likewise, the nonisolated executable defaults do not weaken inherited strict-concurrency or warning policy. Debug enables testability and `-Onone`; Release selects whole-module compilation and disables assertions. Verification should exercise the relevant configuration rather than assuming Debug-only checks establish Release behavior.
+
+`TermindWidgets` is the iOS/iPadOS extension target with `APPLICATION_EXTENSION_API_ONLY = YES`; it is not a third app composition root or a portable framework. Keep native extension code and metadata in `TFIWidgets`, with app/shared-framework ownership as described below. For build commands and targeted verification, see [Build, Test, and Release](../operations/build-test-and-release.md). Compiler diagnostics, scoped source guards and behavioral tests are complementary: `ArchitectureBoundaryTests` does not establish universal compiler-enforced dependency purity.
 
 ## Modules and persistence
 

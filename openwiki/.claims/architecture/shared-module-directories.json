@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:78602505605cd93f6a858145bd424c0d2bbd85077f1ce2a1c581bc85f5190430",
+  "pageVersion": "sha256:a77561e846ea4223b6ef8f692741b8cec728031c8d7c12bafa6db8812becd7f0",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -245,28 +245,12 @@
       "statement": "Shared resources provide bundle localization, privacy/model metadata and distribution-icon catalogs/assets, while distribution-icon licensing is stored separately and platform-specific icons remain app-owned.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L5-L13",
-          "version": "repo-lines-v1:sha256:5bf8f722418eac38057a37c2f664f7f78762650fe7e8d0d55318d6aa97bcaba3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjM4YmQ4MDg4Y2Q5OGMyYTJiZjdjZWUwMjg2NjU0OTRlOTA0MGI0YmIzNTBhYjMwY2VjOThmMmZmNDlkMjUyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQxNDRhYTY2MzdkYjRiY2Q3MWYxZmE2NDc0MGI1YTJmMDk1YzZiYWYyM2JlOWU1NzJhMGE4Y2VkODJkNzIyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ1ZDk4ZDMyNTIxNzM5OGEyYzA4Mzg5YzFlMjg1MDQyMTA2MDQ2OGUzYzI5ODdhODRiMDFjNDM0ZWU2ZDcyZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWQwMTdmYTAzMWI3MzUzMDUxZTQ5YWQxNjI0YTFhNjBlMjAzYzhmYTljN2QxYjE0YjY2ZjU3YjlkMTU5Mzg5NSJ9"
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L154-L204",
+          "version": "repo-lines-v1:sha256:8d2016050e97655a4f0b2fea7301f4074a4065e89cb04a530abee55d21b30aca:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZDUzYmFhYzE4Nzg1MmI0MzFjMjMyZTA1MTYwNjFkNDk2ZjdhMjE1NmVlNGJmN2RlYTY0N2ZjNjY0OTg2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4NWViNThlOTUxYWY1ZTM3MWM1NmZhNTdhMjVmM2EwNGE4NWU3MzcwMmQwMzUzMjU3NTgxMmQzZTY3ZjdiMGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2NzFhOWRlODhhYjdkNjMzMThjNjc2ZDY3NjY1NzllOTFhYjdhNjU3ODZlNGI2NmRhMDQxMjE2MTMzMjk4ZDIifQ"
         },
         {
-          "resource": "repo://Frameworks/Resources/LinuxDistributionIcons.json",
-          "version": "repo-file-v1:sha256:be46e0d01c6afe28488d3994494278effe58c68d38004913c78b7b76e3bc5abe"
-        },
-        {
-          "resource": "repo://Frameworks/Resources/LinuxDistributionIcons/SimpleIcons.DISCLAIMER.md",
-          "version": "repo-file-v1:sha256:f921095158b73e61e675ff99b327930fa95ad6f4cf667d414ffe8ae585205724"
-        },
-        {
-          "resource": "repo://Frameworks/Resources/PrivacyInfo.xcprivacy",
-          "version": "repo-file-v1:sha256:5e1e8cb95cbe79c8ca115febd6d0043804ffd4205acf4a69cbf48632bfaa5ea0"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift",
-          "version": "repo-file-v1:sha256:a129d782efe875c18706468fc0aaf8d5191c71287e0ac1f1559027f1fcc13821"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "resource": "repo://TFMTests/RemoteSessionConnectionControllerTests.swift#L12-L49",
+          "version": "repo-lines-v1:sha256:8d5f555628bfa82370390025c9413605f1415d028798ead705d13468c389571d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMTVkZTQ2ODUwNDU0ZDNhZDY1YmFkYTE3ZTM3MWYxYWRiMmY5YTQwZTE2MzA3NjZjYWI3MDM1ZThlYWE3ZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhOWU4YjU3MDY3ZmFiMDliYjJlOGJiNDJhMzRiZTZlMmQ4NmE1NTVhZjIxMDQ5NTBkZTY3NmE3NjNlYzc4Y2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwNDhjMWU3NjM0NDI1MmFiOWQ0OTk0ODE0OGY2NjMwOTMxN2IzNjE3YzE3ZWUwMzE5YzA5YjUwNWRkOTBlMzYifQ"
         }
       ]
     },
@@ -522,7 +506,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:cff9493f0d331cc0a7b22df6df8f948173bab49d199103b5bf303661031bb2c8"
+          "version": "repo-file-v1:sha256:55d9f1d8f05678b72ad55f5718f28d3a0fe237aec6d51ad33b093058b4fc3ab7"
         }
       ]
     },
@@ -1085,6 +1069,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-13T01:46:04.618Z"
   }
 }
