@@ -10,12 +10,17 @@ extension HostLibraryModel {
     /// Seed data for P0, so the sidebar and workspace list can be exercised before any
     /// persistence or networking exists.
     static func demo(language: AppLanguage = .english, includesConnectionActivity: Bool = true) -> HostLibraryModel {
-        func text(_ en: String, _ zhHans: String, _ zhHant: String, _ ja: String) -> String {
+        func text(
+            _ en: String, _ zhHans: String, _ zhHant: String, _ ja: String, _ ko: String, _ de: String, _ fr: String
+        ) -> String {
             switch language {
             case .simplifiedChinese: zhHans
             case .traditionalChinese: zhHant
             case .japanese: ja
-            case .system, .english, .german, .french, .korean: en
+            case .korean: ko
+            case .german: de
+            case .french: fr
+            case .system, .english: en
             }
         }
         func distribution(_ id: String) -> DetectedDistribution {
@@ -25,22 +30,27 @@ extension HostLibraryModel {
             return distribution
         }
 
-        let production = HostGroup(name: text("Production", "生产环境", "正式環境", "本番環境"), sortIndex: 0)
-        let staging = HostGroup(name: text("Staging", "预发布环境", "測試環境", "ステージング"), sortIndex: 1)
-        let homelab = HostGroup(name: text("Homelab", "家庭实验室", "家庭實驗室", "ホームラボ"), sortIndex: 2)
+        let production = HostGroup(
+            name: text("Production", "生产环境", "正式環境", "本番環境", "운영 환경", "Produktion", "Production"), sortIndex: 0)
+        let staging = HostGroup(
+            name: text("Staging", "预发布环境", "測試環境", "ステージング", "스테이징", "Staging", "Préproduction"), sortIndex: 1)
+        let homelab = HostGroup(
+            name: text("Homelab", "家庭实验室", "家庭實驗室", "ホームラボ", "홈랩", "Heimlabor", "Labo personnel"), sortIndex: 2)
         let edge = HostGroup(
-            name: text("Edge", "边缘节点", "邊緣節點", "エッジ"), parentID: production.id, sortIndex: 0
+            name: text("Edge", "边缘节点", "邊緣節點", "エッジ", "에지", "Edge", "Périphérie"), parentID: production.id, sortIndex: 0
         )
 
         let now = Date(timeIntervalSinceReferenceDate: 776_000_000)
 
         let personalKey = SSHKeyRef(
-            label: text("Personal", "个人", "個人", "個人用"), algorithm: .ed25519,
+            label: text("Personal", "个人", "個人", "個人用", "개인용", "Privat", "Personnel"), algorithm: .ed25519,
             fingerprint: "SHA256:9pKQ2vC0nJ7hR4mXbL1sT8yWfE3dA6uZgN5qOiVxHkM",
             credentialRef: "termind.key.personal", colorTag: .blue
         )
         let workKey = SSHKeyRef(
-            label: text("Work (no sync)", "工作（不同步）", "工作（不同步）", "仕事用（同期なし）"), algorithm: .ecdsa256,
+            label: text(
+                "Work (no sync)", "工作（不同步）", "工作（不同步）", "仕事用（同期なし）", "업무용 (동기화 안 함)", "Arbeit (ohne Sync)",
+                "Travail (sans synchro)"), algorithm: .ecdsa256,
             fingerprint: "SHA256:3tBn8xLpQ2wZ7yKvR1mHcE9dS4fJ6uA0gT5iNqOxVbY",
             credentialRef: "termind.key.work",
             storage: .thisDevice, colorTag: .purple
@@ -50,25 +60,39 @@ extension HostLibraryModel {
         // One of each shape, so all four combinations of the two secrets are on
         // screen at P0: key only, key *and* password, password only, neither.
         let deploy = Identity(
-            name: text("Deploy", "部署账号", "部署帳號", "デプロイ"), username: "deploy", keyID: personalKey.id,
-            notes: text("Production web tier", "生产环境 Web 层", "正式環境 Web 層", "本番環境のWeb層"),
+            name: text("Deploy", "部署账号", "部署帳號", "デプロイ", "배포", "Deployment", "Déploiement"), username: "deploy",
+            keyID: personalKey.id,
+            notes: text(
+                "Production web tier", "生产环境 Web 层", "正式環境 Web 層", "本番環境のWeb層", "운영 웹 계층", "Produktive Webserver",
+                "Serveurs web de production"),
             colorTag: .green
         )
         let postgres = Identity(
-            name: text("Postgres admin", "Postgres 管理员", "Postgres 管理員", "Postgres管理者"), username: "postgres",
+            name: text(
+                "Postgres admin", "Postgres 管理员", "Postgres 管理員", "Postgres管理者", "Postgres 관리자", "Postgres-Admin",
+                "Admin Postgres"), username: "postgres",
             credentialRef: "termind.password.postgres", keyID: workKey.id,
             notes: text(
-                "Key to get in, password for sudo", "使用密钥登录，密码用于 sudo", "使用金鑰登入，密碼用於 sudo", "ログインには鍵、sudoにはパスワード"),
+                "Key to get in, password for sudo", "使用密钥登录，密码用于 sudo", "使用金鑰登入，密碼用於 sudo", "ログインには鍵、sudoにはパスワード",
+                "키로 로그인, sudo에는 암호 사용", "Schlüssel zum Anmelden, Passwort für sudo",
+                "Clé pour la connexion, mot de passe pour sudo"),
             colorTag: .orange
         )
         let consoleRoot = Identity(
-            name: text("Console root", "控制台 root", "主控台 root", "コンソールのroot"), username: "root",
+            name: text(
+                "Console root", "控制台 root", "主控台 root", "コンソールのroot", "콘솔 root", "Konsolen-root", "Root console"),
+            username: "root",
             credentialRef: "termind.password.console-root",
-            notes: text("Out-of-band only", "仅限带外管理", "僅限頻外管理", "帯域外管理専用"), colorTag: .red
+            notes: text(
+                "Out-of-band only", "仅限带外管理", "僅限頻外管理", "帯域外管理専用", "대역 외 관리 전용", "Nur Out-of-Band",
+                "Gestion hors bande uniquement"), colorTag: .red
         )
         let unfinished = Identity(
-            name: text("New admin", "新管理员", "新增管理員", "新しい管理者"), username: "admin",
-            notes: text("No secret chosen yet", "尚未选择凭据", "尚未選擇認證資訊", "シークレットは未選択")
+            name: text("New admin", "新管理员", "新增管理員", "新しい管理者", "새 관리자", "Neuer Admin", "Nouvel admin"),
+            username: "admin",
+            notes: text(
+                "No secret chosen yet", "尚未选择凭据", "尚未選擇認證資訊", "シークレットは未選択", "아직 자격 증명을 선택하지 않았어요",
+                "Noch keine Zugangsdaten gewählt", "Aucun secret sélectionné")
         )
 
         // Half the fleet is left without an identity on purpose, so the "not set
@@ -127,35 +151,43 @@ extension HostLibraryModel {
         ]
 
         let diagnostics = SnippetPackage(
-            name: text("Diagnostics", "诊断", "診斷", "診断"), sortIndex: 0
+            name: text("Diagnostics", "诊断", "診斷", "診断", "진단", "Diagnose", "Diagnostic"), sortIndex: 0
         )
         let webOperations = SnippetPackage(
-            name: text("Web Operations", "Web 运维", "Web 維運", "Web運用"),
+            name: text("Web Operations", "Web 运维", "Web 維運", "Web運用", "웹 운영", "Webbetrieb", "Exploitation web"),
             parentID: diagnostics.id, sortIndex: 0
         )
         let snippets = [
             Snippet(
-                title: text("Disk usage by directory", "按目录查看磁盘占用", "依目錄查看磁碟用量", "ディレクトリ別のディスク使用量"),
+                title: text(
+                    "Disk usage by directory", "按目录查看磁盘占用", "依目錄查看磁碟用量", "ディレクトリ別のディスク使用量", "디렉터리별 디스크 사용량",
+                    "Speicherplatz pro Verzeichnis", "Espace disque par dossier"),
                 body: "du -sh /* | sort -h",
                 packageID: diagnostics.id, targetHostIDs: [hosts[0].id],
                 sortIndex: 0
             ),
             Snippet(
-                title: text("Top memory consumers", "内存占用最高的进程", "記憶體用量最高的程序", "メモリ使用量の多いプロセス"),
+                title: text(
+                    "Top memory consumers", "内存占用最高的进程", "記憶體用量最高的程序", "メモリ使用量の多いプロセス", "메모리 사용량이 많은 프로세스",
+                    "Größte RAM-Verbraucher", "Processus les plus gourmands en mémoire"),
                 body: "ps aux --sort=-%mem | head -20",
                 packageID: diagnostics.id,
                 targetHostIDs: [hosts[0].id, hosts[1].id],
                 sortIndex: 1
             ),
             Snippet(
-                title: text("Tail nginx errors", "持续查看 Nginx 错误", "持續查看 Nginx 錯誤", "nginxのエラーを追跡"),
+                title: text(
+                    "Tail nginx errors", "持续查看 Nginx 错误", "持續查看 Nginx 錯誤", "nginxのエラーを追跡", "nginx 오류 추적",
+                    "nginx-Fehler verfolgen", "Suivre les erreurs nginx"),
                 body: "tail -f /var/log/nginx/error.log",
                 packageID: webOperations.id,
                 targetHostIDs: [hosts[0].id, hosts[1].id],
                 sortIndex: 0
             ),
             Snippet(
-                title: text("Listening ports", "监听中的端口", "監聽中的連接埠", "待ち受けポート"),
+                title: text(
+                    "Listening ports", "监听中的端口", "監聽中的連接埠", "待ち受けポート", "수신 대기 포트", "Lauschende Ports", "Ports en écoute"
+                ),
                 body: "ss -tulpn", sortIndex: 3
             ),
         ]
@@ -189,11 +221,12 @@ extension HostLibraryModel {
             PortForwardingRule(
                 hostID: db.id, kind: .local, bindPort: 5432,
                 targetHost: "localhost", targetPort: 5432,
-                label: text("Postgres", "Postgres 数据库", "Postgres 資料庫", "Postgres")
+                label: text("Postgres", "Postgres 数据库", "Postgres 資料庫", "Postgres", "Postgres", "Postgres", "Postgres")
             ),
             PortForwardingRule(
                 hostID: web01.id, kind: .dynamic, bindPort: 1080,
-                label: text("SOCKS proxy", "SOCKS 代理", "SOCKS Proxy", "SOCKSプロキシ")
+                label: text(
+                    "SOCKS proxy", "SOCKS 代理", "SOCKS Proxy", "SOCKSプロキシ", "SOCKS 프록시", "SOCKS-Proxy", "Proxy SOCKS")
             ),
         ]
 
@@ -216,7 +249,10 @@ extension HostLibraryModel {
                 hostID: web01.id, direction: .upload,
                 localPath: "~/Config/nginx.conf", remotePath: "/etc/nginx/nginx.conf",
                 byteCount: 8_192,
-                state: .failed(text("Permission denied", "权限被拒绝", "權限遭拒", "アクセスが拒否されました")),
+                state: .failed(
+                    text(
+                        "Permission denied", "权限被拒绝", "權限遭拒", "アクセスが拒否されました", "권한이 거부되었어요", "Zugriff verweigert",
+                        "Permission refusée")),
                 queuedAt: now.addingTimeInterval(-3_600)
             ),
             SFTPTransfer(
@@ -247,7 +283,10 @@ extension HostLibraryModel {
         store.setStatus(.connecting, for: db.id)
         if let staging = hosts.first(where: { $0.name == "staging-app" }) {
             store.setStatus(
-                .failed(text("Connection refused", "连接被拒绝", "連線遭拒", "接続が拒否されました")), for: staging.id
+                .failed(
+                    text(
+                        "Connection refused", "连接被拒绝", "連線遭拒", "接続が拒否されました", "연결이 거부되었어요", "Verbindung abgelehnt",
+                        "Connexion refusée")), for: staging.id
             )
         }
 

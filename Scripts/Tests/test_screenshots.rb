@@ -103,6 +103,23 @@ class ScreenshotsTests < Minitest::Test
     assert ScreenshotFrames.new({ locales: "ja" }, root: @root).plan.all? { |job| job[:output].include?("/ja/") }
   end
 
+  def test_additional_marketing_locales_configure_native_capture_and_frame_paths
+    { "ko" => ["KR", "ko_KR"], "de" => ["DE", "de_DE"], "fr" => ["FR", "fr_FR"] }.each do |language, (region, locale)|
+      %i[mac ios].each do |platform|
+        capture = runner(platform, locales: language)
+        target = {}
+        key = platform == :mac ? "TFMTests" : "TFITests"
+        capture.configure_xctestrun({ key => target }, language, {}, [])
+        assert_equal language, target["TestLanguage"]
+        assert_equal region, target["TestRegion"]
+        assert_equal "C", target["EnvironmentVariables"]["LC_NUMERIC"]
+        assert_equal ["-AppleLanguages", "(#{language})", "-AppleLocale", locale], target["CommandLineArguments"]
+      end
+      jobs = ScreenshotFrames.new({ locales: language }, root: @root).plan
+      assert jobs.all? { |job| job[:input].include?("/#{language}/") && job[:output].include?("/#{language}/") }
+    end
+  end
+
   def test_test_plan_format_updates_only_the_capture_target
     capture = runner(:mac)
     target = { "BlueprintName" => "TFMTests" }

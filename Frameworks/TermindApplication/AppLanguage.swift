@@ -43,8 +43,8 @@ public nonisolated enum AppLocalization {
 
 public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
-    case english = "en"
     case german = "de"
+    case english = "en"
     case french = "fr"
     case japanese = "ja"
     case korean = "ko"

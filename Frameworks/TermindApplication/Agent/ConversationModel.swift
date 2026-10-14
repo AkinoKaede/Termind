@@ -3426,12 +3426,17 @@ extension WeakAgentUserInteraction: AgentUserInteractionHandling {}
 
 extension ConversationModel {
     public static func demo(language: AppLanguage = .english) -> ConversationModel {
-        func text(_ en: String, _ zhHans: String, _ zhHant: String, _ ja: String) -> String {
+        func text(
+            _ en: String, _ zhHans: String, _ zhHant: String, _ ja: String, _ ko: String, _ de: String, _ fr: String
+        ) -> String {
             switch language {
             case .simplifiedChinese: zhHans
             case .traditionalChinese: zhHant
             case .japanese: ja
-            case .system, .english, .german, .french, .korean: en
+            case .korean: ko
+            case .german: de
+            case .french: fr
+            case .system, .english: en
             }
         }
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
@@ -3440,7 +3445,10 @@ extension ConversationModel {
             text: text(
                 "Find the cause of the 502 responses. Inspect only—do not change configuration.",
                 "查明 502 响应的原因。仅检查，不要更改配置。",
-                "找出 502 回應的原因。僅進行檢查，不要變更設定。", "502応答の原因を調べてください。調査のみを行い、設定は変更しないでください。"),
+                "找出 502 回應的原因。僅進行檢查，不要變更設定。", "502応答の原因を調べてください。調査のみを行い、設定は変更しないでください。",
+                "502 응답의 원인을 찾아 주세요. 점검만 하고 설정은 변경하지 마세요.",
+                "Finde die Ursache der 502-Antworten. Nur prüfen, keine Konfiguration ändern.",
+                "Trouvez la cause des réponses 502. Analysez uniquement, sans modifier la configuration."),
             createdAt: now.addingTimeInterval(-18)
         )
         let answer = ChatMessage(
@@ -3449,14 +3457,20 @@ extension ConversationModel {
                 "The upstream service is not listening on `127.0.0.1:8080`. Nginx itself is healthy, and no configuration was changed. Start the upstream service, then verify `/health` before considering a reload.",
                 "上游服务没有监听 `127.0.0.1:8080`。Nginx 本身运行正常，且没有更改任何配置。请先启动上游服务并验证 `/health`，再考虑重新加载。",
                 "上游服務未監聽 `127.0.0.1:8080`。Nginx 本身運作正常，且未變更任何設定。請先啟動上游服務並驗證 `/health`，再考慮重新載入。",
-                "上流サービスが`127.0.0.1:8080`で待ち受けていません。Nginx自体は正常で、設定は変更していません。まず上流サービスを起動して`/health`を確認し、その後で再読み込みを検討してください。"
+                "上流サービスが`127.0.0.1:8080`で待ち受けていません。Nginx自体は正常で、設定は変更していません。まず上流サービスを起動して`/health`を確認し、その後で再読み込みを検討してください。",
+                "업스트림 서비스가 `127.0.0.1:8080`에서 수신 대기하고 있지 않아요. Nginx는 정상이며 설정은 변경하지 않았어요. 먼저 업스트림 서비스를 시작하고 `/health`를 확인한 뒤 다시 로드를 검토하세요.",
+                "Der Upstream-Dienst lauscht nicht auf `127.0.0.1:8080`. Nginx läuft ordnungsgemäß; es wurde keine Konfiguration geändert. Starte den Upstream-Dienst und prüfe `/health`, bevor du ein Neuladen erwägst.",
+                "Le service en amont n’écoute pas sur `127.0.0.1:8080`. Nginx fonctionne normalement et aucune configuration n’a été modifiée. Démarrez le service en amont, puis vérifiez `/health` avant d’envisager un rechargement."
             ),
             createdAt: now
         )
         let runID = UUID()
         let descriptor = AgentToolDescriptor(
             name: "ssh_exec",
-            summary: text("Run a command on a remote host.", "在远程主机上运行命令。", "在遠端主機上執行指令。", "リモートホストでコマンドを実行します。"),
+            summary: text(
+                "Run a command on a remote host.", "在远程主机上运行命令。", "在遠端主機上執行指令。", "リモートホストでコマンドを実行します。",
+                "원격 호스트에서 명령을 실행해요.", "Einen Befehl auf einem Remote-Host ausführen.",
+                "Exécuter une commande sur un hôte distant."),
             inputSchema: .object([:]), target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: AgentToolDescriptor.Presentation(
@@ -3493,7 +3507,9 @@ extension ConversationModel {
                 )
             ]
         )
-        conversation.customTitle = text("Diagnose 502 responses", "诊断 502 响应", "診斷 502 回應", "502応答の診断")
+        conversation.customTitle = text(
+            "Diagnose 502 responses", "诊断 502 响应", "診斷 502 回應", "502応答の診断", "502 응답 진단", "502-Antworten untersuchen",
+            "Diagnostiquer les réponses 502")
         conversation.messages = [
             user, answer,
         ]

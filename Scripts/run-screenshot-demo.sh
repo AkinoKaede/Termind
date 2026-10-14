@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command|metrics|metrics-detail|app-settings> <en|ja|zh-Hans|zh-Hant>"
+    print -u2 "Usage: Scripts/run-screenshot-demo.sh <hosts|workspace|agent|command|metrics|metrics-detail|app-settings> <en|ja|ko|de|fr|zh-Hans|zh-Hant>"
 }
 
 if (( $# != 2 )); then
@@ -31,6 +31,18 @@ case "$language" in
     ja)
         apple_language="ja"
         apple_locale="ja_JP"
+        ;;
+    ko)
+        apple_language="ko"
+        apple_locale="ko_KR"
+        ;;
+    de)
+        apple_language="de"
+        apple_locale="de_DE"
+        ;;
+    fr)
+        apple_language="fr"
+        apple_locale="fr_FR"
         ;;
     zh-Hans)
         apple_language="zh-Hans"

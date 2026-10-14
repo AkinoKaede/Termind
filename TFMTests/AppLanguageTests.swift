@@ -7,6 +7,29 @@ import Testing
 @testable import Termind
 
 struct AppLanguageTests {
+    @Test
+    func languagePickerKeepsSystemFirstThenSortsByLanguageCode() {
+        #expect(AppLanguage.allCases.first == .system)
+        let languageCodes = AppLanguage.allCases.dropFirst().map(\.rawValue)
+        #expect(languageCodes == languageCodes.sorted())
+    }
+
+    @Test(arguments: [AppLanguage.korean, .german, .french])
+    @MainActor
+    func screenshotConversationLocalizesProseWithoutTranslatingTechnicalReferences(language: AppLanguage) {
+        let english = ConversationModel.demo(language: .english)
+        let localized = ConversationModel.demo(language: language)
+        #expect(localized.customTitle != english.customTitle)
+        #expect(localized.messages.count == english.messages.count)
+        for (message, source) in zip(localized.messages, english.messages) {
+            #expect(message.text != source.text)
+            #expect(message.role == source.role)
+        }
+        #expect(localized.messages.last?.text.contains("`127.0.0.1:8080`") == true)
+        #expect(localized.messages.last?.text.contains("`/health`") == true)
+        #expect(localized.toolCards.map(\.invocation.call.name) == ["ssh_exec", "ssh_exec"])
+    }
+
     @Test(arguments: [
         ("en", "SSH authentication failed: key detail; password detail"),
         ("zh-Hans", "SSH认证失败：key detail；password detail"),

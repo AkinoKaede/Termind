@@ -22,7 +22,10 @@ class Screenshots
     raise "Initialize the website and assets first: git submodule update --init com.akinokaede.termind"
   end
 
-  LOCALES = { "en" => ["US", "en_US"], "zh-Hans" => ["CN", "zh_CN"], "zh-Hant" => ["TW", "zh_TW"], "ja" => ["JP", "ja_JP"] }.freeze
+  LOCALES = {
+    "en" => ["US", "en_US"], "zh-Hans" => ["CN", "zh_CN"], "zh-Hant" => ["TW", "zh_TW"],
+    "ja" => ["JP", "ja_JP"], "ko" => ["KR", "ko_KR"], "de" => ["DE", "de_DE"], "fr" => ["FR", "fr_FR"]
+  }.freeze
   MAC_SCENES = {
     "hosts" => ["vault", "mac"],
     "workspace" => ["workspace", "mac"],
@@ -143,7 +146,9 @@ class Screenshots
     targets = targets.select { |target| !target.key?("BlueprintName") || target["BlueprintName"] == "#{@scheme}Tests" }
     raise "Missing #{@scheme}Tests in xctestrun" if targets.empty?
     targets.each do |target|
-      target["EnvironmentVariables"] = target.fetch("EnvironmentVariables", {}).merge(environment)
+      # Ghostty initializes the C locale from the environment. Keep numeric parsing
+      # invariant for CoreUI glyph geometry, independently of the localized app UI.
+      target["EnvironmentVariables"] = target.fetch("EnvironmentVariables", {}).merge(environment).merge("LC_NUMERIC" => "C")
       target["TestLanguage"] = language
       target["TestRegion"] = LOCALES.fetch(language).first
       target["CommandLineArguments"] = arguments + ["-AppleLanguages", "(#{language})", "-AppleLocale", LOCALES.fetch(language).last]

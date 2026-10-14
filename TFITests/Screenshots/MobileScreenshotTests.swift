@@ -25,7 +25,7 @@ struct MobileScreenshotTests {
         if let language = ProcessInfo.processInfo.environment["TERMIND_SCREENSHOT_LOCALE"] {
             return [language]
         }
-        return ["en", "zh-Hans", "zh-Hant", "ja"]
+        return ["en", "zh-Hans", "zh-Hant", "ja", "ko", "de", "fr"]
     }
 
     @Test func renderScenes() async throws {
@@ -48,7 +48,7 @@ struct MobileScreenshotTests {
             }
 
             if includes("ssh") {
-                try await withEnglishKeyboard {
+                try await withTerminalKeyboard {
                     try await captureWorkspace(.ssh, language: language)
                 }
             }
@@ -83,8 +83,10 @@ struct MobileScreenshotTests {
         language: String, connectionServices: MobileWorkspaceConnectionServices = .live
     ) throws -> MobileAppModel {
         let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connectionServices)
-        let production = HostGroup(name: text(language, "Production", "生产环境", "正式環境", "本番環境"))
-        let edge = HostGroup(name: text(language, "Edge", "边缘节点", "邊緣節點", "エッジ"))
+        let production = HostGroup(
+            name: text(language, "Production", "生产环境", "正式環境", "本番環境", "운영 환경", "Produktion", "Production"))
+        let edge = HostGroup(
+            name: text(language, "Edge", "边缘节点", "邊緣節點", "エッジ", "에지", "Edge", "Périphérie"))
         app.library.upsert(production)
         app.library.upsert(edge)
         let hosts = [
@@ -134,7 +136,10 @@ struct MobileScreenshotTests {
         if kind == .sftp {
             #expect(
                 app.testWorkspaceSession.renameWorkspace(
-                    id, to: text(language, "Production files", "生产文件", "正式環境檔案", "本番環境のファイル")))
+                    id,
+                    to: text(
+                        language, "Production files", "生产文件", "正式環境檔案", "本番環境のファイル",
+                        "운영 파일", "Produktionsdateien", "Fichiers de production")))
             try #require(workspace.sftpChannel.files.count == 6)
         }
         let scene = MobileSceneModel(app: app, sessionID: "test")
@@ -145,8 +150,12 @@ struct MobileScreenshotTests {
         }
     }
 
-    private func withEnglishKeyboard(_ capture: () async throws -> Void) async throws {
-        let mode = try #require(UITextInputMode.activeInputModes.first { $0.primaryLanguage?.hasPrefix("en") == true })
+    private func withTerminalKeyboard(_ capture: () async throws -> Void) async throws {
+        let modes = UITextInputMode.activeInputModes
+        let mode = try #require(
+            modes.first { $0.primaryLanguage?.hasPrefix("en") == true }
+                ?? modes.first { $0.primaryLanguage != nil && $0.primaryLanguage != "emoji" },
+            "The capture simulator needs a text keyboard")
         let selector = #selector(getter: UIResponder.textInputMode)
         let method = try #require(class_getInstanceMethod(MobileTerminalView.self, selector))
         let original = method_getImplementation(method)
@@ -160,7 +169,8 @@ struct MobileScreenshotTests {
         let typeGetter: @convention(block) (AnyObject) -> Int = { _ in UIKeyboardType.asciiCapable.rawValue }
         let typeReplacement = imp_implementationWithBlock(typeGetter)
         // Scope the public input-mode getter override to this opt-in capture.
-        // UIKit still renders its real keyboard, independently of the app locale.
+        // XCTest may install only the test language's keyboard. Prefer English
+        // when available, otherwise keep the native localized text keyboard.
         // ASCII mode also excludes the bilingual keyboard's Pinyin/Zhuyin toggle.
         class_replaceMethod(MobileTerminalView.self, selector, replacement, encoding)
         class_replaceMethod(MobileTerminalView.self, typeSelector, typeReplacement, typeEncoding)
@@ -272,7 +282,9 @@ struct MobileScreenshotTests {
                 try await Task.sleep(for: .milliseconds(50))
             }
             try #require(terminal.isFirstResponder)
-            try #require(terminal.textInputMode?.primaryLanguage?.hasPrefix("en") == true)
+            let keyboardLanguage = try #require(terminal.textInputMode?.primaryLanguage)
+            try #require(keyboardLanguage != "emoji")
+            try #require(terminal.keyboardType == .asciiCapable)
             try #require(accessory.window != nil)
             // An accessory-only hardware keyboard bar ends at the bottom safe area.
             // A software keyboard has its key rows below the accessory instead.
@@ -345,18 +357,26 @@ struct MobileScreenshotTests {
     private func screenshotBackButton(language: String) -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
             Button(action: {}) {
-                Label(text(language, "Workspaces", "工作区", "工作區", "ワークスペース"), systemImage: "chevron.left")
+                Label(
+                    text(
+                        language, "Workspaces", "工作区", "工作區", "ワークスペース",
+                        "작업 공간", "Arbeitsbereiche", "Espaces de travail"),
+                    systemImage: "chevron.left")
             }
         }
     }
 
     private func text(
-        _ language: String, _ english: String, _ simplified: String, _ traditional: String, _ japanese: String
+        _ language: String, _ english: String, _ simplified: String, _ traditional: String, _ japanese: String,
+        _ korean: String, _ german: String, _ french: String
     ) -> String {
         switch language {
         case "zh-Hans": simplified
         case "zh-Hant": traditional
         case "ja": japanese
+        case "ko": korean
+        case "de": german
+        case "fr": french
         default: english
         }
     }

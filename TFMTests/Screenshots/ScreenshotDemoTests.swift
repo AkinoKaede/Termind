@@ -100,7 +100,9 @@ import TermindPresentation
 
         @Test
         func vaultCaptureStatusesMatchItsTwoWorkspacesInEveryLanguage() throws {
-            for language in [AppLanguage.english, .japanese, .simplifiedChinese, .traditionalChinese] {
+            for language in [
+                AppLanguage.english, .japanese, .korean, .german, .french, .simplifiedChinese, .traditionalChinese,
+            ] {
                 let configuration = ScreenshotDemoConfiguration(scene: .hosts, language: language)
                 let hosts = configuration.makeHostLibrary()
                 let window = configuration.makeWindow(hosts: hosts)
