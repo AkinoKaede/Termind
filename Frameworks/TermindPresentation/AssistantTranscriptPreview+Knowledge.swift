@@ -11,6 +11,12 @@
             case .simplifiedChinese: prose = "部署之前先检查状态，并保留可复用的验证步骤。"
             case .traditionalChinese: prose = "部署之前先檢查狀態，並保留可重用的驗證步驟。"
             case .japanese: prose = "デプロイ前に状態を確認し、再利用できる検証手順を残してください。"
+            case .korean: prose = "배포 전에 상태를 확인하고 재사용할 수 있는 검증 절차를 남겨 주세요."
+            case .german:
+                prose =
+                    "Prüfen Sie vor der Bereitstellung den Status und bewahren Sie wiederverwendbare Prüfschritte auf."
+            case .french:
+                prose = "Vérifiez l’état avant le déploiement et conservez des étapes de vérification réutilisables."
             case .english, .system: prose = "Check status before deploying and retain reusable verification steps."
             }
             let body = Array(repeating: prose, count: 80).joined(separator: "\n")

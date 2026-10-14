@@ -3431,7 +3431,7 @@ extension ConversationModel {
             case .simplifiedChinese: zhHans
             case .traditionalChinese: zhHant
             case .japanese: ja
-            case .system, .english: en
+            case .system, .english, .german, .french, .korean: en
             }
         }
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)

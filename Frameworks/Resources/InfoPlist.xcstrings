@@ -5,13 +5,31 @@
       "comment" : "Bundle display name",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Termind"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
         "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
+        "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind"
@@ -35,13 +53,31 @@
       "comment" : "Bundle name",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Termind"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
         "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind"
+          }
+        },
+        "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind"
@@ -65,16 +101,34 @@
       "comment" : "Privacy - Camera Usage Description",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind verwendet die Kamera, um Fotos an Ihren Chat anzuhängen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind uses the camera to attach photos to your chat."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind utilise l’appareil photo pour joindre des photos à votre chat."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "チャットに写真を添付するために、Termindがカメラを使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind는 채팅에 사진을 첨부하기 위해 카메라를 사용합니다."
           }
         },
         "zh-Hans" : {
@@ -94,16 +148,34 @@
     "NSFaceIDUsageDescription" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentifizieren Sie sich, um Ihre SSH-Schlüssel zu verwenden."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Authenticate to use your SSH keys."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentifiez-vous pour utiliser vos clés SSH."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH鍵を使用するために認証します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH 키를 사용하려면 인증하세요."
           }
         },
         "zh-Hans" : {
@@ -123,16 +195,34 @@
     "NSLocalNetworkUsageDescription" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind verbindet sich mit Servern und Modellanbietern in Ihrem lokalen Netzwerk."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind connects to servers and model providers on your local network."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind se connecte aux serveurs et aux fournisseurs de modèles sur votre réseau local."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termindがローカルネットワーク上のサーバやモデルプロバイダに接続します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind는 로컬 네트워크의 서버와 모델 제공업체에 연결합니다."
           }
         },
         "zh-Hans" : {
@@ -153,16 +243,34 @@
       "comment" : "Privacy - Microphone Usage Description",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind verwendet das Mikrofon, um Sprache in Ihren Chatentwurf zu transkribieren."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Termind uses the microphone to transcribe speech into your chat draft."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind utilise le microphone pour transcrire vos paroles dans votre brouillon de chat."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "音声をチャットの下書きに文字起こしするために、Termindがマイクを使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind는 음성을 채팅 초안의 텍스트로 변환하기 위해 마이크를 사용합니다."
           }
         },
         "zh-Hans" : {
@@ -183,16 +291,34 @@
       "comment" : "Privacy - Speech Recognition Usage Description",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind verwendet die Apple-Spracherkennung, um Ihre Aufnahme in Text umzuwandeln. Je nach Systemeinstellungen und Sprachunterstützung verarbeitet Apple die Audiodaten möglicherweise online."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind utilise la reconnaissance vocale Apple pour convertir votre enregistrement en texte. Selon les réglages du système et les langues prises en charge, Apple peut traiter l’audio en ligne."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "TermindはAppleの音声認識を使用して録音をテキストに変換します。システム設定や言語の対応状況によっては、Appleが音声をオンラインで処理する場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind는 Apple 음성 인식을 사용하여 녹음을 텍스트로 변환합니다. 시스템 설정 및 언어 지원에 따라 Apple이 오디오를 온라인으로 처리할 수 있습니다."
           }
         },
         "zh-Hans" : {
@@ -213,16 +339,34 @@
       "comment" : "Title of the Home Screen quick action that opens the connection picker.",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinden"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connect"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "接続"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결"
           }
         },
         "zh-Hans" : {
@@ -242,10 +386,28 @@
     "Termind SFTP Items" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind-SFTP-Objekte"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments SFTP Termind"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Termind SFTP項目"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind SFTP 항목"
           }
         },
         "zh-Hans" : {

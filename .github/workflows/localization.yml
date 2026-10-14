@@ -5,8 +5,8 @@ on:
     paths:
       - "Frameworks/Resources/*.xcstrings"
       - "Scripts/normalize-string-catalogs.py"
-      - "Scripts/check-cjk-localization.py"
-      - "Scripts/Tests/test_cjk_localization.py"
+      - "Scripts/check-localization.py"
+      - "Scripts/Tests/test_localization.py"
       - "Scripts/Tests/test_normalize_string_catalogs.py"
       - ".github/workflows/localization.yml"
   push:
@@ -14,8 +14,8 @@ on:
     paths:
       - "Frameworks/Resources/*.xcstrings"
       - "Scripts/normalize-string-catalogs.py"
-      - "Scripts/check-cjk-localization.py"
-      - "Scripts/Tests/test_cjk_localization.py"
+      - "Scripts/check-localization.py"
+      - "Scripts/Tests/test_localization.py"
       - "Scripts/Tests/test_normalize_string_catalogs.py"
       - ".github/workflows/localization.yml"
 
@@ -31,6 +31,6 @@ jobs:
       - name: Test catalog normalization
         run: python3 -m unittest discover -s Scripts/Tests -p 'test_normalize_string_catalogs.py'
       - name: Test localization checks
-        run: python3 -m unittest discover -s Scripts/Tests -p 'test_cjk_localization.py'
-      - name: Check catalog stability and CJK translations
-        run: python3 Scripts/check-cjk-localization.py
+        run: python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'
+      - name: Check catalog stability and translations
+        run: python3 Scripts/check-localization.py

@@ -79,6 +79,9 @@ import TermindApplication
             switch languageValue {
             case "en": language = .english
             case "ja": language = .japanese
+            case "ko": language = .korean
+            case "de": language = .german
+            case "fr": language = .french
             case "zh-Hans": language = .simplifiedChinese
             case "zh-Hant": language = .traditionalChinese
             default: throw ParseError.unknownLanguage(languageValue)
@@ -283,7 +286,7 @@ import TermindApplication
             case .simplifiedChinese: zhHans
             case .traditionalChinese: zhHant
             case .japanese: ja
-            case .system, .english: en
+            case .system, .english, .german, .french, .korean: en
             }
         }
     }

@@ -83,7 +83,7 @@ nonisolated public enum AgentToolPresentation {
             let action = localizedActionVerb(operation.action, locale: locale)
             let title =
                 usesLocalizedActionTemplates(locale)
-                ? localized("Approval tool action: \(action) \(operation.activity)", locale: locale)
+                ? uppercaseFirst(localized("Approval tool action: \(action) \(operation.activity)", locale: locale))
                 : uppercaseFirst(actionName(operation.action, form: .infinitive, locale: locale)) + " "
                     + operation.activity
             return AgentKnowledgeToolPresentation.title(title)
@@ -101,7 +101,7 @@ nonisolated public enum AgentToolPresentation {
         let action = localizedActionVerb(kind, locale: locale)
         if usesLocalizedActionTemplates(locale) {
             guard let hostName, !hostName.isEmpty else {
-                return localized("Approval tool action: \(action) \(activity)", locale: locale)
+                return uppercaseFirst(localized("Approval tool action: \(action) \(activity)", locale: locale))
             }
             return localized(
                 "Approval tool action target: \(action) \(activity) \(hostName)",
@@ -291,6 +291,12 @@ nonisolated public enum AgentToolPresentation {
         }
         if locale.language.languageCode?.identifier == "zh" {
             return clauses.joined(separator: "，")
+        }
+        if locale.language.languageCode?.identifier == "de" {
+            return clauses.joined(separator: "; ")
+        }
+        if locale.language.languageCode?.identifier == "fr" {
+            return clauses.joined(separator: "\u{202F}; ")
         }
         return clauses.enumerated()
             .map { index, clause in index == 0 ? clause : lowercaseFirst(clause) }
@@ -1066,7 +1072,7 @@ nonisolated public enum AgentToolPresentation {
             let action = localizedActionVerb(kind, locale: locale)
             let displayedActivity =
                 isArgumentValue
-                ? (locale.language.languageCode?.identifier == "ja" ? "「\(activity)」" : "“\(activity)”")
+                ? quotedActivity(activity, locale: locale)
                 : activity
             let rendered: String =
                 switch state {
@@ -1294,7 +1300,17 @@ nonisolated public enum AgentToolPresentation {
     }
 
     private static func usesLocalizedActionTemplates(_ locale: Locale) -> Bool {
-        ["zh", "ja"].contains(locale.language.languageCode?.identifier ?? "")
+        ["de", "fr", "zh", "ja", "ko"].contains(locale.language.languageCode?.identifier ?? "")
+    }
+
+    private static func quotedActivity(_ activity: String, locale: Locale) -> String {
+        switch locale.language.languageCode?.identifier {
+        case "de": "„\(activity)“"
+        case "fr": "«\u{00A0}\(activity)\u{00A0}»"
+        case "ja": "「\(activity)」"
+        case "ko": "‘\(activity)’"
+        default: "“\(activity)”"
+        }
     }
 
     private static func activityName(

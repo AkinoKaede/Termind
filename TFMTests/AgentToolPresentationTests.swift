@@ -995,6 +995,7 @@ struct AgentToolPresentationTests {
         let locales: [(String, String?, String?)] = [
             ("en", nil, nil),
             ("ja", "「", "」"),
+            ("ko", "‘", "’"),
             ("zh-Hans", "“", "”"),
             ("zh-Hant", "「", "」"),
         ]
@@ -1186,6 +1187,9 @@ struct AgentToolPresentationTests {
         #expect(
             AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: "ja"))
                 == "2個のファイルの書き込みが完了しました。ファイルの書き込みに失敗しました")
+        #expect(
+            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: "ko"))
+                == "파일 2개 쓰기 완료, 파일 쓰기 실패")
     }
 
     @Test
@@ -1206,6 +1210,101 @@ struct AgentToolPresentationTests {
         let presentation = AgentToolPresentation.approval(
             for: request, hostName: "web-01", locale: Locale(identifier: "ja-JP"))
         #expect(presentation.title == "web-01でコマンドを実行")
+    }
+
+    @Test(arguments: [
+        ("de-DE", "Auf web-01: einen Befehl ausführen"),
+        ("fr-CA", "Sur web-01\u{00A0}: exécuter une commande"),
+    ])
+    func europeanApprovalLocalizesTheActionWithoutExposingCommandArguments(language: String, expected: String) {
+        let request = AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(id: "approval", name: "ssh_exec", arguments: .object(["command": .string("pwd")]))
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "ssh_exec", summary: "Execute over SSH", inputSchema: .object([:]), target: .host,
+                approvalPolicy: .ask,
+                presentation: .init(
+                    symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .sshCommand),
+                    actionKind: .run)),
+            userIntent: "Inspect"
+        )
+        let presentation = AgentToolPresentation.approval(
+            for: request, hostName: "web-01", locale: Locale(identifier: language))
+        #expect(presentation.title == expected)
+        #expect(!presentation.title.contains("pwd"))
+    }
+
+    @Test(arguments: [
+        (
+            "de", "Abgeschlossen: „/tmp/report.txt“ lesen (auf web-01)",
+            "Fehlgeschlagen: „/tmp/report.txt“ lesen (auf web-01)"
+        ),
+        (
+            "fr", "Terminé\u{00A0}: lire «\u{00A0}/tmp/report.txt\u{00A0}» (sur web-01)",
+            "Échec\u{00A0}: lire «\u{00A0}/tmp/report.txt\u{00A0}» (sur web-01)"
+        ),
+    ])
+    func europeanToolLifecycleUsesLocalizedTemplatesAndQuotationMarks(
+        language: String, completed: String, failed: String
+    ) {
+        var card = makeCard(
+            name: "sftp_read", target: .host, arguments: ["path": .string("/tmp/report.txt")],
+            presentation: .init(
+                symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile), actionKind: .read))
+        let locale = Locale(identifier: language)
+        card.state = .completed
+        #expect(AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale) == completed)
+        card.state = .failed
+        #expect(AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale) == failed)
+    }
+
+    @Test(arguments: [
+        (AgentToolCard.State.proposed, "준비 중"),
+        (.reviewing, "준비 중"),
+        (.waitingForApproval, "대기 중"),
+        (.waitingForUser, "대기 중"),
+        (.running, "중"),
+        (.completed, "완료"),
+        (.denied, "거부됨"),
+        (.failed, "실패"),
+        (.interrupted, "중단됨"),
+    ])
+    func koreanToolLifecyclePlacesTheHostBeforeTheObjectAndAction(
+        state: AgentToolCard.State, suffix: String
+    ) {
+        var card = makeCard(
+            name: "sftp_read", target: .host, arguments: ["path": .string("/tmp/report.txt")],
+            presentation: .init(
+                symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile), actionKind: .read))
+        card.state = state
+        let locale = Locale(identifier: "ko-KR")
+        #expect(
+            AgentToolPresentation.summary(for: card, hostName: "web-01", locale: locale)
+                == "web-01에서 ‘/tmp/report.txt’ 읽기 \(suffix)")
+        #expect(
+            AgentToolPresentation.summary(for: card, locale: locale) == "‘/tmp/report.txt’ 읽기 \(suffix)")
+    }
+
+    @Test
+    func koreanApprovalUsesTheSemanticObjectRatherThanAnEnglishVerbPrefix() {
+        let request = AgentApprovalRequest(
+            invocation: AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: "approval", name: "sftp_read", arguments: .object(["path": .string("/tmp/report.txt")]))
+            ),
+            descriptor: AgentToolDescriptor(
+                name: "sftp_read", summary: "Read a remote file", inputSchema: .object([:]), target: .host,
+                approvalPolicy: .ask,
+                presentation: .init(
+                    symbol: "doc", activity: .semanticArgument(key: "path", fallback: .remoteFile), actionKind: .read)),
+            userIntent: "Inspect"
+        )
+        let presentation = AgentToolPresentation.approval(
+            for: request, hostName: "web-01", locale: Locale(identifier: "ko"))
+        #expect(presentation.title == "web-01에서 파일 읽기")
     }
 
     @Test

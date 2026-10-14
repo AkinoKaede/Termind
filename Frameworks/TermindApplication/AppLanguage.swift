@@ -27,7 +27,10 @@ public nonisolated enum AppLocalization {
             switch locale.language.languageCode?.identifier {
             case "zh": locale.language.script?.identifier == "Hant" ? "zh-Hant" : "zh-Hans"
             case "en": "en"
+            case "de": "de"
+            case "fr": "fr"
             case "ja": "ja"
+            case "ko": "ko"
             default: nil
             }
         guard let localization,
@@ -41,7 +44,10 @@ public nonisolated enum AppLocalization {
 public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
+    case german = "de"
+    case french = "fr"
     case japanese = "ja"
+    case korean = "ko"
     case simplifiedChinese = "zh-Hans"
     case traditionalChinese = "zh-Hant"
 
@@ -51,7 +57,10 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: String(localized: "Follow System")
         case .english: "English"
+        case .german: "Deutsch"
+        case .french: "Français"
         case .japanese: "日本語"
+        case .korean: "한국어"
         case .simplifiedChinese: "简体中文"
         case .traditionalChinese: "繁體中文"
         }
@@ -90,7 +99,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch language {
         case .system:
             defaults.removeObject(forKey: "AppleLanguages")
-        case .english, .japanese, .simplifiedChinese, .traditionalChinese:
+        case .english, .german, .french, .japanese, .korean, .simplifiedChinese, .traditionalChinese:
             defaults.set([language.rawValue], forKey: "AppleLanguages")
         }
     }
@@ -99,7 +108,7 @@ public nonisolated enum AppLanguage: String, CaseIterable, Identifiable, Sendabl
         switch self {
         case .system: .autoupdatingCurrent
         case .english: Locale(identifier: "en")
-        case .japanese, .simplifiedChinese, .traditionalChinese: Locale(identifier: rawValue)
+        case .german, .french, .japanese, .korean, .simplifiedChinese, .traditionalChinese: Locale(identifier: rawValue)
         }
     }
 }

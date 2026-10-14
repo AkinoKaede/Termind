@@ -24,6 +24,12 @@
                     "**檢查上游服務。**\n先讀取 `nginx` 日誌，再核對監聽連接埠；暫不變更設定。"
                 case .japanese:
                     "**上流サービスを確認します。**\nまず`nginx`のログを読み、待ち受けポートを確認します。設定はまだ変更しません。"
+                case .korean:
+                    "**업스트림 서비스를 확인합니다.**\n먼저 `nginx` 로그를 읽고 수신 대기 포트를 확인합니다. 설정은 아직 변경하지 않습니다."
+                case .german:
+                    "**Vorgelagerten Dienst prüfen.**\nZuerst die `nginx`-Protokolle lesen und dann die lauschenden Ports prüfen, ohne die Konfiguration zu ändern."
+                case .french:
+                    "**Inspecter le service en amont.**\nLire les journaux `nginx`, puis vérifier les ports en écoute avant de modifier la configuration."
                 case .system, .english:
                     "**Inspect the upstream service.**\nRead the `nginx` logs, then check listening ports before changing configuration."
                 }
@@ -44,6 +50,9 @@
                     case .simplifiedChinese: "连接上游服务失败：连接被拒绝。"
                     case .traditionalChinese: "連線至上游服務失敗：連線遭拒。"
                     case .japanese: "上流サービスに接続できませんでした：接続が拒否されました。"
+                    case .korean: "업스트림 서비스에 연결할 수 없습니다. 연결이 거부되었습니다."
+                    case .german: "Verbindung zum vorgelagerten Dienst fehlgeschlagen: Verbindung abgelehnt."
+                    case .french: "Échec de la connexion au service en amont : connexion refusée."
                     case .system, .english: "connect() failed: connection refused"
                     }
                 cards[1].result = AgentToolResult(

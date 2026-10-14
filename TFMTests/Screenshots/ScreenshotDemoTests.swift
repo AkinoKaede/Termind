@@ -17,6 +17,9 @@ import TermindPresentation
             let languages: [(argument: String, language: AppLanguage)] = [
                 ("en", .english),
                 ("ja", .japanese),
+                ("ko", .korean),
+                ("de", .german),
+                ("fr", .french),
                 ("zh-Hans", .simplifiedChinese),
                 ("zh-Hant", .traditionalChinese),
             ]
@@ -65,9 +68,9 @@ import TermindPresentation
                     "Termind", "--termind-demo=vault:en",
                 ])
             }
-            #expect(throws: ScreenshotDemoConfiguration.ParseError.unknownLanguage("fr")) {
+            #expect(throws: ScreenshotDemoConfiguration.ParseError.unknownLanguage("unsupported")) {
                 try ScreenshotDemoConfiguration.parse(arguments: [
-                    "Termind", "--termind-demo=hosts:fr",
+                    "Termind", "--termind-demo=hosts:unsupported",
                 ])
             }
             #expect(throws: ScreenshotDemoConfiguration.ParseError.unknownLanguage("zh")) {
