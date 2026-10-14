@@ -2899,30 +2899,30 @@
 			repositoryURL = "https://github.com/AkinoKaede/libtailscale-spm.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 1.0.2;
+				minimumVersion = 1.0.3;
 			};
 		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
 			requirement = {
-				kind = exactVersion;
-				version = 7.11.1;
+				kind = upToNextMinorVersion;
+				minimumVersion = 7.11.1;
 			};
 		};
 		C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
 			requirement = {
-				kind = exactVersion;
-				version = 5.92.0;
+				kind = upToNextMinorVersion;
+				minimumVersion = 5.95.0;
 			};
 		};
 		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
 			requirement = {
-				kind = upToNextMajorVersion;
+				kind = upToNextMinorVersion;
 				minimumVersion = 5.9.0;
 			};
 		};
@@ -2930,39 +2930,39 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
-				kind = exactVersion;
-				version = 12.19.2;
+				kind = upToNextMinorVersion;
+				minimumVersion = 13.0.1;
 			};
 		};
 		LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.15.1;
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.16.1;
 			};
 		};
 		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AkinoKaede/libssh2-spm.git";
 			requirement = {
-				kind = exactVersion;
-				version = "2.0.3-termind-4";
+				kind = upToNextMinorVersion;
+				minimumVersion = "2.0.3-termind-4";
 			};
 		};
 		TRMD00000000000000100022 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/libghostty-spm.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.2026100501;
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.2.2026101301;
 			};
 		};
 		TRMD00000000000000100023 /* XCRemoteSwiftPackageReference "openssl-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/openssl-spm.git";
 			requirement = {
-				kind = upToNextMajorVersion;
+				kind = upToNextMinorVersion;
 				minimumVersion = 3.6.2;
 			};
 		};
@@ -2970,7 +2970,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
 			requirement = {
-				kind = upToNextMajorVersion;
+				kind = upToNextMinorVersion;
 				minimumVersion = 0.9.20;
 			};
 		};
@@ -2978,23 +2978,23 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/MarkdownView";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.6.7;
+				kind = upToNextMinorVersion;
+				minimumVersion = 4.8.3;
 			};
 		};
 		TRMD00000000000000100026 /* XCRemoteSwiftPackageReference "ListViewKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/ListViewKit";
 			requirement = {
-				kind = exactVersion;
-				version = 4.5.0;
+				kind = upToNextMinorVersion;
+				minimumVersion = 4.6.0;
 			};
 		};
 		TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/GlyphixTextFx.git";
 			requirement = {
-				kind = upToNextMajorVersion;
+				kind = upToNextMinorVersion;
 				minimumVersion = 2.3.6;
 			};
 		};
@@ -3002,7 +3002,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
 			requirement = {
-				kind = upToNextMajorVersion;
+				kind = upToNextMinorVersion;
 				minimumVersion = 0.19.2;
 			};
 		};
