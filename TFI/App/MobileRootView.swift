@@ -118,7 +118,6 @@ struct MobileRootView: View {
                                 AppStrings.Workspace.unavailableWorkspaceExplanation
                         ) : app.error ?? "")
             }
-            .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))
             .environment(\.mobileLayout, MobileLayout(sizeClass: sizeClass))
     }
 
@@ -146,7 +145,6 @@ struct MobileRootView: View {
                         switch route {
                         case .history:
                             MobileConnectionHistoryView(app: app, open: scene.open)
-                                .mobileReviewPage("vault.history", scene: scene)
                         }
                     }
             }

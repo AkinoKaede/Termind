@@ -287,7 +287,7 @@ struct MobileVaultView: View {
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
-    let reviewScene: MobileSceneModel?
+    let scene: MobileSceneModel?
     let activateHost: (Host.ID) -> Void
     let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
     let executeSnippet: (Snippet, [Host.ID]) -> Void
@@ -298,10 +298,11 @@ struct MobileVaultView: View {
     @State private var deletingHost: Host?
     @State private var groupEditorRequest: GroupEditorRequest?
     @State private var deletingGroup: HostGroup?
+    @State private var reviewVisit = AppReviewInvitationVisit()
 
     init(
         app: MobileAppModel,
-        reviewScene: MobileSceneModel? = nil,
+        scene: MobileSceneModel? = nil,
         editingHost: Binding<Host?>,
         activateHost: @escaping (Host.ID) -> Void,
         open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
@@ -309,7 +310,7 @@ struct MobileVaultView: View {
         openMetrics: (() -> Void)? = nil
     ) {
         self.app = app
-        self.reviewScene = reviewScene
+        self.scene = scene
         _editingHost = editingHost
         self.activateHost = activateHost
         self.open = open
@@ -458,6 +459,11 @@ struct MobileVaultView: View {
         MobileCardPage {
             if query.isEmpty {
                 vaultLinks
+                if reviewVisit.isVisible(
+                    controller: app.appReview, hasHosts: !app.library.hosts.isEmpty, isFiltering: false
+                ) {
+                    AppReviewInvitationView(controller: app.appReview)
+                }
                 if app.library.hosts.isEmpty && app.library.groups.isEmpty {
                     ContentUnavailableView(
                         AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
@@ -480,6 +486,9 @@ struct MobileVaultView: View {
             }
         }
         .searchable(text: $query.singleLineText)
+        .onAppear {
+            reviewVisit.enter(controller: app.appReview, hasHosts: !app.library.hosts.isEmpty)
+        }
         .navigationTitle(AppStrings.Navigation.vault.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -505,7 +514,6 @@ struct MobileVaultView: View {
                 group: request.groupID.flatMap(app.library.group),
                 parentID: request.parentID)
         }
-        .mobileReviewPage("vault.hosts", scene: reviewScene)
     }
 
     @ViewBuilder
@@ -565,27 +573,22 @@ struct MobileVaultView: View {
         MobileVaultLinkGroup {
             vaultLink(AppStrings.Navigation.keychain, symbol: "key") {
                 MobileCredentialsView(app: app)
-                    .mobileReviewPage("vault.keychain", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink(AppStrings.Navigation.portForwarding, symbol: "arrow.left.arrow.right") {
-                MobileForwardingView(app: app, reviewScene: reviewScene)
-                    .mobileReviewPage("vault.portForwarding", scene: reviewScene)
+                MobileForwardingView(app: app)
             }
             MobileVaultLinkDivider()
             vaultLink(AppStrings.Navigation.snippets, symbol: "curlybraces") {
                 MobileSnippetsView(app: app, execute: executeSnippet)
-                    .mobileReviewPage("vault.snippets", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink(AppStrings.Navigation.knownHosts, symbol: "touchid") {
                 MobileKnownHostsView(app: app)
-                    .mobileReviewPage("vault.knownHosts", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink(AppStrings.Common.history, symbol: "clock.arrow.circlepath") {
                 MobileConnectionHistoryView(app: app, open: open)
-                    .mobileReviewPage("vault.history", scene: reviewScene)
             }
         }
     }
@@ -633,23 +636,18 @@ struct MobileVaultView: View {
         switch destination {
         case .keychain(let useQuery):
             MobileCredentialsView(app: app, initialQuery: useQuery ? query : "")
-                .mobileReviewPage("vault.keychain", scene: reviewScene)
         case .portForwarding(let useQuery):
-            MobileForwardingView(app: app, initialQuery: useQuery ? query : "", reviewScene: reviewScene)
-                .mobileReviewPage("vault.portForwarding", scene: reviewScene)
+            MobileForwardingView(app: app, initialQuery: useQuery ? query : "")
         case .snippets(let useQuery):
             MobileSnippetsView(
                 app: app, initialQuery: useQuery ? query : "", execute: executeSnippet
             )
-            .mobileReviewPage("vault.snippets", scene: reviewScene)
         case .knownHosts(let useQuery):
             MobileKnownHostsView(app: app, initialQuery: useQuery ? query : "")
-                .mobileReviewPage("vault.knownHosts", scene: reviewScene)
         case .history(let useQuery):
             MobileConnectionHistoryView(
                 app: app, initialQuery: useQuery ? query : "", open: open
             )
-            .mobileReviewPage("vault.history", scene: reviewScene)
         case .metrics:
             EmptyView()
         }
@@ -772,7 +770,7 @@ struct MobileVaultView: View {
                 HStack(alignment: .top, spacing: 12) {
                     HostConnectionIcon(
                         host: host,
-                        status: reviewScene?.workspaceActivatedByHostRow(for: host).flatMap {
+                        status: scene?.workspaceActivatedByHostRow(for: host).flatMap {
                             MobileWorkspaceConnectionIndicator.resolve(
                                 connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
                             )?.status

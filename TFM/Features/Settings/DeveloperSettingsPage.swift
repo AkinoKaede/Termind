@@ -6,6 +6,7 @@ struct DeveloperSettingsPage: View {
 
     var body: some View {
         Form {
+            AppReviewDeveloperSection(controller: app.appReview)
             Section {
                 ForEach(OnboardingStep.allCases) { step in
                     onboardingRow(step)

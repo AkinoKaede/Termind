@@ -3,303 +3,171 @@ import Testing
 
 @testable import TermindApplication
 
-@Suite
-@MainActor
+@Suite @MainActor
 struct AppReviewControllerTests {
     @Test
-    func firstUseRequiresSevenElapsedDaysAndThreeDistinctActiveDates() throws {
+    func startsAtFirstLaunchAndRequiresSevenElapsedDaysAndAHost() throws {
         let h = try Harness()
         defer { h.clear() }
-        h.update(.reviewPage("vault.hosts"))
-        h.advance(86_400)
-        h.update(.reviewPage("vault.hosts"))
-        h.update(.reviewPage("vault.hosts"))
-        #expect(h.activeDays == 2)
-        h.date = h.firstDate.addingTimeInterval(7 * 86_400 - 301)
-        h.work(for: 300)
-        h.finish()
-        #expect(h.requests == 0)
-        #expect(h.activeDays == 3)
-        h.date = h.firstDate.addingTimeInterval(7 * 86_400)
-        h.work(for: 0)
-        h.finish()
-        #expect(h.requests == 1)
+        let controller = h.makeController()
+        #expect(h.defaults.object(forKey: SettingsKey.reviewFirstUse) as? Date == h.date)
+        h.date.addTimeInterval(7 * 86_400 - 1)
+        #expect(!controller.isEligible(hasHosts: true))
+        h.date.addTimeInterval(1)
+        #expect(controller.isEligible(hasHosts: true))
+        #expect(!controller.isEligible(hasHosts: false))
     }
 
     @Test
-    func calendarAgeAloneDoesNotReplaceActiveDays() throws {
+    func reopeningPreservesFirstUseAndIgnoresLegacyAttemptBudgets() throws {
         let h = try Harness()
         defer { h.clear() }
-        h.update(.reviewPage("vault.hosts"))
-        h.advance(8 * 86_400)
-        h.work(for: 300)
-        h.finish()
-        #expect(h.activeDays == 2)
-        #expect(h.requests == 0)
+        _ = h.makeController()
+        let firstUse = h.date
+        h.date.addTimeInterval(8 * 86_400)
+        h.defaults.set(h.date, forKey: "app.review.lastAttempt")
+        h.defaults.set(["1.0"], forKey: "app.review.requestedVersions")
+        h.defaults.set(["one-day"], forKey: "app.review.activeDays")
+        let controller = h.makeController()
+        #expect(controller.isEligible(hasHosts: true))
+        #expect(h.defaults.object(forKey: SettingsKey.reviewFirstUse) as? Date == firstUse)
+    }
+
+    @Test(arguments: [false, true])
+    func bothResponsesSurviveRelaunchAndDoNotClaimACompletedRating(opened: Bool) throws {
+        let h = try Harness()
+        defer { h.clear() }
+        let controller = h.makeController()
+        h.date.addTimeInterval(8 * 86_400)
+        if opened { controller.openReview { _, completion in completion(true) } } else { controller.decline() }
+        h.date.addTimeInterval(366 * 86_400)
+        let restored = h.makeController()
+        #expect(restored.response == (opened ? .openedReview : .declined))
+        #expect(!restored.isEligible(hasHosts: true))
     }
 
     @Test
-    func fiveMinutesOnlyCountsForegroundWorkspaceTime() throws {
+    func aRejectedURLOpenDoesNotConsumeTheInvitation() throws {
         let h = try Harness()
         defer { h.clear() }
-        h.mature()
-        h.work(for: 299)
-        h.update(.workspace(h.workspaceID), active: false)
-        h.advance(3_600)
-        h.update(.workspace(h.workspaceID))
-        h.finish()
-        #expect(h.requests == 0)
-        h.work(for: 1)
-        h.finish()
-        #expect(h.requests == 1)
+        let controller = h.makeController()
+        h.date.addTimeInterval(8 * 86_400)
+        controller.openReview { _, completion in completion(false) }
+        #expect(controller.response == nil)
+        #expect(controller.isEligible(hasHosts: true))
+        #expect(h.defaults.object(forKey: SettingsKey.reviewInvitationResponse) == nil)
     }
 
     @Test
-    func eligibleReturnWaitsThreeSecondsAndRecordsBeforeCallingStoreKit() throws {
+    func timeAndNewHostsDoNotInsertAnInvitationUntilTheNextVisit() throws {
         let h = try Harness()
         defer { h.clear() }
-        h.mature()
-        h.work(for: 300)
-        h.update(.reviewPage("settings"))
-        h.advance(2.999)
-        h.request()
-        #expect(h.requests == 0)
-        h.advance(0.001)
-        h.controller.requestIfReady(surfaceID: h.surfaceID) {
-            #expect(h.defaults.stringArray(forKey: SettingsKey.reviewRequestedVersions) == ["1.0"])
-            #expect(h.defaults.object(forKey: SettingsKey.reviewLastAttempt) as? Date == h.date)
-            h.requests += 1
+        let controller = h.makeController()
+        var visit = AppReviewInvitationVisit()
+        visit.enter(controller: controller, hasHosts: true)
+        h.date.addTimeInterval(8 * 86_400)
+        #expect(!visit.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        visit.enter(controller: controller, hasHosts: false)
+        #expect(!visit.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        visit.enter(controller: controller, hasHosts: true)
+        #expect(visit.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+    }
+
+    @Test(arguments: [false, true])
+    func allWindowsHideImmediatelyAfterEitherResponse(opened: Bool) throws {
+        let h = try Harness()
+        defer { h.clear() }
+        let controller = h.makeController()
+        h.date.addTimeInterval(8 * 86_400)
+        var first = AppReviewInvitationVisit()
+        var second = AppReviewInvitationVisit()
+        first.enter(controller: controller, hasHosts: true)
+        second.enter(controller: controller, hasHosts: true)
+        #expect(first.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        #expect(second.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        if opened { controller.openReview { _, completion in completion(true) } } else { controller.decline() }
+        #expect(!first.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        #expect(!second.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+    }
+
+    @Test
+    func filteringAndDeletingTheLastHostHideWithoutConsumingTheInvitation() throws {
+        let h = try Harness()
+        defer { h.clear() }
+        let controller = h.makeController()
+        h.date.addTimeInterval(8 * 86_400)
+        var visit = AppReviewInvitationVisit()
+        visit.enter(controller: controller, hasHosts: true)
+        #expect(!visit.isVisible(controller: controller, hasHosts: true, isFiltering: true))
+        #expect(!visit.isVisible(controller: controller, hasHosts: false, isFiltering: false))
+        #expect(visit.isVisible(controller: controller, hasHosts: true, isFiltering: false))
+        #expect(controller.response == nil)
+    }
+
+    @Test(arguments: [false, true])
+    func developerSwitchBypassesGatesAndNeverChangesTheRealResponse(opened: Bool) throws {
+        let h = try Harness()
+        defer { h.clear() }
+        let controller = h.makeController()
+        controller.decline()
+        var visit = AppReviewInvitationVisit()
+        visit.enter(controller: controller, hasHosts: false)
+        controller.setPreviewEnabled(true)
+        #expect(visit.isVisible(controller: controller, hasHosts: false, isFiltering: false))
+        #expect(!visit.isVisible(controller: controller, hasHosts: false, isFiltering: true))
+        if opened {
+            controller.openReview { _, _ in Issue.record("Developer preview must not open external URLs.") }
+        } else {
+            controller.decline()
         }
-        h.request()
-        #expect(h.requests == 1)
-    }
-
-    enum Cancellation: CaseIterable {
-        case interaction, navigation, blocked, focus, removal, anotherSurface
-    }
-
-    @Test(arguments: Cancellation.allCases)
-    func cancelledInvitationsWaitForAnotherWorkspaceReturn(_ reason: Cancellation) throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.mature()
-        h.work(for: 300)
-        h.update(.reviewPage("settings"))
-        switch reason {
-        case .interaction: h.controller.recordInteraction(surfaceID: h.surfaceID)
-        case .navigation: h.update(.reviewPage("settings.app"))
-        case .blocked: h.update(.reviewPage("settings"), blocked: true)
-        case .focus: h.update(.reviewPage("settings"), active: false)
-        case .removal: h.controller.removeSurface(h.surfaceID)
-        case .anotherSurface:
-            h.controller.update(
-                surfaceID: UUID(), context: .init(location: .reviewPage("settings"), isActive: true)
-            )
-        }
-        h.advance(10)
-        h.update(.reviewPage("settings"))
-        h.request()
-        #expect(h.requests == 0)
-        h.work(for: 0)
-        h.finish()
-        #expect(h.requests == 1)
+        #expect(!visit.isVisible(controller: controller, hasHosts: false, isFiltering: false))
+        #expect(controller.response == .declined)
+        #expect(h.makeController().response == .declined)
+        #expect(!h.makeController().isPreviewEnabled)
+        controller.setPreviewEnabled(false)
+        controller.setPreviewEnabled(true)
+        #expect(visit.isVisible(controller: controller, hasHosts: false, isFiltering: false))
+        controller.setPreviewEnabled(false)
+        #expect(!visit.isVisible(controller: controller, hasHosts: false, isFiltering: false))
     }
 
     @Test
-    func blockedReturnAndEditorExitDoNotArmRequests() throws {
+    func disabledControllersLeaveDefaultsUntouched() throws {
         let h = try Harness()
         defer { h.clear() }
-        h.mature()
-        h.work(for: 300)
-        h.update(.reviewPage("settings"), blocked: true)
-        h.advance(10)
-        h.update(.reviewPage("settings"))
-        h.request()
-        #expect(h.requests == 0)
-        h.work(for: 0)
-        h.update(.other)
-        h.advance(10)
-        h.update(.reviewPage("settings"))
-        h.request()
-        #expect(h.requests == 0)
-    }
-
-    @Test
-    func multipleSurfacesShareTimeAndCannotIssueDuplicateRequests() throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.mature()
-        h.work(for: 150)
-        let secondSurface = UUID()
-        h.controller.update(
-            surfaceID: secondSurface, context: .init(location: .workspace(UUID()), isActive: true)
-        )
-        h.advance(149)
-        h.controller.update(
-            surfaceID: secondSurface, context: .init(location: .reviewPage("settings"), isActive: true)
-        )
-        h.advance(3)
-        h.controller.requestIfReady(surfaceID: secondSurface) { h.requests += 1 }
-        #expect(h.requests == 0)
-        h.work(for: 1)
-        h.finish()
-        #expect(h.requests == 1)
-        h.controller.update(
-            surfaceID: secondSurface, context: .init(location: .workspace(UUID()), isActive: true)
-        )
-        h.controller.update(
-            surfaceID: secondSurface, context: .init(location: .reviewPage("settings"), isActive: true)
-        )
-        h.advance(3)
-        h.controller.requestIfReady(surfaceID: secondSurface) { h.requests += 1 }
-        #expect(h.requests == 1)
-    }
-
-    @Test
-    func persistedVersionBudgetAndCooldownSurviveRelaunchWithoutRestoringWorkspaceTime() throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.mature()
-        h.work(for: 300)
-        h.finish()
-        let firstAttempt = h.date
-        h.controller = h.makeController(version: "1.1")
-        h.date = firstAttempt.addingTimeInterval(120 * 86_400 - 1)
-        h.work(for: 0)
-        h.update(.reviewPage("settings"))
-        h.advance(3, wallTime: false)
-        h.request()
-        #expect(h.requests == 1)
-        h.work(for: 300, wallTime: false)
-        h.update(.reviewPage("settings"))
-        h.advance(3, wallTime: false)
-        h.request()
-        #expect(h.requests == 1)
-        h.date = firstAttempt.addingTimeInterval(120 * 86_400)
-        h.work(for: 0)
-        h.finish()
-        #expect(h.requests == 2)
-        h.controller = h.makeController(version: "1.0")
-        h.advance(121 * 86_400)
-        h.work(for: 300)
-        h.finish()
-        #expect(h.requests == 2)
-    }
-
-    @Test
-    func manualLinkCancelsPendingRequestAndRestartsCooldownWithoutClaimingARating() throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.mature()
-        h.work(for: 300)
-        h.update(.reviewPage("settings.app"))
-        h.controller.recordManualReview()
-        h.advance(3)
-        h.request()
-        #expect(h.requests == 0)
-        #expect(h.defaults.object(forKey: SettingsKey.reviewRequestedVersions) == nil)
-        h.work(for: 0)
-        h.finish()
-        #expect(h.requests == 0)
-        h.advance(120 * 86_400)
-        h.work(for: 0)
-        h.finish()
-        #expect(h.requests == 1)
-    }
-
-    @Test
-    func wallClockRollbackDoesNotIncreaseWorkspaceTimeOrBypassCooldown() throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.mature()
-        h.work(for: 299)
-        h.date = h.date.addingTimeInterval(86_400)
-        h.finish()
-        #expect(h.requests == 0)
-        h.work(for: 1)
-        h.finish()
-        #expect(h.requests == 1)
-        h.controller = h.makeController(version: "1.1")
-        h.date = h.firstDate
-        h.work(for: 300)
-        h.finish()
-        #expect(h.requests == 1)
-    }
-
-    @Test
-    func disabledControllersLeaveUsageUntouched() throws {
-        let h = try Harness()
-        defer { h.clear() }
-        h.controller = AppReviewController(defaults: h.defaults, version: "1.0")
-        h.mature()
-        h.work(for: 300)
-        h.finish()
-        #expect(h.requests == 0)
+        let controller = AppReviewController(defaults: h.defaults, now: { h.date })
+        h.date.addTimeInterval(8 * 86_400)
+        controller.decline()
+        controller.openReview { _, completion in completion(true) }
+        #expect(!controller.isEligible(hasHosts: true))
         #expect(h.defaults.object(forKey: SettingsKey.reviewFirstUse) == nil)
-        #expect(h.activeDays == 0)
+        #expect(h.defaults.object(forKey: SettingsKey.reviewInvitationResponse) == nil)
+    }
+
+    @Test
+    func clockRollbackDoesNotMakeANewInstallationEligible() throws {
+        let h = try Harness()
+        defer { h.clear() }
+        let controller = h.makeController()
+        h.date.addTimeInterval(-86_400)
+        #expect(!controller.isEligible(hasHosts: true))
     }
 
     private final class Harness {
-        let suite = "AppReviewControllerTests.\(UUID().uuidString)"
+        let suite = "AppReviewControllerTests.\(UUID())"
         let defaults: UserDefaults
-        let firstDate = Date(timeIntervalSince1970: 1_735_689_600)
         var date = Date(timeIntervalSince1970: 1_735_689_600)
-        var tick: TimeInterval = 0
-        let surfaceID = UUID()
-        let workspaceID = UUID()
-        var requests = 0
-        var controller = AppReviewController()
 
         init() throws {
             defaults = try #require(UserDefaults(suiteName: suite))
-            controller = makeController(version: "1.0")
         }
 
-        func makeController(version: String) -> AppReviewController {
-            var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-            return AppReviewController(
-                defaults: defaults, version: version, isEnabled: true,
-                now: { [unowned self] in self.date },
-                uptime: { [unowned self] in self.tick }, calendar: calendar
-            )
+        func makeController() -> AppReviewController {
+            AppReviewController(defaults: defaults, isEnabled: true, now: { [unowned self] in self.date })
         }
 
-        var activeDays: Int { defaults.stringArray(forKey: SettingsKey.reviewActiveDays)?.count ?? 0 }
-
-        func clear() { defaults.removePersistentDomain(forName: suite) }
-
-        func advance(_ seconds: TimeInterval, wallTime: Bool = true) {
-            tick += seconds
-            if wallTime { date = date.addingTimeInterval(seconds) }
+        func clear() {
+            defaults.removePersistentDomain(forName: suite)
         }
-
-        func update(_ location: AppReviewController.Location, active: Bool = true, blocked: Bool = false) {
-            controller.update(
-                surfaceID: surfaceID,
-                context: .init(location: location, isActive: active, isBlocked: blocked)
-            )
-        }
-
-        func mature() {
-            update(.reviewPage("vault.hosts"))
-            advance(86_400)
-            update(.reviewPage("vault.hosts"))
-            advance(6 * 86_400)
-            update(.reviewPage("vault.hosts"))
-        }
-
-        func work(for seconds: TimeInterval, wallTime: Bool = true) {
-            update(.workspace(workspaceID))
-            advance(seconds, wallTime: wallTime)
-        }
-
-        func finish() {
-            update(.reviewPage("settings"))
-            advance(3)
-            request()
-        }
-
-        func request() { controller.requestIfReady(surfaceID: surfaceID) { requests += 1 } }
     }
 }

@@ -7,16 +7,14 @@ import UIKit
 
 struct MobileForwardingView: View {
     let app: MobileAppModel
-    let reviewScene: MobileSceneModel?
     @State private var query: String
     @State private var editing: PortForwardingRule?
     @State private var showing: UUID?
     @State private var removing: PortForwardingRule?
     @State private var error: String?
 
-    init(app: MobileAppModel, initialQuery: String = "", reviewScene: MobileSceneModel? = nil) {
+    init(app: MobileAppModel, initialQuery: String = "") {
         self.app = app
-        self.reviewScene = reviewScene
         _query = State(initialValue: initialQuery)
     }
 
@@ -48,7 +46,6 @@ struct MobileForwardingView: View {
         }
         .navigationDestination(item: $showing) { id in
             MobileForwardingDetailView(app: app, ruleID: id)
-                .mobileReviewPage("vault.portForwarding.detail", scene: reviewScene)
         }
         .sheet(item: $editing) { rule in
             MobileForwardingEditor(app: app, rule: rule, isNew: app.forwardingLibrary.portForwarding(rule.id) == nil)

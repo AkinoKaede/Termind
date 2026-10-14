@@ -227,7 +227,6 @@ struct RootView: View {
         // layout drops without competing for the same text payload.
         .environment(window)
         .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
-        .modifier(AppReviewPresenter(window: window))
         .proPaywallPresenter(app: app, window: window)
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedDestination) {

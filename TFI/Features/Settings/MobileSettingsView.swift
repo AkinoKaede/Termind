@@ -4,7 +4,6 @@ import TermindPresentation
 
 struct MobileSettingsView: View {
     let app: MobileAppModel
-    var reviewScene: MobileSceneModel? = nil
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
@@ -19,7 +18,6 @@ struct MobileSettingsView: View {
                     MobileAppSettingsView(
                         workspaceSettings: app.workspaceSettings,
                         appReview: app.appReview,
-                        reviewScene: reviewScene,
                         diagnosis: app.diagnosis)
                 } label: {
                     Label(AppStrings.Settings.app.swiftUIKey, systemImage: "app.badge")
@@ -63,6 +61,14 @@ struct MobileSettingsView: View {
             if debugSectionEnabled {
                 Section {
                     NavigationLink {
+                        Form {
+                            AppReviewDeveloperSection(controller: app.appReview)
+                        }
+                        .navigationTitle(AppStrings.Settings.developer.swiftUIKey)
+                    } label: {
+                        Label(AppStrings.Settings.developer.swiftUIKey, systemImage: "hammer")
+                    }
+                    NavigationLink {
                         MobileLoggingView(logging: app.logging)
                     } label: {
                         Label(AppStrings.Settings.logging.swiftUIKey, systemImage: "doc.text")
@@ -76,6 +82,5 @@ struct MobileSettingsView: View {
             }
         }
         .navigationTitle(AppStrings.Navigation.settings.swiftUIKey)
-        .mobileReviewPage("settings", scene: reviewScene)
     }
 }

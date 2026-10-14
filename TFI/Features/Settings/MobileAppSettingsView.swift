@@ -5,7 +5,6 @@ import TermindPresentation
 struct MobileAppSettingsView: View {
     let workspaceSettings: WorkspaceSettingsModel
     var appReview: AppReviewController?
-    var reviewScene: MobileSceneModel?
     var diagnosis = DiagnosisController()
     @AppStorage("mobile.appearance") private var appearance = "system"
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
@@ -49,16 +48,9 @@ struct MobileAppSettingsView: View {
                 LabeledContent(AppStrings.Tailscale.title.swiftUIKey, value: MobileRuntimeVersions.tailscale)
             }
             Section(AppStrings.Settings.support.swiftUIKey) {
-                Link(destination: AppReviewController.reviewURL) {
+                AppReviewLink(controller: appReview) {
                     Label(AppStrings.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                 }
-                .environment(
-                    \.openURL,
-                    OpenURLAction { url in
-                        appReview?.recordManualReview()
-                        return .systemAction(url)
-                    }
-                )
                 Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                     Label(AppStrings.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                 }
@@ -68,6 +60,5 @@ struct MobileAppSettingsView: View {
             }
         }
         .navigationTitle(AppStrings.Settings.app.swiftUIKey)
-        .mobileReviewPage("settings.app", scene: reviewScene)
     }
 }

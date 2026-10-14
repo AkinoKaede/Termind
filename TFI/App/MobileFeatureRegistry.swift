@@ -59,7 +59,7 @@ struct MobileFeatureRegistry {
                 AnyView(
                     MobileVaultView(
                         app: app,
-                        reviewScene: scene,
+                        scene: scene,
                         editingHost: Bindable(scene).projectedValue.editingHost,
                         activateHost: scene.activateHost,
                         open: scene.open,
@@ -106,7 +106,7 @@ struct MobileFeatureRegistry {
                 title: AppStrings.Navigation.settings,
                 symbol: "gearshape"
             ) { app, scene in
-                AnyView(MobileSettingsView(app: app, reviewScene: scene))
+                AnyView(MobileSettingsView(app: app))
             }
         )
         return registry

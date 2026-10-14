@@ -32,7 +32,7 @@ struct MobileForwardingRenderingTests {
         features.register(
             MobileFeatureRegistration(id: .vault, title: "Vault", symbol: "server.rack") { app, scene in
                 AnyView(
-                    MobileForwardingView(app: app, reviewScene: scene)
+                    MobileForwardingView(app: app)
                         .navigationDestination(
                             isPresented: Binding(get: { route.details }, set: { route.details = $0 })
                         ) {

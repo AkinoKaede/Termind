@@ -92,7 +92,6 @@ final class MobileSceneModel {
         guard let id = workspaceSession.reopenClosedWorkspace(id) else { return }
         selectWorkspace(id)
     }
-    private(set) var reviewPageID: String?
 
     @ObservationIgnored private let app: MobileAppModel
     @ObservationIgnored private var pendingWorkspaceID: MobileWorkspace.ID?
@@ -133,14 +132,6 @@ final class MobileSceneModel {
         workspaceSheet = nil
         selectedDestination = .workspaces
         workspaceDestination = .transfers
-    }
-
-    func enterReviewPage(_ id: String) {
-        reviewPageID = id
-    }
-
-    func leaveReviewPage(_ id: String) {
-        if reviewPageID == id { reviewPageID = nil }
     }
 
     func openConnectionPicker() {

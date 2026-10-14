@@ -508,17 +508,10 @@ private struct AppInfoSettings: View {
         }
 
         Section(AppStrings.Settings.support.swiftUIKey) {
-            Link(destination: AppReviewController.reviewURL) {
+            AppReviewLink(controller: app.appReview) {
                 Label(AppStrings.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .environment(
-                \.openURL,
-                OpenURLAction { url in
-                    app.appReview.recordManualReview()
-                    return .systemAction(url)
-                }
-            )
             Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                 Label(AppStrings.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                     .frame(maxWidth: .infinity, alignment: .leading)

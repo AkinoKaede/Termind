@@ -517,7 +517,7 @@ private struct CardFrameModifier: ViewModifier {
 }
 
 extension View {
-    fileprivate func cardInteractiveFrame() -> some View {
+    func cardInteractiveFrame() -> some View {
         modifier(CardInteractiveFrameModifier())
     }
 }

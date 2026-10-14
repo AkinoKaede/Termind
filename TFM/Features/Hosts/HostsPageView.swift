@@ -65,6 +65,7 @@ struct HostsPageView: ManagedCardPage {
     @Environment(VaultWorkEditingSession.self) private var editingSession
 
     let state: HostsPageState
+    @State private var reviewVisit = AppReviewInvitationVisit()
 
     init(state: HostsPageState = HostsPageState()) {
         self.state = state
@@ -98,6 +99,19 @@ struct HostsPageView: ManagedCardPage {
     }
 
     // MARK: - Page
+
+    var hasManagedTopContent: Bool {
+        reviewVisit.isVisible(
+            controller: app.appReview, hasHosts: !app.hostLibrary.hosts.isEmpty, isFiltering: isFiltering
+        )
+    }
+
+    @ViewBuilder
+    func managedTopContent() -> some View {
+        if hasManagedTopContent {
+            AppReviewInvitationView(controller: app.appReview)
+        }
+    }
 
     var managedSections: [ManagedCardSection<HostLibrarySection.ID, Host>] {
         sections.map { section in
@@ -349,6 +363,9 @@ struct HostsPageView: ManagedCardPage {
         HostsPagePresentation(
             state: state,
             liveTags: app.hostLibrary.hostTags,
+            onAppear: {
+                reviewVisit.enter(controller: app.appReview, hasHosts: !app.hostLibrary.hosts.isEmpty)
+            },
             actions: HostsPagePresentation.Actions(
                 deleteGroup: { delete($0, keepHosts: $1) },
                 deleteHosts: delete,
@@ -395,11 +412,13 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     let state: HostsPageState
     /// Tags at least one host still carries — see `HostsPageState.pruneSelectedTags`.
     let liveTags: [String]
+    let onAppear: () -> Void
     let actions: Actions
 
     func body(content: Content) -> some View {
         @Bindable var state = state
         content
+            .onAppear(perform: onAppear)
             .onChange(of: liveTags, initial: true) { _, tags in
                 state.pruneSelectedTags(against: tags)
             }

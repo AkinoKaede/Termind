@@ -111,6 +111,7 @@ protocol ManagedCardPage: View {
     associatedtype GhostContent: View
     associatedtype EmptyContent: View
     associatedtype NoResultsContent: View
+    associatedtype TopContent: View = EmptyView
     associatedtype Presentation: ManagedCardPresentationModifier
 
     var managedMinimumCardWidth: CGFloat { get }
@@ -119,6 +120,7 @@ protocol ManagedCardPage: View {
     var managedSelection: ManagedCardSelection<Item.ID> { get }
     var managedCapabilities: ManagedCardCapabilities<SectionID, Item.ID> { get }
     var isManagedSourceEmpty: Bool { get }
+    var hasManagedTopContent: Bool { get }
     var managedPresentation: Presentation { get }
 
     @ViewBuilder func managedCard(
@@ -143,6 +145,7 @@ protocol ManagedCardPage: View {
     func managedBlankAreaPrimaryAction()
     @ViewBuilder func managedEmptyState() -> EmptyContent
     @ViewBuilder func managedNoResultsState() -> NoResultsContent
+    @ViewBuilder func managedTopContent() -> TopContent
 }
 
 extension ManagedCardPage {
@@ -150,6 +153,8 @@ extension ManagedCardPage {
     var managedMaximumCardWidth: CGFloat { Metrics.Card.max }
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] { [] }
     func managedBlankAreaPrimaryAction() {}
+    func managedTopContent() -> EmptyView { EmptyView() }
+    var hasManagedTopContent: Bool { false }
 
     var body: some View {
         ManagedCardPageRenderer<Self>(
@@ -159,11 +164,13 @@ extension ManagedCardPage {
             selection: managedSelection,
             capabilities: managedCapabilities,
             isSourceEmpty: isManagedSourceEmpty,
+            hasTopContent: hasManagedTopContent,
             card: managedCard,
             header: managedHeader,
             ghost: managedGhost,
             blankAreaMenu: managedBlankAreaMenu,
             blankAreaPrimaryAction: managedBlankAreaPrimaryAction,
+            topContent: managedTopContent,
             emptyState: managedEmptyState,
             noResultsState: managedNoResultsState
         )
@@ -231,11 +238,13 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     let selection: ManagedCardSelection<Page.Item.ID>
     let capabilities: ManagedCardCapabilities<Page.SectionID, Page.Item.ID>
     let isSourceEmpty: Bool
+    let hasTopContent: Bool
     let card: (Page.Item, ManagedCardItemContext<Page.Item>) -> Page.CardContent
     let header: (ManagedCardSection<Page.SectionID, Page.Item>, Bool) -> Page.HeaderContent
     let ghost: (Page.Item) -> Page.GhostContent
     let blankAreaMenu: (Page.SectionID?) -> [NativeMenuEntry]
     let blankAreaPrimaryAction: () -> Void
+    let topContent: () -> Page.TopContent
     let emptyState: () -> Page.EmptyContent
     let noResultsState: () -> Page.NoResultsContent
 
@@ -244,13 +253,14 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     @State private var ghostLocation: ManagedCardDropLocation<Page.SectionID>?
     @State private var itemFrames: [Page.Item.ID: CGRect] = [:]
     @State private var sectionFrames: [Page.SectionID: CGRect] = [:]
+    @State private var topContentFrame: CGRect = .zero
 
     @ViewBuilder
     var body: some View {
         Group {
-            if isSourceEmpty {
+            if isSourceEmpty && !hasTopContent {
                 emptyState()
-            } else if !hasVisibleContent {
+            } else if !hasVisibleContent && !hasTopContent {
                 noResultsState()
             } else {
                 collection
@@ -278,8 +288,23 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
             blankAreaMenu: { point in blankAreaMenu(section(at: point)) },
             blankAreaPrimaryAction: blankAreaPrimaryAction
         ) {
-            ForEach(sections) { section in
-                managedSection(section)
+            if hasTopContent {
+                topContent()
+                    .cardInteractiveFrame()
+                    .onGeometryChange(for: CGRect.self) {
+                        $0.frame(in: .named(managedCardDragSpace))
+                    } action: {
+                        topContentFrame = $0
+                    }
+                    .onDisappear { topContentFrame = .zero }
+            }
+            if isSourceEmpty {
+                emptyState()
+                    .frame(maxWidth: .infinity, minHeight: 280)
+            } else {
+                ForEach(sections) { section in
+                    managedSection(section)
+                }
             }
         }
         .contentShape(.rect)
@@ -464,7 +489,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     }
 
     private func dropLocation(at point: CGPoint) -> ManagedCardDropLocation<Page.SectionID>? {
-        guard let reordering = activeReordering, let dragSession else { return nil }
+        guard !topContentFrame.contains(point), let reordering = activeReordering, let dragSession else { return nil }
         let moving = Set(dragSession.ids)
         let candidates = sections.compactMap {
             section -> ManagedCardDropSection<Page.SectionID, Page.Item.ID>? in

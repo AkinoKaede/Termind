@@ -1,88 +1,51 @@
+import Foundation
+import SwiftUI
 import TermindApplication
-import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
 @testable import TermindIOS
 
-@Suite
-@MainActor
+@Suite @MainActor
 struct MobileAppReviewTests {
     @Test
-    func presenterAllowsOnlyMobileEquivalentsOfDesktopReviewPages() throws {
-        let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-
-        for page in ["vault.hosts", "vault.keychain", "vault.snippets", "vault.knownHosts"] {
-            scene.selectedDestination = .vault
-            scene.enterReviewPage(page)
-            #expect(MobileAppReviewPresenter.location(in: scene) == .reviewPage(page))
-        }
-        for page in ["settings", "settings.app"] {
-            scene.selectedDestination = .settings
-            scene.enterReviewPage(page)
-            #expect(MobileAppReviewPresenter.location(in: scene) == .reviewPage(page))
-        }
-
-        scene.selectedDestination = .vault
-        scene.enterReviewPage("vault.metrics")
-        #expect(MobileAppReviewPresenter.location(in: scene) == .other)
-        scene.enterReviewPage("settings.app")
-        #expect(MobileAppReviewPresenter.location(in: scene) == .other)
-        scene.selectedDestination = .assistant
-        #expect(MobileAppReviewPresenter.location(in: scene) == .other)
-    }
-
-    @Test
-    func workspaceDetailWinsOverAStaleReviewPage() throws {
-        let app = try MobileAppModel(inMemory: true)
-        let host = Host(name: "Review Test", host: "127.0.0.1")
-        app.library.upsert(host)
-        let workspaceID = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        defer { app.testWorkspaceSession.closeAll() }
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        scene.enterReviewPage("vault.hosts")
-        scene.selectedDestination = .workspaces
-        scene.workspaceID = workspaceID
-
-        #expect(MobileAppReviewPresenter.location(in: scene) == .workspace(workspaceID))
-    }
-
-    @Test
-    func pageLifecycleDoesNotLetAnOutgoingPageClearItsReplacement() throws {
-        let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        scene.enterReviewPage("vault.hosts")
-        scene.enterReviewPage("vault.keychain")
-        scene.leaveReviewPage("vault.hosts")
-        #expect(scene.reviewPageID == "vault.keychain")
-        scene.leaveReviewPage("vault.keychain")
-        #expect(scene.reviewPageID == nil)
-    }
-
-    @Test
-    func testModelsDisableReviewRequestsAndAcceptAnInjectedController() throws {
+    func testModelsDisableInvitationsAndShareAnInjectedController() throws {
         let disabled = try MobileAppModel(inMemory: true)
         #expect(!disabled.appReview.isEnabled)
-
-        let injected = AppReviewController(defaults: nil, version: "1.0", isEnabled: true)
+        let injected = AppReviewController(isEnabled: true)
         let app = try MobileAppModel(inMemory: true, appReview: injected)
         #expect(app.appReview === injected)
+        app.appReview.setPreviewEnabled(true)
+        #expect(injected.isPreviewEnabled)
     }
 
-    @Test
-    func nativeInputObserversDoNotPreventApplicationGestures() {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 640))
-        let view = MobileReviewActivityView(controller: AppReviewController(), surfaceID: UUID())
-        window.addSubview(view)
-        let installed = (window.gestureRecognizers ?? []).filter { $0.delegate === view }
-
-        #expect(installed.count == 2)
-        #expect(installed.allSatisfy { !$0.cancelsTouchesInView })
-        let input = installed.first { !($0 is UIHoverGestureRecognizer) }
-        #expect(input?.canPrevent(UITapGestureRecognizer()) == false)
-
-        view.removeFromSuperview()
-        #expect((window.gestureRecognizers ?? []).allSatisfy { $0.delegate !== view })
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 430.0, 768.0])
+    func invitationFitsPhoneAndTabletWidths(language: String, width: Double) throws {
+        let controller = AppReviewController()
+        let variants: [(ColorScheme, DynamicTypeSize, String)] = [
+            (.light, .large, "standard"), (.dark, .accessibility3, "accessible"),
+        ]
+        var standardHeight = 0
+        for (scheme, typeSize, name) in variants {
+            let content = AppReviewInvitationView(controller: controller)
+                .environment(\.locale, Locale(identifier: language))
+                .environment(\.colorScheme, scheme)
+                .environment(\.dynamicTypeSize, typeSize)
+                .frame(width: width)
+                .background(scheme == .light ? Color.white : Color.black)
+            let renderer = ImageRenderer(content: content)
+            let image = try #require(renderer.cgImage)
+            if name == "standard" {
+                standardHeight = image.height
+            } else {
+                #expect(image.height > standardHeight)
+            }
+            #expect(controller.response == nil)
+            if ProcessInfo.processInfo.environment["TERMIND_REVIEW_PREVIEW"] == "1" {
+                let png = try #require(UIImage(cgImage: image).pngData())
+                Attachment.record(png, named: "termind-review-ios-\(language)-\(Int(width))-\(name).png")
+            }
+        }
     }
 }
