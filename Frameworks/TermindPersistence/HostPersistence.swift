@@ -966,6 +966,14 @@ public enum TermindSchemaV53: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV54: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(54, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV53.models.filter { $0 != TermindSchemaV53HostModels.PersistentHost.self }
+            + [TermindSchemaV54HostModels.PersistentHost.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -983,6 +991,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
             TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self, TermindSchemaV53.self,
+            TermindSchemaV54.self,
         ]
     }
 
@@ -1095,11 +1104,12 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV50.self, toVersion: TermindSchemaV51.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV51.self, toVersion: TermindSchemaV52.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV52.self, toVersion: TermindSchemaV53.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV53.self, toVersion: TermindSchemaV54.self),
         ]
     }
 }
 
-public typealias PersistentHost = TermindSchemaV53HostModels.PersistentHost
+public typealias PersistentHost = TermindSchemaV54HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV33IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV45KeyModels.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

@@ -168,6 +168,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// Last distribution reported by Shell Integration for this saved Host.
     /// System-owned: editor saves preserve it and only a validated probe updates it.
     public var detectedDistribution: DetectedDistribution?
+    /// Nil follows detection; a stable catalog ID overrides artwork only.
+    public var iconOverrideID: String?
     /// Fractional index so reordering never has to renumber siblings — CloudKit
     /// has no ordered relationships, so order has to be an ordinary attribute.
     public var sortIndex: Double = 0
@@ -277,7 +279,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         telnetIdentityID: Identity.ID? = nil, telnetCharset: RemoteCharset = .utf8,
         telnetProxy: HostProxy? = nil,
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
-        detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
+        detectedDistribution: DetectedDistribution? = nil, iconOverrideID: String? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
         startupSnippetID: Snippet.ID? = nil, agentForwardingEnabled: Bool = false,
         sessionPersistence: SessionPersistencePreferences = .init(),
@@ -303,6 +305,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.tags = tags
         self.colorTag = colorTag
         self.detectedDistribution = detectedDistribution
+        self.iconOverrideID = iconOverrideID
         self.sortIndex = sortIndex
         self.shellIntegrationMode = shellIntegrationMode
         self.startupSnippetID = startupSnippetID
@@ -318,7 +321,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
-        case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
+        case groupID, tags, colorTag, iconOverrideID, detectedDistribution, sortIndex, shellIntegrationMode
         case sessionPersistence, agentForwardingEnabled, startupSnippetID, environmentVariables,
             portForwardingMaxConnections
     }
@@ -349,6 +352,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         tags = try values.decode([String].self, forKey: .tags)
         colorTag = try values.decode(TagColor.self, forKey: .colorTag)
         detectedDistribution = try values.decodeIfPresent(DetectedDistribution.self, forKey: .detectedDistribution)
+        iconOverrideID = try values.decodeIfPresent(String.self, forKey: .iconOverrideID)
         sortIndex = try values.decode(Double.self, forKey: .sortIndex)
         shellIntegrationMode =
             try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
@@ -387,6 +391,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         try values.encode(tags, forKey: .tags)
         try values.encode(colorTag, forKey: .colorTag)
         try values.encodeIfPresent(detectedDistribution, forKey: .detectedDistribution)
+        try values.encodeIfPresent(iconOverrideID, forKey: .iconOverrideID)
         try values.encode(sortIndex, forKey: .sortIndex)
         try values.encode(shellIntegrationMode.rawValue, forKey: .shellIntegrationMode)
         try values.encode(sessionPersistence, forKey: .sessionPersistence)

@@ -7,12 +7,12 @@ import SwiftUI
     import UIKit
 #endif
 
-/// Converts a Simple Icons brand hex into a foreground that remains legible on
+/// Converts a host icon brand hex into a foreground that remains legible on
 /// the 16%-opacity tint surface used by host icons. Only luminance moves,
 /// toward the current semantic label color, and only when the original brand
 /// color misses 3:1.
 @MainActor
-public enum LinuxDistributionBrandColor {
+public enum HostIconBrandColor {
     public static func color(hex: String, colorScheme: ColorScheme) -> Color? {
         guard let foreground = RGB(hex: hex) else { return nil }
         guard let semantic = semanticColors(for: colorScheme) else {

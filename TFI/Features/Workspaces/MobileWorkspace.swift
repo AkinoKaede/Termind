@@ -301,8 +301,8 @@ final class MobileWorkspace: Identifiable {
         activitySession = WorkspaceActivityAttributes.Session(
             id: descriptor.id, title: descriptor.title, kind: descriptor.kind.rawValue,
             connected: false,
-            iconAsset: LinuxDistributionIconCatalog.entry(
-                for: (hosts.host(descriptor.hostID) ?? transientHost)?.detectedDistribution)?.asset)
+            iconAsset: HostIconCatalog.resolvedEntry(
+                for: hosts.host(descriptor.hostID) ?? transientHost)?.asset)
         if connectionOrigin.allowsPersistence, hosts.host(descriptor.hostID) != nil {
             activitySession.recovery = .init(
                 sourceWorkspaceID: descriptor.id, hostID: descriptor.hostID, kind: descriptor.kind.rawValue)
@@ -1604,10 +1604,22 @@ final class MobileWorkspace: Identifiable {
 
     private func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?) {
         hosts.recordRemoteSystemInfo(systemInfo, for: descriptor.hostID)
-        guard let systemInfo,
-            case .resolved(let distribution) = systemInfo.distributionDetection
-        else { return }
-        let iconAsset = LinuxDistributionIconCatalog.entry(for: distribution)?.asset
+        refreshHostArtwork()
+    }
+
+    func refreshHostArtwork() {
+        let savedHost = hosts.host(descriptor.hostID)
+        let host = savedHost ?? transientHost
+        let distribution: DetectedDistribution?
+        if let savedHost {
+            distribution = savedHost.detectedDistribution
+        } else if case .resolved(let detected) = remoteSystemInfo?.distributionDetection {
+            distribution = detected
+        } else {
+            distribution = host?.detectedDistribution
+        }
+        let iconAsset = HostIconCatalog.bundled.resolvedEntry(
+            overrideID: host?.iconOverrideID, distribution: distribution)?.asset
         guard activitySession.iconAsset != iconAsset else { return }
         activitySession.iconAsset = iconAsset
         didChangeState?(activitySession)

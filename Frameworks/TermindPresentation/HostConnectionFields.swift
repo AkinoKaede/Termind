@@ -24,6 +24,7 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
             VaultNameField(text: $host.name, prompt: Text(verbatim: host.defaultName))
                 .disabled(host.isTailscaleManaged)
             groupField.disabled(host.isTailscaleManaged)
+            HostIconPicker(selection: $host.iconOverrideID)
             tagsField
             VaultColorField(selection: $host.colorTag)
         }

@@ -6,7 +6,7 @@ struct RemoteSystemInfoTests {
     @Test func distributionDetectionDistinguishesUnknownLinuxFromANonLinuxHost() throws {
         #expect(RemoteSystemInfo().distributionDetection == .unavailable)
         #expect(RemoteSystemInfo(kernelName: "Linux").distributionDetection == .unavailable)
-        #expect(RemoteSystemInfo(kernelName: "Darwin").distributionDetection == .resolved(nil))
+        #expect(RemoteSystemInfo(kernelName: "FreeBSD").distributionDetection == .resolved(nil))
 
         let detected = try #require(DetectedDistribution(id: "Ubuntu", likeIDs: ["Debian"]))
         #expect(

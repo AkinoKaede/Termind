@@ -3,11 +3,13 @@
     {
       "asset": "LinuxDistro-almalinux",
       "hex": "000000",
+      "id": "almalinux",
       "ids": [
         "almalinux",
         "alma"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "almalinux",
       "sourceURL": "https://almalinux.org",
       "title": "AlmaLinux"
@@ -15,10 +17,12 @@
     {
       "asset": "LinuxDistro-alpinelinux",
       "hex": "0D597F",
+      "id": "alpinelinux",
       "ids": [
         "alpine"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "alpinelinux",
       "sourceURL": "https://alpinelinux.org",
       "title": "Alpine Linux"
@@ -26,10 +30,12 @@
     {
       "asset": "LinuxDistro-archlinux",
       "hex": "1793D1",
+      "id": "archlinux",
       "ids": [
         "arch"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "archlinux",
       "sourceURL": "https://www.archlinux.org/art",
       "title": "Arch Linux"
@@ -37,10 +43,12 @@
     {
       "asset": "LinuxDistro-centos",
       "hex": "262577",
+      "id": "centos",
       "ids": [
         "centos"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "centos",
       "sourceURL": "https://wiki.centos.org/ArtWork/Brand/Logo",
       "title": "CentOS"
@@ -48,10 +56,12 @@
     {
       "asset": "LinuxDistro-debian",
       "hex": "A81D33",
+      "id": "debian",
       "ids": [
         "debian"
       ],
       "license": "CC-BY-SA-3.0",
+      "package": "simple-icons",
       "slug": "debian",
       "sourceURL": "https://www.debian.org/logos",
       "title": "Debian"
@@ -59,10 +69,12 @@
     {
       "asset": "LinuxDistro-deepin",
       "hex": "007CFF",
+      "id": "deepin",
       "ids": [
         "deepin"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "deepin",
       "sourceURL": "https://commons.wikimedia.org/wiki/File:Deepin_logo.svg",
       "title": "deepin"
@@ -70,10 +82,12 @@
     {
       "asset": "LinuxDistro-elementary",
       "hex": "64BAFF",
+      "id": "elementary",
       "ids": [
         "elementary"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "elementary",
       "sourceURL": "https://elementary.io/brand",
       "title": "elementary"
@@ -81,10 +95,12 @@
     {
       "asset": "LinuxDistro-endeavouros",
       "hex": "7F7FFF",
+      "id": "endeavouros",
       "ids": [
         "endeavouros"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "endeavouros",
       "sourceURL": "https://github.com/endeavouros-team/endeavouros-theming/blob/135f642c980ed8d8fc212783eb478f96226f6c72/endeavouros-logo-text.svg",
       "title": "EndeavourOS"
@@ -92,10 +108,12 @@
     {
       "asset": "LinuxDistro-fedora",
       "hex": "51A2DA",
+      "id": "fedora",
       "ids": [
         "fedora"
       ],
       "license": "custom",
+      "package": "simple-icons",
       "slug": "fedora",
       "sourceURL": "https://docs.fedoraproject.org/en-US/project/brand/",
       "title": "Fedora"
@@ -103,10 +121,12 @@
     {
       "asset": "LinuxDistro-gentoo",
       "hex": "54487A",
+      "id": "gentoo",
       "ids": [
         "gentoo"
       ],
       "license": "CC-BY-SA-2.5",
+      "package": "simple-icons",
       "slug": "gentoo",
       "sourceURL": "https://wiki.gentoo.org/wiki/Project:Artwork/Artwork#Variations_of_the_.22g.22_logo",
       "title": "Gentoo"
@@ -114,10 +134,12 @@
     {
       "asset": "LinuxDistro-kalilinux",
       "hex": "557C94",
+      "id": "kalilinux",
       "ids": [
         "kali"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "kalilinux",
       "sourceURL": "https://www.kali.org/docs/policy/trademark/",
       "title": "Kali Linux"
@@ -125,10 +147,12 @@
     {
       "asset": "LinuxDistro-kubuntu",
       "hex": "0079C1",
+      "id": "kubuntu",
       "ids": [
         "kubuntu"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "kubuntu",
       "sourceURL": "https://kubuntu.org",
       "title": "Kubuntu"
@@ -136,10 +160,12 @@
     {
       "asset": "LinuxDistro-linuxmint",
       "hex": "86BE43",
+      "id": "linuxmint",
       "ids": [
         "linuxmint"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "linuxmint",
       "sourceURL": "https://github.com/linuxmint/brand-logo/blob/540ac3b08e987866d77a340f557f994c988ac2ae/ring-mono-green.svg",
       "title": "Linux Mint"
@@ -147,10 +173,12 @@
     {
       "asset": "LinuxDistro-lubuntu",
       "hex": "0068C8",
+      "id": "lubuntu",
       "ids": [
         "lubuntu"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "lubuntu",
       "sourceURL": "https://lubuntu.net",
       "title": "Lubuntu"
@@ -158,10 +186,12 @@
     {
       "asset": "LinuxDistro-manjaro",
       "hex": "35BFA4",
+      "id": "manjaro",
       "ids": [
         "manjaro"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "manjaro",
       "sourceURL": "https://manjaro.org",
       "title": "Manjaro"
@@ -169,10 +199,12 @@
     {
       "asset": "LinuxDistro-nixos",
       "hex": "5277C3",
+      "id": "nixos",
       "ids": [
         "nixos"
       ],
       "license": "CC-BY-4.0",
+      "package": "simple-icons",
       "slug": "nixos",
       "sourceURL": "https://brand.nixos.org/logos/nixos-logomark-black-flat-minimal.svg",
       "title": "NixOS"
@@ -180,6 +212,7 @@
     {
       "asset": "LinuxDistro-opensuse",
       "hex": "73BA25",
+      "id": "opensuse",
       "ids": [
         "opensuse",
         "opensuse-leap",
@@ -187,6 +220,7 @@
         "opensuse-microos"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "opensuse",
       "sourceURL": "https://github.com/openSUSE/artwork/blob/33e94aa76837c09f03d1712705949b71a246a53b/logos/buttons/button-colour.svg",
       "title": "openSUSE"
@@ -194,11 +228,13 @@
     {
       "asset": "LinuxDistro-popos",
       "hex": "48B9C7",
+      "id": "popos",
       "ids": [
         "pop",
         "popos"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "popos",
       "sourceURL": "https://github.com/system76/brand/blob/7a31740b54f929b62a165baa61dfb0b5164261e8/Pop_OS%20branding/Pop_icon.svg",
       "title": "Pop!_OS"
@@ -206,11 +242,13 @@
     {
       "asset": "LinuxDistro-raspberrypi",
       "hex": "A22846",
+      "id": "raspberrypi",
       "ids": [
         "raspbian",
         "raspberrypios"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "raspberrypi",
       "sourceURL": "https://www.raspberrypi.org/trademark-rules",
       "title": "Raspberry Pi"
@@ -218,11 +256,13 @@
     {
       "asset": "LinuxDistro-redhat",
       "hex": "EE0000",
+      "id": "redhat",
       "ids": [
         "rhel",
         "redhat"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "redhat",
       "sourceURL": "https://www.redhat.com/en/about/brand/new-brand/details",
       "title": "Red Hat"
@@ -230,10 +270,12 @@
     {
       "asset": "LinuxDistro-rockylinux",
       "hex": "10B981",
+      "id": "rockylinux",
       "ids": [
         "rocky"
       ],
       "license": "CC-BY-SA-4.0",
+      "package": "simple-icons",
       "slug": "rockylinux",
       "sourceURL": "https://github.com/rocky-linux/branding/blob/94e97dd30b87d909cc4f6a6838a2926f77f9ac47/logo/src/icon-black.svg",
       "title": "Rocky Linux"
@@ -241,10 +283,12 @@
     {
       "asset": "LinuxDistro-solus",
       "hex": "5294E2",
+      "id": "solus",
       "ids": [
         "solus"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "solus",
       "sourceURL": "https://getsol.us/branding/",
       "title": "Solus"
@@ -252,12 +296,14 @@
     {
       "asset": "LinuxDistro-suse",
       "hex": "0C322C",
+      "id": "suse",
       "ids": [
         "suse",
         "sles",
         "sled"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "suse",
       "sourceURL": "https://brand.suse.com",
       "title": "SUSE"
@@ -265,10 +311,12 @@
     {
       "asset": "LinuxDistro-ubuntu",
       "hex": "E95420",
+      "id": "ubuntu",
       "ids": [
         "ubuntu"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "ubuntu",
       "sourceURL": "https://design.ubuntu.com/resources",
       "title": "Ubuntu"
@@ -276,11 +324,13 @@
     {
       "asset": "LinuxDistro-ubuntumate",
       "hex": "84A454",
+      "id": "ubuntumate",
       "ids": [
         "ubuntu-mate",
         "ubuntu-mate-desktop"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "ubuntumate",
       "sourceURL": "https://ubuntu-mate.org",
       "title": "Ubuntu MATE"
@@ -288,10 +338,12 @@
     {
       "asset": "LinuxDistro-voidlinux",
       "hex": "478061",
+      "id": "voidlinux",
       "ids": [
         "void"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "voidlinux",
       "sourceURL": "https://alpha.de.repo.voidlinux.org/logos/void-dark2.svg",
       "title": "Void Linux"
@@ -299,17 +351,55 @@
     {
       "asset": "LinuxDistro-xubuntu",
       "hex": "0044AA",
+      "id": "xubuntu",
       "ids": [
         "xubuntu"
       ],
       "license": null,
+      "package": "simple-icons",
       "slug": "xubuntu",
       "sourceURL": "https://commons.wikimedia.org/wiki/File:Xubuntu_Icon.svg",
       "title": "Xubuntu"
+    },
+    {
+      "asset": "HostOS-macos",
+      "hex": "000000",
+      "id": "macos",
+      "ids": [
+        "macos"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "apple",
+      "sourceURL": "https://www.apple.com",
+      "title": "macOS"
+    },
+    {
+      "asset": "HostOS-windows",
+      "colorSource": "Termind presentation choice",
+      "hex": "0078D4",
+      "id": "windows",
+      "ids": [
+        "windows"
+      ],
+      "license": "MIT",
+      "package": "@tabler/icons",
+      "sourceURL": "https://github.com/tabler/tabler-icons/blob/v3.49.0/icons/filled/brand-windows.svg",
+      "title": "Windows"
     }
   ],
-  "integrity": "sha512-4H94f5ZgcCcgJroc902TFlFdgPu2IU2eD7+WebN2Z14xKYrKHeJ4UQcZwzgSuH4Rgzw+jp7sbHl40NefuIEYsg==",
-  "package": "simple-icons",
-  "source": "https://github.com/simple-icons/simple-icons",
-  "version": "16.29.0"
+  "sources": [
+    {
+      "integrity": "sha512-4H94f5ZgcCcgJroc902TFlFdgPu2IU2eD7+WebN2Z14xKYrKHeJ4UQcZwzgSuH4Rgzw+jp7sbHl40NefuIEYsg==",
+      "package": "simple-icons",
+      "source": "https://github.com/simple-icons/simple-icons",
+      "version": "16.29.0"
+    },
+    {
+      "integrity": "sha512-l+GnSkFETx0U26icxv1VUFnxxiTqXfCcVRiRAnyMwibupM2S2L/hSaZ9gmSgz01rkrsH/93NvLsxykqdanc6lw==",
+      "package": "@tabler/icons",
+      "source": "https://github.com/tabler/tabler-icons",
+      "version": "3.49.0"
+    }
+  ]
 }

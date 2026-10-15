@@ -154,11 +154,12 @@ struct MobileCardTests {
         #expect(stored.groups.first(where: { $0.id == root.id })?.isExpanded == true)
     }
 
-    @Test func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces() throws {
-        #expect(LinuxDistributionBrandColor.color(hex: "not-a-color", colorScheme: .light) == nil)
+    @Test(arguments: ["000000", "0078D4"])
+    func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces(hex: String) throws {
+        #expect(HostIconBrandColor.color(hex: "not-a-color", colorScheme: .light) == nil)
 
         for scheme in [ColorScheme.light, .dark] {
-            let color = try #require(LinuxDistributionBrandColor.color(hex: "000000", colorScheme: scheme))
+            let color = try #require(HostIconBrandColor.color(hex: hex, colorScheme: scheme))
             let traits = UITraitCollection(userInterfaceStyle: scheme == .dark ? .dark : .light)
             let foreground = try components(UIColor(color))
             let surface = try components(

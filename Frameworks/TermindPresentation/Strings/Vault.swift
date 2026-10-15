@@ -2,6 +2,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Vault {
+        public static var icon: LocalizedStringResource { "Icon" }
+        public static var serverIcon: LocalizedStringResource { "Server" }
+        public static var unknownIcon: LocalizedStringResource { "Unknown Icon" }
         public static var addHost: LocalizedStringResource { "Add Host" }
 
         public static var acceptTheseImportWarnings: LocalizedStringResource {

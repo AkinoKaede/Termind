@@ -13,6 +13,41 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileWorkspaceSessionTests {
+    @Test func artworkRefreshesForOpenWorkspacesWithoutReconnecting() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Mac", host: "example.invalid", shellIntegrationMode: .enabled)
+        app.library.upsert(host)
+        let session = app.testWorkspaceSession
+        defer { session.closeAll() }
+        let id = try #require(session.open(hostID: host.id, kind: .ssh))
+        let workspace = try #require(session.openWorkspace(id))
+        let originalStatus = workspace.status
+        workspace.receiveShellEvent(
+            .available(
+                shell: "zsh", systemInfo: RemoteSystemInfo(kernelName: "Darwin"), homeDirectory: "/Users/test"))
+        #expect(workspace.activitySession.iconAsset == "HostOS-macos")
+        var draft = try #require(app.library.host(host.id))
+        draft.iconOverrideID = "windows"
+        #expect(app.library.saveHost(draft))
+        for _ in 0..<50 where workspace.activitySession.iconAsset != "HostOS-windows" {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(workspace.activitySession.iconAsset == "HostOS-windows")
+        workspace.receiveShellEvent(
+            .systemInfo(
+                RemoteSystemInfo(distributionID: "ubuntu", kernelName: "Linux")))
+        #expect(workspace.activitySession.iconAsset == "HostOS-windows")
+        draft = try #require(app.library.host(host.id))
+        draft.iconOverrideID = nil
+        app.applyRemoteVault(.init(hosts: [draft]), keys: [.init(kind: .host, id: host.id)])
+        for _ in 0..<50 where workspace.activitySession.iconAsset != "LinuxDistro-ubuntu" {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(workspace.activitySession.iconAsset == "LinuxDistro-ubuntu")
+        #expect(workspace.status == originalStatus)
+        #expect(session.openWorkspace(id) === workspace)
+    }
+
     @Test func recentlyClosedIsSharedOnlyWithinOneProcess() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

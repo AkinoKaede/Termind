@@ -2,6 +2,7 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Common {
+        public static var automatic: LocalizedStringResource { "Automatic" }
         public static var action: LocalizedStringResource {
             "Action"
         }

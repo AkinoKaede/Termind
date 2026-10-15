@@ -268,7 +268,7 @@ import TermindPresentation
             }
             #expect(Set(distributions.map(\.id)).count == 8)
             for distribution in distributions {
-                #expect(LinuxDistributionIconCatalog.entry(for: distribution) != nil)
+                #expect(HostIconCatalog.entry(for: distribution) != nil)
             }
         }
     }

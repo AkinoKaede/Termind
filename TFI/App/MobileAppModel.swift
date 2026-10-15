@@ -432,6 +432,7 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
+        observeHostArtwork()
     }
 
     private func reconcileConnectionPreferences() {
@@ -867,6 +868,18 @@ final class MobileAppModel {
         observeActivityState(of: workspace)
         workspace.didRequestClose = close
         startConnectionHistory(for: workspace)
+    }
+
+    private func observeHostArtwork() {
+        withObservationTracking {
+            _ = library.hosts
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                for workspace in self.workspaces { workspace.refreshHostArtwork() }
+                self.observeHostArtwork()
+            }
+        }
     }
 
     func workspacesDidOpen(_ added: [MobileWorkspace]) {

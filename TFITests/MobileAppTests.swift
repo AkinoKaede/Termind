@@ -1504,11 +1504,17 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
 }
 
 @Suite struct WorkspaceHostIconTests {
+    @Test @MainActor func operatingSystemArtworkIsBundledOnMobile() {
+        #expect(HostIconCatalog.bundled.selectableEntries.prefix(2).map(\.id) == ["macos", "windows"])
+        for entry in HostIconCatalog.bundled.entries {
+            #expect(UIImage(named: entry.asset) != nil, Comment(rawValue: entry.asset))
+        }
+    }
     @Test func usesTheSameDistributionMatchAsTheHostList() throws {
         let catalog = try JSONDecoder().decode(
-            LinuxDistributionIconCatalog.self,
+            HostIconCatalog.self,
             from: Data(
-                #"{"entries":[{"title":"Ubuntu","asset":"LinuxDistro-ubuntu","ids":["ubuntu"],"hex":"E95420"},{"title":"Debian","asset":"LinuxDistro-debian","ids":["debian"],"hex":"A81D33"}]}"#
+                #"{"entries":[{"id":"ubuntu","title":"Ubuntu","asset":"LinuxDistro-ubuntu","ids":["ubuntu"],"hex":"E95420"},{"id":"debian","title":"Debian","asset":"LinuxDistro-debian","ids":["debian"],"hex":"A81D33"}]}"#
                     .utf8))
         let ubuntu = try #require(DetectedDistribution(id: "ubuntu", likeIDs: ["debian"]))
         #expect(catalog.entry(matching: ubuntu)?.asset == "LinuxDistro-ubuntu")

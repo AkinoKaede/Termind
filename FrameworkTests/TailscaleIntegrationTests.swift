@@ -333,7 +333,7 @@ struct TailscaleIntegrationTests {
         #expect(discovered.name == "Renamed")
         destinationLibrary.recordRemoteSystemInfo(RemoteSystemInfo(kernelName: "Linux"), for: discovered.id)
         #expect(destinationLibrary.host(discovered.id)?.detectedDistribution?.id == "ubuntu")
-        destinationLibrary.recordRemoteSystemInfo(RemoteSystemInfo(kernelName: "Darwin"), for: discovered.id)
+        destinationLibrary.recordRemoteSystemInfo(RemoteSystemInfo(kernelName: "FreeBSD"), for: discovered.id)
         destinationLibrary.replaceTailscalePeers([peer()], groupID: group.id)
         #expect(destinationLibrary.host(discovered.id)?.detectedDistribution == nil)
     }

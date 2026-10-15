@@ -16,10 +16,10 @@ public struct HostDistributionIcon: View {
     }
 
     public var body: some View {
-        let entry = LinuxDistributionIconCatalog.entry(for: host?.detectedDistribution)
+        let entry = HostIconCatalog.resolvedEntry(for: host)
         let tint =
             host?.colorTag.color
-            ?? entry.flatMap { LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme) }
+            ?? entry.flatMap { HostIconBrandColor.color(hex: $0.hex, colorScheme: colorScheme) }
             ?? .accentColor
         HostSystemIcon(asset: entry?.asset, size: size, style: artworkStyle)
             .tint(tint)

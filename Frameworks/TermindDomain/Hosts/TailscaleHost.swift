@@ -92,6 +92,8 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
     public var tags: [String] = []
     public var colorTag: TagColor = .none
     public var detectedDistribution: DetectedDistribution?
+    /// Nil follows detection; a stable catalog ID overrides artwork only.
+    public var iconOverrideID: String?
     public var username = ""
     public var charset: RemoteCharset = .utf8
     public var sftpInitialPath = ""
@@ -104,7 +106,7 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
     private enum CodingKeys: String, CodingKey {
         case sessionPersistence, tags, colorTag, username, charset, sftpInitialPath, shellIntegrationMode,
             startupSnippetID,
-            environmentVariables, detectedDistribution
+            environmentVariables, detectedDistribution, iconOverrideID
     }
 
     public init(from decoder: any Decoder) throws {
@@ -112,6 +114,7 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
         tags = try values.decodeIfPresent([String].self, forKey: .tags) ?? []
         colorTag = try values.decodeIfPresent(TagColor.self, forKey: .colorTag) ?? .none
         detectedDistribution = try values.decodeIfPresent(DetectedDistribution.self, forKey: .detectedDistribution)
+        iconOverrideID = try values.decodeIfPresent(String.self, forKey: .iconOverrideID)
         username = try values.decode(String.self, forKey: .username)
         charset = try values.decode(RemoteCharset.self, forKey: .charset)
         sftpInitialPath = try values.decode(String.self, forKey: .sftpInitialPath)

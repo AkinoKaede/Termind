@@ -82,8 +82,8 @@ struct WelcomeQuickConnectRenderingTests {
             window.close()
         }
 
-        #expect(LinuxDistributionIconCatalog.entry(for: ubuntuDistribution) != nil)
-        #expect(LinuxDistributionIconCatalog.entry(for: unknownDistribution) == nil)
+        #expect(HostIconCatalog.entry(for: ubuntuDistribution) != nil)
+        #expect(HostIconCatalog.entry(for: unknownDistribution) == nil)
 
         try await Task.sleep(for: .milliseconds(150))
         let field = try #require(

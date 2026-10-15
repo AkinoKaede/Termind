@@ -715,6 +715,29 @@ struct ShellIntegrationBootstrapTests {
         #expect(result.status == 0, "\(shell): \(result.errors)")
     }
 
+    @Test(arguments: ["||Darwin|25.0.0|arm64", "|||Darwin|25.0.0|arm64"])
+    func macOSKernelOnlyMetadataSelectsAppleArtwork(systemLine: String) throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "MAC")
+        let marker = "__TRMD_MAC_SYSTEM__\(systemLine)__\r\n__TRMD_MAC_SHELL__/bin/zsh__\r\n"
+        _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
+        let completed = bootstrap.receive(Data("__TRMD_MAC_DONE__\r\n".utf8))
+        #expect(completed.integrationInstalled)
+        #expect(completed.systemInfo?.distributionDetection == .resolved(DetectedDistribution(id: "macos")))
+        #expect(completed.systemInfo?.kernelName == "Darwin")
+        #expect(completed.systemInfo?.architecture == "arm64")
+    }
+
+    @Test func existingProbeReadsDarwinOnTheLocalMac() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "LOCALMAC")
+        var script = Data("export SHELL=/bin/zsh\n".utf8)
+        script.append(bootstrap.startCommand)
+        let result = try runShell(executable: "/bin/sh", arguments: [], input: script)
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        _ = try #require(bootstrap.receive(Data(result.output.utf8)).command)
+        let completed = bootstrap.receive(Data("__TRMD_LOCALMAC_DONE__\r\n".utf8))
+        #expect(completed.systemInfo?.distributionDetection == .resolved(DetectedDistribution(id: "macos")))
+    }
+
     private func runShell(
         executable: String, arguments: [String], input: Data, directory: URL? = nil
     ) throws -> (status: Int32, output: String, errors: String) {

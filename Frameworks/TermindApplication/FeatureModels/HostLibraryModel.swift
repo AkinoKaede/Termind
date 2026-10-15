@@ -2501,6 +2501,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host.detectedDistribution = preferences.detectedDistribution
                 host.tags = preferences.tags
                 host.colorTag = preferences.colorTag
+                host.iconOverrideID = preferences.iconOverrideID
                 host.sshCharset = preferences.charset
                 host.sftpChannelInitialPath = preferences.sftpInitialPath
                 host.sessionPersistence = preferences.sessionPersistence
@@ -2529,6 +2530,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         if let username { preferences.username = username.trimmingCharacters(in: .whitespacesAndNewlines) }
         preferences.tags = host.tags
         preferences.colorTag = host.colorTag
+        preferences.iconOverrideID = host.iconOverrideID
         preferences.charset = host.sshCharset
         preferences.sftpInitialPath = host.sftpChannelInitialPath
         preferences.sessionPersistence = host.sessionPersistence

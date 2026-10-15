@@ -1,8 +1,8 @@
 import Foundation
 
-/// The normalized portion of `os-release` that is safe and useful after an SSH
-/// session ends. It deliberately excludes a version: host artwork represents a
-/// distribution family, and persisting every point upgrade would create noisy
+/// The normalized OS family detected from kernel information or `os-release`.
+/// It deliberately excludes a version: host artwork represents a system family,
+/// and persisting every point upgrade would create noisy
 /// Vault mutations without changing presentation.
 public nonisolated struct DetectedDistribution: Codable, Hashable, Sendable {
     public var id: String
