@@ -26,6 +26,10 @@ struct RootView: View {
     }
 
     var body: some View {
+        content.overlay { RemoteSessionClosePromptView(coordinator: window.persistentClose) }
+    }
+
+    @ViewBuilder private var content: some View {
         @Bindable var window = window
         @Bindable var presentations = window.presentations
 

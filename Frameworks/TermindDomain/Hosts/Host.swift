@@ -155,6 +155,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public var colorTag: TagColor = .none
     public var shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
     /// Allows the destination to request signatures from this device's Vault keys.
+    public var sessionPersistence = SessionPersistencePreferences()
     public var agentForwardingEnabled = false
     /// A reusable script submitted after each interactive SSH shell becomes ready.
     /// The body is resolved from the Snippet library for every connection attempt.
@@ -279,6 +280,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
         startupSnippetID: Snippet.ID? = nil, agentForwardingEnabled: Bool = false,
+        sessionPersistence: SessionPersistencePreferences = .init(),
         environmentVariables: [HostEnvironmentVariable] = [],
         portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     ) {
@@ -305,6 +307,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.shellIntegrationMode = shellIntegrationMode
         self.startupSnippetID = startupSnippetID
         self.agentForwardingEnabled = agentForwardingEnabled
+        self.sessionPersistence = sessionPersistence
         self.environmentVariables = environmentVariables
         self.portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             portForwardingMaxConnections)
@@ -316,7 +319,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
-        case agentForwardingEnabled, startupSnippetID, environmentVariables, portForwardingMaxConnections
+        case sessionPersistence, agentForwardingEnabled, startupSnippetID, environmentVariables,
+            portForwardingMaxConnections
     }
 
     public init(from decoder: any Decoder) throws {
@@ -349,6 +353,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         shellIntegrationMode =
             try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
             .flatMap(HostShellIntegrationMode.init(rawValue:)) ?? .followGlobalSettings
+        sessionPersistence =
+            try values.decodeIfPresent(SessionPersistencePreferences.self, forKey: .sessionPersistence)
+            ?? .init(enabled: false)
         agentForwardingEnabled = try values.decodeIfPresent(Bool.self, forKey: .agentForwardingEnabled) ?? false
         startupSnippetID = try values.decodeIfPresent(Snippet.ID.self, forKey: .startupSnippetID)
         environmentVariables =
@@ -382,6 +389,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         try values.encodeIfPresent(detectedDistribution, forKey: .detectedDistribution)
         try values.encode(sortIndex, forKey: .sortIndex)
         try values.encode(shellIntegrationMode.rawValue, forKey: .shellIntegrationMode)
+        try values.encode(sessionPersistence, forKey: .sessionPersistence)
         try values.encode(agentForwardingEnabled, forKey: .agentForwardingEnabled)
         try values.encodeIfPresent(startupSnippetID, forKey: .startupSnippetID)
         try values.encode(environmentVariables, forKey: .environmentVariables)

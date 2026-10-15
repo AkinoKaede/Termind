@@ -321,6 +321,7 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession):
             let clone = sshSession.copyForReconnect()
+            clone.sessionPersistence.clearAttachment()
             clone.status = .connecting
             return Pane(.sshSession(clone))
         case .telnetSession(let telnetSession):

@@ -294,17 +294,13 @@ struct MobileWorkspaceTests {
             MobileWorkspaceDescriptor(hostID: host.id, title: "Opened", kind: .sftp),
             MobileWorkspaceDescriptor(hostID: host.id, title: "Recent", kind: .ssh),
         ]
-        let store = MobileWorkspaceStore(defaults: defaults)
-        try store.save(.init(unassigned: descriptors))
         var dependencies = MobileAppDependencies.testing(defaults: defaults)
         dependencies.container = seed.container
-        dependencies.workspaceStore = store
         let app = try MobileAppModel(dependencies: dependencies)
         let scene = MobileSceneModel(app: app, sessionID: "test")
+        app.testWorkspaceSession.restoreClosedStates(descriptors.map { .init(descriptor: $0) })
         let kept = try #require(app.testWorkspaceSession.openWorkspace(descriptors[0].id))
         let opened = try #require(app.testWorkspaceSession.openWorkspace(descriptors[1].id))
-
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[2]])
         #expect(app.testWorkspaceSession.closableWorkspaceCount == 3)
         #expect(scene.canCloseMultipleWorkspaces)
 
@@ -315,7 +311,7 @@ struct MobileWorkspaceTests {
         #expect(app.testWorkspaceSession.recentWorkspaces.isEmpty)
         #expect(!opened.connected)
         #expect(opened.status == String(localized: "Disconnected"))
-        #expect(try store.load().sessions["test"] == [kept.descriptor])
+        #expect(defaults.object(forKey: MobileWorkspaceStore.key) == nil)
         #expect(!scene.canCloseMultipleWorkspaces)
         app.testWorkspaceSession.closeAll()
     }
@@ -1444,6 +1440,29 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
         #expect(restored.connectedCount == 2)
     }
 
+    @Test func payloadBudgetRetainsWholeFocusedIdentityAndNeverPutsOwnershipInLinks() throws {
+        let ownership = UUID()
+        let reference = RemoteSessionReference(
+            backend: .tmux, session: .init(id: "$1", name: "Server", identity: Data(repeating: 42, count: 512)),
+            hostID: UUID(), endpoint: "example.invalid:22", username: "u", ownershipToken: ownership)
+        let encoded = try JSONEncoder().encode(reference)
+        let sessions = (0..<6).map { _ in
+            let id = UUID()
+            return WorkspaceActivityAttributes.Session(
+                id: id, title: "Server", kind: "ssh", connected: false,
+                recovery: .init(sourceWorkspaceID: id, hostID: reference.hostID, kind: "ssh", remoteSession: encoded))
+        }
+        let focused = sessions[4]
+        let state = WorkspaceActivityAttributes.ContentState.snapshot(sessions, focusedID: focused.id)
+        #expect(!state.sessions.isEmpty && state.sessions.count < sessions.count)
+        #expect(state.sessions.first?.id == focused.id)
+        #expect(try JSONEncoder().encode(state).count <= 3500)
+        let retained = try #require(state.sessions.first?.recovery?.remoteSession)
+        #expect(try JSONDecoder().decode(RemoteSessionReference.self, from: retained) == reference)
+        #expect(!state.destinationURL.absoluteString.contains(ownership.uuidString))
+        #expect(WorkspaceActivityAttributes.recovery(from: state.destinationURL)?.remoteSession == nil)
+    }
+
     @Test func aggregateActivityOpensOnlyTheWorkspaceList() throws {
         #expect(WorkspaceActivityAttributes.accepts(WorkspaceActivityAttributes.destinationURL))
         for value in ["https://workspaces", "termind://workspaces/extra", "termind://workspaces?command=ls"] {
@@ -1514,381 +1533,92 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
 
 @Suite @MainActor
 struct MobileWorkspaceRestorationTests {
-    @Test func displayOrderDoesNotChangeWhenSavedWorkspacesOpenOrRename() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let descriptors = (0..<3).map {
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh)
-        }
-        try fixture.store().save(.init(unassigned: descriptors))
-        let app = try fixture.makeApp()
-        defer { app.testWorkspaceSession.closeAll() }
-
-        #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
-        _ = try #require(app.testWorkspaceSession.openWorkspace(descriptors[1].id))
-        #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
-        #expect(app.testWorkspaceSession.renameWorkspace(descriptors[1].id, to: "Opened"))
-        #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
-        #expect(
-            app.testWorkspaceSession.orderedWorkspaceItems.map(\.descriptor.title) == ["Saved 0", "Opened", "Saved 2"])
-
-        #expect(app.testWorkspaceSession.renameWorkspace(descriptors[0].id, to: "Still Dormant"))
-        #expect(app.workspaces.map(\.id) == [descriptors[1].id])
-        #expect(
-            app.testWorkspaceSession.orderedWorkspaceItems.map(\.descriptor.title) == [
-                "Still Dormant", "Opened", "Saved 2",
-            ])
-        #expect(
-            try fixture.store().load().sessions["test", default: []].map(\.title) == [
-                "Still Dormant", "Opened", "Saved 2",
-            ])
-
-        let appended = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
-        #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id) + [appended])
+    @Test func relaunchIsEmptyAndRetiresOnlyWorkspaceKeys() throws {
+        let name = "WorkspaceRetirement.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(Data("old-snapshot".utf8), forKey: MobileWorkspaceStore.key)
+        defaults.set(Data("old-closed".utf8), forKey: MobileWorkspaceStore.recentlyClosedKey)
+        defaults.set("retained", forKey: "unrelated.setting")
+        let app = try MobileAppModel(dependencies: .testing(defaults: defaults))
+        #expect(app.workspaces.isEmpty)
+        #expect(app.testWorkspaceSession.orderedWorkspaceItems.isEmpty)
+        #expect(app.closedWorkspaceRecords.isEmpty)
+        #expect(defaults.object(forKey: MobileWorkspaceStore.key) == nil)
+        #expect(defaults.object(forKey: MobileWorkspaceStore.recentlyClosedKey) == nil)
+        #expect(defaults.string(forKey: "unrelated.setting") == "retained")
+        let host = TermindDomain.Host(name: "Saved", host: "example.invalid")
+        app.library.upsert(host)
+        let id = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
+        app.testWorkspaceSession.close(id)
+        #expect(app.closedWorkspaceRecords.count == 1)
+        #expect(defaults.object(forKey: MobileWorkspaceStore.key) == nil)
+        #expect(defaults.object(forKey: MobileWorkspaceStore.recentlyClosedKey) == nil)
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
+        dependencies.container = app.container
+        let next = try MobileAppModel(dependencies: dependencies)
+        #expect(next.library.host(host.id) != nil)
+        #expect(next.workspaces.isEmpty)
+        #expect(next.closedWorkspaceRecords.isEmpty)
     }
 
-    @Test func relaunchPreservesDescriptorsWithoutConnectingOrReplayingCommands() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let first = try fixture.makeApp()
-        let host = try fixture.installHost(in: first)
-        let sshID = try #require(
-            first.testWorkspaceSession.open(hostID: host.id, kind: .ssh, initialPath: "/private/work"))
-        let commandID = try #require(
-            first.testWorkspaceSession.execute(Snippet(title: "Deploy", body: "echo never-replay"), on: [host.id]).first
-        )
-        _ = try #require(first.testWorkspaceSession.open(hostID: host.id, kind: .sftp, initialPath: "/private/files"))
-        #expect(first.testWorkspaceSession.renameWorkspace(sshID, to: "Release Shell"))
-        let expected = first.workspaces.map(\.descriptor)
-        let historyCount = first.connectionHistory.entries().count
-        let saved = try #require(fixture.defaults.data(forKey: MobileWorkspaceStore.key))
-        #expect(!String(decoding: saved, as: UTF8.self).contains("never-replay"))
-        #expect(!String(decoding: saved, as: UTF8.self).contains("/private"))
-        // Retire process-owned transports without closing the saved entries.
-        for workspace in first.workspaces { workspace.disconnect() }
-
-        let relaunched = try fixture.makeApp()
-        #expect(relaunched.workspaces.isEmpty)
-        #expect(relaunched.testWorkspaceSession.recentWorkspaces == expected)
-        #expect(relaunched.connectionHistory.entries().count == historyCount)
-        let restoredCommand = try #require(relaunched.testWorkspaceSession.openWorkspace(commandID))
-        #expect(restoredCommand.pendingInitialCommand == nil)
-        #expect(restoredCommand.descriptor == expected[1])
-        let newID = try #require(relaunched.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        #expect(relaunched.workspaces.first { $0.id == newID }?.descriptor.title == host.name)
-        relaunched.testWorkspaceSession.closeAll()
-    }
-
-    @Test func selectingRestoredWorkspaceRoutesToItsOwnerAndConnectsOnlyOnce() async throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let original = try fixture.makeApp()
-        let host = try fixture.installHost(in: original)
-        let descriptors = [
-            MobileWorkspaceDescriptor(hostID: host.id, title: "First", kind: .sftp),
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Second", kind: .sftp),
-        ]
-        try fixture.store().save(.init(unassigned: descriptors))
-        let app = try fixture.makeApp()
-        try fixture.installPassword(in: app)
-        defer { app.testWorkspaceSession.closeAll() }
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        let otherScene = MobileSceneModel(app: app, sessionID: "other")
-        app.sceneChanged(scene.id, phase: .active)
-        #expect(fixture.connections.connectCount == 0)
-        #expect(app.connectionHistory.entries().isEmpty)
-
-        scene.open(descriptors[1].destinationURL)
-        scene.activatePendingWorkspace()
-        var activatedOwners: [String] = []
+    @Test func activityFallbackRebuildsWithNewIdentityAndDeduplicatesAcrossScenes() throws {
+        let app = try MobileAppModel(inMemory: true)
+        var host = TermindDomain.Host(name: "Saved", host: "example.invalid")
+        host.sessionPersistence = .init(enabled: true, onConnect: .createManaged)
+        app.library.upsert(host)
+        let source = UUID()
+        let session = WorkspaceActivityAttributes.Session(
+            id: source, title: "Old", kind: "ssh", connected: false,
+            recovery: .init(sourceWorkspaceID: source, hostID: host.id, kind: "ssh"))
+        let first = MobileSceneModel(app: app, sessionID: "first")
+        let second = MobileSceneModel(app: app, sessionID: "second")
+        first.open(session.destinationURL)
+        let rebuilt = try #require(app.workspaces.first)
+        #expect(rebuilt.id != source)
+        #expect(rebuilt.sessionPersistence.requiresSelection)
+        var activated: [UUID] = []
         app.activateWorkspaceSession = { owner, id, _ in
-            activatedOwners.append(owner)
-            scene.open(WorkspaceActivityAttributes.destinationURL(for: id))
+            #expect(owner == "first")
+            activated.append(id)
         }
-        otherScene.open(descriptors[1].destinationURL)
-        otherScene.activatePendingWorkspace()
-        #expect(activatedOwners == ["test"])
-        #expect(otherScene.workspaceSession.workspaces.isEmpty)
-        scene.open(descriptors[1].destinationURL)
-        #expect(await eventually { app.workspaces[0].connected })
-        #expect(fixture.connections.connectCount == 1)
-        #expect(app.workspaces.map(\.descriptor) == [descriptors[1]])
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[0]])
-        #expect(app.connectionHistory.entries().count == 1)
-        #expect(scene.workspaceID == descriptors[1].id)
-        #expect(otherScene.workspaceID == nil)
-
-        app.sceneChanged(otherScene.id, phase: .background)
-        app.sceneChanged(scene.id, phase: .background)
-        fixture.background.expire()
-        app.sceneChanged(scene.id, phase: .active)
-        #expect(await eventually { fixture.connections.connectCount == 2 && app.workspaces[0].connected })
-        #expect(app.workspaces.map(\.descriptor) == [descriptors[1]])
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[0]])
-    }
-
-    @Test func failedFirstOpenRequiresExplicitRetryInsteadOfRetryingOnSelection() async throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Server", kind: .sftp)
-        try fixture.store().save(.init(unassigned: [descriptor]))
-        var attempts = 0
-        var services = fixture.connections.services
-        services.connectSFTP = { _, _, _ in
-            attempts += 1
-            throw SFTPError.notConnected
-        }
-        let app = try fixture.makeApp(services: services)
-        try fixture.installPassword(in: app)
-        defer { app.testWorkspaceSession.closeAll() }
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        scene.open(descriptor.destinationURL)
-        scene.activatePendingWorkspace()
-        #expect(await eventually { attempts == 1 && !app.workspaces[0].busy })
-        scene.selectWorkspace(descriptor.id)
-        scene.selectWorkspace(descriptor.id)
-        #expect(attempts == 1)
-        app.workspaces[0].connect()
-        #expect(await eventually { attempts == 2 && !app.workspaces[0].busy })
-    }
-
-    @Test func closeHostDeletionAndCloseAllRemoveSavedEntries() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let app = try fixture.makeApp()
-        let host = try fixture.installHost(in: app)
-        let otherHost = TermindDomain.Host(name: "Other", host: "other.invalid")
-        app.library.upsert(otherHost)
-        let closedID = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .sftp))
-        let remainingID = try #require(app.testWorkspaceSession.open(hostID: otherHost.id, kind: .ssh))
-        app.testWorkspaceSession.close(closedID)
-        #expect(try !fixture.store().load().sessions["test", default: []].contains { $0.id == closedID })
-        app.deleteHost(host.id)
-        #expect(try fixture.store().load().sessions["test", default: []].map(\.id) == [remainingID])
-        let relaunched = try fixture.makeApp()
-        #expect(relaunched.workspaces.isEmpty)
-        #expect(relaunched.testWorkspaceSession.recentWorkspaces.map(\.id) == [remainingID])
-        let history = relaunched.connectionHistory.entries()
-        #expect(MobileSceneModel(app: relaunched, sessionID: "test").canCloseAllWorkspaces)
-        relaunched.testWorkspaceSession.closeAll()
-        #expect(relaunched.connectionHistory.entries() == history)
-        #expect(try fixture.store().load().sessions["test", default: []].isEmpty)
-        #expect(try fixture.makeApp().workspaces.isEmpty)
-        for workspace in app.workspaces { workspace.disconnect() }
-    }
-
-    @Test func normalSSHExitRemovesSavedEntry() async throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let app = try fixture.makeApp()
-        let host = try fixture.installHost(in: app)
-        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        defer { app.testWorkspaceSession.closeAll() }
-        #expect(await eventually { app.workspaces.first?.connected == true })
-        let exit = try #require(fixture.connections.sshExitHandlers.first)
-        exit(.success(23))
-        #expect(await eventually { app.workspaces.isEmpty })
-        #expect(try fixture.store().load().sessions["test", default: []].isEmpty)
-        #expect(try fixture.makeApp().workspaces.isEmpty)
-    }
-
-    @Test func missingHostsArePrunedWithoutRecreatingThem() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let valid = MobileWorkspaceDescriptor(hostID: host.id, title: "Present", kind: .ssh)
-        let missing = MobileWorkspaceDescriptor(hostID: UUID(), title: "Removed", kind: .ssh)
-        try fixture.store().save(.init(unassigned: [missing, valid]))
-        let app = try fixture.makeApp()
-        #expect(app.workspaces.isEmpty)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [valid])
-        #expect(try fixture.store().load().sessions["test", default: []] == [valid])
+        second.open(session.destinationURL)
+        first.open(session.destinationURL)
+        #expect(app.workspaces.count == 1)
+        #expect(activated == [rebuilt.id])
         app.testWorkspaceSession.closeAll()
+        first.workspaceSession.closeAll()
     }
 
-    @Test(arguments: [Data("broken".utf8), Data(#"{"version":99,"workspaces":[]}"#.utf8)])
-    func unreadableSnapshotSurvivesStartupAndLaterMutations(data: Data) throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        fixture.defaults.set(data, forKey: MobileWorkspaceStore.key)
-        let app = try fixture.makeApp()
-        #expect(app.workspaces.isEmpty)
-        #expect(app.error != nil)
-        let host = try fixture.installHost(in: app)
-        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        app.testWorkspaceSession.closeAll()
-        #expect(fixture.defaults.data(forKey: MobileWorkspaceStore.key) == data)
-    }
-
-    @Test func staleAndAggregateLinksDoNotRestoreAnyWorkspaces() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Server", kind: .ssh)
-        try fixture.store().save(.init(unassigned: [descriptor]))
-        let app = try fixture.makeApp()
-        defer { app.testWorkspaceSession.closeAll() }
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        scene.open(WorkspaceActivityAttributes.destinationURL(for: UUID()))
-        scene.activatePendingWorkspace()
-        #expect(scene.selectedDestination == .workspaces)
-        #expect(scene.workspaceID == nil)
+    @Test func oldAndDeletedHostLinksCannotGuessAConnection() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app, sessionID: "first")
+        let source = UUID()
+        scene.open(WorkspaceActivityAttributes.destinationURL(for: source))
         #expect(scene.isWorkspaceUnavailable)
-        scene.open(WorkspaceActivityAttributes.destinationURL)
-        scene.activatePendingWorkspace()
-        #expect(scene.workspaceID == nil)
-        #expect(!scene.isWorkspaceUnavailable)
-        #expect(app.workspaces.isEmpty)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptor])
-        #expect(app.connectionHistory.entries().isEmpty)
-
-        scene.selectedDestination = .vault
-        scene.open(descriptor.destinationURL)
-        scene.open(WorkspaceActivityAttributes.destinationURL)
-        scene.activatePendingWorkspace()
-        #expect(scene.workspaceID == nil)
-        #expect(app.workspaces.map(\.id) == [descriptor.id])
-        #expect(app.connectionHistory.entries().count == 1)
-        app.testWorkspaceSession.close(descriptor.id)
-        scene.selectWorkspace(descriptor.id)
+        let session = WorkspaceActivityAttributes.Session(
+            id: source, title: "Deleted", kind: "ssh", connected: false,
+            recovery: .init(sourceWorkspaceID: source, hostID: UUID(), kind: "ssh"))
+        scene.open(session.destinationURL)
         #expect(scene.isWorkspaceUnavailable)
-    }
-
-    @Test func mutationsPreserveRecentEntriesAndTheirOrderAcrossLaunches() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let descriptors = (0..<3).map {
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh)
-        }
-        try fixture.store().save(.init(unassigned: descriptors))
-        let app = try fixture.makeApp()
-        let restored = try #require(app.testWorkspaceSession.openWorkspace(descriptors[1].id))
-        #expect(restored.descriptor == descriptors[1])
-        #expect(app.testWorkspaceSession.renameWorkspace(restored.id, to: "Renamed"))
-        let created = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        #expect(app.workspaces.last?.descriptor.title == host.name)
-        app.testWorkspaceSession.close(descriptors[0].id)
-        app.testWorkspaceSession.close(created)
-        let expected = [restored.descriptor, descriptors[2]]
-        #expect(try fixture.store().load().sessions["test", default: []] == expected)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[2]])
-        let relaunched = try fixture.makeApp()
-        #expect(relaunched.testWorkspaceSession.recentWorkspaces == expected)
-        let replacement = try #require(relaunched.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        #expect(relaunched.workspaces.first?.descriptor.title == host.name)
-        relaunched.testWorkspaceSession.close(replacement)
-        app.testWorkspaceSession.closeAll()
-    }
-
-    @Test(arguments: [false, true])
-    func hostDeletionRemovesBothCurrentAndUnopenedEntries(remote: Bool) throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let other = TermindDomain.Host(name: "Other", host: "other.invalid")
-        seed.library.upsert(other)
-        let descriptors = [
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Open", kind: .ssh),
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Recent", kind: .sftp),
-            MobileWorkspaceDescriptor(hostID: other.id, title: "Retained", kind: .ssh),
-        ]
-        try fixture.store().save(.init(unassigned: descriptors))
-        let app = try fixture.makeApp()
-        _ = try #require(app.testWorkspaceSession.openWorkspace(descriptors[0].id))
-        if remote {
-            app.applyRemoteVault(.init(hosts: [other]), keys: [VaultRecordKey(kind: .host, id: host.id)])
-        } else {
-            app.deleteHost(host.id)
-        }
         #expect(app.workspaces.isEmpty)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[2]])
-        #expect(try fixture.store().load().sessions["test", default: []] == [descriptors[2]])
-        app.testWorkspaceSession.closeAll()
     }
 
-    @Test func legacyMigrationAllowsCreateRenameCloseAndRelaunch() throws {
-        let fixture = try Fixture()
-        defer { fixture.cleanUp() }
-        let seed = try fixture.makeApp()
-        let host = try fixture.installHost(in: seed)
-        let id = UUID()
-        let legacy = """
-            [{"id":"\(id)","hostID":"\(host.id)","title":"Original","kind":"ssh"}]
-            """
-        fixture.defaults.set(Data(legacy.utf8), forKey: MobileWorkspaceStore.key)
-        let app = try fixture.makeApp()
-        #expect(app.error == nil)
-        #expect(app.testWorkspaceSession.recentWorkspaces.map(\.id) == [id])
-        _ = try #require(app.testWorkspaceSession.openWorkspace(id))
-        #expect(app.testWorkspaceSession.renameWorkspace(id, to: "Renamed"))
-        let created = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        app.testWorkspaceSession.close(created)
-        let relaunched = try fixture.makeApp()
-        #expect(relaunched.error == nil)
-        #expect(relaunched.testWorkspaceSession.recentWorkspaces.map(\.title) == ["Renamed"])
-        #expect(relaunched.testWorkspaceSession.recentWorkspaces.map(\.id) == [id])
-        relaunched.testWorkspaceSession.closeAll()
-        #expect(try fixture.makeApp().testWorkspaceSession.recentWorkspaces.isEmpty)
-        for workspace in app.workspaces { workspace.disconnect() }
-    }
-
-    private func eventually(_ condition: () -> Bool) async -> Bool {
-        for _ in 0..<100 {
-            if condition() { return true }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return condition()
-    }
-
-    private final class Fixture {
-        let suiteName = "termind.workspace-restoration-tests.\(UUID().uuidString)"
-        let defaults: UserDefaults
-        let container: ModelContainer
-        let identity = Identity(name: "Deploy", username: "deploy")
-        let background = MobileTestBackgroundTaskManager()
-        let connections = MobileSFTPConnectionBox(
-            clients: [MobileTestSFTPClient(), MobileTestSFTPClient(), MobileTestSFTPClient()])
-
-        init() throws {
-            defaults = try #require(UserDefaults(suiteName: suiteName))
-            container = try TermindPersistence.makeContainer(inMemory: true)
-        }
-
-        func store() -> MobileWorkspaceStore { MobileWorkspaceStore(defaults: defaults) }
-        func cleanUp() { defaults.removePersistentDomain(forName: suiteName) }
-
-        func makeApp(services: MobileWorkspaceConnectionServices? = nil) throws -> MobileAppModel {
-            var dependencies = MobileAppDependencies.testing(
-                background: background, workspaceConnections: services ?? connections.services)
-            dependencies.container = container
-            dependencies.workspaceStore = store()
-            return try MobileAppModel(dependencies: dependencies)
-        }
-
-        func installHost(in app: MobileAppModel) throws -> TermindDomain.Host {
-            var host = TermindDomain.Host(name: "Server", host: "example.invalid")
-            host.identityID = identity.id
-            try installPassword(in: app)
-            app.library.upsert(host)
-            app.library.trust(
-                KnownHostEntry(
-                    hostname: host.host, port: host.port, algorithm: .ed25519,
-                    fingerprint: "SHA256:test"))
-            return host
-        }
-
-        func installPassword(in app: MobileAppModel) throws {
-            try app.library.upsert(identity, passwordUpdate: .replace("test-only"))
+    @Test func unsupportedAndCommandBearingActivityLinksShowAnErrorWithoutRebuilding() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Saved", host: "example.invalid")
+        app.library.upsert(host)
+        let scene = MobileSceneModel(app: app, sessionID: "first")
+        let source = UUID()
+        for query in [
+            "v=2&host=\(host.id)&kind=ssh",
+            "v=1&host=\(host.id)&kind=ssh&command=ls",
+            "v=1&host=\(host.id)&kind=unknown",
+        ] {
+            scene.isWorkspaceUnavailable = false
+            scene.open(try #require(URL(string: "termind://workspace/\(source)?\(query)")))
+            #expect(scene.isWorkspaceUnavailable)
+            #expect(app.workspaces.isEmpty)
         }
     }
 }

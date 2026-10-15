@@ -7,8 +7,13 @@ protocol MobileWorkspaceActivity {
     var id: String { get }
     var state: ActivityState { get }
     var focusedWorkspaceID: UUID? { get }
+    var contentState: WorkspaceActivityAttributes.ContentState? { get }
     func update(_ state: WorkspaceActivityAttributes.ContentState) async
     func end() async
+}
+
+extension MobileWorkspaceActivity {
+    var contentState: WorkspaceActivityAttributes.ContentState? { nil }
 }
 
 @MainActor
@@ -39,6 +44,7 @@ private struct WorkspaceActivity: MobileWorkspaceActivity {
     var id: String { activity.id }
     var state: ActivityState { activity.activityState }
     var focusedWorkspaceID: UUID? { activity.content.state.focusedWorkspaceID }
+    var contentState: WorkspaceActivityAttributes.ContentState? { activity.content.state }
 
     func update(_ state: WorkspaceActivityAttributes.ContentState) async {
         await activity.update(ActivityContent(state: state, staleDate: Date.now.addingTimeInterval(60)))

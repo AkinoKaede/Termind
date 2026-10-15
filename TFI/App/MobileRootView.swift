@@ -26,6 +26,10 @@ struct MobileRootView: View {
     }
 
     var body: some View {
+        content.overlay { RemoteSessionClosePromptView(coordinator: app.persistentClose) }
+    }
+
+    private var content: some View {
         featureTabs
             .background { MobileWorkspaceNumberShortcuts(scene: scene) }
             .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))

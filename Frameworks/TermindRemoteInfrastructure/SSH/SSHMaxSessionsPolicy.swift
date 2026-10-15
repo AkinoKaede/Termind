@@ -95,6 +95,17 @@ nonisolated final class SSHChannelBudget: @unchecked Sendable {
 
     init(maximum: Int) { self.maximum = maximum }
 
+    var permitsConcurrentControl: Bool { lock.withLock { !closed && maximum > 1 } }
+
+    /// Runtime observations must not wait behind a long-lived terminal channel.
+    func tryAcquire() -> SSHChannelLease? {
+        lock.withLock {
+            guard !closed, active < maximum, waiters.isEmpty else { return nil }
+            active += 1
+            return SSHChannelLease(budget: self)
+        }
+    }
+
     func acquire(cancellation: TransferCancellationToken? = nil) async throws -> SSHChannelLease {
         if cancellation?.isCancelled == true { throw CancellationError() }
         let id = UUID()

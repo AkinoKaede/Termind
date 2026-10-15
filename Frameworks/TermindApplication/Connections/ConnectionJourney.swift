@@ -359,6 +359,15 @@ public final class ConnectionJourney {
         )
     }
 
+    public func waitForSessionSelection() {
+        guard phase == .connecting || phase == .waiting, !endpoints.isEmpty else { return }
+        checkpoint = nil
+        localRequirement = nil
+        localRequirementEndpointIndex = nil
+        activeEndpointIndex = endpoints.count - 1
+        phase = .waiting
+    }
+
     public func resume() {
         guard phase == .waiting else { return }
         phase = .connecting

@@ -35,6 +35,8 @@ public final class TerminalCommandMonitor {
     private var active = false
     private var usesShellIntegration = false
     private var running: (command: String, started: TimeInterval)?
+    private var contextualRunning: [TerminalContextIdentity: (command: String, started: TimeInterval)] = [:]
+    private var acceptsUnscopedCompletion = true
 
     public init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         self.now = now
@@ -44,12 +46,15 @@ public final class TerminalCommandMonitor {
         active = true
         usesShellIntegration = false
         running = nil
+        contextualRunning.removeAll()
+        acceptsUnscopedCompletion = true
     }
 
     public func endConnection() {
         active = false
         running = nil
         usesShellIntegration = false
+        contextualRunning.removeAll()
     }
 
     public func markRead() { unreadCompletionCount = 0 }
@@ -74,8 +79,30 @@ public final class TerminalCommandMonitor {
     }
 
     public func receiveOSC133(exitCode: Int?, durationNanos: UInt64) {
-        guard active, !usesShellIntegration else { return }
+        guard active, acceptsUnscopedCompletion, !usesShellIntegration else { return }
         complete(.init(exitCode: exitCode, duration: Double(durationNanos) / 1_000_000_000))
+    }
+
+    public func requireScopedEvents() {
+        acceptsUnscopedCompletion = false
+    }
+
+    public func receiveRuntimeEvents(_ events: [TerminalContextEvent]) {
+        guard active else { return }
+        acceptsUnscopedCompletion = false
+        for event in events {
+            switch event.payload {
+            case .commandStarted(let command):
+                contextualRunning[event.context] = (command, now())
+            case .commandFinished(let status, let reported):
+                guard let command = contextualRunning.removeValue(forKey: event.context) else { continue }
+                let duration =
+                    reported.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+                    ?? max(0, now() - command.started)
+                complete(.init(command: command.command, exitCode: Int(status), duration: duration))
+            default: break
+            }
+        }
     }
 
     private func complete(_ completion: TerminalCommandCompletion) {

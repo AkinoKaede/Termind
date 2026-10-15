@@ -12,6 +12,8 @@ final class MobileLiveActivityController {
     private let services: MobileLiveActivityServices
     private var focusedWorkspaceID: UUID?
     private var pendingStart = false
+    private var retainedSessions: [WorkspaceActivityAttributes.Session] = []
+    private var removedWorkspaceIDs: Set<UUID> = []
 
     init(enabled: Bool = true, services: MobileLiveActivityServices = .live) {
         self.enabled = enabled
@@ -20,6 +22,12 @@ final class MobileLiveActivityController {
             let restored = services.activities()
             activity = restored.first { $0.state == .active || $0.state == .stale }
             focusedWorkspaceID = activity?.focusedWorkspaceID
+            retainedSessions = (activity?.contentState?.sessions ?? []).compactMap { session in
+                guard session.recovery?.version == 1 else { return nil }
+                var disconnected = session
+                disconnected.connected = false
+                return disconnected
+            }
             let retainedID = activity?.id
             updates = Task {
                 for duplicate in restored where duplicate.id != retainedID {
@@ -27,6 +35,19 @@ final class MobileLiveActivityController {
                 }
             }
         }
+    }
+
+    func recovery(for id: UUID) -> WorkspaceActivityAttributes.Recovery? {
+        guard !removedWorkspaceIDs.contains(id) else { return nil }
+        guard activity?.state == .active || activity?.state == .stale else { return nil }
+        return retainedSessions.first(where: { $0.id == id })?.recovery
+            ?? activity?.contentState?.sessions.first(where: { $0.id == id })?.recovery
+    }
+
+    func remove(_ id: UUID) {
+        // ActivityKit updates are asynchronous; never recover from its stale content after an explicit close.
+        removedWorkspaceIDs.insert(id)
+        retainedSessions.removeAll { $0.id == id }
     }
 
     func focus(_ id: UUID, in sessions: [WorkspaceActivityAttributes.Session]) {
@@ -41,8 +62,10 @@ final class MobileLiveActivityController {
 
     private func schedule(_ sessions: [WorkspaceActivityAttributes.Session], mayStart: Bool) {
         guard enabled else { return }
+        let liveIDs = Set(sessions.map(\.id))
+        retainedSessions.removeAll { liveIDs.contains($0.id) }
         let state = WorkspaceActivityAttributes.ContentState.snapshot(
-            sessions, focusedID: focusedWorkspaceID)
+            sessions + retainedSessions, focusedID: focusedWorkspaceID)
         let previous = updates
         updates = Task { [weak self] in
             await previous?.value

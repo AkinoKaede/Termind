@@ -1014,7 +1014,7 @@ final class AppModel {
         speechTranscription.cancelAll()
         let liveWindows = windows.values.compactMap(\.value)
         windows.removeAll()
-        for window in liveWindows { window.closeAll() }
+        for window in liveWindows { window.closeAll(intent: .applicationTermination) }
         sftpTransfers.cancelAll()
         externalAuthentication.cancelAll()
         forwarding.stopAll()

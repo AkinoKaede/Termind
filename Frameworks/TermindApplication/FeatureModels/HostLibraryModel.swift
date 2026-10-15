@@ -2503,6 +2503,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host.colorTag = preferences.colorTag
                 host.sshCharset = preferences.charset
                 host.sftpChannelInitialPath = preferences.sftpInitialPath
+                host.sessionPersistence = preferences.sessionPersistence
                 host.shellIntegrationMode = preferences.shellIntegrationMode
                 host.startupSnippetID = preferences.startupSnippetID
                 host.environmentVariables = preferences.environmentVariables
@@ -2530,6 +2531,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         preferences.colorTag = host.colorTag
         preferences.charset = host.sshCharset
         preferences.sftpInitialPath = host.sftpChannelInitialPath
+        preferences.sessionPersistence = host.sessionPersistence
         preferences.shellIntegrationMode = host.shellIntegrationMode
         preferences.startupSnippetID = host.startupSnippetID
         preferences.environmentVariables = host.environmentVariables

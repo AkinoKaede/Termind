@@ -3,21 +3,117 @@ import TermindDomain
 
 /// V3 preserves group-scoped Tailscale identities and keys whose algorithm is not yet known.
 nonisolated enum VaultWireV3 {
+    struct TailscalePreferences: Codable {
+        var tags: [String]
+        var colorTag: TermindDomain.TagColor
+        var detectedDistribution: DetectedDistribution?
+        var username: String
+        var charset: RemoteCharset
+        var sftpInitialPath: String
+        var shellIntegrationMode: HostShellIntegrationMode
+        var startupSnippetID: UUID?
+        var environmentVariables: [HostEnvironmentVariable]
+
+        init(_ value: TermindDomain.TailscaleHostPreferences) {
+            tags = value.tags
+            colorTag = value.colorTag
+            detectedDistribution = value.detectedDistribution
+            username = value.username
+            charset = value.charset
+            sftpInitialPath = value.sftpInitialPath
+            shellIntegrationMode = value.shellIntegrationMode
+            startupSnippetID = value.startupSnippetID
+            environmentVariables = value.environmentVariables
+        }
+        private enum CodingKeys: String, CodingKey {
+            case tags, colorTag, detectedDistribution, username, charset, sftpInitialPath
+            case shellIntegrationMode, startupSnippetID, environmentVariables
+        }
+        init(from decoder: any Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            tags = try values.decodeIfPresent([String].self, forKey: .tags) ?? []
+            colorTag = try values.decodeIfPresent(TermindDomain.TagColor.self, forKey: .colorTag) ?? .none
+            detectedDistribution = try values.decodeIfPresent(DetectedDistribution.self, forKey: .detectedDistribution)
+            username = try values.decode(String.self, forKey: .username)
+            charset = try values.decode(RemoteCharset.self, forKey: .charset)
+            sftpInitialPath = try values.decode(String.self, forKey: .sftpInitialPath)
+            shellIntegrationMode = try values.decode(HostShellIntegrationMode.self, forKey: .shellIntegrationMode)
+            startupSnippetID = try values.decodeIfPresent(UUID.self, forKey: .startupSnippetID)
+            environmentVariables = try values.decode([HostEnvironmentVariable].self, forKey: .environmentVariables)
+        }
+        var domainValue: TermindDomain.TailscaleHostPreferences {
+            var value = TermindDomain.TailscaleHostPreferences()
+            value.sessionPersistence = .init(enabled: false)
+            value.tags = tags
+            value.colorTag = colorTag
+            value.detectedDistribution = detectedDistribution
+            value.username = username
+            value.charset = charset
+            value.sftpInitialPath = sftpInitialPath
+            value.shellIntegrationMode = shellIntegrationMode
+            value.startupSnippetID = startupSnippetID
+            value.environmentVariables = environmentVariables
+            return value
+        }
+    }
+    struct TailscaleConfiguration: Codable {
+        var network: TailscaleNetwork
+        var hostIdentityVersion: TailscaleGroupConfiguration.HostIdentityVersion
+        var username: String
+        var exitNodeID: String?
+        var hostPreferences: [String: TailscalePreferences]
+        init(_ value: TailscaleGroupConfiguration) {
+            network = value.network
+            hostIdentityVersion = value.hostIdentityVersion
+            username = value.username
+            exitNodeID = value.exitNodeID
+            hostPreferences = Dictionary(
+                uniqueKeysWithValues: value.hostPreferences.map {
+                    ($0.key.uuidString.lowercased(), TailscalePreferences($0.value))
+                })
+        }
+        private enum CodingKeys: String, CodingKey {
+            case network, hostIdentityVersion, username, exitNodeID, hostPreferences
+        }
+        init(from decoder: any Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            network = try values.decode(TailscaleNetwork.self, forKey: .network)
+            hostIdentityVersion = try values.decode(
+                TailscaleGroupConfiguration.HostIdentityVersion.self, forKey: .hostIdentityVersion)
+            username = try values.decode(String.self, forKey: .username)
+            exitNodeID = try values.decodeIfPresent(String.self, forKey: .exitNodeID)
+            hostPreferences = try values.decode([String: TailscalePreferences].self, forKey: .hostPreferences)
+            guard hostPreferences.keys.allSatisfy({ UUID(uuidString: $0)?.uuidString.lowercased() == $0 }) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .hostPreferences, in: values, debugDescription: "Invalid host identifier")
+            }
+        }
+        var domainValue: TailscaleGroupConfiguration {
+            var value = TailscaleGroupConfiguration(network: network, hostIdentityVersion: hostIdentityVersion)
+            value.username = username
+            value.exitNodeID = exitNodeID
+            value.hostPreferences = Dictionary(
+                uniqueKeysWithValues: hostPreferences.compactMap { key, value in
+                    UUID(uuidString: key).map { ($0, value.domainValue) }
+                })
+            return value
+        }
+    }
     struct HostGroup: Codable {
         var base: VaultWireV1.HostGroup
-        var tailscale: TailscaleGroupConfiguration?
+        var tailscale: TailscaleConfiguration?
 
         enum CodingKeys: String, CodingKey { case tailscale }
 
         init(_ value: TermindDomain.HostGroup) {
             base = VaultWireV1.HostGroup(value)
-            tailscale = value.tailscale
+            tailscale = value.tailscale.map(TailscaleConfiguration.init)
         }
 
         init(from decoder: any Decoder) throws {
             base = try VaultWireV1.HostGroup(from: decoder)
             let values = try decoder.container(keyedBy: CodingKeys.self)
-            tailscale = try values.decode(TailscaleGroupConfiguration?.self, forKey: .tailscale)
+            tailscale = try values.decode(TailscaleConfiguration?.self, forKey: .tailscale)
         }
 
         func encode(to encoder: any Encoder) throws {
@@ -28,7 +124,7 @@ nonisolated enum VaultWireV3 {
 
         var domainValue: TermindDomain.HostGroup {
             var value = base.domainValue
-            value.tailscale = tailscale
+            value.tailscale = tailscale?.domainValue
             return value
         }
     }

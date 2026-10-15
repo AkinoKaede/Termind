@@ -1,6 +1,14 @@
 import Foundation
 import TermindApplication
 
+extension AppStrings.SessionPersistence {
+    public static func details(windows: Int, clients: Int, locale: Locale) -> String {
+        let windows = AppLocalization.resolve(Self.windows(windows), locale: locale)
+        let clients = AppLocalization.resolve(Self.clients(clients), locale: locale)
+        return AppLocalization.resolve(counts(windows: windows, clients: clients), locale: locale)
+    }
+}
+
 extension AppStrings.Vault {
     public static func groupDeletionMessage(
         hostCount: Int, nestedGroupCount: Int, locale: Locale

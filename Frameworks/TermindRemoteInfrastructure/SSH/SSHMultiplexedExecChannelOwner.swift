@@ -107,7 +107,7 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
     private var agentRequestOwner: UUID?
 
     private final class SSHExecChannel: @unchecked Sendable {
-        enum Phase { case opening, forwarding, starting, running, closing, freeing }
+        enum Phase { case opening, forwarding, starting, running, closing, waitingForClose, freeing }
 
         let id = UUID()
         let command: StableCString
@@ -135,10 +135,13 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
         var signal: String?
         var started = false
         var completed = false
+        let retriesChannelOpen: Bool
+        let validateContext: @Sendable () -> Bool
+        var nextOpenAttempt: ContinuousClock.Instant?
 
         init(
             command: String, workingDirectory: String?, stdin: SSHCommandInput?, charset: RemoteCharset,
-            usesLoginShell: Bool,
+            usesLoginShell: Bool, retriesChannelOpen: Bool, validateContext: @escaping @Sendable () -> Bool,
             timeout: TimeInterval,
             outputLimit: Int, cancellation: TransferCancellationToken,
             onOutput: SSHExecOutputHandler?, channelLease: SSHChannelLease,
@@ -154,6 +157,8 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
             self.command = StableCString(
                 try RemoteCharsetStreamConverter.encode(effective, charset: charset))
             self.charset = charset
+            self.retriesChannelOpen = retriesChannelOpen
+            self.validateContext = validateContext
             stdoutDecoder = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
             stderrDecoder = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
             self.cancellation = cancellation
@@ -174,7 +179,10 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
     func execute(
         _ command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
         outputLimit: Int, cancellation: TransferCancellationToken, onOutput: SSHExecOutputHandler?,
-        usesLoginShell: Bool = true
+        usesLoginShell: Bool = true,
+        retriesChannelOpen: Bool = false,
+        requiresImmediateCapacity: Bool = false,
+        validateContext: @escaping @Sendable () -> Bool = { true }
     ) async throws -> SSHExecResult {
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw TermindSSHError.library("The command is empty.")
@@ -188,13 +196,29 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
         }
         logger.debug("ssh.exec.started", metadata: metadata)
         do {
-            guard let channelBudget = try await queue.perform({ self.context()?.channelBudget }) else {
+            guard
+                let channelBudget = try await queue.perform({
+                    guard validateContext() else { throw CancellationError() }
+                    return self.context()?.channelBudget
+                })
+            else {
                 throw SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected)
             }
-            let channelLease = try await channelBudget.acquire(cancellation: cancellation)
+            let channelLease: SSHChannelLease
+            if requiresImmediateCapacity {
+                guard let lease = channelBudget.tryAcquire() else { throw TerminalRuntimeError.capacityUnavailable }
+                channelLease = lease
+            } else {
+                channelLease = try await channelBudget.acquire(cancellation: cancellation)
+            }
             let result = try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<SSHExecResult, any Error>) in
                 queue.async { [self] in
+                    guard validateContext() else {
+                        channelLease.release()
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
                     guard self.context() != nil, self.context()?.channelBudget === channelBudget else {
                         channelLease.release()
                         continuation.resume(
@@ -205,7 +229,8 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
                     do {
                         context = try SSHExecChannel(
                             command: command, workingDirectory: workingDirectory, stdin: stdin, charset: charset,
-                            usesLoginShell: usesLoginShell,
+                            usesLoginShell: usesLoginShell, retriesChannelOpen: retriesChannelOpen,
+                            validateContext: validateContext,
                             timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
                             onOutput: onOutput, channelLease: channelLease, continuation: continuation)
                     } catch {
@@ -245,6 +270,7 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
             finish(command, throwing: cancellationError(for: command)!)
             return true
         }
+        if let next = command.nextOpenAttempt, ContinuousClock.now < next { return false }
         guard
             let execChannel = libssh2_channel_open_ex(
                 session, "session", 7, 2 * 1_024 * 1_024, 32 * 1_024, nil, 0)
@@ -252,6 +278,13 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
             let code = libssh2_session_last_errno(session)
             if code == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
+                return false
+            }
+            if code == LIBSSH2_ERROR_CHANNEL_FAILURE, command.retriesChannelOpen {
+                // OpenSSH may acknowledge CLOSE before reaping its child/session slot.
+                // Only retry OPEN: no exec request has been sent, so commands cannot replay.
+                command.nextOpenAttempt = ContinuousClock.now.advanced(by: .milliseconds(50))
+                queue.asyncAfter(deadline: .now() + .milliseconds(50)) { [weak self] in self?.schedulePump() }
                 return false
             }
             opening = nil
@@ -343,6 +376,16 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
             return advanceRunning(command, execChannel: execChannel, session: session, deadline: deadline)
         case .closing:
             let result = libssh2_channel_close(execChannel)
+            if result == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+                return false
+            }
+            command.phase = result == 0 ? .waitingForClose : .freeing
+            ready.insert(command.id)
+            return true
+        case .waitingForClose:
+            // wait_closed requires EOF; cancellation may close a still-running channel.
+            let result = libssh2_channel_eof(execChannel) == 1 ? libssh2_channel_wait_closed(execChannel) : 0
             if result == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
                 return false
@@ -499,7 +542,7 @@ nonisolated final class SSHMultiplexedExecChannelOwner: @unchecked Sendable {
     }
 
     private func cancellationError(for command: SSHExecChannel) -> (any Error)? {
-        if command.cancellation.isCancelled { return CancellationError() }
+        if command.cancellation.isCancelled || !command.validateContext() { return CancellationError() }
         if ContinuousClock.now >= command.deadline {
             return TermindSSHError.library("The remote command timed out.")
         }

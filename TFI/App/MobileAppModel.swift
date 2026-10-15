@@ -133,14 +133,14 @@ final class MobileAppModel {
     private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
     let workspaceConnectionServices: MobileWorkspaceConnectionServices
-    private let workspaceStore: MobileWorkspaceStore
-    private var workspaceSnapshot = MobileWorkspaceStore.Snapshot()
-    private var hasBoundWorkspaceSession = false
+    let recentlyClosedStore = RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>>(
+        defaults: nil, key: "mobile.recentlyClosed.v2")
     private var orphanedSessionIDs: Set<String> = []
     // Disconnect and discard are separate UIKit callbacks. A later explicit discard must still close
     // precisely the workspaces recovered from that window, even if another window already received them.
     private var recoveredWorkspaceIDs: [String: Set<UUID>] = [:]
     private var discardedSessionIDs: Set<String> = []
+    private var activityRebuilds: [UUID: UUID] = [:]
     var closedWorkspaceStates: [UUID: [MobileWorkspace.ReopenState]] = [:]
     var pendingClosedWindows: Set<UUID> = []
     var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void
@@ -184,9 +184,7 @@ final class MobileAppModel {
         openWorkspaceSessionIDs = dependencies.openWorkspaceSessionIDs
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
-        workspaceStore =
-            dependencies.workspaceStore
-            ?? MobileWorkspaceStore(defaults: inMemory || hosts != nil ? nil : defaults)
+        MobileWorkspaceStore.retire(in: defaults ?? .standard)
         appReview = dependencies.appReview
         diagnosis = dependencies.diagnosis
         logging = dependencies.logging
@@ -434,7 +432,6 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
-        loadRecentWorkspaces()
     }
 
     private func reconcileConnectionPreferences() {
@@ -474,11 +471,6 @@ final class MobileAppModel {
                 session.close(item.id, rememberForReopen: false)
             }
         }
-        workspaceSnapshot.unassigned.removeAll { $0.hostID == hostID }
-        for id in workspaceSnapshot.sessions.keys {
-            workspaceSnapshot.sessions[id]?.removeAll { $0.hostID == hostID }
-        }
-        persistWorkspaceSnapshot()
     }
 
     @discardableResult
@@ -560,16 +552,6 @@ final class MobileAppModel {
         guard !target.isDiscarded else { return }
         for source in workspaceSessions where orphanedSessionIDs.contains(source.id) {
             let recovery = source.recovery
-            var snapshot = workspaceSnapshot
-            snapshot.sessions[source.id] = nil
-            snapshot.sessions[target.id] = target.savedWorkspaceDescriptors + recovery.descriptors
-            do {
-                try workspaceStore.save(snapshot)
-                workspaceSnapshot = snapshot
-            } catch {
-                self.error = String(localized: AppStrings.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
-                continue
-            }
             recoveredWorkspaceIDs[source.id, default: []].formUnion(recovery.order)
             source.releaseForRecovery()
             target.acceptRecovery(recovery)
@@ -705,26 +687,7 @@ final class MobileAppModel {
 
     func workspaceSession(for id: String) -> MobileWorkspaceSessionModel {
         if let session = workspaceSessions.first(where: { $0.id == id }) { return session }
-        var descriptors = workspaceSnapshot.sessions[id] ?? []
-        if !hasBoundWorkspaceSession, !discardedSessionIDs.contains(id) {
-            // A new process starts with one workspace window, even if UIKit restores several old scenes.
-            // Keep records until ownership and the full consolidation can be saved together.
-            var migrated = workspaceSnapshot
-            descriptors = migrated.unassigned + migrated.sessions.keys.sorted().flatMap { migrated.sessions[$0] ?? [] }
-            migrated.unassigned = []
-            migrated.sessions = [id: descriptors]
-            do {
-                try workspaceStore.save(migrated)
-                workspaceSnapshot = migrated
-                hasBoundWorkspaceSession = true
-            } catch {
-                // Fence this launch too: another window must not claim the same recovery records.
-                hasBoundWorkspaceSession = true
-                descriptors = []
-                self.error = String(localized: AppStrings.Workspace.restoreWorkspacesFailure)
-            }
-        }
-        let session = MobileWorkspaceSessionModel(id: id, app: self, descriptors: descriptors)
+        let session = MobileWorkspaceSessionModel(id: id, app: self, descriptors: [])
         workspaceSessions.append(session)
         if discardedSessionIDs.contains(id) { session.discard() }
         return session
@@ -735,11 +698,41 @@ final class MobileAppModel {
         {
             return session.id
         }
-        return workspaceSnapshot.sessions.first(where: { $0.value.contains { $0.id == workspaceID } })?.key
+        return nil
     }
 
-    func discardWorkspaceSessions(_ ids: Set<String>) {
+    /// Main-actor publication happens before authentication, merging concurrent scene/link deliveries.
+    func rebuildActivityWorkspace(from url: URL, into session: MobileWorkspaceSessionModel) -> UUID? {
+        guard let source = WorkspaceActivityAttributes.workspaceID(from: url) else { return nil }
+        if containsWorkspace(source) { return source }
+        if let rebuilt = activityRebuilds[source], containsWorkspace(rebuilt) { return rebuilt }
+        let fallback = WorkspaceActivityAttributes.recovery(from: url)
+        guard let recovery = liveActivities.recovery(for: source) ?? fallback,
+            recovery.version == 1, recovery.sourceWorkspaceID == source,
+            fallback == nil || (fallback?.hostID == recovery.hostID && fallback?.kind == recovery.kind),
+            let id = session.rebuild(recovery)
+        else { return nil }
+        activityRebuilds[source] = id
+        liveActivities.remove(source)
+        liveActivities.update(workspaceActivitySessions)
+        return id
+    }
+
+    func discardWorkspaceSessions(_ ids: Set<String>, authorized: Bool = false) {
         guard !ids.isEmpty else { return }
+        let recovered = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
+        let targets = workspaceSessions.flatMap { session in
+            session.workspaces.filter { ids.contains(session.id) || recovered.contains($0.id) }
+        }
+        if !authorized,
+            deferPersistentClose(
+                targets,
+                action: { [weak self] in
+                    self?.discardWorkspaceSessions(ids, authorized: true)
+                })
+        {
+            return
+        }
         discardedSessionIDs.formUnion(ids)
         orphanedSessionIDs.subtract(ids)
         for id in Array(sceneSessionIDs.keys) where ids.contains(sceneSessionIDs[id] ?? "") { removeScene(id) }
@@ -750,61 +743,21 @@ final class MobileAppModel {
                     .filter { recovered.contains($0.id) }
                     .map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
                 rememberClosedWorkspaces(states, isWindow: true)
-            } else if hasBoundWorkspaceSession, !workspaceSessions.contains(where: { $0.id == id }),
-                let descriptors = workspaceSnapshot.sessions[id]
-            {
-                rememberClosedWorkspaces(descriptors.map { .init(descriptor: $0) }, isWindow: true)
+
             }
         }
         let recoveredIDs = ids.reduce(into: Set<UUID>()) { $0.formUnion(recoveredWorkspaceIDs[$1] ?? []) }
         for session in workspaceSessions {
-            for workspaceID in recoveredIDs { session.close(workspaceID, rememberForReopen: false) }
+            for workspaceID in recoveredIDs { session.close(workspaceID, rememberForReopen: false, authorized: true) }
         }
         for id in ids { recoveredWorkspaceIDs[id] = nil }
-        for session in workspaceSessions where ids.contains(session.id) { session.discard() }
+        for session in workspaceSessions where ids.contains(session.id) { session.discard(authorized: true) }
         workspaceSessions.removeAll { ids.contains($0.id) }
-        // Before the first binding, these are records from the previous process awaiting consolidation.
-        // UIKit discarding an old session must not erase them during cold launch.
-        if hasBoundWorkspaceSession {
-            for id in ids { workspaceSnapshot.sessions[id] = nil }
-            persistWorkspaceSnapshot()
-        }
+
     }
 
     func containsWorkspace(_ id: UUID) -> Bool {
         workspaceSessions.contains { session in session.orderedWorkspaceItems.contains { $0.id == id } }
-    }
-
-    var recentlyClosedStore: RecentlyClosedStore<RecentlyClosedRecord<MobileWorkspaceDescriptor>> {
-        workspaceStore.recentlyClosed
-    }
-
-    func saveWorkspaceDescriptors(_ descriptors: [MobileWorkspaceDescriptor], for id: String) {
-        guard !discardedSessionIDs.contains(id) else { return }
-        workspaceSnapshot.sessions[id] = descriptors
-        persistWorkspaceSnapshot()
-    }
-
-    private func loadRecentWorkspaces() {
-        do {
-            workspaceSnapshot = try workspaceStore.load()
-            workspaceSnapshot.unassigned.removeAll { library.host($0.hostID) == nil }
-            for id in workspaceSnapshot.sessions.keys {
-                workspaceSnapshot.sessions[id]?.removeAll { library.host($0.hostID) == nil }
-            }
-            // Persist pruning with the first binding, so legacy migration and ownership stay atomic.
-        } catch {
-            self.error = String(localized: AppStrings.Workspace.restoreWorkspacesFailure)
-        }
-        liveActivities.update([])
-    }
-
-    private func persistWorkspaceSnapshot() {
-        do {
-            try workspaceStore.save(workspaceSnapshot)
-        } catch {
-            self.error = String(localized: AppStrings.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
-        }
     }
 
     func isAssistantNotificationFocused(_ id: UUID) -> Bool {
@@ -876,6 +829,38 @@ final class MobileAppModel {
         return available.first(where: isNotificationSceneActive) ?? available.first
     }
 
+    let persistentClose = RemoteSessionCloseCoordinator()
+
+    func authorizePersistentClose(_ targets: [MobileWorkspace]) async -> Bool {
+        let owners = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, workspaceOwner($0.id)) })
+        let ownerIDs = Set(targets.compactMap { workspaceOwner($0.id) })
+        let snapshot = workspaceSessions.filter { ownerIDs.contains($0.id) }.map { $0.orderedWorkspaceItems.map(\.id) }
+        let allowed = await persistentClose.close(attachments: targets.compactMap { $0.sessionPersistence.attachment })
+        {
+            reference in
+            guard let workspace = targets.first(where: { $0.sessionPersistence.attachment == reference }),
+                self.containsWorkspace(workspace.id), self.workspaceOwner(workspace.id) == owners[workspace.id]
+            else { throw CancellationError() }
+            try await workspace.terminatePersistentSession(reference) {
+                self.containsWorkspace(workspace.id) && self.workspaceOwner(workspace.id) == owners[workspace.id]
+            }
+            for workspace in targets
+            where workspace.sessionPersistence.attachment?.hasSameIdentity(as: reference) == true {
+                workspace.sessionPersistence.markEnded()
+            }
+        }
+        return allowed
+            && snapshot
+                == workspaceSessions.filter { ownerIDs.contains($0.id) }.map { $0.orderedWorkspaceItems.map(\.id) }
+    }
+
+    func deferPersistentClose(_ targets: [MobileWorkspace], action: @escaping @MainActor () -> Void) -> Bool {
+        guard targets.contains(where: { $0.sessionPersistence.attachment?.isManaged == true }) else { return false }
+        guard !persistentClose.isClosing else { return true }
+        Task { if await authorizePersistentClose(targets) { action() } }
+        return true
+    }
+
     func workspaceWillOpen(_ workspace: MobileWorkspace, close: @escaping (UUID) -> Void) {
         terminalNotifications.observe(workspace.commandMonitor, id: workspace.id)
 
@@ -891,6 +876,11 @@ final class MobileAppModel {
 
     func workspaceDidClose(_ id: UUID) {
         endConnectionHistory(for: id)
+        liveActivities.remove(id)
+        for source in activityRebuilds.keys where activityRebuilds[source] == id {
+            liveActivities.remove(source)
+        }
+        activityRebuilds = activityRebuilds.filter { $0.value != id }
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
     }

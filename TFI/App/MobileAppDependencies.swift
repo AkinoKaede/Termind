@@ -18,7 +18,6 @@ struct MobileAppDependencies {
     var logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
     var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
     var container: ModelContainer? = nil
-    var workspaceStore: MobileWorkspaceStore? = nil
     var liveActivities: MobileLiveActivityController? = nil
     var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void =
         MobileWorkspaceSceneRouting.createWindow

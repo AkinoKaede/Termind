@@ -7,6 +7,41 @@ import Testing
 @testable import Termind
 
 struct AppLanguageTests {
+    @Test(arguments: [
+        ("en", "Connection was cancelled. Retry to connect."),
+        ("zh-Hans", "已取消连接。重试即可连接。"),
+        ("zh-Hant", "已取消連線。重試即可連線。"),
+        ("ja", "接続がキャンセルされました。再試行すると接続できます。"),
+        ("ko", "연결이 취소되었습니다. 연결하려면 다시 시도하세요."),
+        ("de", "Die Verbindung wurde abgebrochen. Versuchen Sie erneut, eine Verbindung herzustellen."),
+        ("fr", "La connexion a été annulée. Réessayez pour vous connecter."),
+    ])
+    func connectionCancellationDoesNotClaimAuthenticationWasCancelled(language: String, expected: String) {
+        #expect(
+            AppLocalization.resolve(
+                AppStrings.Connections.connectionCancelled, locale: Locale(identifier: language)) == expected)
+    }
+
+    @Test
+    func sessionPersistenceOptionsUseTitleCaseAndHaveTranslations() {
+        let labels: [(LocalizedStringResource, String)] = [
+            (AppStrings.Common.enabled, "Enabled"),
+            (AppStrings.Common.new, "New"),
+            (AppStrings.Common.skip, "Skip"),
+            (AppStrings.SessionPersistence.section, "Session Persistence"),
+            (AppStrings.SessionPersistence.onConnect, "On Connect"),
+            (AppStrings.SessionPersistence.ask, "Ask Every Time"),
+            (AppStrings.SessionPersistence.create, "New Managed Session"),
+            (AppStrings.SessionPersistence.normalShell, "Use a Normal Shell"),
+        ]
+        for (resource, english) in labels {
+            #expect(AppLocalization.resolve(resource, locale: Locale(identifier: "en")) == english)
+            for language in ["zh-Hans", "zh-Hant", "ja", "ko", "de", "fr"] {
+                #expect(AppLocalization.resolve(resource, locale: Locale(identifier: language)) != english)
+            }
+        }
+    }
+
     @Test
     func languagePickerKeepsSystemFirstThenSortsByLanguageCode() {
         #expect(AppLanguage.allCases.first == .system)

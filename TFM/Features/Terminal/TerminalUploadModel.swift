@@ -78,6 +78,7 @@ final class TerminalUploadModel {
     struct Target: Equatable {
         let generation: UUID?
         let destination: String
+        var context: TerminalContextCoordinator.Ticket? = nil
     }
 
     private weak var session: SSHSessionModel?
@@ -91,6 +92,7 @@ final class TerminalUploadModel {
     private var uploadPreparationTask: Task<Void, Never>?
     private var uploadPreparationID: UUID?
     private var uploadEnqueueTask: Task<Void, Never>?
+    private var pendingContext: TerminalContextCoordinator.Ticket?
 
     init(session: SSHSessionModel) { self.session = session }
 
@@ -106,7 +108,8 @@ final class TerminalUploadModel {
 
     var target: Target? {
         guard uploadTargetProblem == nil, let session, let destination = session.workingDirectory else { return nil }
-        return Target(generation: session.connectionAttemptID, destination: destination)
+        return Target(
+            generation: session.connectionAttemptID, destination: destination, context: session.directoryContextTicket)
     }
 
     @discardableResult
@@ -155,6 +158,8 @@ final class TerminalUploadModel {
         self.transfers = transfers
         let destination = RemotePath.normalized(workingDirectory)
         let generation = sshSession.connectionAttemptID
+        let context = sshSession.directoryContextTicket
+        pendingContext = context
         let preparationID = UUID()
         uploadPreparationID = preparationID
         pendingUploadItemCount = request.itemCount
@@ -169,6 +174,7 @@ final class TerminalUploadModel {
             }
             var connectedChannel: (any SFTPChannelProtocol)?
             do {
+                try await sshSession.confirmDirectoryContext(context)
                 let resolved = try await TerminalUploadConnectionResolver.resolve(
                     isCurrent: { sshSession.connectionAttemptID == generation },
                     connectIndependent: {
@@ -194,6 +200,7 @@ final class TerminalUploadModel {
                     homeResolution: sshSession.homeResolution
                 )
                 await request.prepare(on: uploadChannel, coordinator: transfers)
+                try await sshSession.confirmDirectoryContext(context)
                 try Task.checkCancellation()
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
                 if let error = uploadChannel.operationError {
@@ -235,8 +242,16 @@ final class TerminalUploadModel {
         let destination = uploadChannel.path
         let generation = sshSession.connectionAttemptID
         let insertPaths = insertUploadedPaths
+        let context = pendingContext
         hasConflict = false
         uploadEnqueueTask = Task {
+            do {
+                try await sshSession.confirmDirectoryContext(context)
+                try Task.checkCancellation()
+            } catch {
+                cancelPendingUpload()
+                return
+            }
             if uploadChannel.pendingRemoteCopyBatch != nil {
                 await uploadChannel.enqueuePendingRemoteCopy(
                     policy: policy,
@@ -249,7 +264,7 @@ final class TerminalUploadModel {
                     uploadedPaths: insertPaths
                         ? { [weak session = sshSession] paths in
                             guard let session, session.status == .connected,
-                                session.connectionAttemptID == generation
+                                session.connectionAttemptID == generation, session.isDirectoryContextCurrent(context)
                             else { return }
                             session.insertUploadedPaths(paths)
                         } : nil
@@ -273,6 +288,7 @@ final class TerminalUploadModel {
     }
 
     func cancelPendingUpload() {
+        pendingContext = nil
         uploadPreparationTask?.cancel()
         uploadPreparationTask = nil
         uploadPreparationID = nil

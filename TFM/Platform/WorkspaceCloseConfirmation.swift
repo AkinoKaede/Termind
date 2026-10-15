@@ -68,9 +68,24 @@ nonisolated final class WorkspaceWindowCloseDelegate: NSObject, NSWindowDelegate
 
     @MainActor
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if model.persistentWindowCloseAuthorized { return true }
         guard !isConfirming else { return false }
         guard forwardedDelegate?.windowShouldClose?(sender) != false else { return false }
         guard !model.isClosed, !model.workspaces.isEmpty else { return true }
+        if model.hasManagedSessions {
+            isConfirming = true
+            Task { [weak self, weak sender] in
+                guard let self else { return }
+                let allowed = await model.authorizePersistentClose(
+                    model.workspaces.flatMap(\.panes).compactMap(\.sshSession))
+                isConfirming = false
+                if allowed {
+                    model.persistentWindowCloseAuthorized = true
+                    sender?.performClose(nil)
+                }
+            }
+            return false
+        }
         isConfirming = true
         defer { isConfirming = false }
         return confirmClose()

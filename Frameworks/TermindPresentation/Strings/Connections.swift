@@ -10,8 +10,8 @@ extension AppStrings {
             "; "
         }
 
-        public static var authenticationCancelled: LocalizedStringResource {
-            "Authentication was cancelled. Retry to continue connecting."
+        public static var connectionCancelled: LocalizedStringResource {
+            "Connection was cancelled. Retry to connect."
         }
         public static var agentForwarding: LocalizedStringResource { "Agent Forwarding" }
 

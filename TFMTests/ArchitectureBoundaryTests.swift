@@ -4,6 +4,26 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func sessionPersistencePolicyDoesNotDependOnTheTmuxImplementation() throws {
+        for directory in [
+            "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",
+            "../Frameworks/TermindPresentation", "Features", "../TFI/Features",
+        ] {
+            for file in try swiftFiles(in: directory) {
+                let text = try String(contentsOf: file, encoding: .utf8)
+                for symbol in ["RemoteTmuxService", "RemoteTmuxCommands", "RemoteTmuxShellStartup"] {
+                    #expect(!containsToken(symbol, in: text), "\(file.path) depends on \(symbol)")
+                }
+            }
+        }
+        let channel = try String(
+            contentsOf: sourceRoot.appending(path: "../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift"),
+            encoding: .utf8)
+        #expect(!containsToken("RemoteTmuxService", in: channel))
+        #expect(containsToken("StartupPreparation", in: channel))
+    }
+
+    @Test
     func embeddedTailscaleStaysBehindRemoteInfrastructure() throws {
         for module in ["TermindDomain", "TermindApplication", "TermindPresentation", "TermindPersistence"] {
             try assertNoImports(in: "../Frameworks/\(module)", forbidden: ["TailscaleKit", "CTailscale"])

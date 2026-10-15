@@ -37,10 +37,12 @@ struct SSHAgentForwardingPersistenceTests {
     }
 
     @Test func hostVersionTwoRoundTripsAndCannotBeWrittenAsVersionOne() throws {
-        let host = TermindDomain.Host(name: "Forwarded", host: "localhost", agentForwardingEnabled: true)
+        let host = TermindDomain.Host(
+            name: "Forwarded", host: "localhost", agentForwardingEnabled: true,
+            sessionPersistence: .init(enabled: false))
         let payload = VaultRecordPayload.host(host)
         var envelope = VaultEnvelope(key: payload.key, version: .baseline(writerID: UUID()), payload: payload)
-        #expect(envelope.formatVersion == 2)
+        envelope.formatVersion = 2
         #expect(try VaultSyncCodec.decode(VaultSyncCodec.encode(envelope)) == envelope)
         envelope.formatVersion = 1
         #expect(throws: (any Error).self) { try VaultSyncCodec.encode(envelope) }

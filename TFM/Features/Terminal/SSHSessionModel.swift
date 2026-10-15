@@ -93,6 +93,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         var historyID: CommandHistoryEntry.ID?
     }
     private var activeShellCommand: ActiveShellCommand?
+    let terminalContext = TerminalContextCoordinator()
+    private var hasRuntimeContext = false
+    private var contextHistory: [TerminalContextIdentity: UUID] = [:]
     private(set) var commandGeneratorRevision: UInt64 = 0
     private let commandDraft = TerminalCommandDraftController()
 
@@ -177,6 +180,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         var command: String
         var recordsInHistory: Bool
     }
+    let sessionPersistence = RemoteSessionCoordinator()
     private var pendingInitialCommand: PendingInitialCommand?
     /// Re-resolved from the Host and Snippet library for each physical terminal shell.
     private var pendingConnectionStartupCommand: PendingInitialCommand?
@@ -263,6 +267,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         relay.owner = self
         commandObservation = TerminalCommandObservation(state: terminalSurface.state, monitor: commandMonitor)
         observeWorkingDirectory(from: surface.state, through: relay)
+        sessionPersistence.didChangePrompt = { [weak self] pending in
+            if pending { self?.connectionJourney.waitForSessionSelection() } else { self?.connectionJourney.resume() }
+        }
     }
 
     var agentTemporaryTarget: AgentHostTarget? {
@@ -319,10 +326,21 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     var canGenerateFromCurrentDraft: Bool {
         status.isLive && isShellIntegrationEnabled && shellIntegrationAvailable && isShellPromptReady
             && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
+            && (!hasRuntimeContext || terminalContext.ticket(requiring: [.readDraft, .replaceDraft]) != nil)
     }
 
     func requestCurrentDraft() async throws -> String {
-        try await commandDraft.read(isAvailable: canGenerateFromCurrentDraft) { [weak self] data in
+        if hasRuntimeContext {
+            guard let ticket = terminalContext.ticket(requiring: .readDraft),
+                let context = terminalContext.active, let ssh
+            else { throw TerminalDraftError.unavailable }
+            let value = try await ssh.contextDraft(context)
+            guard terminalContext.isCurrent(ticket, requiring: .readDraft) else {
+                throw TerminalDraftError.unavailable
+            }
+            return value
+        }
+        return try await commandDraft.read(isAvailable: canGenerateFromCurrentDraft) { [weak self] data in
             self?.writeInputDirectly(data)
         }
     }
@@ -332,11 +350,55 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// intentionally no carriage return in this payload.
     func insertUploadedPaths(_ paths: [String]) {
         let text = paths.map(RemoteShellCommand.escapeArgument).joined(separator: " ") + " "
+        if hasRuntimeContext {
+            replaceCurrentDraft(with: text)
+            return
+        }
         // Write only to this session: broadcast input must not copy local upload paths.
         terminalViewOwner.pasteUploadedText(text)
     }
 
+    var directoryContextTicket: TerminalContextCoordinator.Ticket? {
+        terminalContext.ticket(requiring: .directory)
+    }
+
+    func isDirectoryContextCurrent(_ ticket: TerminalContextCoordinator.Ticket?) -> Bool {
+        guard hasRuntimeContext else { return ticket == nil }
+        guard let ticket else { return false }
+        return terminalContext.isCurrent(ticket, requiring: .directory)
+    }
+
+    func confirmDirectoryContext(_ ticket: TerminalContextCoordinator.Ticket?) async throws {
+        guard hasRuntimeContext else { return }
+        guard isDirectoryContextCurrent(ticket), let context = terminalContext.active, let ssh else {
+            throw TerminalDraftError.unavailable
+        }
+        do {
+            try await ssh.confirmContext(context)
+            guard isDirectoryContextCurrent(ticket) else { throw TerminalDraftError.unavailable }
+        } catch {
+            if isDirectoryContextCurrent(ticket) { receiveRuntimeContext(.init(status: .unknown)) }
+            throw error
+        }
+    }
+
     func replaceCurrentDraft(with command: String) {
+        if hasRuntimeContext {
+            guard let ticket = terminalContext.ticket(requiring: .replaceDraft),
+                let context = terminalContext.active, let ssh
+            else { return }
+            Task { [weak self] in
+                guard let self, terminalContext.isCurrent(ticket, requiring: .replaceDraft) else { return }
+                do {
+                    _ = try await ssh.contextDraft(context, replacing: command)
+                } catch {
+                    if terminalContext.isCurrent(ticket, requiring: .replaceDraft) {
+                        receiveRuntimeContext(.init(status: .unknown))
+                    }
+                }
+            }
+            return
+        }
         writeInputDirectly(commandDraft.replacementPayload(for: command))
     }
 
@@ -346,6 +408,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     private func resetCommandGeneratorShellState() {
+        terminalContext.reset()
+        hasRuntimeContext = false
+        contextHistory.removeAll()
         integratedShell = nil
         remoteSystemInfo = nil
         isShellPromptReady = false
@@ -620,7 +685,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 connectionAttemptID = nil
                 status = .disconnected
                 connection.stopRecovery()
-                connectionJourney.fail(String(localized: AppStrings.Connections.authenticationCancelled))
+                connectionJourney.fail(String(localized: AppStrings.Connections.connectionCancelled))
             } catch {
                 guard connectionAttemptID == attemptID else { return }
                 connectionAttemptID = nil
@@ -717,6 +782,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     func disconnect() {
+        sessionPersistence.cancel()
         commandHistory.cancelLoading()
         terminalUpload.cancelPendingUpload()
         commandMonitor.endConnection()
@@ -775,6 +841,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         configuration.tailscaleNodeID = host.tailscale?.stableNodeID
         let terminalSurface = terminalSurface
         commandMonitor.beginConnection()
+        commandMonitor.requireScopedEvents()
         let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
             output: { data in terminalSurface.receive(data) },
             exit: { [weak self] result in
@@ -796,6 +863,24 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 let list = variables.joined(separator: ", ")
                 let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
                 terminalSurface.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
+            }
+            let persistence = sessionPersistence
+            let explicit = pendingInitialCommand?.command
+            let startup = explicit ?? pendingConnectionStartupCommand?.command
+            let integration = isShellIntegrationEnabled
+            if host.sessionPersistence.enabled || persistence.attachment != nil || persistence.requiresSelection {
+                persistence.didChangeAttachment = { [weak self] reference in
+                    guard let self, self.connectionAttemptID == attemptID, reference != nil else { return }
+                    self.pendingInitialCommand = nil
+                    self.pendingConnectionStartupCommand = nil
+                }
+                await actor.configureStartup { execute in
+                    try await persistence.prepare(
+                        preferences: host.sessionPersistence, registry: .live, execute: execute,
+                        hostID: host.id, endpoint: "\(host.host):\(host.sshPort)", username: username,
+                        startupCommand: startup, requiresNewSession: explicit != nil, shellIntegration: integration,
+                        environment: host.environmentVariables)
+                }
             }
             try await actor.connect(
                 using: SSHConnectionRequest(
@@ -825,13 +910,19 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
             status = .connected
-            commandHistory.load(using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
+            if sessionPersistence.attachment == nil {
+                commandHistory.load(using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
+            } else {
+                pendingInitialCommand = nil
+                pendingConnectionStartupCommand = nil
+                homeResolution = .unavailable
+            }
             if presentsConnectionJourney {
                 connectionJourney.succeed()
             } else {
                 connectionJourney.hide()
             }
-            if wasReconnecting {
+            if wasReconnecting, sessionPersistence.attachment == nil {
                 appendTerminalNotice(
                     String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted)
                 )
@@ -852,7 +943,69 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// makes the surface permanently stop producing input, which is incorrect
     /// for Termind's retained pane model. Close the pane through its current
     /// Workspace instead; transport failures remain visible for reconnection.
+    func terminatePersistentSession(
+        _ reference: RemoteSessionReference, isCurrentOwner: @MainActor () -> Bool = { true }
+    ) async throws {
+        guard sessionPersistence.attachment == reference, let channel = ssh else {
+            throw RemoteSessionFailure.sessionMissing
+        }
+        try await channel.releaseTerminalForControl()
+        status = .disconnected
+        resetCommandGeneratorShellState()
+        workingDirectory = nil
+        let execute = try await channel.sessionCommandExecutor()
+        let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
+        let sessions = try await backend.sessions()
+        guard isCurrentOwner(), ssh === channel, sessionPersistence.attachment == reference else {
+            throw CancellationError()
+        }
+        guard sessions.contains(where: { backend.matches(reference, session: $0) }) else {
+            throw RemoteSessionFailure.ownershipMismatch
+        }
+        try await backend.terminate(reference)
+        if sessionPersistence.attachment == reference { sessionPersistence.markEnded() }
+    }
+
     func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
+        resetCommandGeneratorShellState()
+        workingDirectory = nil
+        terminalUpload.cancelPendingUpload()
+        if case .success(let exitCode) = result, let reference = sessionPersistence.attachment, let channel = ssh {
+            let attemptID = connectionAttemptID
+            Task { [weak self] in
+                guard let self else { return }
+                var sessionExists: Bool?
+                do {
+                    let execute = try await channel.sessionCommandExecutor()
+                    let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
+                    let sessions = try await backend.sessions()
+                    sessionExists = sessions.contains(where: { backend.matches(reference, session: $0) })
+                } catch {
+                    // An unverified exit must not erase identity or start a replacement session.
+                }
+                guard self.connectionAttemptID == attemptID, self.sessionPersistence.attachment == reference else {
+                    return
+                }
+                let shouldClose = self.sessionPersistence.finishExit(exitCode: exitCode, sessionExists: sessionExists)
+                await channel.disconnect()
+                guard self.connectionAttemptID == attemptID else { return }
+                self.ssh = nil
+                self.connection.resetRecovery()
+                self.status = .disconnected
+                if shouldClose {
+                    self.inputRouter?.closeSSHSessionPane(afterExit: self)
+                    return
+                }
+                self.appendTerminalNotice(
+                    String(
+                        localized: exitCode != 0
+                            ? AppStrings.SessionPersistence.failed
+                            : self.sessionPersistence.detached
+                                ? AppStrings.SessionPersistence.detached : AppStrings.SessionPersistence.ended))
+            }
+            return
+        }
+
         resetCommandGeneratorShellState()
         workingDirectory = nil
         homeResolution = .unavailable
@@ -1004,6 +1157,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     func copyForReconnect() -> SSHSessionModel {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
+        copy.sessionPersistence.attachment = sessionPersistence.attachment
         copy.connectionRoute = connectionRoute
         copy.connectionOrigin = connectionOrigin
         copy.connectionCoordinator = connectionCoordinator
@@ -1025,6 +1179,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// The terminal side of the routing boundary. Broadcast targets call this
     /// rather than feeding bytes back through the router, preventing recursion.
     func writeInputDirectly(_ data: Data) {
+        terminalContext.noteInput()
         if let inputSink {
             inputSink(data)
             return
@@ -1053,15 +1208,24 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     ) {
         workingDirectoryObservation = state.$workingDirectory.sink { [weak relay] path in
             Task { @MainActor in
-                relay?.owner?.workingDirectory = path?.isEmpty == false ? path : nil
+                guard let owner = relay?.owner, owner.isShellIntegrationEnabled, !owner.hasRuntimeContext else {
+                    return
+                }
+                owner.workingDirectory = path?.isEmpty == false ? path : nil
             }
         }
     }
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
         guard isShellIntegrationEnabled else { return }
+        if case .runtime(let update) = event {
+            receiveRuntimeContext(update)
+            return
+        }
+        guard !hasRuntimeContext else { return }
         commandMonitor.receiveShellEvent(event)
         switch event {
+        case .runtime: break
         case .available(let shell, let systemInfo, let homeDirectory):
             if let homeDirectory, homeDirectory.hasPrefix("/") {
                 homeResolution = .resolved(RemotePath.normalized(homeDirectory))
@@ -1100,6 +1264,44 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             recordCommandCompletion(exitStatus: status, reportedDuration: duration)
         case .draft(let draft):
             commandDraft.receive(draft)
+        }
+    }
+
+    private func receiveRuntimeContext(_ update: TerminalRuntimeUpdate) {
+        hasRuntimeContext = true
+        let previous = terminalContext.revision
+        let events = terminalContext.receive(update, generation: terminalContext.generation)
+        commandMonitor.receiveRuntimeEvents(events)
+        if previous != terminalContext.revision {
+            commandDraft.cancel()
+            terminalUpload.cancelPendingUpload()
+            invalidateCommandGeneration()
+        }
+        workingDirectory = terminalContext.directory
+        integratedShell = terminalContext.active?.shell
+        shellIntegrationAvailable = terminalContext.active?.capabilities.contains(.commandLifecycle) == true
+        isShellPromptReady = terminalContext.active?.promptReady == true
+        if let home = terminalContext.active?.home {
+            homeResolution = .resolved(RemotePath.normalized(home))
+        } else {
+            homeResolution = .unavailable
+        }
+        for event in events {
+            switch event.payload {
+            case .commandStarted(let command):
+                contextHistory[event.context] = recordExecutedCommand(command)
+            case .commandFinished(let status, let duration):
+                if let id = contextHistory.removeValue(forKey: event.context) {
+                    commandHistory.recordCompletion(for: id, exitStatus: status, duration: duration)
+                }
+            case .draft(_, let value):
+                if terminalContext.active?.identity == event.context { commandDraft.receive(value) }
+            default: break
+            }
+        }
+        if update.status == .ordinary, isShellPromptReady {
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
         }
     }
 

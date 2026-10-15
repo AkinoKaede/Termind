@@ -213,7 +213,7 @@ nonisolated enum VaultWireV1 {
             self.sortIndex = value.sortIndex
         }
         var domainValue: TermindDomain.Host {
-            var result = TermindDomain.Host(name: "", host: "")
+            var result = TermindDomain.Host(name: "", host: "", sessionPersistence: .init(enabled: false))
             result.id = id
             result.name = name
             result.host = host

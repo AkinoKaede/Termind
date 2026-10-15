@@ -131,7 +131,7 @@ struct TerminalPlaceholderView: View {
 
     @ViewBuilder
     private var connectionJourney: some View {
-        if isVisible, sshSession.connectionJourney.isPresented {
+        if isVisible, sshSession.connectionJourney.isPresented || sshSession.sessionPersistence.prompt != nil {
             ConnectionJourneyView(
                 journey: sshSession.connectionJourney,
                 authenticationPrompt: sshSession.pendingAuthentication,
@@ -164,7 +164,8 @@ struct TerminalPlaceholderView: View {
                 retryReconnectNow: sshSession.retryReconnectNow,
                 stopReconnecting: sshSession.stopReconnecting,
                 securityKeySigning: sshSession.connection.securityKeySigning,
-                keyboardAuthentication: sshSession.connection.keyboardAuthentication
+                keyboardAuthentication: sshSession.connection.keyboardAuthentication,
+                remoteSession: sshSession.sessionPersistence
             )
         }
     }
@@ -182,7 +183,6 @@ struct TerminalPlaceholderView: View {
     }
 
     private func cancelConnection() {
-        sshSession.disconnect()
         closePane()
     }
 

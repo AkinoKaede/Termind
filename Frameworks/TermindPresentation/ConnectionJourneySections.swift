@@ -57,7 +57,8 @@ public struct ConnectionJourneyHeader: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.title3.weight(.semibold))
-                    .lineLimit(1)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .help(title)
                 Text(detail)
                     .font(.callout.monospaced())

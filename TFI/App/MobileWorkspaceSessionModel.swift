@@ -22,7 +22,7 @@ struct MobileWorkspaceItem: Identifiable {
     var id: MobileWorkspaceDescriptor.ID { descriptor.id }
 }
 
-/// Connection intent and live workspaces belonging to one persistent UIKit scene session.
+/// In-process connection intent and live workspaces belonging to one native scene.
 @MainActor
 @Observable
 final class MobileWorkspaceSessionModel {
@@ -79,6 +79,7 @@ final class MobileWorkspaceSessionModel {
     }
 
     func releaseForRecovery() {
+        app.persistentClose.cancel()
         manuallyUnreadIDs.removeAll()
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -95,16 +96,16 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
-    func discard() {
+    func discard(authorized: Bool = false) {
         guard !isDiscarded else { return }
+        if !authorized, app.deferPersistentClose(workspaces, action: { [weak self] in self?.discard(authorized: true) })
+        {
+            return
+        }
         let states = orderedWorkspaceItems.map { $0.workspace?.reopenState ?? .init(descriptor: $0.descriptor) }
         app.rememberClosedWorkspaces(states, isWindow: true)
-        closeAll(rememberForReopen: false)
+        closeAll(rememberForReopen: false, authorized: true)
         isDiscarded = true
-    }
-
-    private func saveWorkspaces() {
-        app.saveWorkspaceDescriptors(savedWorkspaceDescriptors, for: id)
     }
 
     var recentWorkspaces: [MobileWorkspaceDescriptor] {
@@ -148,6 +149,23 @@ final class MobileWorkspaceSessionModel {
             startup = .none
         }
         let workspace = makeWorkspace(host: host, kind: kind, startup: startup)
+        addWorkspaces([workspace])
+        return workspace.id
+    }
+
+    func rebuild(_ recovery: WorkspaceActivityAttributes.Recovery) -> UUID? {
+        guard !isDiscarded, let host = app.library.host(recovery.hostID),
+            let kind = ConnectionHistoryEntry.Kind(rawValue: recovery.kind),
+            MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host)
+        else { return nil }
+        let workspace = makeWorkspace(host: host, kind: kind)
+        if let data = recovery.remoteSession,
+            let reference = try? JSONDecoder().decode(RemoteSessionReference.self, from: data),
+            reference.hostID == host.id, kind == .ssh
+        {
+            workspace.restoreRemoteSession(reference)
+        }
+        workspace.sessionPersistence.requiresSelection = true
         addWorkspaces([workspace])
         return workspace.id
     }
@@ -230,11 +248,19 @@ final class MobileWorkspaceSessionModel {
         if let savedIndex, let workspace {
             savedWorkspaceDescriptors[savedIndex] = workspace.descriptor
         }
-        saveWorkspaces()
         return true
     }
 
-    func close(_ id: UUID, rememberForReopen: Bool = true) {
+    func close(_ id: UUID, rememberForReopen: Bool = true, authorized: Bool = false) {
+        if !authorized,
+            app.deferPersistentClose(
+                workspaces.filter { $0.id == id },
+                action: { [weak self] in
+                    self?.close(id, rememberForReopen: rememberForReopen, authorized: true)
+                })
+        {
+            return
+        }
         manuallyUnreadIDs.remove(id)
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
@@ -248,14 +274,22 @@ final class MobileWorkspaceSessionModel {
         workspaces.removeAll { $0.id == id }
         savedWorkspaceDescriptors.removeAll { $0.id == id }
         workspaceDisplayOrder.removeAll { $0 == id }
-        if wasSaved { saveWorkspaces() }
     }
 
     var closableWorkspaceCount: Int {
         Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id)).count
     }
 
-    func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
+    func closeOtherWorkspaces(than id: MobileWorkspace.ID, authorized: Bool = false) {
+        if !authorized,
+            app.deferPersistentClose(
+                workspaces.filter { $0.id != id },
+                action: { [weak self] in
+                    self?.closeOtherWorkspaces(than: id, authorized: true)
+                })
+        {
+            return
+        }
         let knownIDs = Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id))
         guard knownIDs.contains(id), knownIDs.count > 1 else { return }
         rememberClosedWorkspaces(knownIDs.subtracting([id]))
@@ -265,7 +299,6 @@ final class MobileWorkspaceSessionModel {
         workspaces.removeAll { $0.id != id }
         savedWorkspaceDescriptors.removeAll { $0.id != id }
         workspaceDisplayOrder.removeAll { $0 != id }
-        saveWorkspaces()
         for workspace in closing {
             app.workspaceDidClose(workspace.id)
             workspace.didChangeState = nil
@@ -274,7 +307,16 @@ final class MobileWorkspaceSessionModel {
         }
     }
 
-    func closeAll(rememberForReopen: Bool = true) {
+    func closeAll(rememberForReopen: Bool = true, authorized: Bool = false) {
+        if !authorized,
+            app.deferPersistentClose(
+                workspaces,
+                action: { [weak self] in
+                    self?.closeAll(rememberForReopen: rememberForReopen, authorized: true)
+                })
+        {
+            return
+        }
         manuallyUnreadIDs.removeAll()
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
         if rememberForReopen { rememberClosedWorkspaces(Set(workspaceDisplayOrder)) }
@@ -282,7 +324,6 @@ final class MobileWorkspaceSessionModel {
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
         workspaceDisplayOrder.removeAll()
-        saveWorkspaces()
         for workspace in closing {
             app.workspaceDidClose(workspace.id)
             workspace.didChangeState = nil
@@ -327,6 +368,7 @@ final class MobileWorkspaceSessionModel {
                 usernameHint: state.usernameHint, connectionOrigin: state.connectionOrigin,
                 externalSFTPResourcePath: state.externalSFTPResourcePath,
                 externalSFTPMustBeDirectory: state.externalSFTPMustBeDirectory)
+            workspace.restoreRemoteSession(state.remoteSession)
             addWorkspaces([workspace], persists: state.connectionOrigin.allowsPersistence)
         }
     }
@@ -401,7 +443,6 @@ final class MobileWorkspaceSessionModel {
         if persists {
             let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
             savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
-            saveWorkspaces()
         }
         app.workspacesDidOpen(added)
         for workspace in added { workspace.connect() }

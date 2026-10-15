@@ -761,18 +761,25 @@ struct MobileWorkspaceView: View {
             switch launch.kind {
             case .ssh:
                 Button(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: "terminal") {
-                    openSameDirectory(launch)
+                    openVerifiedDirectory(launch)
                 }
             case .telnet:
                 EmptyView()
             case .sftp:
-                Button(AppStrings.SFTP.openWithSftp.swiftUIKey, systemImage: "folder") { openSameDirectory(launch) }
+                Button(AppStrings.SFTP.openWithSftp.swiftUIKey, systemImage: "folder") { openVerifiedDirectory(launch) }
             }
+        }
+    }
+
+    private func openVerifiedDirectory(_ launch: MobileWorkspaceDirectoryLaunch) {
+        Task {
+            if let verified = await workspace.validatedSameDirectoryLaunch(launch) { openSameDirectory(verified) }
         }
     }
 
     private var showsJourney: Bool {
         workspace.journey.isPresented || workspace.authenticationRequired || workspace.hostKeyPrompt != nil
+            || workspace.sessionPersistence.prompt != nil
     }
 
     private var isSFTP: Bool { workspace.descriptor.kind == .sftp }
@@ -794,7 +801,8 @@ struct MobileWorkspaceView: View {
             retryReconnectNow: { workspace.retryReconnectNow() },
             stopReconnecting: { workspace.stopReconnecting() }, cancel: { closeWorkspace(workspace.id) },
             securityKeySigning: workspace.securityKeySigning,
-            keyboardAuthentication: workspace.keyboardAuthentication)
+            keyboardAuthentication: workspace.keyboardAuthentication,
+            remoteSession: workspace.sessionPersistence)
     }
 }
 

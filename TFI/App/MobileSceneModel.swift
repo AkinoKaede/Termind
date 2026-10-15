@@ -386,18 +386,34 @@ final class MobileSceneModel {
         requestWindowClose(sessionID: workspaceSession.id)
     }
 
-    func closeAllWindows() {
+    func closeAllWindows(authorized: Bool = false) {
         guard !workspaceSession.isDiscarded else { return }
         let sessionIDs = app.openWorkspaceSessionIDs()
+        if !authorized,
+            app.deferPersistentClose(
+                sessionIDs.flatMap { app.workspaceSession(for: $0).workspaces },
+                action: { [weak self] in self?.closeAllWindows(authorized: true) })
+        {
+            return
+        }
         for id in sessionIDs.sorted() where id != workspaceSession.id {
-            requestWindowClose(sessionID: id)
+            requestWindowClose(sessionID: id, authorized: true)
         }
         if sessionIDs.contains(workspaceSession.id) {
-            requestWindowClose(sessionID: workspaceSession.id)
+            requestWindowClose(sessionID: workspaceSession.id, authorized: true)
         }
     }
 
-    private func requestWindowClose(sessionID: String) {
+    private func requestWindowClose(sessionID: String, authorized: Bool = false) {
+        if !authorized,
+            app.deferPersistentClose(
+                app.workspaceSession(for: sessionID).workspaces,
+                action: { [weak self] in
+                    self?.requestWindowClose(sessionID: sessionID, authorized: true)
+                })
+        {
+            return
+        }
         // UIKit's discard callback owns cleanup; a rejected request must preserve this session.
         let logger = app.logging.makeLogger(label: "termind.window")
         app.closeWorkspaceSession(sessionID) { error in
@@ -454,9 +470,19 @@ final class MobileSceneModel {
             workspaceID = nil
             return
         }
-        guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
+        guard let sourceID = WorkspaceActivityAttributes.workspaceID(from: url) else {
+            if url.scheme == "termind", url.host == "workspace" {
+                pendingWorkspaceID = nil
+                selectedDestination = .workspaces
+                workspaceID = nil
+                isWorkspaceUnavailable = true
+            }
+            return
+        }
         isWorkspaceUnavailable = false
-        guard let owner = app.workspaceOwner(id) else {
+        let id =
+            app.containsWorkspace(sourceID) ? sourceID : app.rebuildActivityWorkspace(from: url, into: workspaceSession)
+        guard let id, let owner = app.workspaceOwner(id) else {
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
             workspaceID = nil

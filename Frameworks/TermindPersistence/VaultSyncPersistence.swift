@@ -66,6 +66,21 @@ public nonisolated enum VaultSyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
+        if envelope.formatVersion < 4 {
+            if case .host(let host) = envelope.payload, host.sessionPersistence != .init(enabled: false) {
+                throw CocoaError(.coderInvalidValue)
+            }
+            if case .hostGroup(let group) = envelope.payload,
+                group.tailscale?.hostPreferences.values.contains(where: {
+                    $0.sessionPersistence != .init(enabled: false)
+                }) == true
+            {
+                throw CocoaError(.coderInvalidValue)
+            }
+        }
+        if envelope.formatVersion == 4 {
+            return try encoder.encode(VaultWireV4.Envelope(envelope))
+        }
         if envelope.formatVersion == 3 {
             return try encoder.encode(VaultWireV3.Envelope(envelope))
         }
@@ -97,6 +112,9 @@ public nonisolated enum VaultSyncCodec {
         }
         decoders[VaultRecordKind.hostGroup.rawValue]?[3] = {
             try JSONDecoder().decode(VaultWireV3.Envelope.self, from: $0).domainValue
+        }
+        for kind in [VaultRecordKind.host, .hostGroup] {
+            decoders[kind.rawValue]?[4] = { try JSONDecoder().decode(VaultWireV4.Envelope.self, from: $0).domainValue }
         }
         return VersionedRecordDecoder(decoders)
     }()

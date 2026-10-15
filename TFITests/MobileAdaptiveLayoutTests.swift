@@ -609,7 +609,7 @@ struct MobileAdaptiveLayoutTests {
     }
 
     @Test(.requiresKeyWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
-    func recentWorkspaceListRestoresOnlySelectedRowAndNavigates(language: String) async throws {
+    func memoryWorkspaceListFocusesSelectedRowAndNavigates(language: String) async throws {
         let suite = "termind.recent-workspace-ui.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -622,19 +622,17 @@ struct MobileAdaptiveLayoutTests {
             MobileWorkspaceDescriptor(hostID: host.id, title: "Project Files", kind: .sftp),
         ]
         for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular] {
-            let store = MobileWorkspaceStore(defaults: defaults)
-            try store.save(.init(unassigned: descriptors))
             var dependencies = MobileAppDependencies.testing()
             dependencies.container = seed.container
-            dependencies.workspaceStore = store
             let app = try MobileAppModel(dependencies: dependencies)
             defer { app.testWorkspaceSession.closeAll() }
+            app.testWorkspaceSession.restoreClosedStates(descriptors.map { .init(descriptor: $0) })
             let scene = MobileSceneModel(app: app, sessionID: "test")
             let historyCount = app.connectionHistory.entries().count
             scene.selectedDestination = .workspaces
             try await withRoot(app: app, scene: scene, language: language, initialSizeClass: sizeClass) { root in
-                #expect(app.workspaces.isEmpty)
-                #expect(scene.workspaceCount == 0)
+                #expect(app.workspaces.count == 2)
+                #expect(scene.workspaceCount == 2)
                 #expect(scene.canCloseAllWorkspaces)
                 let title = language == "en" ? "Workspaces" : language == "zh-Hans" ? "工作区" : "工作區"
                 let navigation = try #require(navigation(titled: title, in: root))
@@ -649,8 +647,8 @@ struct MobileAdaptiveLayoutTests {
                 scene.selectWorkspace(descriptors[1].id)
                 try await settle()
                 #expect(scene.workspaceID == descriptors[1].id)
-                #expect(app.workspaces.map(\.id) == [descriptors[1].id])
-                #expect(app.testWorkspaceSession.recentWorkspaces == [descriptors[0]])
+                #expect(app.workspaces.map(\.id) == descriptors.map(\.id))
+                #expect(app.testWorkspaceSession.recentWorkspaces.isEmpty)
                 #expect(app.testWorkspaceSession.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
                 #expect(list.numberOfSections == 2)
                 #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
@@ -663,7 +661,7 @@ struct MobileAdaptiveLayoutTests {
                 try await settle()
                 #expect(app.testWorkspaceSession.recentWorkspaces.isEmpty)
                 #expect(!scene.canCloseAllWorkspaces)
-                #expect(app.connectionHistory.entries().count == historyCount + 1)
+                #expect(app.connectionHistory.entries().count == historyCount)
                 #expect(MobileWorkspaceListView(app: app, scene: scene).historyRows.isEmpty == false)
             }
         }

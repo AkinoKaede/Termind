@@ -163,13 +163,14 @@ struct ConnectionJourneyView: View {
     var securityKeySigning: SecurityKeySigningCoordinator? = nil
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
+    var remoteSession: RemoteSessionCoordinator? = nil
     var isEmbedded = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
-            if isEmbedded {
+            if isEmbedded || remoteSession?.prompt != nil {
                 ScrollView { journeyContent }
             } else {
                 journeyContent
@@ -199,7 +200,7 @@ struct ConnectionJourneyView: View {
             content
                 .frame(maxWidth: 660)
                 .padding(.horizontal, isEmbedded ? 16 : 28)
-                .fixedSize(horizontal: false, vertical: isEmbedded)
+                .fixedSize(horizontal: false, vertical: isEmbedded || remoteSession?.prompt != nil)
 
             Spacer(minLength: 24)
         }
@@ -242,6 +243,9 @@ struct ConnectionJourneyView: View {
                 trust: { trustHostKey(hostKey.observation) },
                 deny: denyHostKey
             )
+        } else if let remoteSession, remoteSession.prompt != nil {
+            RemoteSessionPromptView(coordinator: remoteSession, cancel: cancel)
+                .desktopConnectionFormChrome(isEnabled: true)
         } else if case .failed(let message) = journey.phase {
             JourneyFailureCard(
                 message: message, retry: retry, cancel: cancel,

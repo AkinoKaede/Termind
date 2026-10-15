@@ -30,6 +30,7 @@ private struct MobilePendingUpload {
     var context: SFTPTransferContext
     var connectionGeneration: UUID
     var insertPaths: Bool
+    var terminalContext: TerminalContextCoordinator.Ticket?
 }
 
 private struct MobilePendingDownload {
@@ -56,6 +57,7 @@ final class MobileWorkspace: Identifiable {
 
     private(set) var descriptor: MobileWorkspaceDescriptor
     var id: UUID { descriptor.id }
+    let sessionPersistence = RemoteSessionCoordinator()
     @ObservationIgnored private(set) var activitySession: WorkspaceActivityAttributes.Session
     @ObservationIgnored var didChangeState: ((WorkspaceActivityAttributes.Session) -> Void)?
     @ObservationIgnored var didRequestClose: ((ID) -> Void)?
@@ -111,6 +113,9 @@ final class MobileWorkspace: Identifiable {
     let commandMonitor = TerminalCommandMonitor()
     private var commandObservation: TerminalCommandObservation?
     private var activeHistoryID: UUID?
+    let terminalContext = TerminalContextCoordinator()
+    private var hasRuntimeContext = false
+    private var contextHistory: [TerminalContextIdentity: UUID] = [:]
     /// Resolved once at the beginning of each connection attempt.
     private(set) var isShellIntegrationEnabled = true
     private var shellIntegrationAvailable = false
@@ -298,6 +303,10 @@ final class MobileWorkspace: Identifiable {
             connected: false,
             iconAsset: LinuxDistributionIconCatalog.entry(
                 for: (hosts.host(descriptor.hostID) ?? transientHost)?.detectedDistribution)?.asset)
+        if connectionOrigin.allowsPersistence, hosts.host(descriptor.hostID) != nil {
+            activitySession.recovery = .init(
+                sourceWorkspaceID: descriptor.id, hostID: descriptor.hostID, kind: descriptor.kind.rawValue)
+        }
         pendingCommand = initialCommand.map {
             MobilePendingInitialCommand(command: $0, recordsInHistory: recordsInitialCommandInHistory)
         }
@@ -329,6 +338,9 @@ final class MobileWorkspace: Identifiable {
         }
         commandObservation = TerminalCommandObservation(state: terminal, monitor: commandMonitor)
         surfaceOwner.bindFind(find)
+        sessionPersistence.didChangePrompt = { [weak self] pending in
+            if pending { self?.journey.waitForSessionSelection() } else { self?.journey.resume() }
+        }
     }
 
     @discardableResult
@@ -504,6 +516,8 @@ final class MobileWorkspace: Identifiable {
     }
 
     func receiveWorkingDirectory(_ path: String?) {
+        guard descriptor.kind != .ssh || isShellIntegrationEnabled else { return }
+        guard !hasRuntimeContext else { return }
         let path = path?.isEmpty == false ? path : nil
         guard workingDirectory != path else { return }
         workingDirectory = path
@@ -514,6 +528,7 @@ final class MobileWorkspace: Identifiable {
     var canGenerateFromCurrentDraft: Bool {
         connected && isShellIntegrationEnabled && shellIntegrationAvailable && isShellPromptReady
             && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
+            && (!hasRuntimeContext || terminalContext.ticket(requiring: [.readDraft, .replaceDraft]) != nil)
     }
 
     func receiveInteractiveTerminalInput(_ data: Data) async {
@@ -526,19 +541,73 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func writeSSHDirectly(_ data: Data) async {
+        terminalContext.noteInput()
         guard let ssh else { return }
         await connectionServices.writeSSH(ssh, data)
     }
 
     private func requestCurrentDraft() async throws -> String {
-        try await commandDraft.read(isAvailable: canGenerateFromCurrentDraft) { [weak self] data in
+        if hasRuntimeContext {
+            guard let ticket = terminalContext.ticket(requiring: .readDraft),
+                let context = terminalContext.active, let ssh
+            else { throw TerminalDraftError.unavailable }
+            let value = try await ssh.contextDraft(context)
+            guard terminalContext.isCurrent(ticket, requiring: .readDraft) else {
+                throw TerminalDraftError.unavailable
+            }
+            return value
+        }
+        return try await commandDraft.read(isAvailable: canGenerateFromCurrentDraft) { [weak self] data in
             await self?.writeSSHDirectly(data)
         }
     }
 
     private func replaceCurrentDraft(with command: String) async {
+        if hasRuntimeContext {
+            guard let ticket = terminalContext.ticket(requiring: .replaceDraft),
+                let context = terminalContext.active, let ssh,
+                terminalContext.isCurrent(ticket, requiring: .replaceDraft)
+            else { return }
+            do {
+                _ = try await ssh.contextDraft(context, replacing: command)
+            } catch {
+                if terminalContext.isCurrent(ticket, requiring: .replaceDraft) {
+                    receiveRuntimeContext(.init(status: .unknown))
+                }
+                showCommandGenerationFailure(TerminalDraftError.unavailable.localizedDescription)
+            }
+            return
+        }
         await writeSSHDirectly(commandDraft.replacementPayload(for: command))
         terminal.requestFocus()
+    }
+
+    func validatedSameDirectoryLaunch(_ expected: MobileWorkspaceDirectoryLaunch) async
+        -> MobileWorkspaceDirectoryLaunch?
+    {
+        guard sameDirectoryLaunch == expected else { return nil }
+        do {
+            try await confirmDirectoryContext(terminalContext.ticket(requiring: .directory))
+            return sameDirectoryLaunch == expected ? expected : nil
+        } catch {
+            return nil
+        }
+    }
+
+    private func confirmDirectoryContext(_ ticket: TerminalContextCoordinator.Ticket?) async throws {
+        guard hasRuntimeContext else { return }
+        guard let ticket, terminalContext.isCurrent(ticket, requiring: .directory),
+            let context = terminalContext.active, let ssh
+        else { throw TerminalDraftError.unavailable }
+        do {
+            try await ssh.confirmContext(context)
+            guard terminalContext.isCurrent(ticket, requiring: .directory) else { throw TerminalDraftError.unavailable }
+        } catch {
+            if terminalContext.isCurrent(ticket, requiring: .directory) {
+                receiveRuntimeContext(.init(status: .unknown))
+            }
+            throw error
+        }
     }
 
     private func commandGenerationSnapshotIsCurrent(
@@ -560,6 +629,9 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func resetCommandGeneratorShellState() {
+        terminalContext.reset()
+        hasRuntimeContext = false
+        contextHistory.removeAll()
         cancelCommandGeneration()
         integratedShell = nil
         remoteSystemInfo = nil
@@ -583,8 +655,14 @@ final class MobileWorkspace: Identifiable {
             resetCommandGeneratorShellState()
             return
         }
+        if case .runtime(let update) = event {
+            receiveRuntimeContext(update)
+            return
+        }
+        guard !hasRuntimeContext else { return }
         commandMonitor.receiveShellEvent(event)
         switch event {
+        case .runtime: break
         case .available(let shell, let systemInfo, _):
             integratedShell = shell
             remoteSystemInfo = systemInfo
@@ -641,14 +719,68 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    private func receiveRuntimeContext(_ update: TerminalRuntimeUpdate) {
+        hasRuntimeContext = true
+        let previous = terminalContext.revision
+        let events = terminalContext.receive(update, generation: terminalContext.generation)
+        commandMonitor.receiveRuntimeEvents(events)
+        if previous != terminalContext.revision {
+            commandDraft.cancel()
+            cancelPendingUpload()
+            invalidateCommandGeneration()
+        }
+        workingDirectory = terminalContext.directory
+        integratedShell = terminalContext.active?.shell
+        shellIntegrationAvailable = terminalContext.active?.capabilities.contains(.commandLifecycle) == true
+        isShellPromptReady = terminalContext.active?.promptReady == true
+        for event in events {
+            switch event.payload {
+            case .commandStarted(let command):
+                if command == commandExcludedFromHistory {
+                    commandExcludedFromHistory = nil
+                } else {
+                    contextHistory[event.context] = commandHistory.record(command)?.id
+                }
+            case .commandFinished(let status, let duration):
+                if let id = contextHistory.removeValue(forKey: event.context) {
+                    commandHistory.recordCompletion(for: id, exitStatus: status, duration: duration)
+                }
+            case .draft(_, let value):
+                if terminalContext.active?.identity == event.context { commandDraft.receive(value) }
+            default: break
+            }
+        }
+        if update.status == .ordinary, isShellPromptReady {
+            isInitialCommandSubmissionReady = true
+            submitPendingInitialCommandIfReady()
+        }
+    }
+
     func connect() {
         guard !busy, !connected else { return }
+        if descriptor.kind != .ssh, sessionPersistence.requiresSelection {
+            busy = true
+            presentConnectionJourney(mode: .connection)
+            attempt = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    try await sessionPersistence.confirmPlainConnection()
+                    busy = false
+                    connect()
+                } catch {
+                    busy = false
+                    status = String(localized: AppStrings.Connections.disconnected)
+                }
+            }
+            return
+        }
         cancelPendingUpload()
         stopSSHEventConsumer()
         let reconnecting = connection.isRecovering
         let token = UUID()
         generation = token
         commandMonitor.beginConnection()
+        if descriptor.kind == .ssh { commandMonitor.requireScopedEvents() }
         activeHistoryID = nil
         resetCommandGeneratorShellState()
         operationError = nil
@@ -790,6 +922,31 @@ final class MobileWorkspace: Identifiable {
                         let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
                         backend.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
                     }
+                    let persistence = sessionPersistence
+                    let explicit = pendingCommand?.command
+                    let startup = explicit ?? pendingConnectionStartupCommand?.command
+                    let integration = isShellIntegrationEnabled
+                    if host.sessionPersistence.enabled || persistence.attachment != nil || persistence.requiresSelection
+                    {
+                        persistence.didChangeAttachment = { [weak self] reference in
+                            guard let self, self.generation == token else { return }
+                            if reference != nil {
+                                self.pendingCommand = nil
+                                self.pendingConnectionStartupCommand = nil
+                            }
+                            self.activitySession.recovery?.remoteSession = reference.flatMap {
+                                try? JSONEncoder().encode($0)
+                            }
+                            self.didChangeState?(self.activitySession)
+                        }
+                        await session.configureStartup { execute in
+                            try await persistence.prepare(
+                                preferences: host.sessionPersistence, registry: .live, execute: execute,
+                                hostID: host.id, endpoint: "\(host.host):\(host.sshPort)", username: config.username,
+                                startupCommand: startup, requiresNewSession: explicit != nil,
+                                shellIntegration: integration, environment: host.environmentVariables)
+                        }
+                    }
                     try await connectionServices.connectSSH(
                         session,
                         request,
@@ -878,13 +1035,17 @@ final class MobileWorkspace: Identifiable {
                 proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
-                if let ssh {
+                if let ssh, sessionPersistence.attachment == nil {
                     commandHistory.load(
                         using: RemoteShellHistoryLoader(channel: ssh, charset: host.charset), source: nil)
                 }
                 status = String(localized: AppStrings.Connections.connected)
                 journey.succeed()
-                if wasReconnecting, descriptor.kind == .ssh {
+                if sessionPersistence.attachment != nil {
+                    pendingCommand = nil
+                    pendingConnectionStartupCommand = nil
+                }
+                if wasReconnecting, descriptor.kind == .ssh, sessionPersistence.attachment == nil {
                     appendTerminalNotice(String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted))
                 }
                 if descriptor.kind == .ssh {
@@ -902,7 +1063,7 @@ final class MobileWorkspace: Identifiable {
                 stopSSHEventConsumer()
                 connectionFailure =
                     error is CancellationError
-                    ? String(localized: AppStrings.Connections.authenticationCancelled) : error.localizedDescription
+                    ? String(localized: AppStrings.Connections.connectionCancelled) : error.localizedDescription
                 let managedSFTPFailure =
                     host.isTailscaleManaged && descriptor.kind == .sftp
                     && !(error is CancellationError)
@@ -1175,7 +1336,75 @@ final class MobileWorkspace: Identifiable {
         connect()
     }
 
+    func restoreRemoteSession(_ reference: RemoteSessionReference?) {
+        sessionPersistence.attachment = reference
+        activitySession.recovery?.remoteSession = reference.flatMap { try? JSONEncoder().encode($0) }
+        didChangeState?(activitySession)
+    }
+
+    func terminatePersistentSession(
+        _ reference: RemoteSessionReference, isCurrentOwner: @MainActor () -> Bool = { true }
+    ) async throws {
+        guard sessionPersistence.attachment == reference, let channel = ssh else {
+            throw RemoteSessionFailure.sessionMissing
+        }
+        try await channel.releaseTerminalForControl()
+        connected = false
+        resetCommandGeneratorShellState()
+        status = String(localized: AppStrings.Connections.disconnected)
+        let execute = try await channel.sessionCommandExecutor()
+        let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
+        let sessions = try await backend.sessions()
+        guard isCurrentOwner(), ssh === channel, sessionPersistence.attachment == reference else {
+            throw CancellationError()
+        }
+        guard sessions.contains(where: { backend.matches(reference, session: $0) }) else {
+            throw RemoteSessionFailure.ownershipMismatch
+        }
+        try await backend.terminate(reference)
+        if sessionPersistence.attachment == reference { sessionPersistence.markEnded() }
+        connected = false
+        status = String(localized: AppStrings.SessionPersistence.ended)
+    }
+
     private func handleRemoteExit(_ result: Result<Int32, TermindSSHError>) {
+        cancelPendingUpload()
+        resetCommandGeneratorShellState()
+        if case .success(let exitCode) = result, let reference = sessionPersistence.attachment, let channel = ssh {
+            let attemptID = generation
+            Task { [weak self] in
+                guard let self else { return }
+                var sessionExists: Bool?
+                do {
+                    let execute = try await channel.sessionCommandExecutor()
+                    let backend = try RemoteSessionBackendRegistry.live.backend(reference.backend, execute: execute)
+                    let sessions = try await backend.sessions()
+                    sessionExists = sessions.contains(where: { backend.matches(reference, session: $0) })
+                } catch {
+                    // An unverified exit must not erase identity or start a replacement session.
+                }
+                guard self.generation == attemptID, self.sessionPersistence.attachment == reference else { return }
+                let shouldClose = self.sessionPersistence.finishExit(exitCode: exitCode, sessionExists: sessionExists)
+                await channel.disconnect()
+                guard self.generation == attemptID else { return }
+                self.ssh = nil
+                self.connection.resetRecovery()
+                self.connected = false
+                self.busy = false
+                self.connectionResumeIntent = .none
+                if shouldClose {
+                    self.didRequestClose?(self.id)
+                    return
+                }
+                self.status = String(
+                    localized: exitCode != 0
+                        ? AppStrings.SessionPersistence.failed
+                        : self.sessionPersistence.detached
+                            ? AppStrings.SessionPersistence.detached : AppStrings.SessionPersistence.ended)
+            }
+            return
+        }
+
         cancelPendingUpload()
         stopSSHEventConsumer()
         resetCommandGeneratorShellState()
@@ -1274,6 +1503,7 @@ final class MobileWorkspace: Identifiable {
         var connectionOrigin: RemoteConnectionOrigin = .library
         var externalSFTPResourcePath: String? = nil
         var externalSFTPMustBeDirectory = false
+        var remoteSession: RemoteSessionReference? = nil
     }
 
     var reopenState: ReopenState {
@@ -1281,10 +1511,11 @@ final class MobileWorkspace: Identifiable {
             descriptor: descriptor, transientHost: transientHost, connectionRoute: connectionRoute,
             usernameHint: usernameHint, connectionOrigin: connectionOrigin,
             externalSFTPResourcePath: externalSFTPResourcePath,
-            externalSFTPMustBeDirectory: externalSFTPMustBeDirectory)
+            externalSFTPMustBeDirectory: externalSFTPMustBeDirectory, remoteSession: sessionPersistence.attachment)
     }
 
     func disconnect() {
+        sessionPersistence.cancel()
         commandHistory.cancelLoading()
         commandMonitor.endConnection()
         cancelPendingUpload()
@@ -1404,9 +1635,15 @@ final class MobileWorkspace: Identifiable {
             journey.fail(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
             return
         }
+        let purpose: ConnectionPurpose =
+            switch descriptor.kind {
+            case .ssh: .sshSession
+            case .telnet: .telnetSession
+            case .sftp: .sftpChannel
+            }
         journey.begin(
             host: host, route: hosts.route(for: host),
-            purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
+            purpose: purpose,
             username: hosts.identity(for: host)?.username, mode: mode)
     }
 
@@ -1429,6 +1666,7 @@ final class MobileWorkspace: Identifiable {
 
         let connectionGeneration = generation
         let preparationID = UUID()
+        let contextTicket = terminalContext.ticket(requiring: .directory)
         uploadPreparationID = preparationID
         uploadNotice = .preparing(destination)
         uploadPreparationTask = Task { [weak self] in
@@ -1442,6 +1680,7 @@ final class MobileWorkspace: Identifiable {
             var client: (any SFTPClientProtocol)?
             var ownsClient = false
             do {
+                try await confirmDirectoryContext(contextTicket)
                 if descriptor.kind == .sftp {
                     guard let sftp else { throw SFTPError.notConnected }
                     client = sftp
@@ -1471,6 +1710,7 @@ final class MobileWorkspace: Identifiable {
                     destination: destination,
                     client: client
                 )
+                try await confirmDirectoryContext(contextTicket)
                 try Task.checkCancellation()
                 guard uploadPreparationID == preparationID,
                     generation == connectionGeneration, uploadDestination == destination
@@ -1497,7 +1737,7 @@ final class MobileWorkspace: Identifiable {
                     ownsClient: ownsClient,
                     context: context,
                     connectionGeneration: connectionGeneration,
-                    insertPaths: insertPaths
+                    insertPaths: insertPaths, terminalContext: contextTicket
                 )
                 if batch.conflictCount > 0 {
                     if uploadNotice?.isRejected != true { uploadNotice = nil }
@@ -1679,6 +1919,7 @@ final class MobileWorkspace: Identifiable {
                 }
             }
             do {
+                try await confirmDirectoryContext(pendingUpload.terminalContext)
                 let result = try await SFTPLocalUploadPlanner.enqueue(
                     pendingUpload.batch,
                     policy: policy,
@@ -1693,7 +1934,17 @@ final class MobileWorkspace: Identifiable {
                                 self.generation == pendingUpload.connectionGeneration
                             else { return }
                             let text = paths.map(RemoteShellCommand.escapeArgument).joined(separator: " ") + " "
-                            _ = self.terminal.paste(text: text)
+                            if self.hasRuntimeContext {
+                                guard let ticket = pendingUpload.terminalContext,
+                                    self.terminalContext.isCurrent(ticket, requiring: .directory)
+                                else { return }
+                                Task {
+                                    guard self.terminalContext.isCurrent(ticket, requiring: .directory) else { return }
+                                    await self.replaceCurrentDraft(with: text)
+                                }
+                            } else {
+                                _ = self.terminal.paste(text: text)
+                            }
                         } : nil
                 ) { [weak self] state in
                     guard state == .completed else { return }

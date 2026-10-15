@@ -94,6 +94,34 @@ private final class MobileSSHCommandConnectionBox {
 
 @Suite @MainActor
 struct MobileCommandGeneratorTests {
+    @Test func runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents() async throws {
+        var (host, library) = try commandFixture()
+        host.shellIntegrationMode = .enabled
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, connectionServices: connections.services)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let context = TerminalShellContext(
+            identity: .init(backend: "test-multiplexer", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/pane-a", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
+        workspace.receiveShellEvent(
+            .runtime(.init(status: .multiplexer, active: context.identity, contexts: [context])))
+        #expect(!host.sessionPersistence.enabled)
+        #expect(workspace.canGenerateFromCurrentDraft)
+        #expect(workspace.workingDirectory == "/pane-a")
+        workspace.receiveShellEvent(.runtime(.init(status: .unavailable)))
+        workspace.receiveWorkingDirectory("/stale")
+        workspace.receiveShellEvent(.promptReady)
+        #expect(workspace.workingDirectory == nil)
+        #expect(workspace.sameDirectoryLaunch == nil)
+        #expect(!workspace.canGenerateFromCurrentDraft)
+    }
+
     @Test(arguments: HostShellIntegrationMode.allCases, [false, true])
     func integrationUsesConnectionSnapshotUntilManualOrAutomaticReconnect(
         mode: HostShellIntegrationMode, global: Bool

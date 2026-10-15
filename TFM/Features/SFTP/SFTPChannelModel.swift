@@ -540,7 +540,7 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
                 self.status = .disconnected
                 self.homeResolution = .unavailable
                 self.connection.stopRecovery()
-                self.connectionJourney.fail(String(localized: AppStrings.Connections.authenticationCancelled))
+                self.connectionJourney.fail(String(localized: AppStrings.Connections.connectionCancelled))
             } catch  where host.isTailscaleManaged {
                 guard self.connectionAttemptID == attemptID else { return }
                 let username = suppliedAuthentication?.username ?? usernameHint ?? store.tailscaleUsername(for: host)

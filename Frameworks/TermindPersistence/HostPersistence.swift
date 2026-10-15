@@ -958,6 +958,14 @@ public enum TermindSchemaV52: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV53: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(53, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV52.models.filter { $0 != TermindSchemaV44HostModels.PersistentHost.self }
+            + [TermindSchemaV53HostModels.PersistentHost.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -974,7 +982,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV38.self, TermindSchemaV39.self, TermindSchemaV40.self, TermindSchemaV41.self,
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
-            TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self,
+            TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self, TermindSchemaV53.self,
         ]
     }
 
@@ -1086,11 +1094,12 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV49.self, toVersion: TermindSchemaV50.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV50.self, toVersion: TermindSchemaV51.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV51.self, toVersion: TermindSchemaV52.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV52.self, toVersion: TermindSchemaV53.self),
         ]
     }
 }
 
-public typealias PersistentHost = TermindSchemaV44HostModels.PersistentHost
+public typealias PersistentHost = TermindSchemaV53HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV33IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV45KeyModels.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

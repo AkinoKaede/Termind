@@ -30,7 +30,7 @@ struct ShellIntegrationBootstrapTests {
         #expect(commandText.contains("__termind_get_trap"))
         #expect(commandText.contains("__termind_integration_token"))
         #expect(commandText.contains("__termind_compose_clear"))
-        #expect(commandText.contains("emacs-standard vi-insertion vi-command"))
+        #expect(commandText.contains("emacs-standard vi-insert vi-command"))
         #expect(commandText.contains("\\e[777;1~"))
         #expect(commandText.contains("\\e[777;2~"))
         #expect(!commandText.contains("$HOSTNAME"))
@@ -237,6 +237,21 @@ struct ShellIntegrationBootstrapTests {
     func bashAndZshInstallationCommandsPassShellSyntaxChecks() throws {
         try assertInstallationSyntax(shell: "bash", executable: "/bin/bash")
         try assertInstallationSyntax(shell: "zsh", executable: "/bin/zsh")
+    }
+
+    @Test(arguments: ["emacs", "vi"], [false, true])
+    func bashDraftBindingsInstallWithoutKeymapErrors(editingMode: String, runtime: Bool) throws {
+        let bootstrap = RemoteShellIntegrationBootstrap(token: "KEYMAP")
+        var script = Data("set -o \(editingMode)\n__termind_event() { :; }\n".utf8)
+        script.append(try #require(bootstrap.installationCommand(for: "bash", runtime: runtime)))
+        script.append(Data("builtin trap - DEBUG\nexit 0\n".utf8))
+
+        let result = try runShell(
+            executable: "/bin/bash", arguments: ["--noprofile", "--norc"], input: script
+        )
+
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        #expect(result.errors.isEmpty, Comment(rawValue: result.errors))
     }
 
     @Test

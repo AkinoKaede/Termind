@@ -9,6 +9,34 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct HostShellIntegrationSessionTests {
+    @Test func runtimeContextGatesEnhancementsWithoutPersistence() throws {
+        let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
+        let session = SSHSessionModel(hostID: host.id, title: host.name)
+        session.connect(using: HostLibraryModel(hosts: [host]))
+        defer { session.disconnect() }
+        session.status = .connected
+        let context = TerminalShellContext(
+            identity: .init(backend: "test-multiplexer", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/pane-a", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
+        session.receiveShellIntegrationEvent(
+            .runtime(
+                .init(
+                    status: .multiplexer, active: context.identity, contexts: [context])))
+        #expect(!host.sessionPersistence.enabled)
+        #expect(session.canGenerateFromCurrentDraft)
+        #expect(session.workingDirectory == "/pane-a")
+        let ticket = try #require(session.directoryContextTicket)
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unknown)))
+        #expect(session.workingDirectory == nil)
+        #expect(!session.canGenerateFromCurrentDraft)
+        #expect(!session.isDirectoryContextCurrent(ticket))
+        session.receiveShellIntegrationEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: "/stale"))
+        session.receiveShellIntegrationEvent(.promptReady)
+        #expect(!session.canGenerateFromCurrentDraft)
+        #expect(session.workingDirectory == nil)
+    }
+
     @Test(arguments: HostShellIntegrationMode.allCases, [false, true])
     func connectionRetainsItsPreferenceUntilTheNextAttempt(mode: HostShellIntegrationMode, global: Bool) {
         let defaults = UserDefaults.standard

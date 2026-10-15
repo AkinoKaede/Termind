@@ -10,12 +10,14 @@ struct ClosedWorkspaceRecord: Codable, Identifiable {
     let layout: WorkspaceTemplateLayout?
     let paneNames: [String?]
     let focusedPaneIndex: Int
+    var remoteSessions: [RemoteSessionReference?]? = nil
 
     @MainActor
     init(_ workspace: Workspace, hosts: HostLibraryModel) {
         let layout =
             workspace.panes.contains { $0.sshSession?.isExternalTemporaryConnection == true }
             ? nil : workspace.workspaceTemplateLayout(in: hosts)
+        self.remoteSessions = workspace.panes.map { $0.sshSession?.sessionPersistence.attachment }
         self.id = workspace.id
         self.title = workspace.title(in: hosts)
         self.symbol = workspace.symbol
@@ -44,6 +46,9 @@ struct ClosedWorkspaceRecord: Codable, Identifiable {
         let workspace = Workspace(pane: node.firstPane)
         workspace.layout = node
         for (pane, name) in zip(workspace.panes, paneNames) { pane.customTitle = name }
+        for (pane, reference) in zip(workspace.panes, remoteSessions ?? []) {
+            pane.sshSession?.sessionPersistence.attachment = reference
+        }
         if workspace.isSplit { workspace.customTitle = title } else { workspace.automaticTitle = title }
         if workspace.panes.indices.contains(focusedPaneIndex) {
             workspace.focusedPaneID = workspace.panes[focusedPaneIndex].id

@@ -286,7 +286,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         return decoded
     }
 
-    private mutating func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
+    fileprivate mutating func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
         let prefix = Data("__TRMD_\(token)_SYSTEM__".utf8)
         guard let prefixRange = data.range(of: prefix),
             let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
@@ -441,11 +441,68 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             ?? data.startIndex
     }
 
-    private func installationCommand(for shell: String?) -> Data? {
+    func installationCommand(for shell: String?, runtime: Bool = false) -> Data? {
+        let cwdReport =
+            runtime
+            ? "__termind_event directory \"$(__termind_encode \"$PWD\")\""
+            : "builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\""
+        let bashFinished =
+            runtime
+            ? "__termind_event finish \"$status\" \"$duration\""
+            : "builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$status\" \"$duration\""
+        let zshFinished =
+            runtime
+            ? "__termind_event finish \"$command_status\" \"$duration\""
+            : "builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$command_status\" \"$duration\""
+        let promptReport = runtime ? "__termind_event prompt" : "builtin printf '\\e]777;TermindPrompt=\(token)\\a'"
+        let bashStarted =
+            runtime
+            ? "__termind_event start \"$(__termind_encode \"$cmd\")\""
+            : "builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\""
+        let zshStarted =
+            runtime
+            ? "__termind_event start \"$(__termind_encode \"$1\")\""
+            : "builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\""
+        let bashDraft =
+            runtime
+            ? RemoteShellContextJournal.draftWidget(shell: "bash", replacing: false)
+            : "builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$READLINE_LINE\")\""
+        let zshDraft =
+            runtime
+            ? RemoteShellContextJournal.draftWidget(shell: "zsh", replacing: false)
+            : "builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\""
+        let fishCwd =
+            runtime
+            ? "__termind_event directory (string escape --style=url -- $PWD)"
+            : "printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD)"
+        let fishPrompt = runtime ? "__termind_event prompt" : "printf '\\e]777;TermindPrompt=\(token)\\a'"
+        let fishStarted =
+            runtime
+            ? "__termind_event start (string escape --style=url -- $argv[1])"
+            : "printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1])"
+        let fishFinished =
+            runtime
+            ? "__termind_event finish $command_status $command_duration"
+            : "printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' $command_status $command_duration"
+        let fishDraft =
+            runtime
+            ? RemoteShellContextJournal.draftWidget(shell: "fish", replacing: false)
+            : "printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\""
+        let bashClear =
+            runtime
+            ? RemoteShellContextJournal.draftWidget(shell: "bash", replacing: true) : "READLINE_LINE=; READLINE_POINT=0"
+        let zshClear =
+            runtime ? RemoteShellContextJournal.draftWidget(shell: "zsh", replacing: true) : "BUFFER=; CURSOR=0"
+        let fishClear =
+            runtime
+            ? RemoteShellContextJournal.draftWidget(shell: "fish", replacing: true)
+            : "commandline -r ''; commandline -C 0"
         let marker =
             "builtin printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' \"$(__termind_encode \"$HOME\")\"; builtin printf '\\n__TRMD_%s_DONE__\\n' '\(token)'"
         let historyMarker =
             "__termind_history_path=\"${HISTFILE-}\"; if [[ -n \"$__termind_history_path\" && \"$__termind_history_path\" != /* ]]; then __termind_history_path=\"$PWD/$__termind_history_path\"; fi; builtin printf '\\n__TRMD_%s_HISTORY__%s\\n' '\(token)' \"$(__termind_encode \"$__termind_history_path\")\"; unset __termind_history_path; "
+        let fishMetadata =
+            "set -l __termind_hname fish; if set -q fish_history; set __termind_hname \"$fish_history\"; end; set -l __termind_hbase \"$HOME/.local/share\"; if set -q XDG_DATA_HOME; and test -n \"$XDG_DATA_HOME\"; set __termind_hbase \"$XDG_DATA_HOME\"; end; set -l __termind_hpath ''; if test -n \"$__termind_hname\"; set __termind_hpath \"$__termind_hbase/fish/$__termind_hname\"_history; end; printf '\\n__TRMD_%s_HISTORY__%s\\n' '\(token)' (string escape --style=url -- \"$__termind_hpath\"); set -e __termind_hname __termind_hbase __termind_hpath; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; "
         let command: String
         switch shell {
         case "bash":
@@ -457,15 +514,15 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
                     " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then",
                     "__termind_integration_token=\"\(token)\";",
                     "__termind_encode() { builtin local s=\"$1\" out= c hex i LC_ALL=C; for ((i=0;i<${#s};i++)); do c=${s:i:1}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; };",
-                    "__termind_report_cwd() { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; };",
-                    "__termind_report_prompt() { builtin local status=$? duration=0; if (( $# > 0 )); then status=$1; fi; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$status\" \"$duration\"; builtin unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; __termind_command_ready=1; return \"$status\"; };",
+                    "__termind_report_cwd() { \(cwdReport); };",
+                    "__termind_report_prompt() { builtin local status=$? duration=0; if (( $# > 0 )); then status=$1; fi; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; \(bashFinished); builtin unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; \(promptReport); __termind_command_ready=1; return \"$status\"; };",
                     "__termind_prompt_begin() { __termind_prompt_status=$?; __termind_command_ready=0; return \"$__termind_prompt_status\"; };",
                     "__termind_prompt_end() { builtin local status=\"${__termind_prompt_status:-$?}\"; builtin unset __termind_prompt_status; __termind_report_prompt \"$status\"; };",
-                    "__termind_report_command() { builtin local status=$? cmd=\"${1:-}\"; case \"$cmd\" in __termind_*) return \"$status\";; esac; [[ \"${__termind_command_ready:-0}\" == 1 ]] || return \"$status\"; __termind_command_ready=0; [[ -n \"${__termind_busy:-}\" ]] && return \"$status\"; __termind_busy=1; if [[ -z \"$cmd\" ]]; then cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; fi; if [[ -n \"$cmd\" ]]; then builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$cmd\")\"; __termind_command_active=1; __termind_command_started_seconds=$SECONDS; fi; builtin unset __termind_busy; return \"$status\"; };",
+                    "__termind_report_command() { builtin local status=$? cmd=\"${1:-}\"; case \"$cmd\" in __termind_*) return \"$status\";; esac; [[ \"${__termind_command_ready:-0}\" == 1 ]] || return \"$status\"; __termind_command_ready=0; [[ -n \"${__termind_busy:-}\" ]] && return \"$status\"; __termind_busy=1; if [[ -z \"$cmd\" ]]; then cmd=\"$(builtin fc -ln -0)\"; cmd=\"${cmd#\"${cmd%%[![:space:]]*}\"}\"; fi; if [[ -n \"$cmd\" ]]; then \(bashStarted); __termind_command_active=1; __termind_command_started_seconds=$SECONDS; fi; builtin unset __termind_busy; return \"$status\"; };",
                     "__termind_get_trap() { builtin local -a terms; builtin eval \"terms=( $(builtin trap -p \"${1:-DEBUG}\") )\"; builtin printf %s \"${terms[2]:-}\"; };",
-                    "__termind_compose_draft() { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$READLINE_LINE\")\"; };",
-                    "__termind_compose_clear() { READLINE_LINE=; READLINE_POINT=0; };",
-                    "for __termind_map in emacs-standard vi-insertion vi-command; do builtin bind -m \"$__termind_map\" -x '\"\\e[777;1~\":__termind_compose_draft'; builtin bind -m \"$__termind_map\" -x '\"\\e[777;2~\":__termind_compose_clear'; done;",
+                    "__termind_compose_draft() { \(bashDraft); };",
+                    "__termind_compose_clear() { \(bashClear); };",
+                    "for __termind_map in emacs-standard vi-insert vi-command; do builtin bind -m \"$__termind_map\" -x '\"\\e[777;1~\":__termind_compose_draft'; builtin bind -m \"$__termind_map\" -x '\"\\e[777;2~\":__termind_compose_clear'; done;",
                     "builtin unset __termind_map;",
                     "if [[ -n \"${bash_preexec_imported:-}\" ]]; then",
                     "[[ \" ${preexec_functions[*]} \" == *\" __termind_report_command \"* ]] || preexec_functions+=(__termind_report_command);",
@@ -480,17 +537,17 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
                     "fi;",
                     "fi;",
                     "fi;",
-                    "\(historyMarker)\(marker);",
+                    runtime ? "" : "\(historyMarker)\(marker);",
                     "__termind_report_prompt",
                 ].joined(separator: " ") + "\n"
         case "zsh":
             // Unlike bash, zsh reserves `status` as a read-only special parameter.
             // Assigning it aborts this function and the remaining prompt hooks.
             command =
-                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then typeset -g __termind_integration_token=\"\(token)\"; function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { builtin printf '\\e]7;file://localhost%s\\a' \"$(__termind_encode \"$PWD\")\"; }; function __termind_report_prompt { builtin local command_status=$? duration=0; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; builtin printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' \"$command_status\" \"$duration\"; unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; builtin printf '\\e]777;TermindPrompt=\(token)\\a'; return \"$command_status\"; }; function __termind_report_command { builtin printf '\\e]777;TermindCommand=\(token);%s\\a' \"$(__termind_encode \"$1\")\"; typeset -g __termind_command_active=1; typeset -g __termind_command_started_seconds=$SECONDS; }; function __termind_compose_draft { builtin printf '\\e]777;TermindDraft=\(token);%s\\a' \"$(__termind_encode \"$BUFFER\")\"; zle redisplay; }; function __termind_compose_clear { BUFFER=; CURSOR=0; zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; (( ${preexec_functions[(Ie)__termind_report_command]} )) || add-zsh-hook preexec __termind_report_command; precmd_functions=(__termind_report_prompt ${precmd_functions:#__termind_report_prompt}); (( ${chpwd_functions[(Ie)__termind_report_cwd]} )) || add-zsh-hook chpwd __termind_report_cwd; fi; \(historyMarker)\(marker); __termind_report_prompt\n"
+                " if [[ \"${__termind_integration_token:-}\" != \"\(token)\" ]]; then typeset -g __termind_integration_token=\"\(token)\"; function __termind_encode { builtin local s=\"$1\" out= c hex i; builtin local LC_ALL=C; for ((i=1;i<=${#s};i++)); do c=${s[i]}; case \"$c\" in [a-zA-Z0-9.~_/-]) out+=\"$c\";; *) builtin printf -v hex '%%%02X' \"'$c\"; out+=\"$hex\";; esac; done; builtin printf %s \"$out\"; }; function __termind_report_cwd { \(cwdReport); }; function __termind_report_prompt { builtin local command_status=$? duration=0; if [[ -n \"${__termind_command_active:-}\" ]]; then if (( SECONDS >= ${__termind_command_started_seconds:-0} )); then duration=$(( (SECONDS - __termind_command_started_seconds) * 1000 )); fi; \(zshFinished); unset __termind_command_active __termind_command_started_seconds; fi; __termind_report_cwd; \(promptReport); return \"$command_status\"; }; function __termind_report_command { \(zshStarted); typeset -g __termind_command_active=1; typeset -g __termind_command_started_seconds=$SECONDS; }; function __termind_compose_draft { \(zshDraft); zle redisplay; }; function __termind_compose_clear { \(zshClear); zle redisplay; }; zle -N __termind_compose_draft; zle -N __termind_compose_clear; for __termind_map in emacs viins vicmd; do bindkey -M $__termind_map '\\e[777;1~' __termind_compose_draft 2>/dev/null; bindkey -M $__termind_map '\\e[777;2~' __termind_compose_clear 2>/dev/null; done; unset __termind_map; autoload -Uz add-zsh-hook; (( ${preexec_functions[(Ie)__termind_report_command]} )) || add-zsh-hook preexec __termind_report_command; precmd_functions=(__termind_report_prompt ${precmd_functions:#__termind_report_prompt}); (( ${chpwd_functions[(Ie)__termind_report_cwd]} )) || add-zsh-hook chpwd __termind_report_cwd; fi; \(runtime ? "" : historyMarker + marker + "; ")__termind_report_prompt\n"
         case "fish":
             command =
-                " if not set -q __termind_integration_token; or test \"$__termind_integration_token\" != \"\(token)\"; set -g __termind_integration_token \"\(token)\"; function __termind_report_cwd --on-variable PWD; printf '\\e]7;file://localhost%s\\a' (string escape --style=url $PWD); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; printf '\\e]777;TermindPrompt=\(token)\\a'; end; function __termind_report_command --on-event fish_preexec; printf '\\e]777;TermindCommand=\(token);%s\\a' (string escape --style=url -- $argv[1]); set -g __termind_command_active 1; end; function __termind_report_finished --on-event fish_postexec; set -l command_status $status; set -l command_duration $CMD_DURATION; if set -q __termind_command_active; printf '\\e]777;TermindCommandFinished=\(token);%s;%s\\a' $command_status $command_duration; set -e __termind_command_active; end; end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); printf '\\e]777;TermindDraft=\(token);%s\\a' \"$encoded\"; end; function __termind_compose_clear; commandline -r ''; commandline -C 0; end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; end; set -l __termind_hname fish; if set -q fish_history; set __termind_hname \"$fish_history\"; end; set -l __termind_hbase \"$HOME/.local/share\"; if set -q XDG_DATA_HOME; and test -n \"$XDG_DATA_HOME\"; set __termind_hbase \"$XDG_DATA_HOME\"; end; set -l __termind_hpath ''; if test -n \"$__termind_hname\"; set __termind_hpath \"$__termind_hbase/fish/$__termind_hname\"_history; end; printf '\\n__TRMD_%s_HISTORY__%s\\n' '\(token)' (string escape --style=url -- \"$__termind_hpath\"); set -e __termind_hname __termind_hbase __termind_hpath; printf '\\n__TRMD_%s_HOME__%s\\n' '\(token)' (string escape --style=url $HOME); printf '\\n__TRMD_%s_DONE__\\n' '\(token)'; __termind_report_prompt\n"
+                " if not set -q __termind_integration_token; or test \"$__termind_integration_token\" != \"\(token)\"; set -g __termind_integration_token \"\(token)\"; function __termind_report_cwd --on-variable PWD; \(fishCwd); end; function __termind_report_prompt --on-event fish_prompt; __termind_report_cwd; \(fishPrompt); end; function __termind_report_command --on-event fish_preexec; \(fishStarted); set -g __termind_command_active 1; end; function __termind_report_finished --on-event fish_postexec; set -l command_status $status; set -l command_duration $CMD_DURATION; if set -q __termind_command_active; \(fishFinished); set -e __termind_command_active; end; end; function __termind_compose_draft; set -l encoded (string escape --style=url -- (commandline)); \(fishDraft); end; function __termind_compose_clear; \(fishClear); end; for __termind_map in default insert visual; bind -M $__termind_map \\e'[777;1~' __termind_compose_draft 2>/dev/null; bind -M $__termind_map \\e'[777;2~' __termind_compose_clear 2>/dev/null; end; set -e __termind_map; end; \(runtime ? "" : fishMetadata)__termind_report_prompt\n"
         default:
             return nil
         }
@@ -648,17 +705,32 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     }
 }
 
+private nonisolated final class SSHPTYStartupBytes: @unchecked Sendable {
+    let pointer: UnsafeMutablePointer<CChar>
+    let count: UInt32
+    init(_ data: Data) {
+        count = UInt32(data.count)
+        pointer = .allocate(capacity: data.count + 1)
+        for (index, byte) in data.enumerated() { pointer[index] = CChar(bitPattern: byte) }
+        pointer[data.count] = 0
+    }
+    deinit { pointer.deallocate() }
+}
+
 public actor SSHPTYChannel {
     public typealias OutputHandler = @Sendable (Data) -> Void
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
     public typealias EnvironmentRejectionHandler = @Sendable ([String]) -> Void
+    public typealias StartupPreparation =
+        @Sendable (@escaping RemoteSessionCommandExecutor) async throws -> SSHPTYStartupPlan?
 
     private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
     private let agentForwardingFactory: SSHAgentForwardingFactory?
     private var environmentVariables: [HostEnvironmentVariable] = []
     private var environmentRejection: EnvironmentRejectionHandler = { _ in }
+    private var startupPreparation: StartupPreparation?
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
@@ -689,6 +761,7 @@ public actor SSHPTYChannel {
             using: request,
             environmentVariables: environmentVariables,
             environmentRejection: environmentRejection,
+            startupPreparation: startupPreparation,
             shellIntegrationEnabled: shellIntegrationEnabled,
             columns: columns, rows: rows, progress: progress
         )
@@ -700,6 +773,30 @@ public actor SSHPTYChannel {
     ) {
         environmentVariables = variables
         environmentRejection = rejection
+    }
+
+    public func configureStartup(_ preparation: @escaping StartupPreparation) {
+        startupPreparation = preparation
+    }
+
+    public func sessionCommandExecutor() async throws -> RemoteSessionCommandExecutor {
+        try await worker.sessionCommandExecutor()
+    }
+
+    public func runtimeCommandExecutor() async throws -> RemoteSessionCommandExecutor {
+        try await worker.sessionCommandExecutor(runtime: true)
+    }
+
+    public func contextDraft(_ context: TerminalShellContext, replacing command: String? = nil) async throws -> String {
+        try await worker.contextDraft(context, replacing: command)
+    }
+
+    public func confirmContext(_ context: TerminalShellContext) async throws {
+        try await worker.confirmContext(context)
+    }
+
+    public func releaseTerminalForControl() async throws {
+        try await worker.releaseTerminalForControl()
     }
 
     public func write(_ data: Data) {
@@ -751,6 +848,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 
     private var connection: SSHAuthenticatedConnection?
     private var ptyChannel: OpaquePointer?
+    private var openingPTY: OpaquePointer?
+    private var retainsControlConnection = false
     private var hostID: Host.ID?
     private var charset: RemoteCharset = .utf8
     private var pumpTimer: (any DispatchSourceTimer)?
@@ -763,6 +862,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var shellIntegrationLifecycleLogger: RemoteShellIntegrationLifecycleLogger
     private var commandEventFilter: RemoteCommandEventFilter?
+    private var contextFilter: RemoteTerminalContextFilter?
+    private var runtimeTask: Task<Void, Never>?
+    private var runtimeTerminal: String?
+    private var runtimeRevision: UInt64 = 0
+    private var runtimeEnabled = false
+    private var runtimeWantsObservation = false
+    private var runtimeControlUnavailable = false
+    private var runtimeHelper: String?
+    private var runtimeInputRevision: UInt64 = 0
+    private var latestRuntimeUpdate: TerminalRuntimeUpdate?
+    private var pendingRuntimeDraft: UUID?
+    private var runtimeDraftBaseline: (TerminalContextIdentity, String)?
     private var inputConverter: RemoteCharsetStreamConverter?
     private var outputConverter: RemoteCharsetStreamConverter?
     private var workingDirectoryFilter: RemoteOSC7CharsetFilter?
@@ -805,7 +916,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 self.cleanup()
             },
             didCloseLastChannel: { [weak self] in
-                guard let self, self.ptyChannel == nil, self.sftpChannelOwner.isEmptyOnQueue else { return }
+                guard let self, !self.retainsControlConnection,
+                    self.ptyChannel == nil, self.sftpChannelOwner.isEmptyOnQueue
+                else { return }
                 self.cleanup()
             })
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
@@ -823,7 +936,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
             },
             didCloseLastChannel: { [weak self] in
-                guard let self, self.ptyChannel == nil else { return }
+                guard let self, !self.retainsControlConnection, self.ptyChannel == nil else { return }
                 self.cleanup()
             })
     }
@@ -1024,6 +1137,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         using request: SSHConnectionRequest,
         environmentVariables: [HostEnvironmentVariable],
         environmentRejection: @escaping SSHPTYChannel.EnvironmentRejectionHandler,
+        startupPreparation: SSHPTYChannel.StartupPreparation? = nil,
         shellIntegrationEnabled: Bool,
         columns: UInt16, rows: UInt16,
         progress: SSHRouteProgressHandler?
@@ -1045,6 +1159,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             )
         }
         do {
+            if startupPreparation != nil || shellIntegrationEnabled {
+                try await connectPrepared(
+                    request: request, generation: generation, environment: encodedEnvironment,
+                    environmentRejection: environmentRejection, shellIntegrationEnabled: shellIntegrationEnabled,
+                    preparation: startupPreparation ?? { _ in nil }, progress: progress)
+                return
+            }
             let channelBudget = maxSessionsPolicy.makeBudget()
             let ptyChannelLease = try await channelBudget.acquire()
             let openedConnection = try await Self.openAuthenticatedConnection(
@@ -1150,6 +1271,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     public func write(_ data: Data) {
         guard !data.isEmpty else { return }
         queue.async { [self] in
+            runtimeRevision &+= 1
+            runtimeInputRevision &+= 1
+            runtimeDraftBaseline = nil
+            // Input expires in-flight operations, but does not itself prove a context switch.
+            // Keep the last observation until inspection replaces it; operations revalidate it.
             if var integration = shellIntegration {
                 integration.noteUserInput()
                 shellIntegration = integration
@@ -1171,6 +1297,273 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     public func disconnect() async { await queue.perform { self.closeTerminalSession() } }
+
+    func sessionCommandExecutor(
+        runtime: Bool = false, expectedInput: UInt64? = nil
+    ) async throws -> RemoteSessionCommandExecutor {
+        let generation = try await queue.perform { [self] in
+            guard connection != nil else { throw TermindSSHError.disconnected }
+            return ptyResize.generation
+        }
+        return { [self] command in
+            let cancellation = TransferCancellationToken()
+            let timeout: TimeInterval = runtime ? 2 : 15
+            let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
+            let timer = Task {
+                try await Task.sleep(until: deadline, clock: .continuous)
+                cancellation.cancel()
+            }
+            defer { timer.cancel() }
+            return try await withTaskCancellationHandler {
+                try await queue.perform { [self] in
+                    guard connection != nil, ptyResize.generation == generation else { throw CancellationError() }
+                }
+                let result: SSHExecResult
+                do {
+                    result = try await execChannelOwner.execute(
+                        command, workingDirectory: nil, stdin: nil, timeout: timeout, outputLimit: 1024 * 1024,
+                        cancellation: cancellation, onOutput: nil, usesLoginShell: false, retriesChannelOpen: !runtime,
+                        requiresImmediateCapacity: runtime,
+                        validateContext: { [self] in
+                            ptyResize.generation == generation
+                                && (expectedInput == nil || runtimeInputRevision == expectedInput)
+                        })
+                } catch {
+                    try Task.checkCancellation()
+                    if runtime, case SSHCommandExecutionError.channelUnavailable = error {
+                        await queue.perform { [self] in
+                            guard ptyResize.generation == generation else { return }
+                            runtimeControlUnavailable = true
+                            publishRuntime(latestRuntimeUpdate ?? .init(status: .unavailable))
+                        }
+                    }
+                    if ContinuousClock.now >= deadline { throw RemoteSessionFailure.timedOut }
+                    throw error
+                }
+                try await queue.perform { [self] in
+                    guard connection != nil, ptyResize.generation == generation else { throw CancellationError() }
+                }
+                return RemoteSessionCommandResult(
+                    stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode,
+                    truncated: result.stdoutTruncated || result.stderrTruncated || result.signal != nil)
+            } onCancel: {
+                cancellation.cancel()
+            }
+        }
+    }
+
+    private func connectPrepared(
+        request: SSHConnectionRequest, generation: UUID, environment: [(String, Data, Data)],
+        environmentRejection: @escaping SSHPTYChannel.EnvironmentRejectionHandler,
+        shellIntegrationEnabled: Bool, preparation: SSHPTYChannel.StartupPreparation,
+        progress: SSHRouteProgressHandler?
+    ) async throws {
+        let opened = try await Self.openAuthenticatedConnection(
+            using: request, timeout: 20, progress: progress, logger: logger)
+        try await queue.perform { [self] in
+            guard ptyResize.generation == generation else {
+                opened.close()
+                throw CancellationError()
+            }
+            connection = opened
+            retainsControlConnection = true
+            hostID = request.configuration.hostID
+            charset = request.configuration.charset
+            channelBudget = maxSessionsPolicy.makeBudget()
+            buffer = opened.installBuffer()
+            if let provider = request.agentForwarding {
+                buffer?.agentChannels = SSHAgentChannels(provider: provider, queue: queue) { [weak self] in self?.pump()
+                }
+                libssh2_session_callback_set2(
+                    opened.libssh2Session, LIBSSH2_CALLBACK_AUTHAGENT,
+                    unsafeBitCast(SSHAgentChannels.callback, to: (@convention(c) () -> Void).self))
+            }
+            libssh2_session_set_blocking(opened.libssh2Session, 0)
+            libssh2_keepalive_config(opened.libssh2Session, 1, 20)
+            startPump()
+        }
+        let executor = try await sessionCommandExecutor()
+        let launch = try await preparation(executor)
+        try Task.checkCancellation()
+        if shellIntegrationEnabled {
+            var probe = RemoteShellIntegrationBootstrap(charset: charset)
+            if let result = try? await executor(String(decoding: probe.startCommand, as: UTF8.self)),
+                result.exitCode == 0, !result.truncated,
+                let info = probe.parseSystemInfo(in: Data(result.stdout.utf8))
+            {
+                await queue.perform { [self] in
+                    guard ptyResize.generation == generation else { return }
+                    shellIntegrationHandler(.systemInfo(info))
+                }
+            }
+        }
+        let runtimeToken = UUID()
+        var usesRuntime = shellIntegrationEnabled
+        var startupCommand = launch?.command
+        if launch == nil, shellIntegrationEnabled {
+            do {
+                let install = try RemoteTmuxShellStartup.install(
+                    token: runtimeToken, startupCommand: nil, shellIntegration: true, ordinary: true)
+                let result = try await executor(install + "\nprintf '%s\\n' \"$helper\"\n")
+                guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
+                let helper = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard helper.hasPrefix("/tmp/termind-shell."),
+                    !helper.dropFirst("/tmp/termind-shell.".count).isEmpty,
+                    helper.dropFirst("/tmp/termind-shell.".count).utf8.allSatisfy({
+                        (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
+                    })
+                else { throw TerminalRuntimeError.invalidResponse }
+                startupCommand =
+                    "export TERMIND_TMUX_HELPERS=\(try RemoteTmuxCommands.quote(helper)); exec \"$TERMIND_TMUX_HELPERS/shell\""
+                await queue.perform { self.runtimeHelper = helper }
+            } catch {
+                try Task.checkCancellation()
+                // Startup-only integration is optional; never fall back to typing a bootstrap.
+                usesRuntime = false
+            }
+        }
+        if let original = startupCommand, usesRuntime {
+            startupCommand =
+                "printf '\\033]777;TermindTerminal=\(runtimeToken.uuidString);%s\\007' \"$(tty)\";\n" + original
+        }
+        let command = try startupCommand.map {
+            SSHPTYStartupBytes(Data(("/bin/sh -c " + (try RemoteTmuxCommands.quote($0))).utf8))
+        }
+        let runtimeIsEnabled = usesRuntime
+        try await queue.perform { [self] in
+            guard ptyResize.generation == generation else { throw CancellationError() }
+            runtimeEnabled = runtimeIsEnabled
+            runtimeWantsObservation = runtimeIsEnabled && launch != nil
+            if runtimeIsEnabled {
+                contextFilter = .init(token: runtimeToken.uuidString, charset: charset)
+                publishRuntime(.init(status: .unknown))
+            } else if shellIntegrationEnabled {
+                publishRuntime(.init(status: .unavailable))
+            }
+        }
+        let variables = environment.map { ($0.0, SSHPTYStartupBytes($0.1), SSHPTYStartupBytes($0.2)) }
+        let initialSize = try await queue.perform { self.ptyResize.requestedSize }
+        guard let budget = try await queue.perform({ self.channelBudget }) else { throw TermindSSHError.disconnected }
+        let lease = try await budget.acquire()
+        try await queue.perform { [self] in
+            guard ptyResize.generation == generation, connection === opened else {
+                lease.release()
+                throw CancellationError()
+            }
+            ptyChannelLease = lease
+        }
+        // Each libssh2 retry stays queue-confined, while selection and network waits never block the pump.
+        for operation in 0..<(4 + environment.count) {
+            try await retryPTYOperation(generation: generation, retriesChannelOpen: operation == 0) { [self] in
+                let session = opened.libssh2Session
+                switch operation {
+                case 0:
+                    openingPTY = libssh2_channel_open_ex(session, "session", 7, 2 * 1024 * 1024, 32 * 1024, nil, 0)
+                    return openingPTY != nil ? 0 : libssh2_session_last_errno(session)
+                case 1:
+                    guard let channel = openingPTY else { return LIBSSH2_ERROR_CHANNEL_CLOSED }
+                    return request.agentForwarding == nil ? 0 : libssh2_channel_request_auth_agent(channel)
+                case 2:
+                    guard let channel = openingPTY, let size = initialSize else {
+                        return LIBSSH2_ERROR_CHANNEL_CLOSED
+                    }
+                    let result = libssh2_channel_request_pty_ex(
+                        channel, "xterm-256color", 14, nil, 0, Int32(size.columns), Int32(size.rows),
+                        Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels))
+                    if result == 0 { ptyResize.didCreatePTY(size: size) }
+                    return result
+                case 3..<(3 + environment.count):
+                    let variable = variables[operation - 3]
+                    let result = libssh2_channel_setenv_ex(
+                        openingPTY, variable.1.pointer, variable.1.count, variable.2.pointer, variable.2.count)
+                    if result == LIBSSH2_ERROR_CHANNEL_REQUEST_DENIED {
+                        environmentRejection([variable.0])
+                        return 0
+                    }
+                    return result
+                default:
+                    if let command {
+                        return libssh2_channel_process_startup(openingPTY, "exec", 4, command.pointer, command.count)
+                    }
+                    return libssh2_channel_process_startup(openingPTY, "shell", 5, nil, 0)
+                }
+            }
+        }
+        try await queue.perform { [self] in
+            guard ptyResize.generation == generation, connection === opened else { throw CancellationError() }
+            ptyChannel = openingPTY
+            openingPTY = nil
+            retainsControlConnection = launch != nil
+            inputConverter = try RemoteCharsetStreamConverter(charset: charset, direction: .encoding)
+            outputConverter = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
+            workingDirectoryFilter = RemoteOSC7CharsetFilter(charset: charset)
+            didReportExit = false
+            progress?(.connected(request.configuration.hostID))
+            pump()
+        }
+    }
+
+    private func retryPTYOperation(
+        generation: UUID?, retriesChannelOpen: Bool = false, operation: @escaping @Sendable () -> Int32
+    ) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(20))
+        while true {
+            try Task.checkCancellation()
+            let result = try await queue.perform { [self] in
+                guard connection != nil, generation == nil || ptyResize.generation == generation else {
+                    throw CancellationError()
+                }
+                return operation()
+            }
+            if result == 0 { return }
+            guard result == LIBSSH2_ERROR_EAGAIN || (retriesChannelOpen && result == LIBSSH2_ERROR_CHANNEL_FAILURE)
+            else {
+                throw TermindSSHError.library("SSH terminal request failed (\(result)).")
+            }
+            guard ContinuousClock.now < deadline else {
+                throw TermindSSHError.library("SSH terminal request timed out.")
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func releaseTerminalForControl(expectedGeneration: UUID? = nil) async throws {
+        let generation = try await queue.perform { [self] in
+            guard connection != nil else { throw TermindSSHError.disconnected }
+            guard expectedGeneration == nil || expectedGeneration == ptyResize.generation else {
+                throw CancellationError()
+            }
+            stopRuntimeObservation()
+            retainsControlConnection = true
+            didReportExit = true
+            if let ptyChannel {
+                openingPTY = ptyChannel
+                self.ptyChannel = nil
+            }
+            pendingWrites.removeAll()
+            return ptyResize.generation
+        }
+        try await retryPTYOperation(generation: generation) { [self] in
+            guard let openingPTY else { return 0 }
+            return libssh2_channel_close(openingPTY)
+        }
+        try await retryPTYOperation(generation: generation) { [self] in
+            guard let openingPTY else { return 0 }
+            guard libssh2_channel_eof(openingPTY) == 1 else { return 0 }
+            return libssh2_channel_wait_closed(openingPTY)
+        }
+        try await retryPTYOperation(generation: generation) { [self] in
+            guard let openingPTY else { return 0 }
+            let result = libssh2_channel_free(openingPTY)
+            if result == 0 { self.openingPTY = nil }
+            return result
+        }
+        await queue.perform { [self] in
+            guard ptyResize.generation == generation else { return }
+            ptyChannelLease?.release()
+            ptyChannelLease = nil
+        }
+    }
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials], session: OpaquePointer,
@@ -1534,8 +1927,33 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         }
         if let ptyChannel, libssh2_channel_eof(ptyChannel) == 1 {
             let status = libssh2_channel_get_exit_status(ptyChannel)
+            if retainsControlConnection {
+                // Keep the authenticated transport, but finish CLOSE/FREE before allowing
+                // a post-exit probe to consume the server's only session slot.
+                openingPTY = ptyChannel
+                self.ptyChannel = nil
+                let generation = ptyResize.generation
+                Task { [self] in
+                    do {
+                        try await releaseTerminalForControl(expectedGeneration: generation)
+                        await queue.perform { [self] in
+                            guard ptyResize.generation == generation else { return }
+                            didReportExit = false
+                            reportExit(.success(status))
+                        }
+                    } catch {
+                        await queue.perform { [self] in
+                            guard ptyResize.generation == generation else { return }
+                            didReportExit = false
+                            reportExit(.failure(.disconnected))
+                            cleanup()
+                        }
+                    }
+                }
+                return
+            }
             reportExit(.success(status))
-            closeTerminalSession()
+            closeTerminalSession(preservingControl: retainsControlConnection)
             return
         }
         do { try buffer.flush(socket: socket) } catch {
@@ -1596,6 +2014,22 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func deliverIntegratedOutput(_ data: Data) {
+        if var contextFilter {
+            let update = contextFilter.receive(data)
+            self.contextFilter = contextFilter
+            if let terminal = update.terminal {
+                runtimeTerminal = terminal
+                startRuntimeObservation()
+            }
+            for context in update.contexts {
+                runtimeRevision &+= 1
+                runtimeWantsObservation = context.status != .ordinary
+                publishRuntime(context)
+                if runtimeWantsObservation { startRuntimeObservation() }
+            }
+            if !update.output.isEmpty { emitConvertedOutput(update.output) }
+            return
+        }
         guard var commandEventFilter else {
             emitConvertedOutput(data)
             return
@@ -1614,6 +2048,171 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             case .draft(let draft):
                 shellIntegrationHandler(.draft(draft))
             }
+        }
+    }
+
+    private func startRuntimeObservation() {
+        guard runtimeEnabled, runtimeTask == nil, runtimeTerminal != nil else { return }
+        let generation = ptyResize.generation
+        runtimeTask = Task { [weak self] in
+            guard let self else { return }
+            var delay = 500
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(delay))
+                guard !Task.isCancelled else { break }
+                let request = try? await queue.perform { [self] () -> (String, UInt64, RemoteCharset)? in
+                    guard runtimeEnabled, runtimeWantsObservation, ptyResize.generation == generation,
+                        !runtimeControlUnavailable, let terminal = runtimeTerminal
+                    else { return nil }
+                    return (terminal, runtimeRevision, charset)
+                }
+                guard let request else { continue }
+                do {
+                    let adapter = RemoteTmuxRuntimeAdapter(
+                        execute: try await sessionCommandExecutor(runtime: true), charset: request.2)
+                    let update = try await adapter.inspect(terminal: request.0)
+                    try Task.checkCancellation()
+                    await queue.perform { [self] in
+                        guard ptyResize.generation == generation, runtimeRevision == request.1,
+                            runtimeWantsObservation
+                        else { return }
+                        publishRuntime(update)
+                    }
+                    delay = update.status == .multiplexer ? 750 : min(delay * 2, 5000)
+                } catch {
+                    guard !Task.isCancelled else { break }
+                    await queue.perform { [self] in
+                        guard ptyResize.generation == generation, runtimeRevision == request.1,
+                            runtimeWantsObservation
+                        else { return }
+                        publishRuntime(.init(status: .unavailable))
+                    }
+                    delay = min(delay * 2, 5000)
+                }
+            }
+        }
+    }
+
+    private func publishRuntime(_ proposed: TerminalRuntimeUpdate) {
+        var update = proposed
+        if runtimeControlUnavailable || channelBudget?.permitsConcurrentControl == false {
+            if update.status == .multiplexer {
+                update = .init(status: .unavailable)
+            } else {
+                for index in update.contexts.indices {
+                    update.contexts[index].capabilities.subtract([.readDraft, .replaceDraft])
+                }
+            }
+        }
+        latestRuntimeUpdate = update
+        if update.status == .ordinary,
+            let context = update.contexts.first(where: { $0.identity == update.active }),
+            let path = context.historyPath, let shell = ShellHistorySource.Shell(rawValue: context.shell)
+        {
+            detectedHistorySource = .init(shell: shell, path: path)
+        }
+        shellIntegrationHandler(.runtime(update))
+    }
+
+    func confirmContext(_ expected: TerminalShellContext) async throws {
+        let state = try await queue.perform { [self] in
+            guard let terminal = runtimeTerminal, latestRuntimeUpdate?.active == expected.identity else {
+                throw TerminalRuntimeError.staleContext
+            }
+            return (terminal, runtimeInputRevision, ptyResize.generation, charset)
+        }
+        if expected.identity.backend != "shell" {
+            let execute = try await sessionCommandExecutor(runtime: true, expectedInput: state.1)
+            let update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.3).inspect(
+                terminal: state.0)
+            guard update.active == expected.identity,
+                update.contexts.first(where: { $0.identity == expected.identity }) == expected
+            else { throw TerminalRuntimeError.staleContext }
+        }
+        try Task.checkCancellation()
+        try await queue.perform { [self] in
+            guard runtimeInputRevision == state.1, ptyResize.generation == state.2,
+                latestRuntimeUpdate?.active == expected.identity,
+                latestRuntimeUpdate?.contexts.first(where: { $0.identity == expected.identity }) == expected
+            else { throw TerminalRuntimeError.staleContext }
+        }
+    }
+
+    func contextDraft(_ expected: TerminalShellContext, replacing replacement: String?) async throws -> String {
+        let request = UUID()
+        let state = try await queue.perform { [self] in
+            guard pendingRuntimeDraft == nil, let terminal = runtimeTerminal,
+                latestRuntimeUpdate?.active == expected.identity, expected.promptReady,
+                !runtimeControlUnavailable,
+                latestRuntimeUpdate?.contexts.first(where: { $0.identity == expected.identity })?
+                    .capabilities.contains(replacement == nil ? .readDraft : .replaceDraft) == true
+            else { throw TerminalRuntimeError.staleContext }
+            pendingRuntimeDraft = request
+            return (terminal, runtimeHelper, runtimeInputRevision, ptyResize.generation, charset)
+        }
+        do {
+            let execute = try await sessionCommandExecutor(runtime: true, expectedInput: state.2)
+            let update: TerminalRuntimeUpdate?
+            if expected.identity.backend == "tmux" {
+                update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.4).inspect(
+                    terminal: state.0)
+                guard update?.active == expected.identity,
+                    update?.contexts.first(where: { $0.identity == expected.identity }) == expected
+                else { throw TerminalRuntimeError.staleContext }
+            } else {
+                update = nil
+            }
+            try await validateDraft(request, context: expected.identity, input: state.2, generation: state.3)
+            let command = try RemoteTerminalDraft.command(
+                context: expected, terminal: state.0, helper: state.1,
+                clientIdentity: update?.clientIdentity, request: request, replacement: replacement,
+                original: try await queue.perform { [self] in
+                    replacement != nil && runtimeDraftBaseline?.0 == expected.identity ? runtimeDraftBaseline?.1 : nil
+                }, charset: state.4)
+            let started = try await execute(command)
+            guard started.exitCode == 0, !started.truncated else { throw TerminalRuntimeError.staleContext }
+            if expected.identity.backend == "shell" {
+                try await queue.perform { [self] in
+                    guard pendingRuntimeDraft == request, runtimeInputRevision == state.2,
+                        ptyResize.generation == state.3, latestRuntimeUpdate?.active == expected.identity
+                    else { throw TerminalRuntimeError.staleContext }
+                    let key = replacement == nil ? "\u{1B}[777;1~" : "\u{1B}[777;2~"
+                    pendingWrites.append(Data(key.utf8))
+                    pump()
+                }
+            }
+            let result = try await execute(
+                RemoteTerminalDraft.resultCommand(context: expected, helper: state.1, request: request))
+            guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.staleContext }
+            let record = try RemoteShellContextRecord(result.stdout, charset: state.4)
+            guard record.instance == expected.identity.shellInstance,
+                let value = record.entries.compactMap({ entry -> String? in
+                    if case .draft(let id, let value) = entry.1, id == request.uuidString { return value }
+                    return nil
+                }).last
+            else { throw TerminalRuntimeError.staleContext }
+            try await validateDraft(request, context: expected.identity, input: state.2, generation: state.3)
+            await queue.perform { [self] in
+                if pendingRuntimeDraft == request {
+                    pendingRuntimeDraft = nil
+                    runtimeDraftBaseline = (expected.identity, value)
+                }
+            }
+            return value
+        } catch {
+            await queue.perform { [self] in if pendingRuntimeDraft == request { pendingRuntimeDraft = nil } }
+            throw error
+        }
+    }
+
+    private func validateDraft(
+        _ request: UUID, context: TerminalContextIdentity, input: UInt64, generation: UUID?
+    ) async throws {
+        try Task.checkCancellation()
+        try await queue.perform { [self] in
+            guard pendingRuntimeDraft == request, runtimeInputRevision == input, ptyResize.generation == generation,
+                latestRuntimeUpdate?.active == context
+            else { throw TerminalRuntimeError.staleContext }
         }
     }
 
@@ -1650,7 +2249,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         } catch {}
     }
 
-    private func closeTerminalSession() {
+    private func closeTerminalSession(preservingControl: Bool = false) {
+        stopRuntimeObservation()
+        retainsControlConnection = preservingControl
         execChannelOwner.cancelAllOnQueue()
         detectedHistorySource = nil
         buffer?.agentChannels?.shutdown()
@@ -1674,7 +2275,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         }
         // Cancelled exec callers may already have returned while native close still waits
         // for the peer. Only live SFTP channels justify keeping this transport running.
-        if sftpChannelOwner.isEmptyOnQueue {
+        if sftpChannelOwner.isEmptyOnQueue && !retainsControlConnection {
             cleanup()
         } else {
             queue.async { [weak self] in self?.pump() }
@@ -1682,6 +2283,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private func cleanup() {
+        stopRuntimeObservation()
+        retainsControlConnection = false
         buffer?.agentChannels?.shutdown()
         pumpTimer?.cancel()
         pumpTimer = nil
@@ -1702,6 +2305,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             _ = libssh2_channel_free(ptyChannel)
             self.ptyChannel = nil
         }
+        if let openingPTY {
+            _ = libssh2_channel_close(openingPTY)
+            _ = libssh2_channel_free(openingPTY)
+            self.openingPTY = nil
+        }
         execChannelOwner.closeAllOnQueue(error: CancellationError())
         detectedHistorySource = nil
         sftpChannelOwner.closeAllOnQueue()
@@ -1716,6 +2324,22 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         } else {
             connection?.close()
         }
+    }
+
+    private func stopRuntimeObservation() {
+        runtimeTask?.cancel()
+        runtimeTask = nil
+        runtimeTerminal = nil
+        runtimeEnabled = false
+        runtimeWantsObservation = false
+        runtimeControlUnavailable = false
+        runtimeRevision &+= 1
+        contextFilter = nil
+        latestRuntimeUpdate = nil
+        runtimeHelper = nil
+        pendingRuntimeDraft = nil
+        runtimeDraftBaseline = nil
+        runtimeInputRevision &+= 1
     }
 
     public static func observation(host: String, port: Int, session: OpaquePointer) throws
@@ -1884,7 +2508,11 @@ nonisolated extension SSHPTYChannelWorker {
             try Task.checkCancellation()
             let (source, pending) = try await queue.perform { [self] in
                 guard connection != nil else { throw TermindSSHError.disconnected }
-                return (detectedHistorySource, shellIntegration != nil)
+                return (
+                    detectedHistorySource,
+                    shellIntegration != nil
+                        || (runtimeEnabled && runtimeHelper != nil && latestRuntimeUpdate?.active == nil)
+                )
             }
             if !pending || source != nil || ContinuousClock.now >= deadline { return source }
             try await Task.sleep(for: .milliseconds(50))

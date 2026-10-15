@@ -214,6 +214,7 @@ struct MobileHostEditor: View {
                         sftpInitialPath: $draft.sftpChannelInitialPath,
                         startupSnippetID: fields.startupSnippetChoice,
                         agentForwardingEnabled: $draft.agentForwardingEnabled,
+                        sessionPersistence: $draft.sessionPersistence,
                         allowsAgentForwarding: !draft.isTailscaleManaged,
                         environmentVariables: $draft.environmentVariables,
                         snippets: library.snippets,

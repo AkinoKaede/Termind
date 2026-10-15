@@ -1,6 +1,35 @@
 import SwiftUI
 import TermindDomain
 
+public struct HostSessionPersistenceSection: View {
+    @Binding private var preferences: SessionPersistencePreferences
+
+    public init(preferences: Binding<SessionPersistencePreferences>) { _preferences = preferences }
+
+    public var body: some View {
+        Section(AppStrings.SessionPersistence.section.swiftUIKey) {
+            Toggle(isOn: $preferences.enabled) { Text(AppStrings.Common.enabled) }
+            Picker(AppStrings.SessionPersistence.backend.swiftUIKey, selection: $preferences.backend) {
+                Text(verbatim: "tmux").tag(SessionPersistenceBackendID.tmux)
+                if preferences.backend != .tmux {
+                    Text(verbatim: preferences.backend.rawValue).tag(preferences.backend)
+                }
+            }
+            .pickerStyle(.menu)
+            .menuOrder(.fixed)
+            .disabled(!preferences.enabled)
+            Picker(AppStrings.SessionPersistence.onConnect.swiftUIKey, selection: $preferences.onConnect) {
+                Text(AppStrings.SessionPersistence.ask).tag(SessionPersistencePreferences.OnConnect.ask)
+                Text(AppStrings.SessionPersistence.create).tag(SessionPersistencePreferences.OnConnect.createManaged)
+                Text(AppStrings.SessionPersistence.normalShell).tag(SessionPersistencePreferences.OnConnect.plainShell)
+            }
+            .pickerStyle(.menu)
+            .menuOrder(.fixed)
+            .disabled(!preferences.enabled)
+        }
+    }
+}
+
 public struct HostIntegrationSection: View {
     @Binding private var mode: HostShellIntegrationMode
 
@@ -23,6 +52,7 @@ public struct HostSessionSection: View {
     @Binding private var charset: RemoteCharset
     @Binding private var sftpInitialPath: String
     @Binding private var agentForwardingEnabled: Bool
+    @Binding private var sessionPersistence: SessionPersistencePreferences
     @Binding private var startupSnippetID: Snippet.ID?
     @Binding private var environmentVariables: [HostEnvironmentVariable]
     private let allowsAgentForwarding: Bool
@@ -35,6 +65,7 @@ public struct HostSessionSection: View {
         sftpInitialPath: Binding<String>,
         startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
         agentForwardingEnabled: Binding<Bool> = .constant(false),
+        sessionPersistence: Binding<SessionPersistencePreferences> = .constant(.init()),
         allowsAgentForwarding: Bool = true,
         environmentVariables: Binding<[HostEnvironmentVariable]> = .constant([]),
         snippets: [Snippet] = [],
@@ -46,6 +77,7 @@ public struct HostSessionSection: View {
         _startupSnippetID = startupSnippetID
         self.allowsAgentForwarding = allowsAgentForwarding
         _agentForwardingEnabled = agentForwardingEnabled
+        _sessionPersistence = sessionPersistence
         _environmentVariables = environmentVariables
         self.snippets = snippets
         self.snippetPackagePath = snippetPackagePath
@@ -88,6 +120,8 @@ public struct HostSessionSection: View {
                     #endif
             }
         }
+
+        HostSessionPersistenceSection(preferences: $sessionPersistence)
 
         Section("Environment Variables") {
             ForEach(environmentVariables.indices, id: \.self) { index in

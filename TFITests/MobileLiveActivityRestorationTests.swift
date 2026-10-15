@@ -46,6 +46,22 @@ struct MobileLiveActivityRestorationTests {
         #expect(existing.updates.count == 1)
     }
 
+    @Test func removedRecoveryCannotBeReadBackFromStaleSystemContent() {
+        let backend = Backend()
+        let id = UUID()
+        let recovery = TermindIOS.WorkspaceActivityAttributes.Recovery(
+            sourceWorkspaceID: id, hostID: UUID(), kind: "ssh")
+        let card = TermindIOS.WorkspaceActivityAttributes.Session(
+            id: id, title: "Server", kind: "ssh", connected: false, recovery: recovery)
+        let existing = TestActivity()
+        existing.contentState = .snapshot([card], focusedID: id)
+        backend.existing = [existing]
+        let controller = MobileLiveActivityController(services: backend.services)
+        #expect(controller.recovery(for: id) == recovery)
+        controller.remove(id)
+        #expect(controller.recovery(for: id) == nil)
+    }
+
     @Test func closeLastThenOpenWaitsForOldActivityToFinishEnding() async {
         let backend = Backend()
         let existing = TestActivity()
@@ -68,124 +84,56 @@ struct MobileLiveActivityRestorationTests {
         #expect(backend.created.first?.ended == false)
     }
 
-    @Test func coldLaunchEndsOldActivityAndOnlyLoadsRecentDescriptors() async throws {
-        let suite = "termind.activity-restoration-tests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
+    @Test func coldLaunchRetainsRecoverableSystemActivityWithoutConnecting() async throws {
         let seed = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         seed.library.upsert(host)
-        let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
+        let oldID = UUID()
+        let reference = RemoteSessionReference(
+            backend: .tmux, session: .init(id: "$42", name: "External", identity: Data("backend-identity".utf8)),
+            hostID: host.id, endpoint: "example.invalid:22", username: "u", ownershipToken: nil)
+        let card = TermindIOS.WorkspaceActivityAttributes.Session(
+            id: oldID, title: "Saved", kind: "ssh", connected: true,
+            recovery: .init(
+                sourceWorkspaceID: oldID, hostID: host.id, kind: "ssh",
+                remoteSession: try JSONEncoder().encode(reference)))
         let backend = Backend()
-        let existing = TestActivity(focusedWorkspaceID: descriptor.id)
+        let existing = TestActivity(focusedWorkspaceID: oldID)
+        existing.contentState = .snapshot([card], focusedID: oldID)
         backend.existing = [existing]
         var dependencies = MobileAppDependencies.testing()
         dependencies.container = seed.container
-        dependencies.workspaceStore = MobileWorkspaceStore(defaults: defaults)
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
         let app = try MobileAppModel(dependencies: dependencies)
         app.sceneChanged(UUID(), phase: .active)
-
-        #expect(await eventually { existing.ended })
-        #expect(existing.updates.isEmpty)
-        #expect(backend.requests.isEmpty)
+        #expect(await eventually { !existing.updates.isEmpty })
+        #expect(!existing.ended)
+        #expect(existing.updates.last?.connectedCount == 0)
         #expect(app.workspaces.isEmpty)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptor])
-        app.testWorkspaceSession.closeAll()
+        #expect(backend.requests.isEmpty)
+        let scene = MobileSceneModel(app: app, sessionID: "new")
+        scene.open(card.destinationURL)
+        let rebuilt = try #require(app.workspaces.first)
+        #expect(rebuilt.id != oldID)
+        #expect(rebuilt.sessionPersistence.requiresSelection)
+        #expect(rebuilt.sessionPersistence.attachment == reference)
+        scene.workspaceSession.closeAll()
         #expect(await eventually { existing.ended })
+        app.sceneChanged(scene.id, phase: .active)
+        #expect(backend.requests.isEmpty)
     }
 
-    @Test func coldLaunchWithoutSystemActivityDoesNotCreateOneUntilNewWorkspaceOpens() async throws {
-        let suite = "termind.activity-restoration-tests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let seed = try MobileAppModel(inMemory: true)
-        let host = TermindDomain.Host(name: "Server", host: "example.invalid")
-        seed.library.upsert(host)
-        let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
-        let backend = Backend()
-        var dependencies = MobileAppDependencies.testing()
-        dependencies.container = seed.container
-        dependencies.workspaceStore = MobileWorkspaceStore(defaults: defaults)
-        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
-        let app = try MobileAppModel(dependencies: dependencies)
-        let sceneID = UUID()
-        app.sceneChanged(sceneID, phase: .active)
-        app.sceneChanged(sceneID, phase: .background)
-        app.sceneChanged(sceneID, phase: .active)
-        _ = try #require(app.testWorkspaceSession.open(hostID: host.id, kind: .ssh))
-        #expect(await eventually { backend.requests.count == 1 })
-        #expect(backend.requests.map(\.workspaceCount) == [1])
-        app.testWorkspaceSession.close(app.workspaces[0].id)
-        #expect(app.testWorkspaceSession.recentWorkspaces == [descriptor])
-        #expect(await eventually { backend.created.first?.ended == true })
-        app.testWorkspaceSession.closeAll()
-    }
-
-    @Test func emptyColdLaunchEndsOrphanedActivity() async throws {
+    @Test func coldLaunchWithoutRecoveryEndsUnusableCard() async throws {
         let backend = Backend()
         let existing = TestActivity()
         backend.existing = [existing]
         var dependencies = MobileAppDependencies.testing()
         dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
         let app = try MobileAppModel(dependencies: dependencies)
-        #expect(app.workspaces.isEmpty)
+        app.sceneChanged(UUID(), phase: .active)
         #expect(await eventually { existing.ended })
+        #expect(app.workspaces.isEmpty)
         #expect(backend.requests.isEmpty)
-    }
-
-    @Test(arguments: [false, true])
-    func oldLinkRestoresBeforeOrAfterForegroundAndDoesNotResurrectDismissedCard(linkFirst: Bool) async throws {
-        let suite = "termind.activity-link-tests.\(UUID())"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let seed = try MobileAppModel(inMemory: true)
-        let host = TermindDomain.Host(name: "Server", host: "example.invalid")
-        seed.library.upsert(host)
-        let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: "Saved", kind: .ssh)
-        try MobileWorkspaceStore(defaults: defaults).save(.init(unassigned: [descriptor]))
-        let backend = Backend()
-        backend.canStart = false
-        let old = TestActivity(focusedWorkspaceID: descriptor.id)
-        backend.existing = [old]
-        var dependencies = MobileAppDependencies.testing()
-        dependencies.container = seed.container
-        dependencies.workspaceStore = MobileWorkspaceStore(defaults: defaults)
-        dependencies.liveActivities = MobileLiveActivityController(services: backend.services)
-        let app = try MobileAppModel(dependencies: dependencies)
-        defer { app.testWorkspaceSession.closeAll() }
-        let scene = MobileSceneModel(app: app, sessionID: "test")
-        #expect(await eventually { old.ended })
-        if linkFirst {
-            scene.open(descriptor.destinationURL)
-            scene.activatePendingWorkspace()
-            // Drain the serial queue while requests are disallowed.
-            for _ in 0..<20 { await Task.yield() }
-            #expect(backend.requests.isEmpty)
-        }
-        backend.canStart = true
-        app.sceneChanged(scene.id, phase: .active)
-        if !linkFirst {
-            scene.open(descriptor.destinationURL)
-            scene.activatePendingWorkspace()
-        }
-        #expect(await eventually { backend.requests.count == 1 })
-        #expect(backend.requests.first?.sessions.map(\.id) == [descriptor.id])
-        #expect(scene.workspaceID == descriptor.id)
-        #expect(app.connectionHistory.entries().count == 1)
-        let created = try #require(backend.created.first)
-        created.state = .dismissed
-        app.sceneChanged(scene.id, phase: .background)
-        app.sceneChanged(scene.id, phase: .active)
-        // A barrier proves earlier foreground updates have run without creating a second activity.
-        app.testWorkspaceSession.closeAll()
-        let next = session()
-        app.liveActivities.start([next])
-        #expect(await eventually { backend.requests.count == 2 })
-        #expect(backend.requests.last?.sessions.map(\.id) == [next.id])
-        app.liveActivities.update([])
     }
 
     @Test func closingBeforeForegroundCancelsPendingStart() async {
@@ -238,6 +186,7 @@ struct MobileLiveActivityRestorationTests {
         var state: ActivityState
         let focusedWorkspaceID: UUID?
         var updates: [TermindIOS.WorkspaceActivityAttributes.ContentState] = []
+        var contentState: TermindIOS.WorkspaceActivityAttributes.ContentState?
         var ended = false
         var suspendsEnd = false
         var endContinuation: CheckedContinuation<Void, Never>?
@@ -248,6 +197,7 @@ struct MobileLiveActivityRestorationTests {
         }
 
         func update(_ state: TermindIOS.WorkspaceActivityAttributes.ContentState) async {
+            contentState = state
             updates.append(state)
         }
 

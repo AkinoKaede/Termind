@@ -95,13 +95,15 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
     public var username = ""
     public var charset: RemoteCharset = .utf8
     public var sftpInitialPath = ""
+    public var sessionPersistence = SessionPersistencePreferences()
     public var shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
     public var startupSnippetID: UUID?
     public var environmentVariables: [HostEnvironmentVariable] = []
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case tags, colorTag, username, charset, sftpInitialPath, shellIntegrationMode, startupSnippetID,
+        case sessionPersistence, tags, colorTag, username, charset, sftpInitialPath, shellIntegrationMode,
+            startupSnippetID,
             environmentVariables, detectedDistribution
     }
 
@@ -113,6 +115,9 @@ public nonisolated struct TailscaleHostPreferences: Codable, Hashable, Sendable 
         username = try values.decode(String.self, forKey: .username)
         charset = try values.decode(RemoteCharset.self, forKey: .charset)
         sftpInitialPath = try values.decode(String.self, forKey: .sftpInitialPath)
+        sessionPersistence =
+            try values.decodeIfPresent(SessionPersistencePreferences.self, forKey: .sessionPersistence)
+            ?? .init(enabled: false)
         shellIntegrationMode = try values.decode(HostShellIntegrationMode.self, forKey: .shellIntegrationMode)
         startupSnippetID = try values.decodeIfPresent(UUID.self, forKey: .startupSnippetID)
         environmentVariables = try values.decode([HostEnvironmentVariable].self, forKey: .environmentVariables)

@@ -23,11 +23,7 @@ extension MobileAppModel {
         guard !states.isEmpty else { return }
         let record = RecentlyClosedRecord(items: states.map(\.descriptor), isWindow: isWindow)
         closedWorkspaceStates[record.id] = states
-        recentlyClosedStore.record(
-            record,
-            persist: states.allSatisfy {
-                $0.connectionOrigin.allowsPersistence && library.host($0.descriptor.hostID) != nil
-            })
+        recentlyClosedStore.record(record, persist: false)
         let retained = Set(recentlyClosedStore.entries.map(\.id))
         closedWorkspaceStates = closedWorkspaceStates.filter { retained.contains($0.key) }
     }
