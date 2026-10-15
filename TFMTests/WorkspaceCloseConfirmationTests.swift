@@ -93,6 +93,47 @@ struct WorkspaceCloseConfirmationTests {
     }
 
     @Test
+    func closingWindowWithManagedSessionDisconnectsWithoutEndingItsRecoveryIdentity() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let hosts = HostLibraryModel(hosts: [host])
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        let reference = RemoteSessionReference(
+            backend: .tmux, session: .init(id: "session", name: "Managed", identity: Data([1])),
+            hostID: host.id, endpoint: "server.example:22", username: "user", ownershipToken: UUID())
+        session.sessionPersistence.attachment = reference
+        let model = WindowModel(workspaces: [workspace])
+        var saved: ClosedWorkspaceRecord?
+        model.rememberClosedWindow = { workspaces, _ in
+            saved = workspaces.first.map { ClosedWorkspaceRecord($0, hosts: hosts) }
+        }
+        let native = makeWindow()
+        var confirmations = 0
+        let proxy = WorkspaceWindowCloseDelegate(model: model) {
+            confirmations += 1
+            return true
+        }
+        proxy.attach(to: native)
+        defer {
+            proxy.attach(to: nil)
+            native.close()
+            model.closeForWindow()
+        }
+
+        #expect(native.delegate?.windowShouldClose?(native) == true)
+        #expect(confirmations == 1)
+        #expect(!model.persistentClose.isClosing)
+        #expect(model.persistentClose.prompt == nil)
+        model.closeForWindow()
+        #expect(model.isClosed)
+        #expect(model.workspaces.isEmpty)
+        #expect(session.status == .disconnected)
+        #expect(session.sessionPersistence.attachment == reference)
+        let restored = try #require(saved?.restore(in: hosts))
+        #expect(restored.focusedPane.sshSession?.sessionPersistence.attachment == reference)
+    }
+
+    @Test
     func emptyWindowClosesWithoutConfirmation() {
         let model = WindowModel()
         let native = makeWindow()

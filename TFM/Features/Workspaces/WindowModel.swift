@@ -1433,11 +1433,6 @@ final class WindowModel {
     }
 
     let persistentClose = RemoteSessionCloseCoordinator()
-    var persistentWindowCloseAuthorized = false
-
-    var hasManagedSessions: Bool {
-        workspaces.flatMap(\.panes).contains { $0.sshSession?.sessionPersistence.attachment?.isManaged == true }
-    }
 
     func authorizePersistentClose(_ sessions: [SSHSessionModel]) async -> Bool {
         let workspaceIDs = Set(workspaces.map(\.id))
@@ -1469,6 +1464,8 @@ final class WindowModel {
 
     func closeForWindow() {
         guard !isClosed else { return }
+        // Window dismissal disconnects clients but preserves remote sessions and their recovery references.
+        persistentClose.cancel()
         rememberClosedWindow?(workspaces, selectedWorkspaceID)
         isClosed = true
         for workspace in workspaces {
