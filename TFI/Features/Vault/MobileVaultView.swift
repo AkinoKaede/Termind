@@ -766,42 +766,16 @@ struct MobileVaultView: View {
         MobileActionCard {
             activateHost(host.id)
         } content: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    HostConnectionIcon(
-                        host: host,
-                        status: scene?.workspaceActivatedByHostRow(for: host).flatMap {
-                            MobileWorkspaceConnectionIndicator.resolve(
-                                connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
-                            )?.status
-                        },
-                        badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false)
-                    )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(host.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
-                        Text(app.library.preferredTerminalLoginAddress(for: host)).font(.caption.monospaced())
-                            .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                HStack(spacing: 6) {
-                    ForEach(MobileCardLayout.visibleTags(host.tags), id: \.self) { tag in
-                        MobileCardChip(text: tag)
-                    }
-                    Spacer(minLength: 6)
-                    Text(
-                        app.lastConnectedAt(for: host.id)
-                            .map { $0.formatted(.relative(presentation: .numeric).locale(locale)) }
-                            ?? String(localized: AppStrings.Vault.never)
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityHint(AppStrings.Vault.openWorkspace.swiftUIKey)
+            MobileHostCardContent(
+                host: host,
+                address: app.library.preferredTerminalLoginAddress(for: host),
+                status: scene?.workspaceActivatedByHostRow(for: host).flatMap {
+                    MobileWorkspaceConnectionIndicator.resolve(
+                        connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
+                    )?.status
+                },
+                lastConnectedAt: app.lastConnectedAt(for: host.id)
+            )
         } actions: {
             let sections = MobileHostMenuPolicy.sections(
                 for: host, hasTailscalePeer: app.tailscale.peer(for: host) != nil)

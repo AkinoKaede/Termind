@@ -40,19 +40,27 @@ public struct SnippetCardContent: View {
                     }
                 }
             }
-            HStack(spacing: 6) {
-                if let packagePath {
-                    Label(packagePath, systemImage: "folder")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            ZStack {
+                // Keep the footer's line height when a search result has no package.
+                Label(" ", systemImage: "folder")
+                    .font(.caption)
+                    .hidden()
+                    .accessibilityHidden(true)
+
+                HStack(spacing: 6) {
+                    if let packagePath {
+                        Label(packagePath, systemImage: "folder")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 6)
+                    Text(modifiedAt.formatted(.relative(presentation: .numeric).locale(locale)))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
-                Spacer(minLength: 6)
-                Text(modifiedAt.formatted(.relative(presentation: .numeric).locale(locale)))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
             }
         }
     }

@@ -115,7 +115,7 @@ struct MobileCard<Content: View>: View {
     var body: some View {
         content.frame(maxWidth: .infinity, alignment: .leading).multilineTextAlignment(.leading)
             .padding(16)
-            .frame(minHeight: MobileCardLayout.minimumHeight, alignment: .topLeading)
+            .frame(minHeight: MobileCardLayout.minimumHeight, alignment: .leading)
             .mobileCardSurface()
     }
 }
@@ -128,7 +128,7 @@ struct MobileActionCard<Content: View, Actions: View>: View {
     @ViewBuilder var actions: Actions
 
     init(
-        alignment: Alignment = .topLeading,
+        alignment: Alignment = .leading,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder actions: () -> Actions

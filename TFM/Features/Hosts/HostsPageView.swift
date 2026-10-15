@@ -470,7 +470,7 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 
 // MARK: - Card
 
-private struct HostCard: View {
+struct HostCard: View {
     @Environment(\.locale) private var locale
 
     let host: Host
@@ -555,6 +555,8 @@ private struct HostCard: View {
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .lineLimit(1)
+            // Match CardChip's vertical padding even when there are no tags.
+            .padding(.vertical, 2)
         }
     }
 }

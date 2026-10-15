@@ -568,11 +568,9 @@ struct CardTile<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Metrics.Space.l)
-            // A floor rather than a height: the two-row card this page is built
-            // around already measures 80pt, so this changes nothing today. It is
-            // here so a card that loses a row — a host with no tags, a future
-            // one-line tile — still sits level with its neighbours.
-            .frame(minHeight: Metrics.Card.minHeight, alignment: .top)
+            // Keep short cards level with their neighbours and split any extra
+            // height evenly above and below the content.
+            .frame(minHeight: Metrics.Card.minHeight, alignment: .center)
             .background(
                 isHovering && !isSelected ? Color.primary.opacity(0.035) : .clear,
                 in: .rect(cornerRadius: Metrics.Radius.large)
