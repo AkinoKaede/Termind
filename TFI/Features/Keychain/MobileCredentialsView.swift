@@ -4,6 +4,7 @@ import TermindDomain
 import TermindPresentation
 
 struct MobileCredentialsView: View {
+    @AppStorage("mobile.compactCards") private var compactCards = false
     let app: MobileAppModel
     @State private var editingSecurityKey: SSHKeyRef?
     @State private var editing: Identity?
@@ -32,12 +33,12 @@ struct MobileCredentialsView: View {
                     if app.credentials.keys.isEmpty {
                         ContentUnavailableView(AppStrings.Keychain.noKeys.swiftUIKey, systemImage: "key")
                     }
-                    MobileCardGrid {
+                    MobileCardGrid(compact: compactCards) {
                         ForEach(keys) { key in
-                            MobileActionCard {
+                            MobileActionCard(compact: compactCards) {
                                 exportingKey = key
                             } content: {
-                                MobileKeyCredentialCard(key: key, credentials: app.credentials)
+                                MobileKeyCredentialCard(key: key, credentials: app.credentials, compact: compactCards)
                             } actions: {
                                 Button(AppStrings.Keychain.exportToHost.swiftUIKey, systemImage: "square.and.arrow.up")
                                 {
@@ -93,12 +94,13 @@ struct MobileCredentialsView: View {
                         ContentUnavailableView(
                             AppStrings.Keychain.noIdentities.swiftUIKey, systemImage: "person.crop.square")
                     }
-                    MobileCardGrid {
+                    MobileCardGrid(compact: compactCards) {
                         ForEach(identities) { identity in
-                            MobileActionCard {
+                            MobileActionCard(compact: compactCards) {
                                 editing = identity
                             } content: {
-                                MobileIdentityCredentialCard(identity: identity, credentials: app.credentials)
+                                MobileIdentityCredentialCard(
+                                    identity: identity, credentials: app.credentials, compact: compactCards)
                             } actions: {
                                 Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = identity }
                                 Divider()
@@ -170,13 +172,49 @@ struct MobileCredentialsView: View {
     }
 }
 
-private struct MobileKeyCredentialCard: View {
+struct MobileKeyCredentialCard: View {
     let key: SSHKeyRef
     let credentials: CredentialLibraryModel
+    var compact = false
+    @Environment(\.locale) private var locale
 
     private var dependents: Int { credentials.identities(using: key.id).count }
 
     var body: some View {
+        if compact {
+            let warnings = compactWarnings
+            MobileCompactCardContent(
+                title: key.label,
+                status: Text(
+                    verbatim: warnings.map { AppLocalization.resolve($0, locale: locale) }
+                        .formatted(.list(type: .and).locale(locale)))
+            ) {
+                MobileCardIcon(symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
+                    .overlay(alignment: .bottomTrailing) {
+                        if !warnings.isEmpty {
+                            MobileCompactCardBadge(symbol: "exclamationmark.triangle.fill")
+                        }
+                    }
+            }
+        } else {
+            standardContent
+        }
+    }
+
+    var compactWarnings: [LocalizedStringResource] {
+        var warnings: [LocalizedStringResource] = []
+        switch credentials.keyAvailability(for: key) {
+        case .missing: warnings.append(AppStrings.Keychain.privateKeyMissing)
+        case .failed: warnings.append(AppStrings.Keychain.keychainUnavailable)
+        case .available, .notConfigured: break
+        }
+        if key.hasPassphrase && !credentials.hasSavedPassphrase(for: key) {
+            warnings.append(AppStrings.Keychain.passphraseRequired)
+        }
+        return warnings
+    }
+
+    private var standardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 MobileCardIcon(symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
@@ -245,13 +283,50 @@ private struct MobileKeyCredentialCard: View {
     }
 }
 
-private struct MobileIdentityCredentialCard: View {
+struct MobileIdentityCredentialCard: View {
     let identity: Identity
     let credentials: CredentialLibraryModel
+    var compact = false
+    @Environment(\.locale) private var locale
 
     private var key: SSHKeyRef? { identity.keyID.flatMap(credentials.key) }
 
     var body: some View {
+        if compact {
+            let warnings = compactWarnings
+            MobileCompactCardContent(
+                title: identity.name.isEmpty ? identity.username : identity.name,
+                status: Text(
+                    verbatim: warnings.map { AppLocalization.resolve($0, locale: locale) }
+                        .formatted(.list(type: .and).locale(locale)))
+            ) {
+                MobileCardIcon(symbol: "person.badge.key.fill", tint: identity.colorTag.color ?? .accentColor)
+                    .overlay(alignment: .bottomTrailing) {
+                        if !warnings.isEmpty {
+                            MobileCompactCardBadge(symbol: "exclamationmark.triangle.fill")
+                        }
+                    }
+            }
+        } else {
+            standardContent
+        }
+    }
+
+    var compactWarnings: [LocalizedStringResource] {
+        var warnings: [LocalizedStringResource] = []
+        if identity.usesPassword {
+            switch credentials.passwordAvailability(for: identity) {
+            case .missing: warnings.append(AppStrings.Keychain.passwordMissing)
+            case .failed: warnings.append(AppStrings.Keychain.passwordUnavailable)
+            case .available, .notConfigured: break
+            }
+        }
+        if identity.usesKey && key == nil { warnings.append(AppStrings.Keychain.keyMissing) }
+        if !identity.hasSecret { warnings.append(AppStrings.Keychain.noSecret) }
+        return warnings
+    }
+
+    private var standardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 MobileCardIcon(

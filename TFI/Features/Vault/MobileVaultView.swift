@@ -261,6 +261,7 @@ private struct MobileVaultLinkDivider: View {
 }
 
 struct MobileVaultView: View {
+    @AppStorage("mobile.compactCards") private var compactCards = false
     private struct GroupEditorRequest: Identifiable {
         let id = UUID()
         let groupID: HostGroup.ID?
@@ -475,7 +476,7 @@ struct MobileVaultView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         hostSectionHeader(section)
                         if section.isExpanded != false {
-                            MobileCardGrid {
+                            MobileCardGrid(compact: compactCards) {
                                 ForEach(section.hosts) { row($0) }
                             }
                         }
@@ -523,7 +524,7 @@ struct MobileVaultView: View {
         }
         if !matchingHosts.isEmpty {
             MobileCardSection(title: AppStrings.Vault.hosts, count: matchingHosts.count) {
-                MobileCardGrid { ForEach(matchingHosts) { row($0) } }
+                MobileCardGrid(compact: compactCards) { ForEach(matchingHosts) { row($0) } }
             }
         }
         if !keychainSearchLinks.isEmpty {
@@ -763,7 +764,7 @@ struct MobileVaultView: View {
     }
 
     private func row(_ host: Host) -> some View {
-        MobileActionCard {
+        MobileActionCard(compact: compactCards) {
             activateHost(host.id)
         } content: {
             MobileHostCardContent(
@@ -774,7 +775,8 @@ struct MobileVaultView: View {
                         connected: $0.connected, busy: $0.busy, reconnecting: $0.reconnectState != nil
                     )?.status
                 },
-                lastConnectedAt: app.lastConnectedAt(for: host.id)
+                lastConnectedAt: app.lastConnectedAt(for: host.id),
+                compact: compactCards
             )
         } actions: {
             let sections = MobileHostMenuPolicy.sections(

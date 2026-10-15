@@ -7,6 +7,7 @@ struct MobileAppSettingsView: View {
     var appReview: AppReviewController?
     var diagnosis = DiagnosisController()
     @AppStorage("mobile.appearance") private var appearance = "system"
+    @AppStorage("mobile.compactCards") private var compactCards = false
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
@@ -17,6 +18,7 @@ struct MobileAppSettingsView: View {
                     Text(AppStrings.Settings.light).tag("light")
                     Text(AppStrings.Settings.dark).tag("dark")
                 }
+                Toggle(AppStrings.Settings.compactCards.swiftUIKey, isOn: $compactCards)
             }
             Section {
                 Toggle(

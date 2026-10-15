@@ -6,6 +6,7 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 struct MobileSnippetsView: View {
+    @AppStorage("mobile.compactCards") private var compactCards = false
     @Environment(\.locale) private var locale
 
     private struct SnippetEditorRequest: Identifiable {
@@ -67,7 +68,7 @@ struct MobileSnippetsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         sectionHeader(section)
                         if section.isExpanded != false {
-                            MobileCardGrid {
+                            MobileCardGrid(compact: compactCards) {
                                 ForEach(section.snippets) { snippet in
                                     snippetCard(snippet, showsPackage: !query.isEmpty)
                                 }
@@ -248,14 +249,18 @@ struct MobileSnippetsView: View {
     }
 
     private func snippetCard(_ snippet: Snippet, showsPackage: Bool) -> some View {
-        MobileActionCard {
+        MobileActionCard(compact: compactCards) {
             selectedSnippetID = snippet.id
         } content: {
-            SnippetCardContent(
-                snippet: snippet,
-                validTargetCount: app.snippets.validTargetIDs(for: snippet).count,
-                packagePath: showsPackage ? app.snippets.snippetPackagePath(snippet.packageID) : nil,
-                modifiedAt: app.snippetModifiedAt(for: snippet.id))
+            if compactCards {
+                MobileCompactSnippetCardContent(snippet: snippet)
+            } else {
+                SnippetCardContent(
+                    snippet: snippet,
+                    validTargetCount: app.snippets.validTargetIDs(for: snippet).count,
+                    packagePath: showsPackage ? app.snippets.snippetPackagePath(snippet.packageID) : nil,
+                    modifiedAt: app.snippetModifiedAt(for: snippet.id))
+            }
         } actions: {
             Button(AppStrings.Common.run.swiftUIKey, systemImage: "play.fill") {
                 requestExecution(snippet.id, overrideTargets: false)

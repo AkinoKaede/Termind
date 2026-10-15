@@ -6,6 +6,7 @@ import TermindRemoteInfrastructure
 import UIKit
 
 struct MobileForwardingView: View {
+    @AppStorage("mobile.compactCards") private var compactCards = false
     let app: MobileAppModel
     @State private var query: String
     @State private var editing: PortForwardingRule?
@@ -29,7 +30,7 @@ struct MobileForwardingView: View {
             } else if rules.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
-            MobileCardGrid {
+            MobileCardGrid(compact: compactCards) {
                 ForEach(rules) { rule in
                     card(rule)
                 }
@@ -62,14 +63,14 @@ struct MobileForwardingView: View {
 
     private func card(_ rule: PortForwardingRule) -> some View {
         let runtime = app.forwardings.state(for: rule.id)
-        return MobileActionCard {
+        return MobileActionCard(compact: compactCards) {
             showing = rule.id
         } content: {
             MobileForwardingCardContent(
                 rule: rule,
                 hostName: app.library.host(rule.hostID)?.name
                     ?? String(localized: AppStrings.Forwarding.hostUnavailable),
-                runtime: runtime)
+                runtime: runtime, compact: compactCards)
         } actions: {
             if runtime.isActive {
                 Button(AppStrings.Common.stop.swiftUIKey, systemImage: "stop") { app.forwardings.stop(rule.id) }
@@ -133,8 +134,35 @@ struct MobileForwardingCardContent: View {
     let rule: PortForwardingRule
     let hostName: String
     let runtime: PortForwardingRuntimeState
+    var compact = false
 
     var body: some View {
+        if compact {
+            MobileCompactCardContent(
+                title: rule.displayName(hostName: hostName), status: Text(verbatim: runtime.label)
+            ) {
+                MobileCardIcon(symbol: rule.kind.symbol, tint: rule.colorTag.color ?? .accentColor)
+                    .overlay(alignment: .bottomTrailing) {
+                        if let badge = compactBadge {
+                            badge
+                        }
+                    }
+            }
+        } else {
+            standardContent
+        }
+    }
+
+    var compactBadge: MobileCompactCardBadge? {
+        switch runtime {
+        case .stopped: nil
+        case .running: MobileCompactCardBadge(symbol: "checkmark.circle.fill", tint: .green)
+        case .failed: MobileCompactCardBadge(symbol: "exclamationmark.triangle.fill", tint: .red)
+        default: MobileCompactCardBadge(symbol: "clock.fill")
+        }
+    }
+
+    private var standardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 MobileCardIcon(symbol: rule.kind.symbol, tint: rule.colorTag.color ?? .accentColor)

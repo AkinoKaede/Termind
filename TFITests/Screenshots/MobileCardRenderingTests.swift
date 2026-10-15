@@ -80,6 +80,15 @@ struct MobileCardRenderingTests {
             Snippet(
                 title: "Inspect disk usage / 检查磁盘", body: "df -h\ndu -sh /var/log",
                 packageID: snippetPackage.id))
+        app.snippets.upsert(
+            Snippet(title: "Remove cache / 清理缓存", body: "rm -rf /tmp/cache", packageID: snippetPackage.id))
+        let forwardingHost = try #require(app.library.hosts.first)
+        for (index, kind) in [PortForwardingRule.Kind.local, .remote, .dynamic].enumerated() {
+            _ = try app.forwardingLibrary.save(
+                PortForwardingRule(
+                    hostID: forwardingHost.id, kind: kind, bindPort: 8080 + index,
+                    label: index == 0 ? "Database / 数据库" : "", colorTag: .teal))
+        }
         let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Production Gateway")
         server.isConnecting = false
         server.status = ""
@@ -164,6 +173,27 @@ struct MobileCardRenderingTests {
                 try await capture("known-host-editor-hashed", language: language, scheme: scheme) {
                     MobileKnownHostEditor(app: app, entry: hashedKnownHost)
                 }
+                try await capture("vault-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack {
+                        MobileVaultView(
+                            app: app, editingHost: .constant(nil), activateHost: { _ in }, open: { _, _ in })
+                    }
+                }
+                try await capture("keychain-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack { MobileCredentialsView(app: app) }
+                }
+                try await capture("snippets-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack { MobileSnippetsView(app: app) }
+                }
+                try await capture("forwarding-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack { MobileForwardingView(app: app) }
+                }
+                try await capture("known-hosts-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack { MobileKnownHostsView(app: app) }
+                }
+                try await capture("app-settings-compact", language: language, scheme: scheme, compact: true) {
+                    NavigationStack { MobileAppSettingsView(workspaceSettings: app.workspaceSettings) }
+                }
             }
             try await capture("large-type", language: language, scheme: .light) {
                 NavigationStack {
@@ -172,6 +202,10 @@ struct MobileCardRenderingTests {
                         open: { _, _ in })
                 }
                 .environment(\.dynamicTypeSize, .accessibility3)
+            }
+            try await capture("compact-large-type", language: language, scheme: .light, compact: true) {
+                NavigationStack { MobileCredentialsView(app: app) }
+                    .environment(\.dynamicTypeSize, .accessibility3)
             }
             try await capture("metrics-large-type", language: language, scheme: .light) {
                 MobileCardPage {
@@ -199,13 +233,18 @@ struct MobileCardRenderingTests {
     }
 
     private func capture<V: View>(
-        _ name: String, language: String, scheme: ColorScheme, @ViewBuilder view: () -> V
+        _ name: String, language: String, scheme: ColorScheme, compact: Bool = false, @ViewBuilder view: () -> V
     ) async throws {
+        let suiteName = "MobileCardRenderingTests.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defaults.set(compact, forKey: "mobile.compactCards")
+        defer { defaults.removePersistentDomain(forName: suiteName) }
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.keyWindow
         let window = UIWindow(windowScene: scene)
         let controller = UIHostingController(
-            rootView: view().environment(\.locale, Locale(identifier: language)).preferredColorScheme(scheme))
+            rootView: view().defaultAppStorage(defaults)
+                .environment(\.locale, Locale(identifier: language)).preferredColorScheme(scheme))
         window.rootViewController = controller
         if name == "opaque" { controller.traitOverrides.accessibilityContrast = .high }
         window.windowLevel = .alert + 1

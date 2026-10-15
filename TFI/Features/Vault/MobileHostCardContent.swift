@@ -7,16 +7,33 @@ struct MobileHostCardContent: View {
     let address: String
     let status: ConnectionStatus?
     let lastConnectedAt: Date?
+    var compact = false
 
     @Environment(\.locale) private var locale
 
     var body: some View {
+        Group {
+            if compact {
+                MobileCompactCardContent(title: host.name, status: Text(verbatim: status?.label ?? "")) {
+                    icon
+                }
+            } else {
+                standardContent
+            }
+        }
+        .accessibilityHint(AppStrings.Vault.openWorkspace.swiftUIKey)
+    }
+
+    private var icon: some View {
+        HostConnectionIcon(
+            host: host, status: status,
+            badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false))
+    }
+
+    private var standardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
-                HostConnectionIcon(
-                    host: host, status: status,
-                    badgeStyle: .card(background: Color(uiColor: .systemBackground), pulses: false)
-                )
+                icon
                 VStack(alignment: .leading, spacing: 4) {
                     Text(host.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
                     Text(address).font(.caption.monospaced())
@@ -27,7 +44,6 @@ struct MobileHostCardContent: View {
             footer
         }
         .accessibilityElement(children: .combine)
-        .accessibilityHint(AppStrings.Vault.openWorkspace.swiftUIKey)
     }
 
     private var footer: some View {

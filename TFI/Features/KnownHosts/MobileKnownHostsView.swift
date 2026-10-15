@@ -4,6 +4,7 @@ import TermindPresentation
 import UIKit
 
 struct MobileKnownHostsView: View {
+    @AppStorage("mobile.compactCards") private var compactCards = false
     @Environment(\.locale) private var locale
 
     let app: MobileAppModel
@@ -25,32 +26,18 @@ struct MobileKnownHostsView: View {
             } else if entries.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
-            MobileCardGrid {
+            MobileCardGrid(compact: compactCards) {
                 ForEach(entries) { entry in
-                    MobileActionCard {
+                    MobileActionCard(compact: compactCards) {
                         editing = entry
                     } content: {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .top, spacing: 12) {
+                        if compactCards {
+                            MobileCompactCardContent(title: entry.presentationTitle) {
                                 MobileCardIcon(symbol: "touchid", tint: .accentColor)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(entry.presentationTitle).font(.headline).lineLimit(1)
-                                    Text(entry.algorithm.displayName)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            HStack(spacing: 6) {
-                                Spacer(minLength: 6)
-                                Text(entry.addedAt.formatted(.relative(presentation: .numeric).locale(locale)))
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: true, vertical: false)
-                            }
+                        } else {
+                            standardCardContent(entry)
                         }
-                        .accessibilityElement(children: .combine)
                     } actions: {
                         Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = entry }
                         Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: "doc.on.doc") {
@@ -87,6 +74,30 @@ struct MobileKnownHostsView: View {
         .sheet(item: $editing) { entry in
             MobileKnownHostEditor(app: app, entry: entry, isNew: app.knownHosts.entry(entry.id) == nil)
         }
+    }
+
+    private func standardCardContent(_ entry: KnownHostEntry) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                MobileCardIcon(symbol: "touchid", tint: .accentColor)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.presentationTitle).font(.headline).lineLimit(1)
+                    Text(entry.algorithm.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 6) {
+                Spacer(minLength: 6)
+                Text(entry.addedAt.formatted(.relative(presentation: .numeric).locale(locale)))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

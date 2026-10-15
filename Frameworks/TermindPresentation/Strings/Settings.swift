@@ -2,6 +2,9 @@ import Foundation
 
 extension AppStrings {
     public nonisolated enum Settings {
+        public static var compactCards: LocalizedStringResource {
+            "Compact Cards"
+        }
         public static var lightTheme: LocalizedStringResource { "Light Theme" }
         public static var darkTheme: LocalizedStringResource { "Dark Theme" }
         public static var customTheme: LocalizedStringResource { "Custom" }

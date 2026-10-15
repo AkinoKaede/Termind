@@ -16,7 +16,9 @@ struct MobileCardPage<Content: View>: View {
 
 struct MobileCardGrid<Content: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .subheadline) private var compactWidth = MobileCardLayout.compactMinimumWidth
     @State private var width: CGFloat = 0
+    var compact = false
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -25,7 +27,7 @@ struct MobileCardGrid<Content: View>: View {
                 repeating: GridItem(.flexible(), spacing: 12, alignment: .top),
                 count: MobileCardLayout.columns(
                     width: width,
-                    accessibilitySize: typeSize.isAccessibilitySize)),
+                    accessibilitySize: typeSize.isAccessibilitySize, compact: compact, compactWidth: compactWidth)),
             alignment: .leading, spacing: 12
         ) { content }
         .onGeometryChange(for: CGFloat.self) {
@@ -123,30 +125,40 @@ struct MobileCard<Content: View>: View {
 /// The primary action fills the card. Secondary actions are available from the card's context menu.
 struct MobileActionCard<Content: View, Actions: View>: View {
     let alignment: Alignment
+    let compact: Bool
     let action: () -> Void
     @ViewBuilder var content: Content
     @ViewBuilder var actions: Actions
 
     init(
         alignment: Alignment = .leading,
+        compact: Bool = false,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder actions: () -> Actions
     ) {
         self.alignment = alignment
+        self.compact = compact
         self.action = action
         self.content = content()
         self.actions = actions()
     }
 
-    private var cardSurface: some View {
-        content.frame(maxWidth: .infinity, alignment: .leading).multilineTextAlignment(.leading)
-            .padding(16)
-            .frame(
-                maxWidth: .infinity, minHeight: MobileCardLayout.minimumHeight,
-                alignment: alignment
-            )
+    @ViewBuilder private var cardSurface: some View {
+        if compact {
+            MobileCompactCardLayout {
+                content.frame(maxWidth: .infinity).padding(8)
+            }
             .mobileCardSurface()
+        } else {
+            content.frame(maxWidth: .infinity, alignment: .leading).multilineTextAlignment(.leading)
+                .padding(16)
+                .frame(
+                    maxWidth: .infinity, minHeight: MobileCardLayout.minimumHeight,
+                    alignment: alignment
+                )
+                .mobileCardSurface()
+        }
     }
 
     var body: some View {
