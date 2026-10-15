@@ -15,23 +15,32 @@ struct WorkspaceCloseConfirmationTests {
 
         #expect(quit.messageText == String(localized: AppStrings.Workspace.quitTermindConfirmation))
         #expect(quit.informativeText == String(localized: AppStrings.Workspace.quitTermindWarning))
-        #expect(quit.buttons[1].title == String(localized: AppStrings.Workspace.closeTermind))
+        #expect(quit.buttons[0].title == String(localized: AppStrings.Workspace.closeTermind))
         #expect(close.messageText == String(localized: AppStrings.Workspace.closeThisWindowConfirmation))
         #expect(close.informativeText == String(localized: AppStrings.Workspace.closeWindowWarning))
-        #expect(close.buttons[1].title == String(localized: AppStrings.Workspace.closeWindow))
+        #expect(close.buttons[0].title == String(localized: AppStrings.Workspace.closeWindow))
         for alert in [quit, close] {
-            #expect(alert.buttons[0].title == String(localized: AppStrings.Common.cancel))
-            #expect(alert.buttons[0].keyEquivalent == "\r")
-            #expect(alert.buttons[1].keyEquivalent.isEmpty)
-            #expect(alert.buttons[1].hasDestructiveAction)
+            #expect(alert.buttons.count == 2)
+            #expect(alert.buttons[1].title == String(localized: AppStrings.Common.cancel))
         }
     }
 
     @Test(arguments: [WorkspaceCloseConfirmation.window, .application])
-    func onlyExplicitDestructiveConfirmationAllowsClosing(_ scope: WorkspaceCloseConfirmation) {
-        #expect(!scope.confirm { _ in .alertFirstButtonReturn })
+    func closeRemainsDefaultAndCancelUsesEscapeAfterLayout(_ scope: WorkspaceCloseConfirmation) {
+        let alert = scope.makeAlert()
+        alert.layout()
+
+        #expect(alert.buttons[0].keyEquivalent == "\r")
+        #expect(alert.window.defaultButtonCell === alert.buttons[0].cell)
+        #expect(alert.buttons[1].keyEquivalent == "\u{1b}")
+    }
+
+    @Test(arguments: [WorkspaceCloseConfirmation.window, .application])
+    func onlyCloseConfirmationAllowsClosing(_ scope: WorkspaceCloseConfirmation) {
+        #expect(scope.confirm { _ in .alertFirstButtonReturn })
+        #expect(!scope.confirm { _ in .alertSecondButtonReturn })
+        #expect(!scope.confirm { _ in .alertThirdButtonReturn })
         #expect(!scope.confirm { _ in .abort })
-        #expect(scope.confirm { _ in .alertSecondButtonReturn })
     }
 
     @Test

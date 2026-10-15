@@ -15,18 +15,17 @@ enum WorkspaceCloseConfirmation {
             alert.messageText = String(localized: AppStrings.Workspace.quitTermindConfirmation)
             alert.informativeText = String(localized: AppStrings.Workspace.quitTermindWarning)
         }
-        alert.addButton(withTitle: String(localized: AppStrings.Common.cancel))
-        alert.addButton(
+        let close = alert.addButton(
             withTitle: String(
                 localized: self == .window ? AppStrings.Workspace.closeWindow : AppStrings.Workspace.closeTermind))
-        alert.buttons[0].keyEquivalent = "\r"
-        alert.buttons[1].keyEquivalent = ""
-        alert.buttons[1].hasDestructiveAction = true
+        let cancel = alert.addButton(withTitle: String(localized: AppStrings.Common.cancel))
+        close.keyEquivalent = "\r"
+        cancel.keyEquivalent = "\u{1b}"
         return alert
     }
 
     func confirm(present: (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }) -> Bool {
-        present(makeAlert()) == .alertSecondButtonReturn
+        present(makeAlert()) == .alertFirstButtonReturn
     }
 }
 
