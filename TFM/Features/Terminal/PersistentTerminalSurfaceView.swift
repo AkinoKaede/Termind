@@ -255,7 +255,7 @@
                 menu.addItem(.separator())
                 let item = NSMenuItem(
                     title: String(localized: AppStrings.SFTP.openWithSftp), action: nil, keyEquivalent: "")
-                item.image = MenuImageVisibilityController.markedImage(systemName: MenuSymbol.sftp)
+                item.image = NSImage(systemSymbolName: MenuSymbol.sftp, accessibilityDescription: nil)
                 item.isEnabled = canOpenSFTP?() == true
                 let submenu = NSMenu()
                 submenu.autoenablesItems = false
@@ -271,7 +271,7 @@
                 ] {
                     let child = NSMenuItem(title: String(localized: title), action: action, keyEquivalent: "")
                     child.target = self
-                    child.image = MenuImageVisibilityController.markedImage(systemName: symbol)
+                    child.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
                     child.isEnabled = item.isEnabled
                     submenu.addItem(child)
                 }
