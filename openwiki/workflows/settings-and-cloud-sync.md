@@ -102,6 +102,12 @@ sources:
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-215c24353f612bb80e412229
+    resource: repo://TFI/Features/Settings/MobileAppSettingsView.swift
+  - id: openwiki-source-e21fae39ef7af76f86acbff6
+    resource: repo://TFI/Features/Settings/MobileSettingsView.swift
+  - id: openwiki-source-ccfded56a6676310f11a2981
+    resource: repo://TFI/Features/Settings/MobileSyncSettingsView.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-37c42ec0ebc182c487dd27aa
@@ -114,14 +120,12 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-  - id: openwiki-source-22b9fca540c3029c5ace451e
-    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-44cb7a6172854edbfc9b5ccb
     resource: repo://TFMTests/SettingsNavigationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
 # Settings and Cloud Sync
@@ -163,7 +167,7 @@ Local edits persist before updating live models; remote snapshots reach them aft
 
 ## Device-local desktop language selection
 
-The App language picker stores a **device-local** preference, not a Settings journal envelope. Its binding writes `SettingsKey.appLanguage` and calls `AppLanguage.store`. Explicit English, Japanese, Simplified Chinese and Traditional Chinese choices store canonical `en`, `ja`, `zh-Hans` and `zh-Hant` values plus a single-element `AppleLanguages` override. Follow System stores `system` and **removes** `AppleLanguages`, restoring normal Bundle negotiation rather than writing a guessed system language. Missing or unknown preferences resolve to Follow System. Legacy identifiers that Foundation resolves as Simplified Chinese migrate through `store` to canonical `zh-Hans`; unknown and noncanonical Traditional Chinese identifiers are not rewritten. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L41-L104), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L416), [SettingsSyncSnapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L11-L64).
+The App language picker stores a **device-local** preference, not a Settings journal envelope. Its binding writes `SettingsKey.appLanguage` and calls `AppLanguage.store`. Explicit English, Japanese, Simplified Chinese and Traditional Chinese choices store canonical `en`, `ja`, `zh-Hans` and `zh-Hant` values plus a single-element `AppleLanguages` override. Follow System stores `system` and **removes** `AppleLanguages`, restoring normal Bundle negotiation rather than writing a guessed system language. Missing or unknown preferences resolve to Follow System. Legacy identifiers that Foundation resolves as Simplified Chinese migrate through `store` to canonical `zh-Hans`; unknown and noncanonical Traditional Chinese identifiers are not rewritten. [AppLanguage](../../Frameworks/TermindApplication/AppLanguage.swift#L76-L113), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L416), [SettingsSyncSnapshot](../../Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55), [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L51-L127).
 
 `TermindApp` captures `launchLanguage` during initialization (a DEBUG screenshot demo can override it) and injects its locale into main and external-authentication windows. Selecting a new language does not replace that launch-time choice or automatically relaunch the app. `AppSettings` separately captures `AppLanguage.stored()` in its own initial state, also named `launchLanguage`; when its selected value differs, it shows “The new language will be used after Termind relaunches.” The notice resolves through `AppLocalization` with **the selected language's locale**, not the existing window locale. This local view baseline is not the app's immutable launch capture. [TermindApp](../../TFM/App/TermindApp.swift#L40-L52), [TermindApp](../../TFM/App/TermindApp.swift#L238-L271), [SettingsPageView](../../TFM/Features/Settings/SettingsPageView.swift#L403-L456).
 
@@ -330,7 +334,9 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 
 ## Focused verification
 
-- `AppLanguageTests` pins canonical defaults and `AppleLanguages`, Follow System removal, legacy Simplified Chinese migration, unknown-value preservation, region-dependent labels, catalog separation and the selected-language notice. `SettingsSyncTests` checks settings round-trips, local edits while disabled, no-op version stability, out-of-order roles and invalid-batch rollback. These tests do not require an automatic relaunch. [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L11-L142), [SettingsSyncTests](../../TFMTests/SettingsSyncTests.swift#L435-L526).
+- `SettingsPortTests` exercises the typed boundary: failed terminal saves retain applied preferences, remote terminal application skips the local-write callback, mobile provider edits preserve MCP servers/skills/unresolved roles, and migration preserves optional Settings selection while master is paused. New Vault credential storage requires master selection **and** Pro capability regardless of the legacy Vault toggle. [SettingsPortTests](../../FrameworkTests/SettingsPortTests.swift#L45-L147).
+- Migration fixtures in `SettingsSyncTests` reopen a V12 store with the current migration plan and retain providers/endpoints/models, skills, web search and terminal custom text without materializing an optional sync choice or changing local font size. A completed-bootstrap fixture adds a missing terminal baseline without rewriting existing envelopes; the terminal round-trip checks defaults mirroring without a remote echo. These are local migration/merge tests, not signed-device CloudKit tests. [SettingsSyncTests](../../TFMTests/SettingsSyncTests.swift#L89-L181).
+- `AppLanguageTests` pins canonical defaults and `AppleLanguages`, Follow System removal, legacy Simplified Chinese migration, unknown-value preservation, region-dependent labels, catalog separation and the selected-language notice. It includes German, French and Korean persistence and system-negotiation restoration, and keeps Follow System first with explicit choices sorted by language code. `SettingsSyncTests` checks settings round-trips, local edits while disabled, no-op version stability, out-of-order roles and invalid-batch rollback. These tests do not require an automatic relaunch. [AppLanguageTests](../../TFMTests/AppLanguageTests.swift#L9-L170), [SettingsSyncTests](../../TFMTests/SettingsSyncTests.swift#L435-L526).
 - `SettingsNavigationTests` verifies the Settings parent-route chain, back-to-content return (including a missing workspace), paywall presentation without a Pro route, and navigation through Assistant; `DiagnosisTests` verifies per-installation consent defaults, durable choices and revocation ordering. [SettingsNavigationTests](../../TFMTests/SettingsNavigationTests.swift#L13-L155), [DiagnosisTests](../../FrameworkTests/DiagnosisTests.swift#L9-L75).
 - `CloudSyncLifecycleTests` exercises fetch gating, recovery, overlapping events, account/environment/zone changes, destructive purge, stale-engine rejection and the combined save/delete batch limit. Its delegate-context tests verify detached fetch/send and engine cancellation; late fetch/send and fatal delegate failures cannot revive a retired engine. Disabled selection prevents start, retry and account confirmation.
 - `CloudSyncSafetyTests` uses five real owner adapters with fake CloudKit transport to check winner/queue reconciliation, quarantine at each upload boundary, conflict handling, malformed native fields, rollback, and healthy-peer progress; `CloudSyncSafetyPersistenceTests` covers scoped on-disk recovery and migrations.
@@ -338,3 +344,6 @@ Deploy and verify category record types, zones and subscriptions in both CloudKi
 - `CloudSyncCoordinatorLifecycleTests`, `TFMTests/SettingsSyncTests.swift`, `TFMTests/VaultSyncTests.swift` and `SyncRecordEvolutionTests` cover per-owner gating, Settings secret authorization, journal/metadata exclusions, assets and wire evolution. `WebAuthnVaultMetadataTests` covers Keychain-free connection preparation and Vault round-trip, the frozen V2 `thisDevice` representation, invalid software external storage, metadata rollback, and V44 software-key reopen. `NotificationPreferencesTests` verifies settings record round-trip without echo, invalid remote duration, V40→V41 persistence reopening, edit failure and one-shot authorization across scenes. [HistorySyncTests](../../FrameworkTests/HistorySyncTests.swift), [CloudSyncSafetyTests](../../FrameworkTests/CloudSyncSafetyTests.swift), [PersistenceCompatibilityTests](../../FrameworkTests/PersistenceCompatibilityTests.swift).
 
 Current Vault writers are Host/Snippet V2, HostGroup V3 and SSHKey V3, with frozen historical readers. Metrics selection writes V2 and reads V1/V2; its upgraded capability checkpoint forces refetch of formerly quarantined V1 records without losing newer pending local changes. Tailscale group configuration syncs as HostGroup data; managed peer Hosts and local profile/sign-in/cache/cleanup state are excluded. Command/SFTP browse history is memory-only; the History coordinator remains solely the connection-event stream.
+ion-event stream.
+
+nnection-event stream.

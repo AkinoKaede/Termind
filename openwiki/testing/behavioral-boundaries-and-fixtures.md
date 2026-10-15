@@ -1,6 +1,6 @@
 ---
 type: testing strategy
-title: Behavioral Boundaries and Fixtures
+title: Behavioral Tests and Fixture Boundaries
 description: Route observable behavioral changes to focused regression suites and deterministic fixtures. Distinguish persistence and restore boundaries, context accounting, language migration, independent close and Quit vetoes, and deliberate native-presentation opt-ins.
 tags: [testing, regression, fixtures, architecture, persistence, commerce, navigation, ui]
 sources:
@@ -40,6 +40,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-581eed02dfaf161420cc4d9d
+    resource: repo://FrameworkTests/Fixtures/README.md
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
     resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-aa17b5491058eab1bbe5d01f
@@ -66,8 +68,6 @@ sources:
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
   - id: openwiki-source-eaed8c88a9a3f24e3feb1f9c
     resource: repo://FrameworkTests/WebAuthnVaultMetadataTests.swift
-  - id: openwiki-source-294dd6a8637abdafe40e9570
-    resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
     resource: repo://Scripts/swiftdata-repository-declarations.sh
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -172,13 +172,13 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Behavioral Boundaries and Fixtures
+# Behavioral Tests and Fixture Boundaries
 
 Termind uses Swift Testing to test a behavior at the layer that owns it, rather than treating the test tree as a second implementation. `FrameworkTests/` protects portable framework contracts; `TFMTests/` exercises macOS composition, native interaction, and remote-session behavior; `TFITests/` protects iPhone/iPad composition, scene behavior, and mobile presentation. The targets use `@Suite`, `@Test`, and `#expect`.
 
@@ -208,7 +208,7 @@ Use `FrameworkTests` for behavior intended to remain identical across macOS and 
 
 Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. The seam is the public `@MainActor` container factory in Persistence: it configures the V52 schema with the migration plan and `cloudKitDatabase: .none`, taking either a disk URL or `inMemory: true` (not both). The platform entrypoint chooses the storage and retains the container; tests should create a fresh container for independent in-memory state and a temporary disk URL for reopen checks. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
 
-Checked-in `FrameworkTests/Fixtures/V1.store` and `V14.store` also check that stores created under the original app module open with their group (and V1 provider) intact. The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
+Checked-in `FrameworkTests/Fixtures/V1.store` and `V14.store` also check that stores created under the original app module open with their group (and V1 provider) intact. Their [fixture README](../../FrameworkTests/Fixtures/README.md) records source revision `726a2eb909adba3ced6a507c4704886f787e5f66`; both contain synthetic data consolidated from WAL through SQLite backup. Do not regenerate them with extracted Persistence models: that would erase the original-module identity boundary. The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
 
 `version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. V25/V26 defaulting, V27, V30 and V31 migration checks remain alongside it. V35→V36 drops the retired history importer table while retaining native History on reopen; V36→V38 adds cloud-presence and delete-handoff state; V39 adds assistant model selection, V40 removes the retired per-category quarantine tables while retaining scoped quarantine, V41 adds shared notification preferences, and V42 adds agent-message and conversation provenance plus collaboration delivery receipts. V43 adds MCP OAuth configuration, V44 updates the Host model, and V45 adds SSH Security Key metadata, and V46 adds terminal keyword-highlight preferences. A V41→V42 disk migration fixture checks that existing groups survive and the new collaboration sidecars start empty; separate collaboration fixtures verify monotonic delivery receipts across SwiftData contexts and creation relations after disk reopen. V29, V32 and V33 stay absent from the migration plan.
 
@@ -402,7 +402,38 @@ The estimator separates system prompt, schemas, conversation, tool results and a
 
 ### Language migration: verify stored policy and resolved copy separately
 
-Use `AppLanguageTests` without a window gate. Explicit choices write canonical `en`, `ja`, `zh-Hans` or `zh-Hant` to `AppleLanguages`; Follow System removes that override. Legacy Simplified Chinese identifiers migrate both the preference and override to `zh-Hans`. Unknown values and legacy Traditional Chinese preference identifiers remain unchanged and follow system; this differs from **system locale resolution**, where Traditional Chinese regional locales resolve the Traditional catalog. The suite checks separate Chinese fallback, Japanese interpolation, selected-language relaunch notices, ordered forwarding arguments and catalog plural rules. A catalog-only check is not evidence that an already-running native view changes language without relaunch.
+Use `AppLanguageTests` without a window gate. Explicit choices write canonical `de`, `en`, `fr`, `ja`, `ko`, `zh-Hans` or `zh-Hant` to `AppleLanguages`; Follow System removes that override. Legacy Simplified Chinese identifiers migrate both the preference and override to `zh-Hans`. Unknown values and legacy Traditional Chinese preference identifiers remain unchanged and follow system; this differs from **system locale resolution**, where Traditional Chinese regional locales resolve the Traditional catalog. The suite checks separate Chinese fallback, Japanese interpolation, selected-language relaunch notices, ordered forwarding arguments and catalog plural rules. A catalog-only check is not evidence that an already-running native view changes language without relaunch.
+
+### Localization resources: validate every supported language
+
+Run [Scripts/check-localization.py](../../Scripts/check-localization.py), not the removed CJK-only checker. By default it checks the shared `Frameworks/Resources/Localizable.xcstrings` and `InfoPlist.xcstrings`, not AgentKit's separately maintained catalog. It requires finished translations in `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` and `fr`, preserves format-argument positions/types and literal percent signs, and checks canonical formatting/manual extraction state through the catalog normalizer. Nontranslatable entries are exempt. Plurals require only `other` for Chinese/Japanese/Korean, `one` and `other` for German/French, with optional French `many`. Chinese punctuation/spacing and Japanese mixed-script spacing rules do not apply to Korean or European word spacing.
+
+[Scripts/Tests/test_localization.py](../../Scripts/Tests/test_localization.py) protects those distinctions, including reordered interpolation, metadata's English source values, every plural branch and narrowly scoped `Type %@` spacing exceptions. `AppLanguageTests` additionally checks German/French/Korean regional resolution, selected-language relaunch notices, localized authentication separators, and demo prose that changes without translating tool names, addresses or paths. Resource validation and resolved-copy tests complement each other; neither establishes live native-view language switching.
+
+```sh
+python3 Scripts/check-localization.py
+python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'
+```
+
+### Inline review invitations: eligibility is not a completed rating
+
+Start with `FrameworkTests/AppReviewControllerTests.swift`: an isolated defaults suite and injected clock cover seven elapsed days plus at least one host, retained first-use time, clock rollback and ignored legacy attempt budgets. Eligibility is captured on entering a visit; time passing or adding a host cannot insert the invitation mid-visit. Filtering or deleting the last host hides it without consuming it. Decline and an accepted review-URL open persist across controller reconstruction and hide other windows' invitations; a rejected open leaves it eligible. These responses do not claim that the user submitted a rating. Developer preview bypasses eligibility but cannot open the URL or change the real response; disabled controllers leave defaults untouched.
+
+The desktop Swift suite is named **`AppReviewInvitationTests`**, although its file is `TFMTests/AppReviewControllerTests.swift`. It tests accepted/rejected `OpenURLAction` handoff, offscreen localized layout and exclusion of the invitation from blank-canvas marquee selection. `MobileAppReviewTests` checks disabled in-memory defaults, injected controller sharing, and offscreen `ImageRenderer` layout at phone/tablet widths with dark/accessibility variants. `TERMIND_REVIEW_PREVIEW=1` adds PNG attachments; it is not a key-window gate or a live App Store test.
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:FrameworkTests/AppReviewControllerTests -only-testing:TFMTests/AppReviewInvitationTests
+```
+
+### Attachment and transcript projections: keep payload and presentation distinct
+
+For attachment changes, run `ChatComposerStateTests` before native rendering: conversation-owned file import must finish with its filename intact, enforce capacity before starting tasks, consume images into both visible and model-facing turns, and allow attachment-only sends. Skill directives reach model text without becoming authored bubble text; legacy file references expose extracted text rather than pretending to recover original bytes. Pair these with replay/restore fixtures when changing durable payloads, not just chip layout.
+
+`FrameworkTests/AssistantTranscriptPresentationTests.swift` protects independent tool/batch disclosure IDs, reader choices across default transitions, viewport-delayed work collapse, denial versus failure, injected presenter detail and bounded previews with full copy output. `MobileAssistantTranscriptTests` adds offscreen bubble/image alignment and native-list row retention during streaming/disclosure updates and historical scrolling. Its scanning-motion check alone uses `TERMIND_ASSISTANT_SCREENSHOTS`; ordinary sizing/list checks do not require a key window. These are projection and invalidation contracts, not provider or transport checks.
+
+### Mobile navigation parity: policy before key-window adaptation
+
+`MobileNavigationParityTests` runs without a key-window gate. It freezes destination order as Vault → Metrics → Workspaces → Assistant → Settings, tests Metrics columns against available width rather than orientation, checks desktop-compatible key-generation defaults and matching passphrases, and rejects a mismatched certificate import without replacing the prior draft. For actual resizing, tab round trips and retained navigation/forms, use the narrowly filtered, serialized `.requiresKeyWindow` cases in `MobileAdaptiveLayoutTests`; policy parity alone does not validate UIKit hierarchy retention.
 
 ### Window close and Quit: independent scopes, independent vetoes
 
@@ -438,6 +469,18 @@ TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme
 ```
 
 
+### Screenshot fixtures and tool ownership
+
+Marketing capture is a separate opt-in from ordinary offscreen rendering and native interaction suites. App-owned `TFMTests/Screenshots/MacScreenshotTests.swift` uses `TERMIND_MAC_SCREENSHOTS=1`; `TFITests/Screenshots/MobileScreenshotTests.swift` uses `TERMIND_SCREENSHOTS=1`. Both are serialized. The desktop fixture captures the production demo window rather than mounting a second terminal/transcript hierarchy; mobile scenes use in-memory fixtures without network connections. Prefer the fastlane lanes over hand-setting these flags: `fastlane/lib/screenshots.rb` selects the suite, pins package resolution and disables concurrent testing. Mac capture requires a matching active/key-window ready marker and native dimensions; mobile capture requires a unique request/token ready–ack handshake, the exact selected scene set and native device dimensions before promotion. A passing offscreen rendering test establishes none of these capture prerequisites.
+
+[Scripts/Tests/test_screenshots.rb](../../Scripts/Tests/test_screenshots.rb) tests orchestration rather than the live app: target-local `.xctestrun` settings, locale/region mappings (including Japanese, Korean, German and French), pinned/nonparallel scan options, container rediscovery after reinstall, source backups with SHA-256 manifests, native-size rejection and frame publication withheld when any output is missing. Frame tests preserve source bytes and check aperture/mask composition. Default asset paths require the initialized website/assets submodule; explicit external paths permit isolated review without it. Some image tests invoke ImageMagick and the Ruby bundle, so they are not Swift test cases.
+
+```sh
+bundle exec ruby Scripts/Tests/test_screenshots.rb
+```
+
+Keep capture/frame commands and template requirements in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md). `Scripts/Tests` also owns focused Python version/resource and forwarding-runner checks; the standalone `Benchmarks/PortForwarding` workload is deliberately outside app/test-host execution, with source-boundary protection in `ArchitectureBoundaryTests`. Use [Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md) for measurement rather than interpreting a unit-test pass as throughput evidence. `Scripts/check-mcp-bridge.py` is a separate built-bridge/local-HTTP protocol check, not a substitute for desktop MCP server or SFTP fixtures.
+
 ### Pro paywall: distinguish entitlement state, SDK adapter, and rendering gaps
 
 The desktop `ProPaywallView` and mobile `MobileProView` mount RevenueCatUI `PaywallView` when `ProAccessController.usesRevenueCat` is true, show loading and unavailable alternatives, and pass data-only `ProPaywallState` fields (`pro`, `manage`, `state`, `family`, `dated`, localized `date`) as remote paywall custom variables. They forward purchase/restore start, completion, cancellation and failure to the controller; purchase completion refreshes access while suppressing RevenueCat's immediate dismissal so the account variant remains visible. Neither view renders a shared `ProPaywallContent` or builds a shared offer presentation. The RevenueCatUI dashboard owns the appearance; changing its actual mobile/desktop layout requires new targeted rendering coverage.
@@ -458,7 +501,7 @@ The desktop `ProPaywallView` and mobile `MobileProView` mount RevenueCatUI `Payw
 | Notification authorization or synced preferences | `NotificationPreferencesTests` and affected platform settings tests | Concurrent initial authorization is coalesced, disabled/bell-only settings avoid unwanted permission, failed load does not use defaults, remote updates do not echo, and V40 preferences survive V41 migration/reopen. |
 | Terminal Find cancellation, retained query, SFTP filter, or search during connection journeys | Always-on `TerminalFindControllerTests`, then opt-in `MobileTerminalSearchIntegrationTests` | Repeated dismissal ends once, native dismissal avoids terminal focus, empty queries stay presented, retained queries reopen, and journey overlays do not replace search or the SSH terminal. |
 | Mobile workspace/conversation switchers or lifecycle menus | Opt-in `MobileWorkspaceMenuTests` | Opened/dormant ordering, unread-state updates, destructive action semantics and conditional Close Others remain correct in native menus. |
-| Ghostty touch menu customization | Offscreen `MobileTerminalUploadMenuTests` and desktop `TerminalContextMenuTests`; external fork validation after checkout initialization | Editing/Upload/AutoFill order and live availability hold; app tests do not establish fork touch-selection mechanics. |
+| Ghostty touch menu customization | Offscreen `MobileTerminalUploadMenuTests` and desktop `TerminalContextMenuTests`; pinned upstream-package validation separately | Editing/Upload/AutoFill order and live availability hold; app tests do not establish upstream touch-selection mechanics. |
 | Metrics keyboard-interactive navigation or native layout | Shared Metrics journey/prompt tests, then narrowly filtered native Metrics journey suite | Prompt ownership survives navigation/size changes, secure challenge stays inline, single connection submits answers, and key-window runs are deliberate, serialized and nonparallel. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |
@@ -499,7 +542,7 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 
 Replace `<SIMULATOR-UDID>` with an installed simulator's identifier. Use the same narrow invocation for `TFITests/MobileWorkspaceMenuTests`, `TFITests/MobileEditorToolbarTests`, or `TFITests/MobileHardwareKeyEditorRenderingTests` when their interaction contract changes. `AGENTS.md` documents the `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS` invocation convention; the suites read `TERMIND_MOBILE_UI_TESTS` in the test host. The checked-in `TFI.xcscheme` includes TFITests and FrameworkTests and uses launch-scheme arguments/environment, but contains **no explicit environment-forwarding entry** for this flag. In Xcode, set `TERMIND_MOBILE_UI_TESTS=1` in the test action environment; verify host visibility if an intended opted-in run skips.
 
-Serialization is suite-local, not permission to run all native suites concurrently. Keep `-parallel-testing-enabled NO` and narrow filters: the currently ungated picker-toolbar and Metrics journey tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
+Serialization is suite-local, not permission to run all native suites concurrently. Keep `-parallel-testing-enabled NO` and narrow filters: the currently ungated picker-toolbar tests need an intentional narrow nonparallel run or a new gate before a default full-suite run is quiet; Metrics journey tests already use `.requiresKeyWindow`. Retain `-onlyUsePackageVersionsFromResolvedFile`: validation should use the revisions in `Package.resolved`, not silently resolve a different dependency graph. Run strict formatting for Swift changes:
 
 ```sh
 xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge

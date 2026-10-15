@@ -1,6 +1,6 @@
 ---
 type: asset-production-operations
-title: Marketing Assets and App Icons
+title: Screenshots, Marketing Assets and App Icons
 description: Capture localized native screenshots and generate staged device frames with parent-owned tooling. Separate locally verified safety guarantees from external artwork, website and publication checks.
 tags: [marketing, screenshots, fastlane, frameit, figma, app-store, app-icons, localization, submodules]
 sources:
@@ -56,10 +56,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-09T00:05:26.272Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-09T00:05:26.272Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
 # Marketing Assets and App Icons
@@ -208,7 +208,7 @@ sequenceDiagram
     loop Each requested scene
         Test->>System: Mount native scene in key window
         Test->>Lane: ready feature/device/locale/token/capture ID
-        Lane->>Lane: Reject stale, duplicate or mismatched requests
+        Lane->>Lane: Ignore stale IDs and seen tokens, validate fresh requests
         Lane->>System: Capture selected native display
         Lane->>Lane: Validate raw dimensions
         Lane->>Test: ack token
@@ -219,7 +219,7 @@ sequenceDiagram
 ```
 The mobile handshake validates identity and native dimensions before acknowledging scenes; promotion follows successful scan completion and complete-set validation.
 
-The runner rediscovers the app container while waiting because XCTest can reinstall the host between locales. Each scene has a token and the whole batch a capture ID; missing acknowledgment times out the test. A direct fixture invocation **without** system-capture mode writes rendered PNGs to the host's `Documents/screenshots/<feature>/<device>-<locale>.png`, not the public capture tree. Those review renderings are not the release compositor pipeline.
+The runner ignores stale capture IDs and already acknowledged tokens, fails mismatched identities or duplicate features with a fresh token, and rediscovers the app container while waiting because XCTest can reinstall the host between locales. Each scene has a token and the whole batch a capture ID; missing acknowledgment times out the test. A direct fixture invocation **without** system-capture mode writes rendered PNGs to the host's `Documents/screenshots/<feature>/<device>-<locale>.png`, not the public capture tree. Those review renderings are not the release compositor pipeline.
 
 ## Mac native capture and fixtures
 
@@ -355,4 +355,13 @@ For website work after initialization:
 
 Confirm prerequisites, actual routes, redirects, responsive layouts and deployment settings from the external checkout before publication. For store delivery, derive an inventory from the inspected files and intended upload requirements rather than asserting a fixed board count. Check embedded profiles, not merely colorspace labels. Preserve per-run failure output and back up originals; do not alter unrelated assertions or production behavior to satisfy marketing fixtures.
 
+<!-- openwiki: broken internal link [../architecture/supporting-system-directories.md] file "../architecture/supporting-system-directories.md" does not exist. Fix the href or restore the target, then delete this comment. -->
 See [Supporting Systems](../architecture/supporting-system-directories.md) for repository boundaries, [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+se Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+tures.
+
+<!-- openwiki: broken internal link [../architecture/supporting-system-directories.md] file "../architecture/supporting-system-directories.md" does not exist. Fix the href or restore the target, then delete this comment. -->
+See [Supporting Systems](../architecture/supporting-system-directories.md) for repository boundaries, [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.

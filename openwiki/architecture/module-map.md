@@ -1,7 +1,7 @@
 ---
 type: architecture map
-title: Module Map and Composition Roots
-description: Maps Termind's native products, six shared framework dependency targets, composition lifetimes, supporting products and pinned external package inputs.
+title: Module Ownership and Composition Roots
+description: Maps Termind's native products, six shared modules, composition roots, dependency direction, and the remote package inputs actually selected by Xcode.
 tags: [architecture, modules, products, dependencies, ownership]
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
@@ -46,8 +46,6 @@ sources:
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-c8d832474c03f5ebad7b0578
-    resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-5b8c72c5373a41af34fa9fd4
@@ -82,27 +80,21 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Module and Product Map
+# Module Ownership and Composition Roots
 
 Termind has **two native apps and six shared frameworks**, not one framework per product feature. A feature such as SFTP crosses domain values, application policy, transport implementation, presentation, and native session ownership. Directory names describe responsibilities inside those layers; they are not necessarily independent build targets.
 
 ## Reading this map
 
-The companion guides cover each module root and its functional children, including second-level directories such as `TFM/Features/SFTP`, `TFI/Application/Connections`, and `com.akinokaede.termind/src/pages`. For frameworks, the module root is `Frameworks/Termind…`, not the enclosing `Frameworks` folder. Deeper functional divisions are included where useful. Flat modules are explicitly identified rather than assigned imaginary subdirectories. Repeated locale, device, and asset-catalog leaves are grouped.
+Start with the owner and dependency direction, not the folder with the closest feature name. The module roots are `Frameworks/Termind…`; `Frameworks/Resources` is shared input rather than another module. Native `Application` and `Infrastructure` directories are app-local policy and adapters, not additional shared framework targets.
 
-| Guide | Scope |
-| --- | --- |
-| [Shared Framework Directory Responsibilities](shared-module-directories.md) | All six frameworks, every functional child directory, flat-root responsibilities, and shared resources. |
-| [Native App Directory Responsibilities](native-app-directories.md) | Both apps, every feature directory, application/infrastructure subdirectories, native adapters, UI components, and resources. |
-| [Supporting Products, Packages, and Tooling](supporting-system-directories.md) | AgentKit reference checkout, bridge, widgets, tests, benchmarks, website, assets, scripts, project metadata, and wiki automation. |
-
-These are orientation guides, not replacements for [System Boundaries](system-boundaries.md) or [Engineering Invariants](engineering-invariants.md). Source locations and evidence are tracked in OpenWiki Claims; the tables intentionally describe directories rather than enumerate source files.
+Use [System Boundaries](system-boundaries.md) for contracts, [Engineering Invariants](engineering-invariants.md) for safe-change rules, and [Platform Runtime](platform-runtime.md) for detailed scene, session, restoration, and teardown lifetimes. Dependency update and release procedures belong in [Build, Test, and Release](../operations/build-test-and-release.md).
 
 ## Module owners
 
@@ -164,9 +156,17 @@ Native products, supporting executables and extensions, and remote package consu
 
 The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
 
-**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMajorVersion` requirement starting at `0.19.1`, and `Package.resolved` pins version `0.19.1` at revision `8108c9bb87c546860cfc1769571e115af919fe8a`. Use `-onlyUsePackageVersionsFromResolvedFile` when building to require that committed pin rather than silently re-resolving. A local checkout edit alone will not change the Xcode build; release the package change, update the project requirement, and re-resolve the pin together. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. Do not substitute the sibling working tree's version for the resolved Xcode revision.
+**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMinorVersion` requirement starting at `0.19.2`, and `Package.resolved` pins version `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. A local checkout edit alone will not change the Xcode build. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure. `TermindAgentTools` builds the host tool list from narrowly injected services, restricts mutating SSH/SFTP registrations to acting while providing a separate planning SSH tool, and combines built-in and Termind presenter registrations so persisted transcript cards can still be rendered. Optional pane and scratch capabilities omit their tools when unavailable; older cards without presenter IDs use an explicit legacy-name allowlist. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md).
 
-**Maintenance versus remote dependency boundaries:** `.gitmodules` lists `libssh2-spm/`, but Xcode consumes its remote exact version `2.0.3-termind-4` (resolved revision `7ca39b8bcaf408351e8b6e4f449d2a39959bab49`). Ghostty comes directly from `Lakr233/libghostty-spm`, with no local Ghostty maintenance submodule: its up-to-next-major requirement starts at `2.2.2026100501`, and resolution pins that version at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. A maintenance gitlink alone does not change Xcode's package input; release and update the remote requirement/resolution together as appropriate. `libtailscale-spm` is also a maintenance submodule: Xcode uses a remote `upToNextMinorVersion` requirement starting at `1.0.2`, resolved to `1.0.2` at `098e6b69ea128f3a55bc560f005a3e851123dc99`; its `TailscaleKit` product links directly into Remote Infrastructure. For any package, the project requirement defines the allowed input and `Package.resolved` records the selected revision; keep the resolved-only build flag in verification commands (see [Ghostty Dependency Updates](../operations/ghostty-fork-maintenance.md) and [Build, Test, and Release](../operations/build-test-and-release.md)).
+**Maintenance versus remote dependency boundaries:** Xcode's declared requirement and its selected revision are separate from maintenance checkout HEADs:
+
+| Remote input | Current Xcode requirement | Selected version and revision |
+| --- | --- | --- |
+| `AkinoKaede/libssh2-spm` | `upToNextMinorVersion` from `2.0.3-termind-4` | `2.0.3-termind-4`, `7ca39b8bcaf408351e8b6e4f449d2a39959bab49` |
+| `Lakr233/libghostty-spm` | `upToNextMinorVersion` from `2.2.2026101301` | `2.2.2026101301`, `d403978c66870baa422709d1dde385730a4bdaef` |
+| `AkinoKaede/libtailscale-spm` | `upToNextMinorVersion` from `1.0.3` | `1.0.3`, `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
+
+`.gitmodules` lists libssh2 and libtailscale maintenance checkouts, but no Ghostty checkout. Their gitlinks are not Xcode package inputs. `TailscaleKit` links directly into Remote Infrastructure and is not a shared framework target. For any package, `project.pbxproj` defines the allowed remote input and `Package.resolved` records the selected revision. Resolved-only verification uses `-onlyUsePackageVersionsFromResolvedFile`; update and release procedures are in [Build, Test, and Release](../operations/build-test-and-release.md).
 
 ## How responsibilities meet
 
@@ -207,15 +207,9 @@ Composition and navigation lifetimes: desktop windows own workspaces; mobile sce
 
 `TFM/App/TermindApp.swift` is the desktop `@main` entrypoint. It opens the Persistence container, wires stores, Keychain-backed secrets, sync and connection coordinators into an app-wide `AppModel`, and injects that model and container into each `WindowGroup` root. Each main window receives its own `WindowModel`; a separate authentication window uses the shared app environment. A database-in-use failure calls `DatabaseStartupGuard.presentDatabaseInUseAndExit()`; other initialization errors end launch with `fatalError`. On mobile, `TFI/App/TermindIOSApp.swift` is the actual `@main`, **not** `MobileAppModel.swift`: it chooses live versus test dependencies and constructs one `MobileAppModel`. `MobileStartupView` installs its container for the bound scene root or displays unavailable content if initialization throws. `MobileAppModel` assembles SwiftData, Keychain or in-memory secrets, remote services, sync coordinators and Assistant; it retains the workspace sessions and a flattened view of their live workspaces. In the in-memory/test path it omits live sync and disables Live Activities by default. Each `MobileSceneModel` binds to the `MobileWorkspaceSessionModel` for its persistent UIKit session ID. That session owns live workspaces, ordered restoration descriptors and open/close operations; scene navigation selects from **its own session**, not from all app workspaces. Cross-window workspace links activate the owning native session rather than stealing its connection.
 
-- **Process-wide:** shared stores, service coordinators, and application models.
-- **Desktop window:** navigation, workspace collection, pane selection, searches, and transcript caches.
-- **Mobile UIKit session:** its app-retained `MobileWorkspaceSessionModel` owns connection intent, live workspaces and persisted descriptors; the scene model owns selection, navigation, conversation and transient presentations. Backgrounding or view disappearance does not discard the session. Explicit native-session discard closes only its workspaces.
-- **Session/workspace:** transport and terminal/browser runtime state. Disappearing views are not a general disconnect signal.
-- **Durable storage:** metadata, connection history, configuration, and separately governed memory; not live transports or transient credentials. Mobile restoration saves descriptors per session, not live connections.
+The ownership seam is **process-wide services → window or persistent UIKit-session workspace owner → live workspace runtime**. Durable storage holds metadata and restoration intent, not live transports. Detailed cold-launch consolidation, orphan recovery, discard, cross-window activity routing, and background behavior are covered in [Platform Runtime](platform-runtime.md), rather than being additional module dependencies.
 
-On mobile, `workspaceSession(for:)` consolidates saved descriptors into the first bound window on a new process launch without opening connections. Later sessions start with their own collections. A disconnected scene can still be a restorable native session, so reconciliation against UIKit open-session IDs precedes recovery of orphaned live workspaces into an active session; the snapshot is saved before transferring the live instances. If saving fails, recovery is skipped and an error is reported instead of silently duplicating ownership. An explicit discard closes that session's workspaces (including any previously recovered from it). `TFITests/MobileWorkspaceSessionTests.swift` covers independent windows, cold-launch consolidation, reclaim versus discard, recovery, and activity-link routing; `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows only when `TERMIND_MOBILE_UI_TESTS=1` with parallel testing disabled.
-
-For lifetime diagrams, continue with [Native App Directory Responsibilities](native-app-directories.md) and [Platform Runtime](platform-runtime.md). For change-oriented navigation and verification, return to the [Engineering Quickstart](../quickstart.md).
+For focused ownership regression coverage, use `TFITests/MobileWorkspaceSessionTests.swift` and `MobileWorkspaceWindowIntegrationTests.swift`; native-window integration is opt-in with `TERMIND_MOBILE_UI_TESTS=1` and parallel testing disabled. For change-oriented navigation and verification, return to the [Engineering Quickstart](../quickstart.md).
 
 ## Verifying a boundary change
 

@@ -1,9 +1,11 @@
 ---
 type: engineering-contract
-title: Engineering Invariants
+title: Engineering Invariants and Change Safety
 description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
 sources:
+  - id: openwiki-source-8c4bdfb086f2eff661e05807
+    resource: repo://.github/workflows/localization.yml
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
@@ -12,8 +14,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
-  - id: openwiki-source-ce9687e1e441c1da9a8f908a
-    resource: repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift
   - id: openwiki-source-367221086eefa5586eade075
     resource: repo://Frameworks/TermindApplication/Agent/AssistantNotifications.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
@@ -144,10 +144,14 @@ sources:
     resource: repo://FrameworkTests/SystemNotificationsTests.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
+  - id: openwiki-source-985b6a509f7d84d0b5153a7a
+    resource: repo://Scripts/check-appstrings.sh
   - id: openwiki-source-7d8d2d50a9c530a1decb39f3
     resource: repo://Scripts/check-appstrings.swift
-  - id: openwiki-source-c6328be86432b33a68051c73
-    resource: repo://Scripts/check-cjk-localization.py
+  - id: openwiki-source-d125bef219ce9eee56abf917
+    resource: repo://Scripts/check-localization.py
+  - id: openwiki-source-051c73f47cb05bef42b9cb63
+    resource: repo://Scripts/Tests/test_localization.py
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -224,6 +228,8 @@ sources:
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-78797a18dd3153d23a2c42e2
+    resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
@@ -234,13 +240,13 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Engineering invariants
+# Engineering invariants and change safety
 
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
@@ -300,7 +306,8 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   Keychain access group.
 - `ArchitectureBoundaryTests` enumerates Swift files and fails closed on absent/empty roots. The non-presentation shared-framework import test covers Domain, Application, Infrastructure, Remote Infrastructure and Persistence: none may import `Termind`, `TermindIOS`, AppKit, UIKit, IOKit or ServiceManagement. Its additional Application check excludes Infrastructure, Persistence and SwiftData, and Persistence cannot import Infrastructure or Remote Infrastructure. **Presentation is checked separately**, against app modules, AppKit/UIKit, SwiftData/GRDB, Persistence, Remote Infrastructure, Infrastructure and StoreKit. Do not attribute Presentation's broader ban to every shared module, or assume an unlisted import is tested. Domain and Application have additional implementation-framework import checks; app Application/Feature layers and mobile UI are checked separately for direct I/O/storage dependencies and selected concrete construction tokens. These scans match specific imports, declarations and tokens in specified roots; they do not prove dependency purity for every symbol or path.
 - The source tests also constrain `ListViewKit` importers to a native-list allowlist, prevent a named subset of AgentKit type redeclarations in TFM (not in every module), and look for SwiftData `@Model` and repository declarations outside Persistence. They reject an app-local `AppStrings` declaration and prohibited imports within shared Strings; dialog-title scans reject bridging a `LocalizedStringResource` to `.swiftUIKey` in `.alert`/`.confirmationDialog` titles instead of passing the resource directly. The scan checks direct `.swift` files in the Cloud directory containing `: NSObject, CKSyncEngineDelegate` for lifecycle batch/upload/handling tokens and decode/quarantine tokens (including the shared History/Device delegate); there is no read-only legacy History importer exception. This scan does not discover delegates in nested directories or differently formatted declarations. These are syntactic boundary guards, not behavioral proof; see [System Boundaries and Dependency Ownership](system-boundaries.md).
-- App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant`/`ja` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `python3 Scripts/check-cjk-localization.py` (the latter checks canonical formatting, catalog validity, completed Chinese/Japanese translations, positional format arguments, plural shape and spacing). Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal, semantic reuse or runtime presentation; use `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests where applicable. AgentKit's own copy/catalog is a separate release boundary. The old Chinese-only shell checker has been removed; older command references in contributor guidance are stale, not an additional executable check.
+- App-copy changes require explicit keys and finished `zh-Hans`/`zh-Hant`/`ja`/`ko`/`de`/`fr` translations in both manually managed app catalogs, `Localizable.xcstrings` and `InfoPlist.xcstrings` (bundle metadata). Do not delete a key because Xcode marks it `stale`: extraction from one target cannot establish non-use in both apps. Normalize with `Scripts/normalize-string-catalogs.py --write` after editing, then run `Scripts/check-appstrings.sh` and `python3 Scripts/check-localization.py`. Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`; `AppStrings` owns the API. The SwiftSyntax copy check detects selected UI-literal patterns in TFM/TFI, not every literal or semantic reuse. The Python checker validates catalogs and canonical manual formatting, finished translations, positional format-argument types (including literal percent signs), and every translated plural branch. Chinese, Japanese and Korean plurals require only `other`; German requires `one` and `other`; French requires those two and permits `many`. Spacing rules apply to Chinese and Japanese, not Korean or European typography. Neither check proves display-time correctness: retain `PresentationCopyTests`, `AppLanguageTests` and platform rendering tests. AgentKit's copy/catalog is a separate release boundary.
+- [Localization CI](../../.github/workflows/localization.yml) runs on catalog/checker/normalizer/test/workflow changes for pull requests and main pushes, on Ubuntu: normalization unit tests, `python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'`, then `python3 Scripts/check-localization.py`. [Checker tests](../../Scripts/Tests/test_localization.py) cover missing/unfinished translations, reordered argument positions/types, plural categories and language-specific spacing exceptions; CI does not run native rendering or the SwiftSyntax copy check. `AGENTS.md` still refers to `Scripts/check-zh-localization.sh` (including its commit-pipeline instruction); that retired shell command and the removed `check-cjk-localization.py` are not additional checks. Use the inspected Python command above; `Scripts/check-appstrings.sh` still exists and remains complementary.
 - The **test host is the real app**, not a generic logic runner. In DEBUG, `TermindApp` detects XCTest, uses an in-memory container, suppresses automatic main/auth windows unless `TERMIND_WINDOW_TESTS=1`, and disables restoration for tests; screenshot demo has its own exception. Ordinary offscreen tests run without focus. Window/focus tests carry `.requiresVisibleWindow` and must opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (forwarded as `TERMIND_WINDOW_TESTS=1`); Mobile uses testing dependencies in its real `TermindIOSApp` scene, while key-window suites use `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` and `-parallel-testing-enabled NO`. Do not solve flaky host windows by enabling them for the default suite.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
@@ -378,6 +385,12 @@ The shared coordinators decide eligibility and the native routers navigate witho
 - Connection/authentication/forwarding state is memory-only, excluded from domain records, sync and UserDefaults.
   Serial is local/temporary, never persisted or an Agent host. Vault-synced Workspace templates contain named
   SSH/SFTP/empty split trees/fractions; only TFM materializes them, preserving empty panes for missing Hosts.
+
+### Feature-owned state regression checks
+
+Navigation changes must preserve scene/window ownership rather than move route state into process services. `MobileSceneModel.openTransfers`, `openConnectionPicker` and `openBatchStartup` clear competing pending requests and select their enum destination/sheet. [MobileAppTests](../../TFITests/MobileAppTests.swift) verifies shared repositories with scene-local Assistant navigation/drafts, connection failures remaining in Journey, authentication persistence failure remaining in its form, and expiration clearing pending authentication before resume.
+
+Authentication belongs to the feature performing the connection, not to an app-wide navigation fallback. `ArchitectureBoundaryTests.forwardingAndMobileAuthenticationRemainFeatureOwned` rejects `UserDefaults`, `SettingsKey` and `ExternalAuthentication` in forwarding, requires its reconnect/forbidden-interaction enforcement, and rejects keyboard-interactive queue/form tokens in the mobile app/root/workspace-session owners. These are scoped source guards; pair them with `SSHInteractionPolicyTests` and the mobile Journey behavioral checks rather than treating token absence as proof of cancellation or secret safety. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md).
 
 ### Trust, imports and local preferences
 
@@ -726,6 +739,25 @@ Preparation has distinct cancellation and failure-save phases; `stop()` requests
   private keys or reconstructs V12-discarded data.
 - User-selected HTTP/HTTPS/self-hosted endpoints require ATS arbitrary loads; HTTPS still uses normal trust. No local-network exception may
   override it. Local-network descriptions are localized; App Review notes explain user-owned HTTP servers.
+
+### Attachment disclosure and replay
+
+`ContextChip.content` is the disclosed payload, not just a label for data secretly appended elsewhere. Output, selections and file contents must be attached explicitly; pinned Host/directory context comes from `SessionContext`, while narrow sanitized Shell Integration OS/kernel metadata is disclosed by its enabling setting rather than an attachment chip. Detaching removes the payload, and accepted submission consumes attachments once rather than resending them on each turn.
+
+Keep **model/replay content** separate from **display projection**. The transcript retains the composed tagged extraction and images; user bubbles use `authoredText` when available, with `ContextChip.visiblePrompt` as the legacy fallback, plus `visibleReferences` for attachment chips. Original non-image file bytes can be retained as `AgentContextAttachment` for reopening, but the model receives the validated text extraction, not those original bytes. Legacy references can reopen extracted text instead of pretending to possess the original file. Hiding a large extraction from Markdown must never erase it from replay or turn a label into implicit upload authorization.
+
+```mermaid
+flowchart TD
+    Chip["Explicit attachment with content"] --> Capture["Capture user turn and consume composer attachments"]
+    Capture --> Replay["Full composed text, images and context attachments"]
+    Capture --> Bubble["Authored prompt and attachment references"]
+    Replay --> Restore["Restore stored conversation"]
+    Restore --> Projection["Authored text or legacy visiblePrompt fallback"]
+    Projection --> Bubble
+```
+Submission preserves the full replay payload while live and restored bubbles render a smaller projection.
+
+Narrow regressions: [ChatComposerStateTests](../../TFMTests/ChatComposerStateTests.swift) checks attached payload versus bubble text, restored large extractions, one-turn consumption, detach and legacy extracted-file fallback; [AssistantExecutionControllerTests](../../FrameworkTests/AssistantExecutionControllerTests.swift) checks synchronous capture and exactly-once attachment/armed-skill consumption; [AgentPersistenceTests](../../TFMTests/AgentPersistenceTests.swift) checks durable attachment round trips. These are payload/ownership tests, not proof that every native attachment-opening surface renders correctly.
 
 ### Execution and authorization
 

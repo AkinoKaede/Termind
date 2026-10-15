@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:00be9f984be6f4ac269d1158446b1e5ebadfb0d2ec251ddd9ea35737a4624b38",
+  "pageVersion": "sha256:dd435369ae54081911f8d1b8ef2b9bfbbaccb836e5b4d04b96c6df962fce9eca",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -60,23 +60,27 @@
     },
     {
       "id": "claim_6fa732935af2426fb937e410254e3f76",
-      "statement": "ProAccessController gates Tailscale, Assistant, remote MCP, the built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding acceleration through entitlement status; denied require presents the paywall, while ordinary workspaces and SSH terminal uploads are free. AppModel defaults to unrestrictedForTesting, but TermindApp explicitly injects live access for normal launches and unrestricted access for tests and DEBUG screenshot demos.",
+      "statement": "ProAccessController gates Pro features through entitlement status and denied require presents the paywall, while ordinary workspaces and SSH terminal uploads are free. Mac AppModel defaults to unrestricted testing access but TermindApp injects live access for normal launches and unrestricted access for tests and DEBUG screenshot demos. Mobile normal launches select live dependencies and XCTest selects testing dependencies; MobileAppModel honors injected Pro access, otherwise uses unrestricted access for in-memory or supplied-host fixtures and live access for production.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/AppModel.swift#L209-L242",
-          "version": "repo-lines-v1:sha256:ff8cc3851059b4caa24ebf4fe199f8dea3713e9ffd025f7264aa3b1ebeacc142:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjYjI0M2VlZjdkMmRhNjllZTVhMDk1YWYyYzYwMWRlMGNjN2Y4NTdjNjNkOTEyM2Y1Zjk1OWYyMjQwMDQ0YjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMGVkNGE5ZGE0MjhlZjdkOTUyZGJjYjE5NDY3MzUzNjE3Nzg5NzFiMWRjNGM5YjgyZmI1MmVhNTZkNmQxZDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlNDJiZGVhNzkxNGMxYzU5M2M0ZGRlNWZhNTZiMjAyMGRkMmZmMjVlZTRiYzkxZDJmNDUyYTNlYTI5YzBlNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiNmUzZWZkN2I3NTRiZDk5OTQ2ZDA4Y2ZiMWJlNzM3N2QxNWNjMjEzMzI1ZWZjZWJiODFiNDBjNjZjNmI4MjkifQ"
+          "resource": "repo://TFI/App/MobileAppDependencies.swift",
+          "version": "repo-file-v1:sha256:faf998cee5d8d8ef18a2164e7e8cecfd5bbab6374bac3363cdf556b601a264b9"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L138-L141",
-          "version": "repo-lines-v1:sha256:d7a35235421f01a6dbee1cfc2c3f3947990480cc7da3f8b1eeb7d4eadf443a0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDhlNjgyZDk4YTk0YjFlMTg2YTg3Y2Y2NGVmYWUxOWJjMjBjZWM0MDBkNTdlZWNkMjcwZjM0ZTc3OWMyNDliMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODc1YTE5OTFkY2Q5ZWFkYjc1NGE1NGY4NjUzYzllNWFjMzU3ZTI5ZmQyZmU3MGFlODlkZTFkMWEyYTk0MjMyYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzU5OWMzYWM2ZjU3NDEwODNlODAyYzk2NTUyYTA3MmU3ZjNjZWYxYzJhNTJiMTZkNGU1MmI1Y2Y1MjBiN2EwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2UwNGRiOWI5ZTM5NGZiZGQzM2Q3YWFmYTQ0MGVhODI5OWUxZDcwOWQ4NDRiZmI1ODU1ZTZkNzQ2NzU0OWQ2OCJ9"
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:f83323dded23ec74be6130fa9c8ad66d188b5d0cce9cf7f82b226f4f9d58769c"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L203-L207",
-          "version": "repo-lines-v1:sha256:253f2766d0bc85c7ef549b033a0be3882596a934bb7d3b0dd68df8cb7101e876:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDIwN2U2MzJmNzgyNWU4MzFiYTM0Y2Y0YTk1ZjE2ODg1ZDg2Y2M2MGRhNWMzZjg2M2U4ZThjZTdhMWM4NTU5YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEwMzQ4MWM1N2QwZjBkYzBmNzZjZDJjYzhiMzYwNGM0ZTgyOTZkYTQxMjJhZGQxOWU4MTc0NWRjN2UzMzFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjcxNzFkMTM3MzE1Y2ZhYWM1ZmQzYTI2MjE0OWFmYjBjYTJkYjg4NTVmZDM0NGRmYjA1MTlmYjA4Mzk2MGNiZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTFlNmNjYWRjNjNiOTViYWJmNjM4MzE1ZGI1YTZjNzhhYjRiMDUyMTViYTMyMmFlYzM1YTI0NThlZmJiOTJhMyJ9"
+          "resource": "repo://TFI/App/TermindIOSApp.swift",
+          "version": "repo-file-v1:sha256:6a65b1e2f4982c35c830a2f0e442cdd84e4398de8643b98c5e25b98f29003436"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L45-L79",
-          "version": "repo-lines-v1:sha256:1c4e1f549badfa5ca58d54178883bde270bd5b6970dddbf7b834468148ba8d9a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MGQ3NmNjNzA0YzU1NzliYjc4YTU5ZmQ4OTgyMDkzOGYzZjU1YmRhODVlZjZhZThkMDhhODM5Zjc2NzcyZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5MGYxODJjOGI0OTgyMDk3OTA2NTZlNmY3YzcyNGVmMTM4YzcxMjBlY2NhMDU4ZDczMmU2ZjU5NTc1ZDQwZWEifQ"
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:bd43f31a4ca2de3488045ee63d072fa8f2a03f8e6201b5f7acd712d20933c1e0"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:70e07cf8eccc2a01eedb0fd4b9b58f117ebc24b62d26dacb0133a8ad6748bca8"
         }
       ]
     },
@@ -118,19 +122,11 @@
     },
     {
       "id": "claim_bfdb3849716843bd941c4d567891acf5",
-      "statement": "Final storefront imagery requires separate release verification in the initialized independent website/assets checkout: inspect its current delivery contract and actual localized files to establish inventory, filenames, canvas sizes, opacity and embedded profiles, then review composition, platform promises, offer claims and intended App Store upload acceptance. Parent screenshot-tool dimensions describe native capture inputs, not verified final board dimensions or upload acceptance; no fixed current board inventory or Overview filenames are established by the available empty checkout.",
+      "statement": "Final storefront imagery requires separate release verification in the initialized independent website/assets checkout; parent screenshot dimensions describe capture inputs, not verified final board dimensions or upload acceptance. The runner supports and defaults to en, zh-Hans, zh-Hant, ja, ko, de and fr with options or environment overrides and per-capture test language, region and Apple locale. Capture coverage does not establish remote paywall translations or final board inventory.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L14-L21",
-          "version": "repo-lines-v1:sha256:f7006ba5333ec8f892401084d297a5cca1441539d4981caa353aa0b7fcc540d7:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjEwYTA3YWY5NGUwMTJmZmRmZWYyZjAwOTkyN2MwODg0OTJhNGYzY2UzZmQxOWUxYjlkNDFhNTkyMTU3YTg0ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQwODIwM2ZlMmM4ZDNlNmNkZDgxODZiNWI0NDcwMjNkOGI3MTgzOWM5OWY0OGVkNTE2MjBiZjc2NzNiYTEwNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk5ZGM1ZDdjMzBhMTNiZGUzZjdmNjg5MTdhMmRlMDMwOTc3M2IzMDJmM2JjMzU0NWI1MWY2NjM1MTUxNDY5MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGQzNTA1MTYzNGZjNzIzNjdkZWVhMWFlMjg3MWQyOTQxNjZkM2U0MzkxODA5N2I4ZTMxNWVmYTc5NTVkMzliNyJ9"
-        },
-        {
-          "resource": "repo://fastlane/lib/screenshots.rb#L18-L43",
-          "version": "repo-lines-v1:sha256:a09bb6e64d69126097c4f6b45683e1d6952c470147ac712e7387684225acd382:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzNWEzOTE2MjQ0YTZhYmIwMmM4Y2ZiZTFhMjIwZTUxMjNjZDQ1MDQwZDZjYTZjNjU4YjU3M2MwNmZhODg1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzYzYyZmE1OGExYmQ5MzViNzQwZWUwMWZlMzI5ZTc0Y2Q3Mjg3MTFhNDk3Yzk3M2I3MGZkOGQxZDQ2NThlNDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxN2I3NGYwMmY3MDM3YjM1YWNlMDRkNzNmNTQzNzlhMjllNmQ1MzVmODMxMWE2MmMwOWEwMzkyNTdkMDhkM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4YjI1YTVlNTI1YTI1NjhiODBmZDA4OTgyNmUzMThiNTQ3Yjg3ODk0NzVlY2MxZDhiNGFlMzFiYzk4NjJiZjYifQ"
-        },
-        {
-          "resource": "repo://fastlane/lib/screenshots.rb#L66-L81",
-          "version": "repo-lines-v1:sha256:14e4300122b499c9067ad530d97544041f6c6aa93bcd23abb210dc88d24d82ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZGQyNzdlN2EwNjQyNWRjNDJlZjJiNzcxOGUxNTAxNDJjM2VmMzdhMTgwOWIxMWVmZTUzNWQ4ZjEwOTQ0YjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNmRhZTVlNDdhNjVlNWQ0OGVhNWJhNDY0YWUyMDljZmJjZjdjMDFhM2RhYmNiZmY1NTdhYTNiMjNhNGE5YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcxYTA4OTI4MDI4YTViOTA0NDJiNTE2Zjc0NmRmZGQ2ZmE3MmZlMjlmYWI0MjM2Y2QxYTVmYTAwNTdjZGI3OGEifQ"
+          "resource": "repo://fastlane/lib/screenshots.rb",
+          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
         }
       ]
     },
@@ -158,27 +154,19 @@
     },
     {
       "id": "claim_fa728057312b4850848637b37d7dc9bf",
-      "statement": "Separate Mac and mobile signing entitlement files both declare the CloudKit container, webcredentials domain and bundle-derived keychain group, while Mac additionally grants App Sandbox device/network/file permissions; these capabilities are separate from StoreKit products and RevenueCat entitlement resolution. Both app targets use automatic signing and select development push/Development CloudKit in Debug and production push/Production CloudKit in Release through entitlement substitutions. Mac Release still specifies Apple Development as its source signing identity, so the Release name and source settings do not establish the delivered artifact's distribution signature or resolved capabilities.",
+      "statement": "Separate Mac and mobile signing entitlement files declare CloudKit, webcredentials and a bundle-derived keychain group; Mac additionally grants App Sandbox device, network and selected-file permissions. Both app targets use automatic signing, development push and Development CloudKit in Debug, and production push and Production CloudKit in Release. Mac Release still specifies Apple Development, so source settings do not establish the delivered artifact's signature or resolved capabilities.",
       "evidence": [
         {
-          "resource": "repo://TFI/TFI.entitlements#L9-L24",
-          "version": "repo-lines-v1:sha256:a6fae4d8aca8b691a886ecaf769f46e9c2d294ac8eca70018bc072f3dd14b53f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2MGUxZjQ0MDdmMTgzMzFiMTllM2I3NmJkYzRlZDg3MmZhMTE1NWZjYWViMzgxM2NmZTNlZWU5YjYwNDMyYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMTRiZjVlMDkzZmQxMDE1MjBjZDc2NWViMWE0Y2Y0MzRiYTQ4NmM0YWNhNDIwMDQ3ZmU1NDRhNWE5NDU0ZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2M2RjOTdiYjc0NDkyNDQ1ZDg4MjNmMmM2ZTBlMTYyNDRiMjBkMTA2NDExMDFjNWFlZmMyODBiM2NjMjlkMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlMTBkMDEyZDA1YWMzNGI1NzVhMWZlNDY1OWY4NTU5MTQ2OTFlN2QyNjIxZmQ5NmVkNmY4MWFkNGQzOGQzMjcifQ"
+          "resource": "repo://TFI/TFI.entitlements",
+          "version": "repo-file-v1:sha256:627aa95bfbf21cca83244648698c3f49c40c37da6446b577931e8d88715c980e"
         },
         {
-          "resource": "repo://TFM/TFM.entitlements#L23-L41",
-          "version": "repo-lines-v1:sha256:34a70639f0357bd3b45d4e0c65afbcc767cdaaa6627ebda70c54b274b3495506:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYWRhYjQ5MTNjNzFiZjJmZmYzZWIyMTVjNTJiOWVhZGI4NTQ3YmY5ZTE3OTViYWRiNDQyNjgwZmRjYjdkZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMTRiZjVlMDkzZmQxMDE1MjBjZDc2NWViMWE0Y2Y0MzRiYTQ4NmM0YWNhNDIwMDQ3ZmU1NDRhNWE5NDU0ZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlNmRhZjdjYWRjMzUwYTMwODY1NzJjYjYzOTg0MTgzOTAxMTYyMDIyNTc0Yjg3Mjk4OWJmYTg3ZWNmMTA1NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlMTBkMDEyZDA1YWMzNGI1NzVhMWZlNDY1OWY4NTU5MTQ2OTFlN2QyNjIxZmQ5NmVkNmY4MWFkNGQzOGQzMjcifQ"
+          "resource": "repo://TFM/TFM.entitlements",
+          "version": "repo-file-v1:sha256:164a7405fd59a24ea38bdc06270f1289c0f89c2dc4bd8809496cf59d67c71f47"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2023-L2063",
-          "version": "repo-lines-v1:sha256:ab5e725b9113447d9a632b2e4ef173a8a0f439a5de3516149125cc8f23011de5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMzdmNjEzNjdmY2RiMWJjODljNzYzYzk5ZDYxMmFjY2I3ZGZhMzE0Y2FmMzMxZTQ4NDU3ZTA2YzRiYTAwMGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0ZmU2NGQ1OTJhMDg5OTY3Nzc1Mzc2YjZhOGI4YmNlZmRhNGUzNTlmNTQ2ODAxYjBlNjJkY2U5Nzg0N2RmYTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExZjI2OTc5NGU5Mjg4MThiYWIyNzBiNjhkYzllMjIxOTBiNTY4ODBhODE5MGM5MmQ3OTJkNTIwMjdkZmE3ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkMDc1NDUyYTZmNTE4NTU5MGJhYTU1NjA1N2E4NGM4N2FjZjgyMTliYjlhYTZkOTc0M2NmMWYwOTA0OTQ5M2UifQ"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2335-L2375",
-          "version": "repo-lines-v1:sha256:a95bc83db8632563dcd54d2816a5df6e0df6912a578eae7c2683523673ad6947:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1ZmUwYmJhNTg1MjdhNDZiNDk1ZTA4MDdmOTcxOWViNmYyMjY0YTNiYzc5OWJhY2Q1MzIwODk0OTFhMmFjN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ZWEzMmJjODZlNjYwMWJjZThiZTNlNDM3NmYzZmRkYmRhOWE2ZWFkMjBlMGM1MTgzZTQ4ZTRlNWFmNDA4NjQifQ"
-        },
-        {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2585-L2663",
-          "version": "repo-lines-v1:sha256:8a489c66c04dd25fb4c443166ad107722fe146579092cfb93a0cc20919c22bcb:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZTNjMzBkOTA3NzQ0ZGQwOWRkMmJjZjc4NzA3OGJjOGNjYTU1NDYyMzQxMWQxZjFiNGJjMDVhMTlmMDIxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNjRhZjlkODc3YWMyYjU4YzUyOTQwZWQzZTY2N2I3ZWUzNTdlMjNkN2Y3MjM0MzhmODU1NDA2NDhjOWZmNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NTI5ZWQ0MjIyOTA2M2ZjYmQwNTkyYmE4N2JiNTgyYTJlNzUyMGZlM2M0ZTkyOTVlNWUxMTMyOTdiODhjZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5ZTZjYTAzY2VlOTg1OTZkMzcxOTViOTAxMzMyMTI5ZDhlOWZjNzhjNmU2MjQzMWFhNzhkOTE2M2JkOTAyMTUifQ"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7a415ca5653e3c976dc7894662077b1e4f5cdfe75c423dc99ce957d120b3fe41"
         }
       ]
     },
@@ -244,7 +232,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:55d9f1d8f05678b72ad55f5718f28d3a0fe237aec6d51ad33b093058b4fc3ab7"
+          "version": "repo-file-v1:sha256:7a415ca5653e3c976dc7894662077b1e4f5cdfe75c423dc99ce957d120b3fe41"
         }
       ]
     },
@@ -292,23 +280,19 @@
     },
     {
       "id": "claim_c0622e768e094bee82e4497ddd0591d5",
-      "statement": "Both RevenueCatUI wrappers clear operation processing on cancel/failure/disappear and retain the account variant after purchase. Mac elects one owning window sheet, while mobile presents from MobileRootView; local controller fixtures do not prove live SDK purchase or dashboard rendering.",
+      "statement": "Both RevenueCatUI wrappers clear processing on cancellation, failure and disappearance and retain the account variant after purchase; Mac elects one owning sheet window and mobile presents from MobileRootView. Separately, the App Review URL invitation records accepted URL-open intent rather than a completed rating or purchase. It requires seven days and a host with no prior response, captures eligibility on entry, persists responses locally, and isolates developer preview from real responses and URL opening.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileRootView.swift#L106-L126",
-          "version": "repo-lines-v1:sha256:b7133e8a2206e906b59f6ceb0a9e46ae280dca5c27f7a064790ba1ff897fd4e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTVmZmEzZTA5NWRmMDViNmIzMzMzODcxYWJhMWMxYjNlMjVhYjNkYmYxZDQ5MmYxNTRjMmNjMmIxMjJmNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2MDIyYjg3NjFlZmYxNjAyZTNlOGY1NTM3NjE2NjkzNjE3ZDdjNzE0MzJiYWY2MmY3NWZmODliZTU4Y2E1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMjI1ZjI3MGJmZmY1NjRjYjFkN2E3NDc0ZTc5OWRmZWY2NTBkNGFlNzhjZjBiZTRjZWZhNmNiMDA3YTZjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhNTg3ZjRhMzQyMDY5NWYyODg5ZDM1ZDY2ZmVlMzc5YTAwYzNhOWE5ZjFkODQ1MTkyNTg4OGJjNTdlYjliMjUifQ"
+          "resource": "repo://FrameworkTests/AppReviewControllerTests.swift",
+          "version": "repo-file-v1:sha256:52a1deeeea5b7db6a9a926f9e7647b33657caab224a8f433d1c4edfee6dc8a2c"
         },
         {
-          "resource": "repo://TFI/Features/Commerce/MobileProView.swift",
-          "version": "repo-file-v1:sha256:745e8c2e8dcc699c101608cca8f95539416317555b72c1f360786d14138b0551"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift",
+          "version": "repo-file-v1:sha256:d086d8a4ea9933ffda2ba7c8511f1ec3c86e802dd12a542f6c779328c748180a"
         },
         {
-          "resource": "repo://TFM/App/RootView.swift#L159-L182",
-          "version": "repo-lines-v1:sha256:a7fdc7232ebb91e7bb7e70a9235181f28591257980bb737c5bfd10fe054d2974:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZWFkMDY0ZDFiNDdiZWI5OTM4ZDY2NDViNzMwOWY0YjViMDYwMDE3YmY3MzEyYTM5NjRmZDZkOTNiMWQ0MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4N2RiNmZmZTg1OTY2YzdmMWNhZjRlYWJiMzI2NThhM2FkNjFkZjE3NThjM2I0ZjI2ODUxZDY2MWRiNWUwNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMWY0NjFlYzQ4OGZjOGM3MDJkMjIxZjljM2JlNWE4Y2Q4YzRmMjE4ZmZmMjYzMGI4Y2ZlYzE4NTVkMWQ1OWEifQ"
-        },
-        {
-          "resource": "repo://TFM/Features/Commerce/ProPaywallView.swift",
-          "version": "repo-file-v1:sha256:a902fcfce03f95a88e3769af44e388a19a1fca9ed777da2860cdce00725876bd"
+          "resource": "repo://Frameworks/TermindPresentation/AppReviewInvitationView.swift",
+          "version": "repo-file-v1:sha256:f5849d2c7ea9f045b3b54569d270eda919d891f7564403c5faa0f620cd0dde3d"
         }
       ]
     },
@@ -337,6 +321,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-13T01:46:04.618Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

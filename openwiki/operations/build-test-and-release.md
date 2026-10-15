@@ -1,6 +1,6 @@
 ---
 type: release operations
-title: Build, Test, and Release
+title: Build, Verification and Release Procedures
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 sources:
@@ -22,8 +22,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-e568ada11d31632da3ad26c7
     resource: repo://FrameworkTests/TerminalFindControllerTests.swift
-  - id: openwiki-source-c6328be86432b33a68051c73
-    resource: repo://Scripts/check-cjk-localization.py
+  - id: openwiki-source-985b6a509f7d84d0b5153a7a
+    resource: repo://Scripts/check-appstrings.sh
+  - id: openwiki-source-7d8d2d50a9c530a1decb39f3
+    resource: repo://Scripts/check-appstrings.swift
+  - id: openwiki-source-d125bef219ce9eee56abf917
+    resource: repo://Scripts/check-localization.py
   - id: openwiki-source-de562e98d49cbf6502c23c13
     resource: repo://Scripts/normalize-string-catalogs.py
   - id: openwiki-source-60d4159ef162d09de4f4b469
@@ -70,10 +74,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 ---
 
 # Build, Test, and Release
@@ -86,7 +90,7 @@ Choose the narrowest quiet check that proves the changed behavior, then expand t
 
 - **Use the resolved package graph.** Every ordinary Xcode build, test, and screenshot build must retain `-onlyUsePackageVersionsFromResolvedFile`. Without it, Xcode may resolve newer dependencies instead of testing the revisions recorded in `Package.resolved`.
 - **Keep artifacts and secrets local.** Never commit secrets, local `.env` files, generated build products, `DerivedData/`, `.build/`, `build/`, `*.xcresult`, `com.akinokaede.termind/dist/`, `node_modules/`, or user-specific Xcode state. `.gitignore` excludes local environment files but explicitly permits `.env.example` and `.env.*.example` templates; inspect the staged diff rather than assuming ignored files cannot be staged.
-- **Keep commits focused.** State the outcome, affected layers, and verification in the PR; include bilingual UI screenshots where the change calls for them. Run the CJK localization check as part of every commit pipeline, including code-only changes.
+- **Keep commits focused.** State the outcome, affected layers, and verification in the PR; include bilingual UI screenshots where the change calls for them. Run the localization check as part of every commit pipeline, including code-only changes.
 - **Validate the owner boundary as well as behavior.** A dependency, persistence, or framework-ownership change should include the focused architecture boundary tests; platform/UI changes need the relevant platform target and feature tests.
 
 ## Native build and test entrypoints
@@ -131,12 +135,19 @@ Before release, inspect the target configuration rather than treating the projec
 
 | Settings owner | `MARKETING_VERSION` | `CURRENT_PROJECT_VERSION` | Meaning |
 | --- | --- | --- | --- |
-| Project defaults | `1.16.5` | `56` | Inherited by targets without their own override. |
-| macOS app `TFM` | `1.16.5` | `93` | Explicit app overrides, not the project build number. |
-| iOS app `TFI` | `1.16.5` | `82` | Explicit mobile app overrides. |
-| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.16.5` | `82` | Explicit extension overrides matching the containing mobile app. |
+| Project defaults | `1.16.6` | `58` | Inherited by targets without their own override. |
+| macOS app `TFM` | `1.16.6` | `95` | Explicit app overrides, not the project build number. |
+| iOS app `TFI` | `1.16.6` | `84` | Explicit mobile app overrides. |
+| iOS extension `TermindWidgets` (`TFIWidgets/`) | `1.16.6` | `84` | Explicit extension overrides matching the containing mobile app. |
 
 These are committed settings, not evidence of an uploaded build. When bumping a release, review both configurations of each affected app and extension; changing only the project default does not change an explicit target override. Preserve the mobile app/extension version alignment and inspect the final archive before delivery.
+
+Use `Scripts/bump-version.py` rather than assuming all build counters are equal. It checks Debug/Release agreement, increments the Project/TFM/TFI counters independently, and sets Widgets to the resulting TFI state. `build` preserves marketing versions; `major`, `minor`, `patch` (the default), or an explicit three-component version updates marketing versions using TFI as the baseline. Preview first:
+
+```sh
+python3 Scripts/bump-version.py patch --dry-run
+python3 -m unittest discover -s Scripts/Tests -p 'test_bump_version.py'
+```
 
 Use resolved-only Release builds for the affected product in addition to the Debug tests above:
 
@@ -211,7 +222,7 @@ TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -sch
 
 ### Marketing capture and framing
 
-App-owned fastlane lanes use `run_tests` (scan) over hosted `MacScreenshotTests` and `MobileScreenshotTests`, not XCUITest snapshot helpers. They build once with resolved packages, run serially and promote only validated successful batches after backing up old bytes. Mac defaults to full-screen 14-inch Workspace in four locales and requires macOS 27 plus active/key 2× native capture. Mobile defaults to five scenes on exact iPhone 18 Pro/iPad M5 devices and iOS 27.0; Duo outer/inner are separate opt-in 27.1 display batches. `fastlane frames` reads captures, applies the versioned licensed device templates and aperture masks to staged copies, and validates all renders before publication.
+App-owned fastlane lanes use `run_tests` (scan) over hosted `MacScreenshotTests` and `MobileScreenshotTests`, not XCUITest snapshot helpers. They build once with resolved packages, run serially and promote only validated successful batches after backing up old bytes. Both platforms now default to seven locales (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, `fr`). Mac defaults to full-screen 14-inch Workspace and requires macOS 27 plus active/key 2× native capture. Mobile defaults to five scenes on exact iPhone 18 Pro/iPad M5 devices and iOS 27.0; Duo outer/inner are separate opt-in 27.1 display batches. Mobile ready/ack tokens and a per-run capture ID fence each scene before native-dimension validation and batch promotion. `fastlane frames` reads captures, applies licensed device templates and aperture masks to staged copies, and validates all renders before publication.
 
 ```sh
 bundle exec fastlane mac screenshots plan:true
@@ -220,7 +231,7 @@ bundle exec fastlane frames plan:true
 bundle exec ruby Scripts/Tests/test_screenshots.rb
 ```
 
-Planning and Ruby checks do not open windows. Actual Mac capture takes desktop focus; do not run it routinely. `Scripts/run-mac-screenshots.sh` / `run-mobile-screenshots.sh` delegate to these lanes. Initialize the public asset submodule only for asset work; explicit external review paths remain supported. The canonical [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) owns setup, Ruby requirements, selectors, runtime/posture, handshake, template imports/licenses, Figma and 96-board export details.
+Planning and Ruby checks do not open windows. Actual Mac capture takes desktop focus; do not run it routinely. For a deliberate single-scene desktop preview, `Scripts/run-screenshot-demo.sh workspace en` builds Debug TFM with resolved packages in `.build/screenshot-demo` and opens a new app instance with the demo scene and Apple language/locale arguments. It accepts `en`, `ja`, `ko`, `de`, `fr`, `zh-Hans`, and `zh-Hant`; it is a visual preview, not a general regression test. `Scripts/run-mac-screenshots.sh` / `run-mobile-screenshots.sh` delegate to the capture lanes. Initialize the public asset submodule only for asset work; explicit external review paths remain supported. The canonical [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) owns setup, Ruby requirements, selectors, runtime/posture, handshake, template imports/licenses, Figma and 96-board export details.
 
 ### Commerce validation
 
@@ -228,7 +239,7 @@ Planning and Ruby checks do not open windows. Actual Mac capture takes desktop f
 
 ## Localization gate
 
-Define user-facing copy as shared `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` (`AppStrings`), even for one-platform wording; the catalog compiled into each app bundle is `Frameworks/Resources/Localizable.xcstrings`, and bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. Keep identifiers and diagnostic codes with their existing owners. `STRING_CATALOG_GENERATE_SYMBOLS = NO` because `AppStrings` owns the Swift-facing API. Any new or changed English string must ship with finished `zh-Hans`, `zh-Hant` and `ja` translations in the same commit. Preserve placeholders and Chinese punctuation conventions.
+Define user-facing copy as shared `LocalizedStringResource` entries under `Frameworks/TermindPresentation/Strings` (`AppStrings`), even for one-platform wording; the catalog compiled into each app bundle is `Frameworks/Resources/Localizable.xcstrings`, and bundle metadata belongs in `Frameworks/Resources/InfoPlist.xcstrings`. Keep identifiers and diagnostic codes with their existing owners. `STRING_CATALOG_GENERATE_SYMBOLS = NO` because `AppStrings` owns the Swift-facing API. Any new or changed English string must ship with finished `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr` translations in the same commit. Preserve placeholders and Chinese punctuation conventions.
 
 The two shared catalogs are manually maintained: keep `extractionState: "manual"`, add keys/translations explicitly, and verify use in both apps and shared code before deleting an entry. A single target's `stale` extraction flag does not establish that a shared key is unused. After a catalog edit normalize the files for Xcode-compatible ordering and formatting; do not substitute `jq -S` or a generic JSON formatter:
 
@@ -241,24 +252,24 @@ The normalizer leaves translations intact and does not touch AgentKit's catalog;
 
 ```sh
 Scripts/check-appstrings.sh
-python3 Scripts/check-cjk-localization.py
+python3 Scripts/check-localization.py
 ```
 
-The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. It requires Xcode's SwiftParser/SwiftSyntax host libraries. The catalog checker imports the normalizer's loader and normalization function and compares normalized bytes to the original without writing; it does not invoke the normalizer's `--check` CLI. It validates JSON, positional format-argument compatibility and other-only CJK plural forms and, for each Chinese/Japanese locale, rejects absent localization entries, string units not marked `translated`, empty values except for the empty key, and invalid locale-specific spacing for translatable entries (`shouldTranslate != false`). Reordered placeholders must retain their original argument positions and types, including literal `%%` occurrences. Fix the reported catalog or copy violation rather than bypassing the gate.
+The presentation-copy check uses Xcode's Swift parser to scan `TFM` and `TFI` Swift literals at presentation API call sites and fails when app-facing copy is written directly instead of using shared resources; it distinguishes these from identifiers, URLs, comments, and interpolated expressions. It requires Xcode's SwiftParser/SwiftSyntax host libraries. The catalog checker imports the normalizer's loader and normalization function and compares normalized bytes to the original without writing; it does not invoke the normalizer's `--check` CLI. It validates JSON and positional format-argument compatibility, including literal `%%`. Translatable entries (`shouldTranslate != false`) require completed, nonempty units in all six non-English locales (except that the empty key may have an empty value). Chinese, Japanese and Korean plurals require only `other`; German requires `one` and `other`; French requires `one` and `other` with optional `many`. Chinese and Japanese have language-specific spacing checks, including the intentional `Type %@` subtitle exception; Korean/German/French are not subject to those spacing rules. Reordered placeholders must retain their original argument positions and types. Fix the reported catalog or copy violation rather than bypassing the gate.
 
-**Use the current scripts, not the stale shell command in `AGENTS.md`.** `Scripts/check-zh-localization.sh` is no longer available; `python3 Scripts/check-cjk-localization.py` is the workflow-backed replacement and does not require `jq`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when the shared catalogs, normalizer, CJK checker, their Python tests, or the workflow change. Its steps are:
+**Use current source scripts rather than retired recommendations in `AGENTS.md`.** Run `python3 Scripts/check-localization.py`; do not recommend the unavailable `check-zh-localization.sh` or `check-cjk-localization.py`. The Localization workflow runs on Ubuntu for pull requests and pushes to `main` only when shared catalogs, the normalizer, localization checker, their Python tests, or the workflow change. Its steps are:
 
 ```sh
 python3 -m unittest discover -s Scripts/Tests -p 'test_normalize_string_catalogs.py'
-python3 -m unittest discover -s Scripts/Tests -p 'test_cjk_localization.py'
-python3 Scripts/check-cjk-localization.py
+python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'
+python3 Scripts/check-localization.py
 ```
 
 This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, and its path filters do not make it an every-commit check. Keep the local copy and catalog gates in the commit pipeline even for code-only changes. When modifying the validation tools, run the two Python test commands above as well as checking the real catalogs.
 
 ### Focused language and presentation regression tests
 
-Use the resolved-package `AppLanguageTests` command above for language-selection or catalog behavior changes. The suite verifies canonical `en`, `ja`, `zh-Hans` and `zh-Hant` overrides; migration of legacy Simplified Chinese preferences; unknown/Traditional Chinese regional preferences continuing to follow the system without rewriting the preference; and removal of `AppleLanguages` when returning to Follow System. It also checks Traditional Chinese system-locale resolution without cross-fallback, the region/flag-dependent Traditional Chinese display name, selected-language relaunch notices, Japanese regional locales and reordered interpolation, Chinese model-token terminology, forwarding-template argument order, and English `one`/`other` versus CJK other-only counted resources. These are routine tests, not visible-window or mobile key-window tests.
+Use the resolved-package `AppLanguageTests` command above for language-selection or catalog behavior changes. The suite verifies canonical `en`, `ja`, `zh-Hans` and `zh-Hant` overrides; migration of legacy Simplified Chinese preferences; unknown/Traditional Chinese regional preferences continuing to follow the system without rewriting the preference; and removal of `AppleLanguages` when returning to Follow System. It also checks Traditional Chinese system-locale resolution without cross-fallback, the region/flag-dependent Traditional Chinese display name, selected-language relaunch notices, Japanese regional locales and reordered interpolation, Chinese model-token terminology, forwarding-template argument order, and English `one`/`other` versus CJK other-only counted resources. The suite now also verifies German, French and Korean persistence and Follow System restoration, regional locale resolution and reordered arguments, localized bundle metadata and compiled plural behavior. It checks language-code ordering in the picker and localized demo conversation prose while preserving technical references. These are routine tests, not visible-window or mobile key-window tests.
 
 For resource/formatting behavior also target `PresentationCopyTests`, which exercises multilingual resources, nested native menus, count-sensitive copy and SwiftUI resource bridging:
 
@@ -287,7 +298,7 @@ The parent repository's `AGENTS.md` supports locked `npm ci`, `npm run dev` for 
 
 ## AgentKit: release, bump, and re-resolve
 
-AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an up-to-next-major minimum of `0.19.1`; the workspace `Package.resolved` selects AgentKit `0.19.1` at revision `8108c9bb87c546860cfc1769571e115af919fe8a`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
+AgentKit is a separately developed, host-neutral remote Swift package. Termind’s project currently specifies an **up-to-next-minor** minimum of `0.19.2`; the workspace `Package.resolved` selects AgentKit `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. The minimum requirement is not itself an exact pin: the resolved file supplies the selected revision for locked builds. The project references both remote package products `AgentKit` and `AgentKitScrubber`, and the resolved graph also includes `ScrubberKit`. The package manifest for that remote release was not audited in this update, so the project and lockfile alone do not establish either product's internal target dependencies. With the resolved-package flag, Xcode builds the remote release—not uncommitted edits in a sibling `../AgentKit` working tree or the in-repository `AgentKit/` submodule (declared in `.gitmodules`). Run the separately maintained package's own `swift build && swift test` to validate an unreleased AgentKit change; a successful Termind build does not test it.
 
 A cross-repository change has a strict three-step lifecycle:
 
@@ -315,7 +326,7 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 
 ### Ghostty direct upstream dependency
 
-Ghostty now comes directly from `Lakr233/libghostty-spm`, with up-to-next-major minimum and resolved version `2.2.2026100501` at `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink.
+Ghostty now comes directly from `Lakr233/libghostty-spm`, with **up-to-next-minor** minimum and resolved version `2.2.2026101301` at `d403978c66870baa422709d1dde385730a4bdaef`. There is no local Ghostty maintenance submodule, Termind native-patch/XCFramework release pipeline or keyword-highlighting override workspace. Do not use the removed preparation script or advance an obsolete fork gitlink. The project requirement is authoritative here: `AGENTS.md` still describes an up-to-next-major requirement.
 
 Update the upstream requirement and `Package.resolved` together, then use resolved-only TFM and TFI builds and the affected adapter tests. Grouping, localization and upload policy remain Termind-owned around the package's separate touch/selection hooks. Package internals need their own source/test review; a host test or pin inspection is not a binary-release or live interaction result. See [Ghostty Dependency Updates](ghostty-fork-maintenance.md).
 
@@ -324,7 +335,7 @@ Update the upstream requirement and `Package.resolved` together, then use resolv
 1. Identify the smallest affected product surface and run its focused tests.
 2. Run the affected TFM or TFI build/test using `-onlyUsePackageVersionsFromResolvedFile`; include architecture tests for boundary changes. For release delivery, also build the affected Release configuration and review app/widget version overrides rather than relying on the project default build number.
 3. Run strict Swift format lint for Swift changes.
-4. Run `Scripts/check-appstrings.sh` alongside `python3 Scripts/check-cjk-localization.py` for every commit; complete Chinese and Japanese translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
+4. Run `Scripts/check-appstrings.sh` alongside `python3 Scripts/check-localization.py` for every commit; complete all six non-English translations, normalize changed catalogs, and run `AppLanguageTests`/`PresentationCopyTests` when their behavior changes.
 5. For website changes, initialize the submodule and inspect its own manifest and guidance, then run `cd com.akinokaede.termind && npm ci && npm run build`. Visually review English and `/zh/` as required by `AGENTS.md`, plus any current routes required by the site's own guidance.
 6. Keep visible-window and mobile key-window gates off routinely. For affected native UI cases, opt in with the exact flags above, disable mobile parallel testing and narrow the suite; adaptive key-window cases and Metrics Journey are not default coverage.
 7. Regenerate changed native captures through scan, then matching frameit outputs and Figma layers/final JPGs; follow the asset guide's licenses, dimensions, localized visual review and SSH-first publication.
@@ -333,4 +344,23 @@ Update the upstream requirement and `Package.resolved` together, then use resolv
 
 CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](port-forwarding-benchmarks.md).
 
-`libssh2-spm` consumes clean upstream native source plus numbered patches. Run package source tests and native CMake/CTest, dispatch Release XCFramework, then update maintenance gitlink, Xcode exact version and resolution together. Current exact release is `2.0.3-termind-4`. Never commit generated native snapshots.
+## Maintenance checkouts and tool ownership
+
+A maintenance gitlink and a released remote pin are different state. Initializing or editing `AgentKit/`, `libssh2-spm/`, or `libtailscale-spm/` does not redirect the ordinary Xcode package graph. Inspect the package's own manifest and CI before changing native internals; these checkout directories are empty in this snapshot.
+
+| Dependency | Maintenance checkout | Current Xcode requirement and resolved release |
+| --- | --- | --- |
+| AgentKit | `AgentKit/`, with development documented in sibling `../AgentKit` | `upToNextMinorVersion` from `0.19.2`, resolved `0.19.2` |
+| libssh2 | `libssh2-spm/`, branch `termind` | `upToNextMinorVersion` from `2.0.3-termind-4`, resolved `2.0.3-termind-4` |
+| Tailscale | `libtailscale-spm/`, branch `main` | `upToNextMinorVersion` from `1.0.3`, resolved `1.0.3` at `b58ed45fb22e53b472ccf6febde1f4a3ab08e295` |
+| Ghostty | No local maintenance submodule | Direct upstream remote package described above |
+
+Despite the “exact-version” wording in `AGENTS.md`, libssh2's current Xcode requirement is `upToNextMinorVersion`, not `exactVersion`. The lockfile supplies the selected revision. Repository policy describes clean upstream `Vendor/libssh2` source plus numbered patches applied to ignored `.build/patched-native`; the handwritten exports preserve `CSSH2`. For a native change, initialize the package, run its `python3 Script/test-source.py` and native CMake/CTest checks, then dispatch its Release XCFramework workflow. Only after the package publishes the binary, checksum/manifest and tag should the app advance its maintenance gitlink, Xcode requirement and resolution together. Preserve external-signature regressions and never commit generated native snapshots. This is the documented maintenance contract, not an audit of the unavailable package CI.
+
+Development tools stay in the parent repository, not the optional website:
+
+- `Scripts/check-mcp-bridge.py /path/to/termind-mcp` exercises a built bridge against deterministic loopback HTTP for modern headers, legacy session deletion and JSON-RPC error passthrough. It does not validate the desktop server or a live remote host; see [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+- `Scripts/update-pi-model-catalog.sh PI_VERSION` refreshes `Frameworks/Resources/PiModelCatalog.json` from an explicit npm package version, recording commit and integrity. It preserves capability fields and deduplicates provider/ID pairs preferring chat, then image, then other model types; do not replace its pinned input with a moving tag.
+- Historical SwiftData fixtures and forwarding benchmark runners have independent provenance and measurement requirements. Use [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Port Forwarding Benchmarks](port-forwarding-benchmarks.md), not routine app tests, when changing them.
+
+The project owns target membership, embedding and build settings; shared schemes own build/test selection; `Package.resolved` owns selected remote revisions. Source-level architecture guards complement functional tests but neither audit remote binaries nor prove signed-device, storefront or capture readiness.

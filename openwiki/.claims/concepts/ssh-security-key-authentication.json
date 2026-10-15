@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6cad39d6c9decdee69767b72382b05012368dfebb835c64c0eff92b73aef7989",
+  "pageVersion": "sha256:a77c6c037d9a845e75266efebd98d76e2e46c500f7585ae353c774b7a1ade7aa",
   "claims": [
     {
       "id": "claim_ec26665ffb0a4bd885a5dc3ff4835972",
@@ -84,23 +84,19 @@
     },
     {
       "id": "claim_10d4494edd1f40148ccb80aeb908b643",
-      "statement": "The SSH Security Key libssh2 callback offers the public blob, obtains an asynchronous native WebAuthn assertion through a connection-owned signing exchange, and returns an OpenSSH WebAuthn signature; server rejection at the public-key offer stage does not invoke signing.",
+      "statement": "The SSH Security Key libssh2 callback offers the public blob, obtains an asynchronous native WebAuthn assertion through a connection-owned signing exchange, and returns an OpenSSH WebAuthn signature; server rejection at the public-key offer stage does not invoke signing. SSHPTYChannel.authenticate uses libssh2_userauth_publickey_signed for this path, distinct from keyboard-interactive string answers and post-authentication shell integration; native signing errors propagate immediately. The callback extends a positive timeout by elapsed signing time and the authentication branch restores it afterward.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift",
-          "version": "repo-file-v1:sha256:87ad4022f98e050ccdcb3eb132babc3d4916bd6e374141f027abecf25c2091d6"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift#L67-L142",
+          "version": "repo-lines-v1:sha256:f1baca98a8da219159e0d97295696f57118ff3c5d69c4dc87c491325406f677b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2OGRlODE5YzhjMzdhNmU4ZDc5NTM2NzQ4M2NlOGUzZDBjY2EyYTIzZThiYjY0OWZiODgzYWQwNjkxODk3OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmNDhmZDlkYjkwMDJkMmQ4OWEyMGU2MjRmZDM1ZTc5N2IxZWY4ZmI4NmM0NjVjODgwMzZmZGVlZDQwOTYyNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwMjdlNGMyMTdmOGUzOTg3YmEzMjFiYTU1NGVlYWVhYTU2YWIzMGRlZGVkZWQ1NTA5NjMwMDFjZTliNTI4YzcifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1119-L1137",
+          "version": "repo-lines-v1:sha256:9c306d40ecac1ea72c654b2d12caac86c1163480fc059e71d52e1a947a22966a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwNTNkMmFiYTViNmY5ZWQ5ZGM0OWVjYzM4Nzc3OTU1MmEzNDc1OTc1NTUxNTY3MDJmNGNlYWJiYzMxOWE2NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1YWZhZTllZjAzMWM2ZDI0OTZlMDc2MDA4ZTY4ZTA4OWEyOWE3ZjhjOTA3NzdiYjI4YjA4MWRjMDg4NWQzZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkZjM4NmM4NTk4OTUyOGUzNmY4M2JiZmFiM2ZlOTQ3YTZlODYxOWUwOTQxZjAxNjNmYTNkNjE5YWZiZjYwZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzYThjMGFkMGU0ZjdmN2ExZjgxZTFhZThhNjRjNDA5NDYwOGM0ZjkwMDQ5NDY4NDZkNWQ0ZWNmNjdhN2VmMDgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift",
-          "version": "repo-file-v1:sha256:81027a6dd2901faac8443159ed0f0e508cb8360875811cbb67aaafa330349ab2"
-        },
-        {
-          "resource": "repo://TFMTests/SecurityKeySSHWireTests.swift",
-          "version": "repo-file-v1:sha256:0a02c731fb4bdb4db2c461d835ab3fafa3d4d2dd0621a3a58746c648a180d3be"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1175-L1343",
+          "version": "repo-lines-v1:sha256:53dcf949ebdec1c985fadec33a289cfd43050c33d2fdd2afa2810cf00abdd22a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNGQ5ZGVlMWU2YWQ5ZWUwYjY1YzRlOWU4NWYwZDlmNTg3ZWZlNTExNDY1ZWM2NmIwMTg5OWVmNzE3NTBkMmFjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiMDhiYzg3OGEzYzU2MTM5NDMzZGIwM2MzNTY4YTY1NmYwMDg4NTZmM2MzMTZlYjg2MzQ1NmMyZTM2ZmZhMjQzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1OTI0MDgzMWQ5MTIzZWI3NmRkNzNlMDI0ODNmODljNTA3NjdiZjk2ZjYyZjkxODVmZDQ4NjlmMzc3NGM5OThhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0NGYxYTFiZWQzNGNjNGRhYWUyMmVjYzZkMGQ5YmM5MDA0OTQ4NDI2YTQ1ZGQ3ZTMzMWMzNDgzN2VmMjQ5OGIxIn0"
         }
       ]
     },
@@ -326,7 +322,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

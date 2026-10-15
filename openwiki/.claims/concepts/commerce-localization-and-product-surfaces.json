@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:18191558f929a45782672980dc9d51c3ef65638d80380ec8454be69e54ebf44d",
+  "pageVersion": "sha256:aced36ea1414568ae59128fc2782fce292ce52a3a1a3fdfad0c71f9dca2655ac",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -111,8 +111,8 @@
       "statement": "Both apps present RevenueCatUI PaywallView in native sheets, route purchase/restore callbacks through controller processing and refresh, and retain account paywall after purchase; macOS elects one main-window owner through ProPaywallPresenter.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileRootView.swift#L106-L126",
-          "version": "repo-lines-v1:sha256:b7133e8a2206e906b59f6ceb0a9e46ae280dca5c27f7a064790ba1ff897fd4e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTVmZmEzZTA5NWRmMDViNmIzMzMzODcxYWJhMWMxYjNlMjVhYjNkYmYxZDQ5MmYxNTRjMmNjMmIxMjJmNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2MDIyYjg3NjFlZmYxNjAyZTNlOGY1NTM3NjE2NjkzNjE3ZDdjNzE0MzJiYWY2MmY3NWZmODliZTU4Y2E1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMjI1ZjI3MGJmZmY1NjRjYjFkN2E3NDc0ZTc5OWRmZWY2NTBkNGFlNzhjZjBiZTRjZWZhNmNiMDA3YTZjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhNTg3ZjRhMzQyMDY5NWYyODg5ZDM1ZDY2ZmVlMzc5YTAwYzNhOWE5ZjFkODQ1MTkyNTg4OGJjNTdlYjliMjUifQ"
+          "resource": "repo://TFI/App/MobileRootView.swift#L106-L125",
+          "version": "repo-lines-v1:sha256:f11b4faa8dbac0a53beb3ca43b0ae4bce012d90c794ba173d3a47506222869ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YTVmZmEzZTA5NWRmMDViNmIzMzMzODcxYWJhMWMxYjNlMjVhYjNkYmYxZDQ5MmYxNTRjMmNjMmIxMjJmNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2MDIyYjg3NjFlZmYxNjAyZTNlOGY1NTM3NjE2NjkzNjE3ZDdjNzE0MzJiYWY2MmY3NWZmODliZTU4Y2E1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMjI1ZjI3MGJmZmY1NjRjYjFkN2E3NDc0ZTc5OWRmZWY2NTBkNGFlNzhjZjBiZTRjZWZhNmNiMDA3YTZjNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhNTg3ZjRhMzQyMDY5NWYyODg5ZDM1ZDY2ZmVlMzc5YTAwYzNhOWE5ZjFkODQ1MTkyNTg4OGJjNTdlYjliMjUifQ"
         },
         {
           "resource": "repo://TFI/Features/Commerce/MobileProView.swift",
@@ -126,41 +126,49 @@
     },
     {
       "id": "claim_104af269c6164fa8b46539c6989431bf",
-      "statement": "`AppReviewController` records review-request attempts rather than ratings or prompt completion, and only arms an invitation after a qualifying active workspace-to-review-page transition; it requires seven elapsed days, three active dates, five foreground workspace minutes, a per-version budget, and a 120-day cooldown.",
+      "statement": "AppReviewController owns device-local first use and shared response state, requiring seven elapsed days and a host with no response, not legacy budgets. Hosts and Vault snapshot eligibility on entry and hide while filtering or hostless. Decline or an accepted review URL persists a response across windows and launches, never a completed rating; rejected opens consume nothing. Preview bypasses eligibility except filtering, changes only transient previewResponse and never opens URLs or writes defaults. XCTest disables live invitations; mobile tests cover injection and English/Chinese layout renders.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AppReviewControllerTests.swift#L10-L75",
-          "version": "repo-lines-v1:sha256:127d0f024bd5bbf7d6571312a351f3ca04f4ab1d453f7f8003b72f7094df8aec:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkOGU0NWU5ZjZlYTJmYjYxMTk3MDRjNmY1Mzc0MzkwMGY1MjVjNTA2ZDE0NThhYzQzY2YxZjhlNDEyZjY4YjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2OTljMzc0NzQwYzk4MDY0NTUzOTY4NjI3MGJlNWJkYWIzYzllYTQ5OTYxYTZjYjIzMjA2NGNmMDM4N2JlOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2YTlmMTg5MDM1NjkxMjY4YTg0Mjg0YzIyZDg3NTU0ZmQxMjY3NGRlMDFmNDkxYTY4MmQyMGRjYzQyYjc3MzgifQ"
+          "resource": "repo://FrameworkTests/AppReviewControllerTests.swift",
+          "version": "repo-file-v1:sha256:52a1deeeea5b7db6a9a926f9e7647b33657caab224a8f433d1c4edfee6dc8a2c"
         },
         {
-          "resource": "repo://FrameworkTests/AppReviewControllerTests.swift#L158-L208",
-          "version": "repo-lines-v1:sha256:76095faaa1c8e4cfe789bb4d9e8aedf5ff9d372b1c5090e419d3505801fddc5e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlMzg0MjQ0MDI5YmRhMDg0NTA3NDQ3OTY5ZDI5NGJlNmFmMGM0ZjNlNDA4YjhkNTdhNTQyN2NlYjI1MjI2YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwMTAxMGUzNjc4OWQ2MmFlNTE3ODczNzMzOTQ1MWQ2N2E3MjA0NGVlYjY2NGE3Nzk2ZDViMTZhMjU4MzZkNTYifQ"
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift",
+          "version": "repo-file-v1:sha256:d086d8a4ea9933ffda2ba7c8511f1ec3c86e802dd12a542f6c779328c748180a"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift#L3-L37",
-          "version": "repo-lines-v1:sha256:d13d8a0e3227a7bc2fbbda7f2d18a0d230d46d6e320a47fe16a9cc1d78c325dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MzYzZDIyZTA4MTE2MTg3OWFlMmM2Mjg2NDdhOTk2NWVmNWRkNTcwY2FmYzJkZjYyZjk2ODUzOWEzYjUwNmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlOWYxYjA4NzYzZjM4OGI4ZWI0ZGZkZmVlZmUzMjVmYTk3MmNhNzcwM2IxZWY2YWMxYmU3NjZjMmUxNzRmOGEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/AppReviewInvitationView.swift",
+          "version": "repo-file-v1:sha256:f5849d2c7ea9f045b3b54569d270eda919d891f7564403c5faa0f620cd0dde3d"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift#L79-L151",
-          "version": "repo-lines-v1:sha256:e338ec06bdcd9d02c5a9966c12a49e58b6281c35a9a930f50bd73619661918f6:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczOGM0MzNiZmUyYmY4NGUxNTVhNGJjODQ5MzJmZjJhZWY3OTUwOWM4Mjg2MjExNTRiZmRiN2VjMGM1ZjUzNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3YzRmZjVmY2EyMGUzODk0Zjc3ZmY2NDk0Y2FmNmVkZDU2NzFiZjE3N2YyMmVmMDE3NDBlNzNhMTYwMTc3OWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2YTAwMjVlYjUyYTliMDQyNGVmODk1MGNjYWJmNWY5OWJkMDFlNTE5ZWQxNDJkZjUwNThkMGU4YWZhNTQ3MDYifQ"
+          "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
+        },
+        {
+          "resource": "repo://TFITests/MobileAppReviewTests.swift",
+          "version": "repo-file-v1:sha256:0985f84a3e19b92d46a7510f2ccb74ece0365e567004bc55bd121ba4411f8794"
+        },
+        {
+          "resource": "repo://TFM/Features/Hosts/HostsPageView.swift",
+          "version": "repo-file-v1:sha256:5454fe1b1f51d05ec775883769c51c91cb5aa55ed7dd178dc2998abd00ce4cd0"
         }
       ]
     },
     {
       "id": "claim_8cb59d2af4c74383a37b91861cd0ec90",
-      "statement": "App-facing resources belong to shared semantic AppStrings definitions and Localizable.xcstrings, with InfoPlist.xcstrings for metadata. The available Python check-cjk-localization.py validates both catalogs by default for normalization, JSON, finished zh-Hans/zh-Hant/ja units and spacing; guidelines referring to check-zh-localization.sh and jq are stale, and CI runs the Python checker and its unit tests instead.",
+      "statement": "Shared AppStrings and Localizable.xcstrings own native app copy and InfoPlist.xcstrings owns metadata; current check-localization.py validates both catalogs for normalization and finished zh-Hans, zh-Hant, ja, ko, de and fr translations; CI runs it with localization and normalization tests. AGENTS.md's check-zh-localization.sh and jq guidance is stale.",
       "evidence": [
         {
-          "resource": "repo://.github/workflows/localization.yml#L31-L36",
-          "version": "repo-lines-v1:sha256:3fe4524442887eee373d7233a44f71dd40c9e4e1e7fd1c03e2066dd266cd5ebe:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjQ0ZTU5NjA2MjI1OTY3ZjY4YjM3ZGRiNjE4MjBiYmZhNjA0YWFiMzFiZDIzZTEyNjJlMGQ4ZjBmZDlhNDNkMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTMxYjE5MTc0OTM4ZTE3MzlkMzg3ZjY4MTE4ZGUyN2NlZWZlMzU1OTY4NDU3YmNkODRkYjhhZDI3OWYzZmJjOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTAyNjA0NWMxNzkzOTAzMDU1YjNhZDVjZGFiNGE0ZjVmMDQ3OWExNjBlNzc1Y2JhZmY2ODlhNDc1YjVlZGY1NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://.github/workflows/localization.yml",
+          "version": "repo-file-v1:sha256:b3f933f584d9fea5620d9d7675de1047d350cc8930a732754bade540d9d00f95"
         },
         {
-          "resource": "repo://AGENTS.md#L94-L101",
-          "version": "repo-lines-v1:sha256:a471105b6c549db962e46e02d0594514f0eb557cd92caba51b838ba18268dcb4:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWRmMzY1YzcyMzNlMGQ1YmY3NThiYWM1ZTkwZGE3OGI3MTZiMjMyOTU4ZTQzZTg5MWIxMTQwOGQ3Y2FmMTZmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNhMDA1MzIwMjZmOTMwMjMxYjdhNDVmMWI5MWZhNGJiZWU0MDhjYWJkZDZjZjg1YWJhZmRlZTM2YTc2ODQwMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:94b20ace54bc868d4640865a6b168168b31f3d7fd86a987e722ef735fdcefc12"
         },
         {
-          "resource": "repo://Scripts/check-cjk-localization.py",
-          "version": "repo-file-v1:sha256:179c42fdaca9bf8b59b7bf3f1bf935848d54fa04d91f8e42912d876c4ed99925"
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         }
       ]
     },
@@ -169,7 +177,7 @@
       "statement": "The iOS widget extension contains only a workspace Live Activity; its payload excludes credentials and terminal output, is bounded to six focused-first summaries, and its strict deep links route to the workspace list or a UUID-addressed workspace.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileSceneModel.swift#L445-L481",
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L436-L472",
           "version": "repo-lines-v1:sha256:2d0110176465ed1d1da36856e0bf9db99d4fb71fef0a403e1c914aa264b68e6b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMjkyYmFmZTA0M2E3OGJhYmRjMWQ1MDcwYmQ0ODhmY2I4MDM0OGEwZGUwNjdlZTI1MDQxZTM0OGUzMTM5YjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwOWJiMzVjZWYyZTI0MmZkOWE0ZTEzY2ZiNmNiN2MxNmEzZDNlOGJmZTQ0NTA5ODM1OTY4OTQ4NjA3MDIyMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzYWY3YTZkNTQ2MGEzNGI4YWJiZmJiNjg4Nzg0MmJjZjY4NjljMGFlOTA0ODJkYTgxNzVkNWY2MTgzMDVhYTgifQ"
         },
         {
@@ -188,15 +196,15 @@
     },
     {
       "id": "claim_f28e3dbb1a43406d9b0e46e1a16b28f6",
-      "statement": "`ScreenshotDemoConfiguration` is DEBUG-only and binds one validated demo scene to one of English, Simplified Chinese, Traditional Chinese, or Japanese; the screenshot helper builds TFM and launches it with matching application language and locale overrides.",
+      "statement": "DEBUG ScreenshotDemoConfiguration binds a validated scene to en, zh-Hans, zh-Hant, ja, ko, de or fr; the screenshot helper builds TFM and launches matching application language and locale overrides.",
       "evidence": [
         {
-          "resource": "repo://Scripts/run-screenshot-demo.sh#L5-L65",
-          "version": "repo-lines-v1:sha256:16e59ed1491de8b1ae50569a7d1fa8a3c2ccac9af1ea9777e557b290da835127:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3ZGJkNWExYTVkZDNiNGJkZTdmNDQzYTI0NjRkOGVlYzZiOGY4ZjI2NWJlNDAxMmY3ZTM0YTg1YzJlYzk0ZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzOTgzNTM4YTUxNzUwNGE0NWFkZmI1MDYwZDQ2YzY1NjlhOGY5M2I4ODRhY2UwZjY4MWU5NGI1ZjEyZThjMGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExOTg0ZjI4NTg4NzhjMzQwMjJjYzU0NDQ0NjVjNGY1NjczYTE0ZGVhNGE1N2E1NmRiZTdmOTA2M2E2ODQwYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://Scripts/run-screenshot-demo.sh",
+          "version": "repo-file-v1:sha256:7804acdc3063c484bfd3a3dcba697d17afb1be0ed39940215a01e6dbdb61aa55"
         },
         {
-          "resource": "repo://TFM/App/ScreenshotDemo.swift#L3-L86",
-          "version": "repo-lines-v1:sha256:c80f30b4b3b74c0940cc729c8c740b8bdd1f5cdcf8d25b47453fcf3c4bb91fb0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwZTBmZjYzY2I1NTE0NjU3Yzc4ZDY1M2VhZTMzOTgxZjFjYjIyMDczZjIwMjA2ZWM3YWFmY2U1MjEyMThlMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmYTg1YjA0NTllOWQxNGNiMzM0MjUxNzU3MWJjY2JmYTZkNWRiMjhhNzBmNmQyOTExMjA0YmFmOWI3MmVmMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjNTUzYmU2ZjhmZTYxZmY0ZDg3ODQyYWM0NjEzMjZhMDVhNGQ0ZGFhYWQxM2UwNzMyNWU0ZGU3YmU3MDI1Y2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjYTcyMjZmYzUzMDI0ZjViNTA4NWU0MDA3MDJiNWE1MzNiYWIyYzljYTQyNWJmMWNjNGI3MzZlODY3MDJjZmIifQ"
+          "resource": "repo://TFM/App/ScreenshotDemo.swift",
+          "version": "repo-file-v1:sha256:77471f17666029c0ee816bc57619990f31c75cc9c521f4fab644dcf54db47179"
         }
       ]
     },
@@ -264,15 +272,15 @@
     },
     {
       "id": "claim_263358b0ab424869a92b6de729584fb2",
-      "statement": "Current AppLanguageTests checks language preference migration, Chinese regional lookup, token terminology, forwarding placeholders and selected plurals but no longer tests explicit-language Pro offers; whole-catalog Chinese/Japanese completion is enforced by the Python checker rather than these tests.",
+      "statement": "AppLanguageTests covers preference migration, regional lookup, selected-language notices, reordered interpolation, contextual Memory/memory and token terminology, Korean provider labels, key association terminology, metadata and plurals across current languages, not explicit-language Pro offers; whole-catalog non-English completion is enforced by check-localization.py.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-cjk-localization.py",
-          "version": "repo-file-v1:sha256:179c42fdaca9bf8b59b7bf3f1bf935848d54fa04d91f8e42912d876c4ed99925"
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         },
         {
-          "resource": "repo://TFMTests/AppLanguageTests.swift#L8-L185",
-          "version": "repo-lines-v1:sha256:3da21fc3f0ee893ec46a86dc888e0cbcacd7edeb99e3f6847a54e75f2137eae7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTc4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI2MzQ0ZjM1YzZiZTlmZDliODNiYjg5ZTE0ZWRlZmJhZTkyNDQ3MDRhYmQ1ZGJhNjM1MWIzZTEwYWEwOGE5OGRjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyODE5YjdmOWM0YzQwZGI0MmRhNWE2YjBhMjdkYjM1MTI4NzE1NTgyNzgyYTVjOTdhODBmNTY5YjRmMGQzZjdkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiOGI2YjNlZGMzOTU4NTkyMGIwNjI3MDc2YTM3YWVkYzU1OTYwYzVkYTczNmNjMGFiYjk4M2FmY2M4OTBkZjcwIn0"
+          "resource": "repo://TFMTests/AppLanguageTests.swift",
+          "version": "repo-file-v1:sha256:0c595357ae4b19157ccac8e9fe40e90b0afb88785e01975ed5dfb9a1795e929d"
         }
       ]
     },
@@ -286,7 +294,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:82359e793dbed7dd57ea6d965a2d8e6beb6a25fc339dc1c36a6886dcebe999c1"
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
         }
       ]
     },
@@ -296,7 +304,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:568a304613f20338e661657b0616fcd3d76defeadc112844615eed4e2accfa96"
+          "version": "repo-file-v1:sha256:78c48fab450e0660ec3f96dda3f36d2f3f947198771abfa5cdb9933628cd25c0"
         },
         {
           "resource": "repo://TFM/Features/KnownHosts/KnownHostsPageView.swift",
@@ -346,11 +354,11 @@
     },
     {
       "id": "claim_0dc4305d926c43fa9b2d56ac760f614b",
-      "statement": "Current AppLanguageTests covers Chinese lookup, assistant/security-token terminology, forwarding placeholders and selected plurals but not Pro offer formatting; mobile card tests cover editor titles and optional real-window multilingual captures, while the catalog checker covers whole-catalog Chinese/Japanese completion.",
+      "statement": "Mobile card tests cover editor titles and optional real-window multilingual captures, while AppLanguageTests exercises selected resource behavior rather than Pro offer formatting; check-localization.py enforces whole-catalog coverage for six non-English languages.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-cjk-localization.py",
-          "version": "repo-file-v1:sha256:179c42fdaca9bf8b59b7bf3f1bf935848d54fa04d91f8e42912d876c4ed99925"
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         },
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
@@ -362,7 +370,7 @@
         },
         {
           "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:adad98919a8d3c113abaa52b9cfd824370296bf2669c60bee5af4dc74869be1d"
+          "version": "repo-file-v1:sha256:0c595357ae4b19157ccac8e9fe40e90b0afb88785e01975ed5dfb9a1795e929d"
         }
       ]
     },
@@ -385,8 +393,8 @@
       "statement": "App-facing resource text is resolved at presentation time from the main app bundle using the requested locale, while the SwiftUI key bridge preserves resource metadata and shared formatting composes localized counts/messages without translating user-authored values or caching language-specific strings.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift#L3-L38",
-          "version": "repo-lines-v1:sha256:81e3b31c2c44cd90163a0839f912c5e077d97a6f77200f8256be6b1ef55a1c88:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZTE4NTRiZjA4NjFkOWY2MDlmMzQ3YTE0NzE1ZmM1ZjE4NTRjYTI2NjBhYzhhYzY1ZDk1YTFjOWE1ZGFhY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyM2ZjMDUxYmQzNDMwODljOTYyMzJkMjBlMzlhZjJjZmU4MDQ2ODQ1NmQxN2M5NzEyMzhiOTNmMTRkZTU4MjEifQ"
+          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift#L3-L41",
+          "version": "repo-lines-v1:sha256:689a55e8ccabe53ca87656b82e019ac2fe94a20b0ec2e4cb91a6c474156dba9a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZTE4NTRiZjA4NjFkOWY2MDlmMzQ3YTE0NzE1ZmM1ZjE4NTRjYTI2NjBhYzhhYzY1ZDk1YTFjOWE1ZGFhY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyM2ZjMDUxYmQzNDMwODljOTYyMzJkMjBlMzlhZjJjZmU4MDQ2ODQ1NmQxN2M5NzEyMzhiOTNmMTRkZTU4MjEifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift#L1-L12",
@@ -426,29 +434,33 @@
     },
     {
       "id": "claim_9e5dcbfb0e4c4a6ebb3d30af40da4805",
-      "statement": "Shared catalogs are manual, and normalization retains stale keys and translations. The CJK checker exempts shouldTranslate:false entries, otherwise requires finished units, preserves format argument positions/types/multiplicity including literal percent, uses English localized source values when present, and requires other-only CJK plural variations for English plurals. Japanese mixed-script spacing and Chinese spacing/punctuation checks have a narrow Type %@ subtitle exception.",
+      "statement": "Manual normalization preserves stale keys and translations. The checker exempts shouldTranslate:false, otherwise requires finished units and preserves format argument positions, types and multiplicity including literal percent using English values where present. Chinese, Japanese and Korean plurals require other only, German one/other and French one/other with optional many; Japanese and Chinese spacing checks retain a narrow Type %@ exception and do not apply to Korean or European typography.",
       "evidence": [
         {
-          "resource": "repo://Scripts/Tests/test_cjk_localization.py",
-          "version": "repo-file-v1:sha256:fa5c3b4e2884f9a6f166010dbbedd3b8d7013a893107a061d8d652724ac25963"
+          "resource": "repo://Scripts/Tests/test_localization.py",
+          "version": "repo-file-v1:sha256:2a19ac575e3835cda0c8859997082ebf44ef2280decf823a7080eb6621083a67"
         },
         {
-          "resource": "repo://Scripts/check-cjk-localization.py#L24-L96",
-          "version": "repo-lines-v1:sha256:0ea2fa1e2f8da7c1d909a25d096277da289a9db1bd7778f61c213c73a7e6cbc8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5MWU4MjQzZGFmMDFhYjA0NDZhOWNjMTkxZjY1Y2I5ZmM0NTU4ZGFlZWU1NDAxMzA2ZTBlYWQxNWM0MjI3ZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhOWMwN2JiN2NlOGE4ODNmYjIyNTUxMzBkMThiZWIxMWY3NjVhNDA4Mzg5Zjc5ZjM5ZWJlOTBiOThhMjUxNGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzZTA0ZjAwODcyNjAxMDYwNDg5MTk4MmFkZjdhMjc3ZDA0NDQwNTk5ZTg0MDUxNjgxY2M2NjUyMThmYzdjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0YjEwNjc5N2MzMTM3NDc4OTAyZWUyNDQyM2Y2Y2FlMTNkN2Q2YjUxYjBiZDQ0ODg3YmRkZDlkZTgyOThiY2EifQ"
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
+        },
+        {
+          "resource": "repo://Scripts/normalize-string-catalogs.py",
+          "version": "repo-file-v1:sha256:74b12ba10465ed2708e8073d998dbc025768e895edc539e7edad207f4a9299ba"
         }
       ]
     },
     {
       "id": "claim_6656160cabd74b2c9387b5713a3afeba",
-      "statement": "AppLanguage persists canonical explicit tags in AppleLanguages and removes that override for Follow System. Only legacy Chinese preferences resolved as Hans are migrated; unsupported values including regional Traditional Chinese preferences follow system without rewriting the stored value. AppLocalization selects main-bundle catalogs by Chinese script or English/Japanese language code with main-bundle fallback; the Traditional Chinese picker label becomes 正體中文 only for Taiwan region with flag display available.",
+      "statement": "AppLanguage supports system plus canonical de, en, fr, ja, ko, zh-Hans and zh-Hant, with system first and explicit tags sorted. Explicit choices persist AppleLanguages and Follow System removes it. Only legacy Hans Chinese preferences migrate; unsupported stored tags follow system without rewriting. Catalog lookup resolves Chinese script and regional English/German/French/Japanese/Korean codes with main-bundle fallback; the Taiwan-specific Traditional Chinese label requires TW and flag availability.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift",
-          "version": "repo-file-v1:sha256:640c5145eee8e4d817a738eb3e5a1788bceac19d49e3bb081bccb66e1914e2e5"
+          "version": "repo-file-v1:sha256:de13c80b155a4d19bbec1b9899c6ba2c4f8a68ef8d179e487a51d75cf717c25c"
         },
         {
-          "resource": "repo://TFMTests/AppLanguageTests.swift#L46-L142",
-          "version": "repo-lines-v1:sha256:ac355cee0c3bff2d1cc3a88fad871a829857f628a599f3eb76115dec48e450ee:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYWFkMjJhMDQ1NGJkYWExNTg0NjE2OGU2MzNkNDRhODYxZGQ4ODE2NDdiOWVjOGQ0ZmI1MTc1NGQ2MzZiYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwOGRiMjk3NzVjZjc0YjU3NDQyMjdlM2Q2NzE2ZTM1NDcwY2Q5Mjg1ZWYzNzE0YjFkZjg4N2Y2M2EwOWE4MDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzNTFjNDM0MmE4MjllMmYzYThkYjZjZjhlNzA5MjcyY2I3ZGNlNjdiNTVjNTA3NGE3MzJlNzNjMDUxYTc4MjMifQ"
+          "resource": "repo://TFMTests/AppLanguageTests.swift",
+          "version": "repo-file-v1:sha256:0c595357ae4b19157ccac8e9fe40e90b0afb88785e01975ed5dfb9a1795e929d"
         }
       ]
     },
@@ -631,14 +643,14 @@
           "version": "repo-lines-v1:sha256:d3a6e7a4fb7c1aba55553455699157614377c287af24337766a477d64b412aaf:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzNzA0OGVmY2I2OTFkODE0YmUxYzY0M2Q0ZjBlYmE5ODcwNThkMmQ0YTExMGM2NjQzZDczNDMzOTRiYzFjNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmYmRiMWRjZGJkNTk4NGQxZjNjNTEwZDBjZjlhOWJjZDQxMjQ3ODg5M2JiNDAxODkwZTcxYWM0OWJkYTk3ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyMzQ1MDExMjEyZjIyMmJmZTAyNjQwMGNiNjM4NjcwMjcwNjY3M2RhOTViMGNkZGJjMDdiY2QwNjI2MDgzOWEifQ"
         },
         {
-          "resource": "repo://TFMTests/AppLanguageTests.swift#L94-L118",
-          "version": "repo-lines-v1:sha256:2ed2a9b7c282f50ecb431e7d87317fe08d4b7d7c28d59ce220c4837fd905506c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NjlmMTMyNDk2MmJkOWU1ZGYxNjRiZjdiZDA4Zjg4YmRhNzBkYTE1ZDFhODg2OGM2ODJjNDUyOTQyYjA0M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2ODI1MzgwYTc5YzlhMTUxOTJiNmQzMGVjNTkyZTQ5ZWQyMTZhOWQ3ODI3YTQ0NjZjYTAyNWNhMTI0MTkyNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0ZTdkMmVlYzM0ZjNiMzZmMmI1NDhjNTJiNzhiYzBhZjJlNmNhMThlNjc5NmY5NTMyODc1MjgzYTcwM2Q5NjcifQ"
+          "resource": "repo://TFMTests/AppLanguageTests.swift#L157-L299",
+          "version": "repo-lines-v1:sha256:8860d3a8cf75a383b5b067e8fd2c6466919441a3c83c50970be2c22aa474f828:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyNTY5ZjEzMjQ5NjJiZDllNWRmMTY0YmY3YmQwOGY4OGJkYTcwZGExNWQxYTg4NjhjNjgyYzQ1Mjk0MmIwNDNmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4NjgyNTM4MGE3OWM5YTE1MTkyYjZkMzBlYzU5MmU0OWVkMjE2YTlkNzgyN2E0NDY2Y2EwMjVjYTEyNDE5MjQxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5NGU3ZDJlZWMzNGYzYjM2ZjJiNTQ4YzUyYjc4YmMwYWYyZTZjYTE4ZTY3OTZmOTUzMjg3NTI4M2E3MDNkOTY3In0"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

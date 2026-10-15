@@ -1,7 +1,7 @@
 ---
 type: design guide
-title: UI Design Principles
-description: Source-backed guide to native desktop and mobile settings routes, reusable presentation, terminal appearance selection, and state continuity across layout changes.
+title: Cross-Platform UI Design Principles
+description: Source-backed rules for native adaptive navigation, shared semantic copy, feature-local presentation, accessible review invitations, and workspace continuity across layout changes.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
@@ -30,8 +30,6 @@ sources:
     resource: repo://Frameworks/TermindPresentation/SingleLineTextInput.swift
   - id: openwiki-source-9eb0eec8ab67d2032ec11b01
     resource: repo://Frameworks/TermindPresentation/SnippetCardContent.swift
-  - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
-    resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-667f8dcadd921c1910c5026c
     resource: repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
@@ -68,6 +66,8 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-5503f969776cb509a7d69160
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
+  - id: openwiki-source-215c24353f612bb80e412229
+    resource: repo://TFI/Features/Settings/MobileAppSettingsView.swift
   - id: openwiki-source-e21fae39ef7af76f86acbff6
     resource: repo://TFI/Features/Settings/MobileSettingsView.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
@@ -170,13 +170,13 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# UI Design Principles
+# Cross-Platform UI Design Principles
 
 Termind shares the *meaning* of actions, copy, form fragments and display values, not a cross-platform view tree. TFM owns window routing, persistent workspace views and pointer/keyboard controls; TFI owns scene destinations, native navigation stacks and touch-oriented sheets. See [Desktop UI](../architecture/desktop-ui.md), [Mobile UI](../architecture/mobile-ui.md), and [Commerce and Localization](commerce-localization-and-product-surfaces.md) for the surrounding ownership boundaries.
 
@@ -197,6 +197,10 @@ Shared values and fields are consumed by two independently owned UI shells.
 `TermindPresentation` contains reusable SwiftUI sections, rows, formatting and localized resources. `ArchitectureBoundaryTests` bans app, AppKit/UIKit, storage, remote infrastructure and commerce-framework imports in this layer, but does **not** ban SwiftUI; another test restricts `ListViewKit` to approved native-list workloads. Native terminal, list, pasteboard and focus adapters belong to the apps. Share deterministic row construction and binding-based fields, not window selection, scene stacks, connection teardown, credential resolution or repository mutation.
 
 `AppStrings` supplies resource-backed, on-demand copy to both apps; app-local `AppStrings` declarations are prohibited. `.swiftUIKey` bridges a `LocalizedStringResource` for SwiftUI APIs requiring `LocalizedStringKey` without discarding interpolation metadata. When an API accepts the resource itself, use that overload: `confirmationDialog` titles should receive the resource directly, not `.swiftUIKey`, because UIKit-backed presentation can otherwise expose interpolated locale metadata. For native menus, `AppLocalization.resolve` uses the requested locale and matching app-bundle localization rather than freezing copy at declaration time. Presentation tests exercise English, Japanese, Simplified Chinese and Traditional Chinese menus, interpolation and SwiftUI rendering. Keep wording variants separate from route and save policy.
+
+### Language choice is separate from copy ownership
+
+The desktop App settings picker offers Follow System, German, English, French, Japanese, Korean and both Chinese scripts. `AppLanguage.store` writes the explicit choice and `AppleLanguages`; Follow System removes `AppleLanguages` to restore bundle negotiation. Desktop displays a relaunch notice in the newly selected locale when it differs from the launch choice. Mobile App settings has appearance controls but no equivalent in-app language picker. Do not infer the supported language set from a particular rendering test's smaller parameter matrix. `AppLocalization` currently maps all seven explicit languages to app-bundle localizations, falling back to the main bundle when a matching localization is unavailable. See [Commerce and Localization](commerce-localization-and-product-surfaces.md) for broader product-copy ownership.
 
 ### Settings navigation belongs to each shell
 
@@ -249,6 +253,14 @@ A mobile Vault Host card taps into scene-owned host activation. Its context menu
 Desktop forwarding rules group Address and SSH Command under Copy; mobile presents flat Copy Address and Copy SSH Command before Edit/Duplicate. Both use app-native pasteboards, disable command copying when unavailable and start/stop forwarding separately. Shared `SnippetCardContent` supplies colored icons, valid-target counts, risk and timestamp content while native cards retain surfaces and actions. Snippet cards expose one **Run** action. Desktop resolves missing saved targets with a chooser and checks destructive multi-selection; mobile filters targets to valid Hosts, chooses when none remain and confirms destructive execution before its injected scene callback. `MobileWorkspaceSessionModel.execute` opens one SSH workspace per allowed target, passing the snippet command as live startup state, never into its restoration descriptor.
 
 Desktop `WindowModel.findKind` selects the foreground Vault, Assistant, Metrics, appearance-specific terminal theme browser or focused workspace pane's query; Welcome owns search in content, while other Settings routes and unsearchable workspaces have no titlebar Find. Theme browser queries live in `WindowModel.terminalThemeQueries` per light/dark scheme, so returning from the custom editor retains the browser's filter without giving the editor its own Find. `RootView` mounts one OS-selected toolbar slot: macOS 26 uses a background `WindowToolbarSearchHost` with system `.searchable`, while older systems use a native field and `NSSearchField` owner (or compact Metrics popover). The legacy owner and direct focus handler protect keyboard intent when SwiftUI replaces toolbar content. Both paths use window query and terminal find navigation/cancellation; `focusToolbarFind()` stands panes down before requesting focus so rebuilding terminal content cannot reclaim the caret. Leading New actions follow foreground content rather than sidebar mode; Navigator rows can offer page-specific verbs without first navigating there.
+
+### Inline review invitations must not interrupt work
+
+Both Host pages embed the shared `AppReviewInvitationView` inline: desktop uses managed top content; mobile places it between Vault links and Host sections when search is empty. The app-owned `AppReviewController` holds device-local response state shared by windows; the feature owns its `AppReviewInvitationVisit`. Eligibility requires an enabled controller, no previous response, at least one Host and seven elapsed days since first use. The visit captures eligibility on entry, so elapsed time or a newly synced Host cannot insert an invitation into an already active page. Filtering or removing the last Host hides it without consuming it; either response hides it across windows.
+
+The invitation uses horizontal `ViewThatFits` fallbacks to vertical message/action layouts, vertically wrapping text, a header accessibility trait, contained accessible children and actions with a 44-point minimum height. Accept opens the review URL only after a user action. A successful URL-open callback records `openedReview`, **not a completed rating**; a rejected open leaves the invitation available. Decline records `declined`. The permanent Settings review link remains separate from invitation eligibility. Developer preview bypasses eligibility but does not open the store or change the real response. These are source-backed behavior and accessibility contracts, not a claim that one visual style is universally preferable.
+
+Sources: [review state and visit policy](../../Frameworks/TermindApplication/FeatureModels/AppReviewController.swift), [shared invitation and link](../../Frameworks/TermindPresentation/AppReviewInvitationView.swift), [desktop placement](../../TFM/Features/Hosts/HostsPageView.swift), [mobile placement](../../TFI/Features/Vault/MobileVaultView.swift).
 
 ## Shared Host fields, distinct editor lifecycles
 
@@ -307,6 +319,8 @@ Hidden content must stop receiving input and accessibility focus: parked desktop
 
 `MobileRootView` binds tab selection to `MobileSceneModel` and constructs one `NavigationStack` per `MobileFeatureRegistry` registration under `.sidebarAdaptable`; the standard registry has Vault, Metrics, Workspaces, Assistant and Settings. Adaptive tests check the same native tab controller, five available tabs, scene/native selection and visible selected title across compact/regular widths, Dynamic Type and all three languages. Regular-width tab bars can scroll; compact tests require all five titles simultaneously visible. Reduce Motion and selected accessibility traits exist, but new animation or clipped controls still require call-site checks.
 
+The registry is the extension point for destination identity, order, title, symbol and builder, and rejects duplicate IDs; do not maintain separate compact-tab and regular-sidebar destination lists. Vault's stack additionally binds its path and identity to scene state for History routing, and its Host editor binding comes from the scene. Settings category links stay inside their feature stack, while the root presents the paywall from `app.pro.isPaywallPresented`. Keep feature-local editors and confirmations near their initiating content rather than moving every presentation into the shell. These ownership rules do not require identical geometry or colors across platforms.
+
 Mobile workspace descriptors and live sessions have different lifetimes, scoped to persistent scene sessions. On cold launch `MobileAppModel` loads/prunes saved descriptors and consolidates previous scene records into the first bound session without reconnecting every row; if consolidation cannot be persisted it reports restoration failure rather than claiming the records twice. `MobileWorkspaceSessionModel.openWorkspace` reuses a live workspace, or publishes a selected saved descriptor as live before connecting so repeated selection shares the first attempt; missing-Host entries are removed. Explicit close disconnects and removes saved rows. Scene disconnection alone does not discard a restorable session: native open-session reconciliation recovers orphan live workspaces and descriptors into an active session only after saving the merged snapshot. Background expiration suspends work; an active scene resumes it. A fold or tab switch is not a close.
 
 ```mermaid
@@ -327,6 +341,8 @@ Desktop drag similarly protects native identity: a dragged pane stays mounted bu
 ## Verification and extension
 
 `ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
+
+For review changes, `MobileAppReviewTests.invitationFitsPhoneAndTabletWidths` renders English and both Chinese scripts at 320, 430 and 768 points, comparing light/standard text with dark/accessibility3 and requiring the accessible layout to grow vertically without recording a response. `TERMIND_REVIEW_PREVIEW=1` records PNG attachments; it does not enable the controller's developer preview. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 

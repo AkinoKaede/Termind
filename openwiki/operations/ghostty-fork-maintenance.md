@@ -1,6 +1,6 @@
 ---
 type: dependency-operations
-title: Ghostty Dependency Updates
+title: Ghostty Dependency Maintenance
 description: Update the direct upstream Ghostty Swift Package pin while preserving app-owned menu, input, surface and upload boundaries.
 tags: [ghostty, dependencies, spm, macos, ios, terminal]
 sources:
@@ -14,19 +14,19 @@ sources:
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
-  - id: openwiki-source-4be25dd014939527fac996f5
-    resource: repo://TFITests/MobileTerminalUploadMenuTests.swift
+  - id: openwiki-source-b71d223a365340be42081723
+    resource: repo://TFITests/MobileTerminalKeyboardTests.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "pi", at: "2026-10-06T18:02:45.153Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Ghostty Dependency Updates
+# Ghostty Dependency Maintenance
 
 The canonical page path is retained for existing links, but **Termind no longer maintains a local Ghostty fork/submodule**. Xcode consumes `https://github.com/Lakr233/libghostty-spm.git` directly. The former `termind`-branch fork, native patch/XCFramework release workflow and `build/KeywordHighlighting` override workspace are not current Termind operations.
 
@@ -35,13 +35,13 @@ The canonical page path is retained for existing links, but **Termind no longer 
 | Input | Current value / responsibility |
 | --- | --- |
 | Remote repository | `Lakr233/libghostty-spm`. |
-| Xcode requirement | Up-to-next-major starting at `2.2.2026100501`. |
-| Resolved version | `2.2.2026100501`. |
-| Resolved revision | `7199bd7aa3c32d0a5edcab7fe87b3c1e76f76de9`. |
+| Xcode requirement | `upToNextMinorVersion` starting at `2.2.2026101301` (below `2.3.0`). |
+| Resolved version | `2.2.2026101301`. |
+| Resolved revision | `d403978c66870baa422709d1dde385730a4bdaef`. |
 | Local maintenance submodule | None; `.gitmodules` does not declare Ghostty. |
 | App-owned adapters | macOS `TermindTerminalView` / retained view owner, iOS `MobileTerminalView` / retained `MobileTerminalSurface`. |
 
-The minimum requirement is not an exact pin; `Package.resolved` selects the revision used by `-onlyUsePackageVersionsFromResolvedFile` builds. No local directory edit or obsolete generated workspace changes that remote build input.
+The minimum requirement is not an exact pin; `Package.resolved` selects the revision used by `-onlyUsePackageVersionsFromResolvedFile` builds. No local directory edit or obsolete generated workspace changes that remote build input, and there is no local Ghostty staging override. For the version policy, the [project declaration](../../Termind.xcodeproj/project.pbxproj) and [committed lockfile](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) are authoritative: `AGENTS.md` still describes an up-to-next-major requirement, but the current project uses up-to-next-minor.
 
 ```mermaid
 flowchart LR
@@ -52,6 +52,7 @@ flowchart LR
     Mac --> Commit[Commit requirement and resolved pin together]
     Mobile --> Commit
 ```
+The update workflow validates both app adapters before committing the aligned requirement and resolution.
 
 ## Update procedure
 
@@ -79,6 +80,19 @@ Ghostty owns rendering, parsing, baseline input and its native menu entry points
 - Native surfaces remain session/workspace-owned across SwiftUI mount changes. App Find state, native search dismissal and resize coordination must not be collapsed into package menu behavior.
 
 See [Ghostty Terminal Integration](../concepts/ghostty-terminal-integration.md) for host/test evidence and its explicit package-inspection boundary. The retired app keyword-highlighting feature is handled by V52/Settings compatibility, not a reason to resurrect the deleted fork workspace. See [Persistent Data and Secrets](../concepts/persistence-and-secrets.md).
+
+## Focused regression checks
+
+A successful resolve is not sufficient acceptance for a Ghostty update. Run the relevant adapter suites against the new resolved graph:
+
+| Boundary | Regression coverage to retain |
+| --- | --- |
+| iOS native accessory | [MobileTerminalKeyboardTests](../../TFITests/MobileTerminalKeyboardTests.swift) checks upstream key grouping with Paste last, native accessory geometry and reachability across phone/tablet widths. |
+| iOS keyboard integration | `MobileTerminalKeyboardIntegrationTests` in the same file checks readiness-gated initial focus, remount behavior, literal symbol output versus bracketed clipboard paste, sticky modifiers during composition, and surface identity across keyboard toggles. |
+| macOS mouse and drag integration | [TerminalMouseInteractionTests](../../TFMTests/TerminalMouseInteractionTests.swift) checks copy-on-release, right-click paste routing and Option bypass, once-only bracketed paste/broadcast, captured mouse reports without broadcast or clipboard mutation, path drops, and upload picker attachment to the persistent window. |
+| Native menu adapters | `MobileTerminalUploadMenuTests` and `TerminalContextMenuTests` protect menu grouping, localization-facing action identifiers, upload bindings and action-time availability checks. |
+
+The mobile keyboard integration suite requires a key window: opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, use `-parallel-testing-enabled NO`, and select a real available simulator with a narrow `-only-testing:TFITests/MobileTerminalKeyboardIntegrationTests` filter. The macOS mouse suite requires a visible window and active display: opt in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` and `-only-testing:TFMTests/TerminalMouseInteractionTests`. Keep these gates off for routine logic checks. Expand verification to Find, resize, shell integration and remote interaction when the upstream change touches those boundaries; see [Shell Integration](../concepts/shell-integration.md).
 
 ## Verification limits
 

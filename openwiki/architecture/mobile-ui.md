@@ -1,7 +1,7 @@
 ---
 type: architecture guide
-title: iOS and iPadOS UI and Scene Ownership
-description: "How iOS and iPadOS scenes own navigation and workspace routes while shared services own connection journeys and Metrics; covers native presentation continuity and key-window test boundaries."
+title: Mobile Navigation and Presentation Ownership
+description: "How iPhone and iPad retain adaptive feature stacks while scenes own navigation and presentation over shared app services and persistent window workspace sessions; includes History routing and native-window verification."
 tags: [ios, ipados, mobile-ui, navigation, scene-lifecycle, swiftui]
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
@@ -24,6 +24,8 @@ sources:
     resource: repo://Frameworks/TermindPresentation/OperationConfirmation.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-6a65215e662373c54c92a888
+    resource: repo://TFI/App/MobileCommands.swift
   - id: openwiki-source-60d390fe6fbfea55a2a8230a
     resource: repo://TFI/App/MobileFeatureRegistry.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
@@ -128,6 +130,8 @@ sources:
     resource: repo://TFITests/MobileOperationConfirmationTests.swift
   - id: openwiki-source-ac74fac80e51d2d02f9f5799
     resource: repo://TFITests/MobileSFTPFilePreviewTests.swift
+  - id: openwiki-source-a7d4f0957a52ddd59cd45344
+    resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
   - id: openwiki-source-5636c5d112b9e5b2266c3058
@@ -142,13 +146,13 @@ sources:
     resource: repo://TFITests/MobileWorkspaceWindowIntegrationTests.swift
   - id: openwiki-source-cc27a76170a8c672a70e388a
     resource: repo://TFITests/Screenshots/MobileConnectionJourneyRenderingTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# iOS and iPadOS UI and Scene Ownership
+# Mobile Navigation and Presentation Ownership
 
 TFI is not a scaled-down copy of the desktop split-pane window. It uses system-adaptive top-level tabs/sidebar, a navigation stack for each registered feature, and scene-local routing. Application services are shared, but terminal workspaces and their saved descriptors belong to persistent window sessions, not to one global workspace collection. Adaptation changes presentation without automatically replacing the conversation, terminal or connection being presented.
 
@@ -184,6 +188,25 @@ Application services are shared while each scene retains its feature navigation 
 `MobileFeatureRegistry` is the single registration table for feature identity, order, localized title, symbol and view builder. Its standard order is Vault, Metrics, Workspaces, Assistant, Settings, and duplicate destination registration is rejected. `MobileRootView` iterates registrations rather than maintaining independent tab/sidebar/destination switches.
 
 Each registered destination gets its own `NavigationStack`; the enclosing `TabView` uses `.sidebarAdaptable`. The system can change where navigation appears without the app rebuilding a different root tree for “phone” and “tablet.” `MobileLayout` supplies a compact/regular hint, defaulting to compact when size class is absent; it is not the whole adaptive layout algorithm.
+
+Settings is a dedicated destination, not a scene-wide settings sheet. `scene.openSettings()` selects `.settings`, including from the focused Command-comma action. Its stack links to App, Notifications, Terminal, Connections, AI and Sync settings over shared app models; `SettingsKey.debugSectionEnabled` conditionally exposes developer and logging controls. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) for storage and synchronization policy.
+
+Vault has an explicit scene-owned value path for command-driven History navigation. The root binds its Vault stack to `scene.vaultNavigationPath` and registers `MobileVaultRoute.history`; other feature stacks retain ordinary SwiftUI navigation. `showConnectionHistory()` replaces the path with exactly one History route and selects Vault. If the path differs, it also changes `vaultNavigationID`, resetting destination-based pushes that are not represented in the value path. Repeating the command with that same History path does not append duplicate routes. This deliberate reset is the exception to ordinary feature-stack retention, and affects only the receiving scene. Vault's normal and search links still push `MobileConnectionHistoryView` directly, allowing item-search links to carry their initial query.
+
+```mermaid
+flowchart TD
+    Command["Focused Show History command"] --> SceneHistory["MobileSceneModel.showConnectionHistory"]
+    SceneHistory --> Compare{"Already the single History path?"}
+    Compare -->|no| Reset["New Vault stack identity and single History path"]
+    Compare -->|yes| Keep["Keep existing path without another push"]
+    Reset --> SelectVault["Select Vault in this scene"]
+    Keep --> SelectVault
+    SelectVault --> HistoryPage["Root renders MobileConnectionHistoryView"]
+    VaultLinks["Vault normal or search link"] --> DirectPush["Direct History push with optional query"]
+    DirectPush --> HistoryPage
+```
+
+History commands normalize only their scene's Vault stack; direct Vault links can preserve a forwarded search query.
 
 ### State lifetime matrix
 
@@ -231,6 +254,10 @@ Host activation and explicit connection actions are different:
 - The workspace title switcher replaces the pushed detail in place with `.id(workspace.id)` in `MobileWorkspaceListView`. The old detail and its UIKit search bridge are dismantled before the new detail mounts, preventing an SFTP search presentation from leaking into an SSH detail. This resets **presentation** state, not the workspace-owned `sftpChannel.query`, Find query, connection or native terminal. `MobileWorkspace` supplies the retained native view through `terminal.makePlatformView`; replacing the SwiftUI detail identity is not recreating that view or reconnecting the runtime.
 
 Unavailable saved workspace IDs produce an explicit unavailable state; a stale route does not silently open some other Host. Root-level deep links, quick actions and focused scene commands dispatch through that scene's model.
+
+`MobileCommands` reads `FocusedValues.mobileScene`, rather than choosing an arbitrary app workspace. Settings, Connect, Batch Startup, New Host, Show History and Assistant commands therefore target the focused window. `showAssistant()` only selects its tab, preserving its conversation, draft and library/archive route; New Chat explicitly creates a fresh conversation and clears that route. Generate Command and command-menu Find are gated to an active SSH workspace.
+
+URL entry has two different meanings. Workspace activity links select an existing UUID in its native owner (or the aggregate Workspaces list); `ssh:`, `sftp:` and `telnet:` URLs are parsed as external connection requests and create transient session-owned runtimes without saving a Vault Host or restoration descriptor. Parse errors surface through `app.error`. A Telnet URL carrying an advisory password waits in `pendingExternalConnection` for the root's Continue/Cancel alert; Continue consumes the request before opening it.
 
 The Workspaces destination presents its **own session's** saved descriptors and live runtimes as one collection. `MobileWorkspaceSessionModel` seeds display order from persisted descriptors, appends a workspace ID only once, and removes it on close, independently of live-runtime order. Cold launch restores descriptors, not connections or startup commands; a missing Host is pruned rather than recreated. Restoring a saved descriptor attaches a runtime in its owning session to the existing row instead of moving it. Newly created and process-only external workspaces append in appearance order; external links do not persist a descriptor. The same session-ordered descriptor projection drives the list and detail switcher, so choosing a dormant saved item connects it without reordering either surface.
 
@@ -350,6 +377,12 @@ SSH/Telnet retain the mounted terminal beneath a journey; SFTP branches its cont
 
 The mobile content priority matters: logs (when toggled) replace the form, then pending security-key signing, keyboard-interactive challenge, ordinary SSH authentication, host-key confirmation, failure with Retry/Cancel/Copy Logs, reconnect countdown/actions, and finally phase status. Challenge and authentication forms use prompt IDs as view identity; keyboard-interactive cancel checks that the challenge is still current. Logs can be copied to the pasteboard. The header compresses its log button for accessibility sizes, while the failure actions stack for large text and animation respects Reduce Motion. A refactor should not turn the journey into a modal sheet or a scene-global prompt: each caller supplies its own submit, trust, retry and cancel closures. Workspace Cancel closes its workspace; Metrics Cancel disables monitoring and dismisses detail; forwarding Cancel stops the rule and dismisses detail. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection-side behavior.
 
+### Forwarding: local presentation over a shared runtime
+
+`MobileForwardingView` owns its query, pushed rule ID, editor sheet, delete confirmation and operation error. Card tap pushes detail; Start/Retry from the card selects that detail and starts `app.forwardings`. Editing is disabled while a rule is active. The detail renders the shared connection's journey inline and has no disappearance-driven stop: popping it or switching tabs does not cancel pending authentication. Explicit Stop stops the rule; journey Cancel stops it and dismisses detail. Editor presentation remains a sheet, not the authentication surface.
+
+`MobileForwardingRenderingTests` mounts a temporary key window and restores the previous key window on exit. Across English, Simplified Chinese and Traditional Chinese it renders cards, editors, named/unnamed details and the inline authentication journey. Its assertions verify the same prompt ID survives width changes and detail pop/push with no presented sheet, then explicit Stop clears the prompt and leaves the rule stopped. It uses `.requiresKeyWindow` and `.serialized`; the shared trait requires `TERMIND_MOBILE_UI_TESTS=1` and instructs disabling parallel testing.
+
 ### Metrics detail and monitoring boundary
 
 The Metrics destination reads `app.metrics.servers` (one application-wide monitor per selected Host), not a scene-local worker. Its cards open a detail by Host ID; Pause/Resume, Retry and Remove act on the shared Metrics model. The view's `.task` starts that model idempotently, while the foreground/background lifecycle can restart or pause it independent of the Metrics tab. Add Hosts takes a snapshot of currently Metrics-eligible saved Hosts and configured selections, then applies the pending picker result **on dismissal** through `replaceHosts`; unavailable/out-of-selector selections are preserved by the model. Failed persistence is surfaced as `app.error`, while an admission-limit failure presents the Pro paywall. `MobileSceneModel` owns neither Metrics sampling nor this view's temporary selection sheet state.
@@ -457,7 +490,26 @@ A terminal notification resolves only an **existing live** workspace ID and rout
 
 `MobileRootView` reports its scene phase; `MobileAppModel` aggregates all scenes. Entering background handling occurs when **all tracked scenes** are backgrounded, not whenever one feature disappears or one scene resigns activity.
 
-At that boundary the app pauses edit monitoring, memory/sync/Metrics/outbox work and recording, then starts its background allowance. Expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant background execution. An active scene ends the allowance and asks retained workspaces to resume, rechecks edited files, and restarts the appropriate services. This is best-effort mobile continuity, not unlimited background network execution.
+At that boundary the app pauses edit monitoring, memory/sync/Metrics/outbox work and recording, then starts its background allowance. Expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant background execution. An active scene refreshes the current device name, ends the allowance and asks retained workspaces to resume, rechecks edited files, and restarts the appropriate services. This is best-effort mobile continuity, not unlimited background network execution.
+
+```mermaid
+stateDiagram-v2
+    [*] --> TrackedForeground
+    TrackedForeground --> Allowance: All remaining tracked scenes backgrounded
+    Allowance --> TrackedForeground: A scene becomes active before expiry
+    Allowance --> Expired: Background allowance expires
+    Expired --> TrackedForeground: Active scene resumes retained workspaces
+    note right of Allowance
+        Pause monitoring, sync, Metrics and recording
+        Healthy workspace connections may remain alive
+    end note
+    note right of Expired
+        Suspend workspaces and stop forwarding
+        Pause transfers and expire Assistant work
+    end note
+```
+
+Background allowance and expiry are app-wide transitions derived from scene phases, not feature-view disappearance.
 
 Closing a workspace, navigating back from its detail, switching tabs, and exhausting background allowance are therefore four different actions with different owners. Removing the last active scene while another remains backgrounded starts the allowance, but removing the last tracked scene does not create a new background lease; returning before expiration leaves a healthy connection intact. A UI refactor must preserve that distinction.
 
@@ -480,7 +532,9 @@ Native-window coverage has distinct explicit opt-in contracts. `MobileMetricsJou
 
 `MobileAppTests` covers descriptor order after restoring, opening and renaming live/dormant workspaces, transient external entries, single-connect restoration routed to the owner session, explicit retry after failed connection, corrupt snapshot preservation, and local/remote Host deletion removing both open and unopened descriptors while retaining unrelated Hosts. `MobileWorkspaceSessionTests` specifically verifies independent terminal instances and close actions for two windows, first-bind consolidation, owner-window link routing, live handoff without reconnecting after loss of a native session, system-reclaim retention and explicit discard semantics; the optional serialized `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows when `TERMIND_MOBILE_UI_TESTS=1` with parallel tests disabled. The adaptive suite also checks localized compact/regular Workspace rows and that choosing a dormant row restores only that runtime without moving the row.
 
-`MobileWorkspaceSessionTests` also exercises native notification routing: it checks that a tap waits for an active scene, a command tap returns to its own window without changing a different window, Assistant prefers a scene already showing or selecting the chat and honors the latest click, transfer taps consume once, stale activation failures do not erase newer requests, and unread command state stays with its window through recovery. `MobileStartupViewTests` checks a transfer tap received during startup is not applied before scene activation. `MobileWorkspaceMenuTests` is serialized and gated by `TERMIND_MOBILE_UI_TESTS=1`; it mounts a temporary key window and restores the previous one. It checks ordered opened/dormant descriptors in both icon and title menus, unread badge removal from native Assistant menus, and Close Others appearing only when multiple workspaces can close (not Close All in the detail lifecycle menu). `MobileHomeScreenQuickActionTests` checks the three unique local Host shortcuts, host-ID-only payload decoding (including legacy kind payloads), malformed-item rejection and single consumption by the scene delegate. `MobileBatchStartupTests` checks protocol fallback/filtering, separate workspace/history creation, confirmation revalidation, deferred once-only dismissal and scene isolation. `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), stable Host/action-card height with long or absent tags, the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` checks capability-filtered Host context-menu policy, duplication of a Host whose fixture has a non-custom identity (preserving the rest of its configuration), keep/delete group-tree behavior and proxy validation; the Host-custom identity stripping rule is implemented in `MobileAppModel.duplicateHost` but is not exercised by that duplication fixture. `MobileCardTests` verifies collapsed group projection/search and confirms toggling no longer changes the persisted Vault group's legacy `isExpanded` field; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
+`MobileWorkspaceSessionTests` also exercises native notification routing: it checks that a tap waits for an active scene, a command tap returns to its own window without changing a different window, Assistant prefers a scene already showing or selecting the chat and honors the latest click, transfer taps consume once, stale activation failures do not erase newer requests, and unread command state stays with its window through recovery. `MobileStartupViewTests` checks a transfer tap received during startup is not applied before scene activation. `MobileWorkspaceMenuTests` is serialized and gated by `TERMIND_MOBILE_UI_TESTS=1`; it mounts a temporary key window and restores the previous one. It checks ordered opened/dormant descriptors in both icon and title menus, unread badge removal from native Assistant menus, and Close Others appearing only when multiple workspaces can close (not Close All in the detail lifecycle menu). `MobileHomeScreenQuickActionTests` checks the three unique local Host shortcuts, host-ID-only payload decoding (including legacy kind payloads), malformed-item rejection and single consumption by the scene delegate. `MobileBatchStartupTests` checks protocol fallback/filtering, separate workspace/history creation, confirmation revalidation, deferred once-only dismissal and scene isolation. `MobileCardTests` tests card column thresholds (one below 652 points, two from 652, three from 984, but always one for accessibility text), the two-tag display limit, nested/empty/collapsed Host groups, Known Host add/edit titles, and Host connection timestamps. `MobileVaultFeatureTests` checks capability-filtered Host context-menu policy, duplication of a Host whose fixture has a non-custom identity (preserving the rest of its configuration), keep/delete group-tree behavior and proxy validation; the Host-custom identity stripping rule is implemented in `MobileAppModel.duplicateHost` but is not exercised by that duplication fixture. `MobileCardTests` verifies collapsed group projection/search and confirms toggling no longer changes the persisted Vault group's legacy `isExpanded` field; `MobileConnectionPickerTests` checks that History caps *matching event rows* at 50, searches device names and leaves disabled-protocol events visible but not openable. These policy tests complement, rather than replace, the UIKit-hosted adaptive tests for real navigation and sheet continuity.
+
+Focused routing coverage starts with `MobileNavigationParityTests`, which asserts the single five-destination order, and `MobileShortcutTests`, which checks scene-local Settings/Connect/New Host/Assistant commands, nonduplicating Show History, Host activation reuse, workspace cycling and close behavior. `MobileHomeScreenQuickActionTests` covers decoding and once-only delegate consumption; `MobileAppTests` checks external connection transience and aggregate background leases. These model tests are distinct from key-window rendering coverage and do not alone prove native focus.
 
 For a change, inspect scene routing tests for navigation, region/layout tests for geometry, workspace/terminal tests for session continuity, and Assistant tests for run-versus-selection ownership. See [Platform Runtime Composition](platform-runtime.md) and [Build, Test, and Release Operations](../operations/build-test-and-release.md) and [Engineering Invariants](engineering-invariants.md) before changing the lifetime boundary.
 

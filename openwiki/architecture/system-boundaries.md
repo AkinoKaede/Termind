@@ -1,9 +1,11 @@
 ---
 type: architecture boundaries
-title: System Boundaries and Change Placement
+title: System Boundaries and Dependency Contracts
 description: Target dependency direction, enforced import scopes, and ownership of shared ports, persistence, external packages, and native app composition in Termind.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
 sources:
+  - id: openwiki-source-ed77bc20b48d193bace3dde6
+    resource: repo://.gitmodules
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-3118dfa7dfade14baaccd202
@@ -74,13 +76,13 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# System Boundaries and Change Placement
+# System Boundaries and Dependency Contracts
 
 Termind is built as two native applications around six shared static frameworks. The boundary is intentional: reusable layers model policy and ports, infrastructure implements those ports, and `TFM` (macOS) and `TFI` (iOS/iPadOS) compose the result with native lifecycle and UI. A safe change starts by placing the responsibility with its owner rather than importing a convenient concrete dependency into a lower layer.
 
@@ -238,11 +240,15 @@ The feature binds native search presentation to shared policy; UIKit retains key
 
 ## AgentKit is an external, host-neutral boundary
 
-`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The project declares `upToNextMajorVersion` from `0.19.1`, and the committed `Package.resolved` file pins the Xcode build. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree; an uncommitted sibling change cannot affect Termind.
+`AgentKit` is a separately developed remote Swift Package dependency at `https://github.com/AkinoKaede/AgentKit.git`. The [project requirement](../../Termind.xcodeproj/project.pbxproj) declares `upToNextMinorVersion` from `0.19.2`; the committed [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) pins version `0.19.2` at revision `ca325632bc91886702673a79522e3b862ac940ff`. Xcode builds that resolved remote package, **not** a sibling `../AgentKit` working tree or the repository's `AgentKit/` maintenance submodule; uncommitted checkout edits cannot affect the app's package build.
 
 AgentKit owns the host-neutral agent runtime: its loop, approval gate, provider adapters, MCP client, built-in tools, and their core types. Do not redefine AgentKit-owned runtime types in Termind, and do not edit AgentKit to add the Termind name, SSH, SFTP, app UI, or other host-specific behavior. A cross-repository change must be released and tested in AgentKit first, then consumed by bumping the project dependency and resolving `Package.resolved` in the same Termind change.
 
 Termind owns host-aware behavior on its side of the boundary. `TermindRemoteInfrastructure` defines `TermindAgentToolEnvironment` with injected host resolution, connection pools, authentication, metrics, background commands, optional pane access, and optional scratch workspace. `AssistantToolRegistry` returns an empty registry when a model lacks tool-call ability. Otherwise it creates a conversation-scoped scratch workspace shared by AgentKit's scratch tools and Termind's host-facing pull/push tools, records plans through the run's ordered event channel, passes usable MCP servers with credentials resolved from their references plus the MCP authorization client to AgentKit's built-in catalog, and registers `TermindAgentTools` as additional tools. Task management is supplied by the built-in catalog rather than a separate task callback in this registry. The registry marks `ssh_exec` as a secret consumer; host login is handled through injected authentication, not by asking the user-secret tool for SSH credentials. The Termind catalog constructs host listing, SSH/SFTP, metrics, pane and host-facing scratch tools from narrowly injected services; its presenter registry also combines built-in and Termind tool presenters for historical transcript rendering. The local registry resolves built-ins before additional tools and discovered MCP definitions, preventing host or MCP names from shadowing built-ins. See [Agent Runtime and Assistant](../concepts/agent-runtime-and-assistant.md) for run-level behavior.
+
+### Remote packages versus maintenance checkouts
+
+The [submodule configuration](../../.gitmodules) includes `AgentKit/`, `libssh2-spm/`, and `libtailscale-spm/`, but the Xcode project uses remote package references, not local package references. A maintenance checkout is a place to develop or publish a dependency, not an implicit build override. In particular, current project requirements for AgentKit, libssh2, and Ghostty use `upToNextMinorVersion`; older guidance describing libssh2 as exact-version or Ghostty as up-to-next-major is not the current project contract. For dependency work, check the project requirement and resolved pin together, release upstream changes before consumption, and keep the maintenance gitlink aligned where applicable. See [Module and Directory Architecture Map](module-map.md) for ownership landmarks and [Build, Test, and Release](../operations/build-test-and-release.md) for validation commands.
 
 ## How to make a dependency-safe change
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4cf6a62fc6c355a004b9d390a8367264ee27fcdf63e68df111db19ccdfc0a303",
+  "pageVersion": "sha256:bad598d35a00e754b5393298de2dca4107f8b905d7a6668edc77812ef7dc9752",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -155,7 +155,7 @@
           "version": "repo-lines-v1:sha256:74d825112c4c6bf034c5574b2ff117fea7e833ade0a321f2a8caec27c19d9deb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGE4ODZkMjJlMjhmYThjZmFkMzg2ZTUzMzlmN2JhNGFmNDEzM2U4NGRmMjU5YTYwNTNjNjJiMzI4ZjQ2Y2U3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5M2IxZTE2YzVlMWYyNGI4Njc3YzQzYjI2ZmYyMGI3ZDM3MGE2OGIyMWIwY2ZlZTA3NmQ4OWNlNmNjYmEwMmFmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMTNhOTQ2OThjNjNhZjM5MmJkMWI0YTZkZWIwZWI5ZjdmYzFlNWVjZTQ0MGM1OTU3MTdkYmEyYjM2ZGJjYTU4In0"
         },
         {
-          "resource": "repo://TFM/App/RootView.swift#L386-L395",
+          "resource": "repo://TFM/App/RootView.swift#L385-L394",
           "version": "repo-lines-v1:sha256:f3e76fe3409f2b446bae7dbcf097ec6627a488879b512df98b753d5f8a05e16f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiZmVmODg3ZmEzNjEwYjA4MDVkN2ZiNTA5Yjk0MjU5OGQ1ZDgyOGU5YmNhMTlhNjM0OWJiMDU4NzcwMzhhOTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2ZmI3ZDYyZTU5NjIxZGEwOGZkN2U4NzViYWRjNjg3MTNiMzk4NWE2OTcwYjgyMTRmNzg5NGY2NmU1MzY0Y2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIxMTI0NDU4ZWE1NjRkODI3NTg3MGQyYzFhMDcwZDU4Yjc1ZGJiZTZhZjNlNWE1MWU4ZDgxNWZjYTgwZDhjZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2ZGJlYTRiYmU0MzNiZGU5ZjY1YzBjMjQ2Njg0NmRkZWNlMjMxMzJlN2YzZmExN2FlNzU4NjExZmVkMWZiN2UifQ"
         },
         {
@@ -216,7 +216,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
+          "version": "repo-file-v1:sha256:b93d31098859dd9094a6ede8444d389acaec89596254e5691df493df384bddd0"
         },
         {
           "resource": "repo://TFM/Platform/TerminalFontCatalog.swift",
@@ -302,7 +302,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift",
-          "version": "repo-file-v1:sha256:88e31b1cefdf0811d5849e47eea42e949dc0305c27c3238921dcbf0fc00b8c7a"
+          "version": "repo-file-v1:sha256:2ac632e134e43664bcfc8762a3ad4cd637bddf0d2fb70923eeeaf557f9c9426f"
         },
         {
           "resource": "repo://TFM/Features/Ports/PortForwardingView.swift",
@@ -334,7 +334,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:82359e793dbed7dd57ea6d965a2d8e6beb6a25fc339dc1c36a6886dcebe999c1"
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
@@ -352,7 +352,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:82359e793dbed7dd57ea6d965a2d8e6beb6a25fc339dc1c36a6886dcebe999c1"
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
         },
         {
           "resource": "repo://TFM/Features/Hosts/HostActions.swift",
@@ -366,7 +366,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:ef6494a40b87e7108945888816dd9754dc43086b0d58b1952cff3f6e8cd3f1b5"
+          "version": "repo-file-v1:sha256:ef91752fe1d7e282b74e0f7d912771c0b93f44eca1befed61f27f6163e2a5e07"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -494,7 +494,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:82359e793dbed7dd57ea6d965a2d8e6beb6a25fc339dc1c36a6886dcebe999c1"
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
         }
       ]
     },
@@ -589,7 +589,7 @@
       "statement": "AgentToolPresentation projects human-readable summaries and details without modifying execution/replay data: approval displays in-memory unredacted request arguments only for live review, MCP output retains remote-defined presentation, failed knowledge results bypass success presenters, and bounded previews keep full transformed text available for desktop native Copy.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L300-L461",
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L306-L467",
           "version": "repo-lines-v1:sha256:9d355676993d7c8b3a894965fe857c77640ce9f2dd01f22a52f54a7582c09d3b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5ZTE3NGE5ZDZlYzI4NWUzN2NhNWY1OTZiY2M1MGU0NTgwOGJjNGFkMDU2ZTk5ZmQ2NmZlMzA1M2JkZjBjYjZjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJkNGZlN2MwNWRkZDE2MGViYmUzNzY4MjllODlmMTE4YWQwNmNiYWY3NjZlMjUxMmZjYWIyYTVkZGVhNTdiMzZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0YTdjOTk5ZDFiOGU3OGQ0NDgwZjc1M2U3MGMzOWM0MzdlYzIyNGU0MTIyNGUxYTE2ODgyZjczZjEzMDE3ZjUzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2ZjNmYjU4NTZhNWQzYTk1YzliNjA5NjlkN2ZhNGEyZDE2ZjBhZDJjNjk4NDIwMDhiOTQwYTgxM2QwOGI3YmViIn0"
         },
         {
@@ -597,7 +597,7 @@
           "version": "repo-lines-v1:sha256:bd4b15dadcceac51194b1743f6fc996166bb208fa28c82858b749fcb525b11c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2M2U0NDQxODAyNzNiNmE0NmQ1ZTFmMDY4OWMxNGVhNWVkODE3M2RhNTRkZDdjNjk4ZThlOTc4NDBmNDkxM2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4NDYxZTE0OWUzMGJkZTI3N2ExZmRjN2E4M2IyZTQ2NmQzZmRjMTZjZTcxZGIyNTE1ZTZkNGRkNTU3ODk4NGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiNTdmM2RlYTVmMGMwMDllN2Y4Nzk1MjJmZGI1ZGI1ZjM0OTViZTMxNTk1M2EyOGFiMGNkYTk4ZGFlZGQ5YzUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L464-L521",
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L470-L527",
           "version": "repo-lines-v1:sha256:22a57ee8264d0d99fa0a45fd797535de26c96dfbc092bf9b9114749dba0bba9f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJjZDYyOGM2ODYxOWY0ZWYzNmE1YmI1ODU0OWMyOGRkNmY3NzlkZGI2ZmUxNDY0YTdjMDY2OGNmMzkxZDE2MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkNGI4ZDEwYWM1YjQ1ZmUwMjUzNjQyODVmYTM1NWZjN2IyYTQ2ZjE1NDA4ZTQwYzYwODVhOGVjZGI3MDk1NTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyMmY3ZjljNDNmMjFhNzk0MDI2NjQzMmVmN2YwODBmNTA3MjI3ZWI0NDJhNWJiNTAyYWUxNzQ3ZTZhZDdlMzEifQ"
         },
         {
@@ -626,27 +626,19 @@
     },
     {
       "id": "claim_cdde9c6b33f04ce081c8cfdb01423a94",
-      "statement": "Shared AppStrings owns on-demand localized presentation resources for both apps; SwiftUI's swiftUIKey bridge preserves interpolation metadata, while AppLocalization resolves resources for native copy against a requested locale and app-bundle localization. Architecture tests reject app-local AppStrings declarations and presentation-copy tests cover English, Japanese and two Chinese scripts.",
+      "statement": "Shared AppStrings owns on-demand localized presentation resources for both apps; swiftUIKey preserves interpolation metadata and AppLocalization resolves native copy against the requested locale and app-bundle localization. Desktop offers Follow System and German, English, French, Japanese, Korean and both Chinese scripts with an AppleLanguages override and relaunch notice; Follow System removes the override. Mobile App settings has no equivalent language picker. Architecture tests reject app-local AppStrings and presentation-copy tests cover English, Japanese and both Chinese scripts.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift#L3-L38",
-          "version": "repo-lines-v1:sha256:81e3b31c2c44cd90163a0839f912c5e077d97a6f77200f8256be6b1ef55a1c88:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZTE4NTRiZjA4NjFkOWY2MDlmMzQ3YTE0NzE1ZmM1ZjE4NTRjYTI2NjBhYzhhYzY1ZDk1YTFjOWE1ZGFhY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyM2ZjMDUxYmQzNDMwODljOTYyMzJkMjBlMzlhZjJjZmU4MDQ2ODQ1NmQxN2M5NzEyMzhiOTNmMTRkZTU4MjEifQ"
+          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift",
+          "version": "repo-file-v1:sha256:de13c80b155a4d19bbec1b9899c6ba2c4f8a68ef8d179e487a51d75cf717c25c"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
-          "version": "repo-lines-v1:sha256:fc75544a0cec27d904ec80a42dc9c6dde7922c9e73b2e1d3d66401e16002c5e1:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRhOWI3NWY2NGIxMDZlYjU0NGRlMjAxZjU5OTEyMmQ3NWFiYzQ4M2M1YjE1NmJiYTZjMDVjMGY5NTZkYmMzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQzOTNjNmIxNDE5MzcxNzhiY2QzOGZmOGMzYzllMDIwYzJhN2MwN2ExOTk1M2QyZmQ5NTQyZDBkNjFhNDczZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://TFI/Features/Settings/MobileAppSettingsView.swift",
+          "version": "repo-file-v1:sha256:4feab38690a774371e95cdc76fa12ec0b9755d9ee5560d36c47a702db8512683"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/Strings/LocalizedStringResource%2BPresentation.swift#L1-L12",
-          "version": "repo-lines-v1:sha256:f4c6946080a356bf23f3165d07fd9b9389179c51ea8db78c884d6861d5aecdba:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L223-L235",
-          "version": "repo-lines-v1:sha256:d17c13b78d253be7e4a7cb7af1c9ac96dfac710b133d086ed60e517a79104614:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2NDdiZGE5NjJhODVkMGE1Yjg3ODIwMDM0MDIwNWExYzFiMjMxYTY3NzBmOGUyNjk1MWI4MTg1YzA5ZjA3YTQifQ"
-        },
-        {
-          "resource": "repo://TFMTests/PresentationCopyTests.swift",
-          "version": "repo-file-v1:sha256:197791d78e368764c7dbab829a7d12c6585044ce879c2ea3bb14007456137c49"
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L401-L455",
+          "version": "repo-lines-v1:sha256:37ed9d36ec1f8f6564708c25b8a616e6e402b852d0fa96a3f9e7674b59f1ae83:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NDg5MDIzYWU5NzYwNTY0NDVkNjBmMzlhYjdjNDAwZmY1ZGYwMmE0MTc2MDY3ZTFmNTM3N2MwYmM1ZGI0OTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0YzdlNWU5OGM5YTY3MmE5OTUxODg5MmY3OGU5MjhiNGZjNGE5NjlkZTg5YTg4NmUxZGMwOTgxMGE3NmRlN2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1Y2VjMTAyOWI3ZTI4NjRlODRlYjRiNDNhOGFiN2Q1YTBhOGNlNjhhMWQwMjRhMzA1OWU4OTcxY2NmZjg3M2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhOWY4NmQyOGU3ODRmOWZkMzFmYjcyZDE1ZjYwY2JjZWFhZmRkNjY5Y2JkNWI2ZGE3ODg4YTAyMzMyMWViYjkifQ"
         }
       ]
     },
@@ -722,15 +714,15 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileFeatureRegistry.swift",
-          "version": "repo-file-v1:sha256:7200722c6c5967819701bc721a4d442efbb0757eb4e7a82bbd57d143b5f4210d"
+          "version": "repo-file-v1:sha256:6cb21ed81e23966b4a43a2459bed149efed5d380263311018d8ecb8f332048aa"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:ef6494a40b87e7108945888816dd9754dc43086b0d58b1952cff3f6e8cd3f1b5"
+          "version": "repo-file-v1:sha256:ef91752fe1d7e282b74e0f7d912771c0b93f44eca1befed61f27f6163e2a5e07"
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileSettingsView.swift",
-          "version": "repo-file-v1:sha256:a11772a745c54f27146b5a90fcd77f3fba681651ab86e41a062501638a1800e3"
+          "version": "repo-file-v1:sha256:3b4f9c6527c5007fc5faf71cd2a9540e4d6f090a719095d8a6172cb50fd0f897"
         }
       ]
     },
@@ -758,7 +750,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:a97cbfdfbda69bad637720ee052c6cddb49d2cd78098e79bd330625a309b5f6e"
+          "version": "repo-file-v1:sha256:7babab6930634b7398e0be443e4f219757bedc35277723d9ef1e2183d625fe4d"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift",
@@ -794,11 +786,11 @@
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileSettingsView.swift",
-          "version": "repo-file-v1:sha256:a11772a745c54f27146b5a90fcd77f3fba681651ab86e41a062501638a1800e3"
+          "version": "repo-file-v1:sha256:3b4f9c6527c5007fc5faf71cd2a9540e4d6f090a719095d8a6172cb50fd0f897"
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
+          "version": "repo-file-v1:sha256:b93d31098859dd9094a6ede8444d389acaec89596254e5691df493df384bddd0"
         }
       ]
     },
@@ -898,7 +890,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:82359e793dbed7dd57ea6d965a2d8e6beb6a25fc339dc1c36a6886dcebe999c1"
+          "version": "repo-file-v1:sha256:bb72c9a94b8949967155a4ae6ac03bcff920f0f6ba891c0b35958dd0352a6203"
         }
       ]
     },
@@ -983,6 +975,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0f3893b2da6ca60dfb4b08f1ffce1431377fb30611ad1879e669c7452a9c5459",
+  "pageVersion": "sha256:648a8683a6fbdc7bc2af7f291bd94cd37bae321ce52bff9dcdb06c6ef717bddf",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -33,7 +33,7 @@
           "version": "repo-lines-v1:sha256:3a9347be02ff5ddc400f33c82e8635a291b045f206a6778eb4fffc4d911f8a65:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhNTYxNDIxOWY3NjRmN2I2ZWViMzE4NDQxOTMxNGI5NjBjMDA2NzAwODlkYWJkMjQzMmI5MzQzZTUwYjg0MzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4ZGM5MzJhM2UyZWJlY2JlODI3NDkwNzlmMzc0MjNjODMzYzhjMDBhZmI5YmU2ZGEzNDk0NjI2YWZjYmQ0MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViNzYyNmZlMGIzZjNiNTM3ZGUyN2U1MzBjZWRjMjc5MWMyMWU5Y2RmNGUxM2NiNzczZTJmZDg5MTZhOGFhZTIifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L20-L77",
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L18-L75",
           "version": "repo-lines-v1:sha256:dae53a830ac2c0026220cdd288dc18d3d885233311e7eff65f78e3e4efd6e542:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyNDk3ZTk0NDE0NTJhMzk5YjAwNjFiNjAyZTJmYjc2MGQ5ZWIwYmJjYzgwYmM2ZDIyMjdhZDM4ZTQ4OTFiN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1ZWQ4NzEwNmVmMjNiNzU3NmMyOWExMjliNmQ2MzQ4NDVkY2QwNjJjMTNjODRjYzBmZDAwNDRiNDAyMDVhZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2MTE1ZDkwNDc1NjMxOTg3YzE1NTVmYjIyOTdhNjgxZjBlNGMwMmRiZTA3MjYyZjU3M2UxMzkwNmE1Yjc3YTIifQ"
         },
         {
@@ -192,7 +192,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift",
-          "version": "repo-file-v1:sha256:d95804107f546eb4448dd0c8b85463fff7caad88ce6dcd4b73b53a10f262dd19"
+          "version": "repo-file-v1:sha256:e1eac2894233292d34e6af36fae167b845a6ed8988668e1e932dd08149719878"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
@@ -380,7 +380,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
+          "version": "repo-file-v1:sha256:b93d31098859dd9094a6ede8444d389acaec89596254e5691df493df384bddd0"
         },
         {
           "resource": "repo://TFM/Features/Settings/SyncSettings.swift",
@@ -846,23 +846,19 @@
     },
     {
       "id": "claim_195e77eb1fc3477d8359c16e7ca5be82",
-      "statement": "On desktop, Settings navigation is per-window: SettingsPageView routes index, category and detail pages through WindowModel.settingsRoute; parent routes drive back navigation and closing Settings restores the previous content destination, falling back to Vault when its workspace is gone.",
+      "statement": "Desktop Settings navigation is per-window through WindowModel.settingsRoute, with parent routes and restoration of previous content or Vault fallback. Mobile instead passes app-wide models through navigation links to App, Notifications, Terminal, Connections, AI and Sync; App local appearance/debug/review/diagnosis do not sync, workspace renaming uses WorkspaceSettingsModel with red storage errors, and Sync selection delegates to MobileAppModel.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L10-L207",
-          "version": "repo-lines-v1:sha256:5198be0a206bf79658e9a269f3e83ddab0ba08848786b3b12378c4d3d628e7a5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTk4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0ZWJkMzM2YmNlYWM4YjcwZTRkZDE5YjdiMzNiOGExNjA3MjU0MmVjY2MyZTVhMWJhMWQ2NGIyN2UyMDdiNjljIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZGEzMTJmZTE1NTcwNDM5MzM0YmM5MDBkYjQ0Mjk1MzYyZjM4OWY1YzZlZDhlNDE1YjgyMmMwZjdmMDQyYzQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4MDVhY2Y1ZWFhM2E0N2U3NWM1ZDczYmI5OTQ2MWZmODEyNmU3NDY4Mjg0ODEyNTc3ODQ5ODI0N2I2YzZmYjlhIn0"
+          "resource": "repo://TFI/Features/Settings/MobileAppSettingsView.swift",
+          "version": "repo-file-v1:sha256:4feab38690a774371e95cdc76fa12ec0b9755d9ee5560d36c47a702db8512683"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L47-L78",
-          "version": "repo-lines-v1:sha256:71779b90133636f3e2a54d4c5def880561247b2d8b67d8a9c5fa4fe936839c28:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyODJiZWQxOTFiNTg3MDNmNDIzM2UzMjFiMWFhYjczNmZmYzMzNzUzOTliN2VkYWQ4ZjhhM2UwZjIyYWNhNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYThkYzk5ZmQzYjkwMjA3MzhmNTM3ZTgwYzgzOTk1ZWRkODc3MTI3YjViNzViMmZjOGI3NmVhNzEwNjcxZDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2ZTkwYmEzOWQ1NGMyYjJkNWFiMDAxZDk1ZGI4MWUxOWFkNjNjYWYzYjA4MTdkOGI1NDZmYzgzNGZjMDljZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5ODRmNGI1NGYwYzJlNWY2YjEyMjNjMmZhNTMyZmE2MWYxMGQwM2NiZThmYTllNTAyOWQ0ZGVlNTM4YWExZjcifQ"
+          "resource": "repo://TFI/Features/Settings/MobileSettingsView.swift#L16-L59",
+          "version": "repo-lines-v1:sha256:782e18ce58df05c4d3171e842428a1015dc930374c23071f3f676a8577d48d49:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1MzFiMGY0ZmUwYzI4YzEyNjI4MmNlOGVhZDI4N2MwMmZiNmEzYzRiZTkyNThlZTNlNDA0NDY4YjhkMTUwZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5NTZkMWU3YTM2MjVmMGY5MWE0M2E3MDJjM2E0MzY3ZTJiNzc0ZTU4MDlkMzgwNmE2YjdmYjZjZjUyMmI4MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYxMzI2YzhjZjVhMzllZGEwODFjZWQzZGNhZTE4NTBlZjk5NzZmYTg2ZjkxZGM5N2E4NTFlNzIyYzQyNmZhOTEifQ"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L572-L608",
-          "version": "repo-lines-v1:sha256:09ee17ae6dec430f48790f3ffc1eb6e268c2beae85238bd679a3e6d1a23b2718:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3N2U2ZGVlZjczYTA3ZTg4ZmQxZTk2ZDA3ODU0ZGZjYjI2Y2MzMjM2OWU3OTg0YmEwNjc5ODY4MGQyMzM0NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzOGRhMDk0NzRiODU3ODdiN2ZiYzJlYjFmNDUzZjdlMGE4ZDMyYWVhNTFkYTZhYmU5YWY2YzI4M2IyZWQ2MWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MmU3MDJiOGI2MTYxNmJjNTI0MGY2N2VkNWM2NGIwMDgyMjdhZDJkZDhiOGUwMzcxYjI0YzRlYmUxNzgwYzYifQ"
-        },
-        {
-          "resource": "repo://TFMTests/SettingsNavigationTests.swift#L73-L152",
-          "version": "repo-lines-v1:sha256:6c04acf25bfd8644e2ae8b76826606ec58687293e631426603d62654eead83ca:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3Zjc0ZDAzZWNjYmIxOWZlM2IwNWY1NjZlMTkxNWUyMzIyMzI5NzMzNWFhYTcxZWU3NGVlOGQ4ODlhN2IyMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiN2VlZWEyODgxZmZiY2Y0ZDJjMTgyNzk5ZDZmZTJhZjc5Y2E4NmViZTA2NjBkNjU0OGU0M2VkMTM5NDI4MWMifQ"
+          "resource": "repo://TFI/Features/Settings/MobileSyncSettingsView.swift#L13-L25",
+          "version": "repo-lines-v1:sha256:9466177629db54221c842c69991843a1bbcd8c233daa45addd8c2a53c952b52b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyZjk3NmM2YjFhYTI4ODYzMDYzNmUyYzM2MjI3M2ZjYmNjNDM4YzczZWQxM2Q0Y2VjMDg4NzA2ZGZhOGEwOWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiZDE5ZWZjMDNmNjdhYzRiYWZkMmIwM2EwOWNkNWQ3MGVmOGI4MTYzZjRiM2M2NGQxMzQ1NGRlMDg1ZGM2ZDUifQ"
         }
       ]
     },
@@ -872,7 +868,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:14ee756a3acf0aa5377e772147f5953d3d7bd79d251ef2523c6b1ddc8f56b784"
+          "version": "repo-file-v1:sha256:b93d31098859dd9094a6ede8444d389acaec89596254e5691df493df384bddd0"
         },
         {
           "resource": "repo://TFMTests/SettingsNavigationTests.swift",
@@ -900,11 +896,15 @@
     },
     {
       "id": "claim_0bc2b987d6444fb0bc15dd2ee60457e5",
-      "statement": "UserDefaults keys are not themselves sync declarations: SettingsSyncSnapshot journals AI configuration/roles, skills, web search, terminal, SSH, SFTP, workspace and notifications, excluding device-local typography/debug/review state and retired highlighting. The desktop language picker is also device-local: AppLanguage.store writes canonical appLanguage and explicit en, ja, zh-Hans or zh-Hant AppleLanguages overrides; Follow System stores system and removes AppleLanguages.",
+      "statement": "UserDefaults keys are not sync declarations: SettingsSyncSnapshot journals AI configuration/roles, skills, web search, terminal, SSH, SFTP, workspace and notifications, excluding device-local language, typography, debug, review and diagnosis state and retired highlighting. The desktop picker stores canonical de, en, fr, ja, ko, zh-Hans or zh-Hant with a single AppleLanguages override; Follow System stores system and removes AppleLanguages.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift#L67-L96",
-          "version": "repo-lines-v1:sha256:cff3e398ef077ea59403f74eb8eefeda0c19188a05d2ade0fdb4dad75a2e1d22:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiN2VjMjUwZGZkZjllZDY5ZGU0ZjIwNDU0ZjdkMTZiNjQ3MThmMGZkYzY1ZGZhMTNmOWFhN2FlYWM5YzUzNGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmM2JiNGEwNDYyZWIyZmFhMmQ2ZTI1NmMzNWU3Mjc0YmY3MmNkNjFkNjIyNTc1OTdlNmEzY2ZlOTZhM2U0NjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0YzZlZDRjZDc5YjAzMGQ4ZDZjNDFlZGQ0OTdmNWJiNWE2YTdhYmQ0MTU1NWNhNWMzNDhjNjEyMGQyNzAyNWMifQ"
+          "resource": "repo://Frameworks/TermindApplication/AppLanguage.swift#L44-L113",
+          "version": "repo-lines-v1:sha256:fbe416b26c077af57a9a528b1697f47294d794fb2ffe0fb135343865f501fe23:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZmE4ODM4NGY1ZGJhZjgwNWMxYmQ1OGZmZjBiOTVhOGY3ODBmOWE1MjAwYjUyYjk5YjlkYjIxNjcyYTAzZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L5-L54",
+          "version": "repo-lines-v1:sha256:9fb36f3abab1605c0226c4264a6228c5d9e7555092a730444de2ab4f3432cca2:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlODQ5M2ExN2JjMzcyNzg5ZDBiMDM2YjQ1NjY3NmUwYzBkYjVjYTQ5ODIyMWE0OWZkNWJhODAwY2UxNjQyZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMjk3ZTE3YmQ2NGQwYWY1YzAzMTA3OWE0Mzk2MDdmYmZmZDAxMzczODYzZDIxNzZhYmRkMDNkMjgwZDk1MzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1ZTQxNzQ1ZDYwZjM4YTM2MzRhNjg2ZDQ0NDlkNTRjZmViYWUwZjIzOTU5MDVmMjJjNmFhMDg5ZWJkOWVjMjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkZGJiODcwMTBkYmJmNGZiNDM2OThlODk2YmZmMDk3Yzc1OGEyZGQyNmQ2MzhhNzU0MjFiYzM4MzY2MDdlYjIifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift#L7-L55",
@@ -930,7 +930,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift",
-          "version": "repo-file-v1:sha256:d95804107f546eb4448dd0c8b85463fff7caad88ce6dcd4b73b53a10f262dd19"
+          "version": "repo-file-v1:sha256:e1eac2894233292d34e6af36fae167b845a6ed8988668e1e932dd08149719878"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SettingsSyncStore.swift",
@@ -1003,6 +1003,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

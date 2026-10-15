@@ -1,6 +1,6 @@
 ---
 type: storefront-release-operations
-title: Storefront Commerce Release Checks
+title: Storefront and Commerce Release
 description: Release checklist for the local StoreKit product fixture, RevenueCat entitlement and paywall configuration, cross-platform access refresh, and Sandbox validation.
 tags: [app-store, storekit, revenuecat, commerce, subscriptions, localization, release]
 sources:
@@ -8,6 +8,8 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
     resource: repo://fastlane/lib/screenshots.rb
+  - id: openwiki-source-b2f57db7a90dcc30dd3886da
+    resource: repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -18,8 +20,12 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatEntitlementResolver.swift
   - id: openwiki-source-82f1da82c84bec6e60959357
     resource: repo://Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift
+  - id: openwiki-source-11cfe0665e72a8d0495fdce1
+    resource: repo://Frameworks/TermindPresentation/AppReviewInvitationView.swift
   - id: openwiki-source-536cfba78a3618b317d33d47
     resource: repo://Frameworks/TermindPresentation/ProPaywallState.swift
+  - id: openwiki-source-eae5d91412d0e2847dacd5b6
+    resource: repo://FrameworkTests/AppReviewControllerTests.swift
   - id: openwiki-source-d4dc435e4e9f6262c9e07564
     resource: repo://FrameworkTests/ProPaywallStateTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
@@ -28,10 +34,12 @@ sources:
     resource: repo://StoreKit/Termind.storekit
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-dc9295278cc250ed20567540
+    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
-  - id: openwiki-source-c8d832474c03f5ebad7b0578
-    resource: repo://TFI/App/MobileRootView.swift
+  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
+    resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
     resource: repo://TFI/Features/Commerce/MobileProView.swift
   - id: openwiki-source-4bb1006b8fba7cd74268940b
@@ -42,8 +50,6 @@ sources:
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-  - id: openwiki-source-873894299539cce9a737a860
-    resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-766dc23f16ac26a41a5b5c22
@@ -54,13 +60,13 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Storefront Commerce Release Checks
+# Storefront and Commerce Release
 
 **Three separate authorities:** `StoreKit/Termind.storekit` is a local catalog fixture, App Store Connect defines the live Apple products and introductory offer, and RevenueCat supplies the configured `termind_pro` entitlement and remotely configured paywall. A fixture product or signed CloudKit capability does not grant Pro. Check the RevenueCat dashboard, Apple storefront and native app together before shipping; do not treat local test prices, screenshots or UI strings as production purchase evidence. See [Commerce, localization and product surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the broader gate and copy ownership map.
 
@@ -106,6 +112,8 @@ Use the Mac plist path for the first command when inspecting the Mac app. Record
 `ProAccessController.live()` builds a `RevenueCatProPurchaseService` if bundled configuration is valid. The observable main-actor controller is the gate: `canUse` tests current `hasProAccess`, while a denied `require(feature)` presents the paywall. `ProFeature` covers Tailscale, Assistant, remote MCP, the Mac built-in MCP server, Vault sync, unlimited Metrics and optional SFTP/port-forwarding multi-connection acceleration. Ordinary Workspace composition and SSH terminal uploads are free when their normal connection and destination gates pass. Tests and screenshot setups can create `.unrestrictedForTesting`; production must use RevenueCat status. On Mac `.mcpServer` gates the built-in server; mobile uses `.remoteMCP` for remote connections. The enumeration alone is not a platform availability promise.
 
 For Mac release verification, inspect the **composition root**, not the `AppModel` initializer default: `AppModel` defaults to `.unrestrictedForTesting()`, but `TermindApp` explicitly injects `.live()` for normal launches and `.unrestrictedForTesting()` when running tests. The DEBUG screenshot-demo branch also explicitly injects unrestricted access and returns early. Neither a screenshot nor a directly constructed default `AppModel` demonstrates production entitlement enforcement.
+
+On mobile, `TermindIOSApp` selects `MobileAppDependencies.live()` for normal launches and `.testing()` under XCTest. `MobileAppModel` honors an explicitly injected `proAccess`; otherwise it uses unrestricted access for in-memory or supplied-host fixtures and `.live()` for the production dependencies. Validate the normal launch path on iPhone and iPad, not just a fixture-created model. `MobileRootView` binds the paywall sheet directly to `app.pro.isPaywallPresented`; its URL routing is unrelated to purchase authorization.
 
 Mac entitlement changes also reconcile runtime services: `accessDidChange` updates Tailscale, Metrics and effective SFTP/port-forwarding connection preferences without requiring a visible settings surface. `RootView` observes status changes to reconcile sync and the built-in MCP server. SFTP integration tests verify that gaining access restores the saved concurrency strategy and losing access uses the free effective strategy without rewriting saved preferences or opening a paywall. Include access gain/loss in release checks, not just initial paywall presentation.
 
@@ -162,9 +170,15 @@ On Mac, the language picker persists `AppLanguage` and displays a relaunch notic
 
 This path does **not** change entitlement resolution, purchase authorization or restore callbacks, and is not a way to reset introductory-offer eligibility. Keep language/copy review separate from account eligibility and transaction validation: verify the actual remote paywall after relaunch, then use the appropriate Sandbox accounts for purchases and restores. The manual StoreKit fixture's English and Chinese strings do not prove RevenueCat dashboard locale coverage.
 
+## App Store review invitation is not purchase evidence
+
+The user-facing review link opens `https://apps.apple.com/app/id6805856690?action=write-review` through SwiftUI `openURL`. `AppReviewController` records `.openedReview` only when the URL-open completion is accepted; this records **intent to review**, never a submitted rating, successful purchase or Apple review approval. A rejected open leaves the invitation available. Decline and accepted-open responses persist in device-local defaults and suppress later invitations; they are not synced commerce or entitlement state.
+
+Normal invitation eligibility requires an enabled controller, no prior response, at least one host and seven elapsed days since first use. `AppReviewInvitationVisit` captures eligibility on page entry so time passing or a newly synced host cannot insert it mid-visit; filtering or losing the last host hides it without consuming it. Developer preview bypasses eligibility but neither opens the external URL nor changes the real saved response. `FrameworkTests/AppReviewControllerTests.swift` covers these gates, persistence, rejected opens, shared-window suppression and preview isolation. Release review should separately check the actual destination and user-initiated open on each platform; neither preview nor a successful URL handoff verifies App Store transaction delivery.
+
 ## Release validation
 
 1. Reconcile product IDs, types, group, Family Sharing, introductory eligibility and grace settings in App Store Connect **and** entitlement-to-product mapping, offering/paywall rules and localized disclosure in RevenueCat. Test new versus used-offer accounts, trial-to-paid renewal, cancellation through expiry, billing retry with and without grace, refunds, Family Sharing and lifetime restoration across Mac, iPhone and iPad. Record Sandbox results separately from the fixture and production configuration review.
-2. Run the default shared/macOS tests as described in [Build, validation, localization and dependency release operations](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
-3. Check final localized **storefront imagery** separately from the paywall. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout available for this repair is empty, so no current board count, filenames, final canvas dimensions or image profiles are verified here. Establish the release inventory from the inspected checkout; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
+2. Run the default shared/macOS tests as described in [Build, Test, and Release](build-test-and-release.md). `FrameworkTests/RevenueCatCommerceTests.swift` tests key validation, configured-entitlement resolution, expiration/grace/refund/verification, completion, stream updates, refresh races and failure recovery using decoded CustomerInfo and fake services. `FrameworkTests/ProPaywallStateTests.swift` tests dashboard variable mapping; `TFMTests/ProAccessTests.swift` tests gate semantics. There is no current `ProOfferPresentationTests`, `ProPaywallPresentationTests`, `TFMTests/ProPaywallRenderingTests` or `TFITests/ProPaywallRenderingTests` to validate remote paywall rendering. Check both native remote paywalls visually with live Sandbox metadata and dynamic type; unit and fixture tests do not cover a real SDK purchase, restore or the dashboard layout.
+3. Check final localized **storefront imagery** separately from the paywall. The parent screenshot runner supports and defaults to all seven locale keys: `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, and `fr`; `locales` options or `TERMIND_MAC_SCREENSHOT_LOCALES` / `TERMIND_SCREENSHOT_LOCALES` can narrow the selection. It sets test language, region and Apple locale for each capture. This is capture-tool coverage, not proof of localized remote paywalls or final exported boards. Initialize the independent website/assets checkout with `git submodule update --init com.akinokaede.termind`, then read its current asset documentation and delivery contract and inspect the actual localized files. The checkout available for this repair is empty, so no current board count, filenames, final canvas dimensions or image profiles are verified here. Establish the release inventory from the inspected checkout; verify locale coverage, filenames, canvas sizes, opacity and embedded RGB/sRGB profiles against its current delivery contract and intended uploads. Review language, composition, platform promises and offer claims against the native app and current App Store requirements, then confirm acceptance for the intended App Store upload slots. Parent screenshot-tool dimensions describe native capture inputs—not proof of final board dimensions or upload acceptance—and captures/device frames are not final storefront artwork. See [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) for checkout inspection, capture/framing, composition/export review and SSH-first publication; do not substitute a historical inventory for that release review.
 4. Keep evidence separate: the StoreKit fixture verifies catalog *shape*; resolver tests verify local policy; signed-build checks verify credentials/capabilities; Sandbox and dashboard checks verify actual product delivery, eligibility, purchase, restore, legal copy, accessibility and Family Sharing. Coordinate changed app strings, website claims and imagery with remote paywall copy without silently changing product IDs or entitlement mapping.

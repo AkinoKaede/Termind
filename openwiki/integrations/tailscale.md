@@ -1,6 +1,6 @@
 ---
 type: integration
-title: Tailscale groups, embedded nodes, and SSH
+title: Embedded Tailscale Integration
 description: Group-bound embedded Tailscale enrollment, managed peer identity, ordinary and Tailscale SSH routing, sync boundaries, profile cleanup, and focused regression tests.
 tags: [tailscale, ssh, enrollment, sync, lifecycle]
 sources:
@@ -48,15 +48,24 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "pi", at: "2026-10-06T20:56:45.458Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T20:56:45.458Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Tailscale groups, embedded nodes, and SSH
+# Embedded Tailscale Integration
 
 Termind runs an embedded userspace Tailscale node through `libtailscale-spm` and `TailscaleKit`; it does not require the system Tailscale VPN or daemon. Each enrolled Vault group has its own device-local profile and node. The app owns that lifetime through `TailscaleModel`, while SSH, SFTP, Metrics and Assistant acquire group-bound network capabilities. This guide is the starting point for Tailscale changes; use [SSH session lifecycle](../workflows/ssh-session-lifecycle.md) for general transport ownership and [Cloud Sync](../workflows/settings-and-cloud-sync.md) for replication mechanics.
+
+## Dependency ownership and safe updates
+
+The product build and maintenance checkout are separate boundaries:
+
+- **Built dependency:** [the Xcode project](../../Termind.xcodeproj/project.pbxproj) assigns the remote `TailscaleKit` product to `TermindRemoteInfrastructure`, from `https://github.com/AkinoKaede/libtailscale-spm.git`. Its `upToNextMinorVersion` requirement has minimum `1.0.3` (the `1.0.x` range, below `1.1.0`). [Package.resolved](../../Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) currently locks `1.0.3` at revision `b58ed45fb22e53b472ccf6febde1f4a3ab08e295`.
+- **Maintenance checkout:** [.gitmodules](../../.gitmodules) also declares `libtailscale-spm/` from the same repository, tracking `main`. That gitlink is not the package product reference used by the Xcode target. Updating or initializing it alone does not change the remote package requirement or resolved revision used for the product build.
+
+For a dependency update, review both the Xcode requirement and lockfile rather than inferring the shipped package version from the maintenance checkout. Keep native API adaptation at `LibTailscaleNodeSession`; do not use a package bump as a reason to rewrite group enrollment or routing semantics. For module ownership, follow [Module Map](../architecture/module-map.md); for SSH/SFTP/Metrics and forwarding relationships, follow [Remote Services and Forwarding](../concepts/remote-services-and-forwarding.md). Use [Build, Test, and Release](../operations/build-test-and-release.md) for resolved-only validation, with the focused suites below and live enrollment checks when native behavior changes.
 
 ## Owners and state boundaries
 
@@ -102,6 +111,8 @@ sequenceDiagram
     Model->>Local: activate profile and cache
     Model-->>Editor: publish active node and saved group
 ```
+
+The editor keeps enrollment pending until explicit Save activates the local profile after the public group is saved.
 
 Logout of an already saved enrollment is an editor draft until Save. Cancelling keeps the original connection. Saving logout ends only that local enrollment and keeps the public Tailnet binding unless Tailscale was also disabled. Logout of an unsaved candidate cancels immediately. The deferred operation carries the original profile ID so it cannot log out a replacement enrollment created by another editor.
 

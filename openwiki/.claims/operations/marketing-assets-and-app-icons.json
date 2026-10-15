@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:248e7f369c99e774ab2d5d0b4f59cb5e2b5f1f1a2d70e415f762d7d5bd07a871",
+  "pageVersion": "sha256:d16153a0dfd4f16525b2dd1dc144e810c1297e79701f592c39758b48a321c76d",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://Scripts/Tests/test_screenshots.rb",
-          "version": "repo-file-v1:sha256:c7e05ca3248b1a0366d3b2436cb87f623cd4399ee2922f31443ada9eef67af1f"
+          "version": "repo-file-v1:sha256:5693b786be48a95e8f4839993704da02b5283ac02ec361177fbb08728b3ca0c3"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L261-L287",
-          "version": "repo-lines-v1:sha256:14ed1e3b0dff4f4f8b7a882d4096a2e65ff4d575ded1a9c6f02772798efb9a3f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYTg4ODg3OTdhY2ZkN2EzZmFjYjUyNjMzMTBkMWE2NTE5Zjc4MjQyYTZjZTRlNDVkMDVkNzY0OTZmZjA4MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L271-L299",
+          "version": "repo-lines-v1:sha256:f35d86f61438a6907662a84e8f53c93b59b7512b69fdf251479d0d079b68b831:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYTg4ODg3OTdhY2ZkN2EzZmFjYjUyNjMzMTBkMWE2NTE5Zjc4MjQyYTZjZTRlNDVkMDVkNzY0OTZmZjA4MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
         },
         {
           "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L112-L137",
@@ -22,15 +22,19 @@
     },
     {
       "id": "claim_8823c677227344a8b3988d86f78b99d1",
-      "statement": "The ios screenshots scan lane builds once and runs MobileScreenshotTests serially per selected device/locale on exact iOS/iPadOS 27 simulators. It validates the complete expected scene set before promotion; iPad-only selections require no iPhone simulator.",
+      "statement": "The ios screenshot lane builds once and runs MobileScreenshotTests serially per selected exact iOS/iPadOS 27 device and locale, validates the complete scene set before promotion, and needs no iPhone for iPad-only selections. Its seven locales en, zh-Hans, zh-Hant, ja, ko, de and fr map to US/en_US, CN/zh_CN, TW/zh_TW, JP/ja_JP, KR/ko_KR, DE/de_DE and FR/fr_FR with lowercase output directories and LC_NUMERIC=C.",
       "evidence": [
         {
-          "resource": "repo://Scripts/Tests/test_screenshots.rb",
-          "version": "repo-file-v1:sha256:c7e05ca3248b1a0366d3b2436cb87f623cd4399ee2922f31443ada9eef67af1f"
+          "resource": "repo://Scripts/Tests/test_screenshots.rb#L96-L120",
+          "version": "repo-lines-v1:sha256:be83dad1ef43b44c773db758b7384c2b9a76a28679105a7fcf95e8b0313bdccd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5ZjYxNjIwNzZmNjIxZTA1NzQ3NmExNjQxYzRmY2U3NGJlY2NjODRiMDllMGYzZDdjY2YxZGM5YjNmYTk0OWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzY2M2ZjgzMDI5MjYwYTQ4MWJiYmI4MTcxZjM3ODkwOWIyMWE3NDk0NTQzZjc2NDg4MDc1MTgyYmZhMmI1YWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzMDdiY2IzM2M3YWZhNTExMjk0ZWYzYzMyZDMzZTJkZmQ0ZWNmZWM3N2RmMmM1Y2JhM2M1OWVmMDgxNTFjNTYifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:e9af6d48cf4753657d0f287ed84c47b829a1641c513c94d212988fce28a8328f"
+          "resource": "repo://fastlane/lib/screenshots.rb#L140-L155",
+          "version": "repo-lines-v1:sha256:12e79abd3793c1ceb0346a0557d3926b4602eec136b1c90cf39cdcb54db5f0f1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NmY5MzY2ZDk0Yzc2MTcwYmY0YmI2ZmI0NGViMmZjMzE1ZjMyOGJjYTJhMDFlNjBlMzg2MjdkOWJhMWQ2MjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiMTc1OTVkZDE2YjcxZTNjYjk1MGMxOGE1NWJhNjYwYzdlYTI0OTYyYWZiNjMxYmYzOWU3MWUxNjk3MDVlNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwMzA2MzMzYmM0YTA3NjhiMjczMzk1OTIwMmE0N2Y0YzkwMzIzYThkYWNiZTgzMTM3MWVhMDYyODk2NGQzYTQifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L25-L28",
+          "version": "repo-lines-v1:sha256:003e01895fd3351e64f5d6ba965b3d072fe43c05cb8c3a5bb6ba2d9f520bdef2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWE1ZDc1NTYxOGUwMWE1NjllM2Y4MjE2ZDI3OWYyYmUzMDQ3NDllYzU2ODY4MGU2M2NkNTEyYmFlNTg3NzRiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2NmMjM0ZjI2N2QyZGM0MWI5NjZlMTA2ZDY0YjEwMjdlODAwMzFmNjI4NzVjMDEzMDAxYzA1ZTQ1ZmRlMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGVjOTNkMDU5Y2Q5Njc2Njg1MmRhZTkzMDA2N2M5ZDZhNWQxNTMyNjU3Mzc5Y2E0MzQ5MzcwMTQxMjFkOTkzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThlZDIyYmJiYmYyOGEyNzc3ZmViNmQzNzBhZDU2ZTdjZTZmNGYyNDJjM2VjZjNiNGJjMDQ2ZjVkZDRlYWEyZSJ9"
         }
       ]
     },
@@ -43,15 +47,15 @@
           "version": "repo-file-v1:sha256:1f0a24d58e076da5cc7f994e66ea33640a58a1ca3f3ebcb8c0343fccdc629b34"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L186-L234",
+          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L348-L380",
+          "resource": "repo://fastlane/lib/screenshots.rb#L353-L385",
           "version": "repo-lines-v1:sha256:984eba25874698e6bc29268e0d3faae876e01ace0a1c8bb4026d0eb84acec884:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNGIzN2E0ZGNiMzMzNzM1OGIxZDRlY2QzYzY2YmQ0N2Q1YjUyNzUxOTk2NjQ0YTk1ZTc4ZjczOTJlZmVhMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzMyZmU2NjdiYzUxYWM0YTUxYmEwZWZlNzM0NDQxYzkwZGVmNTVjNjBhMjZkN2RiMjc1ZWNiYmNmNDJmMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMmExZTBhN2RiYjM0MmY0YjAwNTVhMzQyMWU1OTVjN2RjNmI0Y2M3MjhhMTFjMjczZGQyZjhlOGNkZWQ2ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L80-L101",
+          "resource": "repo://fastlane/lib/screenshots.rb#L83-L104",
           "version": "repo-lines-v1:sha256:869a88814840a1f097f123677ce2378d0f66cd0cbaa882c3670c67269f48ed5e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwNWU5NDFjNjkzMzI2M2MxNDNiODYzNWQ5M2Q5YjM0ZGY2ZjVkYmNkZTk4Mjk1OWZjMTlhMDJlMWMxYTliMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1OGFhZDcxNjQ1MGY4MGMwNmIwZTJmOWU3M2JiNDNiZjcyNTI2OWUxYmM0N2U5NjkyNjYzOTAyZmU1MDMwYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxZThjMTc0ZDk1YTZmOTExODU1NDRhNDUyN2FhYWZlMmNkZjgzODY2MGM0ODVjZGJiYmE3MzZiYzEyNTMxMDYifQ"
         }
       ]
@@ -75,19 +79,19 @@
       "statement": "The Xcode project selects `AppIcon` as the compiled asset-catalog icon name for the application targets.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2027-L2027",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2030-L2030",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2339-L2339",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2342-L2342",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2589-L2589",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2592-L2592",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2627-L2627",
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2630-L2630",
           "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         }
       ]
@@ -101,7 +105,7 @@
           "version": "repo-lines-v1:sha256:56927cb5b4169dbff730aa480d3a85bbf7fca4d7ec611e33d7412b8d38b7db5d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4MzMyZmU2NjdiYzUxYWM0YTUxYmEwZWZlNzM0NDQxYzkwZGVmNTVjNjBhMjZkN2RiMjc1ZWNiYmNmNDJmMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3OGU5MmFhZjQ2ZTY3MWYzM2IwY2ZlYTA0M2ZiMjJmZGQwZmQxZWY0ZjUwZjAwZWZiODgwZTk4ODgzODFjYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwMjNmM2JmOGQ4NDFkZDE5YzZmYjRkYzY1ZDM4ZTg2Mjk1ZjI3MmY3Y2NkODg0NWZiMzA5ZWFhM2ZkMzc2ZWEifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L113-L129",
+          "resource": "repo://fastlane/lib/screenshots.rb#L116-L132",
           "version": "repo-lines-v1:sha256:d7e8c25a31371ad6d2cb033937923b51e5010abbb9a9886434d9ae3b710396f5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmYTE5MWQ2ZDAzMWZmNTIwNzRkZDExNjRkZDJmM2I1ZjcyMzg0NWMxNjg3OThjY2VlMTMwNGJmNDczMmM2YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhZDk1YjM2YWIzMWUwNTkzODAxOGJmY2Y0ZTU5YWFkNGFkODAxNzliZjYzNzI4YmUzMzQxNmVhNjk2YTJmZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1NTYzZDczMGY1OGNiMDJlOGNkMWY5YzFmZGQ4MDQ5OTJlNDk2ZjA3ZmRmZDNhNGNmMDkxYjliZWZlYWZhZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3NmY4YTRlZjNhNjA0MmMzNWJlMDJkYzM5ODI2NGRkMTEzNzVjYzZlNjU3YTQ3YjMxNDkxNmI0ODliMzM3MjMifQ"
         }
       ]
@@ -111,11 +115,11 @@
       "statement": "Mobile capture fixes status to 9:41, 100% battery while discharging, three Wi-Fi bars and four cellular bars; cleanup clears the override after success or failure.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L267-L276",
+          "resource": "repo://fastlane/lib/screenshots.rb#L272-L281",
           "version": "repo-lines-v1:sha256:c1704df1941ca448c0c9d7fc8dd5eb5a7ecb82acf5566438fd6dcb04f420f4f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4ZTAwMDM5NjRiODk5MjM1ZmY1NGViZTU2M2RiY2VjODk0MDM0MGI1ZDRjZWNjZTI4YzhiZmIxMjhlMmEyMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4YWNmNzZjNTk5YjI3NTA3YmQxZWEzYWRjNTExMTVlYmM4MDI4MDViZDE3MDhmNDJmODEyNGE5YTM1NmM0ODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1ODg3NzRmMmFlOTg4NjJhNDNlZTM0ZTU2ZTdlYzJiMjE3MmVjNDRlNGIzYWE3ZDdhMzRjMWVkZTUxMmI2MmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1NDVlODViYTEwOGQ1N2JmNmE3MTkyYjUzNDM5MzQyNTAwN2VlZGFiYzZiMmVhMDc4MWVmYTJlMGI4YWVlZWEifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L311-L319",
+          "resource": "repo://fastlane/lib/screenshots.rb#L316-L324",
           "version": "repo-lines-v1:sha256:02e968669655014a5198908854945a8bd787dc603d70e1672cd06eb2a74172f2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzZlZDMxMDhmNjE0NTIwYmQ5NTNkNmUzMDIwNDI3NmFmYmMxNzI2NzE5NTNiYjRiNTJhZTIyNzQ3Mjk2NTk0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzc5ODExYzVmYmUyNWMzZDRlNWYzZDFmZDM1YWI5ZGE2YmNmOGE2OGM1ZWRmOWQ2YmE5N2Y2ODY4NmMzOTY4MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTgxZGQ0MDBhZGM4Y2Q3NTYzMWRlMjExOTJjMTJlYjc3MmQxOTcxZTcyNzczYmI2ZTk0OGNlMDcwMTljNjBlMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjgzNWQxOGQyM2RhOWUxYjNiNTQzYjVlNzhkMTEzMTdiNWI4ZmVlNGUxZDFhNmQxN2Y4N2MzZmJlZTZjYzdkNiJ9"
         }
       ]
@@ -125,44 +129,44 @@
       "statement": "Mac Workspace keeps Navigator, two equal-height terminals in the left half and a full-height SFTP browser on the right. The top-left terminal is focused and only nginx.conf is selected in an eleven-entry deterministic directory without a live client.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/ScreenshotDemo.swift#L167-L244",
-          "version": "repo-lines-v1:sha256:b8862979615aa500a57ba2201d0cb125e6c5213a465cbcac5a89966fb6be7c43:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzZTM4ZjBmNjFhMDRkNDJhODQ2ZjYzODVhYzBkZGFkZTI0MzhmOGViMDIxOGRmNjJmNzJiYTc1NTM2ODE0YjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2Q5MGYxYzQ1NGQ1YjQ4YmI1N2U2ODRkN2U0YzVlNDgzNDJmY2JkZTI2NDIzYTA3OWE4NjFkNmQ5NDQwMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzZGEzMTVlN2EyOTJkMjIwZGY1NmVjZWYzZGI1OWQ4NzQ3ZTI0MjA5ODliM2FjYzM3NDk2NWRhYTcyOGYzZTkifQ"
+          "resource": "repo://TFM/App/ScreenshotDemo.swift#L173-L258",
+          "version": "repo-lines-v1:sha256:fa179b6a8027bd5436183f279b1fc38a89210f787da97c42fda16cd8c51b5242:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzZTM4ZjBmNjFhMDRkNDJhODQ2ZjYzODVhYzBkZGFkZTI0MzhmOGViMDIxOGRmNjJmNzJiYTc1NTM2ODE0YjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5M2Q5MGYxYzQ1NGQ1YjQ4YmI1N2U2ODRkN2U0YzVlNDgzNDJmY2JkZTI2NDIzYTA3OWE4NjFkNmQ5NDQwMTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzZGEzMTVlN2EyOTJkMjIwZGY1NmVjZWYzZGI1OWQ4NzQ3ZTI0MjA5ODliM2FjYzM3NDk2NWRhYTcyOGYzZTkifQ"
         },
         {
-          "resource": "repo://TFMTests/Screenshots/ScreenshotDemoTests.swift#L150-L198",
+          "resource": "repo://TFMTests/Screenshots/ScreenshotDemoTests.swift#L155-L203",
           "version": "repo-lines-v1:sha256:0575553a0fe99e6602c11029c7b908cb5885acf91bba39a9cd2cd2c79c4a154f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjMjY1ODU5ZTQ3YmIxNTRmY2ZiZmMwYzYyODcxNjI2MDZiMGVkOWEzNDQ1MGZlMTY5NWIzZjM0OTUzNDRiM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMjk2NmU4NjJiNDFjODhhMDFmYTJhMjI0YWQzYzNjNmRhNDg2YTIwM2M4YjY4MmEzNWRkYzU1OTYxOTcxNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyZDllNmY2ZWFlNGViMjJjMDFlMjk4NzAwYzhjZTExY2VhNTczZTdiMmFlZGJhOTFkOGQ3OWE1OGY2ZGFlMGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1ZmQwNzAwM2FjNmE5MTQ1YjRjNWEzMDI4MjRjNGQ5Y2ZhMWRkYTdkNGViYzM4YmRhZjgzZDFjZDlhZmY1MGYifQ"
         }
       ]
     },
     {
       "id": "claim_3b419be6f956435d8a5cb390c6a91e79",
-      "statement": "MobileScreenshotTests is serialized and opt-in under TERMIND_SCREENSHOTS=1; the lane defaults to five scenes on iPhone and iPad in four locales, with explicit selectors overriding environment defaults.",
+      "statement": "MobileScreenshotTests is serialized and opt-in under TERMIND_SCREENSHOTS=1; the lane defaults to five scenes on iPhone and iPad across seven locales (70 captures), while Mac defaults to Workspace across seven locales. Explicit lane selectors override environment defaults.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:3a5b09f7b3710a8e6ffff321fc84b637aabb702cd11ac555754a96aad5b6abab"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L13-L36",
+          "version": "repo-lines-v1:sha256:5bb0e2c2b002c5f495adfa2ddd8cb560d3d9d4dbf215176bff562bf7bdd6e82a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMmMwNGZkMWI0NTc5MGI4N2E2ODZiZDZiYTY1OTQ1ZDI4NjA3Y2RlMzVjYjJjMDBlMDE1NTE0MThlY2E3ZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NTdmYmI1NzM0NDI2MTFlZTUxM2NiZjY1ZjAyYTJlM2ZlMzFkMWM2MWJkNGJlZmQ3NjVmZGU0NjE3ODU4YmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjYmU2ZmRmMWQ0MTI5NWY2NTAyYmE4MWM1ZDJiN2ZlN2Q5ZmEwMWZlNTQ1ZDdlNmEyYWJjYzliZTMyNGI4YjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMGM2MmUxODc1OGZhZTE2ODEyMjYyMDdkODUwYzNmNGQxZjViOTE3NGVmOTMyNjJkZWVjMGFiMmI0YjllYjAifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:e9af6d48cf4753657d0f287ed84c47b829a1641c513c94d212988fce28a8328f"
+          "resource": "repo://fastlane/lib/screenshots.rb#L25-L65",
+          "version": "repo-lines-v1:sha256:953b7353dae2be64059b18f83e216607763ff8c5cccf49ee9949be7cc1d38e00:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNWQ3NTU2MThlMDFhNTY5ZTNmODIxNmQyNzlmMmJlMzA0NzQ5ZWM1Njg2ODBlNjNjZDUxMmJhZTU4Nzc0YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2NjZiNDdhZjNjNmUwODc4Njc5Y2FiNzhmNDBiMGZmNjExMzg2M2NmNGYxZjg0MzNjMWYxY2YxMDdhYmRkOTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzkzZDA1OWNkOTY3NjY4NTJkYWU5MzAwNjdjOWQ2YTVkMTUzMjY1NzM3OWNhNDM0OTM3MDE0MTIxZDk5M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMmQ3NWYwYTJjNTFlZGU5OGMyNjViZGJjYTNjNmQyYzYwNDFjMjg3OTAwMzRlMDY0YWMyYzliYzAzMmMyNmIifQ"
         }
       ]
     },
     {
       "id": "claim_2d41a9874bf4410e9b66cd80ddcc449b",
-      "statement": "Mobile system capture handshakes feature/device/locale/token/capture ID from a native key-window fixture. The runner rediscovers reinstalled containers, rejects stale/mismatched/duplicate requests and promotes only a successful dimension-validated complete scene set; missing acknowledgment times out the test.",
+      "statement": "Mobile system capture handshakes feature/device/locale/token/capture ID from a native key-window fixture. The runner rediscovers reinstalled containers, ignores stale capture IDs and seen tokens, fails mismatched fresh requests or duplicate features, validates native dimensions before acknowledgment and promotes only after successful scan and complete scene-set validation; missing acknowledgment times out the test.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L212-L289",
-          "version": "repo-lines-v1:sha256:75ff26eb9a3bd8763f6361d10c07b945047fdddcc76cb947ddbe23c5fa374ece:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllZGU5ODFmYzdhMjljMDI1NzE1ZmRhOWQzOWJmZDZiNTI1NWQyNGE0ZjlmZGE1NjZiZDA0N2JjYWY3NzY0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2ZTFmNzk1NjdhYzRjM2NlZTE5NWFhMWI0MDIzMWYyZDVlZTJmYjNjYTdkMmE2ZDE0YmIyMTBmZjYyM2IxMzAifQ"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L222-L299",
+          "version": "repo-lines-v1:sha256:7567bb017c3ee1aaf337d68c0e12c409f593ee3c628621fd48174039f2e630d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllZGU5ODFmYzdhMjljMDI1NzE1ZmRhOWQzOWJmZDZiNTI1NWQyNGE0ZjlmZGE1NjZiZDA0N2JjYWY3NzY0Y2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2RjMjZlZWZlZTYwZDAyMzBhMGJlMmQ2YjdlMGY1NmIxMzYyY2RkODdkMWNkZjUxZjAwY2I2ZTg3YjI0NjcifQ"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L320-L344",
-          "version": "repo-lines-v1:sha256:b9d201869c5071782f97d534f3e05b687f61b6aee43141cad89ed62471328f8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2Y2I4NWZmMTAwMDhjYzRkYWE5NDBkMjNhNmJkZDI4ZmM3NTQ1MjI5OTM0MzQzZGQ3OTAzODFkMjllNjdlMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkN2E4ZDA1MDQ5YWFkNmEzNDUxYTQzYjYzZWYwOWVhMTZjOGQyNDE5NGM0Y2NjYzJlYzE2Y2JmYmJjOWE2N2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0MGFkOGVkOTkxMjkxMDhhZjkyNjNmMzhhYTk1NjI3ZWNhN2M4YjBkZDE4NmU1NDVlMjY1ODg4MTNjZjlkNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyZDQwMWRhOWM2MDc5OTI4ODY3Njk1MjE1YWJmZTY2Mzg2ZmJlMjE4YThhNjQxOTFkNWZmMDgzZDI4NGI2MWUifQ"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L332-L353",
+          "version": "repo-lines-v1:sha256:76b6f4e0736dcf39deba30c4b366ca88f1290d13e694815f052c2fe1eb69e815:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2Y2I4NWZmMTAwMDhjYzRkYWE5NDBkMjNhNmJkZDI4ZmM3NTQ1MjI5OTM0MzQzZGQ3OTAzODFkMjllNjdlMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyNTc3ZWYwMjM5YTNhZWRkMTFlZTkwMmM0MGI4MDE2ZmMzYjY2MjAzYjk3ZTNlZjhhOTBmOGI0NTc5YjlhMjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0MGFkOGVkOTkxMjkxMDhhZjkyNjNmMzhhYTk1NjI3ZWNhN2M4YjBkZDE4NmU1NDVlMjY1ODg4MTNjZjlkNzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxN2M4ZTRjZTVmMWM3MDQwMTcyZWQ2ZjE3NzRlNjhlZTI3Mzc3MGVjZWIwNWVkMWUyZGY0NWVmYTc2ZmQzNGMifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L279-L310",
-          "version": "repo-lines-v1:sha256:78bc38d3e03c6e6428deea94c7d7a3c96b2cd8112ee76f6c96ebb825fcd62158:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMzgxM2M0NjY3NDZkN2QxNjI1MTk3OGY1ZTMwOWE4Yjg4ZjkxMjlkMTYyOTM3NDc5MTAzODdhMGFlN2U4NDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzNTlkNmZiOGI5ZTYxYTE1YzhlODk5Yzc1YmFmMTZkNmY5OGYzNTA4NmU3YmQzNTRjOGYzZDM2MDgxMjc1ZTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzNzljY2YwZTc2YzI5Y2M5ZGIzNzcyZjIyYjE2MjBkYzY0YTA3ZjI4MjViN2NhNGQ1ZGYwNmVjYThjOWUyZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiYzhlNTJhYWQwOTg2NjYzYmJhNmU2Zjg2Y2ZkNWJmZGUyZWQyN2U5OWJlOTI0MTYzOWM1MzBkYzgxZTNjOTQifQ"
+          "resource": "repo://fastlane/lib/screenshots.rb#L274-L323",
+          "version": "repo-lines-v1:sha256:acd0f6869f2c23a4834cd6e739125118ff14cf273f241ce9c8d362d81b986182:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NjEzZGExYWI2N2E0NjYxNGI1OTc3Nzk3ZDIxZmJlMmFjNzM2NDM4OTFiZGRjY2Y2N2U1N2I4NzA0ODI3YjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU0YzkwMGM4MjRjODhiNTMwYWE2MmQ0NTliNTQ2Y2JlOGJkMGYwNzVlYzU1ZmVmZmIzZjkyNmYyOWZiNWU4ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5ZTI2NDM1NThkNzhhZTA0MzMzNjk4NTlmNmYwOTllNGYzZGQzYjZlNTFmNDBlYWIzZWI2YTk2ZTNkMGY5YmEifQ"
         }
       ]
     },
@@ -171,7 +175,7 @@
       "statement": "Without system capture, direct MobileScreenshotTests writes rendered PNGs to Documents/screenshots/<feature>/<device>-<locale>.png inside the host, not the public capture tree.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L285-L310",
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L297-L322",
           "version": "repo-lines-v1:sha256:5fdf85e31fc8305715a3ddbe42d72861546ee29d8e3ab699fb621e9315d4ba65:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyNmQyNzZlMDA4YjFlZTNkMGEwNzBmMTk1YTY4NmVhYzVjOWUzNmNmN2I1ZGY1OTBjZTM4OWNiZjhhMzBhYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2YzFiMTVjYmZmM2Q0NDcyMzZmMGU5MDJhOWRmYmYzNzk5MzYxYjJmN2NlMjM3OGJlZTQyMDE3N2ViM2Y0ZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxZGQwNTg3N2Q2MTY2ZWIxZWUzNWFlN2EzZDlhMDExODgxMTZkNjM4ZjBkMzA2MzIzNTIzNzFiOWVkYTI1NjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyZjczNDM0YTUyNTZlYjgwNGQwMDE2ZmE2ZTJjMTFjMmU0MzhjMDhiNjhiNGM0MjM2YzQ0ZDdjZTAyMjJmYWEifQ"
         }
       ]
@@ -240,15 +244,15 @@
       "evidence": [
         {
           "resource": "repo://Scripts/run-screenshot-demo.sh",
-          "version": "repo-file-v1:sha256:6cc22bb5688d71f782e9dbff23f649c51c84f0bb04151864de9a9aafd0e0ddbf"
+          "version": "repo-file-v1:sha256:7804acdc3063c484bfd3a3dcba697d17afb1be0ed39940215a01e6dbdb61aa55"
         },
         {
           "resource": "repo://TFM/App/ScreenshotDemo.swift",
-          "version": "repo-file-v1:sha256:76d30eae3208f9942da5e83ccb21cdd7934d39884599535143d3ce03836fb943"
+          "version": "repo-file-v1:sha256:77471f17666029c0ee816bc57619990f31c75cc9c521f4fab644dcf54db47179"
         },
         {
           "resource": "repo://fastlane/lib/screenshots.rb",
-          "version": "repo-file-v1:sha256:e9af6d48cf4753657d0f287ed84c47b829a1641c513c94d212988fce28a8328f"
+          "version": "repo-file-v1:sha256:ecb21e70186fe72dce5d4fe690d31a76732af753f5c511784756b5e098de56b9"
         }
       ]
     },
@@ -286,15 +290,11 @@
     },
     {
       "id": "claim_a19e581832c74496bd1c7a3cbffd63d9",
-      "statement": "MacScreenshotTests emits TERMIND_MAC_SCREENSHOT_READY with scene, locale, window number, token, focus and pixel dimensions separately from the demo diagnostic. The runner validates it, captures the window and waits for scan success before dimension checks, backup and promotion.",
+      "statement": "MacScreenshotTests emits TERMIND_MAC_SCREENSHOT_READY with scene, locale, window number, token, focus and pixel dimensions separately from the demo diagnostic. The runner captures that window and waits for scan success before validation and promotion; scan injects -statusBar.expanded YES, not a visibility override.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/Screenshots/MacScreenshotTests.swift#L117-L139",
-          "version": "repo-lines-v1:sha256:bba1c6ae01682f0ec6100bd236829d40118262e2aee394cdf8174c33fd03cd21:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZmU0MmMwMzU1ZTRiYzk2ZDIxMGUyMmM4ZGVjYjYwNTc0YTk3NjhjZTA4ZGMxMGZjYzgxMzIyMjI3MmY4NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjZDkxNzI0NTA3NmY5ZDYxOTA1ZjkxNDVkYWQ0ZDFlOTM5NWM1OGExODQ4ODkyMDgxYzg4MWIxMmQ3YzVhNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhMzQ5YmJkMWEyMTEwNGYwNTFlMzRiMmM4YTllNzBjYzdmYmI1MGJjMTlhNjc3ODFmMmExNDBjMzg2ZDk0MzgifQ"
-        },
-        {
-          "resource": "repo://fastlane/lib/screenshots.rb#L186-L234",
-          "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
+          "resource": "repo://fastlane/lib/screenshots.rb#L191-L199",
+          "version": "repo-lines-v1:sha256:d01222326a57bc43960c05a4a28c306576f01c09f181a6258c3ecd1dfff651e1:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTU2ZmZjMGNmMjY2ZWZjMjZlYjY4ZmU1MzFiODUyYjBkMGYxMGNkYmNlMDA4NmU4ZDhiMWFiNTg3Y2M3ZDEzMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTU3MWM0N2Y0Zjc3YTZhMDhlM2RlZjZhNGI3MTU2MjcwZGM4MTcwZjNmNjNiYWM3YmRmN2U2NjliYzU5ZmE3NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWU3MDU3MTkwN2FmM2JkZGI0NTg1ZjM1OGRlOGUxNjZhNmU5MWZiZDZiYTI0ZmU3N2QxMDk4NWMzZDAxNTFiMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWRjYmI1ZDY3OWNkMTc5YzUyM2IxOWY2NmIyMGMxYzQwMDRiMjkyN2RhYmNlNjZhOTdmMjU1YTQ1MDM4YTdkZCJ9"
         }
       ]
     },
@@ -375,11 +375,11 @@
           "version": "repo-lines-v1:sha256:03e831be077ecede43ef47df1f8eb7a52135e07630bb9dfd0c0a3f80e0a0eea8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGY3YjI0NjJhNGU4MTcyODNiM2ExYzA0ZjM4Y2Y0YTE4ZmQ4MWMxMTMzMWExODZlNWZiNWFmNzI3MDcxMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxNWYzMzA0NzI2M2U4MTI0NGViNTM4MzZlM2I1MWU4MDRlY2JkNjU4ZTNlYjRlMTU2N2M0NGRiYzBlNGViMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmNmQ1ZThhMTM2NGVmM2Q5NzllNTRiZmU1MWVmMTM4NjM5YzBmY2RjMWY2ZDY5NDQ2NDNhNWVhMjBmYTQxOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMGNjYmE2ZDMwYWUwM2I2NDFkMDc0YWMzMDlkOGI4YTM2MmMwYTU5YTkwMTJmZmY0YTNlNmUwMjFhZGIzYTMifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L18-L25",
-          "version": "repo-lines-v1:sha256:3da672424d3a93bba9af90e3a7cf2dc87a6e5c34cee218b8d2610a5d956a3fe0:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTM1YTM5MTYyNDRhNmFiYjAyYzhjZmJlMWEyMjBlNTEyM2NkNDUwNDBkNmNhNmM2NThiNTczYzA2ZmE4ODUxZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzExY2RjNjdjMTA1YTY2MTllNDg1MmZlZjZmNGJhMjVhMTlkNTNkZjYyOTcyODljYTFkMzg3NGQxZmM0ODc0NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDE3Yjc0ZjAyZjcwMzdiMzVhY2UwNGQ3M2Y1NDM3OWEyOWU2ZDUzNWY4MzExYTYyYzA5YTAzOTI1N2QwOGQzZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThlZDIyYmJiYmYyOGEyNzc3ZmViNmQzNzBhZDU2ZTdjZTZmNGYyNDJjM2VjZjNiNGJjMDQ2ZjVkZDRlYWEyZSJ9"
+          "resource": "repo://fastlane/lib/screenshots.rb#L18-L28",
+          "version": "repo-lines-v1:sha256:ea1cd81eefb8a6be4b741f8ec12ab391fd7840017e17e705bf306bcacad88a11:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzNWEzOTE2MjQ0YTZhYmIwMmM4Y2ZiZTFhMjIwZTUxMjNjZDQ1MDQwZDZjYTZjNjU4YjU3M2MwNmZhODg1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjZjIzNGYyNjdkMmRjNDFiOTY2ZTEwNmQ2NGIxMDI3ZTgwMDMxZjYyODc1YzAxMzAwMWMwNWU0NWZkZTEwMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxN2I3NGYwMmY3MDM3YjM1YWNlMDRkNzNmNTQzNzlhMjllNmQ1MzVmODMxMWE2MmMwOWEwMzkyNTdkMDhkM2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4ZWQyMmJiYmJmMjhhMjc3N2ZlYjZkMzcwYWQ1NmU3Y2U2ZjRmMjQyYzNlY2YzYjRiYzA0NmY1ZGQ0ZWFhMmUifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L80-L83",
+          "resource": "repo://fastlane/lib/screenshots.rb#L83-L86",
           "version": "repo-lines-v1:sha256:14abab0bac0d72e29d2673271e5a26d6ceb2aa9ff21ad6f43192c3ec3e04aa5d:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDA1ZTk0MWM2OTMzMjYzYzE0M2I4NjM1ZDkzZDliMzRkZjZmNWRiY2RlOTgyOTU5ZmMxOWEwMmUxYzFhOWIwZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDdhM2YzNmVhZTQwZDg0ZDk4ZDY2ODE3Y2Q4MjFkYzNiZDE4Y2RjMzZlMjJhOThjZGFlNDhlN2E4MzViMjk0NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTU4YWFkNzE2NDUwZjgwYzA2YjBlMmY5ZTczYmI0M2JmNzI1MjY5ZTFiYzQ3ZTk2OTI2NjM5MDJmZTUwMzBhMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWQ2OGU3NTA0NGNmNjEyMjgyN2RlZjdlNmRmNWVkM2I3ZDIxNDM3ZWYxOGRjMzViNTQyNDQwNzkzMjNmNTJlZCJ9"
         }
       ]
@@ -389,15 +389,15 @@
       "statement": "The capture matrix requires iPhone 18 Pro portrait 1206x2622, iPad M5 landscape 2752x2064, Duo outer portrait 1398x2034 and inner landscape 2853x2007. Duo-only batches default to iOS 27.1 and other batches to 27.0. Exact device model, active Duo display and raw pixels are checked without substitute-device resizing.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L236-L251",
+          "resource": "repo://fastlane/lib/screenshots.rb#L241-L256",
           "version": "repo-lines-v1:sha256:1394fc606a8c53de1d6430c16e0d7b43a23b77718d25e0fe4bf0961e54a56a12:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZWVhZGU4MjBlZDcyZjA2OWE1MTdiZTg0MWUyNmI3Mzc5OWMyNWYwZjY3NjYzZmU1ZDk3OGIyZmI3YTcyMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxMDk0NjFlMjQxODgyOGI4NjU2YzY3NjhkODA3NmZiODcxNGNhYTEwZTljZWYzM2IyMzQ1OTBlM2MzY2I3MmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmNjIyMzI4YjUwYTIzNDhiNDAzMWEzNDY1ZWY2YWRlMDJiZWQ0OThhYWI0ZGE0ZDIyMDEzNjYwYWYzNmE1NmUifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L253-L334",
+          "resource": "repo://fastlane/lib/screenshots.rb#L258-L339",
           "version": "repo-lines-v1:sha256:0ca3ad5211c236380b514f61abe9f359ff0d712d6ffd7a34cfdc1abc11cb8cb0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNWFmZTllZTU3MGRlMDIyNjkxZGU1MmRiMGU5ZjQ5N2E2YTJhM2EzZDEzODJjYTVjY2ZmZjE2YzIyZDIwMjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYzNTBkMTViMzQwODUzYzMzZTAyOTZiNGE4MGMwY2Q1NGYyNzZmNmYyYjE3ZTg0NGZlZGE3YjllZTQ5ZWQyYjMifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L35-L64",
+          "resource": "repo://fastlane/lib/screenshots.rb#L38-L67",
           "version": "repo-lines-v1:sha256:c68e5852997278364fc586ddeb92ca98a0e5cd17747c726e4f914e28380f1ce1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzZTNjZWFkMjgzNWZjODliZjc2N2FhYjc4MzA0YmI1NDgxODliNThmMDM4MmI5YWVjNDk0ZjcwMWM0OTk3NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OGQ1NTkxYjg1Mjc5MjkxZjQ5NzNmYTJjMjM2ZDhkOTNmMTMwMWUyOGE1N2M5MDQ2ZDc4ZjFlZTZhYzU1NzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzNmE4ZWVhMzkzZmY5OTA5MDM1YTg4ZjUwMjI1OGRkYWZkZGVmYTNlMWQ4ZWQ0NWJhM2RhY2YxZjk5NmY2NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkODZhNGVhMjdhZGZjNDY5MmY4MjcyODliZTkwYTEwNmEzMzUxYTViYjk1ZGUxZmM4OGZkMDYzYmUwZmMwZTUifQ"
         }
       ]
@@ -415,7 +415,7 @@
           "version": "repo-lines-v1:sha256:61c694522ea7924078dc4a61127084721c4418d3f63d12e58ce55a83d18913fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGZiNWU1MzkwMzA2ODE0OTcwMGE3NGEyZjE0Mzc5NmIyN2NlZDUwZjc5MzVmNTgwMGYxNTEzMTA5N2YwOWQxZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2M3OGI2ZDc2OTNlYmZmNmU2Yjc5ZjA0MDhhMzdiZTY5YzkwYTNlNDVmZjQzODM1OTA0ODY3ZjNmNzM5NDg3MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmNmMTE5OGE2MmNiMmE3ZjBhOGMzNGYwYzJkNzQyNjU2NDNlMTFhYzJiNDkyNjczMjk3OTZkMmY1MmRjY2VjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWI2MmZhZWZiOGQ4NGQ4YmQxMTBhNjE1NmQ1NmYyZmI2ZGQxZjQyNzg5ZWM4YjdmMWNjMmU5NjNiNjM1OGE0MSJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L186-L234",
+          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         }
       ]
@@ -436,11 +436,15 @@
     },
     {
       "id": "claim_bd1ebe93205343078d549e7890e1344d",
-      "statement": "Default framing selects iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault and Mac Workspace in four locales, totaling 28 jobs. Duo is opt-in and each selected Duo display defaults to all five mobile scenes; this policy does not verify current website consumption.",
+      "statement": "Default framing selects iPhone Assistant/SSH/Vault, iPad Metrics/SFTP/Vault and Mac Workspace in seven locales, totaling 49 jobs. Duo is opt-in and each selected Duo display defaults to all five mobile scenes; this policy does not verify current website consumption.",
       "evidence": [
         {
           "resource": "repo://fastlane/lib/screenshot_frames.rb#L15-L42",
           "version": "repo-lines-v1:sha256:e34f7b11dea1a01c9ca6118c63cb50403d6f90236ce4f7b50d1853fbcd065af9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmIwMTVjOTZkZGQyNjM2NWJjYjgyYjA2YTgzNmZmNWVhZjgzOGIyNzlhNWJmNmMzMmFjY2JmMWY3MDViZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1N2RkZDE4NDQ3NjczZDBhN2YzNjlkNmY5NmI2NjZjNGY3M2M4OGQ2NGY5ZGJlM2NhMjI4MzVjY2Y4ZmY3NTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YjE3MjRjNTRmZmI2MDI0OWU3NWZiMGY4MjVmZWJlOWMzNDhmZmY5NzI2ZjAyZjRkNjM0ZTU4NDZhYjJjNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhNDYxY2U0YzIwZmFhNGNlZjdmNGU5NjJkMmI3NzFlOTkxMzJkYjNiNjY2MzI1OWEwMjQwYjYwYTBhYTkzZWYifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L25-L28",
+          "version": "repo-lines-v1:sha256:003e01895fd3351e64f5d6ba965b3d072fe43c05cb8c3a5bb6ba2d9f520bdef2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWE1ZDc1NTYxOGUwMWE1NjllM2Y4MjE2ZDI3OWYyYmUzMDQ3NDllYzU2ODY4MGU2M2NkNTEyYmFlNTg3NzRiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2NmMjM0ZjI2N2QyZGM0MWI5NjZlMTA2ZDY0YjEwMjdlODAwMzFmNjI4NzVjMDEzMDAxYzA1ZTQ1ZmRlMTAyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGVjOTNkMDU5Y2Q5Njc2Njg1MmRhZTkzMDA2N2M5ZDZhNWQxNTMyNjU3Mzc5Y2E0MzQ5MzcwMTQxMjFkOTkzYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYThlZDIyYmJiYmYyOGEyNzc3ZmViNmQzNzBhZDU2ZTdjZTZmNGYyNDJjM2VjZjNiNGJjMDQ2ZjVkZDRlYWEyZSJ9"
         }
       ]
     },
@@ -471,7 +475,7 @@
       "statement": "Framing derives an enclosed display-aperture mask from the template bezel, removes exterior transparency, rotates masks with landscape templates and applies them only to staged captures; open bezels fail, preventing rectangular screen corners/notches from leaking without changing raw captures.",
       "evidence": [
         {
-          "resource": "repo://Scripts/Tests/test_screenshots.rb#L333-L375",
+          "resource": "repo://Scripts/Tests/test_screenshots.rb#L350-L392",
           "version": "repo-lines-v1:sha256:afe6d092156c7d3c933c7c3eea08843f53698909dbc27254f7883b8c49a89362:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwMjRmYWY5ZjhlZmJmZjZhYjZmMmNiYjY0OTY3MGJlODEzZTNhOTA4ZTVhOGYwNTAxYTk3NmRkYjMwY2Y2MTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4ZmE2MjU0YzlmYjU1Mjg1Yjk5ZTY5MTczNDExNTZhMmMxMDNjZDUwZDE3NDNiZmM0ZjgxYTcxYTFjZDE2YTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmZjdlNTEzNTkxNjYxZjI4NTRjZmYzYWRmNmNjNGI3NWM4ZTEzZjEzMDlkMmZmNmQ2NmQ2YTZhZTQwYTk4OGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NjZmZjEwOGJiZmFjODgxMDFmYzBlOGM0ZmEwODA4MjUzNmU0M2NjNzE0NmEzMDBmZTEzMWI3ZGQ5ZDA4NGUifQ"
         },
         {
@@ -482,29 +486,33 @@
     },
     {
       "id": "claim_14f352453bf84747baba6c65fb7ef647",
-      "statement": "SSH screenshots mount the production workspace shell with in-memory connection services and active scene phase, and require terminal focus plus native software keyboard/accessory. A scoped English ASCII keyboard override is restored afterward while app chrome is localized independently.",
+      "statement": "SSH screenshots mount the production workspace shell with in-memory connection services and active scene phase, and require terminal focus plus native software keyboard/accessory. The scoped ASCII-capable keyboard override prefers English when installed, otherwise a native non-emoji text keyboard, and restores both getters afterward while app chrome is localized independently.",
       "evidence": [
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L104-L173",
-          "version": "repo-lines-v1:sha256:1b7090a04f7866040909d4c4a251ee34f9dc84acb35facc19703fc78670918db:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkNDBmY2JkN2VlYjc0ODMxYmMzMWEzNTc2YzNjOGMyNDQ4YThmMTg1Mzc5YTE1MzY2NTc4NjQ5MGZhMzkyYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyMDQ3MGE0ZjVmODc5YjE5YTllYjlkYzEwYmNkZjg2ZTc3NTAyNDUyYmRhMjBlOTNmNTg0ZWJjNDE0OGFlMDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlMTQxODBlMGE2YTBmZWUyM2NlYjliMmVjYjRiNzczYWM1MjM0ZmUzZDI0ZDJhYzY2NzhkOTY4MmU3MTE2ZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1NzgzMDE2NjI4ZWNkZDgxMGY2NGQ3M2NmZmZjYjkyZjg2NjBmN2Q3YjA4Nzk0OWJiNmUyZjQ2MjBjOWRiZGQifQ"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L112-L184",
+          "version": "repo-lines-v1:sha256:41028cb7a574ec71589825dc07a9f374cf22af7f81aea418ff6c9e784a52e0fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZThkOTZmZDY3OGQ5YTY5NGM0NjNhYWJmZDNiMWUxNjc3YTE0Njk5NjM2ZjMwM2I0OTIzZDkwMGY2Mjc0NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwNmM0YTQzMjYzOTQwZTA4NGJhMWVlYTU1N2U3ZGQyZGU5Y2UxY2UwNGM2MjA5NDZmNGEwZmQyMzllZGYzMWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5NDk0MmJjYzBkNDExMjI0ZDRlNmVhNDU2OTkzNDE0MDc2NjM1YmZkNDViNjlhN2I1ZjFjZmI4MDEyOWM2ZDYifQ"
         },
         {
-          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L257-L283",
-          "version": "repo-lines-v1:sha256:a295b631dc8423cc675f031706444781db13a429a2f28e9cc96470ce54d90d0a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxYTBjOTgyODAxNmMxNzE5NzRkNWU5OWEyMTIwN2ViZjNmMjFmMGI3MDBmNWE0MjY2YzBkNGJlOWQ0YjZiMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzMGUwZjEzMTc0NWY0NjBiNzI3ZWQ4ZjZmNzVlMmYwZjdiNzEyYjMyNzM1ZTllMmQzODg4MGNmNmI4NmNmOTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzZTQ4OGZjZDM4M2UzYmU0ZmFhMTdhM2U5NGQ0YzgwMDc3YjEwZmEzN2RiMWYxNTA1N2E4OGZhYzRiNmM2Y2QifQ"
+          "resource": "repo://TFITests/Screenshots/MobileScreenshotTests.swift#L271-L294",
+          "version": "repo-lines-v1:sha256:b608e5eb69ea601dcf35229448c3d915b185a5fd142a522d9fe689817e06bffe:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYTg4ODg3OTdhY2ZkN2EzZmFjYjUyNjMzMTBkMWE2NTE5Zjc4MjQyYTZjZTRlNDVkMDVkNzY0OTZmZjA4MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2MTRiZTkyZDM0YmI5YjI3NWM5YWY4YzQ3OWU5ZDEyYTg0ZWMzOWM4YWQ1Y2VkNmI5YzQxZDMzMzRlZGY0ZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3NThiNjExNDMzMGE4MjBhOGQzMTZkODk3YjFjYjk2ZGUyZmZjNmRlMWFlMmY3MDQ2YmZiZmVkOTUzZmI5OGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNTQzODRhYzRhNzhmYjlkYjMyNGYzZGJjNWEwMWQ3ZDk2OGY1OTgwNWY3YTNkZDU1ZDJkY2UyYzg0ZmJmNGMifQ"
         }
       ]
     },
     {
       "id": "claim_471380e8fb104029a85fd20d09145878",
-      "statement": "Capture lanes serialize across platforms with a nonblocking lock, isolate logs per run and validate a batch before promotion. Existing capture bytes and SHA-256 hashes are backed up before replacement; later failed batches do not undo earlier successful batches.",
+      "statement": "Capture lanes serialize across platforms with a nonblocking lock and validate each batch before promotion; later failures do not undo earlier batches. Existing selected destination bytes are backed up before replacement with SHA-256 manifest paths relative to the backup run directory. The runner records but does not verify the manifest; its regression test checks exact backup bytes and digest text.",
       "evidence": [
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L348-L374",
-          "version": "repo-lines-v1:sha256:78347d3d7cbdb54b8088a6e5b7252b0bf891449ebb7ed9138d2c2bc7aca32e58:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNGIzN2E0ZGNiMzMzNzM1OGIxZDRlY2QzYzY2YmQ0N2Q1YjUyNzUxOTk2NjQ0YTk1ZTc4ZjczOTJlZmVhMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViMmExZTBhN2RiYjM0MmY0YjAwNTVhMzQyMWU1OTVjN2RjNmI0Y2M3MjhhMTFjMjczZGQyZjhlOGNkZWQ2ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5MGY3YTFlNjgyYjJjYzJhNmYyNmI0YjczOGRkZmYyOGFlYmQyZWE5NTA4NjhkYTIxZTM1ZjFlYzJiNzkyMjQifQ"
+          "resource": "repo://Scripts/Tests/test_screenshots.rb#L144-L156",
+          "version": "repo-lines-v1:sha256:84b90489a8a527af268e9baf05e4022afb7765bb3ecb27ebfbdc2c79b052208a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1MmVjNjZiYWNkNTEwZmQ3YmVkZDIxNmRiNzYxZjQ3YzExMGVjMTkxMjM3N2IxMjgxMDZlNGNiZjNmZDgxNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxNWFiNjM0ODhkNzU0OWE3NGU4MzI5YjIyZGRmN2U0OGU2NDQ0OGI1NzU1YmI3NGJiM2MzODg0ZGVkNjAwOTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyM2IzNDcxNGVmY2IyNzNiMjI5ODcwZDgxMjA0NTM0ZDAwYmI2NWEzMGQ0YjczODc1ZjFjZDFmYjA1ZWY4ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5M2QzOTkyZWZiNGIyMzViYzcxMDRmMWM3Y2Q3MmVhM2E0Nzk0MGZmMzMwZTBmYzdhZDRlYzIzNjYxYThhYjcifQ"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L65-L101",
-          "version": "repo-lines-v1:sha256:730edbc8517e7b8fdbe3ed470d8d5610cdbe66cf703f72cab1096d6d851c32d7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4YWU0YzA5MmZjZGNiZjc2ZTZjYjA2MTI2ZGY5NTdjMmM2MTU0NGExMmI1NDdmYTA5OGIwOTJlMDgyNWY3ODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxZThjMTc0ZDk1YTZmOTExODU1NDRhNDUyN2FhYWZlMmNkZjgzODY2MGM0ODVjZGJiYmE3MzZiYzEyNTMxMDYifQ"
+          "resource": "repo://fastlane/lib/screenshots.rb#L351-L377",
+          "version": "repo-lines-v1:sha256:ca79cac45b22d27fd18a67bd02d25931949331652371bbb6a2871b8139dfa2c7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNzY1ZmI0ZDkxMGU0NDRhNGVmNWUxNWM4NjY2YWM4YzMyMTI2ZDQwM2ZiY2UzYmE2NGViMzNiYTM0YTkyOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0ZDM4OTdhMGY5ZDY5YzlkYjgxYmM5Nzc0MTVlNDBiNzIyYTVkNDRkZGU1YmQ4ZjcyNjQ1MWJhZWQyNDhhNDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjYWI0YWM5MDhhZTM3MWE1MDAwMWRkNjg4YmFhNTEwMjk4NjUyNzVkYWRiMjZhZDY5NGM3NmZiZDI0MDc3ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNzNhOWVjMjNhMTMzMDY5NTcxNmFiYWYyYzliYTFjMTAyOTFkZjE4OTMyZGU4YTIzZmUyYjMxYmJlMzZmOWYifQ"
+        },
+        {
+          "resource": "repo://fastlane/lib/screenshots.rb#L83-L105",
+          "version": "repo-lines-v1:sha256:9c900fa6ee8de3a064ccff13939471da542da9cf6ff967ed2d43b5150dfec89a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwNWU5NDFjNjkzMzI2M2MxNDNiODYzNWQ5M2Q5YjM0ZGY2ZjVkYmNkZTk4Mjk1OWZjMTlhMDJlMWMxYTliMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMjI1Nzk3MWUwZjBjNzUzY2ViYzljYTJiOTg0YzExMDliOTUxMTlmNDRiZTU5NWZjYWJiOGNmMzQwZTBkNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk1OGFhZDcxNjQ1MGY4MGMwNmIwZTJmOWU3M2JiNDNiZjcyNTI2OWUxYmM0N2U5NjkyNjYzOTAyZmU1MDMwYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0Y2IyYTNjMTNmMjM4MGFiOGE3NmUyY2JkNmFhY2EzMTIwN2Y5NTU4OTczMGUwNTJkYzI0NDJlYjkwNTM5NjcifQ"
         }
       ]
     },
@@ -539,7 +547,7 @@
           "version": "repo-lines-v1:sha256:680ee9a88534b0acb1bf34bd0a0bc5c3d532f1de738fe4a204821c9f9482b08f:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTA0OWRjYTMwZWNhZjE5YTRjMjg3OGZlYjRmOTBiYmQ1NzA4ODViZGZiMzJmYzQ0ZjQ1NWFiNTdmMDhkMzZlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGE5YWUxNzM1Mzc0MTgzMTgxOGUyZmNmNzI5NTU5YjA0OTZjMDUxNjQ2YmFjOWQxMDhlNGE3MDA0MGI3ZGZkYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmI5ZmQ1OGUyNWIyMWE3ZmJiZmY1NmNhYTk2Y2U4MTIwZWJlZTllMWZlMzFiYjBhY2NhN2M4ZGI5NWMzMzk0NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVmZDk1ZDllNzc4N2EwOWI3ZjFkYjlkNjNjZTYzMDBiODQyNmQyMDkyNmQzYjg1OTEwZmU3NGQwZTAzMTMzZSJ9"
         },
         {
-          "resource": "repo://fastlane/lib/screenshots.rb#L186-L234",
+          "resource": "repo://fastlane/lib/screenshots.rb#L191-L239",
           "version": "repo-lines-v1:sha256:46facdd8f99686e0dd861218513cf9441c08d3330b8ab932397f50fedc521a56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1NmZmYzBjZjI2NmVmYzI2ZWI2OGZlNTMxYjg1MmIwZDBmMTBjZGJjZTAwODZlOGQ4YjFhYjU4N2NjN2QxMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3OTgxMWM1ZmJlMjVjM2Q0ZTVmM2QxZmQzNWFiOWRhNmJjZjhhNjhjNWVkZjlkNmJhOTdmNjg2ODZjMzk2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllNzA1NzE5MDdhZjNiZGRiNDU4NWYzNThkZThlMTY2YTZlOTFmYmQ2YmEyNGZlNzdkMTA5ODVjM2QwMTUxYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmNjM5MjdjMDU4OTgwZTRmOTA5OWZiMGQ3MzFiMDEzZWJkOWUwMzExYTg4MmZhYWU2M2JlMDQwMDJjZGJiNDAifQ"
         }
       ]
@@ -547,6 +555,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-09T00:05:26.272Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

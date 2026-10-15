@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Platform Runtime and Service Lifetimes
+title: Native Runtime and State Lifetimes
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
@@ -38,6 +38,8 @@ sources:
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-6a65215e662373c54c92a888
+    resource: repo://TFI/App/MobileCommands.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -48,8 +50,6 @@ sources:
     resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
-  - id: openwiki-source-9c78befae6b387426c603305
-    resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
   - id: openwiki-source-ccfded56a6676310f11a2981
     resource: repo://TFI/Features/Settings/MobileSyncSettingsView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
@@ -66,6 +66,10 @@ sources:
     resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-d34ac3e852773901d0566033
     resource: repo://TFI/Platform/MobileHomeScreenQuickActions.swift
+  - id: openwiki-source-637644793f7e37cc057eb973
+    resource: repo://TFI/Platform/MobileLiveActivityController.swift
+  - id: openwiki-source-8d3004f1cede60c9ccecb4d3
+    resource: repo://TFI/Platform/MobileNotificationRouter.swift
   - id: openwiki-source-de285e30d853611503042782
     resource: repo://TFI/Platform/MobileWorkspaceSceneRouting.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
@@ -76,6 +80,8 @@ sources:
     resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-68ab6aaabd7a3499cfe23434
     resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
+  - id: openwiki-source-8d34d9ba6456e86e57933569
+    resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
     resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -116,13 +122,15 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-d798805795e92534f3b13250
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+  - id: openwiki-source-0f8d0f9d08d6674698dd054c
+    resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Platform Runtime and Service Lifetimes
+# Native Runtime and State Lifetimes
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -169,6 +177,12 @@ Capabilities authorize platform integrations; they do not own service lifetimes:
 - **Desktop:** both configurations enable App Sandbox and Hardened Runtime. [TFM's entitlements](../../TFM/TFM.entitlements) permit audio input, serial devices, outgoing network connections, incoming network listeners and user-selected read/write files. These permissions support native runtime services but do not replace their window ownership or accepted-Quit cleanup contracts.
 - **Shared cloud and secrets:** [TFI's entitlements](../../TFI/TFI.entitlements) and TFM's entitlements declare CloudKit container `iCloud.com.akinokaede.termind`, `webcredentials:termind.akinokaede.com`, a bundle-derived Keychain access group and platform-specific APNs entitlement keys. Both apps select development APNs/CloudKit environments in Debug and production environments in Release. CloudKit authorization is separate from the foreground, Pro and user-preference gates described below.
 - **Mobile background execution:** TFI declares `UIBackgroundModes = [remote-notification]` in its Info.plist and enables Live Activities in project settings. Neither declaration is a persistent remote-session execution lease. Remote-notification registration is skipped by the XCTest host; foreground/background session work still uses the finite `UIApplication.beginBackgroundTask` lease managed by `MobileBackgroundController`, with the expiration behavior documented below.
+
+## Native policy and adapter landmarks
+
+The native roots are composition boundaries, not alternative shared-framework layers. `App` retains services and coordinates owners; app-local `Application` expresses policy and injectable contracts; `Infrastructure` supplies concrete persistence/transport adapters; `Platform` translates AppKit/UIKit events into those policies. `Features` is not synonymous with views: desktop terminal sessions and both platforms' workspace runtimes live there. `Features/Shell` names navigation routes, not remote shell execution. Mobile's persistent window owner remains `App/MobileWorkspaceSessionModel`, not its list/detail views. [Module Map](module-map.md) explains build dependencies; the UI pages explain mounting and layout.
+
+The boundary is enforced by `ArchitectureBoundaryTests`: mobile Application excludes SwiftUI, UIKit and persistence imports; desktop Application excludes native UI and implementation imports/construction; Features cannot construct concrete implementations. Change native event adaptation in Platform, app-wide service admission/shutdown in App, and connection policy through the existing injectable ports rather than moving concrete storage or transports into feature screens.
 
 ## Lifetime map
 
@@ -242,6 +256,12 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 A host-opening action is centralized in `AppModel`, which chooses the requested protocol, but it opens into the caller's `WindowModel`. That window assigns one connection-history event to each saved-host SSH, Telnet or SFTP pane. Closing the pane/workspace ends the event before disconnecting, while moving a live pane preserves it and reopening creates a new event. External temporary and Serial panes are not recorded; a crash may leave `endedAt` absent. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
 
 `TermindCommands` registers SwiftUI's `openWindow(id: "main", value:)` factory with `MainWindowCoordinator`. The coordinator assigns a request UUID and keeps layout and optional move information until the new native window is registered. `RootView` installs a `MainWindowRegistration` bridge in its background; its `NSView` waits for its native `NSWindow`, then registers the native window and per-scene model using native content/frame sizing. Registration disables native tabbing; the bridge establishes `.fullSizeContentView` and a transparent titlebar before the coordinator reads or applies sizing. Registration injects app services, consumes the matching request and transfers a live workspace or pane only after the destination window exists. A restored scene has no pending request, so it retains its system-restored frame instead of inheriting the shared size fallback or replaying a move. The coordinator records normal window sizing at appropriate boundaries and unregisters and closes the model when its native window closes. Restoring a window thus does not replay a moved workspace or reopen its live connection. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
+
+### Focused commands and native registration
+
+Both platforms route commands to the focused owner, not a global selection. Desktop `TermindCommands` receives the shared app explicitly and reads `@FocusedValue(\.window)` for window-local actions; actions such as Settings and Quick Open disable without a focused window. Mobile `MobileCommands` reads `@FocusedValue(\.mobileScene)` supplied by its root, while new-window creation uses the named `main` scene. Sharing app services must not redirect a command to another window's workspace.
+
+The current desktop registration sites are [`RootView`](../../TFM/App/RootView.swift) (`@State`, `.focusedSceneValue`, `.onAppear`) and [`MainWindowCoordinator.register`](../../TFM/Platform/MainWindowCoordinator.swift). Either appearance or native registration can call `AppModel.registerWindow`; registration is idempotent and rejects closed models. Native close—not a SwiftUI destination change—unregisters and closes the owner. The mobile root similarly reports initial and subsequent phases and removes its scene registration on disappearance; that removes phase/focus bookkeeping, not the persistent workspace session.
 
 ### Desktop lifecycle and termination
 
@@ -368,6 +388,34 @@ flowchart TD
 
 This mobile ownership flow distinguishes reconnect-free handoff of a truly missing native session from transient scene disconnection and explicit discard.
 
+### Deep links, notifications and Live Activities
+
+TFI registers `termind`, `ssh`, `sftp` and `telnet` URL schemes. `termind://workspaces` selects the workspace destination without opening a connection; `termind://workspace/<UUID>` resolves an existing descriptor/runtime owner. `MobileRootView` reconciles native ownership before routing a URL. External SSH/SFTP/Telnet links instead parse into temporary connections in the receiving session; an advisory Telnet password requires explicit confirmation, and parse errors surface through `app.error`. These are different intents from activating an already-owned workspace.
+
+```mermaid
+sequenceDiagram
+    participant Receiver as Receiving scene
+    participant App as MobileAppModel
+    participant Native as UIKit scene routing
+    participant Owner as Owning scene
+    Receiver->>App: Resolve workspace UUID after reconciliation
+    alt Workspace belongs to receiving session
+        Receiver->>Receiver: Select and materialize on demand
+    else Workspace belongs to another session
+        Receiver->>Native: Activate owner with workspace user activity
+        Native->>Owner: Stage workspace UUID in scene delegate
+        Owner->>Owner: Consume when active and route workspace URL
+    else No owner or activation fails
+        Receiver->>Receiver: Show workspace unavailable
+    end
+```
+
+Workspace links select the native owner instead of cloning its connection in the receiving scene.
+
+`MobileNotificationRouter` is an app-owned delivery adapter: it retains pending terminal, Assistant and transfer targets until an appropriate scene is active. Terminal targets must still have a live workspace and route to its owner; Assistant delivery waits for library loading. Cross-window activation requests carry identities so a late failure cannot clear a newer request. Notification delivery does not make navigation app-global.
+
+Live Activities are summaries, not workspace owners or execution leases. Shared `WorkspaceActivityAttributes` exposes counts and at most six focused-first session summaries, with bounded titles and workspace URLs, never credentials or terminal output. `MobileLiveActivityController` serializes starts, updates and ends, adopts an active/stale system activity and ends duplicates. An explicit open can retain a pending start until foreground permits it, but ordinary updates/focus changes cannot resurrect a dismissed activity. Empty snapshots end the activity and cancel pending starts; cold app startup sends an empty snapshot while restoring descriptors, so an old card does not restore live transports. Closing the last workspace and immediately opening another waits for the previous activity's end before creating its replacement.
+
 ### Mobile foreground and background boundaries
 
 Scene phases are aggregated by scene ID. The app only enters global background behavior when every tracked scene is backgrounded, so one backgrounded scene cannot suspend work still visible in another. Removing the last active scene can trigger that transition when other tracked scenes remain backgrounded; removing the last tracked scene does not. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. Expiration detaches active workspace transports, clears interactive authentication state and marks a foreground reconnect intent; returning before expiration does not force a reconnect. It updates Live Activities but does not use them to retain connections.
@@ -417,6 +465,8 @@ Tests exercise the lifetime contracts rather than merely constructing views. For
 - `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection.
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
 - `MobileBackgroundControllerTests` covers stale callbacks, exactly-once task retirement, synchronous expiration during lease acquisition and invalid UIKit identifiers; `MobileAppTests` covers scene removal and quick versus expired foreground returns.
+- `MobileLiveActivityRestorationTests` verifies duplicate retirement, retained focus, cold-start descriptor-only restoration and orphan-card cleanup, dismissed-card non-resurrection, deferred foreground starts and close-last/open-new serialization.
+- `MobileWorkspaceSessionTests` also covers activity/notification owner routing; opt-in `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows with `TERMIND_MOBILE_UI_TESTS=1`. Keep native-window integration separate from ordinary model tests.
 - `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
 - `DatabaseStartupGuardTests` checks that the macOS preflight permits the current process but refuses a second PID, including older versions without the lock. `PersistentStoreLockTests` checks refusal before open/migration, retention until all same-process containers close, release after forced exit without losing Vault data, and isolation of in-memory and separate stores.
 - `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.

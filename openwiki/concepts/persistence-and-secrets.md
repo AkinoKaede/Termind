@@ -1,6 +1,6 @@
 ---
 type: persistence and security concept
-title: Persistence and Secrets
+title: Persistence, Migration and Secrets
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
@@ -138,14 +138,10 @@ sources:
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
-  - id: openwiki-source-c52cd56852d12b2dee153082
-    resource: repo://TFM/App/AppDependencies.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
     resource: repo://TFM/App/DatabaseStartupGuard.swift
-  - id: openwiki-source-37c42ec0ebc182c487dd27aa
-    resource: repo://TFM/App/DesktopSettingsKey.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -154,13 +150,13 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Persistence and Secrets
+# Persistence, Migration and Secrets
 
 Termind separates durable *metadata* from secret material and live connection state. `TermindPersistence` is the sole owner of SwiftData models, schema history, migrations, and container construction; application and platform layers select the store location and inject contexts into repositories. Credentials are represented durably by non-secret references and storage provenance, resolved only through `SecretStoring`, and converted to wipeable runtime objects only for a physical SSH connection attempt.
 
@@ -187,7 +183,9 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the shared SwiftData entry point. It exposes the complete `TermindSchemaV52` schema, attaches `TermindMigrationPlan`, disables automatic SwiftData CloudKit integration, and rejects an in-memory store combined with a file URL. Both apps retain one container for their process and do not assemble feature-specific schemas. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
+`TermindPersistence.makeContainer(inMemory:url:)` is the shared SwiftData entry point. It selects the complete versioned schema through `TermindPersistence.schema`, attaches `TermindMigrationPlan`, disables automatic SwiftData CloudKit integration, and rejects an in-memory store combined with a file URL. Both apps retain one container for their process and do not assemble feature-specific schemas. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
+
+CloudKit replication is explicit rather than a side effect of declaring a SwiftData model: composition constructs Vault, Settings, Metrics, connection-History and Device coordinators, and repository/journal mutation callbacks notify the appropriate coordinator after local commits. Adding a model to the container does not automatically synchronize it. The persistence module owns row shapes and migration mechanics; application ports and value snapshots keep features independent of those rows, while platform roots own container lifetime and live secret adapters.
 
 **macOS file-store exclusivity:** Before `ModelContainer` can open or migrate a file-backed store, the factory creates the parent directory, canonicalizes the URL (symlinks and standardized file URL), and obtains an exclusive nonblocking `flock` on a stable adjacent `.lock` file. A different process holding the lease causes `PersistentStoreAccessError.inUse` before database or WAL access; other POSIX failures propagate. Never unlink the lock file: a process may already have the inode open. The factory weakly indexes active leases by canonical URL so multiple containers for the *same store in one process* share the lease; each container retains it until deallocation, when closing the descriptor releases the kernel lock (including after forced exit). Different stores and in-memory containers do not contend. This mechanism is macOS-only, not a cross-platform mobile file lock. [PersistentStoreLockTests](../../FrameworkTests/PersistentStoreLockTests.swift) cover blocked opens before migration, symlink aliases and last-container release, a separate process killed while holding the lock followed by intact Vault/journal reopening, and noncontending stores.
 
@@ -195,7 +193,9 @@ The desktop root opens the container during `TermindApp.init()`: normal launches
 
 These are app-lifetime dependencies, not per-window stores: desktop retains `AppModel` alongside the container, and passes the same `KeychainSecretStore` to the Host library, AI configuration/AI secret-location service, and built-in MCP server token storage. MCP client OAuth authorization uses its separate `MCPKeychainCredentialStore` in live composition (an in-memory authorization store in XCTest). The root prepares Settings, Metrics and History persistence before constructing their feature models. `AppDependencies` carries repositories and secret ports into `AppModel`; windows consume the shared application model rather than opening another database or allocating their own secret store.
 
-Not all preferences belong to a cloud replica. `AppLanguage.stored()` reads the local `UserDefaults` choice at desktop launch; storing it updates the local language key and `AppleLanguages`. Desktop appearance, main-window geometry, sidebar state and built-in MCP listener preferences are defaults-backed local settings, not evidence of Settings CloudKit replication. Only explicit journal-backed preference paths described in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) establish replication.
+Not all preferences belong to a cloud replica. `AppLanguage.stored()` reads the device-local `SettingsKey.appLanguage` choice at desktop launch, defaulting to `.system`; it also normalizes legacy Simplified Chinese locale spellings to `.simplifiedChinese`. `store` saves the explicit choice separately from Apple's override: an explicit language writes `AppleLanguages`, while Follow System **removes** that override to restore normal Bundle negotiation. This is not a synchronized Settings record.
+
+The same local boundary applies to diagnosis/crash-reporting consent (`diagnostics.crashReportingConsent`), review first-use/invitation state, and debug-section/log-saving/log-level preferences. Terminal typography is also explicitly device-local. Desktop appearance, main-window geometry, sidebar state and built-in MCP listener preferences are defaults-backed local settings. In contrast, the Settings snapshot explicitly builds journal payloads for provider/MCP configuration, skills, roles, web search, terminal, SSH, SFTP, workspace and notification preferences. Neither the existence of a `SettingsKey` nor a value mirrored into defaults establishes replication; only explicit journal-backed paths do. Credentials remain in their separate secret channel. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md).
 
 ### Repository projections and atomic mutation
 
@@ -246,13 +246,13 @@ An edit commits its graph cut before live projection; adoption later transfers t
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V52. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; the current local schema is V52. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains endpoints V1–V28, V30, V31, and V34–V52. Its recent path is V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52: all of these stages are lightweight except the V31→V34 custom history backfill. V29, V32, and V33 remain absent as migration endpoints. V35 adds native History journals and capability checkpoints; V36 removes the retired importer table; V37 adds scoped cloud record-presence and deletion-acknowledgement sidecars; V38 adds deletion-handoff causality and durable asset-cache cleanup work. V39 adds per-conversation assistant model selection (provider and model IDs, not credentials). V40 removes the retired per-category Vault, AI-configuration and Metrics quarantine tables while retaining scoped quarantine. V41 adds shared notification preferences; V42 adds assistant message/conversation provenance and durable collaboration delivery receipts; V43 adds public MCP OAuth configuration, V44 replaces the Host model, and V45 replaces the SSH key model to persist Security Key reference metadata, and V46 adds terminal keyword-highlight preferences, without changing historical model shapes. These are **local SwiftData schema versions**, not revisions to independently versioned CloudKit wire envelopes; consult `TermindPersistence.schema` and `TermindMigrationPlan` for the selected endpoint and supported path rather than treating a version number in this guide as a permanent latest-schema contract. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 V28 is required for existing installed stores. Removing its endpoint made staged migration reject those stores with CoreData error `134504` (unknown model version). `TermindSchemaV28HostModels` restores the historical fields, defaults and model identity from the parent of `b0d35d24`; V30 retains its existing model types and order. Recovery uses the normal container factory and preserves the original database on an opening failure, rather than clearing or rebuilding it.
 
 ```mermaid
 flowchart TD
-    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with V52 and migration plan"]
+    Fixture["Historical V28 fixture store"] --> Factory["makeContainer with selected schema and migration plan"]
     Factory --> V28["Recognize frozen V28 endpoint"]
     V28 --> V30["Lightweight V28 to V30"]
     V30 --> V31["Lightweight V30 to V31"]
@@ -293,6 +293,8 @@ Domain JSON accepts legacy missing or unknown color as `.none`, and duplication 
 `SwiftDataConnectionHistoryRepository` stores each saved-host SSH, Telnet or SFTP attempt as an independent event with stable ID, Host ID, protocol, start time, `sourceDeviceID` and optional end time. Every insert/end/delete/clear reconciles the complete local event set with `HistorySyncStore` inside the same `ModelContext` commit, so a successful history mutation and its envelope or tombstone cannot diverge. The repository and remote-merge path sort by start time and UUID, then deterministically retain the newest 250. The History limits of 100 desktop rows and 50 mobile rows are presentation-only. `ConnectionHistoryModel` caches readable entries even when its initial retention trim fails, reporting the write error rather than hiding existing history; failed record/end/delete/clear operations report `storageError` without publishing a successful mutation. Its recent-host projection selects the newest local event per still-present saved Host, not the newest event from another device.
 
 `SwiftDataDeviceDirectoryRepository` independently persists reusable `DeviceRecord` values that map installation IDs to mutable display names. Its upsert and `.device` journal envelope commit together. Device records are not dropped when a Host is deleted, History is cleared, or the 250-event retention rule prunes old events; this lets any feature resolve the current name for a stable installation ID. A system-name change updates one directory row, so all connection events and future consumers display the new name without event rewrites.
+
+The mobile Vault History screen consumes `MobileConnectionHistory.eventRows` from the shared history, device directory and Host library; it does not own another durable history store. The projection resolves the current source-device name and skips events whose saved Host is absent. Delete and Clear All call `ConnectionHistoryModel`, reaching the same repository/journal transaction described above rather than deleting only a visible row or a device name.
 
 The old Host `lastUsedAt` column is not a replacement source for this timeline. The live Host and Identity model types selected by V34 both omit usage timestamps; neither Host nor Identity usage metadata drives connection History.
 

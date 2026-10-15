@@ -1,6 +1,6 @@
 ---
 type: assistant runtime concept
-title: Agent Runtime and Assistant
+title: Agent Runtime and Assistant Data Flow
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
@@ -28,6 +28,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
+  - id: openwiki-source-4b9f58eec58128055ac58b6f
+    resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
   - id: openwiki-source-33d69cea4b24d60ab000a0cc
     resource: repo://Frameworks/TermindPersistence/AssistantChatCollaborationPersistence.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
@@ -108,21 +110,23 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
+  - id: openwiki-source-32734a5d0c7e053627a24d40
+    resource: repo://TFMTests/ContextAttachmentImporterTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Agent Runtime and Assistant
+# Agent Runtime and Assistant Data Flow
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
-This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.19.1); ordinary Xcode builds consume the resolved remote package, not the reference or sibling checkout. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.19.1** at revision `8108c9bb87c546860cfc1769571e115af919fe8a` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
+This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it cannot type into a PTY or directly access Keychain material, stored credentials, another conversation's workspace, or the persistence store. With pane inspection injected, it can request a bounded read of an already open terminal's visible viewport through a Termind tool. The Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.19.2); ordinary Xcode builds consume the resolved remote package, not the reference or sibling checkout. `Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` pins release **0.19.2** at revision `ca325632bc91886702673a79522e3b862ac940ff` for Xcode: changes to the sibling `../AgentKit` working tree do not change the built app. AgentKit is developed, tested and released independently in that sibling repository; ordinary Termind-side policy, SSH/SFTP registration, persistence and UI changes do not themselves imply an AgentKit release. When a change actually spans the package boundary, make and test the package change, tag and push its release, then update the Xcode `minimumVersion` and resolved revision in the same commit as the consuming Termind change. Build with `-onlyUsePackageVersionsFromResolvedFile` to avoid accidentally resolving newer packages.
 
 ## Responsibilities and assembly
 
@@ -299,6 +303,34 @@ Cancellation has separate preparation and runtime owners: `stop` requests cancel
 
 The conversation records schemas once during assembly instead of rebuilding a registry on each keystroke. Draft-text edits do not rebuild or change the history estimate; attachments do update it. Raw text and reasoning deltas become visible immediately while context-gauge publication is throttled, with final message events publishing the settled estimate. History editing clears stale measured usage and recomputes for the retained prefix and replacement. A context-window share is unavailable when the window is unknown and clamped when overfull. See the token and composer regressions below before changing this accounting.
 
+### Explicit attachments: model payload versus reopenable source
+
+Context is disclosed explicitly: output, selections and file contents become composer chips rather than silently riding along with a terminal session. For an imported non-image file, `ContextAttachmentImporter` keeps **validated extracted text** in `ContextChip.content` and **original bytes** in `sourceAttachment`. Text, PDF and modern Office extraction have validation and size checks; image-only PDFs are refused rather than OCRed. The import limits include 25 MiB per file and 200,000 extracted characters. Images follow a separate normalization path and become structured `AgentImageAttachment`s. See [file drag and drop](../workflows/file-drag-and-drop.md) for entrypoints and import cancellation.
+
+`composeUserTurn` places non-image chip content in labeled blocks in model-facing `text`, preserves the ordinary draft as `authoredText`, and carries source bytes as `contextAttachments`. The controller freezes these fields before preparation and passes them as `prompt`, `authoredPrompt`, `promptImages` and `promptContextAttachments` to `AgentRunRequest`. Original document bytes are for reopening, not a substitute for validated extraction as model text. The repository stores attachment backing by message ID and restores it alongside replay/context backing; queued prestart cancellation also preserves these captured fields without calling the model.
+
+The display projection does not send a large extraction through Markdown. Live bubbles retain authored text and chip references; restored bubbles use `authoredText` (or legacy `visiblePrompt`) and `visibleReferences`, matching stored attachments by kind and label. References retain an attachment handle for opening, not the extraction as bubble text. If historical markup has no original backing, a file reference falls back to an extracted-text attachment marked `isOriginalFile == false`, not a fabricated original PDF. On desktop, opening materializes the attachment's bytes under a private temporary directory with a sanitized filename; previous-session previews are removed on launch.
+
+```mermaid
+sequenceDiagram
+    participant Importer as Attachment importer
+    participant Composer
+    participant Ctrl as Execution controller
+    participant Runtime as AgentKit runtime
+    participant Repo as SwiftData repository
+    participant UI as Transcript projection
+    Importer->>Composer: chip with validated extraction and original bytes
+    Ctrl->>Composer: compose and capture accepted turn
+    Composer-->>Ctrl: text, authoredText, images and contextAttachments
+    Ctrl->>Runtime: captured AgentRunRequest
+    Runtime->>Repo: snapshot with message payload and backing
+    Repo-->>UI: restored messages and attachment backing
+    UI->>UI: authored text and lightweight chip references
+    UI->>UI: open retained bytes on explicit action
+```
+
+Attachment data flow: model-facing extraction and reopenable source remain distinct, while the bubble is only a display projection of the durable turn.
+
 ## Approval, secrets, and trust boundaries
 
 Approval is evaluated after schema validation and tool preflight, before execution. Invalid arguments never reach the approval UI or the tool. The policy layer is stronger than permission mode:
@@ -361,9 +393,9 @@ A fork copies its scratch scope before creating the forked conversation and remo
 
 A saved context snapshot preserves historical session, skill-catalog text, plan and surface facts for replay and fork history. Explicit `startAgentRun` uses the last user turn's stored snapshot, or a neutral `AgentTurnContextSnapshot()` for legacy absent context rather than inventing facts from current UI state. This is context replay, not reconstruction of historical model/provider settings, credentials or skill-package bytes: the controller still captures the current runtime configuration. An edited submission deliberately captures fresh context instead of inheriting the historical snapshot. Restored nonterminal runs are interrupted rather than automatically executed again. The visible transcript surfaces inspected here do not expose a manual Retry/Resume action; any provider-level retry semantics are AgentKit-owned and must be verified in the pinned release.
 
-Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
+Persisted text, tool arguments, titles and reasoning go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted. **Original attachment bytes are a different storage boundary:** `PersistentAgentContextAttachments` encodes the captured attachments directly, without passing their bytes through `AgentPersistenceRedactor`. Do not assume that redaction of extracted prompt text sanitizes the original document retained for reopening.
 
-Tool cards resolve their persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: built-in JSON results can use a registered structured presenter or a generic fallback, while MCP keeps remote-defined JSON output. Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. Display text previews are bounded to 8,192 characters and 120 lines, retaining the full transformed output for Copy; this does not truncate the original execution/replay result. Both platforms use shared `AssistantMessageBody` over MarkdownView, and `TermindMarkdownParser` delegates block parsing to MarkdownParser. Inline titles retain emphasis, code, link destinations and image alt text; the previous soft-break rewriting and local unsafe-link filtering adapters were removed. Native list ownership, row measurement and interaction remain platform-owned.
+Tool cards resolve their persisted presenter ID through the immutable presenter registry, combining AgentKit built-in presenters with Termind registrations. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change. Presentation is a separate projection: localized action verbs, punctuation and lifecycle summaries do not rewrite the original call or result used for execution, approval or replay. Built-in JSON results can use a registered structured presenter or a generic fallback, while MCP keeps remote-defined JSON output. Tool summaries group by tool, state and knowledge action so mixed successes and failures do not read as one success. Display text previews are bounded to 8,192 characters and 120 lines, retaining the full transformed output for Copy; this does not truncate the original execution/replay result. Both platforms use shared `AssistantMessageBody` over MarkdownView, and `TermindMarkdownParser` delegates block parsing to MarkdownParser. Inline titles retain emphasis, code, link destinations and image alt text; the previous soft-break rewriting and local unsafe-link filtering adapters were removed. Native list ownership, row measurement and interaction remain platform-owned.
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation.
 
@@ -504,6 +536,8 @@ New submissions capture whether they have a memory-session identity before prepa
 
 The focused tests establish behavior that is important when changing this area:
 
+- `TFMTests/ContextAttachmentImporterTests.swift` checks retained UTF-16/PDF bytes versus extraction, modern Office extraction, legacy Office and image-only PDF refusal, and safe preview materialization. `ChatComposerStateTests.swift` checks attachment-only turns and legacy extracted-text fallback; `AgentPersistenceTests.swift` checks attachment backing restore and deletion, and `FrameworkTests/AgentReplayPersistenceTests.swift` reopens queued cancellation through a fresh repository with captured authored text, images, attachments and context intact.
+- `TFMTests/AgentToolPresentationTests.swift` checks exact live approval arguments, localized lifecycle/action summaries, stable presenter metadata, mixed outcomes and Unicode-safe 8,192-character/120-line previews with full Copy output. These are projection tests, not evidence that the execution result was truncated.
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentTokenUsageTests.swift` covers provider usage normalization, cumulative merging, measured-total rescaling, context-window shares, incremental/reference parity and draft edits that do not rebuild the gauge. `ChatComposerStateTests.swift` checks immediate raw-delta visibility with throttled context publishing and edits that remove downstream tools across every card lifecycle state.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.

@@ -1,6 +1,6 @@
 ---
 type: authentication concept
-title: SSH Security Key Authentication
+title: SSH Security-Key Authentication
 description: How Termind registers an RP-bound FIDO2/WebAuthn Security Key, stores its public reference, and turns a local authenticator assertion into an OpenSSH SSH signature across macOS and iOS.
 tags: [ssh, security-key, fido2, webauthn, authentication, vault]
 sources:
@@ -26,8 +26,6 @@ sources:
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-5a6536c30ad78ac55f3ec629
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/WebAuthnSSH.swift
-  - id: openwiki-source-a815be001e9eea337ea895b0
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SecurityKeySigner.swift
   - id: openwiki-source-87a3a38f6388c572528dc8c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHKeyboardInteractiveExchange.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
@@ -56,13 +54,13 @@ sources:
     resource: repo://TFMTests/SecurityKeySSHWireTests.swift
   - id: openwiki-source-402244fee941f965f41388e4
     resource: repo://TFMTests/WebAuthnSSHTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# SSH Security Key Authentication
+# SSH Security-Key Authentication
 
 Termind supports hardware-backed SSH authentication through Apple's Security Key WebAuthn API on macOS and iOS/iPadOS. The supported SSH public-key algorithm is **`sk-ecdsa-sha2-nistp256@openssh.com`** (WebAuthn ES256 / P-256). The authenticator owns the private key; Termind keeps an RP-bound credential ID, public key, verification preference, and presence requirement. It does not implement `sk-ssh-ed25519@openssh.com` or import an OpenSSH private-key file as a Security Key reference.
 
@@ -102,6 +100,10 @@ sequenceDiagram
 
 Signing flow: a server-accepted public-key offer leads to a local assertion, which is verified before SSH wire bytes are returned.
 
+`SSHPTYChannel.authenticate` is the shared authentication entrypoint: its `.securityKey` branch derives the public blob and calls `libssh2_userauth_publickey_signed` with `securityKeySignCallback`. The exchange's name does **not** make this keyboard-interactive login: signing uses the separate `SecurityKeySigningHandler` and returns an assertion, whereas keyboard-interactive uses server-supplied questions and string answers. The authentication loop filters credentials against the server's advertised methods and refreshes those methods after unsuccessful attempts, allowing additional factors or an available fallback. Native signing errors are thrown immediately rather than falling through to another credential. Shell integration starts only after authentication and shell-channel startup; it does not participate in hardware signing.
+
+The signing callback extends a positive libssh2 timeout by the elapsed callback time so waiting for local authorization does not consume the transport's normal timeout budget; the `.securityKey` branch restores the original timeout afterward.
+
 The libssh2 callback cannot suspend. `SSHKeyboardInteractiveExchange` waits on the connection's dedicated transport queue while the injected asynchronous signing handler drives the platform presenter; cancellation wakes the wait and rejects late results. The presenter allows only the selected credential ID, passes the stored verification preference to AuthenticationServices, and refuses requests whose interaction policy is forbidden or whose presentation anchor is unavailable. Each macOS `NSViewRepresentable` or iOS `UIViewRepresentable` anchor tracks its window; when ready, its signing card automatically starts **once**, while Continue also remains available. The coordinator permits one pending signing request for that owner and clears it on cancellation. The signing session responds exactly once, including on card disappearance or system cancellation; presenter cancellation ends its current operation, cancels the OS controller, and ignores a subsequent delegate response from that controller. Cancellation is not a successful connection checkpoint.
 
 `WebAuthnSSH` checks registration `webauthn.create` client data against the challenge and fixed HTTPS origin, parses the attestation object's `authData`, requires the attested-credential flag, matching credential ID, RP hash and presence (plus verification when required), and extracts an ES256 P-256 COSE point. It bounds and validates CBOR including duplicate map keys, checks a declared extension map if present, and validates the resulting public point. Registration extracts public material; it does not validate an attestation trust chain.
@@ -120,5 +122,6 @@ Failures are reported at the appropriate stage: invalid reference, unverifiable 
 
 - `TFMTests/WebAuthnSSHTests.swift` covers registration parsing and truncation, public/reference round trips, exact SSH signature fields including unmodified JSON, challenge/RP/signature tampering, verification and presence flags, and malformed or duplicate-key CBOR extensions.
 - `FrameworkTests/WebAuthnVaultMetadataTests.swift` covers destination/jump resolution without Keychain, V45 persistence and V2 Vault sync round trips, legacy `.thisDevice`/`.iCloud` normalization to `.external` (while preserving V2's `thisDevice` wire value), rejection of software `.external` keys, rollback on failed metadata writes/deletes, and reopening a V44 software-key store. `FrameworkTests/SSHInteractionPolicyTests.swift` verifies that forbidden policy blocks even UP-optional Security Keys on both route nodes. `FrameworkTests/SecurityKeySigningCoordinatorTests.swift` covers silent requests, cancellation, auto-start and exactly-once responses; `TFITests/MobileVaultFeatureTests.swift` covers mobile generation/import and selectable verification metadata.
-- `TFMTests/SecurityKeySSHWireTests.swift` exercises OpenSSH direct, jump, SFTP and forwarded-agent authentication with a local fixture. It is **opt-in** behind `TERMIND_SECURITY_KEY_FIXTURE`; its software P-256 fixture verifies wire compatibility, not a physical key or the native system prompt.
+- `TFMTests/SecurityKeySSHWireTests.swift` exercises OpenSSH direct, jump, SFTP and forwarded-agent authentication with a local fixture. It is **opt-in** behind `TERMIND_SECURITY_KEY_FIXTURE`; its software P-256 fixture verifies wire compatibility, not a physical key or the native system prompt. The rejection test runs both directly and through a jump, asserts that the signing handler is never called, preserves libssh2's `-18` failure detail, and checks stage logging without credential/public-key leakage.
+- Keep the two authentication fixtures distinct. [The Security Key fixture](../../Scripts/ssh-security-key-fixture.py) launches a disposable loopback OpenSSH server with a generated P-256 authorized key, disables password and keyboard-interactive authentication, and writes mode-`0600` metadata containing the **simulated private key**. Start it with `python3 Scripts/ssh-security-key-fixture.py --metadata /tmp/security-key-fixture.json` and pass that path as `TEST_RUNNER_TERMIND_SECURITY_KEY_FIXTURE` to Xcode (the test process reads `TERMIND_SECURITY_KEY_FIXTURE`). Metadata is removed on exit. [The general authentication fixture](../../Scripts/ssh-authentication-fixture.py) instead uses Paramiko (`paramiko==4.0.0`) for password/public-key fallback, multi-round keyboard-interactive, zero-question push approval and partial-success factor transitions. Its Xcode variable is `TEST_RUNNER_TERMIND_SSH_FIXTURE`, read as `TERMIND_SSH_FIXTURE` by `SSHKeyboardInteractiveWireTests`. It never executes client commands and its SFTP files stay in memory; it is not evidence of WebAuthn signing. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the broader testing boundary.
 - Platform editor and authentication-presentation tests should be paired with a manual hardware-key run when changing OS authorization, associated domains, or user-visible signing behavior.

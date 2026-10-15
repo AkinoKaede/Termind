@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:697464471353b8b5ffdacc0d9227402f39bed5199fa0aeda011940d107d15ea2",
+  "pageVersion": "sha256:fd01d66c597a10e4b46d1d7e68a351c0071e6230ce2510ec4d797bfead62ebf1",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -46,19 +46,15 @@
     },
     {
       "id": "claim_f81d12eff32548b1a806995b8e177a96",
-      "statement": "The bootstrap uses 3-second response deadlines and a 500-millisecond quiet timeout; its initial timeout restores output but keeps scanning for a late probe, and a late supported probe skips installation after user input.",
+      "statement": "Bootstrap uses 3-second response deadlines and 500 ms quiet timeouts; initial timeout restores output but keeps an unbounded late scanner alive, quiet suffix flush does not complete scanning, and late supported detection skips installation after user input. Socket readiness and a 100 ms timer drive the worker, which reads and polls before draining queued writes; bootstrap commands bypass user-input marking.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L128-L176",
-          "version": "repo-lines-v1:sha256:17e747e937f42a3c2da05d66862959a198d929990181301bff369bad9757a089:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlYjA3ZDUyMzVjZDY0YzFlZmY3NzA3ZTIxY2M5OGZjNGJhMGIzODNkOTIxN2E1ZDQxNmYzNDQyMjdjYTNkN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlMWE3ZGNiYzgyMGUwN2IxOTJiNDI3YjFlMDNhZjEwOWU3NWZjYzU3NmQyMzM2YjhiOWVhOWVmYjhlMDg2NjEifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1130-L1159",
+          "version": "repo-lines-v1:sha256:cc00584086d2cfedffe4018d5f5d6d197914a4db959c2b91f948dc52bf9eabc6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxOGI2ZGMwNGU3YmZjODQxMjkzNWM1MjAzNjA5MWY3ZTgzMTY2ZGJjY2E3MTBkOTZjOTYzZDVmYjIwYjY4M2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwNTg4MjVhMmMzZTY0NzNkZDFjMzc5ZGI5ZDhjOTE2MmQxNDU2OGEzOTJlYThiMmNiMTkyYTI2ZGI3YzI0OWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxMzA3MjgwYzU5NWIxZmQ3NmJjOWQxYjlmZTE0YjMzODdmZGQ2MmZlMjNlYzBhOTA0MDEwNTlmN2I1NDBmODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L316-L352",
-          "version": "repo-lines-v1:sha256:ff1ac7664cbc05ded07246832880be8bbdfd6e5916d188da1198f15f4dbaf5a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmODBmMzAyOTcwNzBhNmVmN2EyYzIyZmI4OTgxMmM4OWU5N2NkNGY0Njc0NDhkOGJiMzk0ODUzMWY3OWZiYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4YWU0ZmMzN2YyZTcyZDkzMmZlZGViNjIzMTdhMmE5MTZlYzFmOTExYWY0NzIyMjJjODZjZDE5MWI2MmZjNTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliYjI1MGMxMWI4ZWVlZDllMDA0ODIxOGFlMDBmMmEzM2E3ODAyZmEzMDY2ZTA0MWMzY2RiNzI0MGYzMzVjMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjNTFkMGU2NTkxYjEyODBiNTFjMWI0NDY1YzVmMGE2OWIxN2RkMWY0YzE2NmE2YjNiZDcyZGZkODhlYzJjYjQifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L49-L55",
-          "version": "repo-lines-v1:sha256:5924074042732b9d2158512b6fd4737af2a462fd04f40c3bce32addc5f95999a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWYzMjEzMWE1MTE2MmMwYmE4MzU4Nzg1OGNhMWU0ODAzNDFjYzRlNTA2ZjliMzljZTdkMGZjMTRhMjcwMzA5MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWM0MTRkZjgzM2QyYzM5NzJhNjBhNDRkYjk0MTIxMzRiZWFjNDM5MmVjNzI1YmNhZjZlZWY1NjY2NDIzYzYwMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjIzNjhhZTc1YjA0ZGRiNmNhNmE1YjJmOWQ5MjVmMzE0ZDJkM2RhNzMxMjg1M2M4NDhmZmEwMzJiNWI5NDZhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTFiNzczYjNjMTY1M2U0YmUxNzlmOWZkMTMyYjI3ZTY3NmY3OWQ1NjNlODgwY2Q5YmViYTc1ZWM4OTEwYWE5MiJ9"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1427-L1519",
+          "version": "repo-lines-v1:sha256:1e572630f34269aa9cb57800022ee76ce1ec25397274047c891f810086b6fd2e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMjYyODg2NTk0NWYxNTE5ZDk5M2Y0Y2IyYTU1YzllNTJmNGE2ZTQ1ODdiZjhiOTI0ZjRmYTUyOWEwYzU2ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDJkZDJlOTg0YjkwNzU5MDYzOGEyZjQ2MmE0YzlmZTFiYzNkMDk0ZDBiMDEwZDZlYTMwZDc5NDMxYTAwN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZThkMTM3ZmE0NGFjNjY0OGIzYTRhNmY1NmY1MGJhYmE2NzczNDE0NWQwNDc0YTRlNTU1Njk3ZmQyNmJlYzgifQ"
         }
       ]
     },
@@ -99,7 +95,7 @@
           "version": "repo-lines-v1:sha256:e7ea57fa715adb612cda6efc399b9228eae034c7e3ac707b780e2faf8a354e91:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1567-L1643",
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1566-L1642",
           "version": "repo-lines-v1:sha256:d33d8b111c7a01e5017ced6b22ff85a27835bec48ee05d125134f6a42cf912a4:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMzY0OTE1Y2UzY2EzM2E4MjM0MWE5Njg4ODg4OWNkNGVhNzdiMjlkMDJiMDQ4NzM5Zjk4MjAxNzA3NWQxYjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3YzU1MmRmMjA3MGEwNGJiZDMzYzI3MWM5OWI1YzEyM2ZiMTE0ZDM4OTYyMjQxY2MwMmUyY2VlNzViMWQwYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMzVmNTk4M2ViZmJhMjcwYzJhYzFkNzNkYjg3YWIzOTIyNzZlZGI4YWQ3NTZhYmY2MzkyNjg1OGNmYTgzZDgifQ"
         },
         {
@@ -138,7 +134,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
+          "version": "repo-file-v1:sha256:095d6a769e02ac36e4c65181e77c5221f428a12d12382f7a7dd9c05fc0bd4e5f"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1338-L1373",
@@ -206,11 +202,19 @@
     },
     {
       "id": "claim_463f22cff8384e89af53a9f0640de4fe",
-      "statement": "SSH PTY has separate input/output converters, encodes environment and user input with byte-preserving fallback, rewrites OSC 7 even without shell integration, and flushes cwd and decoder tails on close.",
+      "statement": "SSH PTY uses separate input/output converters, encodes environment and user input with byte-preserving fallback, and rewrites OSC 7 even without hook integration; orderly terminal close flushes cwd and decoder tails, while fatal cleanup discards those states without flushing.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:ef3160e0c6dc36ffa35d1ed959c50a904cc586cd4cff08aebcfdbea623aa9cea"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1040-L1067",
+          "version": "repo-lines-v1:sha256:8d6d233737da0b0ba789b960ed7fc4e10ed149a3e74e586b5cd8bd515d12f785:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDI0YTNlZDg5OGNiZTliOTI3MDY1OTc4NjFmMjBjZmFkMTY4MTY2OTY5Y2FjNjQzNjI2OWE2MzRmOWU1ODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZDhkNjQ5MGY5ODM0ZTBhYjQyZDY4ZWUxNTIzZWJkMDYzMjJhNzUyYTZlNDQ0YTMyYzIxNDAyNDBiZDg5YjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwYzFhMDM5NmZhNTI4ODRjN2JkNTAyMGI0YjMyN2IxMzc3NjNkYmQ0NWE5NjFmZDI5ZTczZGEzYzU4MGY5OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxM2MzMTAzZTIyYWUzMGU5MmQ4OThiYTEwNTZiYzEyZmU5YzcyZmYzNjBlNTBiMWM3NWU0MTBkYjhiZTE3NDIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1150-L1160",
+          "version": "repo-lines-v1:sha256:276bf0f4846c1e8fb389f06a7f4a4dd0e9d9e6c2e51eff34763af39190e1e609:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5OTU1ZTM0Yzc2ZjdkNWJmZWFjM2IxZTRmOGYyNDM2ZWIzNjZlMGI3Y2IyZWQ0YjAwMWNjZDhmZjRiNTIwZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NzMxN2M3ZTkxMmViMzBjNzJiMDRjNWZmMzRhYjAwNzdiZDg0MWQzNjEzNjZjOGI1YTcyMzJkNjY1ZjExZjYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1620-L1719",
+          "version": "repo-lines-v1:sha256:35d2aa22634d527e386b9f7fa95493e135941372f9b034ce472a42e04428b7d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2YWI5MzBkMDI5OGM3YmIxOWY3YjQwMzliYzkzYjc2NmFmYjU4MWNiYWVmY2I5NDA4NDZjNzliNDEyNzYyYThlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMWJiYzMwZGM3ZjgzZmU3YmYzYTI4NTA3NmY2YmJjZDA3YThjZmJiNjE5MjMwZjJjNjk1Yzc2OTQxZGQ3NjcxIn0"
         }
       ]
     },
@@ -348,7 +352,7 @@
     }
   ],
   "verification": {
-    "by": "openwiki/0.7.1",
-    "at": "2026-10-08T13:28:49.393Z"
+    "by": "openwiki/0.7.0",
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bb15da886443a1bf0699bde5d99b663406b4de03868fdeec2c3614022336358d",
+  "pageVersion": "sha256:03b4e2b9efe5bd0067687116fee2cb6b7532bdf71bc947e54b350ae0719bd774",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -51,8 +51,8 @@
       "statement": "Desktop AppModel coordinates process services while WindowModel owns navigation and live Workspaces. MobileAppModel owns process services and the complete descriptor snapshot; native scene sessions own live Workspaces and ordered descriptors through MobileWorkspaceSessionModel. MobileSceneModel owns scene navigation using mutually exclusive Workspace/Transfers destinations and Connection Picker/Batch Startup sheets.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileSceneModel.swift#L17-L182",
-          "version": "repo-lines-v1:sha256:1fc20a88d07ad0747fdb5a2ebaf15a0a45ed5fcb4560daee3b872c892ec58e0b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0NDc1MTQwZTI2ZTljNWExNzExZDY0NDVhMThiN2Y0YWUyMDIyZjk5M2VmNjI4NDA3NTU0MzAxYjk2ZTBkYzIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5N2JlYzU0MDBmY2Q4NjVhNDk5ZGJmMTBiOTI4NmI4MGRkNzRlYjNkYWFjZjY5M2ZmMTI3Mzg5NzJmNmE2ZGMwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYzE2NDYwOGIxMDg4YmI2ZjcyNzFjYjBhNWQwM2ZlMzA1NDQwYWUxZDZmNmE4ZDI1YTFmMGRlZDA2NWRiMDVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5NGU3NjIwZDUwYjE2ZDNiZmZiNzc1ZjA2MmQwMDI4NDZjZDk2YzljYzFmYjgxMDUzNTNmZThmYTJjMmU1OWYxIn0"
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L17-L173",
+          "version": "repo-lines-v1:sha256:9d9d23a6dc1217a5acc791c470f4c2f0878103405eebd185131bc9720fbb7664:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0NDc1MTQwZTI2ZTljNWExNzExZDY0NDVhMThiN2Y0YWUyMDIyZjk5M2VmNjI4NDA3NTU0MzAxYjk2ZTBkYzIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5N2JlYzU0MDBmY2Q4NjVhNDk5ZGJmMTBiOTI4NmI4MGRkNzRlYjNkYWFjZjY5M2ZmMTI3Mzg5NzJmNmE2ZGMwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYzE2NDYwOGIxMDg4YmI2ZjcyNzFjYjBhNWQwM2ZlMzA1NDQwYWUxZDZmNmE4ZDI1YTFmMGRlZDA2NWRiMDVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5NGU3NjIwZDUwYjE2ZDNiZmZiNzc1ZjA2MmQwMDI4NDZjZDk2YzljYzFmYjgxMDUzNTNmZThmYTJjMmU1OWYxIn0"
         },
         {
           "resource": "repo://TFI/App/MobileWorkspaceSessionModel.swift#L25-L65",
@@ -306,15 +306,15 @@
     },
     {
       "id": "claim_e9d194c36350453093030ee401cf1f18",
-      "statement": "Before synchronous Assistant run capture, an optional model-selection controller persists a resolvable model choice or default for the conversation and aborts capture if that save fails. AssistantExecutionController then captures composed user-turn content, context, model/provider/credential, reasoning/permissions, search, skills/registry and Guardian/preparation configuration before memory or automatic compaction waits; first-send promotion and edit persistence follow capture.",
+      "statement": "AssistantExecutionController captures turn content and configuration synchronously before memory or compaction awaits, after optional model-selection persistence. Output, selections and file contents require explicit payload-carrying ContextChips; detach removes payload and accepted capture consumes attachments once. Full composed extraction and images remain in replay while bubbles render authored text or legacy visiblePrompt and attachment references. Original non-image bytes support reopening, not model input; legacy file references fall back to extracted text.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift",
-          "version": "repo-file-v1:sha256:ba9dd21c27203520bd1130ad8404905312d726caf6e4626cd92195e1a9563c9a"
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L24-L186",
+          "version": "repo-lines-v1:sha256:2fdf07eee5fd211de9f9f367eef45c9357daaf5f2eca525800b9fab4fdd515b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwNzg2OTQ1NjE5M2IxMGVmMThiZmEwNDQwMGJlYmZhNjRjMThlNDAwZWRjNDZkNTA3ODdjNTFjZDQxYTE1OTU2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGE5YmJlNWQ0ZmE5ZGFkNGZjNzNjNDY0YmRiMDhlOTQxMDQ2ZmU1YjAzMDMzMDNhYmRlYjA0N2QxY2Q2ODU5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMTIzMjYyNTBiMjhmN2M4NDZkZjg1ZDg2YTFjNTJjNTIwYTYzNWNmOWRiMzE2NzIxYTUxNTA3Y2NhNjYxODRmIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantModelSelection.swift",
-          "version": "repo-file-v1:sha256:dbd43e84a1ead5f75a183604bc735851cdca64d547ac83e38091e26436949fab"
+          "resource": "repo://TFMTests/ChatComposerStateTests.swift#L1960-L2044",
+          "version": "repo-lines-v1:sha256:ac95020215876b6733d39a586315c8a8d59388363de246794a2551bdcb7b087a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyNmZjMjAyZDZmZmYzZDkyODFhMTNmNWMxMjhlNTQ1OTVmOTMwNjZiMzdkN2M5ZjAwMDA4NjAxMDcwZGEzZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4YjY1NzJjZjg1MTZiOGQ1Zjg3NDM1ZjA3ZDAzNzRkOGYzMWZkN2I4ZmZhNzY5MzM0OWIxOTU0YWIxYmJkZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3NWUzYzkwNWE2ZTMwMzlhZjhkMjE5MDYzODFhNDk4MjZlZmE5YTkxYjgxNjAwMTM5MTRlYTVmZmVmODhlMDgifQ"
         }
       ]
     },
@@ -336,7 +336,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:3f95e02c923d69b8d360b399669f771a20898bcb7bb09bf147add70c1f336ef7"
+          "version": "repo-file-v1:sha256:12e41f34530b5c4389123848300e8ade0171b75bf8bc7504a8bd5cf8be778624"
         }
       ]
     },
@@ -372,7 +372,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift",
-          "version": "repo-file-v1:sha256:3f95e02c923d69b8d360b399669f771a20898bcb7bb09bf147add70c1f336ef7"
+          "version": "repo-file-v1:sha256:12e41f34530b5c4389123848300e8ade0171b75bf8bc7504a8bd5cf8be778624"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift",
@@ -458,7 +458,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:abc5bb76c62b88138cc8f01c46b6d7c319a6090a70413466a530cdeb7ee5e992"
+          "version": "repo-file-v1:sha256:9cd4a7c0df9094f97075851b1feb8526fc114770a3e804482fbc404ebe419365"
         }
       ]
     },
@@ -467,7 +467,7 @@
       "statement": "AgentToolPresentation renders local built-in result detail through decoded JSON and an injectable presenter or generic formatter but retains MCP's remote-defined JSON presentation; unsuccessful knowledge results cannot select success detail, and duplicate denial reasons are suppressed from the result detail.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L305-L462",
+          "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift#L311-L468",
           "version": "repo-lines-v1:sha256:2fcae5560e884dbd61acef383e36169f43c3bb0b9e7aa97cd7d81b04c0570170:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNjQ3M2JkZThmNjk5MmRhZDhmOWM4ZmE3MzdkMTkwMWRjNWRjNDg1MWE1ZGYxNjljZmM2NTFmYjJmODlmNTUxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1ZThkNjRhY2JiMmI3YTkyMmFjOWI4ODI3ZDFmY2JjY2Y3ODgxNzE4YTg5YjYyZjQ0NGQ4YWRjNzRkNTMyYTMwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0OGI2ODY5ZTk0NjJlMTA5MDZkNWQzNjg2N2RlNjdjNTU2OGRiYjFmOWFjMzk0Y2JjMzQxOGM4OGI5NDBiZTFkIn0"
         }
       ]
@@ -482,7 +482,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:abc5bb76c62b88138cc8f01c46b6d7c319a6090a70413466a530cdeb7ee5e992"
+          "version": "repo-file-v1:sha256:9cd4a7c0df9094f97075851b1feb8526fc114770a3e804482fbc404ebe419365"
         }
       ]
     },
@@ -590,7 +590,7 @@
         },
         {
           "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
-          "version": "repo-file-v1:sha256:568a304613f20338e661657b0616fcd3d76defeadc112844615eed4e2accfa96"
+          "version": "repo-file-v1:sha256:78c48fab450e0660ec3f96dda3f36d2f3f947198771abfa5cdb9933628cd25c0"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Strings/AppStrings.swift#L1-L6",
@@ -600,15 +600,23 @@
     },
     {
       "id": "claim_3ac8bf529e4442b6b368643cd0fd33c9",
-      "statement": "The SwiftSyntax AppStrings checker flags selected user-facing literal forms in TFM and TFI, and the repository requires it alongside the Chinese localization check; it does not comprehensively verify every possible UI string or displayed translation.",
+      "statement": "The SwiftSyntax AppStrings checker flags selected user-facing literal forms in TFM and TFI and complements the current Python localization checker; contributor guidance still names retired check-zh-localization.sh rather than current check-localization.py. These checks do not comprehensively verify every UI string or displayed translation.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L82-L88",
-          "version": "repo-lines-v1:sha256:23035bfac52c17545b535d40b4930b5cdc25acf77a2870d68874c55f71c22836:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjllNGU3MjdjYjY0N2FlMTc1YjMzMTA5YzI2YTQ3MWQwYTZjN2E3NmE4ZDEwY2M0OGE1MWJmZTc0MWFiODQ1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODM0NTZkMjYyMWEzM2E1YmZhNmJjNTAzYWY5YTI3YzdkMmNmMTU1YWUxMWUyOWFiZDliYzIyMTUzZWJiZDY0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZThlOWYzMDg0MzUyNWNjN2Y0N2FjOGRjZTQ5MmQ1ZDE1OWM3ZTMzYmVjMzgwYWM0MTAxMDJjMmUxODcwMWY5NCJ9"
+          "resource": "repo://AGENTS.md#L80-L121",
+          "version": "repo-lines-v1:sha256:57e1c96158669ca1be0127d7408a073e905a218b45fc02a5358e65ec8ad97f8b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjZlZDYzN2JlNjgzYzc2MTJmNjc3ZWE5ZTFhNTZiOTY1OTllNzcyZjZkNzY5MGI0MjM3NDBjZDE0YWZmZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwODNmODhkOGVhY2JlNjI0YWY0MTM0YTZlMWJlNzZlZjU5NTdiNGYxODRjYzYwNTkwNjQ2MjdiYjRjMjQwMWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4NmYwZmMyNmM4NWViY2IwODgwNDgxN2JiMGQzZGJkN2EwOWE2MWE1N2RhOWEwNTk3YWFjOWU3NWQwZDc0OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViMWJjNWJjNGEyMzdmNTc4ZTZhZjRhNDE1ZDA2NDdmOTkxMGIwM2IzNjRlMWUyN2MxZjFkYmFhNzQzZDAzYmEifQ"
         },
         {
-          "resource": "repo://Scripts/check-appstrings.swift#L7-L78",
-          "version": "repo-lines-v1:sha256:508720cc274799661b3b8a090c3dc0052bd5e69535320fc04f5e1bb98cfe79e5:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MzdlMWZiY2RkNmE5MDMwNGExYTg1MzUzOTMwYjk4MWZiMzlkMTYwM2I4ZGRhOWZlNWEwMDU3N2YyNGM3YzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxMTExNmNhMmRiMWQzZmJmMDVhZTFiMDFmZTk4ZTY0OTEzMzhkMzQ4Yzg4NmY2Yjk1NGJkNDg1MmE4ZmIyODAifQ"
+          "resource": "repo://Scripts/check-appstrings.sh",
+          "version": "repo-file-v1:sha256:adde910147e7d0d622ca42489c4ab1b642ddddd27a30b9b74404bfdd958cf5ec"
+        },
+        {
+          "resource": "repo://Scripts/check-appstrings.swift",
+          "version": "repo-file-v1:sha256:9ce787b44bde44930a02b4ff7140eeba373eab11d5e75ebc9d2dc71abbdd9226"
+        },
+        {
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         }
       ]
     },
@@ -675,22 +683,30 @@
       "statement": "Both shared app string catalogs remain manually maintained, requiring explicit keys and Chinese translations and canonical Xcode-compatible formatting; single-target stale flags do not justify deleting keys. Both project configurations disable generated catalog symbols. The project defaults are Swift 6.0, approachable concurrency, complete strict concurrency, ExistentialAny, MainActor isolation and Swift warnings-as-errors; apps, shared frameworks and tests inherit the isolation default, widgets restate it, and the MCP bridge and forwarding benchmark override it with nonisolated and -parse-as-library. TFMTests only relaxes imported deprecated-declaration diagnostics through -Xcc. Apps enable localization-string emission while all six shared frameworks, FrameworkTests and TFITests disable it. Debug enables testability and -Onone, while Release uses whole-module compilation and disables assertions. TermindWidgets is an iOS/iPadOS extension with extension-only APIs and TFIWidgets-owned source and metadata.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1906-L2890",
-          "version": "repo-lines-v1:sha256:d3262383c43a7150581e18a3e27f87b64330b680f6af44ce972d1c1723336a23:eyJzZWxlY3RlZExpbmVDb3VudCI6OTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1909-L2893",
+          "version": "repo-lines-v1:sha256:142c14edf291e2757803dbaafc79a2e4a2822d8037011503a8fc228f143ad0f5:eyJzZWxlY3RlZExpbmVDb3VudCI6OTg1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZjQ2Y2VhODZlN2M2NTA3MWNkM2NiN2E5ZTE5NzExZTRlOTc5MDJjZDhiYjA1ZDEwYTRlYzlkMWYxMGJjMjE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzNjBiODhhMDVkNWI1Mzg0NzYwMjI5YmU2MDU3MmZlNjJiMWMyOWNkYzU3ZWRiNWU2OTUxZGFhNGZkNDZjODAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwOTAzNzM1YjEzNWI1ZmI4MzM1OGRhNzc3YzI3YTBkZTg2OGZiODkxNDA3ZGEyYjRkNDVhMjAyZDAwMWUzNTY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyMGM1ZjFkMzFlODgwNGI3NDZlNzUyZGY2NjM2NGIyZWM2NDdmODI1ZTY4OTAyMjA1Nzc2NGVkMjQzOGU4MTY0In0"
         }
       ]
     },
     {
       "id": "claim_30fa6fb3a20846278d3e974449f71b27",
-      "statement": "Localization checks complement rather than replace rendering coverage: the SwiftSyntax copy checker flags selected UI literals in TFM and TFI, while the CJK catalog checker verifies canonical manual catalogs, finished zh-Hans/zh-Hant/ja translations, positional format arguments, other-only plural forms and locale-specific spacing; neither proves semantic reuse or display-time correctness.",
+      "statement": "Localization checks complement rendering coverage: SwiftSyntax flags selected UI literals; check-localization.py validates canonical manual catalogs, finished zh-Hans/zh-Hant/ja/ko/de/fr translations, positional argument types and percents, plural branches and Chinese/Japanese spacing. Plurals require other-only for Chinese/Japanese/Korean, one/other for German, and one/other with optional many for French. Path-filtered Ubuntu CI runs normalizer/localization unit tests and the Python checker on pull requests and main pushes, not native rendering or SwiftSyntax copy checks.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-appstrings.swift#L5-L18",
-          "version": "repo-lines-v1:sha256:092f3212071893f610272a62e0dee5a7c9296cffe95064fc25cc8ed65bc5ce27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYTY4ZDE3MmNlYjAzZWM2MjVmYTAwZDYyY2NkMGIwNGViYjIzOTNjMjRkMzQ1NTU0YjMwNTdmZGU4ZDQ4NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDI0NDU4MmI2ZmIwM2QyM2I4NDE1YWJlY2QzNDZiMGM5ZjQ2NmI2Zjc1MmIwNjgxODljZTdlOWEyZGMzNTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3OTQzZmRkMjkzYzI3Yzk5YmQzZmU4MjlmOGZlY2EzYTFkZjc3MDZmYmMyNTIzZjAxNDE1ZDgzNjA3ZTVhMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3NmIxOWU5ODgxNmYxMjE5NjE3ZjQzZTljMTM2ZDZiNTcxMGQ5ZmVmNzAzZmFhNThkMzVkNjY4NGIxMWYwODUifQ"
+          "resource": "repo://.github/workflows/localization.yml",
+          "version": "repo-file-v1:sha256:b3f933f584d9fea5620d9d7675de1047d350cc8930a732754bade540d9d00f95"
         },
         {
-          "resource": "repo://Scripts/check-cjk-localization.py#L29-L125",
-          "version": "repo-lines-v1:sha256:31441d9e951a7963634f49842011201a4bbb95d61c1d6336fee905125ba913fa:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YWM3NzcxZGI0ZTY0M2EyYjliMjQxMjY2YjQxNGVlYzNlOWMwMzhjM2YwZjgyNWZiNTFjNGVlYzAzZWM3ZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MzcyNmIwNWQzODllYjA5NzM5NTBhMDk0OWMzZTA4YjA5YWNmZjRiNjg4NzExYzA1YzIyMjMyMDg0YjJjNGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyOTA5ZGYzMDY5OWM4ODhiZTJlZjVmOTk0ZDFkYmU0YWQzMmEyYzQ4Y2MyYzJmZmQ0Y2EzMjM0Mjk4MzMxZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://Scripts/Tests/test_localization.py",
+          "version": "repo-file-v1:sha256:2a19ac575e3835cda0c8859997082ebf44ef2280decf823a7080eb6621083a67"
+        },
+        {
+          "resource": "repo://Scripts/check-appstrings.swift",
+          "version": "repo-file-v1:sha256:9ce787b44bde44930a02b4ff7140eeba373eab11d5e75ebc9d2dc71abbdd9226"
+        },
+        {
+          "resource": "repo://Scripts/check-localization.py",
+          "version": "repo-file-v1:sha256:dbe8f716470fa8b097e85fc9896fe0bf37360a405b0ce6716cf8d300501a6dee"
         }
       ]
     },
@@ -940,7 +956,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:abc5bb76c62b88138cc8f01c46b6d7c319a6090a70413466a530cdeb7ee5e992"
+          "version": "repo-file-v1:sha256:9cd4a7c0df9094f97075851b1feb8526fc114770a3e804482fbc404ebe419365"
         }
       ]
     },
@@ -1167,6 +1183,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-13T01:46:04.618Z"
+    "at": "2026-10-14T22:55:30.720Z"
   }
 }

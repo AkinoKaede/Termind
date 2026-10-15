@@ -1,7 +1,7 @@
 ---
 type: implementation guide
-title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
-description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, how command completion notifications observe shell hooks or OSC 133, and how charset handling differs from Telnet."
+title: Shell Integration Bootstrap and Metadata
+description: "How remote SSH shells bootstrap session-local hooks, hide control traffic while preserving terminal output, and disclose shell, cwd, home, and OS metadata to session consumers. Covers delayed probes, timeout and input escape paths, charset boundaries, and model-context disclosure."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
@@ -44,13 +44,13 @@ sources:
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
   - id: openwiki-source-b1446950c4c60caef12aa43a
     resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-14T22:55:30.720Z
 ---
 
-# Shell Integration: Bootstrap, OSC Events, and Terminal State
+# Shell Integration Bootstrap and Metadata
 
 ## Ownership and entrypoint
 
@@ -102,6 +102,7 @@ stateDiagram-v2
     Probing --> Complete: unsupported shell
     Probing --> ScanningLate: 3 seconds without recognized echo
     Probing --> SuppressingLate: 3 seconds with probe echo
+    ScanningLate --> ScanningLate: ordinary bytes or quiet suffix flush
     ScanningLate --> SuppressingLate: late signature found
     SuppressingLate --> Installing: supported shell and no user write
     SuppressingLate --> Complete: unsupported shell or user already wrote
@@ -114,7 +115,11 @@ Bootstrap lifecycle: a late probe can still install hooks unless the user alread
 
 The first probe deadline is **3 seconds**. It restores ordinary output and reports home resolution unavailable, but intentionally does **not** mark the bootstrap complete: a late-signature scanner remains active. The scanner streams unrelated output through, retains only a possible signature suffix, and flushes an unresolved suffix after **500 ms** of quiet. Recognized late-probe suppression ends at its 3-second deadline or after 500 ms of quiet. Installation gets its own 3-second deadline.
 
-`write(_:)` calls `noteUserInput` before appending user bytes. If a supported probe arrives **late** after any user write, the bootstrap skips installation so it does not inject a hook command into the user's new input. This check is specifically the late-probe branch; it is not a general rule that any early keystroke immediately cancels bootstrap. An unsupported shell likewise gets no installation command. Successful installation emits the saved banner plus bytes after the DONE line; timeout cleanup attempts to keep the latest prompt while hiding probe/installer echo.
+`write(_:)` calls `noteUserInput` for nonempty writes before conversion and queuing. If a supported probe arrives **late** after any user write, the bootstrap skips installation so it does not inject a hook command into the user's new input. This check is specifically the late-probe branch; it is not a general rule that any early keystroke immediately cancels bootstrap. An unsupported shell likewise gets no installation command. Successful installation emits the saved banner plus bytes after the DONE line; timeout cleanup attempts to keep the latest prompt while hiding probe/installer echo.
+
+The late scanner recognizes the full probe echo, the early PROBE token, or the SHELL marker. For a PROBE match it suppresses from the start of that line, hiding prompt prefixes and redraw escapes too. Scanning has **no overall expiry**: a 500 ms quiet flush releases a possible signature suffix without completing the bootstrap. Once a signature is recognized, suppression has a bounded deadline. A successful SHELL or DONE parse requires a terminating newline, so fragmented metadata remains buffered until its line completes.
+
+Socket readiness drives reads, while a 100 ms pump timer advances bootstrap deadlines and keepalive. In a pump pass the worker reads PTY bytes, polls the bootstrap, then drains pending writes. Probe and installer bytes join that queue directly; they are not user writes and do not set `userDidWrite`. The deadlines are measured by monotonic uptime, not by rendered terminal activity or an acknowledgement that a queued command was transmitted.
 
 Home parsing percent-decodes using the configured remote charset, accepts only an absolute path, and rejects control characters/newlines. Missing or invalid home metadata does not make a supported hook installation fail. System metadata is optional as well.
 
@@ -183,7 +188,7 @@ The monitor increments unread completions for background work **before** checkin
 
 `RemoteCharsetStreamConverter` maps the configured `RemoteCharset` to iconv names (UTF-8, GB18030, Big5, Shift_JIS, EUC-JP, EUC-KR, ISO-8859-1, Windows-1252). It retains incomplete source characters between `convert` calls and `finish` flushes trailing input. Encoding and decoding preserve stream continuity: valid sequences convert, unconvertible bytes pass through verbatim, incomplete characters remain buffered until more input or `finish`, and unavailable iconv falls back to unchanged bytes. `recoveringInvalidInput` remains only for source compatibility and conversion no longer rejects input. A byte stream that survives decoding is not necessarily valid UTF-8: Swift `String(decoding:as:)` used for metadata/events is lossy for invalid UTF-8, and the terminal backend may render such bytes as replacements. Do not interpret `rejectedInput == false` on decode as proof of valid text, or generalize the UTF-8 bypass test to claim all charsets take an identical byte-for-byte path.
 
-For SSH PTY, the worker creates distinct input and output converters from the connection charset. Environment variable names and values are encoded before channel setup; user input is converted before entering the pending SSH write queue, preserving unconvertible bytes rather than rejecting the write. The receive chain in the diagram strips command events and rewrites OSC 7 on raw PTY bytes before streaming text conversion. On terminal close, `finishCharsetOutput` flushes the OSC 7 filter remainder through the output converter and finishes the decoder before clearing session state; catastrophic receive conversion errors fall back to raw bytes rather than halting the PTY. Cwd rewriting is installed even if shell integration is disabled, so a remote OSC 7 frame can still reach the terminal; this does not install Termind command hooks.
+For SSH PTY, the worker creates distinct input and output converters from the connection charset. Environment variable names and values are encoded before channel setup; user input is converted before entering the pending SSH write queue, preserving unconvertible bytes rather than rejecting the write. The receive chain in the diagram strips command events and rewrites OSC 7 on raw PTY bytes before streaming text conversion. On orderly terminal close, `finishCharsetOutput` flushes the OSC 7 filter remainder through the output converter and finishes the decoder before clearing session state. Fatal transport/read errors instead call `cleanup` directly, which discards converter/filter state without that tail flush; receive conversion exceptions fall back to raw bytes rather than halting the PTY. Cwd rewriting is installed even if shell integration is disabled, so a remote OSC 7 frame can still reach the terminal; this does not install Termind command hooks.
 
 Telnet uses the same converter **but does not run the SSH shell bootstrap, OSC 777 filter, or OSC 7 rewrite**. Both direct TCP and proxied-socket connection paths configure encoder and decoder before opening the transport. `TelnetProtocolParser` first strips Telnet negotiations and handles NVT data, then the worker decodes application bytes for the terminal and login-prompt scanner; conversion preserves unconvertible application bytes. Input (including automated username/password) is encoded before Telnet NVT formatting and IAC escaping. Unconvertible user and automatic-login bytes are preserved by the converter. Cleanup finishes the output converter to deliver its remaining bytes and clears converter and prompt state. Desktop and mobile Telnet session models pass converted output to their terminal backends and surface charset errors, but do not consume SSH shell integration events for Telnet.
 
@@ -199,7 +204,23 @@ flowchart TD
 
 Telnet terminal data path: negotiation is removed before decoding, and outgoing text is encoded before wire escaping; there is no SSH hook installation in this route.
 
+## Metadata disclosure and retention boundaries
+
+Hidden control traffic is not the same as absent data collection. The probe reads `ID`, `ID_LIKE`, and `VERSION_ID` from os-release, plus `uname -s`, `uname -r`, and `uname -m`. `RemoteSystemInfo` accepts only narrow ASCII-token fields, strips matched quotes, and supports both five-field legacy and six-field current probe records. Human-readable os-release names are excluded; invalid fields can be discarded without preventing installation. See [RemoteSystemInfo](../../Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift) and the hostile-field bootstrap tests.
+
+Installation success emits `.available` with shell, optional system information, and optional home. Unsupported-shell and late-user-input skip paths can still emit `.systemInfo` followed by `.homeResolutionUnavailable`: **metadata availability is not hook availability**. The worker stores the HISTORY source separately for the history loader, rather than exposing it as a command event. Bash/Zsh report `HISTFILE` resolved against PWD when relative; Fish derives its history path from `fish_history` and `XDG_DATA_HOME` or HOME.
+
+Desktop and mobile hold the full remote system description as live session state and reset it for a new connection. They also send validated distribution detection to `HostLibraryModel.recordRemoteSystemInfo`, which persists only meaningful distribution transitions for host/icon presentation—not the full kernel release and architecture snapshot. This is distinct from conversational persistence:
+
+- **Surface session context:** the focused desktop pane supplies `SessionContext` with pane/host identity, cwd, and system fact lines. The session-context chips disclose data sent with the turn; the assistant captures that context for the run. It is data-only context, not instructions, and is not an automatically created conversation attachment. Once submitted, the context snapshot can be retained as hidden replay metadata; “transient” describes the live surface state, not a promise that already-sent facts vanish from a conversation.
+- **Explicit attachments:** `promptContextAttachments` come from the composed user turn and travel separately from `sessionContext`/`contextSnapshot`. Persistence stores context attachments separately from message replay metadata. Do not conflate a changing OS chip with a user-attached terminal snapshot or file.
+- **Command generation:** draft generation sends shell, cwd, optional `remoteSystemInfo`, and a bounded visible viewport in its model request. Its prompt treats those values as untrusted context and uses OS facts only for platform compatibility. This is separate from assistant conversation attachments.
+
+Follow [Agent Runtime and Assistant](agent-runtime-and-assistant.md) for turn capture and replay, and [Ghostty Terminal Integration](ghostty-terminal-integration.md) for terminal-owned state.
+
 ## Debugging and focused test map
+
+`RemoteShellIntegrationLifecycleLogger` correlates an attempt with host and operation IDs. It records started, delayed, completed, skipped, or timed-out outcomes with stable reasons, stage, late status, and home/system availability flags. It does **not** log the token, remote shell path, home path, or system field values. A terminal outcome consumes the logger's operation ID, so later session-end cleanup does not emit a duplicate outcome. `ShellIntegrationLoggingTests` asserts both redaction and this deduplication; use these diagnostics instead of exposing hidden bootstrap traffic.
 
 | Symptom or change | First seam to inspect | Regression evidence |
 | --- | --- | --- |

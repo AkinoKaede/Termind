@@ -1,11 +1,11 @@
 ---
 type: architecture guide
-title: Desktop UI and Window Ownership
-description: How desktop navigation and persistent workspace views divide app-wide and per-window state, and how native window registration, close vetoes and application Quit manage their lifetimes.
+title: Desktop Navigation and UI Ownership
+description: How macOS navigation divides shared app services, per-window routes, retained native workspace views, toolbar Find ownership and feature-owned managed surfaces.
 tags: [macos, ui, navigation, workspaces, swiftui, appkit, vault]
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-14T22:55:30.720Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -79,10 +79,10 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 ---
 
-# Desktop UI and Window Ownership
+# Desktop Navigation and UI Ownership
 
 TFM uses SwiftUI for composition and AppKit-backed surfaces where native identity, focus, text handling or incremental rendering matters. Its central design is **one Navigator column and one persistent detail deck per window**, not a separate horizontal tab system for every feature.
 
@@ -321,6 +321,18 @@ Managed-page rendering computes placement intent; the feature owns the resulting
 
 The renderer resolves a pointer to a section and insertion slot; it does not need to know what a Host, key or snippet means. Selection and deletion state stay with their appropriate owners. Creation belongs in the window toolbar and contextual blank-area menus rather than reintroducing a special “New” tile into each data grid.
 
+### Managed interaction boundaries
+
+- **Selection is external; gesture state is local.** The renderer intersects updates with IDs in its section items and enforces single-selection capability in section order. A selected card's actions receive the selected items in that order; an unselected card acts only on itself. `CardPage` uses native blank-canvas hit testing for marquee and blank clicks, declining cards, headers, controls and scrollbars before input begins. Blank clicks clear selection and then invoke the feature's optional primary action. Pointer-only card geometry lives in a reference store rather than publishing a layout feedback loop through SwiftUI state. [Sources: `ManagedCardPage.swift`, lines 405–451; `CardGrid.swift`, lines 20–120 and 186–218.]
+- **Reordering is capability-gated, not a repository operation.** The renderer filters destination sections by `canAcceptDrop` and the page's drop policy, excludes moving IDs before finding the next sibling, and passes IDs, destination and optional sibling to the feature closure. Collapsed sections append at their end. Hosts allows cross-group moves only when neither query nor tag filtering is active; Known Hosts supplies no reordering capability. [Sources: `ManagedCardPage.swift`, lines 194–219 and 453–524; `HostsPageView.swift`, lines 87–139; `KnownHostsPageView.swift`, lines 22–39.]
+- **Deletion remains feature-owned.** `ManagedCardDeletionPresentation` only coordinates pending-ID bindings, pruning callbacks, confirmation and error UI. Known Hosts supplies the actual delete/storage-error handling. Hosts instead uses its own confirmation route and offers either deleting a group with its hosts or keeping the hosts, then prunes window selections. A generic renderer must not silently turn a card gesture into resource deletion. [Sources: `ManagedCardPage.swift`, lines 71–102; `KnownHostsPageView.swift`, lines 89–99; `HostsPageView.swift`, lines 284–306 and 405–468.]
+
+### Review invitations belong to the feature surface
+
+The desktop review invitation is inline top content on **Hosts**, not a global RootView presenter or a modal triggered by navigation. `HostsPageView` owns an `AppReviewInvitationVisit`, captures eligibility in its presentation's `onAppear`, and renders `AppReviewInvitationView` through `managedTopContent`. The shared, device-local `AppReviewController` owns first-use and response persistence; the page owns when and where that state is projected. Normal eligibility requires an enabled controller, at least one host, no response, and seven elapsed days. Capturing eligibility on entry prevents time passing or a synchronized host arriving from inserting an invitation mid-visit. Query/tag filtering or removal of the last host hides it without consuming it; declining or an accepted store-URL open hides it across windows. An accepted open records intent, not proof of a completed rating; a rejected open leaves the invitation available. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the broader product boundary. [Sources: `HostsPageView.swift`, lines 68–114 and 362–374; `AppReviewController.swift`, lines 4–95.]
+
+The managed renderer keeps top content even when the source is empty or filters produce no results, and registers it as interactive geometry. Both native blank-area selection/menu handling and reorder targeting therefore exclude the invitation rather than treating its buttons as canvas. When extending a managed surface, use this top-content contract rather than adding another window-wide overlay. [Source: `ManagedCardPage.swift`, lines 258–309 and 491–508.]
+
 ## Assistant: route state and native rendering are separate
 
 The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation **from the contextual panel** does not replace the foreground terminal; the conversation navigator shown instead when no workspace is in front deliberately opens full Assistant. The compact surface composes its transcript and interaction/composer regions separately, passing focused-terminal context/actions deliberately. Conversation list reordering has its own native receiver and hidden-list participation rules; see the brief [Assistant drag flow](../workflows/desktop-drag-and-drop.md#assistant-conversation-reordering).
@@ -367,7 +379,8 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
 | Narrow editor, dirty Vault route transitions or Metrics detail layout | `ResponsivePageLayoutTests` checks narrow and resized editor identity/geometry; `CardMarqueeSelectionTests.vaultEditingSessionOffersSaveDiscardAndCancelForDirtyRoutes` checks clean, dirty, token replacement and save/discard/cancel transitions. |
-| Managed selection/reordering | `ManagedCardDropResolver`, selection and marquee tests; resource-specific move tests. |
+| Managed selection/reordering | `CardMarqueeSelectionTests` pins directional rectangles, partial overlap, Shift extension and true-canvas exclusion. `KeychainOrderTests.dropPoliciesExpressFixedAndExchangeableSections` and `dropResolverFindsGridSlotsAndCollapsedSectionEnd` check policy and placement boundaries; resource-specific move tests check mutations. |
+| Feature-owned review top content | `FrameworkTests/AppReviewControllerTests` covers seven-day eligibility, entry snapshots, filtering, cross-window responses and rejected URL opens. `TFMTests/AppReviewControllerTests` checks accepted store-link handling, localized narrow/wide rendering without preference mutation, and invitation geometry excluded from blank canvas. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
 | Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing, Welcome focus, per-page queries and the theme-scheme Settings Find route; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
 | Welcome Recents, device names, connection-history limits or pane close tracking | `ConnectionHistoryTests` checks local-only recents, stable device IDs and rename lookup; `VaultSyncTests` and workspace close/reopen tests cover synchronization and pane lifetime. |

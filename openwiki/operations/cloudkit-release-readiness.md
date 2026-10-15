@@ -100,10 +100,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-13T01:46:04.618Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-13T01:46:04.618Z
+    at: 2026-10-14T22:55:30.720Z
 ---
 
 # CloudKit Release Readiness
@@ -112,14 +112,14 @@ A passing local build or sync test does not prove that the production CloudKit s
 
 Both target entitlement templates ([TFI](../../TFI/TFI.entitlements), [TFM](../../TFM/TFM.entitlements)) declare CloudKit and `iCloud.com.akinokaede.termind`. Their iCloud-container environment uses `$(ICLOUD_CONTAINER_ENVIRONMENT)`; their push environment uses `$(APS_ENVIRONMENT)`. TFI uses the push entitlement key `aps-environment`, while TFM uses `com.apple.developer.aps-environment`.
 
-The [project source settings](../../Termind.xcodeproj/project.pbxproj) select these substitutions for both app targets:
+The checked-in target build configurations in the [project source settings](../../Termind.xcodeproj/project.pbxproj) select these substitutions for both app targets:
 
 | Target | Configuration | Entitlement template | `ICLOUD_CONTAINER_ENVIRONMENT` | `APS_ENVIRONMENT` |
 | --- | --- | --- | --- | --- |
-| TFI | Debug | `TFI/TFI.entitlements` | `Development` | `development` |
-| TFI | Release | `TFI/TFI.entitlements` | `Production` | `production` |
-| TFM | Debug | `TFM/TFM.entitlements` | `Development` | `development` |
-| TFM | Release | `TFM/TFM.entitlements` | `Production` | `production` |
+| TFI | [Debug](../../Termind.xcodeproj/project.pbxproj#L2026-L2037) | `TFI/TFI.entitlements` | `Development` | `development` |
+| TFI | [Release](../../Termind.xcodeproj/project.pbxproj#L2338-L2349) | `TFI/TFI.entitlements` | `Production` | `production` |
+| TFM | [Debug](../../Termind.xcodeproj/project.pbxproj#L2588-L2606) | `TFM/TFM.entitlements` | `Development` | `development` |
+| TFM | [Release](../../Termind.xcodeproj/project.pbxproj#L2626-L2648) | `TFM/TFM.entitlements` | `Production` | `production` |
 
 These are configuration inputs, not proof of effective signed entitlements or deployed Production schema. For each platform's release artifact, inspect the **signed artifact's** effective CloudKit service, container identifier, container environment and platform-specific push entitlement separately from verifying the actual CloudKit schema deployment with authorized management credentials. Keep signed-capability evidence, schema-deployment evidence and the live multi-device results distinct in release sign-off.
 
