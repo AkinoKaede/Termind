@@ -52,7 +52,11 @@ struct MobileAppSettingsView: View {
             Section(AppStrings.Settings.support.swiftUIKey) {
                 AppReviewLink(controller: appReview) {
                     Label(AppStrings.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
                 Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                     Label(AppStrings.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                 }

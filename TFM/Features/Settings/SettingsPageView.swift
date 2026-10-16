@@ -537,7 +537,10 @@ private struct AppInfoSettings: View {
             AppReviewLink(controller: app.appReview) {
                 Label(AppStrings.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(.tint)
             Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
                 Label(AppStrings.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -559,20 +562,12 @@ private struct StartupSettings: View {
     var body: some View {
         Section(AppStrings.Settings.startup.swiftUIKey) {
             Toggle(
+                AppStrings.Settings.openAtLogin.swiftUIKey,
                 isOn: Binding(
                     get: { loginItem.isEnabled },
                     set: { loginItem.setEnabled($0) }
                 )
-            ) {
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text(AppStrings.Settings.openAtLogin)
-                    Text(
-                        AppStrings.Settings.loginItemExplanation
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
+            )
 
             Toggle(AppStrings.Settings.startMinimizedToSystemTray.swiftUIKey, isOn: $opensQuietly)
                 .disabled(!loginItem.isEnabled)

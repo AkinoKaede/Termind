@@ -125,6 +125,10 @@ extension AppStrings {
             "Bearer Token"
         }
 
+        public static var builtInServer: LocalizedStringResource {
+            "Built-in Server"
+        }
+
         public static var callHistory: LocalizedStringResource {
             "Call History"
         }
@@ -167,10 +171,6 @@ extension AppStrings {
 
         public static var connectClients: LocalizedStringResource {
             "Connect Clients"
-        }
-
-        public static var connectToRemoteMcpServersOverHttp: LocalizedStringResource {
-            "Connect to remote MCP servers over HTTP."
         }
 
         public static var connectToSeeWhatThisServerOffers: LocalizedStringResource {
@@ -339,14 +339,6 @@ extension AppStrings {
 
         public static var userProfile: LocalizedStringResource {
             "User Profile"
-        }
-
-        public static var hermesPolicyDescription: LocalizedStringResource {
-            "Saved memory stays on this device. The assistant searches it when earlier preferences or decisions are relevant."
-        }
-
-        public static var hermesLearningDescription: LocalizedStringResource {
-            "Automatic learning reviews completed requests after 10 turns or 15 tool calls. Corrections are reviewed sooner. Your configured model may incur API charges."
         }
 
         public static var destroy: LocalizedStringResource { "Destroy" }
@@ -648,10 +640,6 @@ extension AppStrings {
             "Select \(label) for batch actions"
         }
 
-        public static var server: LocalizedStringResource {
-            "Server"
-        }
-
         public static var serverDeleted: LocalizedStringResource {
             "Server Deleted"
         }
@@ -692,10 +680,6 @@ extension AppStrings {
             "Describe what the skill does and when to use it so the assistant knows when to load it."
         }
 
-        public static var skillExplanation: LocalizedStringResource {
-            "The assistant loads and follows a skill when a task matches its description. Commands, writes, and transfers retain their usual approval rules."
-        }
-
         public static var skills: LocalizedStringResource {
             "Skills"
         }
@@ -728,16 +712,8 @@ extension AppStrings {
             "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
         }
 
-        public static var termindConnectsDirectlyFromThisMacOverHttp: LocalizedStringResource {
-            "Termind connects directly from this Mac over HTTP."
-        }
-
         public static var testingProgress: LocalizedStringResource {
             "Testing…"
-        }
-
-        public static var theKeyIsStoredInThisMacSDataProtectionKeychain: LocalizedStringResource {
-            "The key is stored in this Mac's Data Protection Keychain."
         }
 
         public static var theNewLanguageWillBeUsedAfterTermindRelaunches: LocalizedStringResource {
@@ -817,7 +793,7 @@ extension AppStrings {
         }
 
         public static var webSearchExplanation: LocalizedStringResource {
-            "Every model searches Google, Bing, DuckDuckGo, and Yahoo from this Mac and reads result pages as Markdown."
+            "Every model searches Google, Bing, DuckDuckGo, and Yahoo."
         }
 
         public static var hermesSetupRequirement: LocalizedStringResource {
@@ -828,16 +804,16 @@ extension AppStrings {
             "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
         }
 
+        public static var sshMaxSessionsExplanation: LocalizedStringResource {
+            "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit."
+        }
+
         public static var nativeAndFallbackSearchExplanation: LocalizedStringResource {
-            "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo from this Mac and read result pages as Markdown."
+            "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo."
         }
 
         public static var modelPickerVisibilityExplanation: LocalizedStringResource {
             "Offer this model in the Assistant model picker and /model command."
-        }
-
-        public static var directProviderConnectionExplanation: LocalizedStringResource {
-            "Requests go directly from this Mac to each endpoint."
         }
 
         public static var rightClickPasteExplanation: LocalizedStringResource {
@@ -882,10 +858,6 @@ extension AppStrings {
 
         public static var mcpClientConfigurationReminder: LocalizedStringResource {
             "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes."
-        }
-
-        public static var loginItemExplanation: LocalizedStringResource {
-            "macOS opens Termind when you log in, which also starts the local MCP server if you have it enabled."
         }
 
         public static var enterAValidProviderUrlOrAVertexProjectAndLocation: LocalizedStringResource {

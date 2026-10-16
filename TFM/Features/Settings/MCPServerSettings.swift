@@ -11,7 +11,7 @@ struct MCPServerSettings: View {
     private var server: MCPServerController { app.mcpServer }
 
     var body: some View {
-        Section(AppStrings.Settings.server.swiftUIKey) {
+        Section(AppStrings.Settings.builtInServer.swiftUIKey) {
             Toggle(
                 AppStrings.Settings.enable.swiftUIKey,
                 isOn: Binding(

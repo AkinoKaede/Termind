@@ -43,10 +43,10 @@ struct MobileMCPSettings: View {
                             }
                         }
                 }
-            } footer: {
-                Text(AppStrings.Settings.connectToRemoteMcpServersOverHttp)
             }
-            MCPImportFeedback(report: importReport, problem: importProblem)
+            if importReport != nil || importProblem != nil {
+                MCPImportFeedback(report: importReport, problem: importProblem)
+            }
         }
         .navigationTitle(AppStrings.Settings.mcp.swiftUIKey)
         .toolbar {

@@ -25,14 +25,8 @@ struct WebSearchSettings: View {
 
             Text(
                 usesBuiltIn
-                    ? String(
-                        localized:
-                            AppStrings.Settings.nativeAndFallbackSearchExplanation
-                    )
-                    : String(
-                        localized:
-                            AppStrings.Settings.webSearchExplanation
-                    )
+                    ? AppStrings.Settings.nativeAndFallbackSearchExplanation
+                    : AppStrings.Settings.webSearchExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)

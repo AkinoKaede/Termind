@@ -136,13 +136,6 @@ struct ModelProviderEditorPage: View {
                 ),
                 prompt: Text(AppStrings.Common.optional)
             )
-
-            Text(
-                AppStrings.Settings.theKeyIsStoredInThisMacSDataProtectionKeychain
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 

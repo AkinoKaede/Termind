@@ -5,12 +5,6 @@ import TermindPresentation
 import UniformTypeIdentifiers
 
 /// The "Skills" section: procedures the assistant may load and follow.
-///
-/// The footnote is doing real work. A skill is the one thing in Termind whose
-/// text the model treats as instructions rather than data, so the page has to
-/// say both halves of that: it is followed, and it still cannot approve
-/// anything. Someone importing a file from the internet should read that before
-/// they enable it, not after.
 struct SkillSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (AgentSkill.ID, Bool) -> Void
@@ -38,13 +32,6 @@ struct SkillSettings: View {
             }
 
             Button(AppStrings.Settings.importSkill.swiftUIKey) { importSkill() }
-
-            Text(
-                AppStrings.Settings.skillExplanation
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
 
             ForEach(importWarnings, id: \.self) { warning in
                 Label(warning, systemImage: "exclamationmark.triangle.fill")

@@ -10915,47 +10915,6 @@
         }
       }
     },
-    "Automatic learning reviews completed requests after 10 turns or 15 tool calls. Corrections are reviewed sooner. Your configured model may incur API charges." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisches Lernen prüft abgeschlossene Anfragen nach 10 Gesprächsrunden oder 15 Werkzeugaufrufen. Korrekturen werden früher geprüft. Für Ihr konfiguriertes Modell können API-Gebühren anfallen."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’apprentissage automatique examine les demandes terminées après 10 échanges ou 15 appels d’outils. Les corrections sont examinées plus tôt. Le modèle configuré peut entraîner des frais d’API."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動学習では、10ターンまたは15回のツール呼び出しの後に、完了したリクエストをレビューします。修正指示はそれより早くレビューされます。設定したモデルのAPI利用料金が発生する場合があります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "자동 학습은 10턴 또는 도구 호출 15회 후에 완료된 요청을 검토합니다. 수정 요청은 더 일찍 검토합니다. 설정한 모델의 API 사용 요금이 발생할 수 있습니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动学习会在完成10轮请求或15次工具调用后审查对话；纠正会更早审查。使用所配置的模型可能产生API费用。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動學習會在完成10輪請求或15次工具呼叫後審查對話；更正會更早審查。使用所設定的模型可能產生API費用。"
-          }
-        }
-      }
-    },
     "Automatically Rename Workspaces" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11872,6 +11831,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SFTP瀏覽·%@"
+          }
+        }
+      }
+    },
+    "Built-in Server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrierter Server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serveur intégré"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "組み込みサーバ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내장 서버"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内置服务器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "內建伺服器"
           }
         }
       }
@@ -12983,47 +12983,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "憑證（可選）"
-          }
-        }
-      }
-    },
-    "Changes apply to queued transfers; active transfers continue. If new connections would prompt for authentication, transfers use parallel channels on the existing connection." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Änderungen gelten für wartende Übertragungen; aktive Übertragungen laufen weiter. Wenn neue Verbindungen eine Authentifizierung erfordern würden, verwenden Übertragungen parallele Kanäle der bestehenden Verbindung."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les modifications s’appliquent aux transferts en attente ; les transferts actifs continuent. Si de nouvelles connexions devaient demander une authentification, les transferts utilisent des canaux parallèles sur la connexion existante."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "変更は待機中の転送に適用されます。進行中の転送はそのまま続行します。新しい接続で認証が必要になる場合は、既存の接続上で並列チャネルを使用します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "변경 사항은 대기 중인 전송에 적용되며, 진행 중인 전송은 계속됩니다. 새 연결에 인증이 필요한 경우 기존 연결의 병렬 채널을 사용합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改会应用到排队中的传输；正在进行的传输会继续。如果新连接会提示身份验证，传输将使用现有连接上的并行通道。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改會套用至佇列中的傳輸；正在進行的傳輸會繼續。如果新連線會提示驗證，傳輸將使用現有連線上的平行通道。"
           }
         }
       }
@@ -17154,49 +17113,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請連接Wi-Fi或乙太網路以探索本機伺服器。"
-          }
-        }
-      }
-    },
-    "Connect to remote MCP servers over HTTP." : {
-      "comment" : "A description of MCP servers.",
-      "extractionState" : "manual",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Über HTTP mit entfernten MCP-Servern verbinden."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connectez-vous à des serveurs MCP distants via HTTP."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP経由でリモートMCPサーバに接続します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTTP를 통해 원격 MCP 서버에 연결합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通过HTTP连接远程MCP服务器。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "透過HTTP連線遠端MCP伺服器。"
           }
         }
       }
@@ -28458,43 +28374,43 @@
         }
       }
     },
-    "Every model searches Google, Bing, DuckDuckGo, and Yahoo from this Mac and reads result pages as Markdown." : {
+    "Every model searches Google, Bing, DuckDuckGo, and Yahoo." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jedes Modell durchsucht Google, Bing, DuckDuckGo und Yahoo von diesem Mac aus und liest Ergebnisseiten als Markdown."
+            "value" : "Jedes Modell durchsucht Google, Bing, DuckDuckGo und Yahoo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque modèle effectue des recherches sur Google, Bing, DuckDuckGo et Yahoo depuis ce Mac et lit les pages de résultats en Markdown."
+            "value" : "Chaque modèle effectue des recherches sur Google, Bing, DuckDuckGo et Yahoo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのモデルがこのMacからGoogle、Bing、DuckDuckGo、Yahooを検索し、結果のページをMarkdownとして読み取ります。"
+            "value" : "すべてのモデルがGoogle、Bing、DuckDuckGo、Yahooを検索します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 모델이 이 Mac에서 Google, Bing, DuckDuckGo 및 Yahoo를 검색하고 결과 페이지를 Markdown으로 읽습니다."
+            "value" : "모든 모델이 Google, Bing, DuckDuckGo 및 Yahoo를 검색합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所有模型都从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
+            "value" : "所有模型都搜索Google、Bing、DuckDuckGo和Yahoo。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所有模型都從這台Mac搜尋Google、Bing、DuckDuckGo和Yahoo，並以Markdown讀取結果頁面。"
+            "value" : "所有模型都搜尋Google、Bing、DuckDuckGo和Yahoo。"
           }
         }
       }
@@ -37825,43 +37741,43 @@
         }
       }
     },
-    "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit. Changes apply to new channels immediately; active channels continue." : {
+    "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Begrenzt offene Shell-, Ausführungs- und SFTP-Kanäle pro SSH-Verbindung. Portweiterleitungen unterliegen dieser Begrenzung nicht. Änderungen gelten sofort für neue Kanäle; aktive Kanäle laufen weiter."
+            "value" : "Begrenzt offene Shell-, Ausführungs- und SFTP-Kanäle pro SSH-Verbindung. Portweiterleitungen unterliegen dieser Begrenzung nicht."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Limite les canaux shell, d’exécution et SFTP ouverts sur chaque connexion SSH. La redirection de port n’est pas concernée. Les modifications s’appliquent immédiatement aux nouveaux canaux ; les canaux actifs continuent."
+            "value" : "Limite les canaux shell, d’exécution et SFTP ouverts sur chaque connexion SSH. La redirection de port n’est pas concernée."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "各SSH接続で開くシェル、コマンド実行、SFTPのチャネル数を制限します。ポート転送はこの制限の対象外です。変更は新しいチャネルにすぐに適用され、使用中のチャネルはそのまま継続します。"
+            "value" : "各SSH接続で開くシェル、コマンド実行、SFTPのチャネル数を制限します。ポート転送はこの制限の対象外です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "각 SSH 연결에서 열 수 있는 셸, 명령 실행 및 SFTP 채널 수를 제한합니다. 포트 포워딩에는 이 제한이 적용되지 않습니다. 변경 사항은 새 채널에 즉시 적용되며, 사용 중인 채널은 계속 유지됩니다."
+            "value" : "각 SSH 연결에서 열 수 있는 셸, 명령 실행 및 SFTP 채널 수를 제한합니다. 포트 포워딩에는 이 제한이 적용되지 않습니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "限制每条SSH连接上打开的Shell、执行和SFTP通道数。端口转发不受此限制。更改会立即应用于新通道，活动通道将继续运行。"
+            "value" : "限制每条SSH连接上打开的Shell、执行和SFTP通道数。端口转发不受此限制。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "限制每條SSH連線上開啟的Shell、執行和SFTP通道數。連接埠轉送不受此限制。變更會立即套用於新通道，作用中的通道將繼續執行。"
+            "value" : "限制每條SSH連線上開啟的Shell、執行和SFTP通道數。連接埠轉送不受此限制。"
           }
         }
       }
@@ -40046,19 +39962,20 @@
         }
       }
     },
-    "Minimum Duration (seconds)" : {
+    "Minimum Duration (s)" : {
+      "comment" : "Minimum command duration for notifications; s is the seconds unit in this full label, not a standalone letter.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mindestdauer (Sekunden)"
+            "value" : "Mindestdauer (s)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Durée minimale (secondes)"
+            "value" : "Durée minimale (s)"
           }
         },
         "ja" : {
@@ -40503,43 +40420,43 @@
         }
       }
     },
-    "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo from this Mac and read result pages as Markdown." : {
+    "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modelle mit anbietereigener Suche verwenden diese direkt. Andere Modelle durchsuchen Google, Bing, DuckDuckGo und Yahoo von diesem Mac aus und lesen Ergebnisseiten als Markdown."
+            "value" : "Modelle mit anbietereigener Suche verwenden diese direkt. Andere Modelle durchsuchen Google, Bing, DuckDuckGo und Yahoo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les modèles disposant d’une recherche native du fournisseur l’utilisent directement. Les autres recherchent sur Google, Bing, DuckDuckGo et Yahoo depuis ce Mac et lisent les pages de résultats en Markdown."
+            "value" : "Les modèles disposant d’une recherche native du fournisseur l’utilisent directement. Les autres recherchent sur Google, Bing, DuckDuckGo et Yahoo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "プロバイダのネイティブ検索に対応したモデルは、その機能を直接使用します。それ以外のモデルは、このMacからGoogle、Bing、DuckDuckGo、Yahooを検索し、結果のページをMarkdownとして読み取ります。"
+            "value" : "プロバイダのネイティブ検索に対応したモデルは、その機能を直接使用します。それ以外のモデルは、Google、Bing、DuckDuckGo、Yahooを検索します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "제공업체의 자체 검색을 지원하는 모델은 해당 기능을 직접 사용합니다. 다른 모델은 이 Mac에서 Google, Bing, DuckDuckGo 및 Yahoo를 검색하고 결과 페이지를 Markdown으로 읽습니다."
+            "value" : "제공업체의 자체 검색을 지원하는 모델은 해당 기능을 직접 사용합니다. 다른 모델은 Google, Bing, DuckDuckGo 및 Yahoo를 검색합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支持提供方原生搜索的模型会直接使用该能力；其他模型从这台Mac搜索Google、Bing、DuckDuckGo和Yahoo，并以Markdown读取结果页面。"
+            "value" : "支持提供方原生搜索的模型会直接使用该能力；其他模型搜索Google、Bing、DuckDuckGo和Yahoo。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支援供應商原生搜尋的模型會直接使用該能力；其他模型從這台Mac搜尋Google、Bing、DuckDuckGo和Yahoo，並以Markdown讀取結果頁面。"
+            "value" : "支援供應商原生搜尋的模型會直接使用該能力；其他模型搜尋Google、Bing、DuckDuckGo和Yahoo。"
           }
         }
       }
@@ -56790,47 +56707,6 @@
         }
       }
     },
-    "Requests go directly from this Mac to each endpoint." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anfragen werden direkt von diesem Mac an den jeweiligen Endpunkt gesendet."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les requêtes sont envoyées directement depuis ce Mac vers chaque point de terminaison."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リクエストはこのMacから各エンドポイントに直接送信されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "요청은 이 Mac에서 각 엔드포인트로 직접 전송됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请求会从这台Mac直接发送到各端点。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請求會從這台Mac直接傳送到各端點。"
-          }
-        }
-      }
-    },
     "Requests use the %@ format." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -60722,47 +60598,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已儲存"
-          }
-        }
-      }
-    },
-    "Saved memory stays on this device. The assistant searches it when earlier preferences or decisions are relevant." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gespeicherte Erinnerungen bleiben auf diesem Gerät. Der Assistent durchsucht sie, wenn frühere Präferenzen oder Entscheidungen relevant sind."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les souvenirs enregistrés restent sur cet appareil. L’assistant les consulte lorsque des préférences ou des décisions antérieures sont pertinentes."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メモリはこのデバイスに保存されます。過去の好みや判断が関係する場合、アシスタントが検索します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "기억은 이 기기에 저장됩니다. 이전의 선호 사항이나 결정이 관련된 경우 어시스턴트가 기억을 검색합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "记忆保存在此设备上。涉及以往偏好或决定时，助理会按需搜索。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "記憶保存在此裝置上。涉及以往偏好或決定時，助理會視需要搜尋。"
           }
         }
       }
@@ -68847,47 +68682,6 @@
         }
       }
     },
-    "Termind connects directly from this Mac over HTTP." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind verbindet sich direkt von diesem Mac über HTTP."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind se connecte directement depuis ce Mac via HTTP."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TermindはこのMacからHTTP経由で直接接続します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind는 이 Mac에서 HTTP로 직접 연결합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind会通过HTTP从这台Mac直接连接。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind會透過HTTP從這台Mac直接連線。"
-          }
-        }
-      }
-    },
     "Termind could not start an audio input. Check that a microphone is connected and available." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -70310,49 +70104,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作區範本無效。"
-          }
-        }
-      }
-    },
-    "The assistant loads and follows a skill when a task matches its description. Commands, writes, and transfers retain their usual approval rules." : {
-      "comment" : "A description of what a skill is.",
-      "extractionState" : "manual",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Assistent lädt und befolgt einen Skill, wenn eine Aufgabe seiner Beschreibung entspricht. Für Befehle, Schreibvorgänge und Übertragungen gelten weiterhin die üblichen Genehmigungsregeln."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’assistant charge et suit une compétence lorsqu’une tâche correspond à sa description. Les commandes, les écritures et les transferts conservent leurs règles d’autorisation habituelles."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "タスクがスキルの説明に一致すると、アシスタントはスキルを読み込み、その指示に従います。コマンド、書き込み、転送には、通常の承認ルールが引き続き適用されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "작업이 스킬 설명과 일치하면 어시스턴트가 스킬을 불러와 지침을 따릅니다. 명령, 쓰기 및 전송에는 기존 승인 규칙이 그대로 적용됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "任务与技能描述相符时，助手会加载并遵循该技能。命令、写入和传输仍遵循原有的批准规则。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "任務與技能描述相符時，助手會載入並遵循該技能。指令、寫入和傳輸仍遵循原有的核准規則。"
           }
         }
       }
@@ -72130,47 +71881,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法儲存金鑰。"
-          }
-        }
-      }
-    },
-    "The key is stored in this Mac's Data Protection Keychain." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Schlüssel wird im datengeschützten Schlüsselbund dieses Macs gespeichert."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La clé est stockée dans le trousseau de protection des données de ce Mac."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "鍵はこのMacのデータ保護キーチェーンに保存されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "키는 이 Mac의 데이터 보호 키체인에 저장됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "密钥存储在这台Mac的数据保护钥匙串中。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "金鑰儲存在這台Mac的資料保護鑰匙圈中。"
           }
         }
       }
@@ -87685,47 +87395,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS正在等待你在「登入項」中允許Termind。"
-          }
-        }
-      }
-    },
-    "macOS opens Termind when you log in, which also starts the local MCP server if you have it enabled." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS öffnet Termind bei Ihrer Anmeldung. Dabei wird auch der lokale MCP-Server gestartet, sofern er aktiviert ist."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS ouvre Termind à votre connexion, ce qui démarre aussi le serveur MCP local s’il est activé."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログイン時にmacOSがTermindを開きます。ローカルMCPサーバが有効な場合は、同時に起動します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "로그인하면 macOS가 Termind를 엽니다. 로컬 MCP 서버가 활성화되어 있으면 함께 시작됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS会在你登录时打开Termind，如果你启用了本地MCP服务器，它也会随之启动。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS會在你登入時開啟Termind，如果你啟用了本機MCP伺服器，它也會隨之啟動。"
           }
         }
       }

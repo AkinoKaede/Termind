@@ -58,10 +58,6 @@ struct MobileSkillSettings: View {
                         }
                     }
                 }
-            } footer: {
-                Text(
-                    AppStrings.Settings.skillExplanation
-                )
             }
             ForEach(warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
             if let error = error ?? skills.storageError { Text(error).foregroundStyle(.red) }

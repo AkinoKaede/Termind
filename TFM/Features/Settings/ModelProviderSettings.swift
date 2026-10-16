@@ -4,12 +4,6 @@ import TermindDomain
 import TermindPresentation
 
 /// The "Model Providers" section of the Settings page.
-///
-/// A row per endpoint, plus the one line of small print that matters most here:
-/// requests go from this Mac to the address in that row, and nowhere else. That
-/// sentence is the product, not a disclaimer — an SSH client that shipped
-/// terminal output through somebody else's server would be a different and much
-/// worse thing.
 struct ModelProviderSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (ModelProvider.ID, Bool) -> Void
@@ -32,13 +26,6 @@ struct ModelProviderSettings: View {
                     edit(provider.id, true)
                 }
             }
-
-            Text(
-                AppStrings.Settings.directProviderConnectionExplanation
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
 
             if let error = app.aiConfiguration.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")

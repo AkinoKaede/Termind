@@ -129,8 +129,6 @@ public struct MemorySettingsSection: View {
                         Task { await memory.setEnabled(enabled) }
                     })
             ).disabled(memory.isBusy)
-            Text(AppStrings.Settings.hermesPolicyDescription)
-                .font(.caption).foregroundStyle(.secondary)
             if memory.isEnabled {
                 Toggle("Automatic Learning", isOn: $memory.reviewEnabled)
                 Picker("Learning Model", selection: $memory.reviewModel) {
@@ -144,8 +142,6 @@ public struct MemorySettingsSection: View {
                         }
                     }
                 }
-                Text(AppStrings.Settings.hermesLearningDescription)
-                    .font(.caption).foregroundStyle(.secondary)
                 memoryRows
             }
             if let error = exportError ?? memory.error {

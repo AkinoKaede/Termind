@@ -47,12 +47,12 @@ public struct NotificationSettingsFields: View {
                 Stepper(value: binding(\.terminalMinimumSeconds), in: 0...Int.max, step: 1) {
                     #if os(macOS)
                         HStack {
-                            Text(AppStrings.CommandNotifications.seconds)
+                            Text(AppStrings.CommandNotifications.minimumDuration)
                             Spacer()
                             Text(model.preferences.terminalMinimumSeconds, format: .number).monospacedDigit()
                         }
                     #else
-                        LabeledContent(AppStrings.CommandNotifications.seconds.swiftUIKey) {
+                        LabeledContent(AppStrings.CommandNotifications.minimumDuration.swiftUIKey) {
                             Text(model.preferences.terminalMinimumSeconds, format: .number).monospacedDigit()
                         }
                     #endif

@@ -31,8 +31,6 @@ public struct SFTPSettingsFields: View {
         Stepper(value: binding(\.perHostLimit), in: model.preferences.availablePerHostRange) {
             label(AppStrings.SFTP.perHostTransfers, value: model.preferences.perHostLimit)
         }
-        Text(AppStrings.SFTP.concurrencyChangesExplanation)
-            .font(.caption).foregroundStyle(.secondary)
         if let error = model.storageError { Text(error).foregroundStyle(.red) }
     }
 

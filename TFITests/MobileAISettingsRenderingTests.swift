@@ -14,6 +14,34 @@ import UIKit
 struct MobileAISettingsRenderingTests {
     @Test(
         .enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil),
+        arguments: ["en", "zh-Hans", "zh-Hant"])
+    func simplifiedSettingsRenderWithoutFootnotes(_ language: String) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let ai = AIConfigurationModel(persistsSecrets: false)
+        let locale = Locale(identifier: language)
+        try await capture(
+            "mcp-empty-without-footer", language: language,
+            view: NavigationStack { MobileMCPSettings(ai: ai, pro: app.pro) }.environment(\.locale, locale))
+        ai.upsert(MCPServer(name: "Documentation", url: "https://example.invalid/mcp"))
+        try await capture(
+            "mcp-list-without-footer", language: language,
+            view: NavigationStack { MobileMCPSettings(ai: ai, pro: app.pro) }.environment(\.locale, locale))
+        try await capture(
+            "skills-without-footer", language: language,
+            view: NavigationStack { MobileSkillSettings(skills: app.skills) }.environment(\.locale, locale))
+        try await capture(
+            "provider-without-footer", language: language,
+            view: MobileProviderEditor(ai: ai, provider: ModelProvider(name: ""))
+                .environment(\.locale, locale))
+        try await capture(
+            "support-link-rows", language: language,
+            view: NavigationStack {
+                MobileAppSettingsView(workspaceSettings: app.workspaceSettings)
+            }.environment(\.locale, locale), scrollToBottom: true)
+    }
+
+    @Test(
+        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] != nil),
         arguments: ["en", "zh-Hans", "zh-Hant"]
     )
     func existingProviderKeyIsEditedDirectly(_ language: String) async throws {
@@ -249,7 +277,10 @@ struct MobileAISettingsRenderingTests {
         let directory = FileManager.default.temporaryDirectory.appending(path: "ai-settings-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
-        if ["provider-hints", "provider-vertex"].contains(name) {
+        if [
+            "provider-hints", "provider-vertex", "mcp-empty-without-footer", "mcp-list-without-footer",
+            "skills-without-footer", "provider-without-footer", "support-link-rows",
+        ].contains(name) {
             Attachment.record([UInt8](data), named: "\(device)-\(language)-\(name).png")
         }
         try data.write(to: directory.appending(path: "\(device)-\(language)-\(name).png"))

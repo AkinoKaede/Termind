@@ -15,10 +15,8 @@ public struct SSHSettingsFields: View {
                 Text(model.preferences.maxSessions, format: .number).monospacedDigit()
             }
         }
-        Text(
-            "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit. Changes apply to new channels immediately; active channels continue."
-        )
-        .font(.caption).foregroundStyle(.secondary)
+        Text(AppStrings.Settings.sshMaxSessionsExplanation)
+            .font(.caption).foregroundStyle(.secondary)
         if let error = model.storageError { Text(error).foregroundStyle(.red) }
     }
 

@@ -5,7 +5,7 @@ extension AppStrings {
         public static var when: LocalizedStringResource { "Notify When" }
         public static var never: LocalizedStringResource { "Never" }
         public static var always: LocalizedStringResource { "Always" }
-        public static var seconds: LocalizedStringResource { "Minimum Duration (seconds)" }
+        public static var minimumDuration: LocalizedStringResource { "Minimum Duration (s)" }
         public static var openSettings: LocalizedStringResource { "Open Notification Settings" }
         public static var denied: LocalizedStringResource { "Notifications are disabled in system settings." }
         public static var unread: LocalizedStringResource { "Unread command completion" }

@@ -204,6 +204,36 @@ struct AppLanguageTests {
     }
 
     @Test(arguments: [
+        ("en", "Built-in Server"),
+        ("zh-Hans", "内置服务器"),
+        ("zh-Hant", "內建伺服器"),
+        ("de", "Integrierter Server"),
+        ("fr", "Serveur intégré"),
+        ("ja", "組み込みサーバ"),
+        ("ko", "내장 서버"),
+    ])
+    func builtInServerTitleIsLocalizedInEverySupportedLanguage(identifier: String, expected: String) {
+        #expect(
+            AppLocalization.resolve(
+                AppStrings.Settings.builtInServer, locale: Locale(identifier: identifier)) == expected)
+    }
+
+    @Test(arguments: [
+        ("en", "Minimum Duration (s)"),
+        ("zh-Hans", "最短运行时间（秒）"),
+        ("zh-Hant", "最短執行時間（秒）"),
+        ("de", "Mindestdauer (s)"),
+        ("fr", "Durée minimale (s)"),
+        ("ja", "最短実行時間（秒）"),
+        ("ko", "최소 실행 시간 (초)"),
+    ])
+    func minimumDurationLocalizesTheWholeLabel(identifier: String, expected: String) {
+        #expect(
+            AppLocalization.resolve(
+                AppStrings.CommandNotifications.minimumDuration, locale: Locale(identifier: identifier)) == expected)
+    }
+
+    @Test(arguments: [
         (AppLanguage.english, "The new language will be used after Termind relaunches."),
         (.japanese, "新しい言語はTermindの再起動後に適用されます。"),
         (.german, "Die neue Sprache wird nach dem Neustart von Termind verwendet."),

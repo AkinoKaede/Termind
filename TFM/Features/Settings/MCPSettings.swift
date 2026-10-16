@@ -9,8 +9,6 @@ import UniformTypeIdentifiers
 ///
 /// HTTP only, and that is a property of the app rather than a shortcut — Termind is
 /// sandboxed, so it cannot launch the local process a stdio server would need.
-/// The footnote says so, because "why is there no stdio option" is otherwise a
-/// reasonable thing to wonder for a while.
 struct MCPSettings: View {
     @Environment(AppModel.self) private var app
     let edit: (MCPServer.ID, Bool) -> Void
@@ -40,12 +38,9 @@ struct MCPSettings: View {
             }
 
             Button(AppStrings.MCP.importServers.swiftUIKey) { importMCP() }
-            MCPImportFeedback(report: importReport, problem: importProblem)
-
-            Text(AppStrings.Settings.termindConnectsDirectlyFromThisMacOverHttp)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if importReport != nil || importProblem != nil {
+                MCPImportFeedback(report: importReport, problem: importProblem)
+            }
 
             if let error = app.aiConfiguration.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -53,10 +48,12 @@ struct MCPSettings: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            FormNavigationAction(title: AppStrings.Settings.server, action: openServer)
         } header: {
             Text(AppStrings.Settings.mcp)
+        }
+
+        Section {
+            FormNavigationAction(title: AppStrings.Settings.builtInServer, action: openServer)
         }
     }
 
