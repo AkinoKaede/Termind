@@ -61,6 +61,9 @@ public nonisolated struct SSHKeyboardInteractiveChallenge: Identifiable, Hashabl
     }
 }
 
+/// Tailscale approval stays presented while the transport waits for the server.
+/// Handlers must dismiss their own prompt on task cancellation, including when
+/// the transport retires the presentation after successful authentication.
 public typealias SSHKeyboardInteractiveHandler =
     @Sendable (SSHKeyboardInteractiveChallenge) async throws -> [String]
 

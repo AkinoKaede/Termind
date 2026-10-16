@@ -16,6 +16,10 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
     private var task: Task<Void, Never>?
     private var result: Result<[String], any Error>?
     private var requestID: UUID?
+    private var approvalID: UUID?
+    private var approvalTask: Task<Void, Never>?
+    private var approvalResult: Result<[String], any Error>?
+    private var retiredApprovals: [Task<Void, Never>] = []
     private(set) var error: (any Error)?
     private var connectionID = UUID()
     private var round = 0
@@ -50,11 +54,13 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
         condition.lock()
         cancelled = true
         let pending = task
+        let approval = approvalTask
         result = .failure(CancellationError())
         assertionResult = .failure(CancellationError())
         condition.broadcast()
         condition.unlock()
         pending?.cancel()
+        approval?.cancel()
     }
 
     func checkCancellation() throws {
@@ -62,6 +68,63 @@ public nonisolated final class SSHKeyboardInteractiveExchange: @unchecked Sendab
         let stopped = cancelled
         condition.unlock()
         if stopped { throw CancellationError() }
+    }
+
+    func presentTailscaleApproval(_ banner: String) throws {
+        try checkTailscaleApproval()
+        guard allowsUserInteraction, let handler else { throw SSHInteractionRequired() }
+        endTailscaleApproval()
+        round += 1
+        let challenge = SSHKeyboardInteractiveChallenge(
+            connectionID: connectionID, hostID: hostID, hostname: hostname, port: port,
+            username: username, round: round, name: "", instruction: banner, prompts: [],
+            isTailscaleApproval: true)
+        condition.lock()
+        defer { condition.unlock() }
+        guard !cancelled else { throw CancellationError() }
+        approvalID = challenge.id
+        approvalTask = Task.detached(priority: .userInitiated) { [weak self] in
+            let response: Result<[String], any Error>
+            do {
+                try Task.checkCancellation()
+                response = .success(try await handler(challenge))
+            } catch { response = .failure(error) }
+            self?.finishApproval(challenge.id, result: response)
+        }
+    }
+
+    func checkTailscaleApproval() throws {
+        try checkCancellation()
+        let response = condition.withLock { approvalResult }
+        // A responder's acknowledgement is never proof that the server accepted authentication.
+        if case .failure(let error) = response { throw error }
+    }
+
+    func endTailscaleApproval() {
+        condition.lock()
+        let pending = approvalTask
+        approvalID = nil
+        approvalResult = nil
+        approvalTask = nil
+        if let pending { retiredApprovals.append(pending) }
+        condition.unlock()
+        // Retire the ID first so dismissing our own prompt cannot cancel a successful connection.
+        pending?.cancel()
+    }
+
+    func waitForTailscaleApprovalDismissal() async {
+        let pending = condition.withLock {
+            let pending = retiredApprovals
+            retiredApprovals.removeAll()
+            return pending
+        }
+        for task in pending { await task.value }
+    }
+
+    private func finishApproval(_ id: UUID, result: Result<[String], any Error>) {
+        condition.withLock {
+            if approvalID == id, !cancelled { approvalResult = result }
+        }
     }
 
     func answer(name: String, instruction: String, prompts: [SSHKeyboardInteractiveChallenge.Prompt]) throws -> [String]

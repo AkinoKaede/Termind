@@ -1123,32 +1123,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         throw TailscaleConfigurationError.hostKeyMismatch
                     }
                     progress?(.authenticating(configuration.hostID))
-                    let deadline = ContinuousClock.now.advanced(by: .seconds(600))
-                    var presentedBanners: Set<String> = []
-                    let approvalConnectionID = UUID()
-                    while true {
-                        try Task.checkCancellation()
-                        let step = try await queue.perform {
-                            try state.authenticateTailscale(username: configuration.username)
-                        }
-                        if step.authenticated { break }
-                        if let banner = step.banner, !banner.isEmpty, presentedBanners.insert(banner).inserted {
-                            guard request.interactionPolicy == .allowed, let present = request.keyboardInteractive
-                            else {
-                                throw SSHInteractionRequired()
-                            }
-                            _ = try await present(
-                                SSHKeyboardInteractiveChallenge(
-                                    connectionID: approvalConnectionID, hostID: configuration.hostID,
-                                    hostname: configuration.host, port: configuration.port,
-                                    username: configuration.username,
-                                    round: presentedBanners.count, name: "", instruction: banner, prompts: [],
-                                    isTailscaleApproval: true))
-                        }
-                        guard ContinuousClock.now < deadline else { throw TailscaleConfigurationError.approvalTimedOut }
-                        try await Task.sleep(for: .milliseconds(50))
+                    try await queue.perform {
+                        try state.authenticateTailscale(username: configuration.username, exchange: exchange)
                     }
-                    progress?(.authenticated(configuration.hostID))
                     authentication = "tailscale"
                 } else {
                     try await authorizeHostKey(
@@ -1166,6 +1143,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         )
                     }
                 }
+                await exchange.waitForTailscaleApprovalDismissal()
+                try Task.checkCancellation()
+                progress?(.authenticated(configuration.hostID))
                 let result = try await queue.perform { try state.takeResult() }
                 logger.info(
                     "ssh.authentication.completed",
@@ -1176,6 +1156,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     ])
                 return result
             } catch {
+                await exchange.waitForTailscaleApprovalDismissal()
                 logger.error(
                     "ssh.authentication.failed",
                     metadata: [
@@ -1711,7 +1692,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> String {
-        var methods = try authenticationMethods(username: username, session: session)
+        var methods = try authenticationMethods(username: username, session: session, exchange: keyboardInteractive)
         // Asking for the method list sends SSH's `none` authentication request.
         // Servers that need no credential accept it there and report the
         // session as authenticated without another userauth call.
@@ -1745,7 +1726,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 if let error = keyboardInteractive.error { throw error }
                 if result == 0 { return lastMethod }
                 failures.append(connectionErrorDetail(session, fallbackCode: result))
-                methods = try authenticationMethods(username: username, session: session)
+                methods = try authenticationMethods(username: username, session: session, exchange: keyboardInteractive)
                 if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
                 continue
             }
@@ -1871,7 +1852,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             case .interactionRequired:
                 skippedInteractiveCredential = true
             }
-            methods = try authenticationMethods(username: username, session: session)
+            methods = try authenticationMethods(username: username, session: session, exchange: keyboardInteractive)
             if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
         }
         if skippedInteractiveCredential { throw SSHInteractionRequired() }
@@ -1901,7 +1882,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 session: session, keyboardInteractive: keyboardInteractive, socket: socket, logger: logger
             )
         } catch {
-            if error is CancellationError || keyboardInteractive?.error != nil { throw error }
+            if error is CancellationError || error is SSHInteractionRequired
+                || error is TailscaleConfigurationError || keyboardInteractive?.error != nil
+            {
+                throw error
+            }
             let code = libssh2_session_last_errno(session)
             if afterHostKeyApproval,
                 code == LIBSSH2_ERROR_SOCKET_DISCONNECT
@@ -1921,8 +1906,16 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     }
 
     private static func authenticationMethods(
-        username: String, session: OpaquePointer
+        username: String, session: OpaquePointer, exchange: SSHKeyboardInteractiveExchange?
     ) throws -> Set<String> {
+        let banner = libssh2_session_banner_get(session).map { String(cString: $0) }
+        if SSHTailscaleAuthentication.isTailscaleServer(banner) {
+            switch try SSHTailscaleAuthentication.query(username: username, session: session, exchange: exchange) {
+            case .authenticated: return []
+            case .methods(let methods): return methods
+            case .pending: preconditionFailure("An authentication query must finish before returning.")
+            }
+        }
         let pointer = username.withCString { user in
             libssh2_userauth_list(session, user, UInt32(username.utf8.count))
         }
@@ -2825,32 +2818,17 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
             afterHostKeyApproval: afterHostKeyApproval,
             keyboardInteractive: keyboardInteractive, socket: transport?.socket ?? -1, logger: logger
         )
-        progress?(.authenticated(configuration.hostID))
         return authentication
     }
 
-    func authenticateTailscale(username: String) throws -> (authenticated: Bool, banner: String?) {
+    func authenticateTailscale(username: String, exchange: SSHKeyboardInteractiveExchange) throws {
         guard let session else { throw TermindSSHError.disconnected }
-        libssh2_session_set_blocking(session, 0)
-        _ = username.withCString { libssh2_userauth_list(session, $0, UInt32(username.utf8.count)) }
-        if libssh2_userauth_authenticated(session) != 0 {
-            libssh2_session_set_blocking(session, 1)
-            return (true, nil)
+        guard
+            try SSHTailscaleAuthentication.query(username: username, session: session, exchange: exchange)
+                == .authenticated
+        else {
+            throw SSHTailscaleAuthentication.failure(code: LIBSSH2_ERROR_AUTHENTICATION_FAILED)
         }
-        let code = libssh2_session_last_errno(session)
-        var message: UnsafeMutablePointer<CChar>?
-        var length: Int32 = 0
-        _ = libssh2_session_last_error(session, &message, &length, 0)
-        let failureDetail = message.map { String(cString: $0) }
-        var banner: UnsafeMutablePointer<CChar>?
-        _ = libssh2_userauth_banner(session, &banner)
-        guard code == LIBSSH2_ERROR_EAGAIN else {
-            let detail = banner.map { String(cString: $0) } ?? failureDetail
-            let reason = String(localized: "Tailscale SSH authentication failed.")
-            throw TermindSSHError.authenticationFailed(
-                detail.map { "\(reason)\n\($0) [libssh2 \(code)]" } ?? "\(reason) [libssh2 \(code)]")
-        }
-        return (false, banner.map { String(cString: $0) })
     }
 
     func takeResult() throws -> SSHAuthenticatedConnection {

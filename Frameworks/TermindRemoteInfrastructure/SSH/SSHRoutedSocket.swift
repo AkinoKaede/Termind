@@ -100,6 +100,8 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                                 progress: progress, keyboardInteractive: exchange, logger: logger
                             )
                         }
+                        await exchange.waitForTailscaleApprovalDismissal()
+                        try Task.checkCancellation()
                     } catch is CancellationError {
                         throw CancellationError()
                     } catch let error as SSHInteractionRequired {
@@ -111,6 +113,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                 }
                 return try await queue.perform { try state.takeResult() }
             } catch {
+                await exchange.waitForTailscaleApprovalDismissal()
                 await queue.perform { state.cleanup() }
                 throw error
             }

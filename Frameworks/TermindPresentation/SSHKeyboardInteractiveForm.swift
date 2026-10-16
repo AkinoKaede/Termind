@@ -48,7 +48,7 @@ public struct SSHKeyboardInteractiveForm: View {
             HStack {
                 Button(AppStrings.Common.cancel.swiftUIKey, action: cancel).keyboardShortcut(.cancelAction)
                 Spacer()
-                if !challenge.isInformational {
+                if !challenge.isInformational && !challenge.isTailscaleApproval {
                     Button(AppStrings.Common.continue.swiftUIKey, action: commit)
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
@@ -59,7 +59,8 @@ public struct SSHKeyboardInteractiveForm: View {
         .connectionFormChrome(isEnabled: usesContainerChrome)
         .background {
             if let keyboard {
-                keyboard.bridge(canSubmit: !submitted, submit: commit, cancel: cancel)
+                keyboard.bridge(
+                    canSubmit: !submitted && !challenge.isTailscaleApproval, submit: commit, cancel: cancel)
             }
         }
         .task {
@@ -78,6 +79,12 @@ public struct SSHKeyboardInteractiveForm: View {
             }
             if let url = challenge.tailscaleApprovalURL {
                 Link(AppStrings.Tailscale.openLogin.swiftUIKey, destination: url)
+            }
+            if challenge.isTailscaleApproval {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text(AppStrings.Tailscale.waitingForLogin).foregroundStyle(.secondary)
+                }
             }
             ForEach(challenge.prompts.indices, id: \.self) { index in
                 VStack(alignment: .leading, spacing: 5) {
@@ -102,7 +109,7 @@ public struct SSHKeyboardInteractiveForm: View {
     }
 
     private func commit() {
-        guard !submitted else { return }
+        guard !submitted, !challenge.isTailscaleApproval else { return }
         submitted = true
         let response = answers
         answers = Array(repeating: "", count: answers.count)

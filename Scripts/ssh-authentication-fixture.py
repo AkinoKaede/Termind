@@ -21,6 +21,67 @@ import time
 import paramiko
 
 
+class Approvals:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.pending = {}
+
+    @staticmethod
+    def banner(transport, username):
+        message = paramiko.Message()
+        message.add_byte(paramiko.common.cMSG_USERAUTH_BANNER)
+        message.add_string("Tailscale SSH requires approval.\nhttps://login.example/ssh/" + username)
+        message.add_string("en")
+        transport._send_message(message)
+
+    def wait(self, transport, username):
+        state = {"event": threading.Event(), "accepted": False, "transport": transport}
+        with self.lock:
+            self.pending[username] = state
+        try:
+            self.banner(transport, username)
+            while transport.is_active() and not state["event"].wait(0.1):
+                pass
+            return paramiko.AUTH_SUCCESSFUL if state["accepted"] else paramiko.AUTH_FAILED
+        finally:
+            with self.lock:
+                self.pending.pop(username, None)
+
+    def serve(self, listener):
+        while True:
+            try:
+                peer, _ = listener.accept()
+            except OSError:
+                return
+            with peer:
+                peer.settimeout(5)
+                try:
+                    command = b""
+                    while not command.endswith(b"\n") and len(command) < 1024:
+                        data = peer.recv(1024)
+                        if not data:
+                            break
+                        command += data
+                    action, username = command.decode("ascii").strip().split(" ", 1)
+                    with self.lock:
+                        state = self.pending.get(username)
+                    if state is None:
+                        peer.sendall(b"missing\n")
+                        continue
+                    if action == "repeat":
+                        self.banner(state["transport"], username)
+                    elif action in ("accept", "reject", "disconnect"):
+                        state["accepted"] = action == "accept"
+                        if action == "disconnect":
+                            state["transport"].close()
+                        state["event"].set()
+                    else:
+                        raise ValueError("Unknown fixture action")
+                    peer.sendall(b"ok\n")
+                except (OSError, ValueError, EOFError, paramiko.SSHException):
+                    pass
+
+
 class MemoryFile(paramiko.SFTPHandle):
     def __init__(self, data):
         super().__init__()
@@ -101,7 +162,8 @@ class Files(paramiko.SFTPServerInterface):
 
 
 class Authentication(paramiko.ServerInterface):
-    def __init__(self, client_key):
+    def __init__(self, client_key, approvals=None):
+        self.approvals = approvals
         self.listeners = {}
         self.client_key = client_key
         self.user = ""
@@ -111,10 +173,12 @@ class Authentication(paramiko.ServerInterface):
         self.shells = set()
 
     def get_allowed_auths(self, username):
+        if username.startswith("check-"):
+            return ""
         if self.factor:
             return "password" if username == "kbd-password" else "keyboard-interactive"
         return {
-            "password": "password", "password-mfa": "password",
+            "password": "password", "password-mfa": "password", "banner-password": "password",
             "publickey": "publickey", "encrypted-key": "publickey",
             "publickey-mfa": "publickey", "reject": "password",
             "key-password": "publickey,password",
@@ -122,6 +186,10 @@ class Authentication(paramiko.ServerInterface):
 
     def check_auth_none(self, username):
         self.user = username
+        if self.approvals is not None and username.startswith("check-"):
+            return self.approvals.wait(self.transport, username)
+        if username == "banner-password":
+            Approvals.banner(self.transport, username)
         return paramiko.AUTH_SUCCESSFUL if username in ("none", "none-slow-forward") else paramiko.AUTH_FAILED
 
     def check_auth_password(self, username, password):
@@ -130,7 +198,7 @@ class Authentication(paramiko.ServerInterface):
         if username == "password-mfa":
             self.factor = True
             return paramiko.AUTH_PARTIALLY_SUCCESSFUL
-        accepted = username in ("password", "key-password") or (username == "kbd-password" and self.factor)
+        accepted = username in ("password", "key-password", "banner-password") or (username == "kbd-password" and self.factor)
         return paramiko.AUTH_SUCCESSFUL if accepted else paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
@@ -276,16 +344,20 @@ def relay(channel, destination):
         channel.close()
 
 
-def serve(sock, host_key, client_key, port, echo_port):
+def serve(sock, host_key, client_key, port, echo_port, approvals=None, tailscale_port=None):
     transport = paramiko.Transport(sock)
+    if approvals is not None:
+        transport.local_version = "SSH-2.0-Tailscale"
     transport.banner_timeout = 120
     transport.auth_timeout = 120
     transport.add_server_key(host_key)
     transport.set_subsystem_handler("sftp", paramiko.SFTPServer, Files)
-    server = Authentication(client_key)
+    server = Authentication(client_key, approvals)
     server.port = port
     server.transport = transport
     server.allowed_destinations = {("127.0.0.1", port), ("127.0.0.1", echo_port), ("::1", echo_port)}
+    if tailscale_port is not None:
+        server.allowed_destinations.add(("127.0.0.1", tailscale_port))
     channels = []
     try:
         transport.start_server(server=server)
@@ -315,7 +387,8 @@ def main():
     client_key.write_private_key(private)
     encrypted_private = io.StringIO()
     client_key.write_private_key(encrypted_private, password="fixture-passphrase")
-    with socket.socket() as listener, socket.socket() as echo_listener:
+    with (socket.socket() as listener, socket.socket() as echo_listener,
+          socket.socket() as tailscale_listener, socket.socket() as approval_listener):
         echo_listener.bind(("127.0.0.1", 0))
         echo_listener.listen(128)
         echo_port = echo_listener.getsockname()[1]
@@ -323,10 +396,31 @@ def main():
         listener.bind(("127.0.0.1", 0))
         listener.listen(128)
         port = listener.getsockname()[1]
+        tailscale_listener.bind(("127.0.0.1", 0))
+        tailscale_listener.listen(128)
+        tailscale_port = tailscale_listener.getsockname()[1]
+        approval_listener.bind(("127.0.0.1", 0))
+        approval_listener.listen(128)
+        approvals = Approvals()
+        threading.Thread(target=approvals.serve, args=(approval_listener,), daemon=True).start()
+
+        def accept_tailscale():
+            while True:
+                try:
+                    sock, _ = tailscale_listener.accept()
+                except OSError:
+                    return
+                threading.Thread(
+                    target=serve,
+                    args=(sock, host_key, client_key, port, echo_port, approvals, tailscale_port),
+                    daemon=True).start()
+        threading.Thread(target=accept_tailscale, daemon=True).start()
         fingerprint = base64.b64encode(hashlib.sha256(host_key.asbytes()).digest()).decode().rstrip("=")
         metadata = {
             "port": port,
             "echoPort": echo_port,
+            "tailscalePort": tailscale_port,
+            "approvalPort": approval_listener.getsockname()[1],
             "privateKey": private.getvalue(),
             "encryptedPrivateKey": encrypted_private.getvalue(),
             "hostFingerprint": "SHA256:" + fingerprint,
@@ -339,7 +433,9 @@ def main():
         try:
             while True:
                 sock, _ = listener.accept()
-                threading.Thread(target=serve, args=(sock, host_key, client_key, port, echo_port), daemon=True).start()
+                threading.Thread(
+                    target=serve, args=(sock, host_key, client_key, port, echo_port, None, tailscale_port),
+                    daemon=True).start()
         except KeyboardInterrupt:
             pass
         finally:
