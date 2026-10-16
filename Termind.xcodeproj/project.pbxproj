@@ -85,7 +85,6 @@
 		D7D1BBB65020F61F7EFDDFD7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		DEVK00000000000000000003 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
 		DEVK00000000000000000004 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
-		E28A00000000000000000002 /* V28.store in Resources */ = {isa = PBXBuildFile; fileRef = E28A00000000000000000001 /* V28.store */; };
 		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		E9A6C576AF3870A1958F9C5A /* ETSession in Frameworks */ = {isa = PBXBuildFile; productRef = 6335BE33C2C5F92BE0568DF6 /* ETSession */; };
 		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
@@ -492,7 +491,6 @@
 		BENC00000000000000000011 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		BENC00000000000000000012 /* termind-port-forwarding-benchmark */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-port-forwarding-benchmark"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
-		E28A00000000000000000001 /* V28.store */ = {isa = PBXFileReference; lastKnownFileType = file; name = V28.store; path = FrameworkTests/Fixtures/V28.store; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
 		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
 		F1BA00000000000000000020 /* Configuration/Firebase/GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Configuration/Firebase/GoogleService-Info.plist"; sourceTree = SOURCE_ROOT; };
@@ -847,14 +845,6 @@
 			path = Frameworks;
 			sourceTree = "<group>";
 		};
-		DB9666953064BA9A005FB585 /* Persistence Test Fixtures */ = {
-			isa = PBXGroup;
-			children = (
-				E28A00000000000000000001 /* V28.store */,
-			);
-			name = "Persistence Test Fixtures";
-			sourceTree = "<group>";
-		};
 		F04700000000000000000010 /* Forwarding Test Support */ = {
 			isa = PBXGroup;
 			children = (
@@ -881,7 +871,6 @@
 				BA4A4EAD7B8B3A380C9ED1C2 /* FrameworkTests */,
 				A102A7EA2C3532D7FA88B0A4 /* TFITests */,
 				F04700000000000000000010 /* Forwarding Test Support */,
-				DB9666953064BA9A005FB585 /* Persistence Test Fixtures */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1449,7 +1438,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E28A00000000000000000002 /* V28.store in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

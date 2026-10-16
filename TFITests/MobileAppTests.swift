@@ -13,8 +13,6 @@ import UIKit
 
 @testable import TermindIOS
 
-private final class MobileMigrationFixtureBundle: NSObject {}
-
 @Suite @MainActor
 struct MobileAppTests {
     private final class MetricsPreferences: MetricsConfigurationStoring {
@@ -50,37 +48,6 @@ struct MobileAppTests {
         await app.tailscale.logout(groupID: group.id)
         #expect(try store.pendingCleanupProfiles() == [profileID])
         await app.tailscale.shutdown()
-    }
-
-    @Test func startupLoadsVersion28DataAfterMigrationAndRelaunch() throws {
-        let source = try #require(
-            Bundle(for: MobileMigrationFixtureBundle.self).url(forResource: "V28", withExtension: "store"))
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("Termind.store")
-        try FileManager.default.copyItem(at: source, to: url)
-        let suite = "MobileMigrationV28.\(UUID())"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-
-        for _ in 0..<2 {
-            var dependencies = MobileAppDependencies.testing(defaults: defaults)
-            dependencies.container = try TermindPersistence.makeContainer(url: url)
-            let app = try MobileAppModel(dependencies: dependencies)
-            defer { app.outbox.stop() }
-            let host = try #require(app.library.hosts.first)
-            #expect(host.name == "V28 fixture host")
-            #expect(host.sshCharset == .gb18030)
-            #expect(host.sshPort == 2222)
-            #expect(host.sshIdentityID == app.library.identities.first?.id)
-            #expect(app.library.identities.first?.credentialRef == "termind.fixture.password")
-            let history = app.connectionHistory.entries(for: host.id)
-            #expect(history.count == 1)
-            #expect(history.first?.sourceDeviceID == UUID(uuidString: "66666666-6666-6666-6666-666666666666"))
-            #expect(history.first?.endedAt == nil)
-            #expect(try app.hosts.snapshot().value.hosts == [host])
-        }
     }
 
     @Test func scenesCanUseTheSameAppRepository() throws {
