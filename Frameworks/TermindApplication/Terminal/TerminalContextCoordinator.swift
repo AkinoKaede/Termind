@@ -25,6 +25,8 @@ public final class TerminalContextCoordinator {
     public private(set) var active: TerminalShellContext?
     public private(set) var contexts: [TerminalContextIdentity: TerminalShellContext] = [:]
     public private(set) var clientIdentity: String?
+    public private(set) var backend: SessionPersistenceBackendID?
+    public private(set) var issue: TerminalRuntimeIssue?
     private var sequences: [TerminalContextIdentity: UInt64] = [:]
     private var running: Set<TerminalContextIdentity> = []
     private var inspectionID: UUID?
@@ -43,6 +45,8 @@ public final class TerminalContextCoordinator {
         status = .unknown
         active = nil
         clientIdentity = nil
+        backend = nil
+        issue = nil
         contexts.removeAll()
         sequences.removeAll()
         running.removeAll()
@@ -53,6 +57,7 @@ public final class TerminalContextCoordinator {
         revision &+= 1
         active = nil
         status = .unknown
+        issue = .inspectionUnavailable
     }
 
     public func noteInput() { revision &+= 1 }
@@ -133,8 +138,10 @@ public final class TerminalContextCoordinator {
             return true
         }
         if status != update.status || clientIdentity != update.clientIdentity
+            || backend != update.backend || issue != update.issue
             || active?.identity != nextActive?.identity || active?.promptReady != nextActive?.promptReady
             || active?.directory != nextActive?.directory || active?.capabilities != nextActive?.capabilities
+            || active?.directorySource != nextActive?.directorySource
             || activeInteractionChanged
             || nextActive.map({ interrupted.contains($0.identity) }) == true
         {
@@ -142,6 +149,8 @@ public final class TerminalContextCoordinator {
         }
         status = update.status
         clientIdentity = update.clientIdentity
+        backend = update.backend
+        issue = update.issue
         active = nextActive
         contexts = next
         if update.status == .multiplexer {

@@ -15171,47 +15171,6 @@
         }
       }
     },
-    "Close Termind" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind schließen"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fermer Termind"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termindを閉じる"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind 닫기"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭Termind"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉Termind"
-          }
-        }
-      }
-    },
     "Close Transfers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15495,47 +15454,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請關閉目前的表單、彈出視窗或指令面板。"
-          }
-        }
-      }
-    },
-    "Close this Window?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Fenster schließen?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fermer cette fenêtre ?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このウインドウを閉じますか？"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 창을 닫을까요?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭此窗口？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉此視窗？"
           }
         }
       }
@@ -24842,53 +24760,6 @@
         }
       }
     },
-    "Disconnect Only" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur trennen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disconnect Only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Déconnecter uniquement"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "接続のみ解除"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "연결만 해제"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅断开连接"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "僅中斷連線"
-          }
-        }
-      }
-    },
     "Disconnected" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27655,147 +27526,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編碼器利用率"
-          }
-        }
-      }
-    },
-    "End Managed Remote Sessions?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwaltete Remotesitzungen beenden?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End Managed Remote Sessions?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminer les sessions distantes gérées ?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理対象のリモートセッションを終了しますか？"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "관리 중인 원격 세션을 종료할까요?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "结束托管远端会话？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "結束受管理的遠端工作階段？"
-          }
-        }
-      }
-    },
-    "End Sessions and Close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sitzungen beenden und schließen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End Sessions and Close"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminer les sessions et fermer"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "セッションを終了して閉じる"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "세션 종료 후 닫기"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "结束会话并关闭"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "結束工作階段並關閉"
-          }
-        }
-      }
-    },
-    "Ending these sessions stops their remote processes for all clients. Cancel keeps them running." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Das Beenden stoppt die Remoteprozesse für alle Clients. Abbrechen lässt sie weiterlaufen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ending these sessions stops their remote processes for all clients. Cancel keeps them running."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminer ces sessions arrête leurs processus distants pour tous les clients. Annuler les laisse s’exécuter."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "終了すると、すべてのクライアントのリモートプロセスが停止します。キャンセルすると実行を継続します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "세션을 종료하면 모든 클라이언트의 원격 프로세스가 중지됩니다. 취소하면 계속 실행됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "结束这些会话会终止所有客户端上的远端进程。取消可使其继续运行。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "結束這些工作階段會終止所有用戶端上的遠端程序。取消可讓其繼續執行。"
           }
         }
       }
@@ -53933,47 +53663,6 @@
         }
       }
     },
-    "Quit Termind?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind beenden?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitter Termind ?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termindを終了しますか？"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind를 종료할까요?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出Termind？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出Termind？"
-          }
-        }
-      }
-    },
     "Quit with unuploaded changes?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -54011,47 +53700,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍有修改未上傳，確定結束嗎？"
-          }
-        }
-      }
-    },
-    "Quitting Termind will close all open Workspaces and disconnect their sessions." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beim Beenden von Termind werden alle offenen Arbeitsbereiche geschlossen und ihre Sitzungen getrennt."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitter Termind ferme tous les espaces de travail ouverts et déconnecte leurs sessions."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termindを終了すると、開いているすべてのワークスペースが閉じられ、セッションが切断されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind를 종료하면 열려 있는 모든 작업 공간이 닫히고 해당 세션의 연결이 해제됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出Termind将关闭所有打开的工作区并断开其会话连接。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出Termind將關閉所有開啟的工作區並中斷其工作階段連線。"
           }
         }
       }
@@ -77973,47 +77621,6 @@
         }
       }
     },
-    "This window still has open Workspaces. Closing it will close them and disconnect their sessions." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Fenster enthält noch offene Arbeitsbereiche. Beim Schließen werden diese geschlossen und ihre Sitzungen getrennt."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cette fenêtre contient encore des espaces de travail ouverts. La fermer les fermera et déconnectera leurs sessions."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このウインドウには開いているワークスペースがあります。ウインドウを閉じると、それらも閉じられ、セッションが切断されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 창에 아직 열린 작업 공간이 있습니다. 창을 닫으면 작업 공간도 닫히고 해당 세션의 연결이 해제됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此窗口中仍有打开的工作区。关闭窗口将关闭这些工作区并断开其中的会话连接。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此視窗中仍有開啟的工作區。關閉視窗將關閉這些工作區並中斷其中的工作階段連線。"
-          }
-        }
-      }
-    },
     "This workspace is no longer available. It may have ended, its host may have been removed, or an earlier app version may not have saved it." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -80211,53 +79818,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法建立SSH轉送工作階段。"
-          }
-        }
-      }
-    },
-    "Unable to end the remote session. Retry, or disconnect without ending it." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Remotesitzung konnte nicht beendet werden. Versuche es erneut oder trenne die Verbindung, ohne die Sitzung zu beenden."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unable to end the remote session. Retry, or disconnect without ending it."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de terminer la session distante. Réessayez ou déconnectez-vous sans la terminer."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リモートセッションを終了できません。再試行するか、セッションを終了せずに切断してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "원격 세션을 종료할 수 없습니다. 다시 시도하거나 세션을 종료하지 않고 연결만 끊으세요."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法结束远端会话。请重试，或仅断开连接而不结束会话。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無法結束遠端工作階段。請重試，或僅中斷連線而不結束工作階段。"
           }
         }
       }

@@ -26,7 +26,7 @@ struct MobileRootView: View {
     }
 
     var body: some View {
-        content.overlay { RemoteSessionClosePromptView(coordinator: app.persistentClose) }
+        content
     }
 
     private var content: some View {

@@ -416,7 +416,7 @@ struct SessionPersistenceTests {
         #expect(try await empty.sessions().isEmpty)
     }
 
-    @Test func closeFailureRetainsRemainingWorkAndQuitDoesNotTerminate() async throws {
+    @Test func closeFailureFallsBackToDisconnectAndQuitDoesNotTerminate() async throws {
         let backend = Backend()
         let coordinator = RemoteSessionCoordinator()
         let launch = try #require(
@@ -429,16 +429,14 @@ struct SessionPersistenceTests {
                 Issue.record("Quit must preserve")
             })
         var attempts = 0
-        let task = Task {
-            await close.close(attachments: [launch.attachment]) { _ in
-                attempts += 1
-                throw RemoteSessionFailure.ownershipMismatch
-            }
+        let allowed = await close.close(attachments: [launch.attachment]) { _ in
+            attempts += 1
+            throw RemoteSessionFailure.ownershipMismatch
         }
-        try await wait { close.prompt?.failure != nil }
         #expect(attempts == 1)
-        close.choose(.cancel, for: try #require(close.prompt?.id))
-        #expect(await task.value == false)
+        #expect(allowed)
+        #expect(!close.isClosing)
+        #expect(coordinator.attachment == launch.attachment)
     }
 
     @Test func explicitCloseEndsManagedSessionsWithoutAConfirmation() async {
@@ -450,13 +448,11 @@ struct SessionPersistenceTests {
         var ended: [RemoteSessionReference] = []
 
         let allowed = await close.close(attachments: [managed, external]) { session in
-            #expect(close.prompt == nil)
             ended.append(session)
         }
 
         #expect(allowed)
         #expect(ended == [managed])
-        #expect(close.prompt == nil)
         #expect(!close.isClosing)
     }
 
@@ -469,7 +465,6 @@ struct SessionPersistenceTests {
             await close.close(attachments: [reference()], intent: intent) { _ in
                 Issue.record("Passive teardown must not terminate a remote session")
             })
-        #expect(close.prompt == nil)
     }
 
     @Test func tmuxParsingKeepsNamesAsDataAndRejectsUnsupportedVersions() throws {
@@ -550,30 +545,38 @@ struct SessionPersistenceTests {
         #expect(await backend.integrationRequests == [false])
     }
 
-    @Test func duplicateCloseReferencesAreEndedOnceAndRetryKeepsPartialProgress() async throws {
+    @Test func batchCloseAttemptsEachOwnedIdentityOnceAndContinuesAfterFailure() async {
         let first = reference()
         var duplicate = first
         duplicate.session = .init(
             id: first.session.id, name: "Renamed", identity: first.session.identity, windows: 2, clients: 3)
         let second = reference()
+        let third = reference()
         let close = RemoteSessionCloseCoordinator()
         var terminated: [RemoteSessionReference] = []
-        var fail = true
-        let task = Task {
-            await close.close(attachments: [first, duplicate, second]) { reference in
-                if reference == second, fail {
-                    fail = false
-                    throw RemoteSessionFailure.timedOut
-                }
-                terminated.append(reference)
+        var attempted: [RemoteSessionReference] = []
+        let allowed = await close.close(attachments: [first, duplicate, second, third]) { reference in
+            attempted.append(reference)
+            if reference == second {
+                throw RemoteSessionFailure.timedOut
             }
+            terminated.append(reference)
         }
-        try await wait { close.prompt?.failure != nil }
-        #expect(terminated == [first])
-        #expect(close.prompt?.names == [second.session.name])
-        close.choose(.endSessions, for: try #require(close.prompt?.id))
-        #expect(await task.value)
-        #expect(terminated == [first, second])
+        #expect(allowed)
+        #expect(attempted == [first, second, third])
+        #expect(terminated == [first, third])
+    }
+
+    @Test func cancelledTerminationDoesNotTurnIntoPermissionToClose() async {
+        let close = RemoteSessionCloseCoordinator()
+        var attempts = 0
+        let allowed = await close.close(attachments: [reference(), reference()]) { _ in
+            attempts += 1
+            throw CancellationError()
+        }
+        #expect(!allowed)
+        #expect(attempts == 1)
+        #expect(!close.isClosing)
     }
 
     @Test func cancellationDuringBatchCloseDoesNotEndAdditionalSessions() async throws {

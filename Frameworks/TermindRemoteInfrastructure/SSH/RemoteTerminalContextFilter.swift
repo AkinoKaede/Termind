@@ -90,7 +90,8 @@ nonisolated struct RemoteTerminalContextFilter {
     ) -> TerminalRuntimeUpdate {
         // A negative multiplexer probe does not invalidate the authenticated outer
         // shell's cwd. Keep polling for manual attach, without restoring prompt rights.
-        if observation.status == .unknown || observation.status == .unavailable,
+        if observation.backend == nil,
+            observation.status == .unknown || observation.status == .unavailable,
             let current, current.status == .ordinary,
             let shell = current.contexts.first(where: { $0.identity == current.active }),
             shell.identity.backend == "shell", !shell.promptReady

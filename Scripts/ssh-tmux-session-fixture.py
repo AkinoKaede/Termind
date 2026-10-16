@@ -19,6 +19,15 @@ For TerminalActivationWireTests, use --max-sessions 8 and run both
 --debian-release bookworm (tmux 3.3a) and trixie (tmux 3.5a).
 TerminalActivationWindowTests additionally requires TEST_RUNNER_TERMIND_WINDOW_TESTS=1;
 it opens native windows and records viewport, Ghostty, PTY and tmux sizes.
+
+For all four backends, supply --multiplexer-binaries /path/to/linux-binaries
+containing zellij, zmx and herdr for the Lima VM's architecture. The fixture
+installs them only inside its disposable container and prints their versions.
+Use --max-sessions 8 and TEST_RUNNER_TERMIND_MULTIPLEXER_FIXTURE with
+-only-testing:TFMTests/NativeMultiplexerRuntimeTests and
+-only-testing:TFMTests/RemoteMultiplexerSmokeTests. The runtime suite exercises
+manual and managed attachment, unrelated clients, pane changes and reconnect.
+No iproute2 is installed, so this also tests endpoint discovery without ss.
 """
 
 import argparse
@@ -40,6 +49,9 @@ def main():
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--max-sessions", type=int, default=1)
     parser.add_argument(
+        "--multiplexer-binaries", type=Path,
+        help="Directory of Linux zellij, zmx and herdr binaries to install in the disposable container.")
+    parser.add_argument(
         "--debian-release", choices=["bookworm", "trixie"], default="trixie",
         help="bookworm supplies tmux 3.3a; trixie supplies tmux 3.5a")
     args = parser.parse_args()
@@ -50,6 +62,12 @@ def main():
         parser.error("Port must be between 0 and 65535.")
     if not 1 <= args.max_sessions <= 32:
         parser.error("MaxSessions must be between 1 and 32.")
+    binaries = ["zellij", "zmx", "herdr"]
+    if args.multiplexer_binaries is not None:
+        args.multiplexer_binaries = args.multiplexer_binaries.resolve()
+        for binary in binaries:
+            if not (args.multiplexer_binaries / binary).is_file():
+                parser.error(f"Missing multiplexer binary: {args.multiplexer_binaries / binary}")
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", args.port))
@@ -78,6 +96,21 @@ def main():
             execute(
                 "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends "
                 "openssh-server tmux bash zsh fish vim procps >/dev/null")
+            if args.multiplexer_binaries is not None:
+                with subprocess.Popen(
+                    ["tar", "-C", str(args.multiplexer_binaries), "-cf", "-", *binaries],
+                    stdout=subprocess.PIPE,
+                ) as archive:
+                    nerdctl("exec", "-i", name, "tar", "-C", "/usr/local/bin", "-xf", "-", stdin=archive.stdout)
+                    if archive.wait() != 0:
+                        raise RuntimeError("Unable to package multiplexer binaries.")
+                execute(
+                    "chmod 755 /usr/local/bin/zellij /usr/local/bin/zmx /usr/local/bin/herdr; "
+                    "mkdir -p /root/.config/zellij /root/.config/herdr; "
+                    "printf 'show_startup_tips false\\nshow_release_notes false\\n' "
+                    "> /root/.config/zellij/config.kdl; "
+                    "printf 'onboarding = false\\n' > /root/.config/herdr/config.toml; "
+                    "tmux -V && zellij --version && zmx version && herdr --version")
             execute(
                 "umask 077; mkdir -p /root/.ssh /run/sshd; cat > /root/.ssh/authorized_keys",
                 input=key.with_suffix(".pub").read_text())

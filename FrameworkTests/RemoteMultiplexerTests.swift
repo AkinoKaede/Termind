@@ -320,8 +320,8 @@ nonisolated struct RemoteMultiplexerTests {
         #expect(create.contains("TERMIND_CREATED"))
         switch kind {
         case .zellij:
-            #expect(create.contains("--session-serialization false"))
-            #expect(create.contains("--layout-string 'layout { pane; }'"))
+            #expect(create.contains("session_serialization false"))
+            #expect(create.contains("--layout-string \"default_shell \\\"$helper/shell\\\""))
         case .zmx:
             #expect(create.contains("termind_owner=\(Self.token.uuidString)"))
             #expect(create.contains("</dev/null"))
@@ -381,7 +381,11 @@ nonisolated struct RemoteMultiplexerTests {
         ])
         let runtime = RemoteMultiplexerRuntimeAdapter(
             attachment: reference, execute: { try await recorder.execute($0) })
-        #expect(try await runtime.inspect(terminal: "/dev/pts/1") == update)
+        #expect(
+            try await RemoteSocketMultiplexerRuntime(
+                reference: reference, execute: { try await recorder.execute($0) }
+            )
+            .inspect(terminal: "/dev/pts/1") == update)
         let context = try #require(update.contexts.first)
         if kind == .herdr {
             await #expect(throws: TerminalRuntimeError.staleContext) {

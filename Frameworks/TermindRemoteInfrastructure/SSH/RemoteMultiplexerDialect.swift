@@ -66,7 +66,8 @@ nonisolated protocol RemoteSocketMultiplexerDialect: RemoteMultiplexerDialect {
     func validateTermination(_ reference: RemoteSessionReference, identity: RemoteMultiplexerIdentity) throws
     func terminationCleanup(_ reference: RemoteSessionReference, identity: RemoteMultiplexerIdentity) throws -> String
     func runtimeCommands(name: String) -> (String, String)
-    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String?
+    func activePane(native: String, focus: String, reference: RemoteSessionReference, clientBound: Bool) throws
+        -> String?
     func writeDraft(name: String, pane: String, key: String) -> String
     var restoreShellEnvironment: String { get }
 }

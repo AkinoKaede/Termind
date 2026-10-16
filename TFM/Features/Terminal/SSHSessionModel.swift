@@ -380,6 +380,20 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         terminalContext.ticket(requiring: .directory)
     }
 
+    func confirmDisplayedDirectory(_ path: String) async -> Bool {
+        guard status.isLive, workingDirectory == path else { return false }
+        guard hasRuntimeContext else { return true }
+        guard let context = terminalContext.active, let ssh else { return false }
+        let generation = terminalContext.generation
+        do {
+            try await ssh.confirmContext(context)
+            return terminalContext.generation == generation && terminalContext.active == context
+                && workingDirectory == path
+        } catch {
+            return false
+        }
+    }
+
     func isDirectoryContextCurrent(_ ticket: TerminalContextCoordinator.Ticket?) -> Bool {
         guard hasRuntimeContext else { return ticket == nil }
         guard let ticket else { return false }

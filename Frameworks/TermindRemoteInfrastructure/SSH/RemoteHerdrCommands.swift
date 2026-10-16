@@ -128,9 +128,13 @@ nonisolated struct RemoteHerdrDialect: RemoteSocketMultiplexerDialect {
     func runtimeCommands(name: String) -> (String, String) {
         ("\"$exe\" session list --json", "\"$exe\" --session \(name) pane list")
     }
-    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+    func activePane(
+        native: String, focus: String, reference: RemoteSessionReference, clientBound: Bool = false
+    ) throws -> String? {
         let sessions = try RemoteHerdrCommands.parseList(native)
-        guard sessions.count == 1, sessions.first?.name == reference.session.name else { return nil }
+        guard clientBound || sessions.count == 1, sessions.contains(where: { $0.name == reference.session.name }) else {
+            return nil
+        }
         struct Response: Decodable {
             struct Result: Decodable {
                 struct Pane: Decodable {
@@ -146,9 +150,9 @@ nonisolated struct RemoteHerdrDialect: RemoteSocketMultiplexerDialect {
         guard response.result.panes.count == 1, let pane = response.result.panes.first?.paneID, validPane(pane) else {
             return nil
         }
-        // Global pane state cannot bind an attached client's session/focus, including endpoint switching.
-        // Journals remain useful for lifecycle events, but active-context operations stay disabled.
-        return nil
+        // A verified endpoint with exactly one pane has no per-client pane ambiguity.
+        // Without that endpoint evidence, even a singleton might belong to a switched-away session.
+        return clientBound ? pane : nil
     }
     func writeDraft(name: String, pane: String, key: String) -> String {
         "\"$exe\" --session \(name) pane send-text \(pane) \(key)"

@@ -231,7 +231,7 @@ final class MobileWorkspace: Identifiable {
         switch descriptor.kind {
         case .ssh, .mosh, .eternalTerminal:
             guard isShellIntegrationEnabled,
-                shellIntegrationAvailable,
+                shellIntegrationAvailable || (hasRuntimeContext && terminalContext.active?.directory != nil),
                 let workingDirectory,
                 !workingDirectory.isEmpty
             else { return nil }
@@ -609,7 +609,13 @@ final class MobileWorkspace: Identifiable {
     {
         guard sameDirectoryLaunch == expected else { return nil }
         do {
-            try await confirmDirectoryContext(terminalContext.ticket(requiring: .directory))
+            if hasRuntimeContext, let context = terminalContext.active, let ssh {
+                let generation = terminalContext.generation
+                try await ssh.confirmContext(context)
+                guard terminalContext.generation == generation, terminalContext.active == context else { return nil }
+            } else {
+                try await confirmDirectoryContext(terminalContext.ticket(requiring: .directory))
+            }
             return sameDirectoryLaunch == expected ? expected : nil
         } catch {
             return nil

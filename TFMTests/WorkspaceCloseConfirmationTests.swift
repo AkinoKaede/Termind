@@ -20,7 +20,7 @@ struct WorkspaceCloseConfirmationTests {
         defer { native.close() }
         var prompted = false
         let delegate = WorkspaceWindowCloseDelegate(
-            model: model, confirmClose: { true },
+            model: model,
             confirmDiscardTheme: {
                 prompted = true
                 return false
@@ -60,7 +60,7 @@ struct WorkspaceCloseConfirmationTests {
         let native = makeWindow()
         var allowsDiscard = false
         let delegate = WorkspaceWindowCloseDelegate(
-            model: model, confirmClose: { true }, confirmDiscardTheme: { allowsDiscard })
+            model: model, confirmDiscardTheme: { allowsDiscard })
         defer {
             native.close()
             app.shutdownForTermination()
@@ -72,41 +72,6 @@ struct WorkspaceCloseConfirmationTests {
         #expect(delegate.windowShouldClose(native))
         #expect(model.terminalThemeDraft == nil)
         #expect(!app.hasUnsavedTerminalThemes)
-    }
-
-    @Test
-    func quitAndWindowCloseUseDifferentTitlesActionsAndScope() {
-        let quit = WorkspaceCloseConfirmation.application.makeAlert()
-        let close = WorkspaceCloseConfirmation.window.makeAlert()
-
-        #expect(quit.messageText == String(localized: AppStrings.Workspace.quitTermindConfirmation))
-        #expect(quit.informativeText == String(localized: AppStrings.Workspace.quitTermindWarning))
-        #expect(quit.buttons[0].title == String(localized: AppStrings.Workspace.closeTermind))
-        #expect(close.messageText == String(localized: AppStrings.Workspace.closeThisWindowConfirmation))
-        #expect(close.informativeText == String(localized: AppStrings.Workspace.closeWindowWarning))
-        #expect(close.buttons[0].title == String(localized: AppStrings.Workspace.closeWindow))
-        for alert in [quit, close] {
-            #expect(alert.buttons.count == 2)
-            #expect(alert.buttons[1].title == String(localized: AppStrings.Common.cancel))
-        }
-    }
-
-    @Test(arguments: [WorkspaceCloseConfirmation.window, .application])
-    func closeRemainsDefaultAndCancelUsesEscapeAfterLayout(_ scope: WorkspaceCloseConfirmation) {
-        let alert = scope.makeAlert()
-        alert.layout()
-
-        #expect(alert.buttons[0].keyEquivalent == "\r")
-        #expect(alert.window.defaultButtonCell === alert.buttons[0].cell)
-        #expect(alert.buttons[1].keyEquivalent == "\u{1b}")
-    }
-
-    @Test(arguments: [WorkspaceCloseConfirmation.window, .application])
-    func onlyCloseConfirmationAllowsClosing(_ scope: WorkspaceCloseConfirmation) {
-        #expect(scope.confirm { _ in .alertFirstButtonReturn })
-        #expect(!scope.confirm { _ in .alertSecondButtonReturn })
-        #expect(!scope.confirm { _ in .alertThirdButtonReturn })
-        #expect(!scope.confirm { _ in .abort })
     }
 
     @Test
@@ -129,17 +94,15 @@ struct WorkspaceCloseConfirmationTests {
     }
 
     @Test
-    func windowVetoPreservesWorkspacesAndCanBeRetried() {
+    func populatedWindowClosesWithoutAPromptAndStillRespectsTheNativeDelegate() {
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
         let model = WindowModel(workspaces: [workspace])
         let native = makeWindow()
         let original = WindowDelegate()
         native.delegate = original
-        var approved = false
-        var confirmations = 0
         let proxy = WorkspaceWindowCloseDelegate(model: model) {
-            confirmations += 1
-            return approved
+            Issue.record("Live connections do not need a close confirmation.")
+            return false
         }
         proxy.attach(to: native)
         defer {
@@ -148,16 +111,13 @@ struct WorkspaceCloseConfirmationTests {
             model.closeForWindow()
         }
 
-        #expect(native.delegate?.windowShouldClose?(native) == false)
-        #expect(confirmations == 1)
+        #expect(native.delegate?.windowShouldClose?(native) == true)
         #expect(!model.isClosed)
         #expect(model.workspaces.first === workspace)
-        approved = true
-        #expect(native.delegate?.windowShouldClose?(native) == true)
-        #expect(confirmations == 2)
         original.allowsClose = false
         #expect(native.delegate?.windowShouldClose?(native) == false)
-        #expect(confirmations == 2)
+        original.allowsClose = true
+        #expect(native.delegate?.windowShouldClose?(native) == true)
         #expect(original.requests == 3)
 
         let selector = #selector(WindowDelegate.windowDidResize(_:))
@@ -183,10 +143,9 @@ struct WorkspaceCloseConfirmationTests {
             saved = workspaces.first.map { ClosedWorkspaceRecord($0, hosts: hosts) }
         }
         let native = makeWindow()
-        var confirmations = 0
         let proxy = WorkspaceWindowCloseDelegate(model: model) {
-            confirmations += 1
-            return true
+            Issue.record("A managed session does not need a close confirmation.")
+            return false
         }
         proxy.attach(to: native)
         defer {
@@ -196,14 +155,39 @@ struct WorkspaceCloseConfirmationTests {
         }
 
         #expect(native.delegate?.windowShouldClose?(native) == true)
-        #expect(confirmations == 1)
         #expect(!model.persistentClose.isClosing)
-        #expect(model.persistentClose.prompt == nil)
         model.closeForWindow()
         #expect(model.isClosed)
         #expect(model.workspaces.isEmpty)
         #expect(session.status == .disconnected)
         #expect(session.sessionPersistence.attachment == reference)
+        let restored = try #require(saved?.restore(in: hosts))
+        #expect(restored.focusedPane.sshSession?.sessionPersistence.attachment == reference)
+    }
+
+    @Test func failedManagedPaneCloseDisconnectsAndKeepsItsRecoveryReference() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let hosts = HostLibraryModel(hosts: [host])
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        let reference = RemoteSessionReference(
+            backend: .zellij, session: .init(id: "session", name: "Managed", identity: Data([1])),
+            hostID: host.id, endpoint: "server.example:22", username: "user", ownershipToken: UUID())
+        session.sessionPersistence.attachment = reference
+        let model = WindowModel(workspaces: [workspace])
+        var saved: ClosedWorkspaceRecord?
+        model.rememberClosedWorkspace = { saved = ClosedWorkspaceRecord($0, hosts: hosts) }
+        defer { model.closeForWindow() }
+
+        // There is no live SSH transport to end the remote session.
+        model.closeSelected()
+        for _ in 0..<200 {
+            if model.workspaces.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(model.workspaces.isEmpty)
+        #expect(session.sessionPersistence.attachment == reference)
+        #expect(session.status == .disconnected)
         let restored = try #require(saved?.restore(in: hosts))
         #expect(restored.focusedPane.sshSession?.sessionPersistence.attachment == reference)
     }

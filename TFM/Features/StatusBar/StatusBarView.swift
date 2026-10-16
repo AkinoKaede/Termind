@@ -356,7 +356,14 @@ struct StatusBarView: View {
 
     private func openInSFTP(_ path: String, placement: SessionOpenPlacement) {
         guard let host else { return }
-        window.openSFTPChannel(host: host, initialPath: path, placement: placement)
+        if let sshSession {
+            Task {
+                guard await sshSession.confirmDisplayedDirectory(path) else { return }
+                window.openSFTPChannel(host: host, initialPath: path, placement: placement)
+            }
+        } else {
+            window.openSFTPChannel(host: host, initialPath: path, placement: placement)
+        }
     }
 
     private func openInSSH(_ path: String, placement: SessionOpenPlacement) {

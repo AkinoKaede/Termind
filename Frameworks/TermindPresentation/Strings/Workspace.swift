@@ -266,22 +266,6 @@ extension AppStrings {
             "Close All Windows"
         }
 
-        public static var closeThisWindowConfirmation: LocalizedStringResource {
-            "Close this Window?"
-        }
-
-        public static var quitTermindConfirmation: LocalizedStringResource {
-            "Quit Termind?"
-        }
-
-        public static var closeTermind: LocalizedStringResource {
-            "Close Termind"
-        }
-
-        public static var quitTermindWarning: LocalizedStringResource {
-            "Quitting Termind will close all open Workspaces and disconnect their sessions."
-        }
-
         public static var connectionLinkFailed: LocalizedStringResource {
             "Connection Link Failed"
         }
@@ -360,10 +344,6 @@ extension AppStrings {
 
         public static var restoreWorkspacesFailure: LocalizedStringResource {
             "Saved workspaces could not be restored. The saved data has been kept."
-        }
-
-        public static var closeWindowWarning: LocalizedStringResource {
-            "This window still has open Workspaces. Closing it will close them and disconnect their sessions."
         }
 
         public static var unavailableWorkspaceExplanation: LocalizedStringResource {

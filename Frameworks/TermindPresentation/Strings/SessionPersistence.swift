@@ -19,18 +19,9 @@ extension AppStrings {
         public static var startupUnavailable: LocalizedStringResource {
             "The startup command could not run in the session shell. Check the shell and backend configuration."
         }
-        public static var closeFailed: LocalizedStringResource {
-            "Unable to end the remote session. Retry, or disconnect without ending it."
-        }
         public static var changed: LocalizedStringResource {
             "The saved remote session is missing or its identity changed."
         }
-        public static var closeTitle: LocalizedStringResource { "End Managed Remote Sessions?" }
-        public static var closeWarning: LocalizedStringResource {
-            "Ending these sessions stops their remote processes for all clients. Cancel keeps them running."
-        }
-        public static var end: LocalizedStringResource { "End Sessions and Close" }
-        public static var disconnectOnly: LocalizedStringResource { "Disconnect Only" }
         public static var detached: LocalizedStringResource {
             "Detached from the remote session. Reconnect to attach again."
         }

@@ -2,32 +2,6 @@ import AppKit
 import TermindPresentation
 
 enum WorkspaceCloseConfirmation {
-    case window
-    case application
-
-    func makeAlert() -> NSAlert {
-        let alert = NSAlert()
-        switch self {
-        case .window:
-            alert.messageText = String(localized: AppStrings.Workspace.closeThisWindowConfirmation)
-            alert.informativeText = String(localized: AppStrings.Workspace.closeWindowWarning)
-        case .application:
-            alert.messageText = String(localized: AppStrings.Workspace.quitTermindConfirmation)
-            alert.informativeText = String(localized: AppStrings.Workspace.quitTermindWarning)
-        }
-        let close = alert.addButton(
-            withTitle: String(
-                localized: self == .window ? AppStrings.Workspace.closeWindow : AppStrings.Workspace.closeTermind))
-        let cancel = alert.addButton(withTitle: String(localized: AppStrings.Common.cancel))
-        close.keyEquivalent = "\r"
-        cancel.keyEquivalent = "\u{1b}"
-        return alert
-    }
-
-    func confirm(present: (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }) -> Bool {
-        present(makeAlert()) == .alertFirstButtonReturn
-    }
-
     static func confirmDiscardTerminalTheme() -> Bool {
         let alert = NSAlert()
         alert.messageText = String(localized: AppStrings.Common.discardChangesQuestion)
@@ -37,31 +11,20 @@ enum WorkspaceCloseConfirmation {
     }
 }
 
-/// Window dismissal and application termination have different scopes. Keep the
-/// window veto out of SwiftUI's dismissal dialog, which also participates in Quit.
+/// Preserve native delegate vetoes and unsaved edits without prompting for live connections.
 nonisolated final class WorkspaceWindowCloseDelegate: NSObject, NSWindowDelegate {
     weak var forwardedDelegate: (any NSWindowDelegate)?
     @MainActor private weak var window: NSWindow?
     @MainActor private let model: WindowModel
-    @MainActor private let confirmClose: () -> Bool
     @MainActor private let confirmDiscardTheme: () -> Bool
     @MainActor private var isConfirming = false
 
     @MainActor
-    convenience init(
-        model: WindowModel, confirmClose: @escaping () -> Bool = { WorkspaceCloseConfirmation.window.confirm() }
-    ) {
-        self.init(
-            model: model, confirmClose: confirmClose,
-            confirmDiscardTheme: { WorkspaceCloseConfirmation.confirmDiscardTerminalTheme() })
-    }
-
-    @MainActor
     init(
-        model: WindowModel, confirmClose: @escaping () -> Bool, confirmDiscardTheme: @escaping () -> Bool
+        model: WindowModel,
+        confirmDiscardTheme: @escaping () -> Bool = { WorkspaceCloseConfirmation.confirmDiscardTerminalTheme() }
     ) {
         self.model = model
-        self.confirmClose = confirmClose
         self.confirmDiscardTheme = confirmDiscardTheme
         super.init()
     }
@@ -94,7 +57,6 @@ nonisolated final class WorkspaceWindowCloseDelegate: NSObject, NSWindowDelegate
         defer { isConfirming = false }
         model.saveTerminalThemeChanges()
         if model.hasUnsavedTerminalThemeChanges, !confirmDiscardTheme() { return false }
-        if !model.isClosed, !model.workspaces.isEmpty, !confirmClose() { return false }
         model.clearTerminalThemeEditor()
         return true
     }

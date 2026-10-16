@@ -26,11 +26,21 @@ public nonisolated struct TerminalContextCapabilities: OptionSet, Sendable, Equa
     public static let replaceDraft = Self(rawValue: 1 << 3)
 }
 
+public nonisolated enum TerminalDirectorySource: Sendable, Equatable {
+    case shell, nativePane, process
+}
+
+public nonisolated enum TerminalRuntimeIssue: Sendable, Equatable {
+    case clientUnbound, paneAmbiguous, directoryUnavailable, shellIntegrationUnavailable
+    case unsupportedVersion, nestedMultiplexer, inspectionUnavailable
+}
+
 public nonisolated struct TerminalShellContext: Sendable, Equatable {
     public let identity: TerminalContextIdentity
     public var shell: String
     /// Last cwd reported by this shell instance, independent of foreground/input readiness.
     public var directory: String?
+    public var directorySource: TerminalDirectorySource?
     public var home: String?
     public var historyPath: String?
     public var promptReady: Bool
@@ -48,11 +58,13 @@ public nonisolated struct TerminalShellContext: Sendable, Equatable {
 
     public init(
         identity: TerminalContextIdentity, shell: String, directory: String?, home: String?,
-        promptReady: Bool, sequence: UInt64, capabilities: TerminalContextCapabilities, historyPath: String? = nil
+        promptReady: Bool, sequence: UInt64, capabilities: TerminalContextCapabilities, historyPath: String? = nil,
+        directorySource: TerminalDirectorySource? = .shell
     ) {
         self.identity = identity
         self.shell = shell
         self.directory = directory
+        self.directorySource = directory == nil ? nil : directorySource
         self.home = home
         self.historyPath = historyPath
         self.promptReady = promptReady
@@ -89,15 +101,20 @@ public nonisolated struct TerminalRuntimeUpdate: Sendable, Equatable {
     public var active: TerminalContextIdentity?
     public var contexts: [TerminalShellContext]
     public var events: [TerminalContextEvent]
+    public var backend: SessionPersistenceBackendID?
+    public var issue: TerminalRuntimeIssue?
 
     public init(
         status: Status, clientIdentity: String? = nil, active: TerminalContextIdentity? = nil,
-        contexts: [TerminalShellContext] = [], events: [TerminalContextEvent] = []
+        contexts: [TerminalShellContext] = [], events: [TerminalContextEvent] = [],
+        backend: SessionPersistenceBackendID? = nil, issue: TerminalRuntimeIssue? = nil
     ) {
         self.status = status
         self.clientIdentity = clientIdentity
         self.active = active
         self.contexts = contexts
         self.events = events
+        self.backend = backend
+        self.issue = issue
     }
 }

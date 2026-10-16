@@ -30,7 +30,9 @@ nonisolated enum RemoteZmxCommands {
         guard RemoteMultiplexerCommands.validPath(root) else { throw RemoteSessionFailure.invalidResponse }
         return try lines.map { line in
             var fields: [String: String] = [:]
-            for part in line.split(separator: "\t") {
+            for (index, column) in line.split(separator: "\t").enumerated() {
+                // Recent releases indent the name column even outside a zmx session.
+                let part = index == 0 ? column.drop(while: { $0 == " " }) : column
                 guard let separator = part.firstIndex(of: "=") else { throw RemoteSessionFailure.invalidResponse }
                 let key = String(part[..<separator])
                 guard fields[key] == nil else { throw RemoteSessionFailure.invalidResponse }
@@ -65,7 +67,7 @@ nonisolated enum RemoteZmxCommands {
     static func nativeIdentity(name: String) -> String {
         """
         "$exe" list | awk -F '\\t' -v target='\(name)' '
-        { name=""; pid=""; created=""; count=0
+        { sub(/^ +/, "", $1); name=""; pid=""; created=""; count=0
           for(i=1;i<=NF;i++) {
             if ($i ~ /^name=/) {name=substr($i,6); count++}
             if ($i ~ /^pid=[0-9]+$/) {pid=substr($i,5); count++}
@@ -143,11 +145,14 @@ nonisolated struct RemoteZmxDialect: RemoteSocketMultiplexerDialect {
         """
     }
     func runtimeCommands(name: String) -> (String, String) { ("\"$exe\" list", "printf 'shell'") }
-    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+    func activePane(
+        native: String, focus: String, reference: RemoteSessionReference, clientBound: Bool = false
+    ) throws -> String? {
         let identity = try RemoteMultiplexerIdentity.decode(reference.session.identity, kind: id)
         let root = identity.root.utf8.map { String(format: "%02x", $0) }.joined()
         let sessions = try RemoteZmxCommands.parseList("ROOT|\(root)\n" + native + "\nEND\n")
-        guard sessions.count == 1, let session = sessions.first,
+        guard clientBound || sessions.count == 1,
+            let session = sessions.first(where: { $0.name == reference.session.name }),
             session.name == reference.session.name, session.process == identity.process,
             session.created == identity.created, session.clients == 1
         else { return nil }

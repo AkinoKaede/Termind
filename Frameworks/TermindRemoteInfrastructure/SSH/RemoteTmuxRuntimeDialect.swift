@@ -73,6 +73,12 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
             printf '%s\\n' "$client"
             sid=$(printf '%s' "$client" | cut -d '|' -f6)
             tmux list-panes -s -t "$sid" -F 'P|#{pane_id}|#{pane_pid}|#{pane_in_mode}|#{synchronize-panes}|#{?#{==:#{pane_current_command},bash},bash,#{?#{==:#{pane_current_command},zsh},zsh,#{?#{==:#{pane_current_command},fish},fish,unknown}}}' || exit 78
+            pane=$(printf '%s' "$client" | cut -d '|' -f8)
+            cwd=$(tmux display-message -p -t "$pane" '#{pane_current_path}') || exit 78
+            foreground=$(tmux display-message -p -t "$pane" '#{pane_current_command}') || exit 78
+            printf 'D|%s|%s|%s\\n' "$pane" \
+                "$(printf '%s' "$cwd" | od -An -v -tx1 | tr -d ' \\n')" \
+                "$(printf '%s' "$foreground" | od -An -v -tx1 | tr -d ' \\n')"
             helper=$(tmux show-environment -t "$sid" TERMIND_TMUX_HELPERS 2>/dev/null)
             helper=${helper#TERMIND_TMUX_HELPERS=}
             case "$helper" in /tmp/termind-shell.*) ;; *) printf 'DONE\\n'; exit 0 ;; esac
@@ -105,13 +111,16 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
         else { throw TerminalRuntimeError.invalidResponse }
         let flags = Set(client[8].split(separator: ",").map(String.init))
         guard !flags.contains("active-pane"), !flags.contains("read-only") else {
-            return .init(status: .unavailable)
+            return .init(status: .unavailable, backend: .tmux, issue: .paneAmbiguous)
         }
         let server = client[4]
         let session = client[5] + ":" + client[6]
         let clientIdentity = terminal + ":" + client[2] + ":" + client[3]
         var panes: [String: (process: String, interactive: Bool, foregroundShell: String)] = [:]
         var records: [RemoteShellContextRecord] = []
+        var nativeDirectory: String?
+        var nativeCommand: String?
+        var hasNativeDirectory = false
         var index = 1
         while index < lines.count {
             let line = lines[index]
@@ -122,7 +131,16 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
                 }
                 break
             }
-            if line == "BEGIN" {
+            if line.hasPrefix("D|") {
+                let fields = line.components(separatedBy: "|")
+                guard !hasNativeDirectory, fields.count == 4, fields[1] == client[7] else {
+                    throw TerminalRuntimeError.invalidResponse
+                }
+                hasNativeDirectory = true
+                let directory = try RemoteMultiplexerCommands.unhex(fields[2])
+                nativeDirectory = RemoteMultiplexerCommands.validPath(directory) ? directory : nil
+                nativeCommand = try RemoteMultiplexerCommands.unhex(fields[3])
+            } else if line == "BEGIN" {
                 let start = index
                 while index < lines.count, lines[index] != "END" { index += 1 }
                 guard index < lines.count else { throw TerminalRuntimeError.invalidResponse }
@@ -145,6 +163,7 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
         var contexts: [TerminalShellContext] = []
         var events: [TerminalContextEvent] = []
         var active: TerminalContextIdentity?
+        let nested = RemoteNativeMultiplexerRuntime.isNested(nativeCommand)
         for record in records {
             guard let pane = panes[record.pane], pane.process == record.process else { continue }
             var context = record.context(server: server, session: session, backend: "tmux")
@@ -158,23 +177,27 @@ nonisolated struct RemoteTmuxRuntimeDialect: RemoteMultiplexerRuntime {
             }
             contexts.append(context)
             events.append(contentsOf: record.events(for: context))
-            if record.pane == client[7] {
+            if record.pane == client[7], !nested {
                 guard active == nil else { throw TerminalRuntimeError.invalidResponse }
                 active = context.identity
             }
         }
-        if active == nil {
+        if active == nil, !nested {
             let identity = TerminalContextIdentity(
                 backend: "tmux", server: server, session: session, pane: client[7],
                 shellInstance: "unintegrated:" + panes[client[7]]!.process)
             contexts.append(
                 .init(
-                    identity: identity, shell: "", directory: nil, home: nil, promptReady: false,
-                    sequence: 0, capabilities: []))
+                    identity: identity, shell: "", directory: nativeDirectory, home: nil, promptReady: false,
+                    sequence: 0, capabilities: [], directorySource: .nativePane))
             active = identity
         }
         return .init(
-            status: .multiplexer, clientIdentity: clientIdentity, active: active, contexts: contexts, events: events)
+            status: .multiplexer, clientIdentity: clientIdentity, active: active, contexts: contexts, events: events,
+            backend: .tmux,
+            issue: nested
+                ? .nestedMultiplexer
+                : (active?.shellInstance.hasPrefix("unintegrated:") == true ? .shellIntegrationUnavailable : nil))
     }
 }
 

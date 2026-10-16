@@ -77,8 +77,11 @@ nonisolated enum RemoteZellijCommands {
         existing=$(find "$root" -type s -name '\(name)' -print) || exit 78
         [ -z "$existing" ] || exit 79
         native_started=1
-        "$exe" --layout-string 'layout { pane; }' attach --create-background '\(name)' options --default-shell "$helper/shell" \
-            --session-serialization false >/dev/null || exit 78
+        # Background creation ignores attach's CLI options on some Zellij releases.
+        # Layout configuration reaches the server and also covers panes created later.
+        "$exe" --layout-string "default_shell \\"$helper/shell\\"
+        session_serialization false
+        layout { pane; }" attach --create-background '\(name)' >/dev/null || exit 78
         socket=$(find "$root" -type s -name '\(name)' -print) || exit 78
         """
     }
@@ -135,9 +138,15 @@ nonisolated struct RemoteZellijDialect: RemoteSocketMultiplexerDialect {
     func runtimeCommands(name: String) -> (String, String) {
         ("\"$exe\" list-sessions --short --no-formatting", "\"$exe\" --session \(name) action list-clients")
     }
-    func activePane(native: String, focus: String, reference: RemoteSessionReference) throws -> String? {
+    func activePane(
+        native: String, focus: String, reference: RemoteSessionReference, clientBound: Bool = false
+    ) throws -> String? {
         // A switched client cannot be bound using its original argv. Require a unique live session too.
-        guard native == reference.session.name else { return nil }
+        guard
+            clientBound
+                ? native.split(separator: "\n").contains(Substring(reference.session.name))
+                : native == reference.session.name
+        else { return nil }
         let clients = focus.split(separator: "\n")
         guard clients.first == "CLIENT_ID ZELLIJ_PANE_ID RUNNING_COMMAND", clients.count == 2 else { return nil }
         let fields = clients[1].split(whereSeparator: \.isWhitespace)

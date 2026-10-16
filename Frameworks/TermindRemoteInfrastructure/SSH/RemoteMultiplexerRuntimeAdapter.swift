@@ -31,7 +31,60 @@ public nonisolated struct RemoteMultiplexerRuntimeAdapter: TerminalRuntimeAdapte
     }
 
     public func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
-        try await dialect.runtime(reference: attachment, execute: execute, charset: charset).inspect(terminal: terminal)
+        // Preserve the native tmux TTY lookup and integrated journal path. Other backends
+        // can still provide a read-only directory when no Termind helper was installed.
+        if let attachment {
+            _ = try dialect
+            do {
+                let update = try await dialect.runtime(reference: attachment, execute: execute, charset: charset)
+                    .inspect(terminal: terminal)
+                if update.active != nil { return update }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {}
+        } else {
+            do {
+                let update = try await RemoteTmuxRuntimeDialect(execute: execute, charset: charset)
+                    .inspect(terminal: terminal)
+                if update.status == .multiplexer || update.backend != nil { return update }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {}
+        }
+        guard let client = try await RemoteTerminalProcessProbe(execute: execute).inspect(terminal: terminal) else {
+            return .init(status: .unknown)
+        }
+        do {
+            if let attachment, client.backend == attachment.backend,
+                let identity = try? RemoteMultiplexerIdentity.decode(
+                    attachment.session.identity, kind: attachment.backend),
+                identity.helper != nil,
+                client.endpoint
+                    == (client.backend == .herdr ? identity.root + "/herdr-client.sock" : identity.socket)
+            {
+                do {
+                    let update = try await RemoteSocketMultiplexerRuntime(
+                        reference: attachment, execute: execute, charset: charset, boundClient: client
+                    )
+                    .inspect(terminal: terminal)
+                    if update.active != nil,
+                        try await RemoteTerminalProcessProbe(execute: execute).inspect(terminal: terminal) == client
+                    {
+                        return update
+                    }
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {}
+            }
+            return try await RemoteNativeMultiplexerRuntime(client: client, execute: execute).inspect(
+                terminal: terminal)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .init(
+                status: .multiplexer, clientIdentity: client.identity, backend: client.backend,
+                issue: .inspectionUnavailable)
+        }
     }
 
     static func helper(for attachment: RemoteSessionReference?) throws -> String? {
@@ -58,6 +111,7 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
     let reference: RemoteSessionReference
     let execute: RemoteSessionCommandExecutor
     var charset: RemoteCharset = .utf8
+    var boundClient: RemoteTerminalProcessProbe.Client? = nil
 
     func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
         try await snapshot(terminal: terminal).update
@@ -93,6 +147,13 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
             throw TerminalRuntimeError.unsupported
         }
         let kind = try identity.kind.rawValue
+        if let boundClient {
+            return """
+                helper=\(try RemoteMultiplexerCommands.quote(helper))
+                client='\(boundClient.process)'
+                \(try RemoteTerminalProcessProbe.guardClient(boundClient, terminal: terminal))
+                """
+        }
         return """
             helper=\(try RemoteMultiplexerCommands.quote(helper))
             \(RemoteMultiplexerCommands.stateRoot(try identity.kind, create: false))
@@ -169,17 +230,18 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
             """
         let result = try await execute(command)
         guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
-        return try Self.parseSnapshot(result.stdout, reference: reference, charset: charset)
+        return try Self.parseSnapshot(
+            result.stdout, reference: reference, charset: charset, clientBound: boundClient != nil)
     }
 
     static func parse(
-        _ text: String, reference: RemoteSessionReference, charset: RemoteCharset = .utf8
+        _ text: String, reference: RemoteSessionReference, charset: RemoteCharset = .utf8, clientBound: Bool = false
     ) throws -> TerminalRuntimeUpdate {
-        try parseSnapshot(text, reference: reference, charset: charset).update
+        try parseSnapshot(text, reference: reference, charset: charset, clientBound: clientBound).update
     }
 
     private static func parseSnapshot(
-        _ text: String, reference: RemoteSessionReference, charset: RemoteCharset
+        _ text: String, reference: RemoteSessionReference, charset: RemoteCharset, clientBound: Bool = false
     ) throws -> Snapshot {
         guard text.utf8.count <= 1024 * 1024,
             let dialect = RemoteMultiplexerRegistry.socketDialect(reference.backend)
@@ -192,7 +254,8 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
         else { throw TerminalRuntimeError.invalidResponse }
         let native = try RemoteMultiplexerCommands.unhex(String(lines[1].dropFirst(2)), limit: 512 * 1024)
         let focus = try RemoteMultiplexerCommands.unhex(String(lines[2].dropFirst(2)), limit: 512 * 1024)
-        let activePane = try dialect.activePane(native: native, focus: focus, reference: reference)
+        let activePane = try dialect.activePane(
+            native: native, focus: focus, reference: reference, clientBound: clientBound)
         var contexts: [TerminalShellContext] = []
         var events: [TerminalContextEvent] = []
         var active: TerminalContextIdentity?
@@ -215,7 +278,9 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
             if record.pane == activePane {
                 guard active == nil else { throw TerminalRuntimeError.invalidResponse }
                 active = context.identity
-                if foreground, record.ready { context.capabilities.formUnion([.readDraft, .replaceDraft]) }
+                if foreground, record.ready, !clientBound {
+                    context.capabilities.formUnion([.readDraft, .replaceDraft])
+                }
             }
             contexts.append(context)
             events.append(contentsOf: record.events(for: context))
@@ -224,7 +289,8 @@ nonisolated struct RemoteSocketMultiplexerRuntime: RemoteMultiplexerRuntime {
         return Snapshot(
             update: .init(
                 status: .multiplexer, clientIdentity: String(lines[0].dropFirst(2)),
-                active: active, contexts: contexts, events: events),
+                active: active, contexts: contexts, events: events, backend: kind,
+                issue: active == nil ? .paneAmbiguous : nil),
             native: native, focus: focus)
     }
 
