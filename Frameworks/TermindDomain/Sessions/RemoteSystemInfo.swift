@@ -138,13 +138,14 @@ public nonisolated enum RemoteDistributionDetection: Hashable, Sendable {
 extension RemoteSystemInfo {
     public var distributionDetection: RemoteDistributionDetection {
         guard let kernelName else { return .unavailable }
-        if kernelName.caseInsensitiveCompare("Darwin") == .orderedSame {
+        let kernel = kernelName.lowercased()
+        if kernel == "darwin" {
             return .resolved(DetectedDistribution(id: "macos"))
         }
-        guard kernelName.caseInsensitiveCompare("Linux") == .orderedSame else { return .resolved(nil) }
-        guard let distributionID,
-            let distribution = DetectedDistribution(id: distributionID, likeIDs: distributionLikeIDs)
-        else { return .unavailable }
-        return .resolved(distribution)
+        if ["freebsd", "openbsd", "netbsd", "dragonfly"].contains(kernel) {
+            return .resolved(DetectedDistribution(id: kernel))
+        }
+        guard kernel == "linux" else { return .resolved(nil) }
+        return .resolved(DetectedDistribution(id: distributionID ?? "linux", likeIDs: distributionLikeIDs))
     }
 }

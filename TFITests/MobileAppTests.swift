@@ -1505,7 +1505,8 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
 
 @Suite struct WorkspaceHostIconTests {
     @Test @MainActor func operatingSystemArtworkIsBundledOnMobile() {
-        #expect(HostIconCatalog.bundled.selectableEntries.prefix(2).map(\.id) == ["macos", "windows"])
+        #expect(HostIconCatalog.bundled.selectableEntries.first?.title == "AlmaLinux")
+        #expect(HostIconCatalog.bundled.selectableEntries.last?.title == "Zorin")
         for entry in HostIconCatalog.bundled.entries {
             #expect(UIImage(named: entry.asset) != nil, Comment(rawValue: entry.asset))
         }

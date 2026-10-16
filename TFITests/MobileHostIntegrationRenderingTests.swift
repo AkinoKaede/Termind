@@ -41,12 +41,13 @@ struct MobileHostIntegrationRenderingTests {
             descendants(controller.view).compactMap { $0 as? UIButton }.first { $0.showsMenuAsPrimaryAction })
         let actions = try await menuActions(in: picker, expectedCount: HostIconCatalog.bundled.entries.count + 2)
         #expect(
-            actions.prefix(4).map(\.title) == [
+            actions.prefix(2).map(\.title) == [
                 AppLocalization.string("Automatic", locale: Locale(identifier: language)),
-                AppLocalization.string("Server", locale: Locale(identifier: language)), "macOS", "Windows",
+                AppLocalization.string("Server", locale: Locale(identifier: language)),
             ])
+        #expect(actions.dropFirst(2).map(\.title) == HostIconCatalog.bundled.selectableEntries.map(\.title))
         #expect(actions.first?.state == .on)
-        picker.sendAction(actions[3])
+        picker.sendAction(try #require(actions.first { $0.title == "Windows" }))
         #expect(draft.host.iconOverrideID == "windows")
         #expect(draft.host.detectedDistribution?.id == "macos")
         for style in [UIUserInterfaceStyle.light, .dark] {

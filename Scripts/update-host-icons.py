@@ -72,6 +72,14 @@ def main():
     metadata = {entry["title"]: entry for entry in json.loads(read(simple, "data/simple-icons.json"))}
     requested = json.loads((ROOT / "Scripts/linux-distribution-icons.json").read_text())
     requested.append({"title": "Apple", "slug": "apple", "ids": ["macos"], "id": "macos"})
+    for title, slug, ids in [
+        ("BSD", "bsd", ["bsd", "dragonfly"]),
+        ("FreeBSD", "freebsd", ["freebsd"]),
+        ("OpenBSD", "openbsd", ["openbsd"]),
+        ("NetBSD", "netbsd", ["netbsd"]),
+        ("Linux", "linux", ["linux"]),
+    ]:
+        requested.append({"title": title, "slug": slug, "ids": ids, "id": slug})
     with tempfile.TemporaryDirectory(prefix="termind-host-icons-") as temporary:
         stage = Path(temporary)
         assets = stage / "assets"
@@ -83,7 +91,7 @@ def main():
         for item in requested:
             info = metadata[item["title"]]
             is_mac = item.get("id") == "macos"
-            asset = "HostOS-macos" if is_mac else "LinuxDistro-" + item["slug"]
+            asset = "HostOS-" + item["id"] if "id" in item else "LinuxDistro-" + item["slug"]
             write_icon(assets, asset, read(simple, "icons/" + item["slug"] + ".svg"))
             entries.append({
                 "id": item.get("id", item["slug"]), "title": "macOS" if is_mac else item["title"],

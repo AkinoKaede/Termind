@@ -62,7 +62,7 @@ struct HostIconTests {
         #expect(
             catalog.entry(matching: try #require(DetectedDistribution(id: "custom", likeIDs: ["debian"])))?.id
                 == "debian")
-        #expect(catalog.selectableEntries.prefix(2).map(\.id) == ["macos", "windows"])
+        #expect(catalog.selectableEntries.map(\.id) == ["bsd", "debian", "linux", "macos", "ubuntu", "windows"])
         #expect(Set(catalog.entries.map(\.id)).count == catalog.entries.count)
     }
 
@@ -75,9 +75,43 @@ struct HostIconTests {
                 {"id":"ubuntu","title":"Ubuntu","asset":"LinuxDistro-ubuntu","ids":["ubuntu"],"hex":"E95420"},
                 {"id":"debian","title":"Debian","asset":"LinuxDistro-debian","ids":["debian"],"hex":"A81D33"},
                 {"id":"macos","title":"macOS","asset":"HostOS-macos","ids":["macos"],"hex":"000000"},
-                {"id":"windows","title":"Windows","asset":"HostOS-windows","ids":["windows"],"hex":"0078D4"}
+                {"id":"windows","title":"Windows","asset":"HostOS-windows","ids":["windows"],"hex":"0078D4"},
+                {"id":"linux","title":"Linux","asset":"HostOS-linux","ids":["linux"],"hex":"FCC624"},
+                {"id":"bsd","title":"BSD","asset":"HostOS-bsd","ids":["bsd","dragonfly"],"hex":"AB2B28"}
                 ]}
                 """.utf8))
+    }
+
+    @Test func genericArtworkDoesNotReplaceExactMatchesOrManualChoices() throws {
+        let catalog = try fixtureCatalog()
+        let unknown = try #require(DetectedDistribution(id: "new-linux"))
+        #expect(catalog.entry(matching: unknown)?.id == "linux")
+        #expect(catalog.entry(matching: try #require(DetectedDistribution(id: "dragonfly")))?.id == "bsd")
+        #expect(
+            catalog.entry(
+                matching: try #require(DetectedDistribution(id: "custom", likeIDs: ["missing", "debian", "ubuntu"])))?
+                .id
+                == "debian")
+        #expect(
+            catalog.entry(matching: try #require(DetectedDistribution(id: "ubuntu", likeIDs: ["debian"])))?.id
+                == "ubuntu")
+        #expect(catalog.resolvedEntry(overrideID: "server", distribution: unknown) == nil)
+        #expect(catalog.resolvedEntry(overrideID: "future-icon", distribution: unknown) == nil)
+        #expect(catalog.resolvedEntry(overrideID: nil, distribution: nil) == nil)
+    }
+
+    @Test func alphabeticalOrderIgnoresCaseAndUsesStableIDsForTies() throws {
+        var catalog = try fixtureCatalog()
+        let template = try #require(catalog.entries.first)
+        catalog.entries = [("z", "alpha"), ("b", "Beta"), ("a", "ALPHA"), ("w", "Windows")].map { id, title in
+            var entry = template
+            entry.id = id
+            entry.title = title
+            return entry
+        }
+        #expect(catalog.selectableEntries.map(\.id) == ["a", "z", "b", "w"])
+        catalog.entries.reverse()
+        #expect(catalog.selectableEntries.map(\.id) == ["a", "z", "b", "w"])
     }
 
     @Test func legacyDomainJSONDefaultsToAutomaticAndUnknownIDsSurvive() throws {
@@ -98,17 +132,19 @@ struct HostIconTests {
         let store = HostPersistence(context: source.mainContext)
         let remote = HostPersistence(context: destination.mainContext)
         let library = HostLibraryModel(persistence: store)
-        var host = Host(name: "Host", host: "example.invalid")
+        var host = Host(
+            name: "Host", host: "example.invalid", detectedDistribution: DetectedDistribution(id: "dragonfly"))
         #expect(library.saveHost(host))
         host = try #require(library.host(host.id))
         let journal = VaultSyncJournal(context: source.mainContext)
-        for choice: String? in ["windows", "macos", "future-icon", nil] {
+        for choice: String? in ["windows", "macos", "freebsd", "bsd", "linux", "future-icon", nil] {
             host.iconOverrideID = choice
             #expect(library.saveHost(host))
             let envelope = try #require(try journal.envelope(for: .init(kind: .host, id: host.id)))
             #expect(envelope.formatVersion == SyncRecordFormats.vault.writingVersion(for: "host"))
             _ = try remote.applyRemote([VaultSyncCodec.decode(VaultSyncCodec.encode(envelope))])
             #expect(try remote.load().hosts.first?.iconOverrideID == choice)
+            #expect(try remote.load().hosts.first?.detectedDistribution?.id == "dragonfly")
         }
     }
 

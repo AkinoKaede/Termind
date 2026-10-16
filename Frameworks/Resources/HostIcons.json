@@ -41,6 +41,45 @@
       "title": "Arch Linux"
     },
     {
+      "asset": "LinuxDistro-artixlinux",
+      "hex": "10A0CC",
+      "id": "artixlinux",
+      "ids": [
+        "artix"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "artixlinux",
+      "sourceURL": "https://gitea.artixlinux.org/artix/artwork/src/commit/256432e3d06b3e9024bfd6912768e80281ea3746/icons/logo-gray.svg",
+      "title": "Artix Linux"
+    },
+    {
+      "asset": "LinuxDistro-asahilinux",
+      "hex": "A61200",
+      "id": "asahilinux",
+      "ids": [
+        "asahi"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "asahilinux",
+      "sourceURL": "https://github.com/AsahiLinux/artwork/blob/292637c9658c1491ddc1128fb6134aec01d904dd/logos/svg/AsahiLinux_logomark_mono.svg",
+      "title": "Asahi Linux"
+    },
+    {
+      "asset": "LinuxDistro-cachyos",
+      "hex": "00AA88",
+      "id": "cachyos",
+      "ids": [
+        "cachyos"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "cachyos",
+      "sourceURL": "https://commons.wikimedia.org/wiki/File:CachyOS_Logo.svg",
+      "title": "CachyOS"
+    },
+    {
       "asset": "LinuxDistro-centos",
       "hex": "262577",
       "id": "centos",
@@ -80,6 +119,19 @@
       "title": "deepin"
     },
     {
+      "asset": "LinuxDistro-devuan",
+      "hex": "004489",
+      "id": "devuan",
+      "ids": [
+        "devuan"
+      ],
+      "license": "CC-BY-SA-4.0",
+      "package": "simple-icons",
+      "slug": "devuan",
+      "sourceURL": "https://git.devuan.org/devuan/documentation/src/commit/f4931e70e17f043c2824d591bba7c7f70ed583b6/art/graphics/logo/devuan-emblem.svg",
+      "title": "Devuan"
+    },
+    {
       "asset": "LinuxDistro-elementary",
       "hex": "64BAFF",
       "id": "elementary",
@@ -117,6 +169,19 @@
       "slug": "fedora",
       "sourceURL": "https://docs.fedoraproject.org/en-US/project/brand/",
       "title": "Fedora"
+    },
+    {
+      "asset": "LinuxDistro-garudalinux",
+      "hex": "8839EF",
+      "id": "garudalinux",
+      "ids": [
+        "garuda"
+      ],
+      "license": "GPL-3.0-only",
+      "package": "simple-icons",
+      "slug": "garudalinux",
+      "sourceURL": "https://gitlab.com/garuda-linux/themes-and-settings/artwork/garuda-icons/-/blob/aab26625fe01479ebc3a252103fca723baca9e88/usr/share/icons/garuda/distributor-logo-garuda-outline.svg",
+      "title": "Garuda Linux"
     },
     {
       "asset": "LinuxDistro-gentoo",
@@ -197,6 +262,19 @@
       "title": "Manjaro"
     },
     {
+      "asset": "LinuxDistro-mxlinux",
+      "hex": "000000",
+      "id": "mxlinux",
+      "ids": [
+        "mx"
+      ],
+      "license": "GPL-3.0-only",
+      "package": "simple-icons",
+      "slug": "mxlinux",
+      "sourceURL": "https://mxlinux.org/art/",
+      "title": "MX Linux"
+    },
+    {
       "asset": "LinuxDistro-nixos",
       "hex": "5277C3",
       "id": "nixos",
@@ -208,6 +286,19 @@
       "slug": "nixos",
       "sourceURL": "https://brand.nixos.org/logos/nixos-logomark-black-flat-minimal.svg",
       "title": "NixOS"
+    },
+    {
+      "asset": "LinuxDistro-nobaralinux",
+      "hex": "000000",
+      "id": "nobaralinux",
+      "ids": [
+        "nobara"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "nobaralinux",
+      "sourceURL": "https://wiki.nobaraproject.org",
+      "title": "Nobara Linux"
     },
     {
       "asset": "LinuxDistro-opensuse",
@@ -226,6 +317,32 @@
       "title": "openSUSE"
     },
     {
+      "asset": "LinuxDistro-openwrt",
+      "hex": "00B5E2",
+      "id": "openwrt",
+      "ids": [
+        "openwrt"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "openwrt",
+      "sourceURL": "https://openwrt.org/docs/guide-graphic-designer/openwrt-logo",
+      "title": "OpenWrt"
+    },
+    {
+      "asset": "LinuxDistro-parrotsecurity",
+      "hex": "15E0ED",
+      "id": "parrotsecurity",
+      "ids": [
+        "parrot"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "parrotsecurity",
+      "sourceURL": "https://gitlab.com/parrotsec/project/documentation/-/blob/d1d426b9cb3ea0efd16a2b34056c1ebb21bb9af9/static/img/parrot-logo.svg",
+      "title": "Parrot Security"
+    },
+    {
       "asset": "LinuxDistro-popos",
       "hex": "48B9C7",
       "id": "popos",
@@ -238,6 +355,19 @@
       "slug": "popos",
       "sourceURL": "https://github.com/system76/brand/blob/7a31740b54f929b62a165baa61dfb0b5164261e8/Pop_OS%20branding/Pop_icon.svg",
       "title": "Pop!_OS"
+    },
+    {
+      "asset": "LinuxDistro-qubesos",
+      "hex": "3874D8",
+      "id": "qubesos",
+      "ids": [
+        "qubes"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "qubesos",
+      "sourceURL": "https://github.com/QubesOS/qubes-attachment/blob/ed7e552eb8a5fca4e099361d137793d3551b3968/icons/qubes-logo-home.svg",
+      "title": "Qubes OS"
     },
     {
       "asset": "LinuxDistro-raspberrypi",
@@ -279,6 +409,19 @@
       "slug": "rockylinux",
       "sourceURL": "https://github.com/rocky-linux/branding/blob/94e97dd30b87d909cc4f6a6838a2926f77f9ac47/logo/src/icon-black.svg",
       "title": "Rocky Linux"
+    },
+    {
+      "asset": "LinuxDistro-slackware",
+      "hex": "000000",
+      "id": "slackware",
+      "ids": [
+        "slackware"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "slackware",
+      "sourceURL": "https://en.wikipedia.org/wiki/Slackware",
+      "title": "Slackware"
     },
     {
       "asset": "LinuxDistro-solus",
@@ -362,6 +505,19 @@
       "title": "Xubuntu"
     },
     {
+      "asset": "LinuxDistro-zorin",
+      "hex": "15A6F0",
+      "id": "zorin",
+      "ids": [
+        "zorin"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "zorin",
+      "sourceURL": "https://zorin.com/press",
+      "title": "Zorin"
+    },
+    {
       "asset": "HostOS-macos",
       "hex": "000000",
       "id": "macos",
@@ -373,6 +529,72 @@
       "slug": "apple",
       "sourceURL": "https://www.apple.com",
       "title": "macOS"
+    },
+    {
+      "asset": "HostOS-bsd",
+      "hex": "AB2B28",
+      "id": "bsd",
+      "ids": [
+        "bsd",
+        "dragonfly"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "bsd",
+      "sourceURL": "https://freebsdfoundation.org/about-us/about-the-foundation/project",
+      "title": "BSD"
+    },
+    {
+      "asset": "HostOS-freebsd",
+      "hex": "AB2B28",
+      "id": "freebsd",
+      "ids": [
+        "freebsd"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "freebsd",
+      "sourceURL": "https://www.freebsdfoundation.org/about/project/",
+      "title": "FreeBSD"
+    },
+    {
+      "asset": "HostOS-openbsd",
+      "hex": "F2CA30",
+      "id": "openbsd",
+      "ids": [
+        "openbsd"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "openbsd",
+      "sourceURL": "https://en.wikipedia.org/wiki/OpenBSD",
+      "title": "OpenBSD"
+    },
+    {
+      "asset": "HostOS-netbsd",
+      "hex": "FF6600",
+      "id": "netbsd",
+      "ids": [
+        "netbsd"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "netbsd",
+      "sourceURL": "https://www.netbsd.org",
+      "title": "NetBSD"
+    },
+    {
+      "asset": "HostOS-linux",
+      "hex": "FCC624",
+      "id": "linux",
+      "ids": [
+        "linux"
+      ],
+      "license": null,
+      "package": "simple-icons",
+      "slug": "linux",
+      "sourceURL": "https://www.linuxfoundation.org/the-linux-mark/",
+      "title": "Linux"
     },
     {
       "asset": "HostOS-windows",

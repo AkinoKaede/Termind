@@ -727,6 +727,17 @@ struct ShellIntegrationBootstrapTests {
         #expect(completed.systemInfo?.architecture == "arm64")
     }
 
+    @Test(arguments: ["FreeBSD", "OpenBSD", "NetBSD", "DragonFly"], ["||", "|||"])
+    func bsdKernelOnlyRecordsRetainTheirSystemIdentity(kernel: String, prefix: String) throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "BSD")
+        let marker = "__TRMD_BSD_SYSTEM__\(prefix)\(kernel)|14.1|amd64__\r\n__TRMD_BSD_SHELL__/bin/zsh__\r\n"
+        _ = try #require(bootstrap.receive(Data(marker.utf8)).command)
+        let completed = bootstrap.receive(Data("__TRMD_BSD_DONE__\r\n".utf8))
+        #expect(completed.integrationInstalled)
+        #expect(completed.systemInfo?.distributionDetection == .resolved(DetectedDistribution(id: kernel)))
+        #expect(completed.systemInfo?.distributionID == nil)
+    }
+
     @Test func existingProbeReadsDarwinOnTheLocalMac() throws {
         var bootstrap = RemoteShellIntegrationBootstrap(token: "LOCALMAC")
         var script = Data("export SHELL=/bin/zsh\n".utf8)

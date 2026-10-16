@@ -44,6 +44,11 @@ struct MobileWorkspaceSessionTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(workspace.activitySession.iconAsset == "LinuxDistro-ubuntu")
+        workspace.receiveShellEvent(.systemInfo(RemoteSystemInfo(kernelName: "DragonFly")))
+        #expect(workspace.activitySession.iconAsset == "HostOS-bsd")
+        #expect(app.library.host(host.id)?.detectedDistribution?.id == "dragonfly")
+        workspace.receiveShellEvent(.systemInfo(RemoteSystemInfo(distributionID: "custom-linux", kernelName: "Linux")))
+        #expect(workspace.activitySession.iconAsset == "HostOS-linux")
         #expect(workspace.status == originalStatus)
         #expect(session.openWorkspace(id) === workspace)
     }

@@ -7,9 +7,23 @@ import Testing
 
 @Suite @MainActor
 struct HostIconPresentationTests {
+    @Test(arguments: [
+        ("artix", "Artix Linux"), ("asahi", "Asahi Linux"), ("cachyos", "CachyOS"),
+        ("devuan", "Devuan"), ("garuda", "Garuda Linux"), ("mx", "MX Linux"),
+        ("nobara", "Nobara Linux"), ("openwrt", "OpenWrt"), ("parrot", "Parrot Security"),
+        ("qubes", "Qubes OS"), ("slackware", "Slackware"), ("zorin", "Zorin"),
+        ("freebsd", "FreeBSD"), ("openbsd", "OpenBSD"), ("netbsd", "NetBSD"), ("dragonfly", "BSD"),
+        ("linux", "Linux"), ("unlisted-linux", "Linux"),
+    ])
+    func expandedCatalogMatchesSystemIdentifiers(id: String, title: String) throws {
+        let distribution = try #require(DetectedDistribution(id: id))
+        #expect(HostIconCatalog.entry(for: distribution)?.title == title)
+    }
+
     @Test func bundledArtworkCanBeLoadedAndManualSelectionWins() throws {
         let catalog = HostIconCatalog.bundled
-        #expect(catalog.selectableEntries.prefix(2).map(\.id) == ["macos", "windows"])
+        #expect(catalog.selectableEntries.first?.title == "AlmaLinux")
+        #expect(catalog.selectableEntries.last?.title == "Zorin")
         for entry in catalog.entries {
             #expect(NSImage(named: entry.asset) != nil, Comment(rawValue: entry.asset))
         }

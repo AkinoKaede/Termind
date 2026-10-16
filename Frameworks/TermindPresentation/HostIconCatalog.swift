@@ -37,10 +37,11 @@ public nonisolated struct HostIconCatalog: Codable, Sendable {
     }
 
     public var selectableEntries: [HostIconEntry] {
-        let platforms = ["macos", "windows"].compactMap { id in entries.first { $0.id == id } }
-        return platforms
-            + entries.filter { $0.id != "macos" && $0.id != "windows" }
-            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+        entries.sorted {
+            let comparison = $0.title.compare(
+                $1.title, options: [.caseInsensitive], locale: Locale(identifier: "en_US"))
+            return comparison == .orderedSame ? $0.id < $1.id : comparison == .orderedAscending
+        }
     }
 
     public func entry(matching distribution: DetectedDistribution) -> HostIconEntry? {
@@ -49,6 +50,8 @@ public nonisolated struct HostIconCatalog: Codable, Sendable {
             uniquingKeysWith: { first, _ in first }
         )
         if let exact = byID[distribution.id] { return exact }
-        return distribution.likeIDs.lazy.compactMap { byID[$0] }.first
+        if let related = distribution.likeIDs.lazy.compactMap({ byID[$0] }).first { return related }
+        // Detection only persists supported OS families; BSD and macOS match above.
+        return byID["linux"]
     }
 }
