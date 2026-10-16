@@ -154,11 +154,11 @@ struct HostEditorView: View {
             HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
 
             if selectedProtocol == .ssh && draft.sshEnabled {
-                HostTransportSection(host: $draft)
                 if draft.isTailscaleManaged {
                     Section(AppStrings.Vault.authentication.swiftUIKey) {
                         TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
                     }
+                    HostTransportSection(host: $draft)
                 } else {
                     Section(AppStrings.Vault.authentication.swiftUIKey) {
                         // One control, because a host says *where* and an identity says
@@ -205,6 +205,8 @@ struct HostEditorView: View {
                         }
 
                     }
+
+                    HostTransportSection(host: $draft)
 
                     Section(AppStrings.Vault.routing.swiftUIKey) {
                         Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {

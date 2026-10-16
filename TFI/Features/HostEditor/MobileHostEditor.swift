@@ -90,12 +90,12 @@ struct MobileHostEditor: View {
                 }
                 HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
                 if selectedProtocol == .ssh && draft.sshEnabled {
-                    HostTransportSection(host: $draft)
                     if draft.isTailscaleManaged {
                         Section(AppStrings.Vault.authentication.swiftUIKey) {
                             TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                         }
+                        HostTransportSection(host: $draft)
                     } else {
                         Section(AppStrings.Vault.authentication.swiftUIKey) {
                             Picker(AppStrings.Vault.identity.swiftUIKey, selection: fields.identityChoice) {
@@ -127,6 +127,7 @@ struct MobileHostEditor: View {
                                 }
                             }
                         }
+                        HostTransportSection(host: $draft)
                         Section(AppStrings.Vault.routing.swiftUIKey) {
                             Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
                                 Text(AppStrings.Common.none).tag(UUID?.none)
