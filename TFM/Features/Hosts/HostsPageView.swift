@@ -162,7 +162,7 @@ struct HostsPageView: ManagedCardPage {
                 Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil, groupID: group.id)
                 }
-                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "dot.radiowaves.left.and.right") {
                     openWork(.hostEditor(nil, groupID: group.id, discover: true))
                 }
                 Button(AppStrings.Vault.newSubgroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
@@ -186,7 +186,7 @@ struct HostsPageView: ManagedCardPage {
                 Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil)
                 }
-                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "dot.radiowaves.left.and.right") {
                     openWork(.hostEditor(nil, discover: true))
                 }
                 Button(AppStrings.Vault.newGroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
@@ -230,7 +230,7 @@ struct HostsPageView: ManagedCardPage {
             NativeMenuEntry(title: AppStrings.Vault.newHost, symbol: MenuSymbol.newHost) {
                 openHostEditor(nil, groupID: groupID)
             },
-            NativeMenuEntry(title: AppStrings.LocalNetwork.discovery, symbol: "network") {
+            NativeMenuEntry(title: AppStrings.LocalNetwork.discovery, symbol: "dot.radiowaves.left.and.right") {
                 openWork(.hostEditor(nil, groupID: groupID, discover: true))
             },
             NativeMenuEntry(title: AppStrings.Vault.newGroup, symbol: MenuSymbol.newGroup) {

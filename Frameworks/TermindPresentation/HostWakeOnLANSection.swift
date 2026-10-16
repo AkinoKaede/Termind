@@ -27,7 +27,9 @@ public struct HostWakeOnLANSection: View {
                 .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.asciiCapable)
             #endif
             if let fetchMAC {
-                Button(AppStrings.LocalNetwork.fetchMAC.swiftUIKey, action: fetchMAC)
+                Button(
+                    AppStrings.LocalNetwork.fetchMAC.swiftUIKey, systemImage: "rectangle.connected.to.line.below",
+                    action: fetchMAC)
             }
             Toggle(
                 AppStrings.LocalNetwork.autoWake.swiftUIKey,

@@ -159,15 +159,8 @@ struct HostEditorView: View {
                 }
             }
 
-            HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
-
-            if !draft.isTailscaleManaged, LocalDiscoveryProtocol(terminalProtocol: selectedProtocol) != nil {
-                Section {
-                    Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
-                        openDiscovery()
-                    }
-                }
-            }
+            HostConnectionFields(host: $draft, protocol: selectedProtocol, discover: openDiscovery)
+                .disabled(draft.isTailscaleManaged)
 
             if selectedProtocol == .ssh && draft.sshEnabled {
                 if draft.isTailscaleManaged {

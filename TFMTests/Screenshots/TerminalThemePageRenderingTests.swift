@@ -7,9 +7,50 @@ import Testing
 
 @testable import Termind
 
-/// Offscreen hosting leaves the user's windows and keyboard focus untouched.
+/// Native rendering; tests that show windows opt in separately.
 @Suite(.serialized) @MainActor
 struct TerminalThemePageRenderingTests {
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans"])
+    func selectedCustomThemeCardsRenderWithoutMenuButtons(language: String) async throws {
+        let model = TerminalSettingsModel()
+        let theme = TerminalCustomTheme(name: "Ocean", appearance: .both, baseThemeName: "Termind Light")
+        model.saveCustomTheme(theme, isNew: true)
+        model.selectCustomTheme(id: theme.id, isDark: false)
+        model.selectCustomTheme(id: theme.id, isDark: true)
+        let initial = model.themeLibrary
+        let app = AppModel(hosts: HostLibraryModel(), terminalSettings: model)
+        defer { app.shutdownForTermination() }
+        let navigation = WindowModel(workspaces: [])
+        navigation.openSettings(route: .terminalCustomThemes)
+        let controller = NSHostingController(
+            rootView: TerminalCustomThemesPage().environment(app).environment(navigation)
+                .environment(\.locale, Locale(identifier: language))
+                .frame(width: 720, height: 520))
+        controller.sizingOptions = []
+        let window = NSWindow(
+            contentRect: CGRect(x: 100, y: 100, width: 720, height: 520),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .aqua)
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        defer {
+            window.orderOut(nil)
+            window.contentViewController = nil
+            window.close()
+        }
+        try await Task.sleep(for: .milliseconds(700))
+        controller.view.layoutSubtreeIfNeeded()
+        #expect(descendants(in: controller.view, ofType: NSPopUpButton.self).isEmpty)
+        let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
+        controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
+        Attachment.record(
+            try #require(bitmap.representation(using: .png, properties: [:])),
+            named: "macos-custom-library-\(language).png")
+        #expect(model.themeLibrary == initial)
+    }
+
     @Test(
         .enabled(if: ProcessInfo.processInfo.environment["TERMIND_THEME_SCREENSHOTS"] == "1"),
         arguments: ["en", "zh-Hans"], [CGFloat(650), CGFloat(1000)])

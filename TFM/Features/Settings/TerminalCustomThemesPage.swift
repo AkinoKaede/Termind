@@ -26,21 +26,9 @@ struct TerminalCustomThemesPage: View {
                     CardGrid {
                         ForEach(app.terminalSettings.themeLibrary.themes(matching: window.customThemeQuery)) { theme in
                             CardTile(activate: { edit(theme) }, activatesOnReturn: true, activatesOnSingleClick: true) {
-                                TerminalCustomThemeSummary(theme: theme, library: app.terminalSettings.themeLibrary)
-                                    .padding(.trailing, 24)
+                                TerminalCustomThemeSummary(theme: theme)
                             }
                             .contextMenu { actions(theme) }
-                            .overlay(alignment: .topTrailing) {
-                                Menu {
-                                    actions(theme)
-                                } label: {
-                                    Label(AppStrings.Common.edit.swiftUIKey, systemImage: "ellipsis").labelStyle(
-                                        .iconOnly)
-                                }
-                                .menuStyle(.borderlessButton)
-                                .fixedSize()
-                                .padding(10)
-                            }
                         }
                     }
                 }

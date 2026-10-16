@@ -57,15 +57,15 @@ public struct HostProtocolProfileControls: View {
 public struct HostConnectionFields: View {
     @Binding private var host: Host
     private let connectionProtocol: HostTerminalProtocol
+    private let discover: (() -> Void)?
 
-    public init(host: Binding<Host>, protocol connectionProtocol: HostTerminalProtocol) {
+    public init(
+        host: Binding<Host>, protocol connectionProtocol: HostTerminalProtocol = .ssh,
+        discover: (() -> Void)? = nil
+    ) {
         _host = host
         self.connectionProtocol = connectionProtocol
-    }
-
-    public init(host: Binding<Host>) {
-        _host = host
-        connectionProtocol = .ssh
+        self.discover = discover
     }
 
     public var body: some View {
@@ -93,6 +93,13 @@ public struct HostConnectionFields: View {
                             .keyboardType(.numberPad)
                         #endif
                 }
+            }
+            if let discover, !host.isTailscaleManaged,
+                LocalDiscoveryProtocol(terminalProtocol: connectionProtocol) != nil
+            {
+                Button(
+                    AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "dot.radiowaves.left.and.right",
+                    action: discover)
             }
         }
     }

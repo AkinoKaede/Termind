@@ -3,11 +3,9 @@ import TermindDomain
 
 public struct TerminalCustomThemeSummary: View {
     private let theme: TerminalCustomTheme
-    private let library: TerminalThemeLibrary
 
-    public init(theme: TerminalCustomTheme, library: TerminalThemeLibrary) {
+    public init(theme: TerminalCustomTheme) {
         self.theme = theme
-        self.library = library
     }
 
     public var body: some View {
@@ -17,15 +15,6 @@ public struct TerminalCustomThemeSummary: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(verbatim: theme.name).font(.headline)
                 Text(theme.appearance.title).font(.caption).foregroundStyle(.secondary)
-                ForEach([false, true], id: \.self) { isDark in
-                    if library.selectedTheme(isDark: isDark)?.id == theme.id {
-                        Label(
-                            (isDark ? AppStrings.Settings.darkTheme : AppStrings.Settings.lightTheme).swiftUIKey,
-                            systemImage: "checkmark"
-                        )
-                        .font(.caption).foregroundStyle(.tint)
-                    }
-                }
             }
             Spacer(minLength: 0)
         }

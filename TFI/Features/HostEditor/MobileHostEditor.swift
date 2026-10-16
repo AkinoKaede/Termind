@@ -31,9 +31,8 @@ struct MobileHostEditor: View {
     @State private var didLoadCustom = false
     @State private var selectedProtocol: HostTerminalProtocol
 
-    init(app: MobileAppModel, host: Host, discover: Bool = false) {
+    init(app: MobileAppModel, host: Host) {
         self.app = app
-        _showsDiscovery = State(initialValue: discover)
         original = host
         _draft = State(initialValue: host)
         _selectedProtocol = State(initialValue: host.sshEnabled ? .ssh : .telnet)
@@ -92,14 +91,8 @@ struct MobileHostEditor: View {
                         MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
-                HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
-                if !draft.isTailscaleManaged, LocalDiscoveryProtocol(terminalProtocol: selectedProtocol) != nil {
-                    Section {
-                        Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
-                            showsDiscovery = true
-                        }
-                    }
-                }
+                HostConnectionFields(host: $draft, protocol: selectedProtocol, discover: { showsDiscovery = true })
+                    .disabled(draft.isTailscaleManaged)
                 if selectedProtocol == .ssh && draft.sshEnabled {
                     if draft.isTailscaleManaged {
                         Section(AppStrings.Vault.authentication.swiftUIKey) {

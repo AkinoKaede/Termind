@@ -10,7 +10,7 @@ struct HostMACAddressView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: AppStrings.LocalNetwork.fetchMAC, symbol: "network", close: back,
+            title: AppStrings.LocalNetwork.fetchMAC, symbol: "rectangle.connected.to.line.below", close: back,
             closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 12) {

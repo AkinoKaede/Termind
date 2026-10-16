@@ -28,20 +28,9 @@ struct MobileCustomThemesView: View {
                     MobileActionCard(alignment: .leading) {
                         draft = .init(theme, isNew: false)
                     } content: {
-                        TerminalCustomThemeSummary(theme: theme, library: model.themeLibrary)
-                            .padding(.trailing, 32)
+                        TerminalCustomThemeSummary(theme: theme)
                     } actions: {
                         actions(theme)
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        Menu {
-                            actions(theme)
-                        } label: {
-                            Label(AppStrings.Common.edit.swiftUIKey, systemImage: "ellipsis")
-                                .labelStyle(.iconOnly)
-                                .frame(width: 44, height: 44).contentShape(.rect)
-                        }
-                        .padding(4)
                     }
                     .operationConfirmation(
                         .init(AppStrings.Settings.deleteCustomThemeConfirmation),

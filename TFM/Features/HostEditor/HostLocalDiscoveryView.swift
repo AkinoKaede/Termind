@@ -10,7 +10,7 @@ struct HostLocalDiscoveryView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: AppStrings.LocalNetwork.discovery, symbol: "network", close: back,
+            title: AppStrings.LocalNetwork.discovery, symbol: "dot.radiowaves.left.and.right", close: back,
             closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             LocalDiscoveryView(model: model, select: select)

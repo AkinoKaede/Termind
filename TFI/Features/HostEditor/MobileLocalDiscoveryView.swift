@@ -17,11 +17,14 @@ struct MobileLocalDiscoveryView: View {
             .navigationTitle(AppStrings.LocalNetwork.discovery.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppStrings.Common.cancel.swiftUIKey) { dismiss() }
+                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }
+                        .labelStyle(.iconOnly)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(AppStrings.LocalNetwork.rescan.swiftUIKey) { model.scan() }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(AppStrings.LocalNetwork.rescan.swiftUIKey, systemImage: "arrow.clockwise") { model.scan() }
+                        .labelStyle(.iconOnly)
                 }
+                .mobileProminentAction()
             }
         }
     }

@@ -21,7 +21,7 @@ public struct LocalDiscoveryView: View {
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if model.hosts.isEmpty {
                 ContentUnavailableView {
-                    Label(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network")
+                    Label(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "dot.radiowaves.left.and.right")
                 } description: {
                     Text(status)
                 }
@@ -33,16 +33,6 @@ public struct LocalDiscoveryView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(host.name).font(.headline)
                             Text("\(host.address):\(host.port)").font(.callout.monospaced())
-                            Text(
-                                host.connectionProtocol == .telnet
-                                    ? AppStrings.LocalNetwork.telnetPortOpen
-                                    : host.source == .bonjour
-                                        ? AppStrings.LocalNetwork.bonjour : AppStrings.LocalNetwork.verifiedSSH
-                            ).font(.caption).foregroundStyle(.secondary)
-                            if host.source == .bonjour {
-                                Text(AppStrings.LocalNetwork.advertisedSSH).font(.caption).foregroundStyle(
-                                    .secondary)
-                            }
                         }.padding(.vertical, 4)
                     }.buttonStyle(.plain)
                 }

@@ -78,6 +78,7 @@ struct MobileTerminalThemeTests {
         model.saveCustomTheme(
             .init(name: "Daylight", appearance: .light, baseThemeName: "Termind Light"), isNew: true)
         model.selectCustomTheme(id: theme.id, isDark: true)
+        model.selectCustomTheme(id: theme.id, isDark: false)
         let initial = model.themeLibrary
         let draft = TerminalCustomThemeDraft(theme, isNew: false)
         let content = Group {
@@ -113,6 +114,12 @@ struct MobileTerminalThemeTests {
                 search.searchBar.placeholder
                     == AppLocalization.resolve(AppStrings.Settings.searchThemes, locale: Locale(identifier: language)))
             #expect(navigation.topViewController?.navigationItem.hidesSearchBarWhenScrolling == false)
+            let labels = accessibilityLabels(in: window)
+            #expect(labels.contains { $0.contains(theme.name) })
+            for resource in [AppStrings.Settings.lightTheme, AppStrings.Settings.darkTheme, AppStrings.Common.edit] {
+                let unwanted = AppLocalization.resolve(resource, locale: Locale(identifier: language))
+                #expect(!labels.contains { $0.contains(unwanted) })
+            }
         }
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -174,6 +181,20 @@ struct MobileTerminalThemeTests {
     private func navigationController(in controller: UIViewController) -> UINavigationController? {
         if let navigation = controller as? UINavigationController { return navigation }
         return controller.children.lazy.compactMap { navigationController(in: $0) }.first
+    }
+
+    private func accessibilityLabels(in root: NSObject) -> [String] {
+        var seen = Set<ObjectIdentifier>()
+        func visit(_ element: NSObject) -> [String] {
+            guard seen.insert(ObjectIdentifier(element)).inserted else { return [] }
+            var children: [NSObject] = (element as? UIView)?.subviews ?? []
+            let count = element.accessibilityElementCount()
+            if count != NSNotFound, count > 0 {
+                children += (0..<count).compactMap { element.accessibilityElement(at: $0) as? NSObject }
+            }
+            return [element.accessibilityLabel].compactMap { $0 } + children.flatMap(visit)
+        }
+        return visit(root)
     }
 
     private func scrollViews(in view: UIView) -> [UIScrollView] {
