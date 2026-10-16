@@ -47438,6 +47438,47 @@
         }
       }
     },
+    "Open current directory with %@ — right-click for more options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelles Verzeichnis mit %@ öffnen — Rechtsklick für weitere Optionen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le répertoire actuel via %@ — clic droit pour plus d’options"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のディレクトリを%@で開く — 右クリックでその他の操作を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@로 현재 디렉터리 열기 — 추가 옵션을 보려면 마우스 오른쪽 버튼 클릭"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用%@打开当前目录—右键查看更多操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用%@開啟目前目錄—右鍵檢視更多操作"
+          }
+        }
+      }
+    },
     "Open current directory with SFTP — right-click for more options" : {
       "comment" : "A contextual help for the open button in the status bar.",
       "extractionState" : "manual",
@@ -47477,47 +47518,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SFTP開啟目前目錄—右鍵檢視更多操作"
-          }
-        }
-      }
-    },
-    "Open current directory with SSH — right-click for more options" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktuelles Verzeichnis mit SSH öffnen — Rechtsklick für weitere Optionen"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir le répertoire actuel via SSH — clic droit pour plus d’options"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在のディレクトリをSSHで開く — 右クリックでその他の操作を表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH로 현재 디렉터리 열기 — 추가 옵션을 보려면 마우스 오른쪽 버튼 클릭"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用SSH打开当前目录—右键查看更多操作"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用SSH開啟目前目錄—右鍵檢視更多操作"
           }
         }
       }
@@ -47645,6 +47645,47 @@
         }
       }
     },
+    "Open with %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit %@ öffnen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir via %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@で開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@로 열기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用%@打开"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用%@開啟"
+          }
+        }
+      }
+    },
     "Open with SFTP" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -47682,47 +47723,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SFTP開啟"
-          }
-        }
-      }
-    },
-    "Open with SSH" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mit SSH öffnen"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir via SSH"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSHで開く"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SSH로 열기"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用SSH打开"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用SSH開啟"
           }
         }
       }

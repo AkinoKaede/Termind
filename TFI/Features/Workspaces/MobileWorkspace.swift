@@ -241,10 +241,12 @@ final class MobileWorkspace: Identifiable {
                 path: RemotePath.normalized(workingDirectory)
             )
         case .sftp:
-            guard !sftpChannel.path.isEmpty else { return nil }
+            guard !sftpChannel.path.isEmpty, let host = connectionHost(descriptor.hostID),
+                host.sshEnabled, let transport = host.preferredTerminalProtocol
+            else { return nil }
             return MobileWorkspaceDirectoryLaunch(
                 hostID: descriptor.hostID,
-                kind: .ssh,
+                kind: .terminal(transport),
                 path: RemotePath.normalized(sftpChannel.path)
             )
         case .telnet:

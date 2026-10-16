@@ -765,7 +765,12 @@ struct MobileWorkspaceView: View {
         if let launch = workspace.sameDirectoryLaunch {
             switch launch.kind {
             case .ssh, .mosh, .eternalTerminal:
-                Button(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: "terminal") {
+                Button(
+                    AppStrings.Connections.openWithTransport(
+                        (launch.kind.terminalProtocol ?? .ssh).displayName
+                    ).swiftUIKey,
+                    systemImage: launch.kind.symbol
+                ) {
                     openVerifiedDirectory(launch)
                 }
             case .telnet:

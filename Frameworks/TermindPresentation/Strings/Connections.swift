@@ -143,8 +143,8 @@ extension AppStrings {
         public static var hostsYouConnectToAppearHere: LocalizedStringResource {
             "Hosts you connect to appear here."
         }
-        public static var openWithSsh: LocalizedStringResource {
-            "Open with SSH"
+        public static func openWithTransport(_ name: String) -> LocalizedStringResource {
+            "Open with \(name)"
         }
         public static var sshIsDisabledForThisHost: LocalizedStringResource {
             "SSH is disabled for this Host."

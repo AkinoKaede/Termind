@@ -345,13 +345,18 @@ struct MobileWorkspaceTests {
 
 @Suite @MainActor
 struct MobileWorkspaceConnectionRecoveryTests {
-    @Test func sameDirectorySFTPStartupUsesTheOverrideAndOffersSSHOnlyWhileConnected() async throws {
+    @Test(arguments: [HostTerminalProtocol.ssh, .mosh, .eternalTerminal])
+    func sameDirectorySFTPUsesTheDefaultTransportOnlyWhileConnected(_ transport: HostTerminalProtocol) async throws {
         let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
         let app = try MobileAppModel(
             inMemory: true,
             workspaceConnectionServices: connections.services
         )
-        let host = try configureConnectionFixture(in: app)
+        var host = try configureConnectionFixture(in: app)
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        host.terminalTransports.defaultTransport = transport
+        app.library.upsert(host)
         let id = try #require(
             app.testWorkspaceSession.open(hostID: host.id, kind: .sftp, initialPath: "/srv/releases/"))
         let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
@@ -362,7 +367,8 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(workspace.sftpChannel.path == "/srv/releases")
         #expect(
             workspace.sameDirectoryLaunch
-                == MobileWorkspaceDirectoryLaunch(hostID: host.id, kind: .ssh, path: "/srv/releases")
+                == MobileWorkspaceDirectoryLaunch(
+                    hostID: host.id, kind: .terminal(transport), path: "/srv/releases")
         )
         #expect(app.testWorkspaceSession.renameWorkspace(id, to: "  Release Files  "))
         #expect(workspace.descriptor.title == "Release Files")

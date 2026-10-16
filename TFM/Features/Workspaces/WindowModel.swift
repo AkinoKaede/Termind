@@ -860,7 +860,8 @@ final class WindowModel {
     }
 
     func canOpenCompanionSession(from sessionID: UUID) -> Bool {
-        companionSessionSource(sessionID) != nil
+        guard let source = companionSessionSource(sessionID) else { return false }
+        return source.pane.sshSession != nil || source.host.sshEnabled
     }
 
     /// Resolve the owning pane again at dispatch, not the pane that happened to
@@ -892,7 +893,8 @@ final class WindowModel {
         if source.pane.sshSession != nil {
             return openSFTPChannel(host: source.host, initialPath: source.path, placement: placement)
         }
-        return openSSHSession(host: source.host, initialPath: source.path, placement: placement)
+        guard source.host.sshEnabled, let transport = source.host.preferredTerminalProtocol else { return nil }
+        return openSSHSession(host: source.host, transport: transport, initialPath: source.path, placement: placement)
     }
 
     private func companionSessionSource(_ sessionID: UUID) -> (

@@ -301,20 +301,25 @@ struct StatusBarView: View {
     }
 
     private func sftpDirectoryButton(_ path: String, displayed: String) -> some View {
-        Button {
+        let transport = host?.preferredTerminalProtocol ?? .ssh
+        return Button {
             app.onboarding.recordUse(of: .statusBarPath)
             openInSSH(path, placement: .currentWorkspace)
         } label: {
             StatusBarPathLabel(
-                symbol: "apple.terminal", text: displayed, destinationSymbol: "arrow.up.right"
+                symbol: transport.symbol, text: displayed, destinationSymbol: "arrow.up.right"
             )
         }
         .buttonStyle(.plain)
-        .help(Text(AppStrings.Workspace.openDirectoryWithSSHHelp))
-        .accessibilityLabel(Text(AppStrings.Connections.openWithSsh))
+        .disabled(host?.sshEnabled != true)
+        .help(Text(AppStrings.Workspace.openDirectoryWithTransportHelp(transport.displayName)))
+        .accessibilityLabel(Text(AppStrings.Connections.openWithTransport(transport.displayName)))
         .onDrag { TerminalPathDrag.provider(for: path) }
         .contextMenu {
-            Menu(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
+            Menu(
+                AppStrings.Connections.openWithTransport(transport.displayName).swiftUIKey,
+                systemImage: transport.symbol
+            ) {
                 Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .currentWorkspace)
@@ -355,8 +360,8 @@ struct StatusBarView: View {
     }
 
     private func openInSSH(_ path: String, placement: SessionOpenPlacement) {
-        guard let host else { return }
-        window.openSSHSession(host: host, initialPath: path, placement: placement)
+        guard let host, host.sshEnabled, let transport = host.preferredTerminalProtocol else { return }
+        window.openSSHSession(host: host, transport: transport, initialPath: path, placement: placement)
     }
 }
 

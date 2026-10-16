@@ -1455,6 +1455,39 @@ struct WindowStateTests {
     }
 
     @Test
+    func sftpCompanionUsesTheHostDefaultWithoutChangingExplicitSSH() throws {
+        for transport in [HostTerminalProtocol.ssh, .mosh, .eternalTerminal] {
+            var host = Host(name: "Shell", host: "shell.example")
+            host.terminalTransports.moshEnabled = true
+            host.terminalTransports.eternalTerminalEnabled = true
+            host.terminalTransports.defaultTransport = transport
+            let channel = SFTPChannelModel.demo(hostID: host.id, path: "/srv/app")
+            let workspace = Workspace(pane: Pane(.sftpChannel(channel)))
+            let window = WindowModel(workspaces: [workspace])
+            let library = HostLibraryModel(hosts: [host])
+            window.hostStore = library
+
+            #expect(window.canOpenCompanionSession(from: channel.id))
+            let companion = try #require(
+                window.openCompanionSession(from: channel.id, placement: .newWorkspace))
+            #expect(companion.focusedPane.sshSession?.transport == transport)
+            #expect(window.openSSHSession(host: host).focusedPane.sshSession?.transport == .ssh)
+
+            window.select(workspace.id)
+            let split = try #require(
+                window.openCompanionSession(from: channel.id, placement: .currentWorkspace))
+            #expect(split === workspace)
+            #expect(split.focusedPane.sshSession?.transport == transport)
+
+            host.sshEnabled = false
+            host.telnetEnabled = true
+            #expect(library.saveHost(host))
+            #expect(!window.canOpenCompanionSession(from: channel.id))
+            #expect(window.openCompanionSession(from: channel.id, placement: .newWorkspace) == nil)
+        }
+    }
+
+    @Test
     func sftpWithoutAnOverrideKeepsTheHostsConfiguredInitialPath() {
         var host = Host(name: "Files", host: "files.example")
         host.sftpChannelInitialPath = "/configured"

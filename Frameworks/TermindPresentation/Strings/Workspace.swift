@@ -306,8 +306,8 @@ extension AppStrings {
             "Open Telnet Connection?"
         }
 
-        public static var openDirectoryWithSSHHelp: LocalizedStringResource {
-            "Open current directory with SSH — right-click for more options"
+        public static func openDirectoryWithTransportHelp(_ name: String) -> LocalizedStringResource {
+            "Open current directory with \(name) — right-click for more options"
         }
 
         public static var previousWorkspace: LocalizedStringResource {

@@ -505,7 +505,8 @@ struct SFTPBrowserView: View {
     }
 
     private func actionsMenu(layout: Layout) -> some View {
-        Menu {
+        let transport = app.hostLibrary.host(sftpChannel.hostID)?.preferredTerminalProtocol ?? .ssh
+        return Menu {
             Button(AppStrings.SFTP.newFolder.swiftUIKey, systemImage: MenuSymbol.newFolder) {
                 newFolderPresented = true
             }
@@ -513,7 +514,10 @@ struct SFTPBrowserView: View {
             Button(AppStrings.Common.paste.swiftUIKey, systemImage: MenuSymbol.paste) { pasteRemoteItems() }
                 .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
             Divider()
-            Menu(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
+            Menu(
+                AppStrings.Connections.openWithTransport(transport.displayName).swiftUIKey,
+                systemImage: transport.symbol
+            ) {
                 Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
                     window.openCompanionSession(from: sftpChannel.id, placement: .currentWorkspace)
                 }
