@@ -16,6 +16,13 @@ struct MobileTerminalSettingsView: View {
         Form {
             themeSection(dark: false)
             themeSection(dark: true)
+            Section {
+                NavigationLink {
+                    MobileCustomThemesView(model: model)
+                } label: {
+                    Text(AppStrings.Settings.customThemes)
+                }
+            }
             Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
@@ -32,7 +39,7 @@ struct MobileTerminalSettingsView: View {
     }
 
     private func themeSection(dark: Bool) -> some View {
-        let options = TerminalThemeOptions(preferences: model.preferences, isDark: dark)
+        let options = TerminalThemeOptions(preferences: model.preferences, isDark: dark, library: model.themeLibrary)
         return Section {
             NavigationLink {
                 MobileTerminalThemeView(model: model, isDark: dark)

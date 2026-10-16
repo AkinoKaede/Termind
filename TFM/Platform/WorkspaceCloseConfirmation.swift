@@ -27,6 +27,14 @@ enum WorkspaceCloseConfirmation {
     func confirm(present: (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }) -> Bool {
         present(makeAlert()) == .alertFirstButtonReturn
     }
+
+    static func confirmDiscardTerminalTheme() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = String(localized: AppStrings.Common.discardChangesQuestion)
+        alert.addButton(withTitle: String(localized: AppStrings.Common.cancel))
+        alert.addButton(withTitle: String(localized: AppStrings.Common.discardChanges))
+        return alert.runModal() == .alertSecondButtonReturn
+    }
 }
 
 /// Window dismissal and application termination have different scopes. Keep the
@@ -36,12 +44,25 @@ nonisolated final class WorkspaceWindowCloseDelegate: NSObject, NSWindowDelegate
     @MainActor private weak var window: NSWindow?
     @MainActor private let model: WindowModel
     @MainActor private let confirmClose: () -> Bool
+    @MainActor private let confirmDiscardTheme: () -> Bool
     @MainActor private var isConfirming = false
 
     @MainActor
-    init(model: WindowModel, confirmClose: @escaping () -> Bool = { WorkspaceCloseConfirmation.window.confirm() }) {
+    convenience init(
+        model: WindowModel, confirmClose: @escaping () -> Bool = { WorkspaceCloseConfirmation.window.confirm() }
+    ) {
+        self.init(
+            model: model, confirmClose: confirmClose,
+            confirmDiscardTheme: { WorkspaceCloseConfirmation.confirmDiscardTerminalTheme() })
+    }
+
+    @MainActor
+    init(
+        model: WindowModel, confirmClose: @escaping () -> Bool, confirmDiscardTheme: @escaping () -> Bool
+    ) {
         self.model = model
         self.confirmClose = confirmClose
+        self.confirmDiscardTheme = confirmDiscardTheme
         super.init()
     }
 
@@ -69,9 +90,12 @@ nonisolated final class WorkspaceWindowCloseDelegate: NSObject, NSWindowDelegate
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard !isConfirming else { return false }
         guard forwardedDelegate?.windowShouldClose?(sender) != false else { return false }
-        guard !model.isClosed, !model.workspaces.isEmpty else { return true }
         isConfirming = true
         defer { isConfirming = false }
-        return confirmClose()
+        model.saveTerminalThemeChanges()
+        if model.hasUnsavedTerminalThemeChanges, !confirmDiscardTheme() { return false }
+        if !model.isClosed, !model.workspaces.isEmpty, !confirmClose() { return false }
+        model.clearTerminalThemeEditor()
+        return true
     }
 }

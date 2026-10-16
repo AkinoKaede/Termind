@@ -3,12 +3,36 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 
 @testable import Termind
 
 @Suite(.serialized) @MainActor
 struct TerminalCustomConfigurationEditorLayoutTests {
+    @Test(arguments: [CGFloat(650), CGFloat(1000)])
+    func nameFieldLeavesRoomForItsNativeFocusRing(width: CGFloat) async throws {
+        let fixture = Fixture()
+        defer { fixture.close() }
+        fixture.window.setContentSize(CGSize(width: width, height: 800))
+        await fixture.layout()
+        let field = try #require(fixture.descendant(NSTextField.self))
+        let scroll = try #require(field.enclosingScrollView)
+        let focusFrame = field.convert(field.bounds.insetBy(dx: -3, dy: -3), to: scroll.contentView)
+        #expect(scroll.contentView.bounds.contains(focusFrame))
+    }
+
+    @Test func discardedDraftCannotBeSavedByThePendingAutosaveTask() async throws {
+        let fixture = Fixture()
+        defer { fixture.close() }
+        await fixture.layout()
+        fixture.draft.value.configuration = "background = 123456"
+        fixture.model.deleteCustomTheme(id: fixture.draft.id)
+        fixture.navigation.clearTerminalThemeEditor()
+        await fixture.layout()
+        #expect(fixture.model.themeLibrary.themes.isEmpty)
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [false, true])
     func editorAndPreviewFillThePageRegardlessOfTextLength(language: String, isDark: Bool) async throws {
         let fixture = Fixture(language: language, isDark: isDark)
@@ -19,10 +43,12 @@ struct TerminalCustomConfigurationEditorLayoutTests {
         let preview = try #require(fixture.descendant(AppTerminalView.self))
         let editorHeight = scroll.bounds.height
         let previewHeight = preview.bounds.height
-        #expect(editorHeight > 600)
+        #expect(editorHeight > 400)
 
         for text in ["", "background = 152033", Self.longConfiguration, ""] {
-            fixture.model.set(text, for: fixture.scheme.preferenceKeyPath)
+            var updated = fixture.draft.value
+            updated.configuration = text
+            fixture.model.saveCustomTheme(updated, isNew: false)
             await fixture.layout()
             #expect(editor.string == text)
             #expect(abs(scroll.bounds.height - editorHeight) <= 1)
@@ -78,7 +104,8 @@ struct TerminalCustomConfigurationEditorLayoutTests {
                 #expect(abs(editorFrame.minX - previewFrame.minX) <= 1)
             }
         }
-        #expect(fixture.model.preferences.darkCustomConfiguration == Self.longConfiguration)
+        #expect(fixture.draft.value.configuration == Self.longConfiguration)
+        #expect(fixture.model.themeLibrary.themes.first?.configuration == Self.longConfiguration)
         #expect(!fixture.window.isVisible)
     }
 
@@ -108,18 +135,27 @@ struct TerminalCustomConfigurationEditorLayoutTests {
     private final class Fixture {
         let model = TerminalSettingsModel()
         let app: AppModel
-        let scheme: TerminalCustomConfigurationScheme
+        let navigation = WindowModel(workspaces: [])
+        let draft: TerminalCustomThemeDraft
         let controller: NSHostingController<AnyView>
         let window: NSWindow
         var view: NSView { controller.view }
 
         init(language: String = "en", isDark: Bool = true, typeSize: DynamicTypeSize = .large) {
-            scheme = isDark ? .dark : .light
+            let theme = TerminalCustomTheme(
+                name: "Layout", appearance: isDark ? .dark : .light,
+                baseThemeName: isDark ? "Termind Dark" : "Termind Light")
+            model.saveCustomTheme(theme, isNew: true)
+            draft = .init(theme, isNew: false)
             app = AppModel(hosts: HostLibraryModel(), terminalSettings: model)
+            navigation.openSettings(route: .terminalCustomThemes)
+            navigation.terminalThemeDraft = draft
+            navigation.settingsRoute = .terminalCustomTheme(theme.id)
             controller = NSHostingController(
                 rootView: AnyView(
-                    TerminalCustomConfigurationEditorPage(scheme: scheme)
+                    TerminalCustomConfigurationEditorPage(draft: draft, model: model)
                         .environment(app)
+                        .environment(navigation)
                         .environment(\.locale, Locale(identifier: language))
                         .environment(\.colorScheme, isDark ? .dark : .light)
                         .environment(\.dynamicTypeSize, typeSize)))
@@ -153,8 +189,13 @@ struct TerminalCustomConfigurationEditorLayoutTests {
             let previewFrame = preview.convert(preview.bounds, to: view)
             let editorBottom = view.isFlipped ? view.bounds.maxY - editorFrame.maxY : editorFrame.minY
             let previewBottom = view.isFlipped ? view.bounds.maxY - previewFrame.maxY : previewFrame.minY
-            #expect(abs(editorBottom - Metrics.Space.m) <= 1)
-            #expect(abs(previewBottom - Metrics.Space.m) <= 1)
+            #expect(abs(editorBottom - 16) <= 1)
+            // The terminal and color specimens share one panel; specimens sit below the native surface.
+            #expect(previewBottom > editorBottom)
+            #expect(previewFrame.height >= 220)
+            let editorTop = view.isFlipped ? editorFrame.minY : editorFrame.maxY
+            let previewTop = view.isFlipped ? previewFrame.minY : previewFrame.maxY
+            #expect(abs(editorTop - previewTop) <= 1)
             #expect(previewFrame.minX > editorFrame.maxX)
         }
 

@@ -120,7 +120,7 @@ struct RootView: View {
                 MetricsDetailPagePicker()
             }
             ToolbarItem(placement: .primaryAction) {
-                WindowToolbarSearchSlot()
+                WindowToolbarTrailingActions()
             }
         }
         .sheet(

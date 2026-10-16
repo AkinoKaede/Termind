@@ -8,6 +8,72 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct WorkspaceCloseConfirmationTests {
+    @Test func windowCloseFlushesThemeEditsWithoutADiscardPrompt() throws {
+        let settings = TerminalSettingsModel()
+        let model = WindowModel()
+        let theme = TerminalCustomTheme(name: "New", appearance: .both, baseThemeName: "Termind Dark")
+        model.openSettings(route: .terminalCustomThemes)
+        model.beginEditingTerminalTheme(theme, isNew: true, in: settings)
+        let draft = try #require(model.terminalThemeDraft)
+        draft.value.configuration = "background = 123456"
+        let native = makeWindow()
+        defer { native.close() }
+        var prompted = false
+        let delegate = WorkspaceWindowCloseDelegate(
+            model: model, confirmClose: { true },
+            confirmDiscardTheme: {
+                prompted = true
+                return false
+            })
+        #expect(delegate.windowShouldClose(native))
+        #expect(!prompted)
+        #expect(settings.themeLibrary.themes.first?.configuration == "background = 123456")
+        #expect(model.terminalThemeDraft == nil)
+    }
+
+    @Test func quitFlushesThemeEditsAcrossRegisteredWindows() throws {
+        let settings = TerminalSettingsModel()
+        let app = AppModel(hosts: HostLibraryModel(), terminalSettings: settings)
+        defer { app.shutdownForTermination() }
+        let windows = [WindowModel(), WindowModel()]
+        for (index, window) in windows.enumerated() {
+            app.registerWindow(window)
+            let theme = TerminalCustomTheme(name: "", appearance: .both, baseThemeName: "Termind Dark")
+            window.openSettings(route: .terminalCustomThemes)
+            window.beginEditingTerminalTheme(theme, isNew: true, in: settings)
+            window.terminalThemeDraft?.value.name = "Theme \(index)"
+        }
+        #expect(app.hasUnsavedTerminalThemes)
+        app.saveTerminalThemeChanges()
+        #expect(!app.hasUnsavedTerminalThemes)
+        #expect(settings.themeLibrary.themes.count == 2)
+    }
+
+    @Test func emptyWindowStillProtectsAnUnsavedThemeDraft() {
+        let model = WindowModel()
+        let app = AppModel(hosts: HostLibraryModel())
+        app.registerWindow(model)
+        let draft = TerminalCustomThemeDraft(
+            .init(name: "Theme", appearance: .both, baseThemeName: "Termind Dark"), isNew: true)
+        model.terminalThemeDraft = draft
+        draft.value.configuration = "background = 123456"
+        let native = makeWindow()
+        var allowsDiscard = false
+        let delegate = WorkspaceWindowCloseDelegate(
+            model: model, confirmClose: { true }, confirmDiscardTheme: { allowsDiscard })
+        defer {
+            native.close()
+            app.shutdownForTermination()
+        }
+        #expect(app.hasUnsavedTerminalThemes)
+        #expect(!delegate.windowShouldClose(native))
+        #expect(model.terminalThemeDraft === draft)
+        allowsDiscard = true
+        #expect(delegate.windowShouldClose(native))
+        #expect(model.terminalThemeDraft == nil)
+        #expect(!app.hasUnsavedTerminalThemes)
+    }
+
     @Test
     func quitAndWindowCloseUseDifferentTitlesActionsAndScope() {
         let quit = WorkspaceCloseConfirmation.application.makeAlert()

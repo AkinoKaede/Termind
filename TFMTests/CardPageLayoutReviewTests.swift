@@ -80,7 +80,7 @@ struct CardPageLayoutReviewTests {
                 ("metrics", AnyView(CardPage { ServerMetricsCard(server: server, model: app.serverMetrics) })),
                 (
                     "themes",
-                    AnyView(TerminalThemePage(scheme: scheme == .dark ? .dark : .light, editConfiguration: {}))
+                    AnyView(TerminalThemePage(scheme: scheme == .dark ? .dark : .light))
                 ),
             ]
             for (name, page) in pages {

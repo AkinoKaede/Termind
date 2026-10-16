@@ -433,6 +433,7 @@ final class MobileAppModel {
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.terminalSettings.applyRemoteThemes(snapshot.terminalThemes)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
             self?.workspaceSettings.applyRemoteSnapshot(snapshot.workspace)

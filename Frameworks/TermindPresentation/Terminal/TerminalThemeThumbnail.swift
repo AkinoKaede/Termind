@@ -9,6 +9,7 @@ public struct TerminalThemeThumbnailPalette: Equatable, Sendable {
     public var selection: TermindTerminalPalette.RGB
     public var selectionForeground: TermindTerminalPalette.RGB
     public var cursor: TermindTerminalPalette.RGB
+    public var cursorText: TermindTerminalPalette.RGB
     public var ansi: [TermindTerminalPalette.RGB]
 
     public init(theme: GhosttyThemeDefinition, customText: String = "") {
@@ -18,6 +19,7 @@ public struct TerminalThemeThumbnailPalette: Equatable, Sendable {
         selection = theme.selectionBackground.flatMap(TermindTerminalPalette.RGB.init(hex:)) ?? fallback.selection
         selectionForeground = theme.selectionForeground.flatMap(TermindTerminalPalette.RGB.init(hex:)) ?? foreground
         cursor = theme.cursorColor.flatMap(TermindTerminalPalette.RGB.init(hex:)) ?? foreground
+        cursorText = theme.cursorText.flatMap(TermindTerminalPalette.RGB.init(hex:)) ?? background
         ansi = (0..<16).map { theme.palette[$0].flatMap(TermindTerminalPalette.RGB.init(hex:)) ?? fallback.ansi[$0] }
         for entry in TerminalCustomConfiguration(customText).entries {
             if entry.key == "palette" {
@@ -38,6 +40,7 @@ public struct TerminalThemeThumbnailPalette: Equatable, Sendable {
             case "selection-background": selection = color
             case "selection-foreground": selectionForeground = color
             case "cursor-color": cursor = color
+            case "cursor-text": cursorText = color
             default: break
             }
         }

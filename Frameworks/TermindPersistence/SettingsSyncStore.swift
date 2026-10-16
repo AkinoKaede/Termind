@@ -9,6 +9,7 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
     public var skills: [AgentSkill]
     public var webSearch: AIWebSearchPreferences
     public var terminal = TerminalPreferences()
+    public var terminalThemes = TerminalThemeLibrary()
     public var ssh = SSHPreferences()
     public var sftp = SFTPPreferences()
     public var workspace = WorkspacePreferences()
@@ -18,12 +19,13 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         configuration: AIConfigurationSnapshot, skills: [AgentSkill], webSearch: AIWebSearchPreferences,
         terminal: TerminalPreferences = .init(), ssh: SSHPreferences = .init(),
         sftp: SFTPPreferences = .init(), workspace: WorkspacePreferences = .init(),
-        notifications: NotificationPreferences = .init()
+        notifications: NotificationPreferences = .init(), terminalThemes: TerminalThemeLibrary = .init()
     ) {
         self.configuration = configuration
         self.skills = skills
         self.webSearch = webSearch
         self.terminal = terminal
+        self.terminalThemes = terminalThemes
         self.ssh = ssh
         self.sftp = sftp
         self.workspace = workspace
@@ -47,6 +49,8 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         for role in AIRole.allCases { payloads.append(.role(role, configuration.roles[role])) }
         payloads.append(.webSearch(webSearch))
         payloads.append(.terminal(terminal))
+        payloads += terminalThemes.themes.map(SettingsRecordPayload.terminalCustomTheme)
+        payloads += terminalThemes.selections.map(SettingsRecordPayload.terminalThemeSelection)
         payloads.append(.ssh(ssh))
         payloads.append(.sftp(sftp))
         payloads.append(.workspace(workspace))
@@ -78,6 +82,7 @@ public final class SettingsSyncPersistence {
         try context.commit {
             mutations.keys.formUnion(try journal.migrateLegacyGuardianRole().keys)
             try journal.discardInactiveEntries()
+            mutations.keys.formUnion(try migrateTerminalThemes(loadTerminal()))
             let previous = try load()
             mutations.keys.formUnion(try journal.bootstrapIfNeeded(previous).keys)
             // Add preferences introduced after an installed store completed its bootstrap.
@@ -129,7 +134,8 @@ public final class SettingsSyncPersistence {
             configuration: try ai.load(preservingUnresolvedReferences: true),
             skills: try skills.load(), webSearch: try preferences().value, terminal: try terminalPreferences().load(),
             ssh: try sshPreferences().load(), sftp: try sftpPreferences().load(),
-            workspace: try workspacePreferences().load(), notifications: try notificationPreferences().load())
+            workspace: try workspacePreferences().load(), notifications: try notificationPreferences().load(),
+            terminalThemes: try loadTerminalThemes())
     }
 
     public func saveConfiguration(_ configuration: AIConfigurationSnapshot) throws {
@@ -145,7 +151,7 @@ public final class SettingsSyncPersistence {
         mirror(value)
     }
 
-    private func saveLocal(_ change: () throws -> Void) throws {
+    func saveLocal(_ change: () throws -> Void) throws {
         var mutations = SettingsMutationSet.empty
         try context.commit {
             let previous = try load()
@@ -192,6 +198,11 @@ public final class SettingsSyncPersistence {
                     return value.id
                 })
             snapshot = try materialize()
+            let migrated = try migrateTerminalThemes(snapshot.terminal)
+            if !migrated.isEmpty {
+                merge.needsUpload.formUnion(migrated)
+                snapshot = try materialize()
+            }
             let remoteSnapshot = snapshot
             for index in snapshot.configuration.providers.indices {
                 let id = snapshot.configuration.providers[index].id
@@ -217,6 +228,7 @@ public final class SettingsSyncPersistence {
         try skills.replace(snapshot.skills)
         try preferences().apply(snapshot.webSearch)
         try terminalPreferences().apply(snapshot.terminal)
+        try applyTerminalThemes(snapshot.terminalThemes)
         try sshPreferences().apply(snapshot.ssh)
         try sftpPreferences().apply(snapshot.sftp)
         try workspacePreferences().apply(snapshot.workspace)
@@ -242,6 +254,7 @@ public final class SettingsSyncPersistence {
             providers: [], roles: [:], lastSelectedModel: localSelection)
         var webSearch = try preferences().value
         var terminal = try terminalPreferences().load()
+        var terminalThemes = TerminalThemeLibrary()
         var ssh = try sshPreferences().load()
         var sftp = try sftpPreferences().load()
         var workspace = try workspacePreferences().load()
@@ -250,6 +263,12 @@ public final class SettingsSyncPersistence {
             switch envelope.key.kind {
             case .webSearch: webSearch = AIWebSearchPreferences()
             case .terminal: terminal = TerminalPreferences()
+            case .terminalThemeSelection:
+                let isDark = envelope.key.id == "dark"
+                terminalThemes.select(
+                    .init(
+                        appearance: isDark ? .dark : .light,
+                        builtInThemeName: isDark ? "Termind Dark" : "Termind Light"))
             case .ssh: ssh = SSHPreferences()
             case .sftp: sftp = SFTPPreferences()
             case .workspace: workspace = WorkspacePreferences()
@@ -266,6 +285,8 @@ public final class SettingsSyncPersistence {
             case .selection: break
             case .webSearch(let value): webSearch = value
             case .terminal(let value): terminal = value
+            case .terminalCustomTheme(let value): terminalThemes.themes.append(value)
+            case .terminalThemeSelection(let value): terminalThemes.select(value)
             case .ssh(let value): ssh = value
             case .sftp(let value): sftp = value
             case .workspace(let value): workspace = value
@@ -295,7 +316,7 @@ public final class SettingsSyncPersistence {
         }
         return SettingsSyncSnapshot(
             configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal,
-            ssh: ssh, sftp: sftp, workspace: workspace, notifications: notifications)
+            ssh: ssh, sftp: sftp, workspace: workspace, notifications: notifications, terminalThemes: terminalThemes)
     }
 
     private func terminalPreferences() throws -> PersistentTerminalPreferences {

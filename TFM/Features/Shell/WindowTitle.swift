@@ -72,8 +72,8 @@ struct SettingsWindowTitleProvider: WindowTitleProviding {
         case .terminalThemes(let scheme):
             return AppLocalization.resolve(
                 scheme == .dark ? AppStrings.Settings.darkTheme : AppStrings.Settings.lightTheme, locale: locale)
-        case .terminalConfiguration(let scheme):
-            return scheme.title
+        case .terminalCustomThemes, .terminalCustomTheme:
+            return AppLocalization.resolve(AppStrings.Settings.customThemes, locale: locale)
         case .logging:
             return AppLocalization.resolve(AppStrings.Settings.logging, locale: locale)
         }

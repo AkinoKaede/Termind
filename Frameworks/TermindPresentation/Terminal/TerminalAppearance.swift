@@ -92,14 +92,21 @@ public nonisolated enum TermindTerminalThemeCatalog {
 
 @MainActor
 extension TerminalViewState {
-    public func applyPreferences(_ value: TerminalPreferences, font: TerminalFontPreferences = .init()) {
+    public func applyPreferences(
+        _ value: TerminalPreferences, font: TerminalFontPreferences = .init(),
+        library: TerminalThemeLibrary = .init()
+    ) {
+        let lightOptions = TerminalThemeOptions(preferences: value, isDark: false, library: library)
+        let darkOptions = TerminalThemeOptions(preferences: value, isDark: true, library: library)
         let light = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: value.lightTheme,
-            customEnabled: value.lightCustomEnabled, customText: value.lightCustomConfiguration, isDark: false,
+            themeName: lightOptions.baseTheme.name,
+            customEnabled: lightOptions.isCustom, customText: lightOptions.customText,
+            isDark: lightOptions.baseTheme.isDark,
             font: font)
         let dark = TermindTerminalThemeCatalog.terminalConfiguration(
-            themeName: value.darkTheme,
-            customEnabled: value.darkCustomEnabled, customText: value.darkCustomConfiguration, isDark: true,
+            themeName: darkOptions.baseTheme.name,
+            customEnabled: darkOptions.isCustom, customText: darkOptions.customText,
+            isDark: darkOptions.baseTheme.isDark,
             font: font)
         setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
         setTerminalConfiguration(

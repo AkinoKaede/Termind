@@ -992,6 +992,14 @@ public enum TermindSchemaV56: VersionedSchema {
     }
 }
 
+/// Stores named terminal themes and independent appearance selections as native fields.
+public enum TermindSchemaV57: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(57, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV56.models + [PersistentTerminalCustomTheme.self, PersistentTerminalThemeSelection.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -1009,7 +1017,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV42.self, TermindSchemaV43.self, TermindSchemaV44.self, TermindSchemaV45.self,
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
             TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self, TermindSchemaV53.self,
-            TermindSchemaV54.self, TermindSchemaV55.self, TermindSchemaV56.self,
+            TermindSchemaV54.self, TermindSchemaV55.self, TermindSchemaV56.self, TermindSchemaV57.self,
         ]
     }
 
@@ -1125,6 +1133,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV53.self, toVersion: TermindSchemaV54.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV54.self, toVersion: TermindSchemaV55.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV55.self, toVersion: TermindSchemaV56.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV56.self, toVersion: TermindSchemaV57.self),
         ]
     }
 }

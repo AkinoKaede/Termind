@@ -54,6 +54,20 @@ final class AppModel {
         }
     }
 
+    var hasUnsavedTerminalThemes: Bool {
+        windows.values.contains {
+            guard let window = $0.value, !window.isClosed else { return false }
+            return window.hasUnsavedTerminalThemeChanges
+        }
+    }
+
+    func saveTerminalThemeChanges() {
+        for entry in windows.values {
+            guard let window = entry.value, !window.isClosed else { continue }
+            window.saveTerminalThemeChanges()
+        }
+    }
+
     private final class WeakWindow {
         weak var value: WindowModel?
         init(_ value: WindowModel) { self.value = value }
@@ -447,6 +461,7 @@ final class AppModel {
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.terminalSettings.applyRemoteThemes(snapshot.terminalThemes)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
             self?.workspaceSettings.applyRemoteSnapshot(snapshot.workspace)

@@ -10,14 +10,14 @@ import Testing
 struct SettingsDetailControlTests {
     @Test func themeSelectionPreservesIndependentTextAndPendingEdits() {
         let model = TerminalSettingsModel()
-        #expect(model.set("background = ffffff", for: TerminalCustomConfigurationScheme.light.preferenceKeyPath))
-        #expect(model.set("background = 000000", for: TerminalCustomConfigurationScheme.dark.preferenceKeyPath))
+        #expect(model.set("background = ffffff", for: \TerminalPreferences.lightCustomConfiguration))
+        #expect(model.set("background = 000000", for: \TerminalPreferences.darkCustomConfiguration))
         #expect(model.selectCustomTheme(isDark: false))
         #expect(model.preferences.lightCustomEnabled)
         #expect(!model.preferences.darkCustomEnabled)
         // The editor's pending text arrives after selecting a preset.
         #expect(model.selectTheme(named: SettingsKey.defaultTerminalThemeLight, isDark: false))
-        #expect(model.set("background = eeeeee", for: TerminalCustomConfigurationScheme.light.preferenceKeyPath))
+        #expect(model.set("background = eeeeee", for: \TerminalPreferences.lightCustomConfiguration))
         #expect(!model.preferences.lightCustomEnabled)
         #expect(model.preferences.lightCustomConfiguration == "background = eeeeee")
         #expect(model.preferences.darkCustomConfiguration == "background = 000000")

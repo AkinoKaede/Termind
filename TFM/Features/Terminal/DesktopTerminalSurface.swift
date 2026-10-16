@@ -108,10 +108,10 @@ private struct DesktopTerminalChrome: ViewModifier {
         content
             .background { TerminalBackground(state: state) }
             .onAppear {
-                state.applyPreferences(appearance.preferences, font: appearance.font)
+                state.applyPreferences(appearance.preferences, font: appearance.font, library: appearance.library)
             }
             .onChange(of: appearance) { _, value in
-                state.applyPreferences(value.preferences, font: value.font)
+                state.applyPreferences(value.preferences, font: value.font, library: value.library)
             }
     }
 }

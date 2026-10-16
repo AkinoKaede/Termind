@@ -455,10 +455,17 @@ struct MobileWorkspaceView: View {
                         )
                         .id(workspace.id)
                         .onChange(of: workspace.terminalSettings.preferences, initial: true) { _, value in
-                            workspace.terminal.applyPreferences(value, font: resolvedFont)
+                            workspace.terminal.applyPreferences(
+                                value, font: resolvedFont, library: workspace.terminalSettings.themeLibrary)
+                        }
+                        .onChange(of: workspace.terminalSettings.themeLibrary) { _, library in
+                            workspace.terminal.applyPreferences(
+                                workspace.terminalSettings.preferences, font: resolvedFont, library: library)
                         }
                         .onChange(of: resolvedFont) { _, value in
-                            workspace.terminal.applyPreferences(workspace.terminalSettings.preferences, font: value)
+                            workspace.terminal.applyPreferences(
+                                workspace.terminalSettings.preferences, font: value,
+                                library: workspace.terminalSettings.themeLibrary)
                         }
                         .onAppear { TerminalFontCatalog.shared.refresh() }
                 }.opacity(showsJourney ? 0 : 1)

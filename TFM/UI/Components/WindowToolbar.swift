@@ -433,7 +433,7 @@ struct WindowToolbarSearchHost: View {
     var body: some View {
         if #available(macOS 26.0, *) {
             Group {
-                if window.findKind != nil {
+                if window.findKind != nil && window.findKind != .terminalThemes {
                     searchableHost
                 } else {
                     Color.clear
@@ -574,12 +574,16 @@ struct WindowToolbarFindField: View {
     @Environment(\.locale) private var locale
     @State private var searchFieldOwner = NativeSearchFieldOwner()
 
+    private var prompt: LocalizedStringResource {
+        window.findKind == .terminalThemes ? AppStrings.Settings.searchThemes : AppStrings.Common.search
+    }
+
     var body: some View {
         Group {
             if let context = window.findContext() {
                 NativeSearchField(
                     text: context.query,
-                    placeholder: AppLocalization.resolve(AppStrings.Common.search, locale: locale),
+                    placeholder: AppLocalization.resolve(prompt, locale: locale),
                     owner: searchFieldOwner,
                     focusRequest: context.focusRequest,
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
@@ -589,9 +593,9 @@ struct WindowToolbarFindField: View {
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 ).singleLinePaste()
                     .frame(width: Metrics.Toolbar.searchFieldWidth)
-                    .help(Text(AppLocalization.resolve(AppStrings.Common.search, locale: locale)))
+                    .help(Text(AppLocalization.resolve(prompt, locale: locale)))
                     .accessibilityLabel(
-                        Text(AppLocalization.resolve(AppStrings.Common.search, locale: locale))
+                        Text(AppLocalization.resolve(prompt, locale: locale))
                     )
             } else {
                 // Zero width, full height. A toolbar with nothing in it is
@@ -618,6 +622,7 @@ struct WindowToolbarLeadingActions: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let actions = window.creationActions
@@ -642,6 +647,21 @@ struct WindowToolbarLeadingActions: View {
             }
             .keyboardShortcut(.cancelAction)
             .help(Text(AppStrings.Common.back))
+            if window.settingsRoute == .terminalCustomThemes {
+                Button {
+                    let dark = colorScheme == .dark
+                    let options = TerminalThemeOptions(
+                        preferences: app.terminalSettings.preferences, isDark: dark,
+                        library: app.terminalSettings.themeLibrary)
+                    window.beginEditingTerminalTheme(
+                        .init(name: "", appearance: dark ? .dark : .light, baseThemeName: options.baseTheme.name),
+                        isNew: true, in: app.terminalSettings)
+                } label: {
+                    Label(AppStrings.Settings.newCustomTheme.swiftUIKey, systemImage: "plus")
+                        .labelStyle(.iconOnly)
+                }
+                .help(Text(AppStrings.Settings.newCustomTheme))
+            }
         } else if actions.count == 1, let only = actions.first {
             Button(action: only.perform) {
                 Label(
@@ -668,6 +688,42 @@ struct WindowToolbarLeadingActions: View {
         // Archived is deliberately not here. It belongs beside the list it
         // filters, which is the sidebar's own bottom bar — see
         // `AssistantSidebarView`.
+    }
+}
+
+struct WindowToolbarTrailingActions: View {
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        if window.selectedDestination == .settings,
+            case .terminalCustomTheme = window.settingsRoute, let draft = window.terminalThemeDraft
+        {
+            HStack {
+                Button {
+                    window.isImportingTerminalTheme = true
+                } label: {
+                    Label(AppStrings.Settings.importFromFile.swiftUIKey, systemImage: "square.and.arrow.down")
+                        .labelStyle(.iconOnly)
+                }
+                .help(Text(AppStrings.Settings.importFromFile))
+                if !draft.isNew, !draft.isDeleted(in: app.terminalSettings) {
+                    Button(role: .destructive) {
+                        window.isDeletingTerminalTheme = true
+                    } label: {
+                        Label(AppStrings.Common.delete.swiftUIKey, systemImage: "trash")
+                            .labelStyle(.iconOnly)
+                    }
+                    .help(Text(AppStrings.Common.delete))
+                }
+            }
+            .frame(height: Metrics.Toolbar.height)
+        } else if window.findKind == .terminalThemes {
+            // Theme libraries keep a visible field, including their empty and no-results states.
+            WindowToolbarFindField()
+        } else {
+            WindowToolbarSearchSlot()
+        }
     }
 }
 
@@ -835,6 +891,11 @@ extension WindowModel {
         guard let kind = findKind else { return nil }
         switch kind {
         case .terminalThemes:
+            if case .terminalCustomThemes = settingsRoute {
+                return WindowToolbarFindContext(
+                    query: Bindable(self).projectedValue.customThemeQuery,
+                    focusRequest: findFocusRequest)
+            }
             guard case .terminalThemes(let scheme) = settingsRoute else { return nil }
             return WindowToolbarFindContext(
                 query: Binding(

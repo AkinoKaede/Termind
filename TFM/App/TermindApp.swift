@@ -469,6 +469,12 @@ struct TermindApp: App {
             if awaitingTermination { return .terminateLater }
             awaitingTermination = true
             Task { @MainActor [weak self] in
+                app.saveTerminalThemeChanges()
+                if app.hasUnsavedTerminalThemes, !WorkspaceCloseConfirmation.confirmDiscardTerminalTheme() {
+                    self?.awaitingTermination = false
+                    NSApp.reply(toApplicationShouldTerminate: false)
+                    return
+                }
                 if app.hasOpenWorkspaces, !WorkspaceCloseConfirmation.application.confirm() {
                     self?.awaitingTermination = false
                     NSApp.reply(toApplicationShouldTerminate: false)

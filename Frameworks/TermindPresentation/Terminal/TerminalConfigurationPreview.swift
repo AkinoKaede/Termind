@@ -8,31 +8,35 @@ import TermindDomain
 public final class TerminalConfigurationPreviewModel: ObservableObject {
     public let terminal: TerminalViewState
     @Published public private(set) var issue: String?
+    @Published public private(set) var palette: TerminalThemeThumbnailPalette
 
     public init(
         themeName: String = TermindTerminalThemeCatalog.defaultDark.name,
         isDark: Bool = true, font: TerminalFontPreferences = .init()
     ) {
+        palette = TerminalThemeThumbnailPalette(
+            theme: TermindTerminalThemeCatalog.resolvedTheme(named: themeName, isDark: isDark))
         let backend = InMemoryTerminalSession(write: { _ in }, resize: { _ in })
         terminal = TerminalViewState(configSource: .none)
         terminal.configuration = TerminalSurfaceOptions(backend: .inMemory(backend), resizeThrottleMilliseconds: 0)
         terminal.setTerminalConfiguration(
             .init { builder in
                 builder.withCustom("notify-on-command-finish", "never")
-                builder.withWindowPaddingX(8)
-                builder.withWindowPaddingY(8)
+                builder.withWindowPaddingX(16)
+                builder.withWindowPaddingY(16)
             })
-        let normalColors = (0..<8).map { "\u{1B}[\(40 + $0)m  " }.joined()
-        let brightColors = (0..<8).map { "\u{1B}[\(100 + $0)m  " }.joined()
         let lines = [
-            "\u{1B}[36muser@server\u{1B}[0m \u{1B}[34m~\u{1B}[0m $ ls",
-            "\u{1B}[1;34msrc/\u{1B}[0m  README.md  \u{1B}[32mrun.sh\u{1B}[0m",
+            "\u{1B}[36muser@server\u{1B}[0m \u{1B}[34m~/termind\u{1B}[0m",
+            "$ git status --short",
+            "\u{1B}[33m M\u{1B}[0m theme.conf",
+            "\u{1B}[32m A\u{1B}[0m themes/ocean",
             "",
-            "\u{1B}[1mTermind\u{1B}[0m",
-            normalColors + "\u{1B}[0m",
-            brightColors + "\u{1B}[0m",
+            "$ git diff",
+            "\u{1B}[31m- background = 1e1e1e\u{1B}[0m",
+            "\u{1B}[32m+ background = 152033\u{1B}[0m",
             "",
-            "\u{1B}[36muser@server\u{1B}[0m \u{1B}[34m~\u{1B}[0m $ ",
+            "\u{1B}[1mAa Bb\u{1B}[0m  \u{1B}[3mAa Bb\u{1B}[0m  \u{1B}[4mAa Bb\u{1B}[0m",
+            "$ ",
         ]
         backend.receive(lines.joined(separator: "\r\n"))
         update(themeName: themeName, text: "", isDark: isDark, font: font)
@@ -47,6 +51,10 @@ public final class TerminalConfigurationPreviewModel: ObservableObject {
         // draft after an error is a successful recovery, even without reconfiguration.
         let success = theme == terminal.theme || terminal.setTheme(theme)
         issue = success ? nil : terminal.controller.lastConfigurationIssue
+        if success {
+            palette = TerminalThemeThumbnailPalette(
+                theme: TermindTerminalThemeCatalog.resolvedTheme(named: themeName, isDark: isDark), customText: text)
+        }
         return success
     }
 }
@@ -72,13 +80,23 @@ public struct TerminalConfigurationPreview: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(AppStrings.Settings.themePreview).font(.headline)
-            TerminalSurfaceView(context: model.terminal)
-                .environment(\.colorScheme, isDark ? .dark : .light)
-                .allowsHitTesting(false)
-                .disabled(true)
-                .accessibilityHidden(true)
-                .frame(minHeight: 220)
-                .clipShape(.rect(cornerRadius: 8))
+            VStack(spacing: 0) {
+                TerminalSurfaceView(context: model.terminal)
+                    .environment(\.colorScheme, isDark ? .dark : .light)
+                    .allowsHitTesting(false)
+                    .disabled(true)
+                    .accessibilityHidden(true)
+                    .frame(minHeight: 260)
+                colorSamples
+            }
+            .background(model.palette.background.color)
+            .clipShape(.rect(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(.separator, lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .accessibilityIdentifier("custom-theme-preview")
             if let issue = model.issue {
                 Text(AppStrings.Settings.themePreviewError(issue))
                     .font(.caption).foregroundStyle(.red)
@@ -92,6 +110,56 @@ public struct TerminalConfigurationPreview: View {
             guard !Task.isCancelled else { return }
             model.update(themeName: themeName, text: text, isDark: isDark, font: font)
         }
+    }
+
+    private var colorSamples: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 20) { textSamples }
+                VStack(alignment: .leading, spacing: 12) { textSamples }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppStrings.Settings.themePreviewPalette)
+                    .font(.caption.weight(.medium))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8), spacing: 8) {
+                    ForEach(0..<16, id: \.self) { index in
+                        VStack(spacing: 4) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(model.palette.ansi[index].color)
+                                .frame(height: 20)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .strokeBorder(model.palette.foreground.color.opacity(0.2), lineWidth: 1)
+                                }
+                            Text(verbatim: "\(index)")
+                                .font(.caption2.monospacedDigit())
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(verbatim: "\(index): #\(model.palette.ansi[index].hex)"))
+                    }
+                }
+            }
+        }
+        .foregroundStyle(model.palette.foreground.color)
+        .padding(16)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var textSamples: some View {
+        HStack(spacing: 8) {
+            Text(AppStrings.Settings.themePreviewCursor).font(.caption)
+            Text(verbatim: "A")
+                .font(.body.monospaced())
+                .foregroundStyle(model.palette.cursorText.color)
+                .padding(.horizontal, 4).padding(.vertical, 2)
+                .background(model.palette.cursor.color, in: .rect(cornerRadius: 2))
+        }
+        Text(AppStrings.Settings.themePreviewSelection)
+            .font(.body.monospaced())
+            .foregroundStyle(model.palette.selectionForeground.color)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(model.palette.selection.color, in: .rect(cornerRadius: 2))
     }
 
     private struct Request: Equatable {

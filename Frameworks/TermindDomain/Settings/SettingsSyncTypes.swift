@@ -161,6 +161,7 @@ public nonisolated struct AIWebSearchPreferences: Codable, Hashable, Sendable {
 public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Sendable {
     case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp, workspace, notifications
     case terminalHighlighting
+    case terminalCustomTheme, terminalThemeSelection
 
     /// Retired record identifiers are recognized so their data can be skipped without decoding.
     public var participatesInSync: Bool { self != .selection && self != .terminalHighlighting }
@@ -193,10 +194,12 @@ public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
         else { return nil }
         let id = String(parts[2])
         switch kind {
-        case .provider, .mcpServer, .skill:
+        case .provider, .mcpServer, .skill, .terminalCustomTheme:
             guard let uuid = UUID(uuidString: id), uuid.uuidString.lowercased() == id else { return nil }
         case .role:
             guard AIRole(rawValue: id) != nil || id == Self.legacySecurityReviewID else { return nil }
+        case .terminalThemeSelection:
+            guard id == "light" || id == "dark" else { return nil }
         case .selection, .webSearch, .terminal, .ssh, .sftp, .workspace, .notifications, .terminalHighlighting:
             guard id == "default" else { return nil }
         }
@@ -212,6 +215,8 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
     case selection(AIModelRef?)
     case webSearch(AIWebSearchPreferences)
     case terminal(TerminalPreferences)
+    case terminalCustomTheme(TerminalCustomTheme)
+    case terminalThemeSelection(TerminalThemeSelection)
     case ssh(SSHPreferences)
     case sftp(SFTPPreferences)
     case workspace(WorkspacePreferences)
@@ -226,6 +231,10 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
         case .selection: .init(kind: .selection, id: "default")
         case .webSearch: .init(kind: .webSearch, id: "default")
         case .terminal: .init(kind: .terminal, id: "default")
+        case .terminalCustomTheme(let value):
+            .init(kind: .terminalCustomTheme, id: value.id.uuidString.lowercased())
+        case .terminalThemeSelection(let value):
+            .init(kind: .terminalThemeSelection, id: value.appearance.rawValue)
         case .ssh: .init(kind: .ssh, id: "default")
         case .sftp: .init(kind: .sftp, id: "default")
         case .workspace: .init(kind: .workspace, id: "default")
@@ -255,6 +264,8 @@ public nonisolated struct SettingsEnvelope: Codable, Hashable, Sendable {
     }
 
     public var isValid: Bool {
+        if case .terminalCustomTheme(let value) = payload, !value.isValid { return false }
+        if case .terminalThemeSelection(let value) = payload, !value.isValid { return false }
         if case .notifications(let value) = payload, !value.isValid { return false }
         if case .ssh(let value) = payload, !value.isValid { return false }
         if case .sftp(let value) = payload, !value.isValid { return false }

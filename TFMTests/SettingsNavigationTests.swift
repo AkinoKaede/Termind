@@ -8,6 +8,126 @@ import Testing
 @testable import Termind
 
 struct SettingsNavigationTests {
+    @Test @MainActor
+    func autosaveDoesNotRemoveTheSpaceBetweenWordsWhileTypingAName() throws {
+        let model = TerminalSettingsModel()
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "", appearance: .both, baseThemeName: "Termind Dark")
+        window.openSettings(route: .terminalCustomThemes)
+        window.beginEditingTerminalTheme(theme, isNew: true, in: model)
+        let draft = try #require(window.terminalThemeDraft)
+        draft.value.name = "Ocean "
+        window.saveTerminalThemeChanges(allowNameTrimming: false)
+        #expect(draft.value.name == "Ocean ")
+        draft.value.name += "Blue "
+        window.navigateBackInSettings()
+        #expect(model.themeLibrary.themes.first?.name == "Ocean Blue")
+        #expect(!window.showsDiscardTerminalTheme)
+    }
+
+    @Test(arguments: [false, true]) @MainActor
+    func themeEditsSaveBeforeBackOrChangingDestinations(changesDestination: Bool) throws {
+        let model = TerminalSettingsModel()
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "Personal", appearance: .both, baseThemeName: "Termind Dark")
+        model.saveCustomTheme(theme, isNew: true)
+        window.openSettings(route: .terminalCustomThemes)
+        window.beginEditingTerminalTheme(theme, isNew: false, in: model)
+        let draft = try #require(window.terminalThemeDraft)
+        draft.value.configuration = "background = 123456"
+        if changesDestination { window.selectVault() } else { window.navigateBackInSettings() }
+        #expect(model.themeLibrary.themes.first?.configuration == "background = 123456")
+        #expect(!draft.isDirty)
+        #expect(!window.showsDiscardTerminalTheme)
+        #expect(window.terminalThemeDraft == nil)
+        #expect(window.settingsRoute == .terminalCustomThemes)
+        #expect(window.selectedDestination == (changesDestination ? .vault : .settings))
+    }
+
+    @Test @MainActor
+    func invalidOrDeletedDraftsRemainProtectedAndDiscardCannotResurrectThem() throws {
+        let model = TerminalSettingsModel()
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "Personal", appearance: .both, baseThemeName: "Termind Dark")
+        model.saveCustomTheme(theme, isNew: true)
+        window.openSettings(route: .terminalCustomThemes)
+        window.beginEditingTerminalTheme(theme, isNew: false, in: model)
+        let draft = try #require(window.terminalThemeDraft)
+        draft.value.name = " "
+        window.navigateBackInSettings()
+        #expect(window.showsDiscardTerminalTheme)
+        #expect(model.themeLibrary.themes.first?.name == "Personal")
+        window.cancelTerminalThemeNavigation()
+        draft.value.name = "Recovered"
+        model.deleteCustomTheme(id: theme.id)
+        window.navigateBackInSettings()
+        #expect(window.showsDiscardTerminalTheme)
+        window.discardTerminalThemeAndNavigate()
+        window.saveTerminalThemeChanges()
+        #expect(model.themeLibrary.themes.isEmpty)
+        #expect(window.terminalThemeDraft == nil)
+    }
+
+    @Test @MainActor
+    func failedAutosavePreservesDraftAndProtectsNavigationUntilRetry() throws {
+        let store = UnavailableThemeStore()
+        let model = TerminalSettingsModel(persistence: store)
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "", appearance: .both, baseThemeName: "Termind Dark")
+        window.openSettings(route: .terminalCustomThemes)
+        window.beginEditingTerminalTheme(theme, isNew: true, in: model)
+        let draft = try #require(window.terminalThemeDraft)
+        draft.value.name = "New"
+        window.navigateBackInSettings()
+        #expect(window.showsDiscardTerminalTheme)
+        #expect(draft.isDirty)
+        #expect(model.themeLibrary.themes.isEmpty)
+        #expect(model.storageError != nil)
+        window.cancelTerminalThemeNavigation()
+        store.fails = false
+        window.navigateBackInSettings()
+        #expect(!window.showsDiscardTerminalTheme)
+        #expect(window.terminalThemeDraft == nil)
+        #expect(model.themeLibrary.themes.first?.name == "New")
+    }
+
+    @Test @MainActor
+    func failedDuplicateSaveIsProtectedEvenBeforeFurtherEdits() {
+        let store = UnavailableThemeStore()
+        let model = TerminalSettingsModel(persistence: store)
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "Personal Copy", appearance: .both, baseThemeName: "Termind Dark")
+        window.openSettings(route: .terminalCustomThemes)
+        window.beginEditingTerminalTheme(theme, isNew: true, in: model)
+        #expect(window.terminalThemeDraft?.isDirty == false)
+        window.navigateBackInSettings()
+        #expect(window.hasUnsavedTerminalThemeChanges)
+        #expect(window.showsDiscardTerminalTheme)
+        #expect(window.settingsRoute == .terminalCustomTheme(theme.id))
+    }
+
+    @Test @MainActor
+    func dirtyThemeProtectsBackNavigationAndChangingDestinations() {
+        let window = WindowModel()
+        let theme = TerminalCustomTheme(name: "Personal", appearance: .both, baseThemeName: "Termind Dark")
+        window.openSettings(route: .terminalCustomThemes)
+        window.terminalThemeDraft = .init(theme, isNew: false)
+        window.settingsRoute = .terminalCustomTheme(theme.id)
+        window.terminalThemeDraft?.value.name = "Unsaved"
+        window.navigateBackInSettings()
+        #expect(window.settingsRoute == .terminalCustomTheme(theme.id))
+        #expect(window.showsDiscardTerminalTheme)
+        window.cancelTerminalThemeNavigation()
+        #expect(window.terminalThemeDraft?.value.name == "Unsaved")
+        window.selectVault()
+        #expect(window.selectedDestination == .settings)
+        #expect(window.showsDiscardTerminalTheme)
+        window.discardTerminalThemeAndNavigate()
+        #expect(window.selectedDestination == .vault)
+        #expect(window.terminalThemeDraft == nil)
+        #expect(!window.showsDiscardTerminalTheme)
+    }
+
     @Test(
         arguments: [
             EntitlementStatus.free, .purchased(.purchased), .purchased(.familyShared),
@@ -86,7 +206,7 @@ struct SettingsNavigationTests {
         )
         #expect(SettingsRoute.mcpServer(serverID, isNew: false).parent == .category(.ai))
         #expect(SettingsRoute.localMCPServer.parent == .category(.ai))
-        #expect(SettingsRoute.terminalConfiguration(.dark).parent == .terminalThemes(.dark))
+        #expect(SettingsRoute.terminalCustomTheme(UUID()).parent == .terminalCustomThemes)
         #expect(SettingsRoute.terminalThemes(.dark).parent == .category(.terminal))
         #expect(SettingsRoute.logging.parent == .index)
     }
@@ -120,10 +240,10 @@ struct SettingsNavigationTests {
     @Test @MainActor
     func settingsToolbarBackWalksTheRouteThenRestoresContent() {
         let window = WindowModel()
-        window.openSettings(route: .terminalConfiguration(.dark))
+        window.openSettings(route: .terminalCustomTheme(UUID()))
 
         window.navigateBackInSettings()
-        #expect(window.settingsRoute == .terminalThemes(.dark))
+        #expect(window.settingsRoute == .terminalCustomThemes)
 
         window.navigateBackInSettings()
         #expect(window.settingsRoute == .category(.terminal))
@@ -307,5 +427,14 @@ struct SettingsNavigationTests {
         store.setToolAccessPolicy(.approve, tool: "denied", on: server.id)
         store.setTools([newlyDestructive], version: "2025-06-18", for: server.id)
         #expect(store.mcpServer(server.id)?.tools[0].accessPolicy == .approve)
+    }
+}
+
+@MainActor private final class UnavailableThemeStore: TerminalPreferencesPersisting {
+    var fails = true
+    func loadTerminal() throws -> TerminalPreferences { .init() }
+    func saveTerminal(_ value: TerminalPreferences) throws {}
+    func saveTerminalThemes(_ value: TerminalThemeLibrary) throws {
+        if fails { throw CocoaError(.fileWriteUnknown) }
     }
 }

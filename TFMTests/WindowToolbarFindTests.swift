@@ -36,9 +36,14 @@ struct WindowToolbarFindTests {
         let dark = try #require(window.findContext())
         #expect(dark.query.wrappedValue.isEmpty)
         dark.query.wrappedValue = "Night"
-        window.openSettings(route: .terminalConfiguration(.dark))
+        window.openSettings(route: .terminalCustomThemes)
+        let custom = try #require(window.findContext())
+        custom.query.wrappedValue = "Personal"
+        window.openSettings(route: .terminalCustomTheme(UUID()))
         #expect(window.findContext() == nil)
         window.navigateBackInSettings()
+        #expect(window.findContext()?.query.wrappedValue == "Personal")
+        window.openSettings(route: .terminalThemes(.dark))
         #expect(window.findContext()?.query.wrappedValue == "Night")
         window.openSettings(route: .terminalThemes(.light))
         #expect(window.findContext()?.query.wrappedValue == "Day")

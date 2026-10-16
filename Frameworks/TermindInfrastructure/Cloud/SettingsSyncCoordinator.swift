@@ -250,7 +250,12 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             decode: Self.validatedEnvelope,
             quarantine: {
                 try CloudSyncRecordCoding.quarantine(
-                    $0, error: $1, in: safety)
+                    $0, error: $1, in: safety,
+                    nativeFields: $0.recordType == TerminalThemeCloudRecordV1.themeRecordType
+                        || $0.recordType == TerminalThemeCloudRecordV1.selectionRecordType
+                        || SettingsRecordKey(recordName: $0.recordID.recordName).map {
+                            TerminalThemeCloudRecordV1.recordType(for: $0.kind) != nil
+                        } == true)
             },
             logFailure: { lifecycle.logFailure($0, stage: "decode-quarantine") })
         let result = try applyRemote(
@@ -325,6 +330,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
         type == recordType || type == sshRecordType || type == sftpRecordType || type == workspaceRecordType
             || type == notificationRecordType
+            || type == TerminalThemeCloudRecordV1.themeRecordType
+            || type == TerminalThemeCloudRecordV1.selectionRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
@@ -334,6 +341,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         case .workspace: workspaceRecordType
         case .notifications: notificationRecordType
         case .terminalHighlighting: terminalHighlightRecordType
+        case .terminalCustomTheme: TerminalThemeCloudRecordV1.themeRecordType
+        case .terminalThemeSelection: TerminalThemeCloudRecordV1.selectionRecordType
         default: recordType
         }
     }
@@ -346,6 +355,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             type: recordType(for: envelope.key.kind), id: recordID, systemFields: outgoing.systemFieldsData)
         guard record.recordType == recordType(for: envelope.key.kind), record.recordID == recordID else {
             throw SettingsSyncPersistenceError.invalidEnvelope(recordID.recordName)
+        }
+        if TerminalThemeCloudRecordV1.recordType(for: envelope.key.kind) != nil {
+            try TerminalThemeCloudRecordV1.write(envelope, into: record, assetURL: { try assetURL(for: envelope.key) })
+            return record
         }
         CloudSyncRecordCoding.setMetadata(
             on: record, formatVersion: envelope.formatVersion, kind: envelope.key.kind.rawValue,
@@ -360,6 +373,11 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     private nonisolated static func validatedEnvelope(from record: CKRecord) throws -> SettingsEnvelope {
+        if record.recordType == TerminalThemeCloudRecordV1.themeRecordType
+            || record.recordType == TerminalThemeCloudRecordV1.selectionRecordType
+        {
+            return try TerminalThemeCloudRecordV1.read(record)
+        }
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         try CloudSyncRecordCoding.validateFormat(in: data, supported: SettingsEnvelope.currentFormatVersion)

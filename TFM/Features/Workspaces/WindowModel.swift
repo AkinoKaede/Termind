@@ -33,6 +33,22 @@ final class WindowModel {
     /// Workspaces. This is the single source of truth for workspace selection.
     var selectedDestination: WindowDestination = .vault {
         didSet {
+            if oldValue == .settings, selectedDestination != oldValue {
+                saveTerminalThemeChanges()
+            }
+            if oldValue == .settings, selectedDestination != oldValue, hasUnsavedTerminalThemeChanges {
+                let next = selectedDestination
+                selectedDestination = oldValue
+                pendingTerminalThemeNavigation = { [weak self] in
+                    self?.settingsRoute = .terminalCustomThemes
+                    self?.selectedDestination = next
+                }
+                showsDiscardTerminalTheme = true
+                return
+            }
+            if oldValue == .settings, selectedDestination != oldValue, case .terminalCustomTheme = settingsRoute {
+                settingsRoute = .terminalCustomThemes
+            }
             if selectedDestination != .assistant {
                 assistantReturnDestination = selectedDestination
             }
@@ -76,7 +92,31 @@ final class WindowModel {
         }
     }
     var metricsSelection: Set<UUID> = []
-    var settingsRoute: SettingsRoute = .index
+    var settingsRoute: SettingsRoute = .index {
+        didSet {
+            guard oldValue != settingsRoute, case .terminalCustomTheme = oldValue else { return }
+            saveTerminalThemeChanges()
+            if hasUnsavedTerminalThemeChanges {
+                let next = settingsRoute
+                settingsRoute = oldValue
+                pendingTerminalThemeNavigation = { [weak self] in self?.settingsRoute = next }
+                showsDiscardTerminalTheme = true
+            } else {
+                clearTerminalThemeEditor()
+            }
+        }
+    }
+    var terminalThemeDraft: TerminalCustomThemeDraft?
+    var hasUnsavedTerminalThemeChanges: Bool {
+        guard let draft = terminalThemeDraft else { return false }
+        return draft.isDirty || (draft.isNew && draft.value.isValid)
+    }
+    @ObservationIgnored weak var terminalThemeSettings: TerminalSettingsModel?
+    var isImportingTerminalTheme = false
+    var isDeletingTerminalTheme = false
+    var customThemeQuery = ""
+    var showsDiscardTerminalTheme = false
+    @ObservationIgnored private var pendingTerminalThemeNavigation: (() -> Void)?
     var terminalThemeQueries: [TerminalCustomConfigurationScheme: String] = [:]
     var vaultDestination: VaultDestination = .welcome
     var vaultWorkRoute: VaultWorkRoute?
@@ -400,6 +440,7 @@ final class WindowModel {
             return metricsHostID == nil ? .metrics : .processes
         case .settings:
             if case .terminalThemes = settingsRoute { return .terminalThemes }
+            if case .terminalCustomThemes = settingsRoute { return .terminalThemes }
             return nil
         case .workspace:
             if focusedSSHSession != nil || focusedTelnetSession != nil || focusedSerialSession != nil {
@@ -606,6 +647,41 @@ final class WindowModel {
         } else {
             closeSettings()
         }
+    }
+
+    func discardTerminalThemeAndNavigate() {
+        let navigate = pendingTerminalThemeNavigation
+        clearTerminalThemeEditor()
+        cancelTerminalThemeNavigation()
+        navigate?()
+    }
+
+    func beginEditingTerminalTheme(_ theme: TerminalCustomTheme, isNew: Bool, in model: TerminalSettingsModel) {
+        terminalThemeDraft = TerminalCustomThemeDraft(theme, isNew: isNew)
+        terminalThemeSettings = model
+        settingsRoute = .terminalCustomTheme(theme.id)
+    }
+
+    func saveTerminalThemeChanges(allowNameTrimming: Bool = true) {
+        guard let draft = terminalThemeDraft, let model = terminalThemeSettings,
+            draft.isNew || draft.isDirty, draft.value.isValid, !draft.isDeleted(in: model)
+        else { return }
+        // Do not remove a space between words while the user is still typing a name.
+        guard allowNameTrimming || draft.value.name == draft.value.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        else { return }
+        _ = draft.save(in: model)
+    }
+
+    func clearTerminalThemeEditor() {
+        terminalThemeDraft = nil
+        terminalThemeSettings = nil
+        isImportingTerminalTheme = false
+        isDeletingTerminalTheme = false
+    }
+
+    func cancelTerminalThemeNavigation() {
+        pendingTerminalThemeNavigation = nil
+        showsDiscardTerminalTheme = false
     }
 
     /// Promotes a compact Sidebar preview into the main Assistant surface while
