@@ -867,6 +867,7 @@ final class MobileWorkspace: Identifiable {
         let reconnecting = connection.isRecovering
         let token = UUID()
         generation = token
+        transportState = nil
         commandMonitor.beginConnection()
         if descriptor.kind.isSSHTerminal { commandMonitor.requireScopedEvents() }
         activeHistoryID = nil
@@ -1178,7 +1179,7 @@ final class MobileWorkspace: Identifiable {
                     pendingInitialSFTPPath = nil
                     journey.receive(.connected(host.id))
                 }
-                guard generation == token, !Task.isCancelled else { return }
+                guard generation == token, !Task.isCancelled, transportState != .ended else { return }
                 let additionalSnapshot = hosts.additionalConnectionSnapshot(from: config)
                 transferSnapshot = additionalSnapshot
                 if let sftp {
@@ -1543,7 +1544,8 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    private func receiveTransportState(_ state: ResumableTerminalState) {
+    func receiveTransportState(_ state: ResumableTerminalState) {
+        guard transportState != .ended else { return }
         transportState = state
         switch state {
         case .connected:
@@ -1554,7 +1556,17 @@ final class MobileWorkspace: Identifiable {
         case .recovering, .suspended:
             connected = false
             status = String(localized: AppStrings.Connections.reconnecting)
-        case .failed, .ended:
+        case .ended:
+            connected = false
+            busy = false
+            connectionResumeIntent = .none
+            recoveryLease = nil
+            transportSuspension?.cancel()
+            transportSuspension = nil
+            let recoveryID = recoveryID
+            Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
+            handleRemoteExit(.success(0))
+        case .failed:
             connected = false
             busy = false
             connection.resetRecovery()

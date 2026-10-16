@@ -449,6 +449,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         statusStore = store
         let attemptID = UUID()
         connectionAttemptID = attemptID
+        transportState = nil
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
         guard let host = connectionHost(hostID, using: store) else {
@@ -960,6 +961,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             )
             try Task.checkCancellation()
             guard connectionAttemptID == attemptID else { throw CancellationError() }
+            guard transportState != .ended else { return }
             transferSnapshot =
                 statusStore?.additionalConnectionSnapshot(from: configuration)
                 ?? SSHAdditionalConnectionSnapshot(configuration: configuration)
@@ -996,7 +998,8 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         }
     }
 
-    private func receiveTransportState(_ state: ResumableTerminalState) {
+    func receiveTransportState(_ state: ResumableTerminalState) {
+        guard transportState != .ended else { return }
         transportState = state
         switch state {
         case .connected:
@@ -1004,7 +1007,10 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             connectionJourney.hide()
         case .recovering:
             status = .reconnecting
-        case .failed, .ended:
+        case .ended:
+            // These protocols report session end, not the remote process's numeric exit status.
+            handleRemoteExit(.success(0))
+        case .failed:
             connection.resetRecovery()
             status = .failed(TerminalTransportError.sessionFailed.localizedDescription)
         case .suspended: status = .reconnecting

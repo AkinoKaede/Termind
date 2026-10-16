@@ -9,6 +9,28 @@ import Testing
 @Suite @MainActor
 struct MobileTerminalRestorationTests {
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func remoteEndClosesWorkspaceOnceButRecoveryAndFailureDoNot(_ transport: HostTerminalProtocol) {
+        let host = Host(name: "Server", host: "example.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
+            hosts: HostLibraryModel(hosts: [host]))
+        defer { workspace.disconnect() }
+        var closed: [UUID] = []
+        workspace.didRequestClose = { closed.append($0) }
+
+        workspace.receiveTransportState(.recovering)
+        workspace.receiveTransportState(.failed)
+        #expect(closed.isEmpty)
+        workspace.receiveTransportState(.ended)
+        #expect(closed == [workspace.id])
+        workspace.receiveTransportState(.connected)
+        workspace.receiveTransportState(.ended)
+        #expect(closed == [workspace.id])
+        #expect(!workspace.connected)
+        #expect(!workspace.busy)
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
     func savedTmuxReferenceSurvivesTransportRecoveryAndMissingCheckpoint(_ transport: HostTerminalProtocol) async throws
     {
         let fixture = try Fixture()

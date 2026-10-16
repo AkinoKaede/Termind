@@ -1521,6 +1521,31 @@ struct WindowStateTests {
     }
 
     @Test
+    func resumableRemoteExitClosesOnlyItsSplitAndDoesNotTreatRecoveryAsExit() throws {
+        for transport in [HostTerminalProtocol.mosh, .eternalTerminal] {
+            let host = Host(name: "Server", host: "server.example")
+            let pane = Pane.sshSession(host: host, transport: transport)
+            let session = try #require(pane.sshSession)
+            let workspace = Workspace(pane: pane)
+            workspace.splitFocusedPane(axis: .horizontal, with: .sshSession(host: host))
+            let neighbor = workspace.focusedPane
+            let window = WindowModel(workspaces: [workspace])
+
+            session.receiveTransportState(.recovering)
+            session.receiveTransportState(.failed)
+            #expect(workspace.panes.count == 2)
+
+            session.receiveTransportState(.ended)
+            #expect(window.workspaces.count == 1)
+            #expect(workspace.panes.map(\.id) == [neighbor.id])
+            session.receiveTransportState(.connected)
+            session.receiveTransportState(.ended)
+            #expect(session.status == .disconnected)
+            #expect(workspace.panes.map(\.id) == [neighbor.id])
+        }
+    }
+
+    @Test
     func normalRemoteExitClosesLastPaneAndSelectsNeighboringWorkspace() {
         let host = Host(name: "Host", host: "host.example")
         let sshSessionTab = Workspace.sshSession(host: host)

@@ -159,7 +159,14 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
                         deliver(operations)
                         break
                     }
-                    if case .failed = await mosh.state { throw TerminalTransportError.sessionFailed }
+                    let state = await mosh.state
+                    if case .failed = state { throw TerminalTransportError.sessionFailed }
+                    if state == .stopped {
+                        rollbackMoshPID = nil
+                        _ = await receiveMoshPoll(state: state, operations: mosh.drainHostOps())
+                        await bootstrap.disconnect()
+                        return
+                    }
                     guard ContinuousClock.now < deadline else { throw TerminalTransportError.unreachable }
                     try await Task.sleep(for: .milliseconds(20))
                 }
@@ -181,9 +188,14 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
             }
             await bootstrap.disconnect()
             pendingCheckpoint = nil
+            guard !closed else { return }
             startMaintenance()
             startNetworkMonitoring()
         } catch {
+            if state == .ended {
+                await bootstrap.disconnect()
+                return
+            }
             if let pid = rollbackMoshPID, pid > 1 {
                 // Only undo the server this attempt just launched; never kill a user's other sessions.
                 await Task.detached {
@@ -315,7 +327,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         bridge = nil
         credentials = nil
         pendingCheckpoint = nil
-        publish(.closed)
+        if state != .ended { publish(.closed) }
     }
 
     private func checkOpen() throws {
@@ -333,22 +345,42 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     }
 
     private func publish(_ next: ResumableTerminalState) {
-        guard !closed || next == .closed, state != next else { return }
+        guard !closed || next == .closed, state != .ended, state != next else { return }
         state = next
         stateChanged(next)
+    }
+
+    private func finishRemoteExit() async {
+        guard !closed, state != .ended else { return }
+        publish(.ended)
+        await close()
     }
 
     private func startMoshReader(_ session: MoshClientSession) {
         reader = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                if case .failed = await session.state {
-                    await self.publish(.failed)
-                    return
-                }
-                await self.deliver(session.drainHostOps())
+                // Read terminal state before draining, so the final poll cannot miss trailing output.
+                let state = await session.state
+                guard await self.receiveMoshPoll(state: state, operations: session.drainHostOps()) else { return }
                 try? await Task.sleep(for: .milliseconds(16))
             }
+        }
+    }
+
+    func receiveMoshPoll(state: MoshSessionState, operations: [MoshHostOp]) async -> Bool {
+        guard !closed else { return false }
+        deliver(operations)
+        switch state {
+        case .stopped:
+            // Remote shutdown reaches this state only with swift-mosh's shutdown-marker fix (PR #2).
+            await finishRemoteExit()
+            return false
+        case .failed:
+            publish(.failed)
+            return false
+        case .idle, .starting, .running, .suspending, .suspended, .stopping:
+            return true
         }
     }
 
@@ -361,21 +393,25 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     }
 
     private func startEternalReaders(_ session: ETTerminalSession) {
+        startEternalReaders(output: session.output, states: session.stateChanges)
+    }
+
+    func startEternalReaders(output: AsyncStream<Data>, states: AsyncStream<ETConnectionState>) {
         reader = Task { [weak self] in
-            for await data in session.output {
+            for await data in output {
                 guard let self, !Task.isCancelled else { return }
                 await self.receive(data)
             }
         }
         observer = Task { [weak self] in
-            for await state in session.stateChanges {
+            for await state in states {
                 guard let self, !Task.isCancelled else { return }
                 await self.receiveEternalState(state)
             }
         }
     }
 
-    private func receiveEternalState(_ state: ETConnectionState) {
+    private func receiveEternalState(_ state: ETConnectionState) async {
         guard !closed else { return }
         switch state {
         case .connected:
@@ -383,7 +419,10 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         case .reconnecting, .disconnected:
             if !frozen { publish(.recovering) }
         case .failed: publish(.failed)
-        case .sessionEnded: publish(.ended)
+        case .sessionEnded:
+            // The vendor finishes output before emitting this state, but our consumer may still be draining it.
+            await reader?.value
+            await finishRemoteExit()
         case .closed, .idle, .bootstrapping, .connecting: break
         }
     }
