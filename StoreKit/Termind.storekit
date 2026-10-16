@@ -10,18 +10,18 @@
       "internalID" : "2f39bfde-c559-49a9-958f-52aeb1703dc0",
       "localizations" : [
         {
-          "description" : "Lifetime AI, MCP & iCloud sync access.",
+          "description" : "Lifetime access to unlimited hosts & iCloud sync.",
           "displayName" : "Termind Pro Lifetime",
           "locale" : "en_US"
         },
         {
-          "description" : "永久使用AI、MCP与iCloud同步功能。",
-          "displayName" : "Termind Pro 永久版",
+          "description" : "终身畅享无限主机与iCloud同步。",
+          "displayName" : "Pro终身版",
           "locale" : "zh_CN"
         },
         {
-          "description" : "永久使用AI、MCP與iCloud同步功能。",
-          "displayName" : "Termind Pro 永久版",
+          "description" : "終身享有無限主機與iCloud同步。",
+          "displayName" : "Pro終身版",
           "locale" : "zh_TW"
         }
       ],
@@ -82,17 +82,17 @@
           },
           "localizations" : [
             {
-              "description" : "Annual AI, MCP & iCloud sync access.",
+              "description" : "Annual access to unlimited hosts & iCloud sync.",
               "displayName" : "Termind Pro Annual",
               "locale" : "en_US"
             },
             {
-              "description" : "按年使用AI、MCP与iCloud同步功能。",
+              "description" : "年度订阅，畅享无限主机与iCloud同步。",
               "displayName" : "Termind Pro 年度订阅",
               "locale" : "zh_CN"
             },
             {
-              "description" : "按年使用AI、MCP與iCloud同步功能。",
+              "description" : "年度訂閱，享有無限主機與iCloud同步。",
               "displayName" : "Termind Pro 年度訂閱",
               "locale" : "zh_TW"
             }
