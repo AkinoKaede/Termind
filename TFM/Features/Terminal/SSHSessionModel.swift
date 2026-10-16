@@ -195,6 +195,13 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
 
     var reconnectState: ReconnectState? { connection.reconnectState }
 
+    var acceptsTerminalInput: Bool {
+        !transport.isResumable
+            || (!connectionJourney.isPresented
+                && transportState != .recovering && transportState != .suspended
+                && transportState != .failed && transportState != .ended && transportState != .closed)
+    }
+
     func openPTYSFTPChannel(for attemptID: UUID?) async throws -> any SFTPChannelProtocol {
         guard status == .connected, connectionAttemptID == attemptID, let ssh else {
             throw SFTPError.notConnected
@@ -322,6 +329,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     func requestTerminalFocus() {
+        guard !connectionJourney.isPresented, sessionPersistence.prompt == nil else { return }
         terminalSurface.requestFocus()
     }
 
@@ -846,12 +854,22 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         connectionTask = nil
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
+        if transport.isResumable { transportState = .closed }
         status = .disconnected
     }
 
     func retryReconnectNow() {
-        if transport.isResumable, let ssh {
-            Task { try? await ssh.retryTransport() }
+        if transport.isResumable {
+            guard transportState == .recovering, let ssh else { return }
+            let attemptID = connectionAttemptID
+            Task { [weak self] in
+                do {
+                    try await ssh.retryTransport()
+                } catch {
+                    guard let self, self.connectionAttemptID == attemptID else { return }
+                    self.receiveTransportState(.failed, failure: error.localizedDescription)
+                }
+            }
             return
         }
         reconnectController.retryNow()
@@ -996,6 +1014,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             try Task.checkCancellation()
             guard connectionAttemptID == attemptID else { throw CancellationError() }
             guard transportState != .ended else { return }
+            if transportState == .recovering || transportState == .suspended || transportState == .failed { return }
             transferSnapshot =
                 statusStore?.additionalConnectionSnapshot(from: configuration)
                 ?? SSHAdditionalConnectionSnapshot(configuration: configuration)
@@ -1017,9 +1036,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
                 pendingConnectionStartupCommand = nil
                 homeResolution = .unavailable
             }
-            if presentsConnectionJourney {
+            if presentsConnectionJourney, connectionJourney.phase != .succeeded {
                 connectionJourney.succeed()
-            } else {
+            } else if !presentsConnectionJourney {
                 connectionJourney.hide()
             }
             if wasReconnecting, transport == .ssh, sessionPersistence.attachment == nil {
@@ -1038,24 +1057,54 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         }
     }
 
-    func receiveTransportState(_ state: ResumableTerminalState) {
-        guard transportState != .ended else { return }
+    func receiveTransportState(_ state: ResumableTerminalState, failure: String? = nil) {
+        guard transportState != .ended, transportState != .closed else { return }
+        guard state != transportState || failure != nil else { return }
         transportState = state
         switch state {
         case .connected:
             status = .connected
-            connectionJourney.hide()
-        case .recovering:
+            if connectionJourney.transportRecovery != nil {
+                _ = connection.markConnected()
+                connectionJourney.succeed()
+            }
+        case .recovering, .suspended:
             status = .reconnecting
+            presentTransportRecovery(
+                state == .recovering ? .recovering : .suspended,
+                message: String(
+                    localized: state == .recovering
+                        ? AppStrings.Transports.recoveringSession : AppStrings.Transports.sessionSuspended))
         case .ended:
             // These protocols report session end, not the remote process's numeric exit status.
             handleRemoteExit(.success(0))
         case .failed:
+            let initialConnection =
+                !connection.hasConnectedOnce && connectionJourney.mode == .connection
+                && connectionJourney.isPresented && connectionJourney.transportRecovery == nil
             connection.resetRecovery()
-            status = .failed(TerminalTransportError.sessionFailed.localizedDescription)
-        case .suspended: status = .reconnecting
+            let message = failure ?? TerminalTransportError.sessionFailed.localizedDescription
+            status = .failed(message)
+            if initialConnection {
+                connectionJourney.fail(message)
+            } else {
+                presentTransportRecovery(.failed, message: message)
+            }
+        // Transport cleanup can follow a failure; the pane owns dismissing its Journey.
         case .connecting, .closed: break
         }
+    }
+
+    private func presentTransportRecovery(_ state: ConnectionJourney.TransportRecovery, message: String) {
+        if connectionJourney.endpoints.isEmpty {
+            let host =
+                connectionRoute?.host(hostID) ?? statusStore?.host(hostID) ?? transientHost
+                ?? Host(id: hostID, name: title, host: title)
+            connectionJourney.begin(
+                host: host, route: connectionRoute?.hosts ?? [host], purpose: .terminal(transport),
+                username: connectionRoute?.usernames[hostID] ?? usernameHint, mode: .reconnection)
+        }
+        connectionJourney.updateTransportRecovery(state, message: message)
     }
 
     /// A normal remote-shell exit owns the pane lifecycle, not the reusable
@@ -1138,7 +1187,11 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             status = .disconnected
             inputRouter?.closeSSHSessionPane(afterExit: self)
         case .failure(let error):
-            beginAutomaticReconnect(after: error.localizedDescription)
+            if transport.isResumable {
+                receiveTransportState(.failed, failure: error.localizedDescription)
+            } else {
+                beginAutomaticReconnect(after: error.localizedDescription)
+            }
         }
     }
 
@@ -1295,17 +1348,19 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// captured user interaction. Mouse/focus reports and protocol replies use
     /// the direct path even while Broadcast Input is enabled.
     func handleTerminalWrite(_ data: Data, isInteractiveInput: Bool) {
+        guard !isInteractiveInput || acceptsTerminalInput else { return }
         if isInteractiveInput { invalidateCommandGeneration() }
         if isInteractiveInput, let inputRouter {
             inputRouter.routeInteractiveInput(data, from: self)
         } else {
-            writeInputDirectly(data)
+            writeInputDirectly(data, isInteractiveInput: isInteractiveInput)
         }
     }
 
     /// The terminal side of the routing boundary. Broadcast targets call this
     /// rather than feeding bytes back through the router, preventing recursion.
-    func writeInputDirectly(_ data: Data) {
+    func writeInputDirectly(_ data: Data, isInteractiveInput: Bool = true) {
+        guard !isInteractiveInput || acceptsTerminalInput else { return }
         terminalContext.noteInput()
         if let inputSink {
             inputSink(data)

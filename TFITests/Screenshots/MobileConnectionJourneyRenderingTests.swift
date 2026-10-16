@@ -13,6 +13,33 @@ import UIKit
     .serialized)
 @MainActor
 struct MobileConnectionJourneyRenderingTests {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func rendersTransportRecoveryAndFailure(_ transport: HostTerminalProtocol) async throws {
+        let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")
+        let library = HostLibraryModel(hosts: [host])
+        for language in ["en", "zh-Hans", "zh-Hant"] {
+            for state in [
+                ConnectionJourney.TransportRecovery.recovering, .suspended, .failed,
+            ] {
+                let journey = ConnectionJourney()
+                journey.begin(host: host, route: [host], purpose: .terminal(transport), username: "deploy")
+                journey.updateTransportRecovery(
+                    state, message: String(localized: AppStrings.Transports.sessionUnavailable))
+                let view = MobileConnectionJourneyView(
+                    journey: journey, library: library, authenticationPrompt: nil, hostKey: nil,
+                    reconnectState: nil, submit: { _, _, _, _, _, _ in }, accept: { _ in },
+                    retry: {
+                        Issue.record("Transport recovery must not offer a new connection")
+                    }, retryReconnectNow: {}, stopReconnecting: {}, cancel: {})
+                try await capture(
+                    "\(transport.rawValue)-\(state)", language: language, scheme: .light, view: view)
+                try await capture(
+                    "\(transport.rawValue)-\(state)-large-type", language: language, scheme: .light,
+                    view: view.environment(\.dynamicTypeSize, .accessibility3))
+            }
+        }
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func rendersInteractiveAuthentication(_ language: String) async throws {
         let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")

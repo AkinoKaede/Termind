@@ -116,11 +116,6 @@ struct MobileWorkspaceView: View {
         MobileRegionReader { regions in
             MobilePaneLayout(frames: [regions.continuous]) {
                 workspaceContent
-                    .overlay(alignment: .top) {
-                        TerminalTransportStatusView(
-                            state: workspace.transportState, retry: workspace.retryReconnectNow,
-                            close: { closeWorkspace(workspace.id) })
-                    }
                     .overlay(alignment: .bottom) {
                         VStack(spacing: 12) {
                             if showsCommandGeneratorOverlay {
@@ -451,7 +446,8 @@ struct MobileWorkspaceView: View {
                             MobileTerminalInitialFocus(
                                 terminal: workspace.terminal,
                                 isReady: workspaceIsVisible && scenePhase == .active && workspace.connected
-                                    && !showsJourney)
+                                    && !showsJourney,
+                                blocksInput: showsJourney)
                         )
                         .id(workspace.id)
                         .onChange(of: workspace.terminalSettings.preferences, initial: true) { _, value in

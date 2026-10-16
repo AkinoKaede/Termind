@@ -9,6 +9,100 @@ import Testing
 @Suite @MainActor
 struct MobileTerminalRestorationTests {
     @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func initialFailureRemainsRetryableAfterTransportCleanup(_ transport: HostTerminalProtocol) {
+        let host = Host(name: "Server", host: "example.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
+            hosts: HostLibraryModel(hosts: [host]))
+        defer { workspace.disconnect() }
+        workspace.journey.begin(host: host, route: [host], purpose: .terminal(transport), username: "user")
+        workspace.receiveTransportState(.connected)
+        #expect(workspace.journey.phase == .connecting)
+        workspace.receiveTransportState(.failed, failure: "Bootstrap failed")
+        workspace.receiveTransportState(.closed)
+        #expect(workspace.journey.phase == .failed("Bootstrap failed"))
+        #expect(workspace.journey.transportRecovery == nil)
+        #expect(workspace.journey.mode == .connection)
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func unavailableCheckpointShowsJourneyWithoutOpeningANewShell(_ transport: HostTerminalProtocol) async throws {
+        for incompatibleCheckpoint in [false, true] {
+            let fixture = try Fixture()
+            defer { fixture.cleanUp() }
+            var host = Host(name: "Server", host: "example.invalid")
+            host.terminalTransports.moshEnabled = true
+            host.terminalTransports.eternalTerminalEnabled = true
+            let descriptor = MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .terminal(transport))
+            if incompatibleCheckpoint {
+                let other: HostTerminalProtocol = transport == .mosh ? .eternalTerminal : .mosh
+                let record = TerminalRecoveryRecord(
+                    id: descriptor.id, host: host, username: "user", transport: other)
+                let lease = await fixture.recovery.register(record.id)
+                try await fixture.recovery.save(
+                    record, checkpoint: .init(transport: other, payload: Data("opaque".utf8)), lease: lease)
+            }
+            var connections = 0
+            var services = MobileWorkspaceConnectionServices.live
+            services.connectSSH = { _, _, _, _, _, _ in connections += 1 }
+            let workspace = MobileWorkspace(
+                descriptor: descriptor, hosts: HostLibraryModel(hosts: [host]), connectionServices: services)
+            defer { workspace.disconnect() }
+            workspace.terminalRecoveryStore = fixture.recovery
+            workspace.requiresTransportRecovery = true
+            workspace.connect()
+            #expect(await eventually { workspace.journey.transportRecovery == .failed })
+            #expect(workspace.journey.purpose == .terminal(transport))
+            #expect(workspace.journey.phase == .failed(TerminalTransportError.invalidCheckpoint.localizedDescription))
+            #expect(workspace.requiresTransportRecovery)
+            workspace.retryReconnectNow()
+            #expect(connections == 0)
+        }
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func recoveryUsesJourneyAndRetainsTerminalWithoutSchedulingSSHReconnect(_ transport: HostTerminalProtocol)
+        async throws
+    {
+        let host = Host(name: "Server", host: "example.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
+            hosts: HostLibraryModel(hosts: [host]))
+        defer { workspace.disconnect() }
+        let terminal = workspace.terminal
+        workspace.journey.begin(host: host, route: [host], purpose: .terminal(transport), username: "user")
+        workspace.receiveTransportState(.connected)
+        #expect(workspace.journey.phase == .connecting)
+        workspace.journey.hide()
+        workspace.receiveTransportState(.suspended)
+        #expect(workspace.journey.transportRecovery == .suspended)
+        #expect(!workspace.acceptsTerminalInput)
+        workspace.receiveTransportState(.recovering)
+        #expect(workspace.journey.transportRecovery == .recovering)
+        #expect(workspace.reconnectState == nil)
+        workspace.receiveTransportState(.connected)
+        #expect(workspace.journey.phase == .succeeded)
+        #expect(!workspace.acceptsTerminalInput)
+        let logs = workspace.journey.logs
+        workspace.receiveTransportState(.connected)
+        #expect(workspace.journey.logs == logs)
+        try await Task.sleep(for: .milliseconds(750))
+        #expect(!workspace.journey.isPresented)
+        #expect(workspace.acceptsTerminalInput)
+        #expect(workspace.terminal === terminal)
+        workspace.receiveTransportState(.failed, failure: "Original resume error")
+        #expect(workspace.journey.phase == .failed("Original resume error"))
+        #expect(workspace.journey.transportRecovery == .failed)
+        workspace.receiveTransportState(.closed)
+        #expect(workspace.journey.phase == .failed("Original resume error"))
+        workspace.disconnect()
+        workspace.receiveTransportState(.recovering)
+        workspace.receiveTransportState(.connected)
+        #expect(!workspace.journey.isPresented)
+        #expect(!workspace.connected)
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
     func remoteEndClosesWorkspaceOnceButRecoveryAndFailureDoNot(_ transport: HostTerminalProtocol) {
         let host = Host(name: "Server", host: "example.invalid")
         let workspace = MobileWorkspace(
@@ -140,6 +234,9 @@ struct MobileTerminalRestorationTests {
         scene.open(descriptor.destinationURL)
         let workspace = try #require(scene.activeWorkspace)
         #expect(await eventually { workspace.transportState == .failed })
+        #expect(workspace.journey.transportRecovery == .failed)
+        #expect(workspace.journey.isPresented)
+        #expect(workspace.journey.purpose == .moshSession)
         scene.open(descriptor.destinationURL)
         workspace.connect()
         #expect(await eventually { workspace.transportState == .failed })

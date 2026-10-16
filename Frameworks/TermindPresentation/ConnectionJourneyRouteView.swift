@@ -86,6 +86,9 @@ public struct ConnectionJourneyRouteView: View {
         guard journey.phase == .connecting, journey.checkpoint == nil,
             let lastIndex = journey.endpoints.indices.last
         else { return nil }
+        if let recovery = journey.transportRecovery {
+            return recovery == .recovering ? lastIndex : nil
+        }
         let candidate: Int
         if journey.activeEndpointIndex > journey.completedEndpointIndex {
             candidate = journey.activeEndpointIndex - 1
@@ -96,12 +99,22 @@ public struct ConnectionJourneyRouteView: View {
     }
 
     private func endpointState(for index: Int) -> JourneyVisualState {
+        if let recovery = journey.transportRecovery {
+            if index == journey.activeEndpointIndex {
+                return recovery == .failed ? .failed : .active
+            }
+            return index == 0 ? .complete : .pending
+        }
         if case .failed = journey.phase, index <= journey.activeEndpointIndex { return .failed }
         if index <= journey.completedEndpointIndex { return .complete }
         return .pending
     }
 
     private func segmentState(for targetIndex: Int) -> JourneyVisualState {
+        if let recovery = journey.transportRecovery {
+            guard targetIndex == journey.activeEndpointIndex else { return .pending }
+            return recovery == .failed ? .failed : recovery == .recovering ? .active : .pending
+        }
         if case .failed = journey.phase, targetIndex <= journey.activeEndpointIndex { return .failed }
         if targetIndex <= journey.completedEndpointIndex { return .complete }
         if targetIndex == journey.activeEndpointIndex { return .active }

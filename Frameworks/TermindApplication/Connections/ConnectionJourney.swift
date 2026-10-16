@@ -64,6 +64,12 @@ public final class ConnectionJourney {
         case failed(String)
     }
 
+    public enum TransportRecovery: Equatable {
+        case recovering
+        case suspended
+        case failed
+    }
+
     public enum CheckpointKind: Equatable {
         case authentication
         case hostKey
@@ -92,6 +98,7 @@ public final class ConnectionJourney {
     public private(set) var mode: Mode = .connection
     public private(set) var endpoints: [ConnectionEndpoint] = []
     public private(set) var phase: Phase = .hidden
+    public private(set) var transportRecovery: TransportRecovery?
     public private(set) var activeEndpointIndex = 0
     public private(set) var completedEndpointIndex = 0
     public private(set) var checkpoint: Checkpoint?
@@ -122,6 +129,7 @@ public final class ConnectionJourney {
         username: String?, mode: Mode = .connection
     ) {
         completionTask?.cancel()
+        transportRecovery = nil
         let nextEndpoints =
             [
                 ConnectionEndpoint(
@@ -169,6 +177,7 @@ public final class ConnectionJourney {
 
     public func beginSerial(name: String, address: String, mode: Mode = .connection) {
         completionTask?.cancel()
+        transportRecovery = nil
         purpose = .serialSession
         self.mode = mode
         endpoints = [
@@ -202,6 +211,7 @@ public final class ConnectionJourney {
         host: Host, username: String?, mode: Mode = .connection
     ) {
         completionTask?.cancel()
+        transportRecovery = nil
         purpose = .telnetSession
         self.mode = mode
         let address = host.displayAddress(for: .telnet)
@@ -391,8 +401,30 @@ public final class ConnectionJourney {
         checkpoint = nil
     }
 
+    /// Recovery retains the original route and log, but does not replay SSH authentication.
+    public func updateTransportRecovery(_ state: TransportRecovery, message: String) {
+        guard purpose == .moshSession || purpose == .eternalTerminalSession else { return }
+        guard transportRecovery != state || (state == .failed && phase != .failed(message)) else { return }
+        completionTask?.cancel()
+        transportRecovery = state
+        mode = .reconnection
+        checkpoint = nil
+        completedCheckpoints = [:]
+        localRequirement = nil
+        localRequirementEndpointIndex = nil
+        activeEndpointIndex = max(0, endpoints.count - 1)
+        if state == .failed {
+            fail(message)
+            transportRecovery = state
+        } else {
+            phase = .connecting
+            log(endpoint: destination?.name ?? purpose.logName, message: message)
+        }
+    }
+
     public func succeed() {
         guard !endpoints.isEmpty else { return }
+        transportRecovery = nil
         checkpoint = nil
         localRequirement = nil
         localRequirementEndpointIndex = nil
@@ -410,6 +442,7 @@ public final class ConnectionJourney {
 
     public func fail(_ message: String, at hostID: Host.ID? = nil) {
         completionTask?.cancel()
+        transportRecovery = nil
         checkpoint = nil
         localRequirement = nil
         localRequirementEndpointIndex = nil
@@ -427,6 +460,7 @@ public final class ConnectionJourney {
 
     public func hide() {
         completionTask?.cancel()
+        transportRecovery = nil
         checkpoint = nil
         completedCheckpoints = [:]
         localRequirement = nil

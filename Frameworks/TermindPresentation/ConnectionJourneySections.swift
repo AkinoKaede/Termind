@@ -199,17 +199,10 @@ public struct ConnectionJourneyReconnectStatus: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .textSelection(.enabled)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) {
-                        retryButton
-                        stopButton
-                    }
-                    VStack(spacing: 10) {
-                        retryButton
-                        stopButton
-                    }
+                ConnectionJourneyActions {
+                    retryButton
+                    stopButton
                 }
-                .controlSize(.large)
             }
             .padding(.top, 4)
         }
@@ -233,5 +226,81 @@ public struct ConnectionJourneyReconnectStatus: View {
         let seconds = max(0, Int(ceil(state.nextRetry.timeIntervalSince(date))))
         if seconds == 0 { return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt)) }
         return String(localized: AppStrings.Connections.reconnectAttempt(state.attempt, retryingIn: seconds))
+    }
+}
+
+public struct ConnectionJourneyTransportRecoveryStatus: View {
+    let journey: ConnectionJourney
+    let retryNow: () -> Void
+    let close: () -> Void
+    let copyLogs: () -> Void
+
+    public init(
+        journey: ConnectionJourney, retryNow: @escaping () -> Void,
+        close: @escaping () -> Void, copyLogs: @escaping () -> Void
+    ) {
+        self.journey = journey
+        self.retryNow = retryNow
+        self.close = close
+        self.copyLogs = copyLogs
+    }
+
+    public var body: some View {
+        VStack(spacing: 12) {
+            if case .failed(let message) = journey.phase {
+                Label(AppStrings.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.red)
+                Text(message)
+                if message != String(localized: AppStrings.Transports.sessionUnavailable) {
+                    Text(AppStrings.Transports.sessionUnavailable)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Label(
+                    journey.transportRecovery == .suspended
+                        ? AppStrings.Transports.sessionSuspended : AppStrings.Transports.recoveringSession,
+                    systemImage: journey.transportRecovery == .suspended
+                        ? "pause.circle" : "arrow.trianglehead.2.clockwise.rotate.90"
+                )
+                .font(.headline)
+            }
+            ConnectionJourneyActions { actions }
+        }
+        .multilineTextAlignment(.center)
+        .textSelection(.enabled)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        if journey.transportRecovery == .recovering {
+            Button(AppStrings.Transports.retryNow.swiftUIKey, action: retryNow)
+                .buttonStyle(.borderedProminent)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        if journey.transportRecovery == .failed {
+            Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+                .buttonStyle(.bordered)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        Button(AppStrings.Transports.closeSession.swiftUIKey, role: .destructive, action: close)
+            .buttonStyle(.bordered)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+private struct ConnectionJourneyActions<Actions: View>: View {
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) { actions }
+            VStack(spacing: 10) { actions }
+        }
+        .controlSize(.large)
     }
 }

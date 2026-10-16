@@ -31,6 +31,9 @@ struct TerminalPlaceholderView: View {
     @State private var sftpBindingID: UUID?
 
     private var uploads: TerminalUploadModel { sshSession.terminalUpload }
+    private var showsJourney: Bool {
+        sshSession.connectionJourney.isPresented || sshSession.sessionPersistence.prompt != nil
+    }
 
     /// The surface decides the pane's size; everything else is an overlay.
     ///
@@ -45,13 +48,12 @@ struct TerminalPlaceholderView: View {
     /// terminal alone answers for the pane.
     var body: some View {
         terminalSurface
+            .opacity(showsJourney ? 0 : 1)
+            .allowsHitTesting(!showsJourney)
+            .accessibilityHidden(showsJourney)
             .desktopTerminalChrome(state: sshSession.terminalState)
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
-            .overlay(alignment: .top) {
-                TerminalTransportStatusView(
-                    state: sshSession.transportState, retry: sshSession.retryReconnectNow, close: closePane)
-            }
             .animation(Motion.panel, value: uploads.notice)
             .onAppear {
                 // The mounted view is the final source of truth after any drag,
@@ -59,7 +61,7 @@ struct TerminalPlaceholderView: View {
                 // here so a stale layout callback cannot leave live keystrokes on a
                 // sshSession whose router was cleared while it moved.
                 sshSession.inputRouter = workspace
-                terminalFocused = requestsFocus
+                terminalFocused = requestsFocus && !showsJourney
                 TerminalFontCatalog.shared.refresh()
                 uploadBindingID = sshSession.terminalViewOwner.bindUpload(
                     action: chooseUploadFiles,
@@ -81,8 +83,11 @@ struct TerminalPlaceholderView: View {
                     for: uploadBindingID, isAvailable: { isVisible && uploads.uploadTargetProblem == nil })
             }
             .onChange(of: requestsFocus) { _, focused in
-                terminalFocused = focused
+                terminalFocused = focused && !showsJourney
                 if focused { sshSession.requestTerminalFocus() }
+            }
+            .onChange(of: showsJourney) { _, presented in
+                terminalFocused = requestsFocus && isVisible && !presented
             }
             .onChange(of: externalFileDrop?.id) {
                 guard let externalFileDrop else { return }
@@ -196,8 +201,8 @@ struct TerminalPlaceholderView: View {
             PersistentTerminalSurfaceView(
                 state: sshSession.terminalState,
                 owner: sshSession.terminalViewOwner,
-                isVisible: isVisible,
-                requestsFocus: requestsFocus
+                isVisible: isVisible && !showsJourney,
+                requestsFocus: requestsFocus && !showsJourney
             )
         #else
             TerminalSurfaceView(context: sshSession.terminalState)

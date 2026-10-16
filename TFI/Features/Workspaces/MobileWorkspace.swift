@@ -73,6 +73,12 @@ final class MobileWorkspace: Identifiable {
     private(set) var busy = false
     var reconnectState: ReconnectState? { connection.reconnectState }
     var journey: ConnectionJourney { connection.journey }
+    var acceptsTerminalInput: Bool {
+        !transport.isResumable
+            || (!journey.isPresented
+                && transportState != .recovering && transportState != .suspended
+                && transportState != .failed && transportState != .ended && transportState != .closed)
+    }
     var operationError: String?
     private var connectionFailure: String?
     private(set) var authenticationPrompt: SSHAuthenticationPrompt?
@@ -342,7 +348,7 @@ final class MobileWorkspace: Identifiable {
         backend = InMemoryTerminalSession(
             write: { data in
                 Task { @MainActor in
-                    await relay.owner?.receiveInteractiveTerminalInput(data)
+                    await relay.owner?.receiveTerminalWrite(data)
                 }
             },
             resize: { size in Task { @MainActor in await relay.owner?.resize(size) } },
@@ -554,15 +560,24 @@ final class MobileWorkspace: Identifiable {
     }
 
     func receiveInteractiveTerminalInput(_ data: Data) async {
+        guard acceptsTerminalInput else { return }
+        await receiveTerminalWrite(data)
+    }
+
+    private func receiveTerminalWrite(_ data: Data) async {
+        // Native interaction is disabled under Journey; this callback also carries
+        // protocol replies, which must still reach the existing transport.
         invalidateCommandGeneration()
         if descriptor.kind == .telnet {
             telnet?.write(data)
-        } else {
-            await writeSSHDirectly(data)
+        } else if let ssh {
+            terminalContext.noteInput()
+            await connectionServices.writeSSH(ssh, data)
         }
     }
 
     private func writeSSHDirectly(_ data: Data) async {
+        guard acceptsTerminalInput else { return }
         terminalContext.noteInput()
         guard let ssh else { return }
         await connectionServices.writeSSH(ssh, data)
@@ -849,6 +864,7 @@ final class MobileWorkspace: Identifiable {
                 connectionFailure = TerminalTransportError.invalidCheckpoint.localizedDescription
                 status = connectionFailure ?? ""
                 busy = false
+                presentTransportRecovery(.failed, message: connectionFailure ?? "")
             }
         }
     }
@@ -1204,6 +1220,7 @@ final class MobileWorkspace: Identifiable {
                     journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled, transportState != .ended else { return }
+                if transportState == .recovering || transportState == .suspended || transportState == .failed { return }
                 let additionalSnapshot = hosts.additionalConnectionSnapshot(from: config)
                 transferSnapshot = additionalSnapshot
                 if let sftp {
@@ -1223,7 +1240,7 @@ final class MobileWorkspace: Identifiable {
                     }
                 }
                 status = String(localized: AppStrings.Connections.connected)
-                journey.succeed()
+                if journey.phase != .succeeded { journey.succeed() }
                 if sessionPersistence.attachment != nil {
                     pendingCommand = nil
                     pendingConnectionStartupCommand = nil
@@ -1266,7 +1283,8 @@ final class MobileWorkspace: Identifiable {
                     authenticationPrompt = nil
                 }
                 var requiresUserInteraction = false
-                var preventsAutomaticReconnect = error is CancellationError || managedSFTPFailure
+                var preventsAutomaticReconnect =
+                    error is CancellationError || managedSFTPFailure || transport.isResumable
                 if let sshError = error as? TermindSSHError, !managedSFTPFailure {
                     switch sshError {
                     case .missingCredential, .missingUsername, .keyPassphraseRequired, .authenticationFailed:
@@ -1317,7 +1335,10 @@ final class MobileWorkspace: Identifiable {
                     }
                 }
                 if !requiresUserInteraction {
-                    if (connection.hasConnectedOnce || reconnecting) && !preventsAutomaticReconnect {
+                    if requiresTransportRecovery, transport.isResumable {
+                        connection.stopRecovery()
+                        presentTransportRecovery(.failed, message: connectionFailure ?? error.localizedDescription)
+                    } else if (connection.hasConnectedOnce || reconnecting) && !preventsAutomaticReconnect {
                         scheduleReconnect(after: error.localizedDescription)
                     } else {
                         connection.stopRecovery()
@@ -1447,8 +1468,17 @@ final class MobileWorkspace: Identifiable {
             resumeAfterBackground()
             return
         }
-        if transport.isResumable, let ssh {
-            Task { try? await ssh.retryTransport() }
+        if transport.isResumable {
+            guard transportState == .recovering, let ssh else { return }
+            let token = generation
+            Task { [weak self] in
+                do {
+                    try await ssh.retryTransport()
+                } catch {
+                    guard let self, self.generation == token else { return }
+                    self.receiveTransportState(.failed, failure: error.localizedDescription)
+                }
+            }
             return
         }
         connection.reconnect.retryNow()
@@ -1546,7 +1576,8 @@ final class MobileWorkspace: Identifiable {
                     try await ssh.resumeTransport()
                     self.transportSuspension = nil
                 } catch {
-                    self.receiveTransportState(.failed)
+                    guard self.generation == token else { return }
+                    self.receiveTransportState(.failed, failure: error.localizedDescription)
                 }
             }
             return
@@ -1572,18 +1603,28 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    func receiveTransportState(_ state: ResumableTerminalState) {
-        guard transportState != .ended else { return }
+    func receiveTransportState(_ state: ResumableTerminalState, failure: String? = nil) {
+        guard transportState != .ended, transportState != .closed else { return }
+        guard state != transportState || failure != nil else { return }
         transportState = state
         switch state {
         case .connected:
             connected = true
             busy = false
             status = String(localized: AppStrings.Connections.connected)
-            journey.hide()
+            if journey.transportRecovery != nil {
+                _ = connection.markConnected()
+                connectionFailure = nil
+                journey.succeed()
+            }
         case .recovering, .suspended:
             connected = false
             status = String(localized: AppStrings.Connections.reconnecting)
+            presentTransportRecovery(
+                state == .recovering ? .recovering : .suspended,
+                message: String(
+                    localized: state == .recovering
+                        ? AppStrings.Transports.recoveringSession : AppStrings.Transports.sessionSuspended))
         case .ended:
             connected = false
             busy = false
@@ -1595,15 +1636,37 @@ final class MobileWorkspace: Identifiable {
             Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
             handleRemoteExit(.success(0))
         case .failed:
+            let initialConnection =
+                !connection.hasConnectedOnce && resumeCheckpoint == nil && !requiresTransportRecovery
+                && journey.mode == .connection && journey.isPresented && journey.transportRecovery == nil
             connected = false
             busy = false
             connection.resetRecovery()
-            connectionFailure = TerminalTransportError.sessionFailed.localizedDescription
+            connectionFailure = failure ?? TerminalTransportError.sessionFailed.localizedDescription
             status = connectionFailure ?? ""
+            if initialConnection {
+                journey.fail(connectionFailure ?? "")
+            } else {
+                presentTransportRecovery(.failed, message: connectionFailure ?? "")
+            }
             let recoveryID = recoveryID
             Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
+        // Transport cleanup can follow a failure; the workspace owns dismissing its Journey.
         case .connecting, .closed: break
         }
+    }
+
+    private func presentTransportRecovery(_ state: ConnectionJourney.TransportRecovery, message: String) {
+        if journey.endpoints.isEmpty {
+            let host =
+                connectionHost(descriptor.hostID)
+                ?? Host(id: descriptor.hostID, name: descriptor.title, host: descriptor.title)
+            journey.begin(
+                host: host, route: connectionRoute?.hosts ?? hosts.route(for: host), purpose: connectionPurpose,
+                username: resumeUsername ?? connectionRoute?.usernames[host.id] ?? usernameHint,
+                mode: .reconnection)
+        }
+        journey.updateTransportRecovery(state, message: message)
     }
 
     func restoreRemoteSession(_ reference: RemoteSessionReference?) {
@@ -1698,8 +1761,7 @@ final class MobileWorkspace: Identifiable {
 
     private func handleConnectionFailure(_ message: String) {
         if transport.isResumable {
-            connectionFailure = message
-            receiveTransportState(.failed)
+            receiveTransportState(.failed, failure: message)
             return
         }
         guard connection.hasConnectedOnce else { return }
@@ -1791,6 +1853,7 @@ final class MobileWorkspace: Identifiable {
 
     func disconnect() {
         if transport.isResumable {
+            transportState = .closed
             let recoveryID = recoveryID
             Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
             recoveryLease = nil

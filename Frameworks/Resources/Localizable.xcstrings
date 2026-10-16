@@ -57781,6 +57781,53 @@
         }
       }
     },
+    "Restoring the existing terminal session" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestehende Terminalsitzung wird wiederhergestellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restoring the existing terminal session"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restauration de la session de terminal existante"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既存のターミナルセッションを復元中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기존 터미널 세션 복원 중"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在恢复原终端会话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在復原原終端階段"
+          }
+        }
+      }
+    },
     "Result" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -75169,6 +75216,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "終端機連線階段無法繼續。請開啟新的連線階段以重新連線。"
+          }
+        }
+      }
+    },
+    "The terminal session is paused. It will resume when the app returns to the foreground." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Terminalsitzung ist pausiert. Sie wird fortgesetzt, wenn die App wieder im Vordergrund ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The terminal session is paused. It will resume when the app returns to the foreground."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La session de terminal est en pause. Elle reprendra lorsque l’app reviendra au premier plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナルセッションは一時停止中です。アプリがフォアグラウンドに戻ると再開します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "터미널 세션이 일시 정지되었습니다. 앱이 포그라운드로 돌아오면 재개됩니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端会话已暂停。应用回到前台时将恢复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終端階段已暫停。應用程式回到前景時將會復原。"
           }
         }
       }

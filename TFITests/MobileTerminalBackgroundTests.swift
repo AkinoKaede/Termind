@@ -11,6 +11,53 @@ import UIKit
 @Suite(.serialized, .requiresKeyWindow)
 @MainActor
 struct MobileTerminalBackgroundTests {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], [true, false])
+    func transportJourneyDisablesNativeInputWithoutReplacingTheSurface(
+        _ transport: HostTerminalProtocol, foreground: Bool
+    ) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "Recovery", host: "test.invalid")
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .terminal(transport)),
+            hosts: app.library, transientHost: host)
+        workspace.receiveTransportState(.connected)
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        let controller = UIHostingController(
+            rootView: MobileWorkspaceView(
+                library: app.library, commandGenerator: app.commandGenerator,
+                workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
+                renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
+                openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in }
+            )
+            .environment(\.scenePhase, foreground ? .active : .inactive))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            workspace.disconnect()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKey()
+        }
+        try await settle(controller)
+        let native = try #require(workspace.terminal.attachedPlatformView)
+        let surface = try #require(workspace.terminal.surface)
+        #expect(native.becomeFirstResponder())
+        workspace.receiveTransportState(.recovering)
+        try await settle(controller)
+        #expect(!native.isFirstResponder)
+        #expect(!native.isUserInteractionEnabled)
+        #expect(workspace.terminal.surface === surface)
+        workspace.receiveTransportState(.connected)
+        try await Task.sleep(for: .milliseconds(750))
+        try await settle(controller)
+        #expect(native.isUserInteractionEnabled)
+        #expect(native.isFirstResponder == foreground)
+        #expect(workspace.terminal.attachedPlatformView === native)
+        #expect(workspace.terminal.surface === surface)
+    }
+
     @Test func oscBackgroundFillsSafeAreaWithoutChangingTerminalGeometryOrIdentity() async throws {
         let app = try MobileAppModel(inMemory: true)
         let workspace = MobileWorkspace(

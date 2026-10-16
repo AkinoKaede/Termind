@@ -247,6 +247,9 @@ struct ConnectionJourneyView: View {
         } else if let remoteSession, remoteSession.prompt != nil {
             RemoteSessionPromptView(coordinator: remoteSession, cancel: cancel)
                 .desktopConnectionFormChrome(isEnabled: true)
+        } else if journey.transportRecovery != nil {
+            ConnectionJourneyTransportRecoveryStatus(
+                journey: journey, retryNow: retryReconnectNow ?? retry, close: cancel, copyLogs: copyLogs)
         } else if case .failed(let message) = journey.phase {
             JourneyFailureCard(
                 message: message, retry: retry, cancel: cancel,

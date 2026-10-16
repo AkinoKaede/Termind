@@ -7,6 +7,24 @@ import Testing
 
 @Suite
 struct ResumableTerminalEngineTests {
+    @Test func recoveryRetryUsesTheExistingEngineWithoutReplayingStartup() async throws {
+        let events = EngineEvents()
+        let engine = TestEngine(events: events)
+        let client = client(engine, events: events)
+        try await connect(client)
+        await events.emit(.recovering)
+        try await client.retryNow()
+        #expect(Array(events.values.suffix(2)) == ["prepareRetry", "retry"])
+        #expect(events.values.filter { $0 == "prepare" }.count == 1)
+        #expect(events.values.filter { $0.hasPrefix("start:") }.count == 1)
+        #expect(!events.values.contains(where: { $0.hasPrefix("write:") }))
+        await client.close()
+        let closedEvents = events.values
+        await events.emit(.recovering)
+        await events.emit(.connected)
+        #expect(events.values == closedEvents)
+    }
+
     @Test func missingRegistrationFailsBeforeWakeOrBootstrapAndClearsFacadeSecrets() async throws {
         let events = EngineEvents()
         let channel = RemoteConnectionCoordinator(transportEngines: .init(factories: [:])).makePTYChannel(
