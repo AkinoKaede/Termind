@@ -29,6 +29,7 @@ public nonisolated struct TerminalContextCapabilities: OptionSet, Sendable, Equa
 public nonisolated struct TerminalShellContext: Sendable, Equatable {
     public let identity: TerminalContextIdentity
     public var shell: String
+    /// Last cwd reported by this shell instance, independent of foreground/input readiness.
     public var directory: String?
     public var home: String?
     public var historyPath: String?

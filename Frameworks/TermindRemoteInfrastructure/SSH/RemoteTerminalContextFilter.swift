@@ -58,8 +58,7 @@ nonisolated struct RemoteTerminalContextFilter {
                 }
                 update.contexts.append(
                     .init(
-                        status: context.promptReady ? .ordinary : .unknown,
-                        active: context.promptReady ? context.identity : nil,
+                        status: .ordinary, active: context.identity,
                         contexts: [context], events: record.events(for: context)))
             } else {
                 update.contexts.append(.init(status: .unavailable))
@@ -79,5 +78,27 @@ nonisolated struct RemoteTerminalContextFilter {
         update.output.append(buffer[..<end])
         buffer = Data(buffer[end...])
         return update
+    }
+
+    static func needsObservation(_ update: TerminalRuntimeUpdate) -> Bool {
+        update.status != .ordinary
+            || update.contexts.first(where: { $0.identity == update.active })?.promptReady != true
+    }
+
+    static func reconcileObservation(
+        _ observation: TerminalRuntimeUpdate, current: TerminalRuntimeUpdate?
+    ) -> TerminalRuntimeUpdate {
+        // A negative multiplexer probe does not invalidate the authenticated outer
+        // shell's cwd. Keep polling for manual attach, without restoring prompt rights.
+        if observation.status == .unknown || observation.status == .unavailable,
+            let current, current.status == .ordinary,
+            let shell = current.contexts.first(where: { $0.identity == current.active }),
+            shell.identity.backend == "shell", !shell.promptReady
+        {
+            var retained = current
+            retained.events = []
+            return retained
+        }
+        return observation
     }
 }

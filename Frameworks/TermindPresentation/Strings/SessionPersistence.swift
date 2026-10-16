@@ -16,6 +16,9 @@ extension AppStrings {
         }
         public static var timedOut: LocalizedStringResource { "Preparing the remote session timed out." }
         public static var failed: LocalizedStringResource { "Unable to prepare the remote session." }
+        public static var startupUnavailable: LocalizedStringResource {
+            "The startup command could not run in the session shell. Check the shell and backend configuration."
+        }
         public static var closeFailed: LocalizedStringResource {
             "Unable to end the remote session. Retry, or disconnect without ending it."
         }

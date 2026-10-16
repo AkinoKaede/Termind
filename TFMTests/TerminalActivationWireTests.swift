@@ -65,7 +65,7 @@ struct TerminalActivationWireTests {
             let identity = try first.identity()
             _ = try await fixture.attach(columns: 40, rows: 22, integrated: false)
             try await fixture.expectSize(columns: 40, rows: 22)
-            let adapter = RemoteTmuxRuntimeAdapter(execute: fixture.execute)
+            let adapter = RemoteTmuxRuntimeDialect(execute: fixture.execute)
             for field in ["terminal", "process", "created", "server", "session", "sessionCreated"] {
                 let terminal = field == "terminal" ? "/dev/pts/99999" : identity.terminal
                 var update = first.update
@@ -128,7 +128,7 @@ struct TerminalActivationWireTests {
             try await TmuxActivationFixture.wait { first.context?.capabilities.contains(.readDraft) == true }
             #expect(try await first.draft() == "echo draft-not-executed")
 
-            let adapter = RemoteTmuxRuntimeAdapter(execute: fixture.execute)
+            let adapter = RemoteTmuxRuntimeDialect(execute: fixture.execute)
             for flag in ["ignore-size", "read-only", "active-pane"] {
                 _ = try await fixture.command("tmux refresh-client -t \(tty) -f \(flag)")
                 await #expect(throws: TerminalRuntimeError.self) { try await adapter.refreshSize(of: identity) }
@@ -292,7 +292,7 @@ final class TmuxActivationFixture {
             try await fixture.control.releaseTerminalForControl()
             fixture.execute = try await fixture.control.sessionCommandExecutor()
             let token = UUID()
-            let session = try await RemoteTmuxService(execute: fixture.execute).create(
+            let session = try await RemoteMultiplexerService(execute: fixture.execute).create(
                 token: token, startupCommand: nil, shellIntegration: true,
                 environment: [.init(variable: "SHELL", value: "/bin/\(shell)")])
             fixture.reference = .init(
@@ -382,7 +382,7 @@ final class TmuxActivationFixture {
 
     func close() async {
         for client in clients { await client.channel.disconnect() }
-        if let reference, let execute { try? await RemoteTmuxService(execute: execute).terminate(reference) }
+        if let reference, let execute { try? await RemoteMultiplexerService(execute: execute).terminate(reference) }
         await control.disconnect()
     }
 }

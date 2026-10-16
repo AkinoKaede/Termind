@@ -32,8 +32,9 @@ public final class TerminalContextCoordinator {
     public init() {}
 
     public var directory: String? {
-        guard let active, active.capabilities.contains(.directory) else { return nil }
-        return active.directory
+        // The shell's last reported cwd remains useful while a command owns the
+        // foreground. Capability tickets, not path display, gate live operations.
+        active?.directory
     }
 
     public func reset() {

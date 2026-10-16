@@ -12,6 +12,67 @@ struct TerminalContextCoordinatorTests {
             capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
     }
 
+    @Test(arguments: ["shell", "tmux", "zellij", "zmx", "herdr"])
+    func commandsKeepTheReportedDirectoryWithoutKeepingOperationTickets(backend: String) throws {
+        let model = TerminalContextCoordinator()
+        var shell = TerminalShellContext(
+            identity: .init(backend: backend, server: "s", session: "s", pane: "a", shellInstance: "one"),
+            shell: "bash", directory: "/before", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
+        let status: TerminalRuntimeUpdate.Status = backend == "shell" ? .ordinary : .multiplexer
+        func receive(_ events: [TerminalContextEvent] = []) {
+            model.receive(
+                .init(status: status, active: shell.identity, contexts: [shell], events: events),
+                generation: model.generation)
+        }
+        receive()
+        let draft = try #require(model.ticket(requiring: .replaceDraft))
+        let directory = try #require(model.ticket(requiring: .directory))
+        shell.promptReady = false
+        shell.capabilities = [.commandLifecycle]
+        shell.sequence = 2
+        receive([.init(context: shell.identity, sequence: 2, payload: .commandStarted("sleep 10"))])
+        #expect(model.directory == "/before")
+        #expect(model.ticket(requiring: .readDraft) == nil)
+        #expect(model.ticket(requiring: .replaceDraft) == nil)
+        #expect(model.ticket(requiring: .directory) == nil)
+        #expect(!model.isCurrent(draft, requiring: .replaceDraft))
+        #expect(!model.isCurrent(directory, requiring: .directory))
+        receive()
+        #expect(model.directory == "/before")
+
+        // A chpwd event may arrive before the next prompt (for example, zsh's cd hook).
+        shell.directory = "/after"
+        shell.sequence = 3
+        receive([.init(context: shell.identity, sequence: 3, payload: .directory("/after"))])
+        #expect(model.directory == "/after")
+        #expect(model.ticket(requiring: .replaceDraft) == nil)
+        shell.promptReady = true
+        shell.sequence = 5
+        shell.capabilities = [.directory, .commandLifecycle, .readDraft, .replaceDraft]
+        receive([
+            .init(context: shell.identity, sequence: 4, payload: .commandFinished(0, duration: 10)),
+            .init(context: shell.identity, sequence: 5, payload: .promptReady),
+        ])
+        #expect(model.directory == "/after")
+        #expect(model.ticket(requiring: .replaceDraft) != nil)
+        #expect(!model.isCurrent(draft, requiring: .replaceDraft))
+
+        var replacement = context("b", instance: "new")
+        replacement.directory = nil
+        model.receive(
+            .init(status: status, active: replacement.identity, contexts: [shell, replacement]),
+            generation: model.generation)
+        #expect(model.directory == nil)
+        receive()
+        #expect(model.directory == "/after")
+        model.receive(.init(status: .multiplexer, contexts: [shell]), generation: model.generation)
+        #expect(model.directory == nil)
+        receive()
+        model.reset()
+        #expect(model.directory == nil)
+    }
+
     @Test func activeContextIsNotInferredFromEventSource() {
         let model = TerminalContextCoordinator()
         let a = context()

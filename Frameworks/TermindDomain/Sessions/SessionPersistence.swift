@@ -4,6 +4,11 @@ public nonisolated struct SessionPersistenceBackendID: RawRepresentable, Codable
     public var rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
     public static let tmux = Self(rawValue: "tmux")
+    public static let zellij = Self(rawValue: "zellij")
+    public static let zmx = Self(rawValue: "zmx")
+    public static let herdr = Self(rawValue: "herdr")
+
+    public static let supported: [Self] = [.tmux, .zellij, .zmx, .herdr]
 }
 
 public nonisolated struct SessionPersistencePreferences: Codable, Hashable, Sendable {
@@ -73,5 +78,6 @@ public nonisolated enum TerminalTeardownIntent: Sendable {
 
 public nonisolated enum RemoteSessionFailure: Error, Equatable, Sendable {
     case missing, unsupported, timedOut, invalidResponse, sessionMissing, ownershipMismatch
+    case startupUnavailable
     case commandFailed(String)
 }

@@ -49,14 +49,14 @@ struct TerminalContextWireTests {
             BEGIN
             """
         let text = prefix + "\n" + record() + "END\nDONE\n"
-        let update = try RemoteTmuxRuntimeAdapter.parse(text, terminal: "/dev/pts/1")
+        let update = try RemoteTmuxRuntimeDialect.parse(text, terminal: "/dev/pts/1")
         #expect(update.active?.pane == "%2")
         #expect(update.contexts.first { $0.identity == update.active }?.capabilities.isEmpty == true)
         #expect(throws: (any Error).self) {
-            try RemoteTmuxRuntimeAdapter.parse(text, terminal: "/dev/pts/other")
+            try RemoteTmuxRuntimeDialect.parse(text, terminal: "/dev/pts/other")
         }
         let independent = text.replacingOccurrences(of: "|%2||root", with: "|%2|active-pane|root")
-        #expect(try RemoteTmuxRuntimeAdapter.parse(independent, terminal: "/dev/pts/1").status == .unavailable)
+        #expect(try RemoteTmuxRuntimeDialect.parse(independent, terminal: "/dev/pts/1").status == .unavailable)
     }
 
     @Test func connectionScopedFramesSurviveEverySplitWithoutLeakingControlText() throws {
@@ -70,6 +70,51 @@ struct TerminalContextWireTests {
             #expect(updates.count == 1)
             #expect(updates.first?.active?.pane == "shell")
         }
+    }
+
+    @Test @MainActor
+    func ordinaryCommandsRetainCwdWhileProbingForManualAttach() throws {
+        var filter = RemoteTerminalContextFilter(token: token)
+        let coordinator = TerminalContextCoordinator()
+        func receive(_ record: String) throws -> TerminalRuntimeUpdate {
+            let frame = Data("\u{1B}]777;TermindContext=\(token);\(record)\u{7}".utf8)
+            let update = try #require(filter.receive(frame).contexts.first)
+            coordinator.receive(update, generation: coordinator.generation)
+            return update
+        }
+        let prompt = try receive(record(pane: "shell"))
+        #expect(!RemoteTerminalContextFilter.needsObservation(prompt))
+        let draft = try #require(coordinator.ticket(requiring: .replaceDraft))
+        let running = try receive(
+            record(pane: "shell").replacingOccurrences(of: "R1|2|1|", with: "R1|3|0|")
+                + "E1|3|start|sleep%2010|\n")
+        #expect(RemoteTerminalContextFilter.needsObservation(running))
+        #expect(running.status == .ordinary)
+        #expect(coordinator.directory == "/tmp/a|b")
+        #expect(!coordinator.isCurrent(draft, requiring: .replaceDraft))
+        #expect(coordinator.ticket(requiring: .directory) == nil)
+        for status in [TerminalRuntimeUpdate.Status.unknown, .unavailable] {
+            let observed = RemoteTerminalContextFilter.reconcileObservation(.init(status: status), current: running)
+            #expect(observed.events.isEmpty)
+            coordinator.receive(observed, generation: coordinator.generation)
+            #expect(coordinator.directory == "/tmp/a|b")
+            #expect(coordinator.active?.promptReady == false)
+            #expect(coordinator.ticket(requiring: .replaceDraft) == nil)
+        }
+
+        let attached = TerminalRuntimeUpdate(status: .multiplexer)
+        let switched = RemoteTerminalContextFilter.reconcileObservation(attached, current: running)
+        coordinator.receive(switched, generation: coordinator.generation)
+        #expect(coordinator.directory == nil)
+        let unavailable = RemoteTerminalContextFilter.reconcileObservation(
+            .init(status: .unavailable), current: attached)
+        #expect(unavailable.status == .unavailable)
+        #expect(unavailable.contexts.isEmpty)
+        let detached = try receive(
+            record(pane: "shell", sequence: 5) + "E1|3|start|sleep%2010|\nE1|4|finish|0|10000\nE1|5|prompt||\n")
+        #expect(!RemoteTerminalContextFilter.needsObservation(detached))
+        #expect(coordinator.directory == "/tmp/a|b")
+        #expect(coordinator.ticket(requiring: .replaceDraft) != nil)
     }
 
     @Test func runtimeBudgetNeverQueuesBehindATerminal() async throws {
@@ -110,11 +155,31 @@ struct TerminalContextWireTests {
             text.replacingOccurrences(of: "P|%1|123|0|0|bash", with: "P|%1|456|0|0|bash"),
             text.replacingOccurrences(of: "P|%1|123|0|0|bash", with: "P|%1|123|0|0|unknown"),
         ] {
-            let update = try RemoteTmuxRuntimeAdapter.parse(unsafe, terminal: "/dev/pts/1")
+            let update = try RemoteTmuxRuntimeDialect.parse(unsafe, terminal: "/dev/pts/1")
             let active = try #require(update.contexts.first { $0.identity == update.active })
             #expect(!active.capabilities.contains(.directory))
             #expect(!active.capabilities.contains(.replaceDraft))
+            #expect(active.directory == (active.identity.shellInstance.hasPrefix("unintegrated:") ? nil : "/tmp/a|b"))
         }
+    }
+
+    @Test @MainActor
+    func tmuxForegroundCommandsKeepTheShellDirectoryButNotDraftCapabilities() throws {
+        let header = """
+            tmux 3.3a
+            C|/dev/pts/1|555|100|777|$0|99|%1||root
+            P|%1|123|0|0|unknown
+            BEGIN
+            """
+        let journal = record().replacingOccurrences(of: "R1|2|1|", with: "R1|3|0|") + "E1|3|start|sleep%2010|\n"
+        let update = try RemoteTmuxRuntimeDialect.parse(header + "\n" + journal + "END\nDONE\n", terminal: "/dev/pts/1")
+        let coordinator = TerminalContextCoordinator()
+        coordinator.receive(update, generation: coordinator.generation)
+        #expect(coordinator.directory == "/tmp/a|b")
+        #expect(coordinator.active?.promptReady == false)
+        #expect(coordinator.ticket(requiring: .readDraft) == nil)
+        #expect(coordinator.ticket(requiring: .replaceDraft) == nil)
+        #expect(coordinator.ticket(requiring: .directory) == nil)
     }
 
     @Test @MainActor
@@ -127,11 +192,11 @@ struct TerminalContextWireTests {
             """
         let text = header + "\n" + record() + "END\nDONE\n"
         let coordinator = TerminalContextCoordinator()
-        let ordinary = try RemoteTmuxRuntimeAdapter.parse(text, terminal: "/dev/pts/1")
+        let ordinary = try RemoteTmuxRuntimeDialect.parse(text, terminal: "/dev/pts/1")
         coordinator.receive(ordinary, generation: coordinator.generation)
         let draft = try #require(coordinator.ticket(requiring: .replaceDraft))
         let identity = coordinator.active?.identity
-        let prefix = try RemoteTmuxRuntimeAdapter.parse(
+        let prefix = try RemoteTmuxRuntimeDialect.parse(
             text.replacingOccurrences(of: "|%1||root", with: "|%1||prefix"), terminal: "/dev/pts/1")
 
         coordinator.receive(prefix, generation: coordinator.generation)

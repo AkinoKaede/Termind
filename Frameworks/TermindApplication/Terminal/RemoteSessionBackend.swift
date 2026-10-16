@@ -17,9 +17,13 @@ public nonisolated struct RemoteSessionLaunch: Sendable {
 public nonisolated struct SSHPTYStartupPlan: Sendable {
     public let command: String
     public let shellEventToken: String?
-    public init(command: String, shellEventToken: String? = nil) {
+    public let runtimeAttachment: RemoteSessionReference?
+    public init(
+        command: String, shellEventToken: String? = nil, runtimeAttachment: RemoteSessionReference? = nil
+    ) {
         self.command = command
         self.shellEventToken = shellEventToken
+        self.runtimeAttachment = runtimeAttachment
     }
 }
 
@@ -222,7 +226,7 @@ public final class RemoteSessionCoordinator {
                 service: service, hostID: hostID, endpoint: endpoint, username: username,
                 startupCommand: startupCommand, requiresNewSession: requiresNewSession,
                 shellIntegration: shellIntegration, onConnect: preferences.onConnect, environment: environment)
-            return launch.map { SSHPTYStartupPlan(command: $0.command) }
+            return launch.map { SSHPTYStartupPlan(command: $0.command, runtimeAttachment: $0.attachment) }
         }
     }
 

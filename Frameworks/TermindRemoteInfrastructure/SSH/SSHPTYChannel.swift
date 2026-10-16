@@ -969,6 +969,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var runtimeTerminal: String?
     private var runtimeRevision: UInt64 = 0
     private var runtimeEnabled = false
+    private var runtimeAttachment: RemoteSessionReference?
     private var runtimeWantsObservation = false
     private var runtimeControlUnavailable = false
     private var runtimeHelper: String?
@@ -1512,6 +1513,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         let executor = try await sessionCommandExecutor()
         let launch = try await preparation(executor)
         try Task.checkCancellation()
+        try await queue.perform { [self] in
+            guard ptyResize.generation == generation else { throw CancellationError() }
+            runtimeAttachment = launch?.runtimeAttachment
+            runtimeHelper = try RemoteMultiplexerRuntimeAdapter.helper(for: runtimeAttachment)
+        }
         if shellIntegrationEnabled {
             var probe = RemoteShellIntegrationBootstrap(charset: charset)
             if let result = try? await executor(String(decoding: probe.startCommand, as: UTF8.self)),
@@ -1529,7 +1535,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         var startupCommand = launch?.command
         if launch == nil, shellIntegrationEnabled {
             do {
-                let install = try RemoteTmuxShellStartup.install(
+                let install = try RemoteShellStartup.install(
                     token: runtimeToken, startupCommand: nil, shellIntegration: true, ordinary: true)
                 let result = try await executor(install + "\nprintf '%s\\n' \"$helper\"\n")
                 guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
@@ -1541,7 +1547,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     })
                 else { throw TerminalRuntimeError.invalidResponse }
                 startupCommand =
-                    "export TERMIND_TMUX_HELPERS=\(try RemoteTmuxCommands.quote(helper)); exec \"$TERMIND_TMUX_HELPERS/shell\""
+                    "export TERMIND_TMUX_HELPERS=\(try RemoteMultiplexerCommands.quote(helper)); exec \"$TERMIND_TMUX_HELPERS/shell\""
                 await queue.perform { self.runtimeHelper = helper }
             } catch {
                 try Task.checkCancellation()
@@ -1554,7 +1560,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 "printf '\\033]777;TermindTerminal=\(runtimeToken.uuidString);%s\\007' \"$(tty)\";\n" + original
         }
         let command = try startupCommand.map {
-            SSHPTYStartupBytes(Data(("/bin/sh -c " + (try RemoteTmuxCommands.quote($0))).utf8))
+            SSHPTYStartupBytes(Data(("/bin/sh -c " + (try RemoteMultiplexerCommands.quote($0))).utf8))
         }
         let runtimeIsEnabled = usesRuntime
         try await queue.perform { [self] in
@@ -2115,7 +2121,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 try Task.checkCancellation()
                 let execute = try await sessionCommandExecutor(
                     runtime: true, expectedInput: inputRevision, activation: request)
-                try await RemoteTmuxRuntimeAdapter(execute: execute).refreshSize(of: request.client)
+                try await RemoteMultiplexerRuntimeAdapter(execute: execute).refreshSize(of: request.client)
             } catch {
                 // Optional sizing assistance must not disconnect a usable terminal or inject a fallback key.
             }
@@ -2184,7 +2190,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             }
             for context in update.contexts {
                 runtimeRevision &+= 1
-                runtimeWantsObservation = context.status != .ordinary
+                runtimeWantsObservation = RemoteTerminalContextFilter.needsObservation(context)
                 publishRuntime(context)
                 if runtimeWantsObservation { startRuntimeObservation() }
             }
@@ -2221,23 +2227,25 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(delay))
                 guard !Task.isCancelled else { break }
-                let request = try? await queue.perform { [self] () -> (String, UInt64, RemoteCharset)? in
+                let request = try? await queue.perform {
+                    [self] () -> (String, UInt64, RemoteCharset, RemoteSessionReference?)? in
                     guard runtimeEnabled, runtimeWantsObservation, ptyResize.generation == generation,
                         !runtimeControlUnavailable, let terminal = runtimeTerminal
                     else { return nil }
-                    return (terminal, runtimeRevision, charset)
+                    return (terminal, runtimeRevision, charset, runtimeAttachment)
                 }
                 guard let request else { continue }
                 do {
-                    let adapter = RemoteTmuxRuntimeAdapter(
-                        execute: try await sessionCommandExecutor(runtime: true), charset: request.2)
+                    let adapter = RemoteMultiplexerRuntimeAdapter(
+                        attachment: request.3, execute: try await sessionCommandExecutor(runtime: true),
+                        charset: request.2)
                     let update = try await adapter.inspect(terminal: request.0)
                     try Task.checkCancellation()
                     await queue.perform { [self] in
                         guard ptyResize.generation == generation, runtimeRevision == request.1,
                             runtimeWantsObservation
                         else { return }
-                        publishRuntime(update)
+                        publishRuntimeObservation(update)
                     }
                     delay = update.status == .multiplexer ? 750 : min(delay * 2, 5000)
                 } catch {
@@ -2246,12 +2254,16 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                         guard ptyResize.generation == generation, runtimeRevision == request.1,
                             runtimeWantsObservation
                         else { return }
-                        publishRuntime(.init(status: .unavailable))
+                        publishRuntimeObservation(.init(status: .unavailable))
                     }
                     delay = min(delay * 2, 5000)
                 }
             }
         }
+    }
+
+    private func publishRuntimeObservation(_ update: TerminalRuntimeUpdate) {
+        publishRuntime(RemoteTerminalContextFilter.reconcileObservation(update, current: latestRuntimeUpdate))
     }
 
     private func publishRuntime(_ proposed: TerminalRuntimeUpdate) {
@@ -2281,12 +2293,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             guard let terminal = runtimeTerminal, latestRuntimeUpdate?.active == expected.identity else {
                 throw TerminalRuntimeError.staleContext
             }
-            return (terminal, runtimeInputRevision, ptyResize.generation, charset)
+            return (terminal, runtimeInputRevision, ptyResize.generation, charset, runtimeAttachment)
         }
         if expected.identity.backend != "shell" {
             let execute = try await sessionCommandExecutor(runtime: true, expectedInput: state.1)
-            let update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.3).inspect(
-                terminal: state.0)
+            let update = try await RemoteMultiplexerRuntimeAdapter(
+                attachment: state.4, execute: execute, charset: state.3
+            ).inspect(terminal: state.0)
             guard update.active == expected.identity,
                 update.contexts.first(where: { $0.identity == expected.identity }) == expected
             else { throw TerminalRuntimeError.staleContext }
@@ -2310,14 +2323,15 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     .capabilities.contains(replacement == nil ? .readDraft : .replaceDraft) == true
             else { throw TerminalRuntimeError.staleContext }
             pendingRuntimeDraft = request
-            return (terminal, runtimeHelper, runtimeInputRevision, ptyResize.generation, charset)
+            return (terminal, runtimeHelper, runtimeInputRevision, ptyResize.generation, charset, runtimeAttachment)
         }
         do {
             let execute = try await sessionCommandExecutor(runtime: true, expectedInput: state.2)
             let update: TerminalRuntimeUpdate?
-            if expected.identity.backend == "tmux" {
-                update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.4).inspect(
-                    terminal: state.0)
+            if expected.identity.backend != "shell" {
+                update = try await RemoteMultiplexerRuntimeAdapter(
+                    attachment: state.5, execute: execute, charset: state.4
+                ).inspect(terminal: state.0)
                 guard update?.active == expected.identity,
                     update?.contexts.first(where: { $0.identity == expected.identity }) == expected
                 else { throw TerminalRuntimeError.staleContext }
@@ -2325,12 +2339,18 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 update = nil
             }
             try await validateDraft(request, context: expected.identity, input: state.2, generation: state.3)
+            var target: RemoteMultiplexerDraftTarget?
+            if expected.identity.backend != "shell" {
+                target = try await RemoteMultiplexerRuntimeAdapter(
+                    attachment: state.5, execute: execute, charset: state.4
+                ).draftTarget(context: expected, terminal: state.0, replacing: replacement != nil)
+            }
             let command = try RemoteTerminalDraft.command(
                 context: expected, terminal: state.0, helper: state.1,
                 clientIdentity: update?.clientIdentity, request: request, replacement: replacement,
                 original: try await queue.perform { [self] in
                     replacement != nil && runtimeDraftBaseline?.0 == expected.identity ? runtimeDraftBaseline?.1 : nil
-                }, charset: state.4)
+                }, charset: state.4, target: target)
             let started = try await execute(command)
             guard started.exitCode == 0, !started.truncated else { throw TerminalRuntimeError.staleContext }
             if expected.identity.backend == "shell" {
@@ -2496,6 +2516,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         runtimeTask = nil
         runtimeTerminal = nil
         runtimeEnabled = false
+        runtimeAttachment = nil
         allowsDefaultHistorySource = true
         runtimeWantsObservation = false
         runtimeControlUnavailable = false
@@ -2698,12 +2719,14 @@ nonisolated extension SSHPTYChannelWorker {
             guard matchesHistoryContext(expected), let terminal = runtimeTerminal else {
                 throw TerminalRuntimeError.staleContext
             }
-            return (terminal, ptyResize.generation, charset)
+            return (terminal, ptyResize.generation, charset, runtimeAttachment)
         }
         if expected.identity.backend != "shell" {
             let execute = try await sessionCommandExecutor(runtime: true)
-            let update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.2)
-                .inspect(terminal: state.0)
+            let update = try await RemoteMultiplexerRuntimeAdapter(
+                attachment: state.3, execute: execute, charset: state.2
+            )
+            .inspect(terminal: state.0)
             guard update.status == .multiplexer, update.active == expected.identity,
                 update.contexts.first(where: { $0.identity == expected.identity })?.historySource
                     == expected.historySource

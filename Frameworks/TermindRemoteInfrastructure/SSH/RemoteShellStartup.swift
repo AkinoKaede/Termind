@@ -1,17 +1,21 @@
 import Foundation
+import TermindDomain
 
 /// Private, per-session startup files. Nothing is ever typed into an attached terminal.
-nonisolated enum RemoteTmuxShellStartup {
+nonisolated enum RemoteShellStartup {
     static func install(
-        token: UUID, startupCommand: String?, shellIntegration: Bool, ordinary: Bool = false
+        token: UUID, startupCommand: String?, shellIntegration: Bool, ordinary: Bool = false,
+        backend: String? = nil, environment: [HostEnvironmentVariable] = []
     ) throws -> String {
         let eventToken = ordinary ? token : UUID()
         let bootstrap = RemoteShellIntegrationBootstrap(token: eventToken.uuidString)
-        let startup = try RemoteTmuxCommands.quote(startupCommand ?? "")
+        let startup = try RemoteMultiplexerCommands.quote(startupCommand ?? "")
         let reportsStartup = shellIntegration && startupCommand?.isEmpty == false
         let posixStartup = """
             if [ "${TERMIND_TMUX_FIRST:-}" = 1 ]; then
                 unset TERMIND_TMUX_FIRST
+                \(backend == nil ? "" : "mkdir \"$TERMIND_TMUX_HELPERS/startup-decision\" 2>/dev/null || return")
+                printf '%s\\n' '\(token.uuidString)' > "$TERMIND_TMUX_HELPERS/started"
                 \(reportsStartup ? "__termind_startup_time=$(date +%s); __termind_event start \"$(__termind_encode \(startup))\"" : "")
                 eval \(startup)
                 \(reportsStartup ? "__termind_startup_status=$?; __termind_event finish \"$__termind_startup_status\" \"$(( ($(date +%s) - __termind_startup_time) * 1000 ))\"" : "")
@@ -20,6 +24,8 @@ nonisolated enum RemoteTmuxShellStartup {
         let fishStartup = """
             if test "$TERMIND_TMUX_FIRST" = 1
                 set -e TERMIND_TMUX_FIRST
+                \(backend == nil ? "" : "command mkdir \"$TERMIND_TMUX_HELPERS/startup-decision\" 2>/dev/null; or return")
+                printf '%s\\n' '\(token.uuidString)' > "$TERMIND_TMUX_HELPERS/started"
                 \(reportsStartup ? "set -g __termind_startup_time (date +%s); __termind_event start (string escape --style=url -- \(startup))" : "")
                 eval \(startup)
                 \(reportsStartup ? "set -l command_status $status; set -l elapsed (math (date +%s) - $__termind_startup_time); __termind_event finish $command_status (math $elapsed '*' 1000)" : "")
@@ -27,29 +33,54 @@ nonisolated enum RemoteTmuxShellStartup {
             """
         let bash =
             (shellIntegration
-                ? RemoteShellContextJournal.initialization(shell: "bash", token: eventToken.uuidString)
+                ? RemoteShellContextJournal.initialization(
+                    shell: "bash", token: eventToken.uuidString, backend: backend)
                     + "\n" + String(decoding: bootstrap.installationCommand(for: "bash", runtime: true)!, as: UTF8.self)
                 : "")
             + "\n" + (shellIntegration ? "__termind_command_ready=0\n" : "") + posixStartup
             + (shellIntegration ? "\n__termind_report_prompt\n" : "")
         let zsh =
             (shellIntegration
-                ? RemoteShellContextJournal.initialization(shell: "zsh", token: eventToken.uuidString)
+                ? RemoteShellContextJournal.initialization(shell: "zsh", token: eventToken.uuidString, backend: backend)
                     + "\n" + String(decoding: bootstrap.installationCommand(for: "zsh", runtime: true)!, as: UTF8.self)
                 : "")
             + "\n" + posixStartup
         let fish =
             (shellIntegration
-                ? RemoteShellContextJournal.initialization(shell: "fish", token: eventToken.uuidString)
+                ? RemoteShellContextJournal.initialization(
+                    shell: "fish", token: eventToken.uuidString, backend: backend)
                     + "\n" + String(decoding: bootstrap.installationCommand(for: "fish", runtime: true)!, as: UTF8.self)
                 : "")
             + "\n" + fishStartup
         let shell = """
             #!/bin/sh
+            \(backend == nil ? "" : """
+            if [ "${TERMIND_SHELL_LOCALE_SET:-}" = x ]; then
+                export LC_ALL="$TERMIND_SHELL_LOCALE"
+            else
+                unset LC_ALL
+            fi
+            unset TERMIND_SHELL_LOCALE_SET TERMIND_SHELL_LOCALE
+            """)
+            \(backend == "zellij" ? """
+            if [ "${TERMIND_SHELL_CACHE_HOME_SET:-}" = x ]; then
+                export XDG_CACHE_HOME="$TERMIND_SHELL_CACHE_HOME"
+            else
+                unset XDG_CACHE_HOME
+            fi
+            unset TERMIND_SHELL_CACHE_HOME_SET TERMIND_SHELL_CACHE_HOME
+            """ : "")
+            \(try RemoteMultiplexerCommands.environment(environment))
             SHELL=${TERMIND_TMUX_SHELL:-${SHELL:-/bin/sh}}
             export SHELL
             if [ "$#" -gt 0 ]; then exec "$SHELL" "$@"; fi
             unset __termind_context_dir
+            \(backend == nil ? "" : """
+            unset TERMIND_TMUX_FIRST
+            if mkdir "$TERMIND_TMUX_HELPERS/first-claimed" 2>/dev/null; then
+                export TERMIND_TMUX_FIRST=1
+            fi
+            """)
             export TERMIND_CONTEXT_OSC=\(ordinary ? "1" : "0")
             case "$SHELL" in
                 */bash)
@@ -76,7 +107,7 @@ nonisolated enum RemoteTmuxShellStartup {
         let first = "#!/bin/sh\nexport TERMIND_TMUX_FIRST=1\nexec \"$TERMIND_TMUX_HELPERS/shell\"\n"
         var files = [
             "shell": shell, "first": first, "bashrc": bashrc, "fish": fish, "event": RemoteShellContextJournal.writer,
-            "request-reader": RemoteShellContextJournal.requestReader,
+            "request-reader": RemoteShellContextJournal.requestReader, "event-token": eventToken.uuidString,
         ]
         for name in [".zshenv", ".zprofile", ".zshrc", ".zlogin"] {
             files[name] = """
@@ -88,7 +119,7 @@ nonisolated enum RemoteTmuxShellStartup {
         }
         files[".zlogin", default: ""] += "\nexport ZDOTDIR=\"$TERMIND_USER_ZDOTDIR\"\n\(zsh)\n"
         let writes = try files.keys.sorted().map { name in
-            "printf '%s\\n' \(try RemoteTmuxCommands.quote(files[name]!)) > \"$helper/\(name)\" || exit 78"
+            "printf '%s\\n' \(try RemoteMultiplexerCommands.quote(files[name]!)) > \"$helper/\(name)\" || exit 78"
         }.joined(separator: "\n")
         return """
             umask 077

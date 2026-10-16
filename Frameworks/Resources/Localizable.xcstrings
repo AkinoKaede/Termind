@@ -74883,6 +74883,53 @@
         }
       }
     },
+    "The startup command could not run in the session shell. Check the shell and backend configuration." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Startbefehl konnte in der Sitzungsshell nicht ausgeführt werden. Prüfe die Shell- und Backend-Konfiguration."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The startup command could not run in the session shell. Check the shell and backend configuration."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La commande de démarrage n’a pas pu être exécutée dans le shell de la session. Vérifiez la configuration du shell et du backend."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セッションのシェルで起動コマンドを実行できませんでした。シェルとバックエンドの設定を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "세션 셸에서 시작 명령을 실행할 수 없습니다. 셸과 백엔드 설정을 확인하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在会话Shell中运行启动命令。请检查Shell和后端配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法在工作階段Shell中執行啟動命令。請檢查Shell和後端設定。"
+          }
+        }
+      }
+    },
     "The task failed. Open the conversation for details." : {
       "extractionState" : "manual",
       "localizations" : {

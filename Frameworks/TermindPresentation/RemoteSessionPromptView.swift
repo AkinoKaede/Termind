@@ -109,6 +109,7 @@ public struct RemoteSessionPromptView: View {
         switch failure {
         case .missing: AppStrings.SessionPersistence.missing
         case .unsupported: AppStrings.SessionPersistence.unsupported
+        case .startupUnavailable: AppStrings.SessionPersistence.startupUnavailable
         case .timedOut: AppStrings.SessionPersistence.timedOut
         case .sessionMissing, .ownershipMismatch: AppStrings.SessionPersistence.changed
         case .invalidResponse, .commandFailed: AppStrings.SessionPersistence.failed

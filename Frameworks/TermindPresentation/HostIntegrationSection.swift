@@ -10,8 +10,11 @@ public struct HostSessionPersistenceSection: View {
         Section(AppStrings.SessionPersistence.section.swiftUIKey) {
             Toggle(isOn: $preferences.enabled) { Text(AppStrings.Common.enabled) }
             Picker(AppStrings.SessionPersistence.backend.swiftUIKey, selection: $preferences.backend) {
-                Text(verbatim: "tmux").tag(SessionPersistenceBackendID.tmux)
-                if preferences.backend != .tmux {
+                ForEach(SessionPersistenceBackendID.supported, id: \.self) { backend in
+                    Text(verbatim: backend == .herdr ? "Herdr" : backend == .zellij ? "Zellij" : backend.rawValue)
+                        .tag(backend)
+                }
+                if !SessionPersistenceBackendID.supported.contains(preferences.backend) {
                     Text(verbatim: preferences.backend.rawValue).tag(preferences.backend)
                 }
             }

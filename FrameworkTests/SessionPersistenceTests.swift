@@ -11,11 +11,35 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct SessionPersistenceTests {
-    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
-    func resumableTransportAttachesTmuxAndRestoresWithoutReplayingStartup(_ transport: HostTerminalProtocol)
+    @Test(arguments: SessionPersistenceBackendID.supported)
+    func sshReconnectKeepsAttachmentAndDoesNotReplayTheSelectedSnippet(backendID: SessionPersistenceBackendID)
         async throws
     {
-        let backend = Backend()
+        let backend = Backend(id: backendID)
+        let coordinator = RemoteSessionCoordinator()
+        let hostID = UUID()
+        let registry = RemoteSessionBackendRegistry([backendID: { _ in backend }])
+        let execute: RemoteSessionCommandExecutor = { _ in throw CancellationError() }
+        let first = try await coordinator.prepare(
+            preferences: .init(enabled: true, backend: backendID, onConnect: .createManaged),
+            registry: registry, execute: execute, hostID: hostID, endpoint: "server:22", username: "user",
+            startupCommand: "cd /tmp; export ONCE=yes", requiresNewSession: false, shellIntegration: true)
+        let reference = try #require(first?.runtimeAttachment)
+        let restored = try await coordinator.prepare(
+            preferences: .init(enabled: true, backend: backendID, onConnect: .createManaged),
+            registry: registry, execute: execute, hostID: hostID, endpoint: "server:22", username: "user",
+            startupCommand: "must-not-replay", requiresNewSession: false, shellIntegration: true)
+        #expect(restored?.runtimeAttachment == reference)
+        #expect(await backend.commands == ["cd /tmp; export ONCE=yes"])
+    }
+
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal], SessionPersistenceBackendID.supported)
+    func resumableTransportAttachesAndRestoresWithoutReplayingStartup(
+        _ transport: HostTerminalProtocol, backendID: SessionPersistenceBackendID
+    )
+        async throws
+    {
+        let backend = Backend(id: backendID)
         let coordinator = RemoteSessionCoordinator()
         let hostID = UUID()
         let preparation: SSHPTYChannel.StartupPreparation = { execute in
@@ -32,6 +56,7 @@ struct SessionPersistenceTests {
         let startup = try await ResumableTerminalStartup.prepare(
             restoring: false, preparation: preparation, execute: execute)
         #expect(coordinator.attachment != nil)
+        #expect(startup.plan?.runtimeAttachment?.backend == backendID)
         #expect(await backend.commands == ["uptime"])
         if transport == .mosh {
             #expect(try startup.moshArguments == " -- /bin/sh -c 'attach-test'")
@@ -63,10 +88,10 @@ struct SessionPersistenceTests {
         }
     }
 
-    @Test(arguments: [false, true])
-    func preferencesRoundTripWithoutResettingSelections(enabled: Bool) throws {
+    @Test(arguments: [false, true], SessionPersistenceBackendID.supported + [.init(rawValue: "future")])
+    func preferencesRoundTripWithoutResettingSelections(enabled: Bool, backend: SessionPersistenceBackendID) throws {
         var host = Host(name: "Saved", host: "example.invalid")
-        host.sessionPersistence = .init(enabled: enabled, backend: .init(rawValue: "future"), onConnect: .createManaged)
+        host.sessionPersistence = .init(enabled: enabled, backend: backend, onConnect: .createManaged)
         #expect(try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host)) == host)
         #expect(PersistentHost(host).value.sessionPersistence == host.sessionPersistence)
         let envelope = VaultEnvelope(
@@ -367,7 +392,7 @@ struct SessionPersistenceTests {
 
     @Test func creationRequiresMatchingRemoteOwnershipConfirmation() async throws {
         let name = Array("session\n".utf8).map { String(format: "%02x", $0) }.joined()
-        let service = RemoteTmuxService { _ in
+        let service = RemoteMultiplexerService { _ in
             .init(stdout: "TERMIND_TMUX_1\nS $1 123 456 1 0 \(name) -\n", stderr: "", exitCode: 0)
         }
         await #expect(throws: RemoteSessionFailure.ownershipMismatch) {
@@ -382,12 +407,12 @@ struct SessionPersistenceTests {
             (.init(stdout: "unrecognized\n", stderr: "", exitCode: 0), .invalidResponse),
             (.init(stdout: "tmux 3.3a\n", stderr: "", exitCode: 0, truncated: true), .invalidResponse),
         ] {
-            let backend = RemoteTmuxService { _ in result }
+            let backend = RemoteMultiplexerService { _ in result }
             await #expect(throws: failure) { try await backend.probe() }
         }
-        let timeout = RemoteTmuxService { _ in throw RemoteSessionFailure.timedOut }
+        let timeout = RemoteMultiplexerService { _ in throw RemoteSessionFailure.timedOut }
         await #expect(throws: RemoteSessionFailure.timedOut) { try await timeout.probe() }
-        let empty = RemoteTmuxService { _ in .init(stdout: "TERMIND_TMUX_1\n", stderr: "", exitCode: 0) }
+        let empty = RemoteMultiplexerService { _ in .init(stdout: "TERMIND_TMUX_1\n", stderr: "", exitCode: 0) }
         #expect(try await empty.sessions().isEmpty)
     }
 
@@ -579,7 +604,8 @@ struct SessionPersistenceTests {
     }
 
     private actor Backend: RemoteSessionBackend {
-        nonisolated let id = SessionPersistenceBackendID(rawValue: "test-backend")
+        nonisolated let id: SessionPersistenceBackendID
+        init(id: SessionPersistenceBackendID = .init(rawValue: "test-backend")) { self.id = id }
         nonisolated let capabilities = RemoteSessionCapabilities()
         var probeCount = 0
         var commands: [String?] = []

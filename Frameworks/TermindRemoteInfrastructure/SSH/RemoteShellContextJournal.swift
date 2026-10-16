@@ -76,22 +76,34 @@ nonisolated enum RemoteShellContextJournal {
         fi
         """#
 
-    static func initialization(shell: String, token: String) -> String {
+    static func initialization(shell: String, token: String, backend: String? = nil) -> String {
+        let paneVariable: String?
+        switch backend {
+        case "zellij": paneVariable = "ZELLIJ_PANE_ID"
+        case "herdr": paneVariable = "HERDR_PANE_ID"
+        case "zmx": paneVariable = nil
+        default: paneVariable = "TMUX_PANE"
+        }
+        let tag = backend == nil ? "M1" : "M2"
+        let suffix = backend.map { "|\($0)" } ?? ""
         if shell == "fish" {
             return """
                 if set -q __termind_context_dir; return; end
                 set -gx TERMIND_CONTEXT_TOKEN '\(token)'
                 set -gx __termind_context_dir (command mktemp -d "$TERMIND_TMUX_HELPERS/ctx.XXXXXXXX")
                 test -n "$__termind_context_dir"; or return
+                \(backend == nil ? "" : """
+                command env LC_ALL=C TZ=UTC ps -p "$fish_pid" -o lstart= | string trim > "$__termind_context_dir/process-start"
+                """)
                 set -l pane shell
-                if set -q TMUX_PANE; set pane "$TMUX_PANE"; end
+                \(paneVariable.map { "if set -q \($0); set pane \"$\($0)\"; end" } ?? "")
                 set -l history_name fish
                 if set -q fish_history; set history_name "$fish_history"; end
                 set -l history_base "$HOME/.local/share"
                 if set -q XDG_DATA_HOME; set history_base "$XDG_DATA_HOME"; end
                 set -l history_path ''
                 if test -n "$history_name"; set history_path "$history_base/fish/$history_name"_history; end
-                printf 'M1|%s|%s|%s|fish|%s|%s|%s\\n' "$TERMIND_CONTEXT_TOKEN" "$pane" \
+                printf '\(tag)|%s|%s|%s|fish|%s|%s|%s\(suffix)\\n' "$TERMIND_CONTEXT_TOKEN" "$pane" \
                 (command basename "$__termind_context_dir") (string escape --style=url -- "$HOME") "$fish_pid" \
                 (string escape --style=url -- "$history_path") > "$__termind_context_dir/meta"
                 function __termind_event
@@ -104,18 +116,22 @@ nonisolated enum RemoteShellContextJournal {
             export TERMIND_CONTEXT_TOKEN='\(token)'
             __termind_context_dir=$(command mktemp -d "$TERMIND_TMUX_HELPERS/ctx.XXXXXXXX") || return
             export __termind_context_dir
+            \(backend == nil ? "" : """
+            command env LC_ALL=C TZ=UTC ps -p "$$" -o lstart= | sed 's/^ *//;s/ *$//' > "$__termind_context_dir/process-start"
+            """)
             __termind_event() { command sh "$TERMIND_TMUX_HELPERS/event" "$__termind_context_dir" "$@"; }
             __termind_home=$(printf '%s' "$HOME" | od -An -v -tx1 | tr -d ' \\n' | sed 's/../%&/g')
             __termind_history=${HISTFILE:-}
             case "$__termind_history" in ''|/*) ;; *) __termind_history="$PWD/$__termind_history" ;; esac
             __termind_history=$(printf '%s' "$__termind_history" | od -An -v -tx1 | tr -d ' \\n' | sed 's/../%&/g')
-            printf 'M1|%s|%s|%s|\(shell)|%s|%s|%s\\n' "$TERMIND_CONTEXT_TOKEN" "${TMUX_PANE:-shell}" \
+            printf '\(tag)|%s|%s|%s|\(shell)|%s|%s|%s\(suffix)\\n' "$TERMIND_CONTEXT_TOKEN" "\(paneVariable.map { "${\($0):-shell}" } ?? "shell")" \
             "${__termind_context_dir##*/}" "$__termind_home" "$$" "$__termind_history" > "$__termind_context_dir/meta"
             """
     }
 }
 
 nonisolated struct RemoteShellContextRecord {
+    let backend: String
     let token: String
     let pane: String
     let instance: String
@@ -136,8 +152,13 @@ nonisolated struct RemoteShellContextRecord {
         guard lines.count >= 2 else { throw TerminalRuntimeError.invalidResponse }
         let meta = lines[0].split(separator: "|", omittingEmptySubsequences: false).map(String.init)
         let state = lines[1].split(separator: "|", omittingEmptySubsequences: false).map(String.init)
-        guard (7...8).contains(meta.count), meta[0] == "M1", UUID(uuidString: meta[1]) != nil, UInt64(meta[6]) != nil,
-            meta[2] == "shell" || Self.validPane(meta[2]),
+        let legacy = (7...8).contains(meta.count) && meta.first == "M1"
+        let modern = meta.count == 9 && meta.first == "M2"
+        guard legacy || modern else { throw TerminalRuntimeError.invalidResponse }
+        let backend = modern ? meta[8] : (meta[2] == "shell" ? "shell" : "tmux")
+        guard ["shell", "tmux", "zellij", "zmx", "herdr"].contains(backend),
+            UUID(uuidString: meta[1]) != nil, UInt64(meta[6]) != nil,
+            Self.validPane(meta[2], backend: backend),
             meta[3].hasPrefix("ctx."),
             meta[3].utf8.allSatisfy({
                 $0 == 46 || (48...57).contains($0)
@@ -148,6 +169,7 @@ nonisolated struct RemoteShellContextRecord {
             ["0", "1"].contains(state[2])
         else { throw TerminalRuntimeError.invalidResponse }
         token = meta[1]
+        self.backend = backend
         pane = meta[2]
         instance = meta[3]
         shell = meta[4]
@@ -174,7 +196,7 @@ nonisolated struct RemoteShellContextRecord {
         }
         let home = try decode(meta[5])
         self.home = home.hasPrefix("/") ? home : nil
-        let history = try meta.count == 8 ? decode(meta[7]) : ""
+        let history = try meta.count >= 8 ? decode(meta[7]) : ""
         historyPath =
             (history.isEmpty || history.hasPrefix("/"))
                 && !history.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
@@ -212,6 +234,21 @@ nonisolated struct RemoteShellContextRecord {
 
     static func validPane(_ value: String) -> Bool {
         value.hasPrefix("%") && value.count > 1 && value.dropFirst().utf8.allSatisfy { (48...57).contains($0) }
+    }
+
+    static func validPane(_ value: String, backend: String) -> Bool {
+        switch backend {
+        case "shell", "zmx": return value == "shell"
+        case "tmux": return validPane(value)
+        case "zellij": return !value.isEmpty && value.utf8.allSatisfy { (48...57).contains($0) }
+        case "herdr":
+            return !value.isEmpty && value.utf8.count <= 128
+                && value.utf8.allSatisfy {
+                    (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)
+                        || [45, 58, 95].contains($0)
+                }
+        default: return false
+        }
     }
 
     func context(server: String, session: String, backend: String) -> TerminalShellContext {

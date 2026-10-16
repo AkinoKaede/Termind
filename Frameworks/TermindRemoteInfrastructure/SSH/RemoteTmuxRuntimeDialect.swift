@@ -2,15 +2,15 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
-public nonisolated struct RemoteTmuxRuntimeAdapter: TerminalRuntimeAdapter {
+nonisolated struct RemoteTmuxRuntimeDialect: TerminalRuntimeAdapter {
     private let execute: RemoteSessionCommandExecutor
     private let charset: RemoteCharset
-    public init(execute: @escaping RemoteSessionCommandExecutor, charset: RemoteCharset = .utf8) {
+    init(execute: @escaping RemoteSessionCommandExecutor, charset: RemoteCharset = .utf8) {
         self.execute = execute
         self.charset = charset
     }
 
-    public func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
+    func inspect(terminal: String) async throws -> TerminalRuntimeUpdate {
         let result = try await execute(Self.command(terminal: terminal))
         guard result.exitCode == 0, !result.truncated else { throw TerminalRuntimeError.unsupported }
         return try Self.parse(result.stdout, terminal: terminal, charset: charset)
@@ -164,5 +164,37 @@ public nonisolated struct RemoteTmuxRuntimeAdapter: TerminalRuntimeAdapter {
         }
         return .init(
             status: .multiplexer, clientIdentity: clientIdentity, active: active, contexts: contexts, events: events)
+    }
+}
+
+extension RemoteTmuxRuntimeDialect {
+    static func draftTarget(context: TerminalShellContext, terminal: String, clientIdentity: String?, replacing: Bool)
+        throws -> RemoteMultiplexerDraftTarget
+    {
+        let identity = context.identity
+        let key = replacing ? "\u{1B}[777;2~" : "\u{1B}[777;1~"
+        let session = identity.session.split(separator: ":").map(String.init)
+        let client = clientIdentity?.split(separator: ":").map(String.init) ?? []
+        guard session.count == 2, session[0].hasPrefix("$"), UInt64(session[0].dropFirst()) != nil,
+            UInt64(session[1]) != nil, UInt64(identity.server) != nil,
+            RemoteShellContextRecord.validPane(identity.pane), client.count == 3, client[0] == terminal,
+            UInt64(client[1]) != nil, UInt64(client[2]) != nil
+        else { throw TerminalRuntimeError.staleContext }
+        let target = try RemoteTmuxCommands.quote(session[0])
+        let root = """
+            [ "$(tmux display-message -p -t \(target) '#{pid}:#{session_created}')" = '\(identity.server):\(session[1])' ] || exit 79
+            [ "$(tmux list-clients -F '#{client_tty}|#{client_pid}|#{client_created}|#{pane_id}|#{client_flags}|#{client_key_table}|#{session_id}|#{session_created}' | \
+            awk -F '|' -v tty=\(try RemoteTmuxCommands.quote(terminal)) '$1 == tty {print $2 ":" $3 ":" $4 ":" $6 ":" $7 ":" $8; if ($5 ~ /active-pane|read-only/) print "UNSUPPORTED"}')" \
+            = '\(client[1]):\(client[2]):\(identity.pane):root:\(identity.session)' ] || exit 79
+            helper=$(tmux show-environment -t \(target) TERMIND_TMUX_HELPERS) || exit 79
+            helper=${helper#TERMIND_TMUX_HELPERS=}
+            """
+        let guardFormat =
+            "#{&&:#{==:#{pane_in_mode},0},#{&&:#{==:#{synchronize-panes},0},#{&&:#{==:#{pane_dead},0},#{==:#{pane_current_command},\(context.shell)}}}}"
+        let trigger = """
+            tmux if-shell -t \(try RemoteTmuxCommands.quote(identity.pane)) -F \(try RemoteTmuxCommands.quote(guardFormat)) \
+            \(try RemoteTmuxCommands.quote("send-keys -t \(identity.pane) -l \(try RemoteTmuxCommands.quote(key))")) || exit 79
+            """
+        return .init(root: root, trigger: trigger)
     }
 }

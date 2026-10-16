@@ -1,94 +1,8 @@
-import CryptoKit
 import Foundation
 import TermindApplication
 import TermindDomain
 
-/// Control operations run serially before the terminal channel occupies a server session slot.
-public nonisolated struct RemoteTmuxService: RemoteSessionBackend, Sendable {
-    public typealias Executor = RemoteSessionCommandExecutor
-    private let execute: Executor
-    public var id: SessionPersistenceBackendID { .tmux }
-    public var capabilities: RemoteSessionCapabilities {
-        .init(windowCount: true, clientCount: true, shellIntegration: true)
-    }
-
-    public init(execute: @escaping Executor) { self.execute = execute }
-
-    public func validate(_ reference: RemoteSessionReference) throws {
-        guard reference.version == 1, reference.backend == id else { throw RemoteSessionFailure.unsupported }
-        _ = try TmuxSessionIdentity.decode(reference.session.identity)
-    }
-
-    public func matches(_ reference: RemoteSessionReference, session: RemoteSessionDescriptor) -> Bool {
-        guard reference.version == 1, reference.backend == id,
-            reference.session.id == session.id,
-            let saved = try? TmuxSessionIdentity.decode(reference.session.identity),
-            let current = try? TmuxSessionIdentity.decode(session.identity),
-            saved.created == current.created, saved.serverPID == current.serverPID
-        else { return false }
-        return reference.ownershipToken.map { current.owner == $0.uuidString } ?? true
-    }
-
-    public func probe() async throws -> RemoteSessionCapabilities {
-        let version = try await execute("command -v tmux >/dev/null 2>&1 || exit 77; tmux -V")
-        if version.exitCode == 77 { throw RemoteSessionFailure.missing }
-        try Self.check(version)
-        try RemoteTmuxCommands.validateVersion(version.stdout)
-        return capabilities
-    }
-
-    public func sessions() async throws -> [RemoteSessionDescriptor] {
-        let result = try await execute(RemoteTmuxCommands.list)
-        try Self.check(result)
-        return try RemoteTmuxCommands.parseSessions(result.stdout)
-    }
-
-    public func create(
-        token: UUID, startupCommand: String?, shellIntegration: Bool, environment: [HostEnvironmentVariable] = []
-    ) async throws
-        -> RemoteSessionDescriptor
-    {
-        let result = try await execute(
-            RemoteTmuxCommands.create(
-                token: token, startupCommand: startupCommand, shellIntegration: shellIntegration,
-                environment: environment))
-        if result.exitCode == 80 { throw RemoteSessionFailure.unsupported }
-        try Self.check(result)
-        let confirmed = try RemoteTmuxCommands.parseSessions(result.stdout)
-        guard confirmed.count == 1, let session = confirmed.first,
-            try TmuxSessionIdentity.decode(session.identity).owner == token.uuidString
-        else {
-            throw RemoteSessionFailure.ownershipMismatch
-        }
-        return session
-    }
-
-    public func launch(_ attachment: RemoteSessionReference, created: Bool) throws -> RemoteSessionLaunch {
-        RemoteSessionLaunch(
-            command: try RemoteTmuxCommands.attach(attachment), attachment: attachment, created: created)
-    }
-
-    public func terminate(_ attachment: RemoteSessionReference) async throws {
-        guard attachment.isManaged else { throw RemoteSessionFailure.ownershipMismatch }
-        let result = try await execute(RemoteTmuxCommands.terminate(attachment))
-        if result.exitCode == 79 { throw RemoteSessionFailure.ownershipMismatch }
-        try Self.check(result)
-        guard result.stdout == "TERMIND_ENDED\n" else { throw RemoteSessionFailure.ownershipMismatch }
-    }
-
-    private static func check(_ result: RemoteSessionCommandResult) throws {
-        guard !result.truncated else { throw RemoteSessionFailure.invalidResponse }
-        guard result.exitCode == 0 else {
-            throw RemoteSessionFailure.commandFailed(result.stderr)
-        }
-    }
-}
-
-extension RemoteSessionBackendRegistry {
-    public static var live: Self { Self([.tmux: { RemoteTmuxService(execute: $0) }]) }
-}
-
-private nonisolated struct TmuxSessionIdentity: Codable {
+nonisolated struct TmuxSessionIdentity: Codable {
     var version = 1
     let created: String
     let serverPID: String
@@ -103,8 +17,7 @@ private nonisolated struct TmuxSessionIdentity: Codable {
 
 public nonisolated enum RemoteTmuxCommands {
     public static func quote(_ value: String) throws -> String {
-        guard !value.contains("\0") else { throw RemoteSessionFailure.invalidResponse }
-        return "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        try RemoteMultiplexerCommands.quote(value)
     }
 
     public static func validateVersion(_ output: String) throws {
@@ -194,10 +107,7 @@ public nonisolated enum RemoteTmuxCommands {
     }
 
     static func managedSessionName(token: UUID) -> String {
-        // Keep 64 bits of a one-way digest: short to display, stable on retry, not an ownership credential.
-        "termind-"
-            + SHA256.hash(data: Data(token.uuidString.utf8)).prefix(8)
-            .map { String(format: "%02x", $0) }.joined()
+        RemoteMultiplexerCommands.managedName(token)
     }
 
     public static func create(
@@ -205,7 +115,7 @@ public nonisolated enum RemoteTmuxCommands {
     ) throws -> String {
         let owner = token.uuidString
         let name = managedSessionName(token: token)
-        let wrapper = try RemoteTmuxShellStartup.install(
+        let wrapper = try RemoteShellStartup.install(
             token: token, startupCommand: startupCommand, shellIntegration: shellIntegration)
         guard environment.allSatisfy({ $0.isValid && !$0.variable.hasPrefix("TERMIND_") && $0.variable != "TMUX" })
         else {

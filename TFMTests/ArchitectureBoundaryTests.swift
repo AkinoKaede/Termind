@@ -4,14 +4,18 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
-    func sessionPersistencePolicyDoesNotDependOnTheTmuxImplementation() throws {
+    func sessionPersistencePolicyDoesNotDependOnMultiplexerDialects() throws {
         for directory in [
             "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",
             "../Frameworks/TermindPresentation", "Features", "../TFI/Features",
         ] {
             for file in try swiftFiles(in: directory) {
                 let text = try String(contentsOf: file, encoding: .utf8)
-                for symbol in ["RemoteTmuxService", "RemoteTmuxCommands", "RemoteTmuxShellStartup"] {
+                for symbol in [
+                    "RemoteMultiplexerService", "RemoteMultiplexerKind", "RemoteMultiplexerCommands",
+                    "RemoteTmuxCommands", "RemoteZellijCommands", "RemoteZmxCommands", "RemoteHerdrCommands",
+                    "RemoteShellStartup", "RemoteTmuxRuntimeDialect", "RemoteSocketMultiplexerRuntime",
+                ] {
                     #expect(!containsToken(symbol, in: text), "\(file.path) depends on \(symbol)")
                 }
             }
@@ -19,7 +23,9 @@ struct ArchitectureBoundaryTests {
         let channel = try String(
             contentsOf: sourceRoot.appending(path: "../Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift"),
             encoding: .utf8)
-        #expect(!containsToken("RemoteTmuxService", in: channel))
+        #expect(!containsToken("RemoteMultiplexerService", in: channel))
+        #expect(!containsToken("RemoteTmuxRuntimeDialect", in: channel))
+        #expect(!containsToken("RemoteSocketMultiplexerRuntime", in: channel))
         #expect(containsToken("StartupPreparation", in: channel))
     }
 

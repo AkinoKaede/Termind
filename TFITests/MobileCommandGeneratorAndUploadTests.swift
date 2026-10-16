@@ -94,6 +94,44 @@ private final class MobileSSHCommandConnectionBox {
 
 @Suite @MainActor
 struct MobileCommandGeneratorTests {
+    @Test(arguments: ["shell", "tmux", "zellij", "zmx", "herdr"])
+    func runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother(backend: String) async throws {
+        var (host, library) = try commandFixture()
+        host.shellIntegrationMode = .enabled
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, connectionServices: connections.services)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        var context = TerminalShellContext(
+            identity: .init(backend: backend, server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/before", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
+        let status: TerminalRuntimeUpdate.Status = backend == "shell" ? .ordinary : .multiplexer
+        func receive() {
+            workspace.receiveShellEvent(
+                .runtime(.init(status: status, active: context.identity, contexts: [context])))
+        }
+        receive()
+        #expect(workspace.canGenerateFromCurrentDraft)
+        context.sequence = 2
+        context.promptReady = false
+        context.capabilities = [.commandLifecycle]
+        receive()
+        #expect(workspace.workingDirectory == "/before")
+        #expect(!workspace.canGenerateFromCurrentDraft)
+        context.sequence = 3
+        context.directory = "/after"
+        receive()
+        #expect(workspace.workingDirectory == "/after")
+        #expect(!workspace.canGenerateFromCurrentDraft)
+        workspace.receiveShellEvent(.runtime(.init(status: .unavailable)))
+        #expect(workspace.workingDirectory == nil)
+    }
+
     @Test(arguments: [false, true])
     func paneHistoryInvalidationDoesNotDependOnSessionPersistence(managed: Bool) async throws {
         let (host, library) = try commandFixture()

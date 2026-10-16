@@ -9,6 +9,41 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct HostShellIntegrationSessionTests {
+    @Test(arguments: ["shell", "tmux", "zellij", "zmx", "herdr"])
+    func runningCommandsKeepTheDisplayedDirectoryUntilTheShellReportsAnother(backend: String) throws {
+        let session = SSHSessionModel(hostID: UUID(), title: "Cwd")
+        defer { session.disconnect() }
+        session.status = .connected
+        var context = TerminalShellContext(
+            identity: .init(backend: backend, server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/home/test/before", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.directory, .commandLifecycle, .readDraft, .replaceDraft])
+        let status: TerminalRuntimeUpdate.Status = backend == "shell" ? .ordinary : .multiplexer
+        func receive() {
+            session.receiveShellIntegrationEvent(
+                .runtime(.init(status: status, active: context.identity, contexts: [context])))
+        }
+        receive()
+        #expect(session.canGenerateFromCurrentDraft)
+        let ticket = try #require(session.directoryContextTicket)
+        context.sequence = 2
+        context.promptReady = false
+        context.capabilities = [.commandLifecycle]
+        receive()
+        #expect(session.workingDirectory == "/home/test/before")
+        #expect(session.displayedWorkingDirectory == "~/before")
+        #expect(!session.canGenerateFromCurrentDraft)
+        #expect(!session.isDirectoryContextCurrent(ticket))
+        context.sequence = 3
+        context.directory = "/home/test/after"
+        receive()
+        #expect(session.workingDirectory == "/home/test/after")
+        #expect(session.displayedWorkingDirectory == "~/after")
+        #expect(!session.canGenerateFromCurrentDraft)
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unavailable)))
+        #expect(session.workingDirectory == nil)
+    }
+
     @Test(arguments: [false, true])
     func paneHistoryInvalidationDoesNotDependOnSessionPersistence(managed: Bool) async {
         let session = SSHSessionModel(hostID: UUID(), title: "History")
