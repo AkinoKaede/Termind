@@ -10,6 +10,114 @@ import Testing
 
 @Suite @MainActor
 struct SessionHistoryTests {
+    @Test func returningToAPaneRestoresStableRowsWithoutAnotherRead() async {
+        let model = CommandHistoryModel()
+        let generation = UUID()
+        let first = historyContext(pane: "a", path: "/a/history")
+        let second = historyContext(pane: "b", path: "/b/history")
+        let firstRead = HistoryReadGate()
+        let secondRead = HistoryReadGate()
+        model.load(using: firstRead, source: model.selectContext(first, generation: generation))
+        await firstRead.waitForRead()
+        await firstRead.finish([.init(command: "first file")])
+        #expect(await settles { model.hasLoaded })
+        let firstIDs = model.entries().map(\.id)
+        let sharedFile = historyContext(pane: "shared", path: "/a/history", instance: "another-shell")
+        model.load(using: firstRead, source: model.selectContext(sharedFile, generation: generation))
+        #expect(model.hasLoaded)
+        #expect(!model.isLoading)
+        #expect(model.entries().map(\.id) == firstIDs)
+        #expect(await firstRead.readCount == 1)
+        model.load(using: secondRead, source: model.selectContext(second, generation: generation))
+        await secondRead.waitForRead()
+        await secondRead.finish([])
+        #expect(await settles { model.hasLoaded })
+
+        model.load(using: firstRead, source: model.selectContext(first, generation: generation))
+        #expect(model.hasLoaded)
+        #expect(!model.isLoading)
+        #expect(model.entries().map(\.id) == firstIDs)
+        #expect(await firstRead.readCount == 1)
+        model.selectContext(nil, generation: generation)
+        #expect(model.entries().isEmpty)
+        model.selectContext(first, generation: generation)
+        #expect(model.entries().map(\.id) == firstIDs)
+        model.load(using: secondRead, source: model.selectContext(second, generation: generation))
+        #expect(model.hasLoaded)
+        #expect(model.entries().isEmpty)
+        #expect(await secondRead.readCount == 1)
+
+        model.selectContext(first, generation: UUID())
+        #expect(!model.hasLoaded)
+        #expect(model.entries().isEmpty)
+    }
+
+    @Test func switchingPanesRejectsOldFileReadsAndKeepsObservedCommands() async throws {
+        let model = CommandHistoryModel()
+        let generation = UUID()
+        let first = historyContext(pane: "a", path: "/a/history")
+        let second = historyContext(pane: "b", path: "/b/history")
+        let stale = HistoryReadGate()
+        let current = HistoryReadGate()
+        model.record("observed live command")
+        model.load(using: stale, source: model.selectContext(first, generation: generation))
+        await stale.waitForRead()
+        model.load(using: current, source: model.selectContext(second, generation: generation))
+        await current.waitForRead()
+        await current.finish([.init(command: "pane b history")])
+        #expect(await settles { model.hasLoaded })
+        await stale.finish([.init(command: "pane a history")])
+        for _ in 0..<20 { await Task.yield() }
+        #expect(model.entries().map(\.command) == ["observed live command", "pane b history"])
+        model.selectContext(nil, generation: generation)
+        #expect(model.entries().map(\.command) == ["observed live command"])
+        #expect(!model.hasLoaded)
+    }
+
+    @Test func historyFileCacheExpiresOnNewConnectionOrFileButNotPromptSequence() async {
+        let model = CommandHistoryModel()
+        var generation = UUID()
+        var context = historyContext(pane: "a", path: "/a/history")
+        for change in 0..<3 {
+            let gate = HistoryReadGate()
+            model.load(using: gate, source: model.selectContext(context, generation: generation))
+            await gate.waitForRead()
+            await gate.finish([.init(command: "snapshot \(change)")])
+            #expect(await settles { model.hasLoaded })
+            var typing = context
+            typing.sequence += 1
+            typing.promptReady = false
+            model.selectContext(typing, generation: generation)
+            model.load(using: gate, source: typing.historySource)
+            #expect(await gate.readCount == 1)
+            #expect(model.entries().map(\.command) == ["snapshot \(change)"])
+            switch change {
+            case 0: context.historyPath = "/a/new history"
+            case 1: generation = UUID()
+            default: break
+            }
+        }
+    }
+
+    @Test func unverifiedHistoryNeverFallsBackToAnOuterShellFile() {
+        var context = historyContext(pane: "a", path: "/a/history")
+        context.historyPath = nil
+        #expect(context.historySource == nil)
+        context.historyPath = "relative"
+        #expect(context.historySource == nil)
+        context.historyPath = ""
+        #expect(context.historySource == .init(shell: .bash, path: ""))
+        context.shell = "unknown"
+        #expect(context.historySource == nil)
+    }
+
+    private func historyContext(pane: String, path: String, instance: String = "shell") -> TerminalShellContext {
+        .init(
+            identity: .init(backend: "test", server: "server", session: "session", pane: pane, shellInstance: instance),
+            shell: "bash", directory: "/", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.commandLifecycle], historyPath: path)
+    }
+
     @Test func snapshotDoesNotReplaceLiveCommandsAndLoadsOnlyOnce() async throws {
         let gate = HistoryReadGate()
         let model = CommandHistoryModel()

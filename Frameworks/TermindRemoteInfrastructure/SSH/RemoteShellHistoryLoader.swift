@@ -16,6 +16,16 @@ public nonisolated struct RemoteShellHistoryLoader: ShellHistoryLoading {
             execute: { try await channel.executeHistoryRead($0, outputLimit: $1) })
     }
 
+    public init(channel: SSHPTYChannel, charset: RemoteCharset, context: TerminalShellContext) {
+        self.init(
+            charset: charset,
+            resolveSource: {
+                guard let source = context.historySource else { throw TerminalRuntimeError.staleContext }
+                return source
+            },
+            execute: { try await channel.executeHistoryRead($0, outputLimit: $1, context: context) })
+    }
+
     init(
         charset: RemoteCharset,
         resolveSource: @escaping @Sendable () async throws -> ShellHistorySource?,
@@ -41,8 +51,9 @@ public nonisolated struct RemoteShellHistoryLoader: ShellHistoryLoading {
     private func read(source: ShellHistorySource?) async throws -> [ShellHistoryRecord] {
         let resolved: ShellHistorySource?
         if let source { resolved = source } else { resolved = try await resolveSource() }
+        if resolved?.path == "" { return [] }
         let token = UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        let result = try await execute(Self.command(source: resolved, token: token), 3 * 1024 * 1024)
+        let result = try await executeRead(Self.command(source: resolved, token: token))
         guard result.exitCode == 0, !result.stdoutTruncated else {
             throw TermindSSHError.library("History file could not be read.")
         }
@@ -65,6 +76,19 @@ public nonisolated struct RemoteShellHistoryLoader: ShellHistoryLoading {
         return Array(
             ShellHistoryParser.parse(text, shell: shell, truncatedStart: size > Self.maximumFileBytes)
                 .suffix(HistoryLimits.retainedEntries))
+    }
+
+    private func executeRead(_ command: String) async throws -> SSHExecResult {
+        // A runtime poll may briefly own the last free channel. Never queue behind the user's PTY.
+        for attempt in 0..<3 {
+            try Task.checkCancellation()
+            do {
+                return try await execute(command, 3 * 1024 * 1024)
+            } catch TerminalRuntimeError.capacityUnavailable where attempt < 2 {
+                try await Task.sleep(for: .milliseconds(100 * (attempt + 1)))
+            }
+        }
+        throw TerminalRuntimeError.capacityUnavailable
     }
 
     static func command(source: ShellHistorySource?, token: String) -> String {

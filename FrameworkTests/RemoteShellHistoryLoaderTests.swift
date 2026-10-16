@@ -8,6 +8,42 @@
 
     @Suite
     struct RemoteShellHistoryLoaderTests {
+        @Test func explicitlyDisabledHistoryDoesNotOpenAControlChannel() async throws {
+            let loader = RemoteShellHistoryLoader(
+                charset: .utf8, resolveSource: { .init(shell: .bash, path: "") },
+                execute: { _, _ in
+                    Issue.record("Disabled history must not read a default file")
+                    throw TerminalRuntimeError.capacityUnavailable
+                })
+            #expect(try await loader.load(source: nil).isEmpty)
+        }
+
+        @Test(arguments: [false, true])
+        func channelCapacityRetriesAreBoundedAndCanRecover(permanentlyUnavailable: Bool) async throws {
+            let attempts = ReadAttempts()
+            let loader = RemoteShellHistoryLoader(
+                charset: .utf8, resolveSource: { .init(shell: .bash, path: "/nonexistent-\(UUID())") },
+                execute: { command, _ in
+                    let attempt = await attempts.next()
+                    if permanentlyUnavailable || attempt < 3 { throw TerminalRuntimeError.capacityUnavailable }
+                    return try Self.execute(command)
+                })
+            if permanentlyUnavailable {
+                await #expect(throws: TerminalRuntimeError.self) { try await loader.load(source: nil) }
+            } else {
+                #expect(try await loader.load(source: nil).isEmpty)
+            }
+            #expect(await attempts.count == 3)
+        }
+
+        private actor ReadAttempts {
+            private(set) var count = 0
+            func next() -> Int {
+                count += 1
+                return count
+            }
+        }
+
         @Test func realZshHistoryPreservesBackslashesBeforeLogicalNewlines() async throws {
             let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             defer { try? FileManager.default.removeItem(at: file) }

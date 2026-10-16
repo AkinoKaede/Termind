@@ -15,6 +15,22 @@ public final class CommandHistoryModel {
     private var isClosed = false
     private var loadTask: Task<Void, Never>?
     private var loadID: UUID?
+    private enum SnapshotScope: Equatable {
+        case legacy
+        case context(UUID, TerminalContextIdentity, ShellHistorySource)
+        case unavailable(UUID)
+
+        func sharesFile(with other: Self) -> Bool {
+            guard case .context(let generation, _, let source) = self,
+                case .context(let otherGeneration, _, let otherSource) = other
+            else { return false }
+            return generation == otherGeneration && source == otherSource
+        }
+    }
+    private var snapshotScope: SnapshotScope = .legacy
+    private var importedIDs: Set<CommandHistoryEntry.ID> = []
+    private var snapshotGeneration: UUID?
+    private var snapshots: [(scope: SnapshotScope, entries: [CommandHistoryEntry])] = []
 
     public init(sessionID: UUID = UUID(), entries: [CommandHistoryEntry] = []) {
         self.sessionID = sessionID
@@ -65,6 +81,7 @@ public final class CommandHistoryModel {
                 guard let self, self.loadID == token, !self.isClosed, !Task.isCancelled else { return }
                 self.merge(snapshot)
                 self.hasLoaded = true
+                self.cacheSnapshot()
                 self.finishLoading()
             } catch {
                 guard let self, self.loadID == token, !self.isClosed, !Task.isCancelled else { return }
@@ -72,6 +89,41 @@ public final class CommandHistoryModel {
                 self.finishLoading()
             }
         }
+    }
+
+    /// Only the selected shell's file snapshot is visible. Observed live commands remain terminal-wide.
+    @discardableResult
+    public func selectContext(_ context: TerminalShellContext?, generation: UUID) -> ShellHistorySource? {
+        guard !isClosed else { return nil }
+        if snapshotGeneration != generation {
+            snapshots.removeAll()
+            snapshotGeneration = generation
+        }
+        let source = context?.historySource
+        let next: SnapshotScope
+        if let context, let source {
+            next = .context(generation, context.identity, source)
+        } else {
+            next = .unavailable(generation)
+        }
+        if snapshotScope != next {
+            cancelLoading()
+            values.removeAll { importedIDs.contains($0.id) }
+            importedIDs.removeAll()
+            hasLoaded = false
+            loadError = nil
+            snapshotScope = next
+            if let index = snapshots.firstIndex(where: { $0.scope.sharesFile(with: next) }) {
+                let cached = snapshots.remove(at: index)
+                snapshots.append(cached)
+                values.append(contentsOf: cached.entries)
+                importedIDs = Set(cached.entries.map(\.id))
+                trim()
+                hasLoaded = true
+            }
+            revision &+= 1
+        }
+        return source
     }
 
     /// Disconnect cancels only the current read; reconnect retains a completed snapshot.
@@ -86,6 +138,8 @@ public final class CommandHistoryModel {
         isClosed = true
         cancelLoading()
         values.removeAll()
+        importedIDs.removeAll()
+        snapshots.removeAll()
         loadError = nil
         revision &+= 1
     }
@@ -93,6 +147,14 @@ public final class CommandHistoryModel {
     private func finishLoading() {
         loadTask = nil
         isLoading = false
+    }
+
+    private func cacheSnapshot() {
+        guard case .context = snapshotScope else { return }
+        snapshots.removeAll { $0.scope.sharesFile(with: snapshotScope) }
+        snapshots.append((snapshotScope, values.filter { importedIDs.contains($0.id) }))
+        // Keep recent pane snapshots bounded and memory-only, including successful empty reads.
+        if snapshots.count > 16 { snapshots.removeFirst(snapshots.count - 16) }
     }
 
     private func merge(_ snapshot: [ShellHistoryRecord]) {
@@ -118,6 +180,7 @@ public final class CommandHistoryModel {
                 sessionID: sessionID, command: command, executedAt: record.executedAt, duration: record.duration)
         }
         values.append(contentsOf: imported)
+        importedIDs.formUnion(imported.map(\.id))
         trim()
         revision &+= 1
     }

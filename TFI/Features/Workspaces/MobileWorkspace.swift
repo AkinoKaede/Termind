@@ -134,6 +134,7 @@ final class MobileWorkspace: Identifiable {
     private var activeHistoryID: UUID?
     let terminalContext = TerminalContextCoordinator()
     private var hasRuntimeContext = false
+    private var historyCharset: RemoteCharset = .utf8
     private var contextHistory: [TerminalContextIdentity: UUID] = [:]
     /// Resolved once at the beginning of each connection attempt.
     private(set) var isShellIntegrationEnabled = true
@@ -649,6 +650,7 @@ final class MobileWorkspace: Identifiable {
 
     private func resetCommandGeneratorShellState() {
         terminalContext.reset()
+        if hasRuntimeContext { commandHistory.selectContext(nil, generation: terminalContext.generation) }
         hasRuntimeContext = false
         contextHistory.removeAll()
         cancelCommandGeneration()
@@ -742,6 +744,7 @@ final class MobileWorkspace: Identifiable {
         hasRuntimeContext = true
         let previous = terminalContext.revision
         let events = terminalContext.receive(update, generation: terminalContext.generation)
+        loadContextHistory()
         commandMonitor.receiveRuntimeEvents(events)
         if previous != terminalContext.revision {
             commandDraft.cancel()
@@ -773,6 +776,16 @@ final class MobileWorkspace: Identifiable {
             isInitialCommandSubmissionReady = true
             submitPendingInitialCommandIfReady()
         }
+    }
+
+    private func loadContextHistory() {
+        let context = terminalContext.active
+        let source = commandHistory.selectContext(context, generation: terminalContext.generation)
+        guard descriptor.kind == .ssh, let context, let source, let ssh, commandHistory.loadError == nil else {
+            return
+        }
+        commandHistory.load(
+            using: RemoteShellHistoryLoader(channel: ssh, charset: historyCharset, context: context), source: source)
     }
 
     private func restoreTransport() {
@@ -1023,6 +1036,7 @@ final class MobileWorkspace: Identifiable {
                         handlers.exit,
                         handlers.shellIntegration)
                     ssh = session
+                    historyCharset = host.charset
                     if transport.isResumable {
                         recoveryRecord = TerminalRecoveryRecord(
                             id: recoveryID, host: host, username: config.username, transport: transport)
@@ -1190,9 +1204,13 @@ final class MobileWorkspace: Identifiable {
                 proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
-                if descriptor.kind == .ssh, let ssh, sessionPersistence.attachment == nil {
-                    commandHistory.load(
-                        using: RemoteShellHistoryLoader(channel: ssh, charset: host.charset), source: nil)
+                if descriptor.kind == .ssh, let ssh {
+                    if hasRuntimeContext, terminalContext.active?.historySource != nil {
+                        loadContextHistory()
+                    } else {
+                        commandHistory.load(
+                            using: RemoteShellHistoryLoader(channel: ssh, charset: host.charset), source: nil)
+                    }
                 }
                 status = String(localized: AppStrings.Connections.connected)
                 journey.succeed()

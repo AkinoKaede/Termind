@@ -9,6 +9,39 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct HostShellIntegrationSessionTests {
+    @Test(arguments: [false, true])
+    func paneHistoryInvalidationDoesNotDependOnSessionPersistence(managed: Bool) async {
+        let session = SSHSessionModel(hostID: UUID(), title: "History")
+        defer { session.disconnect() }
+        if managed {
+            session.sessionPersistence.attachment = .init(
+                backend: .tmux, session: .init(id: "test", name: "Test", identity: Data()),
+                hostID: session.hostID, endpoint: "test:22", username: "user", ownershipToken: UUID())
+        }
+        let context = TerminalShellContext(
+            identity: .init(backend: "test", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.commandLifecycle], historyPath: "/home/test/history")
+        session.receiveShellIntegrationEvent(
+            .runtime(.init(status: .multiplexer, active: context.identity, contexts: [context])))
+        session.commandHistory.load(using: HistoryLoader(), source: context.historySource)
+        for _ in 0..<1000 {
+            if session.commandHistory.hasLoaded { break }
+            await Task.yield()
+        }
+        #expect(session.commandHistory.entries().map(\.command) == ["imported"])
+        session.receiveShellIntegrationEvent(
+            .runtime(.init(status: .multiplexer, active: context.identity, contexts: [context])))
+        #expect(session.commandHistory.hasLoaded)
+        session.receiveShellIntegrationEvent(.runtime(.init(status: .unknown)))
+        #expect(session.commandHistory.entries().isEmpty)
+        #expect(!session.commandHistory.hasLoaded)
+    }
+
+    private struct HistoryLoader: ShellHistoryLoading {
+        func load(source: ShellHistorySource?) async throws -> [ShellHistoryRecord] { [.init(command: "imported")] }
+    }
+
     @Test func runtimeContextGatesEnhancementsWithoutPersistence() throws {
         let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: .enabled)
         let session = SSHSessionModel(hostID: host.id, title: host.name)

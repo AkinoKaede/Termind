@@ -891,10 +891,13 @@ public actor SSHPTYChannel {
         try await worker.openSFTPChannel()
     }
 
-    public func executeHistoryRead(_ command: String, outputLimit: Int) async throws -> SSHExecResult {
+    public func executeHistoryRead(
+        _ command: String, outputLimit: Int, context: TerminalShellContext? = nil
+    ) async throws -> SSHExecResult {
         let cancellation = TransferCancellationToken()
         return try await withTaskCancellationHandler {
-            try await worker.executeHistoryRead(command, outputLimit: outputLimit, cancellation: cancellation)
+            try await worker.executeHistoryRead(
+                command, outputLimit: outputLimit, cancellation: cancellation, context: context)
         } onCancel: {
             cancellation.cancel()
         }
@@ -973,6 +976,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
     private var execChannelOwner: SSHMultiplexedExecChannelOwner!
     private var detectedHistorySource: ShellHistorySource?
+    private var allowsDefaultHistorySource = true
 
     init(
         output: @escaping SSHPTYChannel.OutputHandler,
@@ -1525,6 +1529,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         try await queue.perform { [self] in
             guard ptyResize.generation == generation else { throw CancellationError() }
             runtimeEnabled = runtimeIsEnabled
+            allowsDefaultHistorySource = launch == nil && !runtimeIsEnabled
             runtimeWantsObservation = runtimeIsEnabled && launch != nil
             if runtimeIsEnabled {
                 contextFilter = .init(token: runtimeToken.uuidString, charset: charset)
@@ -2197,12 +2202,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             }
         }
         latestRuntimeUpdate = update
-        if update.status == .ordinary,
-            let context = update.contexts.first(where: { $0.identity == update.active }),
-            let path = context.historyPath, let shell = ShellHistorySource.Shell(rawValue: context.shell)
-        {
-            detectedHistorySource = .init(shell: shell, path: path)
-        }
+        detectedHistorySource =
+            update.status == .ordinary || update.status == .multiplexer
+            ? update.contexts.first(where: { $0.identity == update.active })?.historySource : nil
         shellIntegrationHandler(.runtime(update))
     }
 
@@ -2423,6 +2425,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         runtimeTask = nil
         runtimeTerminal = nil
         runtimeEnabled = false
+        allowsDefaultHistorySource = true
         runtimeWantsObservation = false
         runtimeControlUnavailable = false
         runtimeRevision &+= 1
@@ -2587,11 +2590,60 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 
 nonisolated extension SSHPTYChannelWorker {
     fileprivate func executeHistoryRead(
-        _ command: String, outputLimit: Int, cancellation: TransferCancellationToken
+        _ command: String, outputLimit: Int, cancellation: TransferCancellationToken,
+        context expected: TerminalShellContext?
     ) async throws -> SSHExecResult {
-        try await execChannelOwner.execute(
+        let generation = try await queue.perform { [self] in
+            guard connection != nil else { throw TermindSSHError.disconnected }
+            return ptyResize.generation
+        }
+        if let expected { try await confirmHistoryContext(expected) }
+        let result = try await execChannelOwner.execute(
             command, workingDirectory: nil, stdin: nil, timeout: 10,
-            outputLimit: outputLimit, cancellation: cancellation, onOutput: nil, usesLoginShell: false)
+            outputLimit: outputLimit, cancellation: cancellation, onOutput: nil, usesLoginShell: false,
+            retriesChannelOpen: false, requiresImmediateCapacity: true,
+            validateContext: { [self] in
+                ptyResize.generation == generation
+                    && (expected.map(matchesHistoryContext) ?? allowsDefaultHistorySource)
+            })
+        if let expected { try await confirmHistoryContext(expected) }
+        try Task.checkCancellation()
+        try await queue.perform { [self] in
+            guard connection != nil, ptyResize.generation == generation else { throw CancellationError() }
+        }
+        return result
+    }
+
+    private func matchesHistoryContext(_ expected: TerminalShellContext) -> Bool {
+        guard let update = latestRuntimeUpdate,
+            update.status == .ordinary || update.status == .multiplexer,
+            update.active == expected.identity, let source = expected.historySource
+        else { return false }
+        return update.contexts.first(where: { $0.identity == expected.identity })?.historySource == source
+    }
+
+    private func confirmHistoryContext(_ expected: TerminalShellContext) async throws {
+        let state = try await queue.perform { [self] in
+            guard matchesHistoryContext(expected), let terminal = runtimeTerminal else {
+                throw TerminalRuntimeError.staleContext
+            }
+            return (terminal, ptyResize.generation, charset)
+        }
+        if expected.identity.backend != "shell" {
+            let execute = try await sessionCommandExecutor(runtime: true)
+            let update = try await RemoteTmuxRuntimeAdapter(execute: execute, charset: state.2)
+                .inspect(terminal: state.0)
+            guard update.status == .multiplexer, update.active == expected.identity,
+                update.contexts.first(where: { $0.identity == expected.identity })?.historySource
+                    == expected.historySource
+            else { throw TerminalRuntimeError.staleContext }
+        }
+        try Task.checkCancellation()
+        try await queue.perform { [self] in
+            guard ptyResize.generation == state.1, matchesHistoryContext(expected) else {
+                throw TerminalRuntimeError.staleContext
+            }
+        }
     }
 
     fileprivate func historySource() async throws -> ShellHistorySource? {
@@ -2600,11 +2652,9 @@ nonisolated extension SSHPTYChannelWorker {
             try Task.checkCancellation()
             let (source, pending) = try await queue.perform { [self] in
                 guard connection != nil else { throw TermindSSHError.disconnected }
-                return (
-                    detectedHistorySource,
-                    shellIntegration != nil
-                        || (runtimeEnabled && runtimeHelper != nil && latestRuntimeUpdate?.active == nil)
-                )
+                // Runtime shells must use a context-bound read, even before the UI receives their update.
+                guard allowsDefaultHistorySource else { throw TerminalRuntimeError.staleContext }
+                return (detectedHistorySource, shellIntegration != nil)
             }
             if !pending || source != nil || ContinuousClock.now >= deadline { return source }
             try await Task.sleep(for: .milliseconds(50))

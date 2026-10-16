@@ -36,6 +36,15 @@ public nonisolated struct TerminalShellContext: Sendable, Equatable {
     public var sequence: UInt64
     public var capabilities: TerminalContextCapabilities
 
+    /// Nil means unverified; an empty path explicitly disables file-backed history.
+    public var historySource: ShellHistorySource? {
+        guard let shell = ShellHistorySource.Shell(rawValue: shell),
+            let historyPath, historyPath.isEmpty || historyPath.hasPrefix("/"),
+            !historyPath.contains("\0")
+        else { return nil }
+        return .init(shell: shell, path: historyPath)
+    }
+
     public init(
         identity: TerminalContextIdentity, shell: String, directory: String?, home: String?,
         promptReady: Bool, sequence: UInt64, capabilities: TerminalContextCapabilities, historyPath: String? = nil

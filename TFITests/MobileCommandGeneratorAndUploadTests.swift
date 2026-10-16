@@ -94,6 +94,38 @@ private final class MobileSSHCommandConnectionBox {
 
 @Suite @MainActor
 struct MobileCommandGeneratorTests {
+    @Test(arguments: [false, true])
+    func paneHistoryInvalidationDoesNotDependOnSessionPersistence(managed: Bool) async throws {
+        let (host, library) = try commandFixture()
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: library)
+        defer { workspace.disconnect() }
+        if managed {
+            workspace.sessionPersistence.attachment = .init(
+                backend: .tmux, session: .init(id: "test", name: "Test", identity: Data()),
+                hostID: host.id, endpoint: "test:22", username: "user", ownershipToken: UUID())
+        }
+        let context = TerminalShellContext(
+            identity: .init(backend: "test", server: "s", session: "s", pane: "a", shellInstance: "i"),
+            shell: "bash", directory: "/", home: "/home/test", promptReady: true, sequence: 1,
+            capabilities: [.commandLifecycle], historyPath: "/home/test/history")
+        workspace.receiveShellEvent(
+            .runtime(.init(status: .multiplexer, active: context.identity, contexts: [context])))
+        workspace.commandHistory.load(using: HistoryLoader(), source: context.historySource)
+        #expect(await eventually { workspace.commandHistory.hasLoaded })
+        #expect(workspace.commandHistory.entries().map(\.command) == ["imported"])
+        workspace.receiveShellEvent(
+            .runtime(.init(status: .multiplexer, active: context.identity, contexts: [context])))
+        #expect(workspace.commandHistory.hasLoaded)
+        workspace.receiveShellEvent(.runtime(.init(status: .unknown)))
+        #expect(workspace.commandHistory.entries().isEmpty)
+        #expect(!workspace.commandHistory.hasLoaded)
+    }
+
+    private struct HistoryLoader: ShellHistoryLoading {
+        func load(source: ShellHistorySource?) async throws -> [ShellHistoryRecord] { [.init(command: "imported")] }
+    }
+
     @Test func runtimePaneInvalidationClearsDirectoryAndIgnoresUnscopedEvents() async throws {
         var (host, library) = try commandFixture()
         host.shellIntegrationMode = .enabled

@@ -97,6 +97,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     private var activeShellCommand: ActiveShellCommand?
     let terminalContext = TerminalContextCoordinator()
     private var hasRuntimeContext = false
+    private var historyCharset: RemoteCharset = .utf8
     private var contextHistory: [TerminalContextIdentity: UUID] = [:]
     private(set) var commandGeneratorRevision: UInt64 = 0
     private let commandDraft = TerminalCommandDraftController()
@@ -411,6 +412,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
 
     private func resetCommandGeneratorShellState() {
         terminalContext.reset()
+        if hasRuntimeContext { commandHistory.selectContext(nil, generation: terminalContext.generation) }
         hasRuntimeContext = false
         contextHistory.removeAll()
         integratedShell = nil
@@ -877,6 +879,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             }
         )
         ssh = actor
+        historyCharset = host.charset
         do {
             if transport.isResumable {
                 let snapshot = store.additionalConnectionSnapshot(from: configuration)
@@ -970,9 +973,15 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
             status = .connected
-            if transport == .ssh && sessionPersistence.attachment == nil {
-                commandHistory.load(using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
-            } else if sessionPersistence.attachment != nil {
+            if transport == .ssh {
+                if hasRuntimeContext, terminalContext.active?.historySource != nil {
+                    loadContextHistory()
+                } else {
+                    commandHistory.load(
+                        using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
+                }
+            }
+            if sessionPersistence.attachment != nil {
                 pendingInitialCommand = nil
                 pendingConnectionStartupCommand = nil
                 homeResolution = .unavailable
@@ -1358,6 +1367,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         hasRuntimeContext = true
         let previous = terminalContext.revision
         let events = terminalContext.receive(update, generation: terminalContext.generation)
+        loadContextHistory()
         commandMonitor.receiveRuntimeEvents(events)
         if previous != terminalContext.revision {
             commandDraft.cancel()
@@ -1390,6 +1400,14 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             isInitialCommandSubmissionReady = true
             submitPendingInitialCommandIfReady()
         }
+    }
+
+    private func loadContextHistory() {
+        let context = terminalContext.active
+        let source = commandHistory.selectContext(context, generation: terminalContext.generation)
+        guard transport == .ssh, let context, let source, let ssh, commandHistory.loadError == nil else { return }
+        commandHistory.load(
+            using: RemoteShellHistoryLoader(channel: ssh, charset: historyCharset, context: context), source: source)
     }
 
     /// Submits an explicit one-shot launch command, or this connection's freshly

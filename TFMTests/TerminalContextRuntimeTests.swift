@@ -32,6 +32,68 @@ struct TerminalContextRuntimeTests {
     }
 
     @Test(.timeLimit(.minutes(2)), arguments: ["bash", "zsh", "fish"])
+    func managedHistoryReadsTheConfirmedPaneFileWithoutTerminalInput(shell: String) async throws {
+        let fixture = try loadFixture()
+        guard (fixture.maxSessions ?? 1) > 1 else { return }
+        let state = State()
+        let channel = makeChannel(state)
+        let root = "/tmp/termind-history-\(UUID().uuidString)"
+        let firstPath = shell == "fish" ? root + "/fish/pane-a_history" : root + "/a ' history"
+        let secondPath = shell == "fish" ? root + "/fish/pane-b_history" : root + "/b ' history"
+        let setup = """
+            mkdir -p \(try RemoteTmuxCommands.quote(root + "/fish"))
+            printf %s \(try RemoteTmuxCommands.quote(historyContents("echo from-pane-a", shell: shell))) > \(try RemoteTmuxCommands.quote(firstPath))
+            printf %s \(try RemoteTmuxCommands.quote(historyContents("echo from-pane-b", shell: shell))) > \(try RemoteTmuxCommands.quote(secondPath))
+            """
+        await channel.configureStartup { execute in
+            _ = try await execute(setup)
+            let backend = RemoteTmuxService(execute: execute)
+            let owner = UUID()
+            let session = try await backend.create(
+                token: owner, startupCommand: nil, shellIntegration: true,
+                environment: [
+                    .init(variable: "SHELL", value: "/bin/\(shell)"),
+                    .init(variable: "HISTFILE", value: firstPath),
+                    .init(variable: "XDG_DATA_HOME", value: root),
+                    .init(variable: "fish_history", value: "pane-a"),
+                ])
+            let reference = RemoteSessionReference(
+                backend: .tmux, session: session, hostID: UUID(), endpoint: "fixture", username: "root",
+                ownershipToken: owner)
+            await MainActor.run { state.reference = reference }
+            return try SSHPTYStartupPlan(command: backend.launch(reference, created: true).command)
+        }
+        do {
+            try await connect(channel, fixture)
+            try await wait { state.coordinator.active?.promptReady == true }
+            let first = try #require(state.coordinator.active)
+            #expect(first.historySource?.path == firstPath)
+            let firstLoader = RemoteShellHistoryLoader(channel: channel, charset: .utf8, context: first)
+            #expect(try await firstLoader.load(source: nil).map(\.command) == ["echo from-pane-a"])
+            let execute = try await channel.runtimeCommandExecutor()
+            _ = try await execute(
+                "tmux split-window -h -t \(try RemoteTmuxCommands.quote(first.identity.pane))"
+                    + " -e \(try RemoteTmuxCommands.quote("HISTFILE=" + secondPath)) -e fish_history=pane-b")
+            try await wait {
+                state.coordinator.active?.identity != first.identity && state.coordinator.active?.promptReady == true
+            }
+            let second = try #require(state.coordinator.active)
+            #expect(second.historySource?.path == secondPath)
+            await #expect(throws: TerminalRuntimeError.self) { try await firstLoader.load(source: nil) }
+            let secondLoader = RemoteShellHistoryLoader(channel: channel, charset: .utf8, context: second)
+            #expect(try await secondLoader.load(source: nil).map(\.command) == ["echo from-pane-b"])
+            _ = try await execute("rm -rf \(try RemoteTmuxCommands.quote(root))")
+            try await cleanup(channel, state)
+        } catch {
+            if let execute = try? await channel.sessionCommandExecutor() {
+                _ = try? await execute("rm -rf \(try RemoteTmuxCommands.quote(root))")
+            }
+            try? await cleanup(channel, state)
+            throw error
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)), arguments: ["bash", "zsh", "fish"])
     func managedContextsDraftsAndInvisibleCompletions(shell: String) async throws {
         let fixture = try loadFixture()
         guard (fixture.maxSessions ?? 1) > 1 else { return }
@@ -201,38 +263,76 @@ struct TerminalContextRuntimeTests {
         guard (fixture.maxSessions ?? 1) > 1 else { return }
         let state = State()
         let channel = makeChannel(state)
+        let root = "/tmp/termind-manual-history-\(UUID().uuidString)"
+        let path = shell == "fish" ? root + "/fish/manual_history" : root + "/history"
+        var stage = "ordinary draft"
         await channel.configureEnvironment([
             .init(variable: "TERMIND_TMUX_SHELL", value: "/bin/\(shell)"), .init(variable: "LC_ALL", value: "C.UTF-8"),
         ])
         do {
             try await connect(channel, fixture)
-            try await wait { state.coordinator.status == .ordinary }
+            try await wait { state.coordinator.status == .ordinary && state.coordinator.active?.promptReady == true }
             let outer = try #require(state.coordinator.active)
             #expect(outer.shell == shell)
             await channel.write(Data("echo scratch".utf8))
             #expect(try await channel.contextDraft(outer) == "echo scratch")
             await channel.write(Data([0x15]))
+            stage = "ordinary history"
+            let outerHistory = RemoteShellHistoryLoader(channel: channel, charset: .utf8, context: outer)
+            _ = try await outerHistory.load(source: nil)
+            await #expect(throws: TerminalRuntimeError.self) {
+                try await RemoteShellHistoryLoader(channel: channel, charset: .utf8).load(source: nil)
+            }
             let execute = try await channel.runtimeCommandExecutor()
+            _ = try await execute(
+                "mkdir -p \(try RemoteTmuxCommands.quote(root + "/fish")); printf %s "
+                    + "\(try RemoteTmuxCommands.quote(historyContents("echo manual-pane", shell: shell)))"
+                    + " > \(try RemoteTmuxCommands.quote(path))")
             let backend = RemoteTmuxService(execute: execute)
             let owner = UUID()
-            let session = try await backend.create(token: owner, startupCommand: "cd /tmp", shellIntegration: true)
+            let session = try await backend.create(
+                token: owner, startupCommand: "cd /tmp", shellIntegration: true,
+                environment: [
+                    .init(variable: "SHELL", value: "/bin/\(shell)"),
+                    .init(variable: "HISTFILE", value: path),
+                    .init(variable: "XDG_DATA_HOME", value: root),
+                    .init(variable: "fish_history", value: "manual"),
+                ])
             let reference = RemoteSessionReference(
                 backend: .tmux, session: session, hostID: UUID(), endpoint: "fixture", username: "root",
                 ownershipToken: owner)
             state.reference = reference
+            stage = "manual attach history"
             await channel.write(Data("tmux attach-session -t '\(session.id)'\n".utf8))
             try await wait { state.coordinator.status == .multiplexer && state.coordinator.active?.promptReady == true }
             #expect(state.coordinator.directory == "/tmp")
+            let pane = try #require(state.coordinator.active)
+            #expect(pane.historySource?.path == path)
+            let paneHistory = RemoteShellHistoryLoader(channel: channel, charset: .utf8, context: pane)
+            #expect(try await paneHistory.load(source: nil).map(\.command) == ["echo manual-pane"])
+            if outer.historySource?.path == "" {
+                #expect(try await outerHistory.load(source: nil).isEmpty)
+            } else {
+                await #expect(throws: TerminalRuntimeError.self) { try await outerHistory.load(source: nil) }
+            }
             await channel.write(Data([0x02, 0x64]))
+            stage = "detach history"
             try await wait { state.coordinator.status == .ordinary }
             #expect(state.coordinator.active?.identity == outer.identity)
+            _ = try await outerHistory.load(source: nil)
+            await #expect(throws: TerminalRuntimeError.self) { try await paneHistory.load(source: nil) }
             #expect(
                 state.events.contains {
                     if case .commandFinished = $0.payload { return $0.context == outer.identity }
                     return false
                 })
+            _ = try await execute("rm -rf \(try RemoteTmuxCommands.quote(root))")
             try await cleanup(channel, state)
         } catch {
+            Issue.record("Manual history acceptance failed at \(stage) for \(shell): \(error)")
+            if let execute = try? await channel.sessionCommandExecutor() {
+                _ = try? await execute("rm -rf \(try RemoteTmuxCommands.quote(root))")
+            }
             try? await cleanup(channel, state)
             throw error
         }
@@ -253,6 +353,11 @@ struct TerminalContextRuntimeTests {
             do {
                 _ = try await channel.contextDraft(context)
                 Issue.record("The occupied channel budget must refuse a draft exec")
+            } catch {}
+            do {
+                _ = try await RemoteShellHistoryLoader(channel: channel, charset: .utf8, context: context)
+                    .load(source: nil)
+                Issue.record("The occupied channel budget must refuse a history exec")
             } catch {}
             await channel.write(Data("printf 'TERMINAL_STILL_WORKS\\n'\n".utf8))
             try await wait { String(decoding: state.output, as: UTF8.self).contains("TERMINAL_STILL_WORKS\r\n") }
@@ -284,11 +389,31 @@ struct TerminalContextRuntimeTests {
             try await wait { state.coordinator.status == .unavailable }
             #expect(state.coordinator.directory == nil)
             #expect(state.coordinator.ticket(requiring: .replaceDraft) == nil)
+            await #expect(throws: TerminalRuntimeError.self) {
+                try await RemoteShellHistoryLoader(channel: channel, charset: .utf8).load(source: nil)
+            }
             await channel.write(Data("printf 'SERVER_LIMIT_%s\\n' TERMINAL_OK\n".utf8))
             try await wait { String(decoding: state.output, as: UTF8.self).contains("SERVER_LIMIT_TERMINAL_OK") }
             try await cleanup(channel, state)
         } catch {
             try? await cleanup(channel, state)
+            throw error
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func plainShellHistoryStillLoadsWithoutIntegration(prepared: Bool) async throws {
+        let fixture = try loadFixture()
+        guard (fixture.maxSessions ?? 1) > 1 else { return }
+        let state = State()
+        let channel = makeChannel(state)
+        if prepared { await channel.configureStartup { _ in nil } }
+        do {
+            try await connect(channel, fixture, shellIntegrationEnabled: false)
+            _ = try await RemoteShellHistoryLoader(channel: channel, charset: .utf8).load(source: nil)
+            await channel.disconnect()
+        } catch {
+            await channel.disconnect()
             throw error
         }
     }
@@ -353,6 +478,14 @@ struct TerminalContextRuntimeTests {
         }
     }
 
+    private func historyContents(_ command: String, shell: String) -> String {
+        switch shell {
+        case "zsh": ": 123:0;\(command)\n"
+        case "fish": "- cmd: \(command)\n  when: 123\n"
+        default: "#123\n\(command)\n"
+        }
+    }
+
     private func makeChannel(_ state: State) -> SSHPTYChannel {
         SSHPTYChannel(
             output: { data in Task { @MainActor in state.output.append(data) } }, exit: { _ in },
@@ -381,7 +514,9 @@ struct TerminalContextRuntimeTests {
         throw TerminalRuntimeError.invalidResponse
     }
 
-    private func connect(_ channel: SSHPTYChannel, _ fixture: Fixture) async throws {
+    private func connect(
+        _ channel: SSHPTYChannel, _ fixture: Fixture, shellIntegrationEnabled: Bool = true
+    ) async throws {
         let key = try String(contentsOfFile: fixture.privateKeyPath, encoding: .utf8)
         try await channel.connect(
             using: SSHConnectionRequest(
@@ -389,6 +524,6 @@ struct TerminalContextRuntimeTests {
                     hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: "root",
                     credentials: [.privateKey(privateKey: SSHSecret(key), publicKey: nil, passphrase: nil)],
                     expectedHostKeys: [.init(algorithm: .ed25519, fingerprint: fixture.hostFingerprint)])),
-            shellIntegrationEnabled: true, columns: 100, rows: 30)
+            shellIntegrationEnabled: shellIntegrationEnabled, columns: 100, rows: 30)
     }
 }
