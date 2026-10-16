@@ -11,7 +11,6 @@ struct MobileHostMACAddressView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                Text(AppStrings.LocalNetwork.temporaryAuthentication).font(.caption).foregroundStyle(.secondary)
                 if model.isFinished {
                     HostMACAddressCandidatesView(candidates: model.candidates) {
                         select($0.address.rawValue)
@@ -39,7 +38,8 @@ struct MobileHostMACAddressView: View {
             .navigationTitle(AppStrings.LocalNetwork.fetchMAC.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppStrings.Common.cancel.swiftUIKey) { dismiss() }
+                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }
+                        .labelStyle(.iconOnly)
                 }
             }
         }

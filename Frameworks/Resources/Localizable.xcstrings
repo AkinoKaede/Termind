@@ -10387,53 +10387,6 @@
         }
       }
     },
-    "Authentication and host-key approval are used only for this lookup. The host draft is not saved." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authentifizierung und Hostschlüsselbestätigung gelten nur für diese Abfrage. Der Hostentwurf wird nicht gespeichert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authentication and host-key approval are used only for this lookup. The host draft is not saved."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’authentification et l’approbation de la clé d’hôte ne servent qu’à cette recherche. Le brouillon de l’hôte n’est pas enregistré."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "認証とホスト鍵の承認は、この検索にのみ使用されます。ホストの下書きは保存されません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "인증 및 호스트 키 승인은 이번 조회에만 사용됩니다. 호스트 초안은 저장되지 않습니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "身份验证和主机密钥确认仅用于此次查询，不会保存主机草稿。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "驗證和主機金鑰確認僅用於此次查詢，不會儲存主機草稿。"
-          }
-        }
-      }
-    },
     "Authentication required" : {
       "extractionState" : "manual",
       "localizations" : {

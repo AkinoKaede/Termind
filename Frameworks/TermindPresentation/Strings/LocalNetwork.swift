@@ -71,8 +71,5 @@ extension AppStrings {
         public static var selectAdapter: LocalizedStringResource {
             "Choose the network adapter to wake."
         }
-        public static var temporaryAuthentication: LocalizedStringResource {
-            "Authentication and host-key approval are used only for this lookup. The host draft is not saved."
-        }
     }
 }

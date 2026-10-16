@@ -109,6 +109,64 @@ struct MobileLocalDiscoveryRenderingTests {
         print("Local discovery screenshot: \(output.path)")
     }
 
+    @Test(arguments: ["en", "zh-Hans"])
+    func macLookupUsesCompactDismissalWithoutDescription(language: String) async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.keyWindow
+        let library = HostLibraryModel()
+        let model = HostMACAddressModel(
+            host: .init(name: "Example", host: "preview.invalid"), library: library, resolver: PreviewMACResolver())
+        let window = UIWindow(windowScene: scene)
+        window.overrideUserInterfaceStyle = .light
+        window.rootViewController = UIHostingController(
+            rootView: MACLookupSheetPreview(model: model, library: library)
+                .environment(\.locale, Locale(identifier: language)))
+        window.makeKeyAndVisible()
+        defer {
+            model.cancel()
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKey()
+        }
+        for _ in 0..<100 {
+            if model.authenticationPrompt != nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        try #require(model.authenticationPrompt != nil)
+        try await Task.sleep(for: .milliseconds(700))
+        window.layoutIfNeeded()
+        let labels = accessibilityLabels(in: window)
+        let locale = Locale(identifier: language)
+        let title = AppLocalization.resolve(AppStrings.LocalNetwork.fetchMAC, locale: locale)
+        let cancel = AppLocalization.resolve(AppStrings.Common.cancel, locale: locale)
+        #expect(labels.contains { $0.contains(title) })
+        #expect(labels.contains { $0.contains(cancel) })
+        for description in [
+            "Authentication and host-key approval are used only for this lookup. The host draft is not saved.",
+            "身份验证和主机密钥确认仅用于此次查询，不会保存主机草稿。",
+        ] {
+            #expect(!labels.contains { $0.contains(description) })
+        }
+        let data = UIGraphicsImageRenderer(bounds: window.bounds).pngData { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        Attachment.record(data, named: "iphone-\(language)-mac-lookup.png")
+    }
+
+    private struct MACLookupSheetPreview: View {
+        let model: HostMACAddressModel
+        let library: HostLibraryModel
+        @State private var presented = false
+
+        var body: some View {
+            Color(uiColor: .systemGroupedBackground)
+                .sheet(isPresented: $presented) {
+                    MobileHostMACAddressView(model: model, library: library, select: { _ in })
+                }
+                .onAppear { presented = true }
+        }
+    }
+
     private struct DiscoverySheetPreview: View {
         let model: LocalDiscoveryModel
         @State private var presented = false
@@ -134,6 +192,14 @@ struct MobileLocalDiscoveryRenderingTests {
             return [element.accessibilityLabel].compactMap { $0 } + children.flatMap(visit)
         }
         return visit(root)
+    }
+}
+
+private struct PreviewMACResolver: HostMACAddressResolving {
+    func resolve(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
+        -> [HostMACAddressCandidate]
+    {
+        []
     }
 }
 

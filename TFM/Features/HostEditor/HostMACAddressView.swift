@@ -14,7 +14,6 @@ struct HostMACAddressView: View {
             closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 12) {
-                Text(AppStrings.LocalNetwork.temporaryAuthentication).font(.caption).foregroundStyle(.secondary)
                 if model.isFinished {
                     HostMACAddressCandidatesView(candidates: model.candidates) {
                         select($0.address.rawValue)
