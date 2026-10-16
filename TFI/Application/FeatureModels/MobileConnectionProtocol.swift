@@ -17,7 +17,7 @@ nonisolated enum MobileConnectionProtocol: Hashable {
     func kind(for host: Host) -> ConnectionHistoryEntry.Kind? {
         guard host.supports(useCase.protocolRequirement) else { return nil }
         switch self {
-        case .ssh: return host.preferredTerminalProtocol == .telnet ? .telnet : .ssh
+        case .ssh: return host.preferredTerminalProtocol.map(ConnectionHistoryEntry.Kind.terminal)
         case .sftp: return .sftp
         }
     }

@@ -9,20 +9,47 @@ public nonisolated struct ConnectionHistoryEntry: Identifiable, Codable, Hashabl
     /// and TFI does not expose Serial workspaces, so they never enter this timeline.
     public nonisolated enum Kind: String, Codable, CaseIterable, Hashable, Sendable {
         case ssh
+        case mosh
+        case eternalTerminal
         case telnet
         case sftp
+
+        public var terminalProtocol: HostTerminalProtocol? {
+            switch self {
+            case .ssh: .ssh
+            case .telnet: .telnet
+            case .mosh: .mosh
+            case .eternalTerminal: .eternalTerminal
+            case .sftp: nil
+            }
+        }
+
+        public var isSSHTerminal: Bool { self == .ssh || self == .mosh || self == .eternalTerminal }
+
+        public static func terminal(_ transport: HostTerminalProtocol) -> Self {
+            switch transport {
+            case .ssh: .ssh
+            case .telnet: .telnet
+            case .mosh: .mosh
+            case .eternalTerminal: .eternalTerminal
+            }
+        }
 
         public var label: String {
             switch self {
             case .ssh: String(localized: "SSH")
             case .telnet: String(localized: "Telnet")
             case .sftp: String(localized: "SFTP")
+            case .mosh: "Mosh"
+            case .eternalTerminal: "Eternal Terminal"
             }
         }
 
         public var symbol: String {
             switch self {
             case .ssh: "terminal"
+            case .mosh: HostTerminalProtocol.mosh.symbol
+            case .eternalTerminal: HostTerminalProtocol.eternalTerminal.symbol
             case .telnet: "text.rectangle"
             case .sftp: "folder"
             }

@@ -47,25 +47,27 @@ public nonisolated enum HistorySyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
+        if envelope.formatVersion == 2 { return try encoder.encode(HistoryJournalV2(envelope)) }
+        if case .connectionHistory(let value) = envelope.payload, value.kind.terminalProtocol?.isResumable == true {
+            throw CocoaError(.coderInvalidValue)
+        }
         return try encoder.encode(HistoryJournalV1(envelope))
     }
-    private static let decoder = VersionedRecordDecoder<HistoryEnvelope>(
-        Dictionary(
-            uniqueKeysWithValues: HistoryRecordKind.allCases.map { kind in
-                (
-                    kind.rawValue,
-                    [
-                        1: { data in
-                            let value = try JSONDecoder().decode(HistoryJournalV1.self, from: data).domainValue
-                            guard value.isValid else {
-                                throw VaultSyncPersistenceError.invalidEnvelope(value.key.recordName)
-                            }
-                            return value
-                        }
-                    ]
-                )
-            }))
-    public static func decode(_ data: Data) throws -> HistoryEnvelope { try decoder.decode(data) }
+    private static let decoder: VersionedRecordDecoder<HistoryEnvelope> = {
+        var decoders: [String: [Int: @Sendable (Data) throws -> HistoryEnvelope]] = [:]
+        for kind in HistoryRecordKind.allCases {
+            decoders[kind.rawValue] = [1: { try JSONDecoder().decode(HistoryJournalV1.self, from: $0).domainValue }]
+        }
+        decoders[HistoryRecordKind.connectionHistory.rawValue]?[2] = {
+            try JSONDecoder().decode(HistoryJournalV2.self, from: $0).domainValue
+        }
+        return VersionedRecordDecoder(decoders)
+    }()
+    public static func decode(_ data: Data) throws -> HistoryEnvelope {
+        let value = try decoder.decode(data)
+        guard value.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(value.key.recordName) }
+        return value
+    }
 }
 
 /// Frozen local journal shape. Reuse the shipped value DTOs without adapting through a Vault envelope.

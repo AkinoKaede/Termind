@@ -7,7 +7,7 @@ struct MobileWorkspaceSearchModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         switch workspace.descriptor.kind {
-        case .ssh, .telnet:
+        case .ssh, .mosh, .eternalTerminal, .telnet:
             content.mobileToolbarSearch(
                 text: Binding(get: { workspace.find.query }, set: { workspace.find.updateQuery($0) }),
                 isPresented: Binding(

@@ -79,14 +79,29 @@ public nonisolated struct HostProxy: Codable, Hashable, Sendable {
 
 public nonisolated enum HostTerminalProtocol: String, Codable, CaseIterable, Identifiable, Sendable {
     case ssh
+    case mosh
+    case eternalTerminal
     case telnet
 
     public var id: Self { self }
+
+    public var isResumable: Bool { self == .mosh || self == .eternalTerminal }
+
+    public var symbol: String {
+        switch self {
+        case .ssh: "apple.terminal"
+        case .mosh: "antenna.radiowaves.left.and.right"
+        case .eternalTerminal: "arrow.trianglehead.2.clockwise.rotate.90"
+        case .telnet: "text.rectangle"
+        }
+    }
 
     public var displayName: String {
         switch self {
         case .ssh: String(localized: "SSH")
         case .telnet: String(localized: "Telnet")
+        case .mosh: "Mosh"
+        case .eternalTerminal: "Eternal Terminal"
         }
     }
 
@@ -94,6 +109,8 @@ public nonisolated enum HostTerminalProtocol: String, Codable, CaseIterable, Ide
         switch self {
         case .ssh: 22
         case .telnet: 23
+        case .mosh: 22
+        case .eternalTerminal: 2022
         }
     }
 }
@@ -131,6 +148,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// field accepts either.
     public var host: String
     public var sshEnabled = true
+    public var terminalTransports = HostTerminalTransports()
     public var sshPort: Int = 22
     /// Which saved login to use. Optional because a host can be filed before it
     /// is known how to get into it; the connection asks at that point.
@@ -197,6 +215,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         switch connectionProtocol {
         case .ssh: sshEnabled
         case .telnet: telnetEnabled
+        case .mosh: sshEnabled && terminalTransports.moshEnabled && !isTailscaleManaged
+        case .eternalTerminal: sshEnabled && terminalTransports.eternalTerminalEnabled
         }
     }
 
@@ -204,6 +224,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         switch connectionProtocol {
         case .ssh: sshPort
         case .telnet: telnetPort
+        case .mosh: sshPort
+        case .eternalTerminal: terminalTransports.eternalTerminalPort
         }
     }
 
@@ -211,6 +233,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         switch connectionProtocol {
         case .ssh: sshIdentityID
         case .telnet: telnetIdentityID
+        case .mosh, .eternalTerminal: sshIdentityID
         }
     }
 
@@ -219,7 +242,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
 
     public var preferredTerminalProtocol: HostTerminalProtocol? {
-        if sshEnabled { return .ssh }
+        if sshEnabled { return terminalTransports.preferred(isTailscaleManaged: isTailscaleManaged) }
         if telnetEnabled { return .telnet }
         return nil
     }
@@ -322,7 +345,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
         case groupID, tags, colorTag, iconOverrideID, detectedDistribution, sortIndex, shellIntegrationMode
-        case sessionPersistence, agentForwardingEnabled, startupSnippetID, environmentVariables,
+        case terminalTransports, sessionPersistence, agentForwardingEnabled, startupSnippetID, environmentVariables,
             portForwardingMaxConnections
     }
 
@@ -332,6 +355,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         tailscale = try values.decodeIfPresent(TailscaleHostReference.self, forKey: .tailscale)
         name = try values.decode(String.self, forKey: .name)
         host = try values.decode(String.self, forKey: .host)
+        terminalTransports =
+            try values.decodeIfPresent(HostTerminalTransports.self, forKey: .terminalTransports) ?? .init()
         sshEnabled = try values.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? true
         sshPort = try values.decode(Int.self, forKey: .port)
         sshIdentityID = try values.decodeIfPresent(UUID.self, forKey: .identityID)
@@ -381,6 +406,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         try values.encodeIfPresent(proxy, forKey: .proxy)
         try values.encode(sftpChannelInitialPath, forKey: .sftpChannelInitialPath)
         try values.encode(sshCharset.rawValue, forKey: .charset)
+        try values.encode(terminalTransports, forKey: .terminalTransports)
         try values.encode(sshEnabled, forKey: .sshEnabled)
         try values.encode(telnetEnabled, forKey: .telnetEnabled)
         try values.encode(telnetPort, forKey: .telnetPort)

@@ -86,6 +86,8 @@ enum HostMenuPolicy {
 
 enum HostConnectAction: CaseIterable, Hashable {
     case ssh
+    case mosh
+    case eternalTerminal
     case telnet
     case sftp
 
@@ -100,6 +102,8 @@ enum HostConnectAction: CaseIterable, Hashable {
     var target: HostOpenTarget {
         switch self {
         case .ssh: .sshSession
+        case .mosh: .moshSession
+        case .eternalTerminal: .eternalTerminalSession
         case .telnet: .telnetSession
         case .sftp: .sftpChannel
         }
@@ -108,6 +112,8 @@ enum HostConnectAction: CaseIterable, Hashable {
     var title: LocalizedStringResource {
         switch self {
         case .ssh: AppStrings.Vault.withSsh
+        case .mosh: AppStrings.Transports.withMosh
+        case .eternalTerminal: AppStrings.Transports.withEternalTerminal
         case .telnet: AppStrings.Vault.withTelnet
         case .sftp: AppStrings.Vault.withSftp
         }
@@ -116,6 +122,8 @@ enum HostConnectAction: CaseIterable, Hashable {
     var symbol: String {
         switch self {
         case .ssh: MenuSymbol.ssh
+        case .mosh: MenuSymbol.mosh
+        case .eternalTerminal: MenuSymbol.eternalTerminal
         case .telnet: MenuSymbol.telnet
         case .sftp: MenuSymbol.sftp
         }
@@ -125,6 +133,8 @@ enum HostConnectAction: CaseIterable, Hashable {
         switch self {
         case .ssh, .sftp: host.sshEnabled
         case .telnet: host.telnetEnabled
+        case .mosh: host.isEnabled(.mosh)
+        case .eternalTerminal: host.isEnabled(.eternalTerminal)
         }
     }
 }

@@ -11,6 +11,8 @@ public struct ConnectionHistoryMenuRow: Identifiable {
         switch entry.kind {
         case .ssh, .sftp: host.sshEnabled
         case .telnet: host.telnetEnabled
+        case .mosh: host.isEnabled(.mosh)
+        case .eternalTerminal: host.isEnabled(.eternalTerminal)
         }
     }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindDomain
 
 nonisolated enum ConnectionJourneySymbolPlacement {
     case header
@@ -10,6 +11,8 @@ extension ConnectionPurpose {
     nonisolated func symbol(for placement: ConnectionJourneySymbolPlacement) -> String {
         switch (self, placement) {
         case (.sshSession, _): "apple.terminal.fill"
+        case (.moshSession, _): HostTerminalProtocol.mosh.symbol
+        case (.eternalTerminalSession, _): HostTerminalProtocol.eternalTerminal.symbol
         case (.telnetSession, _): "text.rectangle.fill"
         case (.sftpChannel, .header): "folder.fill.badge.gearshape"
         case (.sftpChannel, .routeDestination): "folder.fill"
@@ -17,6 +20,17 @@ extension ConnectionPurpose {
         case (.metrics, _): "waveform.path.ecg"
         case (.keyExport, _): "key.fill"
         case (.portForwarding, _): "arrow.left.arrow.right"
+        }
+    }
+
+    var protocolName: String {
+        switch self {
+        case .sshSession, .metrics, .portForwarding, .keyExport: String(localized: AppStrings.Vault.ssh)
+        case .moshSession: HostTerminalProtocol.mosh.displayName
+        case .eternalTerminalSession: HostTerminalProtocol.eternalTerminal.displayName
+        case .telnetSession: String(localized: AppStrings.Vault.telnet)
+        case .sftpChannel: String(localized: AppStrings.SFTP.sftp)
+        case .serialSession: String(localized: AppStrings.Vault.serial)
         }
     }
 }
@@ -86,16 +100,10 @@ public struct ConnectionJourneyHeader: View {
         .padding(.horizontal, isEmbedded ? 16 : 34)
     }
 
-    private var title: String { journey.destination?.name ?? String(localized: "SSH Connection") }
+    private var title: String { journey.destination?.name ?? journey.purpose.protocolName }
 
     private var detail: String {
-        let protocolName: String =
-            switch journey.purpose {
-            case .sshSession, .metrics, .portForwarding, .keyExport: String(localized: AppStrings.Vault.ssh)
-            case .telnetSession: String(localized: AppStrings.Vault.telnet)
-            case .sftpChannel: String(localized: AppStrings.SFTP.sftp)
-            case .serialSession: String(localized: AppStrings.Vault.serial)
-            }
+        let protocolName = journey.purpose.protocolName
         let address = journey.destination?.address ?? ""
         if journey.mode == .reconnection {
             return String(localized: "Reconnecting \(protocolName) · \(address)")
@@ -130,7 +138,8 @@ public struct ConnectionJourneyStatus: View {
         case .waiting: String(localized: AppStrings.Connections.waitingForYou)
         case .succeeded:
             switch journey.purpose {
-            case .sshSession, .telnetSession, .serialSession: String(localized: AppStrings.Connections.terminalReady)
+            case .sshSession, .moshSession, .eternalTerminalSession, .telnetSession, .serialSession:
+                String(localized: AppStrings.Connections.terminalReady)
             case .sftpChannel: String(localized: AppStrings.Connections.fileBrowserReady)
             case .metrics: String(localized: AppStrings.Connections.metricsReady)
             case .keyExport: String(localized: AppStrings.KeyExport.completed)

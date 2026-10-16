@@ -16,6 +16,31 @@ import struct TermindDomain.Host
 @MainActor
 struct SnippetFeatureTests {
     @Test
+    func snippetPanesUseEachHostsDefaultTransport() throws {
+        var mosh = Host(name: "Mosh", host: "mosh.invalid")
+        mosh.terminalTransports.moshEnabled = true
+        mosh.terminalTransports.defaultTransport = .mosh
+        var eternal = Host(name: "ET", host: "et.invalid")
+        eternal.terminalTransports.eternalTerminalEnabled = true
+        eternal.terminalTransports.defaultTransport = .eternalTerminal
+        let ssh = Host(name: "SSH", host: "ssh.invalid")
+        let window = WindowModel()
+        let workspace = try #require(window.openSnippetWorkspace(hosts: [mosh, eternal, ssh], command: "uptime"))
+        defer { for pane in workspace.panes { pane.sshSession?.disconnect() } }
+
+        #expect(workspace.panes.compactMap { $0.sshSession?.transport } == [.mosh, .eternalTerminal, .ssh])
+        #expect(workspace.panes.map(\.hostID) == [mosh.id, eternal.id, ssh.id])
+        for pane in workspace.panes {
+            let session = try #require(pane.sshSession)
+            var commands: [String] = []
+            session.inputSink = { data in commands.append(String(decoding: data, as: UTF8.self)) }
+            session.submitPendingInitialCommand()
+            session.submitPendingInitialCommand()
+            #expect(commands == ["uptime\r"])
+        }
+    }
+
+    @Test
     func snippetCardsReadCreationAndEditTimesFromTheVaultJournal() async throws {
         let container = try TermindPersistence.makeContainer(inMemory: true)
         let persistence = HostPersistence(context: container.mainContext)

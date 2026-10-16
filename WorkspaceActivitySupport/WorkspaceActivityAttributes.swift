@@ -104,7 +104,7 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
             let rawHost = items.first(where: { $0.name == "host" })?.value,
             let host = UUID(uuidString: rawHost),
             let kind = items.first(where: { $0.name == "kind" })?.value,
-            ["ssh", "sftp", "telnet"].contains(kind)
+            ["ssh", "mosh", "eternalTerminal", "sftp", "telnet"].contains(kind)
         else { return nil }
         return Recovery(sourceWorkspaceID: id, hostID: host, kind: kind)
     }

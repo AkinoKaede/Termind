@@ -116,6 +116,11 @@ struct MobileWorkspaceView: View {
         MobileRegionReader { regions in
             MobilePaneLayout(frames: [regions.continuous]) {
                 workspaceContent
+                    .overlay(alignment: .top) {
+                        TerminalTransportStatusView(
+                            state: workspace.transportState, retry: workspace.retryReconnectNow,
+                            close: { closeWorkspace(workspace.id) })
+                    }
                     .overlay(alignment: .bottom) {
                         VStack(spacing: 12) {
                             if showsCommandGeneratorOverlay {
@@ -183,7 +188,7 @@ struct MobileWorkspaceView: View {
 
     @ToolbarContentBuilder
     private var workspaceToolbar: some ToolbarContent {
-        if workspace.descriptor.kind == .ssh {
+        if workspace.descriptor.kind.isSSHTerminal {
             MobileToolbarOverflow(placement: .topBarTrailing) {
                 Button(AppStrings.Workspace.generateCommand.swiftUIKey, systemImage: "sparkles") {
                     workspace.generateCommand(using: commandGenerator)
@@ -731,7 +736,7 @@ struct MobileWorkspaceView: View {
     }
 
     private var operationAlertTitle: String {
-        workspace.descriptor.kind == .ssh
+        workspace.descriptor.kind.isSSHTerminal
             ? String(localized: AppStrings.Workspace.uploadFailed)
             : String(localized: AppStrings.SFTP.sftpError)
     }
@@ -759,7 +764,7 @@ struct MobileWorkspaceView: View {
     private var sameDirectoryMenuAction: some View {
         if let launch = workspace.sameDirectoryLaunch {
             switch launch.kind {
-            case .ssh:
+            case .ssh, .mosh, .eternalTerminal:
                 Button(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: "terminal") {
                     openVerifiedDirectory(launch)
                 }
@@ -785,7 +790,7 @@ struct MobileWorkspaceView: View {
     private var isSFTP: Bool { workspace.descriptor.kind == .sftp }
 
     private var showsCommandGeneratorOverlay: Bool {
-        workspace.descriptor.kind == .ssh && workspace.commandGeneratorState != .idle
+        workspace.descriptor.kind.isSSHTerminal && workspace.commandGeneratorState != .idle
     }
 
     private var connectionJourney: some View {

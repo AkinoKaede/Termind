@@ -36,6 +36,8 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// worse than shipping none — so a sshSession is always a sshSession *on* a host.
     var hostID: Host.ID
     var title: String
+    var transport: HostTerminalProtocol = .ssh
+    private(set) var transportState: ResumableTerminalState?
     var status: ConnectionStatus = .disconnected {
         didSet {
             if !status.isLive, status != .connecting { commandMonitor.endConnection() }
@@ -428,6 +430,10 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     func connect(using store: any RemoteSessionHostStore) {
+        if transport.isResumable, let ssh {
+            Task { try? await ssh.retryTransport() }
+            return
+        }
         startsOnMount = false
         startConnection(using: store)
     }
@@ -452,8 +458,16 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             connectionJourney.fail(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
             return
         }
-        isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
-            globalSetting: DesktopSettingsKey.isShellIntegrationEnabled)
+        guard host.isEnabled(transport) else {
+            startsOnMount = false
+            status = .failed(TerminalTransportError.unsupportedRoute.localizedDescription)
+            connectionJourney.fail(TerminalTransportError.unsupportedRoute.localizedDescription)
+            return
+        }
+        isShellIntegrationEnabled =
+            transport != .mosh
+            && host.shellIntegrationMode.isEnabled(
+                globalSetting: DesktopSettingsKey.isShellIntegrationEnabled)
         if pendingInitialCommand == nil,
             let snippetID = host.startupSnippetID,
             let body = store.snippet(snippetID)?.body,
@@ -472,7 +486,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             ?? (host.isTailscaleManaged ? store.savedTailscaleUsername(for: host) : identity?.username)
             ?? usernameHint
         connectionJourney.begin(
-            host: host, route: route, purpose: .sshSession, username: username,
+            host: host, route: route, purpose: .terminal(transport), username: username,
             mode: reconnecting ? .reconnection : .connection
         )
         if let proxyHost = suppliedProxyAuthentications.firstHostRequiringProxyPassword(in: route) {
@@ -804,6 +818,10 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     }
 
     func retryReconnectNow() {
+        if transport.isResumable, let ssh {
+            Task { try? await ssh.retryTransport() }
+            return
+        }
         reconnectController.retryNow()
     }
 
@@ -859,6 +877,46 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         )
         ssh = actor
         do {
+            if transport.isResumable {
+                let snapshot = store.additionalConnectionSnapshot(from: configuration)
+                let port = host.terminalTransports.eternalTerminalPort
+                let requestFactory: @Sendable (Bool) async throws -> SSHConnectionRequest = {
+                    [weak self, weak store] authenticatingTarget in
+                    guard let self, let store, await self.connectionAttemptID == attemptID else {
+                        throw CancellationError()
+                    }
+                    return try await store.resumableRouteRequest(
+                        from: snapshot, authorizeHostKey: authorizeHostKey,
+                        keyboardInteractive: { [weak self] challenge in
+                            guard let self, await self.connectionAttemptID == attemptID else {
+                                throw CancellationError()
+                            }
+                            return try await self.connection.answerKeyboardInteractive(challenge)
+                        },
+                        securityKeySigning: { [weak self] request in
+                            guard let self, await self.connectionAttemptID == attemptID else {
+                                throw CancellationError()
+                            }
+                            return try await self.connection.signWithSecurityKey(request)
+                        },
+                        hostKeyConstraints: self.connectionOrigin.hostKeyConstraints,
+                        authenticatingTarget: authenticatingTarget)
+                }
+                await actor.configureTransport(
+                    transport, options: host.terminalTransports,
+                    route: {
+                        try await TerminalTransportRoute.open(using: requestFactory(false), port: port)
+                    },
+                    control: { command in
+                        try await TerminalTransportRoute.execute(command, using: requestFactory(true))
+                    },
+                    stateChanged: { [weak self] state in
+                        Task { @MainActor in
+                            guard let self, self.connectionAttemptID == attemptID else { return }
+                            self.receiveTransportState(state)
+                        }
+                    })
+            }
             await actor.configureEnvironment(host.environmentVariables) { variables in
                 let list = variables.joined(separator: ", ")
                 let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
@@ -910,9 +968,9 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
             status = .connected
-            if sessionPersistence.attachment == nil {
+            if transport == .ssh && sessionPersistence.attachment == nil {
                 commandHistory.load(using: RemoteShellHistoryLoader(channel: actor, charset: host.charset), source: nil)
-            } else {
+            } else if sessionPersistence.attachment != nil {
                 pendingInitialCommand = nil
                 pendingConnectionStartupCommand = nil
                 homeResolution = .unavailable
@@ -922,7 +980,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             } else {
                 connectionJourney.hide()
             }
-            if wasReconnecting, sessionPersistence.attachment == nil {
+            if wasReconnecting, transport == .ssh, sessionPersistence.attachment == nil {
                 appendTerminalNotice(
                     String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted)
                 )
@@ -935,6 +993,22 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             await actor.disconnect()
             if ssh === actor { ssh = nil }
             throw error
+        }
+    }
+
+    private func receiveTransportState(_ state: ResumableTerminalState) {
+        transportState = state
+        switch state {
+        case .connected:
+            status = .connected
+            connectionJourney.hide()
+        case .recovering:
+            status = .reconnecting
+        case .failed, .ended:
+            connection.resetRecovery()
+            status = .failed(TerminalTransportError.sessionFailed.localizedDescription)
+        case .suspended: status = .reconnecting
+        case .connecting, .closed: break
         }
     }
 
@@ -1026,6 +1100,12 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         _ error: any Error, store: any RemoteSessionHostStore, reconnecting: Bool
     ) {
         connectionAttemptID = nil
+        if transport.isResumable {
+            connection.resetRecovery()
+            status = .failed(error.localizedDescription)
+            connectionJourney.fail(error.localizedDescription)
+            return
+        }
         if connection.hasConnectedOnce || reconnecting {
             scheduleReconnect(after: error.localizedDescription, using: store)
         } else {
@@ -1048,7 +1128,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     private func scheduleReconnect(after message: String, using store: any RemoteSessionHostStore) {
         connection.scheduleReconnect(
             after: message, hostID: hostID, using: store,
-            purpose: .sshSession, route: connectionRoute, usernameHint: usernameHint
+            purpose: .terminal(transport), route: connectionRoute, usernameHint: usernameHint
         ) {
             resetCommandGeneratorShellState()
             connectionAttemptID = nil
@@ -1157,6 +1237,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     func copyForReconnect() -> SSHSessionModel {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
+        copy.transport = transport
         copy.sessionPersistence.attachment = sessionPersistence.attachment
         copy.connectionRoute = connectionRoute
         copy.connectionOrigin = connectionOrigin

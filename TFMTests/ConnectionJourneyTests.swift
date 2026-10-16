@@ -12,6 +12,32 @@ import struct TermindDomain.Host
 @Suite
 @MainActor
 struct ConnectionJourneyTests {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func resumableTerminalJourneyUsesTheSelectedTransport(_ transport: HostTerminalProtocol) {
+        var host = Host(name: "Server", host: "example.invalid")
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        let store = HostLibraryModel(hosts: [host])
+        let session = SSHSessionModel(host: host)
+        session.transport = transport
+        defer { session.disconnect() }
+
+        session.connect(using: store)
+
+        let purpose = session.connectionJourney.purpose
+        #expect(purpose == .terminal(transport))
+        #expect(purpose.protocolName == transport.displayName)
+        #expect(purpose.symbol(for: .header) == transport.symbol)
+        #expect(purpose.symbol(for: .routeDestination) == transport.symbol)
+        #expect(session.connectionJourney.plainTextLog.contains("Starting \(transport.displayName) session"))
+        #expect(session.connectionJourney.phase == .waiting)
+
+        session.connection.presentReconnectJourney(
+            host: host, using: store, purpose: .terminal(transport), username: "user")
+        #expect(session.connectionJourney.purpose == purpose)
+        #expect(session.connectionJourney.plainTextLog.contains("Reconnecting \(transport.displayName) session"))
+    }
+
     @Test
     func telnetUsesItsOwnSymbolThroughoutTheConnectionJourney() {
         #expect(ConnectionPurpose.telnetSession.symbol(for: .header) == "text.rectangle.fill")

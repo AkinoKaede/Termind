@@ -1232,6 +1232,8 @@ private struct ConnectionHistorySidebar: View {
         let target: HostOpenTarget =
             switch entry.kind {
             case .ssh: .sshSession
+            case .mosh: .moshSession
+            case .eternalTerminal: .eternalTerminalSession
             case .telnet: .telnetSession
             case .sftp: .sftpChannel
             }

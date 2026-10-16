@@ -16,6 +16,8 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 final class MobileAppModel {
+    let terminalRecoveryStore: TerminalRecoveryStore
+    private let workspaceStore: MobileWorkspaceStore
     let container: ModelContainer
     let hosts: any HostRepository
     let library: HostLibraryModel
@@ -81,7 +83,7 @@ final class MobileAppModel {
     {
         workspaceSessions.flatMap { session in
             session.workspaces.compactMap { workspace in
-                guard workspace.descriptor.kind == .ssh || workspace.descriptor.kind == .telnet else {
+                guard workspace.descriptor.kind.isSSHTerminal || workspace.descriptor.kind == .telnet else {
                     return nil
                 }
                 let owner = paneScenes.values.compactMap(\.value).first {
@@ -189,6 +191,8 @@ final class MobileAppModel {
         diagnosis = dependencies.diagnosis
         logging = dependencies.logging
         let memoryOnly = inMemory || hosts != nil
+        terminalRecoveryStore = dependencies.terminalRecoveryStore
+        workspaceStore = MobileWorkspaceStore(defaults: memoryOnly ? defaults : defaults ?? .standard)
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")
         if !memoryOnly {
             try FileManager.default.createDirectory(
@@ -432,7 +436,24 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
+        do {
+            let snapshot = try workspaceStore.load()
+            workspaceSessions = snapshot.sessions.sorted { $0.key < $1.key }.map {
+                MobileWorkspaceSessionModel(id: $0.key, app: self, descriptors: $0.value)
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
         observeHostArtwork()
+    }
+
+    func persistWorkspaceDescriptors() {
+        let sessions = workspaceSessions.filter { !$0.isDiscarded }.map { ($0.id, $0.restorableDescriptors) }
+        do {
+            try workspaceStore.save(.init(sessions: Dictionary(uniqueKeysWithValues: sessions)))
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 
     private func reconcileConnectionPreferences() {
@@ -458,7 +479,7 @@ final class MobileAppModel {
         for workspace in workspaces where workspace.descriptor.hostID == hostID {
             let matches =
                 switch (connectionProtocol, workspace.descriptor.kind) {
-                case (.ssh, .ssh), (.ssh, .sftp), (.telnet, .telnet): true
+                case (.ssh, .ssh), (.ssh, .mosh), (.ssh, .eternalTerminal), (.ssh, .sftp), (.telnet, .telnet): true
                 default: false
                 }
             if matches { workspace.disconnect() }
@@ -679,6 +700,7 @@ final class MobileAppModel {
             transfers.pauseAll()
             assistant.expireBackground()
         }
+        for workspace in workspaces { workspace.suspendResumableTransport() }
         liveActivities.update(workspaceActivitySessions)
     }
 
@@ -888,6 +910,7 @@ final class MobileAppModel {
     }
 
     func workspaceDidClose(_ id: UUID) {
+        Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(id) }
         endConnectionHistory(for: id)
         liveActivities.remove(id)
         for source in activityRebuilds.keys where activityRebuilds[source] == id {
@@ -919,6 +942,7 @@ final class MobileAppModel {
             else { return }
             workspaceActivitySessions[index] = session
             liveActivities.update(workspaceActivitySessions)
+            persistWorkspaceDescriptors()
         }
     }
 }

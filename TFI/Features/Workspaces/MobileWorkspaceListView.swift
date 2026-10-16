@@ -313,7 +313,7 @@ struct MobileWorkspaceListView: View {
 
     private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
         switch kind {
-        case .ssh: .accentColor
+        case .ssh, .mosh, .eternalTerminal: .accentColor
         case .telnet: .purple
         case .sftp: .orange
         }

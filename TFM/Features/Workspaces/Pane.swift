@@ -157,7 +157,7 @@ final class Pane: Identifiable {
 
     var symbol: String {
         switch content {
-        case .sshSession: "apple.terminal"
+        case .sshSession(let session): session.transport.symbol
         case .telnetSession: MenuSymbol.telnet
         case .sftpChannel: "folder"
         case .serialSession: "cable.connector"
@@ -402,22 +402,23 @@ extension Pane {
     /// Workspace — and a second copy of this is a second chance to forget the
     /// status flip.
     static func sshSession(
-        host: Host, usernameHint: String? = nil, initialCommand: String? = nil
+        host: Host, usernameHint: String? = nil, initialCommand: String? = nil, transport: HostTerminalProtocol = .ssh
     ) -> Pane {
         sshSession(
             host: host, usernameHint: usernameHint, initialCommand: initialCommand,
-            recordsInitialCommandInHistory: true
+            recordsInitialCommandInHistory: true, transport: transport
         )
     }
 
     static func sshSession(
         host: Host, usernameHint: String?, initialCommand: String?,
-        recordsInitialCommandInHistory: Bool
+        recordsInitialCommandInHistory: Bool, transport: HostTerminalProtocol = .ssh
     ) -> Pane {
         let sshSession = SSHSessionModel(
             host: host, usernameHint: usernameHint, initialCommand: initialCommand,
             recordsInitialCommandInHistory: recordsInitialCommandInHistory
         )
+        sshSession.transport = transport
         sshSession.status = .connecting
         return Pane(.sshSession(sshSession))
     }

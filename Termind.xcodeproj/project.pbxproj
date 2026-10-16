@@ -23,6 +23,7 @@
 		38462C442F34CFDE6FF4661D /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		38B690B07BB71C9BAA6B45B0 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		3CEFDFDB25F7D9C9A795C601 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		439F7F2720CE538D0A77ABB0 /* MoshBootstrap in Frameworks */ = {isa = PBXBuildFile; productRef = 8FD77C0915F32A5BA679231F /* MoshBootstrap */; };
 		5310B1DD3FA3FE77185B3F4A /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
 		640E0A8248C5231A7424BE56 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		6995A68F3132E9C67B0DA01E /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -37,6 +38,7 @@
 		88E7F9CE7BC5631B487E2BC5 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		8BFD569E84CA09FDEFF87698 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
 		8D2404FE022681C084DE0E23 /* TermindPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2CD72AE76428E896F81B64 /* TermindPresentation.framework */; };
+		8F54AB5B8FDF59C8A49EEC8D /* ETBootstrap in Frameworks */ = {isa = PBXBuildFile; productRef = 080FCAC89CDE2C755F682FC3 /* ETBootstrap */; };
 		8F73CAE12C350F5FDB033EE0 /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100016 /* GhosttyKit */; };
 		8FCAF8FD0FF78E38C58ED887 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		9AF99D2C7AF5E879598A5972 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -85,10 +87,12 @@
 		DEVK00000000000000000004 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
 		E28A00000000000000000002 /* V28.store in Resources */ = {isa = PBXBuildFile; fileRef = E28A00000000000000000001 /* V28.store */; };
 		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
+		E9A6C576AF3870A1958F9C5A /* ETSession in Frameworks */ = {isa = PBXBuildFile; productRef = 6335BE33C2C5F92BE0568DF6 /* ETSession */; };
 		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */; };
 		F04700000000000000000002 /* TFMTests/SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */; };
 		F04700000000000000000003 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		F16CFDDDB6CCEC48786E162F /* MoshCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5809494E158776907BA05655 /* MoshCore */; };
 		F1BA00000000000000000101 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
 		F1BA00000000000000000102 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000002 /* FirebaseCrashlytics */; };
 		F1BA00000000000000000201 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1BA00000000000000000001 /* FirebaseCore */; };
@@ -648,6 +652,10 @@
 				ABCDEF020000000000000002 /* AgentKitScrubber in Frameworks */,
 				0C77A0D7A810A78DA1F6CD93 /* CSSH2 in Frameworks */,
 				7A115CA1E000000000000001 /* TailscaleKit in Frameworks */,
+				8F54AB5B8FDF59C8A49EEC8D /* ETBootstrap in Frameworks */,
+				E9A6C576AF3870A1958F9C5A /* ETSession in Frameworks */,
+				439F7F2720CE538D0A77ABB0 /* MoshBootstrap in Frameworks */,
+				F16CFDDDB6CCEC48786E162F /* MoshCore in Frameworks */,
 				0D54DF6508C7918D7D5B9D5A /* OpenSSL in Frameworks */,
 				0861B3AA103F736DEE93983B /* TermindInfrastructure.framework in Frameworks */,
 				88E7F9CE7BC5631B487E2BC5 /* TermindDomain.framework in Frameworks */,
@@ -1136,6 +1144,10 @@
 			name = TermindRemoteInfrastructure;
 			packageProductDependencies = (
 				7A115CA1E000000000000002 /* TailscaleKit */,
+				080FCAC89CDE2C755F682FC3 /* ETBootstrap */,
+				6335BE33C2C5F92BE0568DF6 /* ETSession */,
+				8FD77C0915F32A5BA679231F /* MoshBootstrap */,
+				5809494E158776907BA05655 /* MoshCore */,
 				LOGG00000000000000000002 /* Logging */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
 				TRMD00000000000000100011 /* CSSH2 */,
@@ -1392,6 +1404,8 @@
 			mainGroup = TRMD00000000000000000030;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */,
+				8CD75E28C1BB4D9F1890547E /* XCRemoteSwiftPackageReference "swift-mosh" */,
 				7A115CA1E000000000000003 /* XCRemoteSwiftPackageReference "libtailscale-spm" */,
 				C0CA00000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				F1BA00000000000000000010 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
@@ -2902,6 +2916,14 @@
 				minimumVersion = 1.0.3;
 			};
 		};
+		8CD75E28C1BB4D9F1890547E /* XCRemoteSwiftPackageReference "swift-mosh" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/wiedymi/swift-mosh";
+			requirement = {
+				kind = revision;
+				revision = 9677768702727ba9094d4936062a452b9c544480;
+			};
+		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
@@ -2916,6 +2938,14 @@
 			requirement = {
 				kind = upToNextMinorVersion;
 				minimumVersion = 5.95.0;
+			};
+		};
+		C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/wiedymi/swift-et";
+			requirement = {
+				kind = revision;
+				revision = 6b7390b412fa46c59c54311bc688dd743b014a7b;
 			};
 		};
 		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
@@ -3009,10 +3039,30 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		080FCAC89CDE2C755F682FC3 /* ETBootstrap */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */;
+			productName = ETBootstrap;
+		};
+		5809494E158776907BA05655 /* MoshCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8CD75E28C1BB4D9F1890547E /* XCRemoteSwiftPackageReference "swift-mosh" */;
+			productName = MoshCore;
+		};
+		6335BE33C2C5F92BE0568DF6 /* ETSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1E0C225CFF81C5919AA14D0 /* XCRemoteSwiftPackageReference "swift-et" */;
+			productName = ETSession;
+		};
 		7A115CA1E000000000000002 /* TailscaleKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7A115CA1E000000000000003 /* XCRemoteSwiftPackageReference "libtailscale-spm" */;
 			productName = TailscaleKit;
+		};
+		8FD77C0915F32A5BA679231F /* MoshBootstrap */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8CD75E28C1BB4D9F1890547E /* XCRemoteSwiftPackageReference "swift-mosh" */;
+			productName = MoshBootstrap;
 		};
 		BAAD00000000000000000002 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;

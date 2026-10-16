@@ -154,6 +154,7 @@ struct HostEditorView: View {
             HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
 
             if selectedProtocol == .ssh && draft.sshEnabled {
+                HostTransportSection(host: $draft)
                 if draft.isTailscaleManaged {
                     Section(AppStrings.Vault.authentication.swiftUIKey) {
                         TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)
@@ -655,7 +656,7 @@ struct HostEditorView: View {
     private var isValid: Bool {
         !draft.host.trimmingCharacters(in: .whitespaces).isEmpty
             && draft.preferredTerminalProtocol != nil
-            && (!draft.sshEnabled || (1...65_535).contains(draft.sshPort))
+            && (!draft.sshEnabled || (draft.terminalTransports.isValid && (1...65_535).contains(draft.sshPort)))
             && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
             && customIdentity.isProxyValid(for: draft)
             && (draft.isTailscaleManaged || customIdentity.isSSHValid(for: draft))

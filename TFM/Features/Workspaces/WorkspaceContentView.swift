@@ -1239,6 +1239,10 @@ private struct WelcomeWorkspaceTemplateRow: View {
             switch pane {
             case .ssh(let hostID):
                 "\(app.hostLibrary.host(hostID)?.name ?? String(localized: AppStrings.Workspace.unavailableHost)) · SSH"
+            case .mosh(let hostID):
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: AppStrings.Workspace.unavailableHost)) · Mosh"
+            case .eternalTerminal(let hostID):
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: AppStrings.Workspace.unavailableHost)) · Eternal Terminal"
             case .telnet(let hostID):
                 "\(app.hostLibrary.host(hostID)?.name ?? String(localized: AppStrings.Workspace.unavailableHost)) · Telnet"
             case .sftp(let hostID):

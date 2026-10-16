@@ -326,6 +326,8 @@ struct TermindCommands: Commands {
                 let target: HostOpenTarget =
                     switch row.entry.kind {
                     case .ssh: .sshSession
+                    case .mosh: .moshSession
+                    case .eternalTerminal: .eternalTerminalSession
                     case .telnet: .telnetSession
                     case .sftp: .sftpChannel
                     }

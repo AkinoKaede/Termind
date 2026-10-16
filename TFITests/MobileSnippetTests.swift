@@ -130,8 +130,12 @@ struct MobileSnippetTests {
 
     @Test func executionCreatesIndependentWorkspacesInVaultOrderWithoutChangingTargets() throws {
         let app = try MobileAppModel(inMemory: true)
-        let first = Host(name: "First", host: "first.example.invalid")
-        let second = Host(name: "Second", host: "second.example.invalid")
+        var first = Host(name: "First", host: "first.example.invalid")
+        first.terminalTransports.moshEnabled = true
+        first.terminalTransports.defaultTransport = .mosh
+        var second = Host(name: "Second", host: "second.example.invalid")
+        second.terminalTransports.eternalTerminalEnabled = true
+        second.terminalTransports.defaultTransport = .eternalTerminal
         app.library.upsert(first)
         app.library.upsert(second)
         let snippet = Snippet(title: "Status", body: "uptime", targetHostIDs: [first.id])
@@ -142,13 +146,14 @@ struct MobileSnippetTests {
 
         #expect(opened.count == 2)
         #expect(app.workspaces.suffix(2).map(\.descriptor.hostID) == [first.id, second.id])
-        #expect(app.workspaces.suffix(2).allSatisfy { $0.descriptor.kind == .ssh })
+        #expect(app.workspaces.suffix(2).map(\.descriptor.kind) == [.mosh, .eternalTerminal])
         #expect(app.workspaces.suffix(2).allSatisfy { $0.pendingInitialCommand == snippet.body })
         #expect(app.snippets.snippets.first?.targetHostIDs == [first.id])
         let connectionHistory = app.connectionHistory.entries()
         #expect(connectionHistory.count == 2)
         #expect(Set(connectionHistory.map(\.hostID)) == Set([first.id, second.id]))
-        #expect(connectionHistory.allSatisfy { $0.kind == .ssh })
+        #expect(connectionHistory.first { $0.hostID == first.id }?.kind == .mosh)
+        #expect(connectionHistory.first { $0.hostID == second.id }?.kind == .eternalTerminal)
         #expect(!app.pro.isPaywallPresented)
     }
 

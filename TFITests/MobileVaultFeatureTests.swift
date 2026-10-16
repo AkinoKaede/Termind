@@ -93,7 +93,7 @@ struct MobileVaultFeatureTests {
     @Test func hostMenuSeparatesConnectionEditingAndDeletionActions() {
         #expect(
             MobileHostMenuPolicy.sections == [
-                [.ssh, .telnet, .sftp],
+                [.ssh, .mosh, .eternalTerminal, .telnet, .sftp],
                 [.tailscale],
                 [.edit, .duplicate],
                 [.delete],
@@ -117,6 +117,8 @@ struct MobileVaultFeatureTests {
             ])
 
         host.sshEnabled = true
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
         #expect(MobileHostMenuPolicy.sections(for: host, hasTailscalePeer: true) == MobileHostMenuPolicy.sections)
 
         host.sshEnabled = false

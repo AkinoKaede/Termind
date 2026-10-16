@@ -51,7 +51,7 @@ struct MobileHostEditor: View {
                 || !customIdentity.telnetProxyPassword.isEmpty,
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && draft.preferredTerminalProtocol != nil
-                && (!draft.sshEnabled || (1...65_535).contains(draft.sshPort))
+                && (!draft.sshEnabled || (draft.terminalTransports.isValid && (1...65_535).contains(draft.sshPort)))
                 && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
                 && (draft.isTailscaleManaged || customIdentity.isSSHValid(for: draft))
                 && customIdentity.isProxyValid(for: draft)
@@ -90,6 +90,7 @@ struct MobileHostEditor: View {
                 }
                 HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
                 if selectedProtocol == .ssh && draft.sshEnabled {
+                    HostTransportSection(host: $draft)
                     if draft.isTailscaleManaged {
                         Section(AppStrings.Vault.authentication.swiftUIKey) {
                             TextField(AppStrings.Vault.username.swiftUIKey, text: $tailscaleUsername)

@@ -27,7 +27,7 @@ struct HistorySyncTests {
         #expect(device["payload"] == nil)
         #expect(try HistoryRecordSyncCoordinator.envelope(from: device) == fixture.device)
         event["endedAt"] = NSDate()
-        try HistoryCloudRecordV1.write(fixture.event, into: event)
+        try HistoryCloudRecordV2.write(fixture.event, into: event)
         #expect(event["endedAt"] == nil)
         event["connectionKind"] = "future-protocol" as NSString
         #expect(throws: (any Error).self) { try HistoryRecordSyncCoordinator.envelope(from: event) }

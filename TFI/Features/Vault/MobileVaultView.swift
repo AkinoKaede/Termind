@@ -15,6 +15,8 @@ enum MobileHistoryPresentation {
 
 enum MobileHostMenuAction: Hashable, Sendable {
     case ssh
+    case mosh
+    case eternalTerminal
     case telnet
     case sftp
     case edit
@@ -25,7 +27,7 @@ enum MobileHostMenuAction: Hashable, Sendable {
 
 nonisolated enum MobileHostMenuPolicy {
     static let sections: [[MobileHostMenuAction]] = [
-        [.ssh, .telnet, .sftp],
+        [.ssh, .mosh, .eternalTerminal, .telnet, .sftp],
         [.tailscale],
         [.edit, .duplicate],
         [.delete],
@@ -37,6 +39,8 @@ nonisolated enum MobileHostMenuPolicy {
                 switch action {
                 case .ssh, .sftp: host.sshEnabled
                 case .telnet: host.telnetEnabled
+                case .mosh: host.isEnabled(.mosh)
+                case .eternalTerminal: host.isEnabled(.eternalTerminal)
                 case .tailscale: host.isTailscaleManaged || hasTailscalePeer
                 case .edit, .duplicate, .delete: true
                 }
@@ -194,7 +198,7 @@ struct MobileConnectionHistoryView: View {
 
     private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
         switch kind {
-        case .ssh: .accentColor
+        case .ssh, .mosh, .eternalTerminal: .accentColor
         case .telnet: .purple
         case .sftp: .orange
         }
@@ -810,6 +814,17 @@ struct MobileVaultView: View {
         case .ssh:
             Button(AppStrings.Vault.ssh.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.ssh.symbol) {
                 open(host.id, .ssh)
+            }
+        case .mosh:
+            Button(AppStrings.Transports.mosh.swiftUIKey, systemImage: HostTerminalProtocol.mosh.symbol) {
+                open(host.id, .mosh)
+            }
+        case .eternalTerminal:
+            Button(
+                AppStrings.Transports.eternalTerminal.swiftUIKey,
+                systemImage: HostTerminalProtocol.eternalTerminal.symbol
+            ) {
+                open(host.id, .eternalTerminal)
             }
         case .telnet:
             Button(AppStrings.Vault.telnet.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.telnet.symbol) {

@@ -19,6 +19,7 @@ struct MobileAppDependencies {
     var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
     var container: ModelContainer? = nil
     var liveActivities: MobileLiveActivityController? = nil
+    var terminalRecoveryStore: TerminalRecoveryStore = .shared
     var createWorkspaceWindow: @MainActor (UUID, @escaping @MainActor () -> Void) -> Void =
         MobileWorkspaceSceneRouting.createWindow
     var activateWorkspaceSession: @MainActor (String, UUID, @escaping @MainActor () -> Void) -> Void =

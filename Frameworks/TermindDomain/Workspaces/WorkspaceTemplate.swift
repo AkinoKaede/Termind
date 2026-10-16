@@ -20,13 +20,16 @@ public nonisolated struct WorkspaceTemplate: Identifiable, Codable, Hashable, Se
 
 public nonisolated enum WorkspaceTemplatePane: Codable, Hashable, Sendable {
     case ssh(hostID: Host.ID)
+    case mosh(hostID: Host.ID)
+    case eternalTerminal(hostID: Host.ID)
     case telnet(hostID: Host.ID)
     case sftp(hostID: Host.ID)
     case empty
 
     public var hostID: Host.ID? {
         switch self {
-        case .ssh(let hostID), .telnet(let hostID), .sftp(let hostID): hostID
+        case .ssh(let hostID), .mosh(let hostID), .eternalTerminal(let hostID), .telnet(let hostID), .sftp(let hostID):
+            hostID
         case .empty: nil
         }
     }

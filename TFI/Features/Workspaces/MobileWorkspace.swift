@@ -91,6 +91,25 @@ final class MobileWorkspace: Identifiable {
     let transfers: SFTPTransferCoordinator?
     private var transferContext: SFTPTransferContext?
     private var transferSnapshot: SSHAdditionalConnectionSnapshot?
+    var resumeCheckpoint: TerminalTransportCheckpoint?
+    var requiresTransportRecovery = false
+    var terminalRecoveryStore: TerminalRecoveryStore = .shared
+    private var restoringTransport = false
+    private var resumeUsername: String?
+    private(set) var transportState: ResumableTerminalState?
+    var recoveryID: UUID { id }
+    private var recoveryLease: UUID?
+    private var recoveryRecord: TerminalRecoveryRecord?
+    private var transportSuspension: Task<Void, Never>?
+    private var transport: HostTerminalProtocol { descriptor.kind.terminalProtocol ?? .ssh }
+    private var connectionPurpose: ConnectionPurpose {
+        descriptor.kind.terminalProtocol.map(ConnectionPurpose.terminal) ?? .sftpChannel
+    }
+    var restorationDescriptor: MobileWorkspaceDescriptor {
+        var result = descriptor
+        result.remoteSession = sessionPersistence.attachment
+        return result
+    }
     private(set) var uploadNotice: WorkspaceUploadNotice?
     private var pendingUpload: MobilePendingUpload?
     private var uploadPreparationTask: Task<Void, Never>?
@@ -156,12 +175,12 @@ final class MobileWorkspace: Identifiable {
     var uploadConnectionGeneration: UUID { generation }
 
     func configureTerminalUpload(files: (() -> Void)?, photos: (() -> Void)? = nil) {
-        surfaceOwner.view.uploadFiles = descriptor.kind == .ssh ? files : nil
-        surfaceOwner.view.uploadPhotos = descriptor.kind == .ssh ? photos : nil
+        surfaceOwner.view.uploadFiles = descriptor.kind.isSSHTerminal ? files : nil
+        surfaceOwner.view.uploadPhotos = descriptor.kind.isSSHTerminal ? photos : nil
         surfaceOwner.view.canUploadFiles = { [weak self] in self?.uploadTargetProblem == nil && self != nil }
     }
 
-    var uploadTerminalView: UIView? { descriptor.kind == .ssh ? surfaceOwner.view : nil }
+    var uploadTerminalView: UIView? { descriptor.kind.isSSHTerminal ? surfaceOwner.view : nil }
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
 
@@ -209,7 +228,7 @@ final class MobileWorkspace: Identifiable {
     var sameDirectoryLaunch: MobileWorkspaceDirectoryLaunch? {
         guard connected else { return nil }
         switch descriptor.kind {
-        case .ssh:
+        case .ssh, .mosh, .eternalTerminal:
             guard isShellIntegrationEnabled,
                 shellIntegrationAvailable,
                 let workingDirectory,
@@ -234,7 +253,7 @@ final class MobileWorkspace: Identifiable {
 
     var uploadDestination: String? {
         switch descriptor.kind {
-        case .ssh:
+        case .ssh, .mosh, .eternalTerminal:
             guard uploadTargetProblem == nil, let workingDirectory else { return nil }
             return RemotePath.normalized(workingDirectory)
         case .sftp:
@@ -247,7 +266,7 @@ final class MobileWorkspace: Identifiable {
 
     var uploadTargetProblem: String? {
         switch descriptor.kind {
-        case .ssh:
+        case .ssh, .mosh, .eternalTerminal:
             return TerminalUploadAvailability.problem(
                 isConnected: connected,
                 hasTransferConfiguration: transferSnapshot != nil,
@@ -462,7 +481,7 @@ final class MobileWorkspace: Identifiable {
             cancelCommandGeneration()
             return
         }
-        guard descriptor.kind == .ssh, canGenerateFromCurrentDraft else {
+        guard descriptor.kind.isSSHTerminal, canGenerateFromCurrentDraft else {
             showCommandGenerationFailure(
                 String(
                     localized:
@@ -516,7 +535,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func receiveWorkingDirectory(_ path: String?) {
-        guard descriptor.kind != .ssh || isShellIntegrationEnabled else { return }
+        guard !descriptor.kind.isSSHTerminal || isShellIntegrationEnabled else { return }
         guard !hasRuntimeContext else { return }
         let path = path?.isEmpty == false ? path : nil
         guard workingDirectory != path else { return }
@@ -756,9 +775,78 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    private func restoreTransport() {
+        guard !restoringTransport else { return }
+        restoringTransport = true
+        let token = generation
+        attempt = Task { [weak self] in
+            guard let self else { return }
+            defer { restoringTransport = false }
+            do {
+                guard let host = connectionHost(descriptor.hostID), host.isEnabled(transport) else {
+                    throw TerminalTransportError.invalidCheckpoint
+                }
+                let record = try await terminalRecoveryStore.record(recoveryID)
+                let currentUsername =
+                    host.isTailscaleManaged
+                    ? hosts.savedTailscaleUsername(for: host) : hosts.identity(for: host)?.username
+                guard record.transport == transport,
+                    currentUsername == nil || currentUsername == record.username
+                else { throw TerminalTransportError.invalidCheckpoint }
+                try Task.checkCancellation()
+                guard generation == token else { return }
+                let checkpoint = try await terminalRecoveryStore.consume(recoveryID, host: host)
+                try Task.checkCancellation()
+                guard generation == token else { return }
+                resumeCheckpoint = checkpoint
+                resumeUsername = record.username
+                requiresTransportRecovery = false
+                pendingCommand = nil
+                pendingConnectionStartupCommand = nil
+                connect()
+            } catch {
+                guard generation == token, !Task.isCancelled else { return }
+                if sessionPersistence.attachment != nil {
+                    do {
+                        try await terminalRecoveryStore.discard(recoveryID)
+                        guard generation == token, !Task.isCancelled else { return }
+                        // tmux has its own server-side identity; validate it over a new transport,
+                        // never replay the launch command or silently replace a missing session.
+                        requiresTransportRecovery = false
+                        resumeCheckpoint = nil
+                        resumeUsername = nil
+                        sessionPersistence.requiresSelection = true
+                        pendingCommand = nil
+                        pendingConnectionStartupCommand = nil
+                        connect()
+                        return
+                    } catch {
+                        guard generation == token, !Task.isCancelled else { return }
+                    }
+                }
+                transportState = .failed
+                connectionFailure = TerminalTransportError.invalidCheckpoint.localizedDescription
+                status = connectionFailure ?? ""
+                busy = false
+            }
+        }
+    }
+
     func connect() {
+        if transportSuspension != nil {
+            resumeAfterBackground()
+            return
+        }
+        if requiresTransportRecovery {
+            restoreTransport()
+            return
+        }
+        if transport.isResumable, let ssh {
+            Task { try? await ssh.retryTransport() }
+            return
+        }
         guard !busy, !connected else { return }
-        if descriptor.kind != .ssh, sessionPersistence.requiresSelection {
+        if !descriptor.kind.isSSHTerminal, sessionPersistence.requiresSelection {
             busy = true
             presentConnectionJourney(mode: .connection)
             attempt = Task { [weak self] in
@@ -780,7 +868,7 @@ final class MobileWorkspace: Identifiable {
         let token = UUID()
         generation = token
         commandMonitor.beginConnection()
-        if descriptor.kind == .ssh { commandMonitor.requireScopedEvents() }
+        if descriptor.kind.isSSHTerminal { commandMonitor.requireScopedEvents() }
         activeHistoryID = nil
         resetCommandGeneratorShellState()
         operationError = nil
@@ -797,13 +885,21 @@ final class MobileWorkspace: Identifiable {
             journey.fail(message)
             return
         }
+        guard host.isEnabled(transport) else {
+            busy = false
+            connectionFailure = TerminalTransportError.unsupportedRoute.localizedDescription
+            journey.fail(connectionFailure ?? "")
+            return
+        }
         if descriptor.kind == .telnet {
             connectTelnet(host: host, token: token, reconnecting: reconnecting)
             return
         }
-        isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
-            globalSetting: terminalSettings.preferences.shellIntegration)
-        if descriptor.kind == .ssh, pendingCommand == nil,
+        isShellIntegrationEnabled =
+            descriptor.kind != .mosh
+            && host.shellIntegrationMode.isEnabled(
+                globalSetting: terminalSettings.preferences.shellIntegration)
+        if resumeCheckpoint == nil, descriptor.kind.isSSHTerminal, pendingCommand == nil,
             let snippetID = host.startupSnippetID,
             let body = hosts.snippet(snippetID)?.body,
             !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -813,12 +909,13 @@ final class MobileWorkspace: Identifiable {
             )
         }
         let route = connectionRoute?.hosts ?? hosts.route(for: host)
+        let authenticationRoute = resumeCheckpoint == nil ? route : (transport == .mosh ? [] : Array(route.dropLast()))
         journey.begin(
             host: host, route: route,
-            purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
+            purpose: connectionPurpose,
             username: usernameHint ?? hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
-        if host.isTailscaleManaged, submissions[host.id] == nil, usernameHint == nil,
+        if resumeCheckpoint == nil, host.isTailscaleManaged, submissions[host.id] == nil, usernameHint == nil,
             hosts.savedTailscaleUsername(for: host) == nil
         {
             authenticationRequired = true
@@ -831,7 +928,7 @@ final class MobileWorkspace: Identifiable {
             busy = false
             return
         }
-        if let proxyHost = proxySubmissions.firstHostRequiringProxyPassword(in: route) {
+        if let proxyHost = proxySubmissions.firstHostRequiringProxyPassword(in: authenticationRoute) {
             authenticationRequired = true
             authenticationIsProxy = true
             authenticationMode = .localIdentity
@@ -842,7 +939,7 @@ final class MobileWorkspace: Identifiable {
             busy = false
             return
         }
-        if let passwordHost = submissions.firstHostRequiringPassword(in: route) {
+        if let passwordHost = submissions.firstHostRequiringPassword(in: authenticationRoute) {
             authenticationRequired = true
             authenticationMode = .localIdentity
             authenticationHostID = passwordHost.id
@@ -855,7 +952,7 @@ final class MobileWorkspace: Identifiable {
             return
         }
         if let passphraseHost = submissions.firstHostRequiringPassphrase(
-            in: route, key: hosts.key, requiresEntry: hosts.requiresPassphraseEntry
+            in: authenticationRoute, key: hosts.key, requiresEntry: hosts.requiresPassphraseEntry
         ) {
             authenticationRequired = true
             authenticationMode = .localIdentity
@@ -882,13 +979,21 @@ final class MobileWorkspace: Identifiable {
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {
-                let preparation = try hosts.prepareSSHConnection(
-                    for: host, submissions: attemptSubmissions,
-                    proxySubmissions: attemptProxySubmissions,
-                    temporaryHostKeys: temporaryKeys)
-                let config = try await preparation.resolve(
-                    trustPolicy: .allowChallenge
-                )
+                var resolvedConfiguration: SSHConnectionConfiguration
+                if resumeCheckpoint != nil, transport == .mosh {
+                    resolvedConfiguration = SSHConnectionConfiguration(
+                        hostID: host.id, host: host.host, port: host.sshPort,
+                        username: resumeUsername ?? "", credentials: [], expectedHostKeys: [])
+                } else {
+                    let preparation = try hosts.prepareSSHConnection(
+                        for: host, submissions: attemptSubmissions,
+                        proxySubmissions: attemptProxySubmissions,
+                        temporaryHostKeys: temporaryKeys)
+                    resolvedConfiguration = try await preparation.resolve(
+                        discoveryOnly: resumeCheckpoint != nil, trustPolicy: .allowChallenge)
+                }
+                if let resumeUsername { resolvedConfiguration.username = resumeUsername }
+                let config = resolvedConfiguration
                 guard generation == token, !Task.isCancelled else { return }
                 var request = SSHConnectionRequest(
                     configuration: config,
@@ -909,7 +1014,7 @@ final class MobileWorkspace: Identifiable {
 
                 request.agentForwardingContextID = id
                 var externalFile: RemoteFile?
-                if descriptor.kind == .ssh {
+                if descriptor.kind.isSSHTerminal {
                     let backend = backend
                     let handlers = startSSHEventConsumer(for: token)
                     let session = connectionServices.makePTYChannel(
@@ -917,6 +1022,50 @@ final class MobileWorkspace: Identifiable {
                         handlers.exit,
                         handlers.shellIntegration)
                     ssh = session
+                    if transport.isResumable {
+                        recoveryRecord = TerminalRecoveryRecord(
+                            id: recoveryID, host: host, username: config.username, transport: transport)
+                        recoveryLease = await terminalRecoveryStore.register(recoveryID)
+                        guard generation == token else { throw CancellationError() }
+                        let snapshot = hosts.additionalConnectionSnapshot(from: config)
+                        let port = host.terminalTransports.eternalTerminalPort
+                        let hostKeyAuthorizer = request.authorizeHostKey
+                        let keyboardInteractive = request.keyboardInteractive
+                        let securityKeySigning = request.securityKeySigning
+                        let hostKeyConstraints = request.hostKeyConstraints
+                        let needsControlRoute = transport == .mosh && resumeCheckpoint != nil
+                        let controlUsername = config.username
+                        let requestFactory: @Sendable (Bool) async throws -> SSHConnectionRequest = {
+                            [weak self, weak hosts] authenticatingTarget in
+                            guard let self, let hosts, await self.generation == token else {
+                                throw CancellationError()
+                            }
+                            let selectedSnapshot =
+                                if authenticatingTarget && needsControlRoute {
+                                    try await hosts.resumableControlSnapshot(for: host, username: controlUsername)
+                                } else {
+                                    snapshot
+                                }
+                            return try await hosts.resumableRouteRequest(
+                                from: selectedSnapshot, authorizeHostKey: hostKeyAuthorizer,
+                                keyboardInteractive: keyboardInteractive, securityKeySigning: securityKeySigning,
+                                hostKeyConstraints: hostKeyConstraints, authenticatingTarget: authenticatingTarget)
+                        }
+                        await session.configureTransport(
+                            transport, options: host.terminalTransports, checkpoint: resumeCheckpoint,
+                            route: {
+                                try await TerminalTransportRoute.open(using: requestFactory(false), port: port)
+                            },
+                            control: { command in
+                                try await TerminalTransportRoute.execute(command, using: requestFactory(true))
+                            },
+                            stateChanged: { [weak self] state in
+                                Task { @MainActor in
+                                    guard let self, self.generation == token else { return }
+                                    self.receiveTransportState(state)
+                                }
+                            })
+                    }
                     await session.configureEnvironment(host.environmentVariables) { variables in
                         let list = variables.joined(separator: ", ")
                         let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
@@ -955,6 +1104,11 @@ final class MobileWorkspace: Identifiable {
                         UInt16(clamping: viewport.rows),
                         progressHandler
                     )
+                    if resumeCheckpoint != nil {
+                        pendingCommand = nil
+                        pendingConnectionStartupCommand = nil
+                        resumeCheckpoint = nil
+                    }
                 } else {
                     let client = try await connectionServices.connectSFTP(
                         request, progressHandler,
@@ -1035,7 +1189,7 @@ final class MobileWorkspace: Identifiable {
                 proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
-                if let ssh, sessionPersistence.attachment == nil {
+                if descriptor.kind == .ssh, let ssh, sessionPersistence.attachment == nil {
                     commandHistory.load(
                         using: RemoteShellHistoryLoader(channel: ssh, charset: host.charset), source: nil)
                 }
@@ -1048,7 +1202,7 @@ final class MobileWorkspace: Identifiable {
                 if wasReconnecting, descriptor.kind == .ssh, sessionPersistence.attachment == nil {
                     appendTerminalNotice(String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted))
                 }
-                if descriptor.kind == .ssh {
+                if descriptor.kind.isSSHTerminal {
                     if !isShellIntegrationEnabled {
                         isInitialCommandSubmissionReady = true
                     }
@@ -1060,6 +1214,12 @@ final class MobileWorkspace: Identifiable {
                 }
             } catch {
                 guard generation == token else { return }
+                if resumeCheckpoint != nil, ssh != nil {
+                    // Once a restored engine could have transmitted, never reuse its saved counters.
+                    resumeCheckpoint = nil
+                    requiresTransportRecovery = true
+                    transportState = .failed
+                }
                 stopSSHEventConsumer()
                 connectionFailure =
                     error is CancellationError
@@ -1242,7 +1402,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func submitPendingInitialCommandIfReady() {
-        guard descriptor.kind == .ssh, connected, isInitialCommandSubmissionReady,
+        guard descriptor.kind.isSSHTerminal, connected, isInitialCommandSubmissionReady,
             let session = ssh, let command = consumePendingInitialCommand()
         else { return }
         let token = generation
@@ -1254,6 +1414,14 @@ final class MobileWorkspace: Identifiable {
     }
 
     func retryReconnectNow() {
+        if transportSuspension != nil {
+            resumeAfterBackground()
+            return
+        }
+        if transport.isResumable, let ssh {
+            Task { try? await ssh.retryTransport() }
+            return
+        }
         connection.reconnect.retryNow()
     }
 
@@ -1289,6 +1457,10 @@ final class MobileWorkspace: Identifiable {
     }
 
     func suspendForBackgroundExpiration() {
+        if transport.isResumable, ssh != nil {
+            suspendResumableTransport()
+            return
+        }
         guard connectionResumeIntent != .foreground, hasActiveConnectionFlow else { return }
         cancelPendingUpload()
         stopSSHEventConsumer()
@@ -1333,7 +1505,65 @@ final class MobileWorkspace: Identifiable {
     func resumeAfterBackground() {
         guard connectionResumeIntent == .foreground else { return }
         connectionResumeIntent = .none
+        if transport.isResumable, let ssh {
+            let token = generation
+            let suspension = transportSuspension
+            Task { [weak self] in
+                await suspension?.value
+                guard let self, self.generation == token else { return }
+                do {
+                    try await self.terminalRecoveryStore.invalidate(self.recoveryID)
+                    guard self.generation == token else { return }
+                    try await ssh.resumeTransport()
+                    self.transportSuspension = nil
+                } catch {
+                    self.receiveTransportState(.failed)
+                }
+            }
+            return
+        }
         connect()
+    }
+
+    func suspendResumableTransport() {
+        guard transport.isResumable, transportSuspension == nil, let ssh,
+            let record = recoveryRecord, let lease = recoveryLease
+        else { return }
+        connectionResumeIntent = .foreground
+        let token = generation
+        transportSuspension = Task { [weak self] in
+            do {
+                let checkpoint = try await ssh.suspendTransport()
+                guard let self, self.generation == token, self.ssh === ssh else { return }
+                try await self.terminalRecoveryStore.save(record, checkpoint: checkpoint, lease: lease)
+            } catch {
+                guard let self, self.generation == token else { return }
+                self.operationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func receiveTransportState(_ state: ResumableTerminalState) {
+        transportState = state
+        switch state {
+        case .connected:
+            connected = true
+            busy = false
+            status = String(localized: AppStrings.Connections.connected)
+            journey.hide()
+        case .recovering, .suspended:
+            connected = false
+            status = String(localized: AppStrings.Connections.reconnecting)
+        case .failed, .ended:
+            connected = false
+            busy = false
+            connection.resetRecovery()
+            connectionFailure = TerminalTransportError.sessionFailed.localizedDescription
+            status = connectionFailure ?? ""
+            let recoveryID = recoveryID
+            Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
+        case .connecting, .closed: break
+        }
     }
 
     func restoreRemoteSession(_ reference: RemoteSessionReference?) {
@@ -1427,6 +1657,11 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func handleConnectionFailure(_ message: String) {
+        if transport.isResumable {
+            connectionFailure = message
+            receiveTransportState(.failed)
+            return
+        }
         guard connection.hasConnectedOnce else { return }
         scheduleReconnect(after: message)
     }
@@ -1452,7 +1687,7 @@ final class MobileWorkspace: Identifiable {
         connected = false
         transferSnapshot = nil
         status = String(localized: AppStrings.Connections.reconnecting)
-        if announcesLoss, descriptor.kind == .ssh {
+        if announcesLoss, descriptor.kind.isSSHTerminal {
             appendTerminalNotice(String(localized: AppStrings.Connections.connectionLostReconnectingProgress))
         }
         if let host = connectionHost(descriptor.hostID) {
@@ -1464,7 +1699,7 @@ final class MobileWorkspace: Identifiable {
             } else {
                 journey.begin(
                     host: host, route: connectionRoute?.hosts ?? hosts.route(for: host),
-                    purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
+                    purpose: connectionPurpose,
                     username: usernameHint ?? hosts.identity(for: host)?.username, mode: .reconnection)
             }
         }
@@ -1515,6 +1750,13 @@ final class MobileWorkspace: Identifiable {
     }
 
     func disconnect() {
+        if transport.isResumable {
+            let recoveryID = recoveryID
+            Task { [terminalRecoveryStore] in try? await terminalRecoveryStore.discard(recoveryID) }
+            recoveryLease = nil
+            transportSuspension?.cancel()
+            transportSuspension = nil
+        }
         sessionPersistence.cancel()
         commandHistory.cancelLoading()
         commandMonitor.endConnection()
@@ -1647,15 +1889,9 @@ final class MobileWorkspace: Identifiable {
             journey.fail(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
             return
         }
-        let purpose: ConnectionPurpose =
-            switch descriptor.kind {
-            case .ssh: .sshSession
-            case .telnet: .telnetSession
-            case .sftp: .sftpChannel
-            }
         journey.begin(
             host: host, route: hosts.route(for: host),
-            purpose: purpose,
+            purpose: connectionPurpose,
             username: hosts.identity(for: host)?.username, mode: mode)
     }
 
@@ -2009,7 +2245,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func reportUploadFailure(_ message: String) {
-        if descriptor.kind == .ssh {
+        if descriptor.kind.isSSHTerminal {
             showUploadNotice(.rejected(message))
         } else {
             uploadNotice = nil

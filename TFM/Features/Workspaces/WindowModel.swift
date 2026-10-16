@@ -920,7 +920,7 @@ final class WindowModel {
 
     @discardableResult
     func openSSHSession(
-        host: Host,
+        host: Host, transport: HostTerminalProtocol = .ssh,
         usernameHint: String? = nil,
         connectionRoute: SSHConnectionRoute? = nil,
         initialPath: String? = nil,
@@ -930,7 +930,7 @@ final class WindowModel {
             host: host,
             usernameHint: usernameHint,
             initialCommand: initialPath.flatMap(RemoteShellCommand.changeDirectory),
-            recordsInitialCommandInHistory: initialPath == nil
+            recordsInitialCommandInHistory: initialPath == nil, transport: transport
         )
         pane.sshSession?.connectionRoute = connectionRoute
         configureConnectionHistory(pane)
@@ -995,10 +995,14 @@ final class WindowModel {
             case .preferredTerminal:
                 switch host.preferredTerminalProtocol {
                 case .ssh: .sshSession(host: host)
+                case .mosh: .sshSession(host: host, transport: .mosh)
+                case .eternalTerminal: .sshSession(host: host, transport: .eternalTerminal)
                 case .telnet: .telnetSession(host: host)
                 case nil: nil
                 }
             case .sshSession: .sshSession(host: host)
+            case .moshSession: .sshSession(host: host, transport: .mosh)
+            case .eternalTerminalSession: .sshSession(host: host, transport: .eternalTerminal)
             case .telnetSession: .telnetSession(host: host)
             case .sftpChannel: .sftpChannel(host: host)
             }
@@ -1012,12 +1016,16 @@ final class WindowModel {
         return workspace
     }
 
-    /// Opens every target of one Snippet as visible SSH panes. SSH session and
+    /// Opens every target using its default SSH-authenticated terminal transport.
     /// Workspace titles keep their ordinary host-derived defaults; each pane
     /// submits the same command independently after login.
     @discardableResult
     func openSnippetWorkspace(hosts: [Host], command: String) -> Workspace? {
-        let panes = hosts.map { Pane.sshSession(host: $0, initialCommand: command) }
+        let panes = hosts.filter(\.sshEnabled).map { host in
+            Pane.sshSession(
+                host: host, initialCommand: command,
+                transport: host.terminalTransports.preferred(isTailscaleManaged: host.isTailscaleManaged))
+        }
         guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
 
         let workspace = Workspace(pane: first)
@@ -1074,7 +1082,7 @@ final class WindowModel {
         guard !pane.hasActiveConnectionHistory, let hostID = pane.hostID else { return }
         let kind: ConnectionHistoryEntry.Kind
         switch pane.kind {
-        case .sshSession: kind = .ssh
+        case .sshSession: kind = .terminal(pane.sshSession?.transport ?? .ssh)
         case .telnetSession: kind = .telnet
         case .sftpChannel: kind = .sftp
         case .serialSession, .empty: return

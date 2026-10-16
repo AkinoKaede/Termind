@@ -1,4 +1,5 @@
 import Foundation
+import TermindDomain
 
 /// One glyph per menu verb.
 ///
@@ -33,6 +34,8 @@ nonisolated enum MenuSymbol {
     static let connect = "network"
     static let batchStartup = "wind"
     static let ssh = "apple.terminal"
+    static let mosh = HostTerminalProtocol.mosh.symbol
+    static let eternalTerminal = HostTerminalProtocol.eternalTerminal.symbol
     static let telnet = "text.rectangle"
     static let sftp = "folder"
 

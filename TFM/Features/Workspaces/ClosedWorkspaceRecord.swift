@@ -35,6 +35,8 @@ struct ClosedWorkspaceRecord: Codable, Identifiable {
                 case .empty: true
                 case .ssh(let id), .sftp(let id): hosts.host(id)?.sshEnabled == true
                 case .telnet(let id): hosts.host(id)?.telnetEnabled == true
+                case .mosh(let id): hosts.host(id)?.isEnabled(.mosh) == true
+                case .eternalTerminal(let id): hosts.host(id)?.isEnabled(.eternalTerminal) == true
                 }
             }
     }

@@ -25,7 +25,8 @@ struct ConnectionHistoryTests {
 
     @Test
     func connectionProtocolSymbolsAreUniqueAndAvailable() {
-        #expect(Set(ConnectionHistoryEntry.Kind.allCases.map(\.symbol)).count == 3)
+        #expect(
+            Set(ConnectionHistoryEntry.Kind.allCases.map(\.symbol)).count == ConnectionHistoryEntry.Kind.allCases.count)
         #expect(
             ConnectionHistoryEntry.Kind.allCases.allSatisfy {
                 NSImage(systemSymbolName: $0.symbol, accessibilityDescription: nil) != nil

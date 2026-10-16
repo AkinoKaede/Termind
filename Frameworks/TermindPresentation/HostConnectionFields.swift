@@ -42,7 +42,7 @@ public struct HostProtocolProfileControls: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Protocol Profile", selection: $connectionProtocol) {
-                ForEach(HostTerminalProtocol.allCases) { connectionProtocol in
+                ForEach([HostTerminalProtocol.ssh, .telnet]) { connectionProtocol in
                     Text(connectionProtocol.displayName).tag(connectionProtocol)
                 }
             }

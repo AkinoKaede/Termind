@@ -635,10 +635,10 @@ nonisolated enum VaultWireV1 {
             self.name = name
             self.layout = layout
         }
-        init(_ value: TermindDomain.WorkspaceTemplate) {
+        init(_ value: TermindDomain.WorkspaceTemplate) throws {
             self.id = value.id
             self.name = value.name
-            self.layout = WorkspaceTemplateLayout(value.layout)
+            self.layout = try WorkspaceTemplateLayout(value.layout)
         }
         var domainValue: TermindDomain.WorkspaceTemplate {
             var result = TermindDomain.WorkspaceTemplate(name: name, layout: layout.domainValue)
@@ -802,12 +802,13 @@ nonisolated enum VaultWireV1 {
         case telnet(hostID: UUID)
         case sftp(hostID: UUID)
         case empty
-        init(_ value: TermindDomain.WorkspaceTemplatePane) {
+        init(_ value: TermindDomain.WorkspaceTemplatePane) throws {
             switch value {
             case .ssh(let id): self = .ssh(hostID: id)
             case .telnet(let id): self = .telnet(hostID: id)
             case .sftp(let id): self = .sftp(hostID: id)
             case .empty: self = .empty
+            case .mosh, .eternalTerminal: throw CocoaError(.coderInvalidValue)
             }
         }
         var domainValue: TermindDomain.WorkspaceTemplatePane {
@@ -825,13 +826,13 @@ nonisolated enum VaultWireV1 {
         case split(
             axis: WorkspaceTemplateSplitAxis, fraction: Double,
             first: WorkspaceTemplateLayout, second: WorkspaceTemplateLayout)
-        init(_ value: TermindDomain.WorkspaceTemplateLayout) {
+        init(_ value: TermindDomain.WorkspaceTemplateLayout) throws {
             switch value {
-            case .pane(let pane): self = .pane(WorkspaceTemplatePane(pane))
+            case .pane(let pane): self = .pane(try WorkspaceTemplatePane(pane))
             case .split(let axis, let fraction, let first, let second):
                 self = .split(
                     axis: WorkspaceTemplateSplitAxis(rawValue: axis.rawValue)!, fraction: fraction,
-                    first: Self(first), second: Self(second))
+                    first: try Self(first), second: try Self(second))
             }
         }
         var domainValue: TermindDomain.WorkspaceTemplateLayout {
@@ -856,7 +857,7 @@ nonisolated enum VaultWireV1 {
         case workspaceTemplate(WorkspaceTemplate)
         case connectionHistory(ConnectionHistoryEntry)
         case device(DeviceRecord)
-        init(_ value: VaultRecordPayload) {
+        init(_ value: VaultRecordPayload) throws {
             switch value {
             case .host(let value): self = .host(Host(value))
             case .hostGroup(let value): self = .hostGroup(HostGroup(value))
@@ -866,8 +867,12 @@ nonisolated enum VaultWireV1 {
             case .snippet(let value): self = .snippet(Snippet(value))
             case .snippetPackage(let value): self = .snippetPackage(SnippetPackage(value))
             case .portForwarding(let value): self = .portForwarding(PortForwardingRule(value))
-            case .workspaceTemplate(let value): self = .workspaceTemplate(WorkspaceTemplate(value))
-            case .connectionHistory(let value): self = .connectionHistory(ConnectionHistoryEntry(value))
+            case .workspaceTemplate(let value): self = .workspaceTemplate(try WorkspaceTemplate(value))
+            case .connectionHistory(let value):
+                guard ConnectionHistoryEntry.Kind(rawValue: value.kind.rawValue) != nil else {
+                    throw CocoaError(.coderInvalidValue)
+                }
+                self = .connectionHistory(ConnectionHistoryEntry(value))
             case .device(let value): self = .device(DeviceRecord(value))
             }
         }
@@ -899,7 +904,7 @@ nonisolated enum VaultWireV1 {
             key = value.key
             version = value.version
             isDeleted = value.isDeleted
-            payload = value.payload.map(Payload.init)
+            payload = try value.payload.map(Payload.init)
         }
         var domainValue: VaultEnvelope {
             VaultEnvelope(

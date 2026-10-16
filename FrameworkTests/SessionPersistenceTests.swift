@@ -3,13 +3,56 @@ import SwiftData
 import TermindApplication
 import TermindDomain
 import TermindPersistence
-import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
 
+@testable import TermindRemoteInfrastructure
+
 @Suite @MainActor
 struct SessionPersistenceTests {
+    @Test(arguments: [HostTerminalProtocol.mosh, .eternalTerminal])
+    func resumableTransportAttachesTmuxAndRestoresWithoutReplayingStartup(_ transport: HostTerminalProtocol)
+        async throws
+    {
+        let backend = Backend()
+        let coordinator = RemoteSessionCoordinator()
+        let hostID = UUID()
+        let preparation: SSHPTYChannel.StartupPreparation = { execute in
+            try await coordinator.prepare(
+                preferences: .init(enabled: true, backend: backend.id, onConnect: .createManaged),
+                registry: .init([backend.id: { _ in backend }]), execute: execute,
+                hostID: hostID, endpoint: "server:22", username: "user", startupCommand: "uptime",
+                requiresNewSession: false, shellIntegration: transport != .mosh)
+        }
+        let execute: RemoteSessionCommandExecutor = { _ in
+            Issue.record("The fake backend should not need a remote command")
+            throw CancellationError()
+        }
+        let startup = try await ResumableTerminalStartup.prepare(
+            restoring: false, preparation: preparation, execute: execute)
+        #expect(coordinator.attachment != nil)
+        #expect(await backend.commands == ["uptime"])
+        if transport == .mosh {
+            #expect(try startup.moshArguments == " -- /bin/sh -c 'attach-test'")
+        } else {
+            #expect(try startup.eternalInput == Data(" exec /bin/sh -c 'attach-test'\r".utf8))
+        }
+        let originalAttachment = coordinator.attachment
+        let resumed = try await ResumableTerminalStartup.prepare(
+            restoring: true, preparation: preparation, execute: execute)
+        #expect(resumed.plan == nil)
+        #expect(try resumed.moshArguments.isEmpty)
+        #expect(try resumed.eternalInput == nil)
+        #expect(coordinator.attachment == originalAttachment)
+        #expect(await backend.probeCount == 1)
+        #expect(await backend.commands == ["uptime"])
+
+        _ = try await ResumableTerminalStartup.prepare(restoring: false, preparation: preparation, execute: execute)
+        #expect(await backend.commands == ["uptime"])
+        #expect(coordinator.attachment == originalAttachment)
+    }
+
     @Test func newHostsDisablePersistenceAndAskEveryTimeWhenEnabled() {
         let host = Host(name: "New", host: "example.invalid")
         let tailscale = TailscaleHostPreferences()

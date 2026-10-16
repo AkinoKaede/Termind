@@ -24,11 +24,11 @@ struct MobileRecentHostRow: Identifiable {
 }
 
 enum MobileConnectionHistoryActionPolicy {
-    static let menuKinds: [ConnectionHistoryEntry.Kind] = [.ssh, .telnet, .sftp]
+    static let menuKinds: [ConnectionHistoryEntry.Kind] = [.ssh, .mosh, .eternalTerminal, .telnet, .sftp]
 
     // Trailing swipe actions are declared from the edge outwards, so reversing
     // the menu order keeps the revealed protocol order consistent.
-    static let swipeKinds: [ConnectionHistoryEntry.Kind] = [.sftp, .telnet, .ssh]
+    static let swipeKinds: [ConnectionHistoryEntry.Kind] = [.sftp, .telnet, .eternalTerminal, .mosh, .ssh]
 
     static func availableMenuKinds(for host: Host) -> [ConnectionHistoryEntry.Kind] {
         menuKinds.filter { isAvailable($0, for: host) }
@@ -42,6 +42,8 @@ enum MobileConnectionHistoryActionPolicy {
         switch kind {
         case .ssh, .sftp: host.sshEnabled
         case .telnet: host.telnetEnabled
+        case .mosh: host.isEnabled(.mosh)
+        case .eternalTerminal: host.isEnabled(.eternalTerminal)
         }
     }
 }
@@ -99,6 +101,8 @@ enum MobileConnectionHistory {
     static func preferredKind(for host: Host) -> ConnectionHistoryEntry.Kind? {
         switch host.preferredTerminalProtocol {
         case .ssh: .ssh
+        case .mosh: .mosh
+        case .eternalTerminal: .eternalTerminal
         case .telnet: .telnet
         case nil: nil
         }

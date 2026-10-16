@@ -30,6 +30,8 @@ nonisolated enum BatchLayout: Hashable, Sendable {
 nonisolated enum HostOpenTarget: Hashable, Sendable {
     case preferredTerminal
     case sshSession
+    case moshSession
+    case eternalTerminalSession
     case telnetSession
     case sftpChannel
 }
@@ -1043,10 +1045,14 @@ final class AppModel {
         case .preferredTerminal:
             switch host.preferredTerminalProtocol {
             case .ssh: return window.openSSHSession(host: host)
+            case .mosh: return window.openSSHSession(host: host, transport: .mosh)
+            case .eternalTerminal: return window.openSSHSession(host: host, transport: .eternalTerminal)
             case .telnet: return window.openTelnetSession(host: host)
             case nil: return window.openTelnetSession(host: host)
             }
         case .sshSession: return window.openSSHSession(host: host)
+        case .moshSession: return window.openSSHSession(host: host, transport: .mosh)
+        case .eternalTerminalSession: return window.openSSHSession(host: host, transport: .eternalTerminal)
         case .telnetSession: return window.openTelnetSession(host: host)
         case .sftpChannel: return window.openSFTPChannel(host: host)
         }
@@ -1170,7 +1176,7 @@ final class AppModel {
     /// thing that should differ between them.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
         switch target {
-        case .preferredTerminal, .sshSession, .telnetSession:
+        case .preferredTerminal, .sshSession, .moshSession, .eternalTerminalSession, .telnetSession:
             hosts.setStatus(.connecting, for: host.id)
         case .sftpChannel:
             break
@@ -1245,7 +1251,7 @@ final class AppModel {
             let targets = hosts.hosts(matching: "", for: .snippetExecution)
                 .filter { wanted.contains($0.id) }
             guard !targets.isEmpty else { continue }
-            for host in targets { beginOpening(host, as: .sshSession) }
+            for host in targets { beginOpening(host, as: .preferredTerminal) }
             if let workspace = window.openSnippetWorkspace(
                 hosts: targets, command: snippet.body
             ) {

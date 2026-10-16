@@ -17,7 +17,11 @@ extension SplitNode {
             switch pane.content {
             case .sshSession(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
-                return .pane(.ssh(hostID: session.hostID))
+                switch session.transport {
+                case .mosh: return .pane(.mosh(hostID: session.hostID))
+                case .eternalTerminal: return .pane(.eternalTerminal(hostID: session.hostID))
+                case .ssh, .telnet: return .pane(.ssh(hostID: session.hostID))
+                }
             case .telnetSession(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
                 return .pane(.telnet(hostID: session.hostID))
@@ -54,6 +58,14 @@ extension WorkspaceTemplateLayout {
             case .ssh(let hostID):
                 guard let host = hosts.host(hostID), host.sshEnabled else { return (.leaf(Pane(.empty)), 1) }
                 return (.leaf(.sshSession(host: host)), 0)
+            case .mosh(let hostID):
+                guard let host = hosts.host(hostID), host.isEnabled(.mosh) else { return (.leaf(Pane(.empty)), 1) }
+                return (.leaf(.sshSession(host: host, transport: .mosh)), 0)
+            case .eternalTerminal(let hostID):
+                guard let host = hosts.host(hostID), host.isEnabled(.eternalTerminal) else {
+                    return (.leaf(Pane(.empty)), 1)
+                }
+                return (.leaf(.sshSession(host: host, transport: .eternalTerminal)), 0)
             case .telnet(let hostID):
                 guard let host = hosts.host(hostID), host.telnetEnabled else { return (.leaf(Pane(.empty)), 1) }
                 return (.leaf(.telnetSession(host: host)), 0)

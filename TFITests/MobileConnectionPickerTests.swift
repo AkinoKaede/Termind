@@ -89,8 +89,8 @@ struct MobileConnectionPickerTests {
     }
 
     @Test func recentConnectionActionsFollowEveryHostProtocolCombination() {
-        #expect(MobileConnectionHistoryActionPolicy.menuKinds == [.ssh, .telnet, .sftp])
-        #expect(MobileConnectionHistoryActionPolicy.swipeKinds == [.sftp, .telnet, .ssh])
+        #expect(MobileConnectionHistoryActionPolicy.menuKinds == [.ssh, .mosh, .eternalTerminal, .telnet, .sftp])
+        #expect(MobileConnectionHistoryActionPolicy.swipeKinds == [.sftp, .telnet, .eternalTerminal, .mosh, .ssh])
 
         var host = Host(name: "Remote", host: "remote.example.invalid")
         assertAvailability(host, ssh: true, telnet: false, sftp: true)
@@ -107,6 +107,14 @@ struct MobileConnectionPickerTests {
         assertAvailability(host, ssh: true, telnet: true, sftp: true)
         #expect(MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host) == [.ssh, .telnet, .sftp])
         #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.sftp, .telnet, .ssh])
+        host.terminalTransports.moshEnabled = true
+        host.terminalTransports.eternalTerminalEnabled = true
+        #expect(
+            MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host)
+                == [.ssh, .mosh, .eternalTerminal, .telnet, .sftp])
+        #expect(
+            MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host)
+                == [.sftp, .telnet, .eternalTerminal, .mosh, .ssh])
 
         host.sshEnabled = false
         host.telnetEnabled = false

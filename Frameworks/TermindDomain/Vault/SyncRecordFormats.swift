@@ -44,15 +44,17 @@ public nonisolated struct SyncRecordFormats: Sendable {
 
     private static let v1 = Format(readingVersions: [1], writingVersion: 1)
     public static let vault = Self([
-        "host": Format(readingVersions: [1, 2, 4, 5], writingVersion: 5),
-        "hostGroup": Format(readingVersions: [1, 2, 3, 4, 5], writingVersion: 5), "identity": v1,
+        "host": Format(readingVersions: [1, 2, 4, 5, 6], writingVersion: 6),
+        "hostGroup": Format(readingVersions: [1, 2, 3, 4, 5, 6], writingVersion: 6), "identity": v1,
         "sshKey": Format(readingVersions: [1, 2, 3], writingVersion: 3),
         "knownHost": v1, "snippet": Format(readingVersions: [1, 2], writingVersion: 2), "snippetPackage": v1,
-        "portForwarding": v1, "workspaceTemplate": v1,
+        "portForwarding": v1, "workspaceTemplate": Format(readingVersions: [1, 2], writingVersion: 2),
         // Legacy readers only; these cases cannot pass Vault upload eligibility.
         "connectionHistory": v1, "device": v1,
     ])
-    public static let history = Self(["connectionHistory": v1, "device": v1])
+    public static let history = Self([
+        "connectionHistory": Format(readingVersions: [1, 2], writingVersion: 2), "device": v1,
+    ])
     public static let metrics = Self([
         "selection": Format(readingVersions: [1, 2], writingVersion: 2)
     ])

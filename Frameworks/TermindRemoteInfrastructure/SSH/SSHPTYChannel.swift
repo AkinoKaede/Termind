@@ -10,7 +10,7 @@ import struct TermindDomain.Host
 /// Installs a small cwd-reporting hook before remote output reaches Ghostty.
 /// The probe, its echo, and the installation command stay inside this state
 /// machine; only the login banner and the final integrated prompt are emitted.
-public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
+public nonisolated struct RemoteShellIntegrationBootstrap: Codable, Sendable {
     enum Diagnostic: Sendable, Equatable {
         enum TimeoutStage: String, Sendable {
             case lateProbe = "late_probe"
@@ -41,7 +41,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         var diagnostic: Diagnostic?
     }
 
-    private enum Phase: Sendable {
+    private enum Phase: Codable, Sendable {
         case probing
         case scanningForLateProbe
         case suppressingLateProbe
@@ -101,6 +101,12 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 
     public mutating func noteUserInput() {
         userDidWrite = true
+    }
+
+    /// Monotonic deadlines from another process cannot be reused after restoration.
+    mutating func resetDeadlinesAfterRestore(now: UInt64 = DispatchTime.now().uptimeNanoseconds) {
+        deadline = now + Self.responseTimeout
+        if lastActivity != nil { lastActivity = now }
     }
 
     public mutating func receive(
@@ -558,7 +564,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 /// Removes authenticated command-report OSC sequences before output reaches
 /// Ghostty and emits their decoded payloads separately. The session token makes
 /// ordinary OSC output in a remote program ineligible to forge local history.
-public nonisolated struct RemoteCommandEventFilter: Sendable {
+public nonisolated struct RemoteCommandEventFilter: Codable, Sendable {
     public static let maximumPayloadBytes = 64 * 1024
 
     public nonisolated enum Event: Sendable, Equatable {
@@ -731,6 +737,15 @@ public actor SSHPTYChannel {
     private var environmentVariables: [HostEnvironmentVariable] = []
     private var environmentRejection: EnvironmentRejectionHandler = { _ in }
     private var startupPreparation: StartupPreparation?
+    private let transportOutput: OutputHandler
+    private let transportIntegration: ShellIntegrationHandler
+    private var resumable: ResumableTerminalClient?
+    private var transportOptions = HostTerminalTransports()
+    private var transportKind: HostTerminalProtocol = .ssh
+    private var transportCheckpoint: TerminalTransportCheckpoint?
+    private var transportRoute: ResumableTerminalClient.RouteFactory?
+    private var transportControl: RemoteSessionCommandExecutor?
+    private var transportState: ResumableTerminalClient.StateHandler = { _ in }
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
@@ -740,6 +755,8 @@ public actor SSHPTYChannel {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
+        transportOutput = output
+        transportIntegration = shellIntegration
         self.keyboardInteractive = keyboardInteractive
         self.agentForwardingFactory = agentForwardingFactory
         worker = SSHPTYChannelWorker(
@@ -756,6 +773,21 @@ public actor SSHPTYChannel {
     ) async throws {
         defer { request.configuration.clearSecrets() }
         var request = request.withKeyboardInteractiveFallback(keyboardInteractive)
+        if transportKind.isResumable {
+            request.agentForwarding = nil
+            request.permitsAgentForwarding = false
+            guard let transportRoute else { throw TerminalTransportError.unsupportedRoute }
+            let client = ResumableTerminalClient(
+                transport: transportKind, checkpoint: transportCheckpoint, output: transportOutput,
+                stateChanged: transportState, shellIntegration: transportIntegration)
+            resumable = client
+            try await client.connect(
+                request: request, options: transportOptions, environment: environmentVariables,
+                shellIntegrationEnabled: shellIntegrationEnabled, columns: columns, rows: rows,
+                route: transportRoute, progress: progress, startupPreparation: startupPreparation)
+            transportCheckpoint = nil
+            return
+        }
         request.agentForwarding = try await agentForwardingFactory?(request)
         try await worker.connect(
             using: request,
@@ -779,8 +811,42 @@ public actor SSHPTYChannel {
         startupPreparation = preparation
     }
 
+    public func configureTransport(
+        _ kind: HostTerminalProtocol, options: HostTerminalTransports,
+        checkpoint: TerminalTransportCheckpoint? = nil,
+        route: @escaping ResumableTerminalClient.RouteFactory,
+        control: RemoteSessionCommandExecutor? = nil,
+        stateChanged: @escaping ResumableTerminalClient.StateHandler
+    ) {
+        transportKind = kind
+        transportOptions = options
+        transportCheckpoint = checkpoint
+        transportRoute = route
+        transportControl = control
+        transportState = stateChanged
+    }
+
+    public func suspendTransport() async throws -> TerminalTransportCheckpoint {
+        guard let resumable else { throw TerminalTransportError.invalidCheckpoint }
+        return try await resumable.suspend()
+    }
+
+    public func resumeTransport() async throws {
+        guard let resumable else { throw TerminalTransportError.invalidCheckpoint }
+        try await resumable.resume()
+    }
+
+    public func retryTransport() async throws {
+        guard let resumable else { throw TerminalTransportError.invalidCheckpoint }
+        try await resumable.retryNow()
+    }
+
     public func sessionCommandExecutor() async throws -> RemoteSessionCommandExecutor {
-        try await worker.sessionCommandExecutor()
+        if transportKind.isResumable {
+            guard let transportControl else { throw TermindSSHError.disconnected }
+            return transportControl
+        }
+        return try await worker.sessionCommandExecutor()
     }
 
     public func runtimeCommandExecutor() async throws -> RemoteSessionCommandExecutor {
@@ -796,10 +862,25 @@ public actor SSHPTYChannel {
     }
 
     public func releaseTerminalForControl() async throws {
+        if let resumable {
+            await resumable.close()
+            return
+        }
         try await worker.releaseTerminalForControl()
     }
 
-    public func write(_ data: Data) {
+    public func write(_ data: Data) async {
+        if let resumable {
+            do {
+                try await resumable.write(data)
+            } catch TerminalTransportError.suspended {
+                // Background checkpoints must remain frozen until eligibility is invalidated.
+            } catch is CancellationError {
+            } catch {
+                transportState(.failed)
+            }
+            return
+        }
         worker.write(data)
     }
 
@@ -823,14 +904,25 @@ public actor SSHPTYChannel {
         try await worker.historySource()
     }
 
-    public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {
+    public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) async {
+        if let resumable {
+            do { try await resumable.resize(columns: columns, rows: rows) } catch { transportState(.failed) }
+            return
+        }
         worker.resize(
             columns: columns, rows: rows,
             widthPixels: widthPixels, heightPixels: heightPixels
         )
     }
 
-    public func disconnect() async { await worker.disconnect() }
+    public func disconnect() async {
+        await resumable?.close()
+        resumable = nil
+        transportCheckpoint = nil
+        transportRoute = nil
+        transportControl = nil
+        await worker.disconnect()
+    }
 }
 
 nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {

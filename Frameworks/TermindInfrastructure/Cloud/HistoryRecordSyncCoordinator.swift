@@ -231,11 +231,18 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         let envelope = outgoing.envelope
         let record = try CloudSyncRecordCoding.makeRecord(
             type: envelope.key.kind.recordType, id: recordID, systemFields: outgoing.systemFieldsData)
-        try HistoryCloudRecordV1.write(envelope, into: record)
+        if envelope.formatVersion == 2 {
+            try HistoryCloudRecordV2.write(envelope, into: record)
+        } else {
+            try HistoryCloudRecordV1.write(envelope, into: record)
+        }
         return record
     }
 
     nonisolated static func envelope(from record: CKRecord) throws -> HistoryEnvelope {
-        try HistoryCloudRecordV1.read(record)
+        if (record["formatVersion"] as? NSNumber)?.intValue == 2 {
+            return try HistoryCloudRecordV2.read(record)
+        }
+        return try HistoryCloudRecordV1.read(record)
     }
 }

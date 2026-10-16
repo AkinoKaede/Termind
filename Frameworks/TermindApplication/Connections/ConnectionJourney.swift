@@ -5,12 +5,23 @@ import struct TermindDomain.Host
 
 public nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case sshSession
+    case moshSession
+    case eternalTerminalSession
     case telnetSession
     case sftpChannel = "sftpSession"
     case serialSession
     case metrics
     case portForwarding
     case keyExport
+
+    public static func terminal(_ transport: HostTerminalProtocol) -> Self {
+        switch transport {
+        case .ssh: .sshSession
+        case .mosh: .moshSession
+        case .eternalTerminal: .eternalTerminalSession
+        case .telnet: .telnetSession
+        }
+    }
 }
 
 public nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
@@ -457,6 +468,8 @@ extension ConnectionPurpose {
     fileprivate var logName: String {
         switch self {
         case .sshSession: "SSH session"
+        case .moshSession: "Mosh session"
+        case .eternalTerminalSession: "Eternal Terminal session"
         case .telnetSession: "Telnet session"
         case .sftpChannel: "SFTP channel"
         case .serialSession: "serial session"

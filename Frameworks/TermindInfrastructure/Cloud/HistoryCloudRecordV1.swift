@@ -9,7 +9,7 @@ import TermindPersistence
 nonisolated enum HistoryCloudRecordV1 {
     static func write(_ envelope: HistoryEnvelope, into record: CKRecord) throws {
         try SyncRecordFormats.history.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
-        guard envelope.isValid, envelope.version.counter <= UInt64(Int64.max),
+        guard envelope.formatVersion == 1, envelope.isValid, envelope.version.counter <= UInt64(Int64.max),
             record.recordType == envelope.key.kind.recordType, record.recordID.recordName == envelope.key.recordName
         else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         record["formatVersion"] = NSNumber(value: envelope.formatVersion)
@@ -35,6 +35,7 @@ nonisolated enum HistoryCloudRecordV1 {
             case .ssh: record["connectionKind"] = "ssh" as NSString
             case .telnet: record["connectionKind"] = "telnet" as NSString
             case .sftp: record["connectionKind"] = "sftp" as NSString
+            case .mosh, .eternalTerminal: throw CocoaError(.coderInvalidValue)
             }
             record["connectedAt"] = value.connectedAt as NSDate
             record["endedAt"] = value.endedAt as NSDate?
@@ -52,7 +53,8 @@ nonisolated enum HistoryCloudRecordV1 {
         else { throw invalid }
         // Do not decode a field or apply a default before the kind/version gate.
         try SyncRecordFormats.history.validate(kind: rawKind, version: versionNumber.intValue)
-        guard let kind = HistoryRecordKind(rawValue: rawKind), record.recordType == kind.recordType,
+        guard versionNumber.intValue == 1,
+            let kind = HistoryRecordKind(rawValue: rawKind), record.recordType == kind.recordType,
             let key = HistoryRecordKey(recordName: record.recordID.recordName), key.kind == kind,
             try uuid("entityID", in: record) == key.id,
             let modifiedAt = record["modifiedAt"] as? Date,

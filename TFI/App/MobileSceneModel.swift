@@ -120,7 +120,7 @@ final class MobileSceneModel {
     var canCloseMultipleWorkspaces: Bool { workspaceSession.closableWorkspaceCount > 1 }
     var workspaceCount: Int { workspaceSession.workspaces.count }
     var canCloseWorkspace: Bool { activeWorkspace != nil }
-    var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind == .ssh }
+    var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind.isSSHTerminal == true }
 
     func openSettings() {
         selectedDestination = .settings
@@ -336,17 +336,17 @@ final class MobileSceneModel {
     }
 
     func generateTerminalCommand() {
-        guard let workspace = activeWorkspace, workspace.descriptor.kind == .ssh else { return }
+        guard let workspace = activeWorkspace, workspace.descriptor.kind.isSSHTerminal else { return }
         workspace.generateCommand(using: app.commandGenerator)
     }
 
     func presentTerminalFind() {
-        guard let workspace = activeWorkspace, workspace.descriptor.kind == .ssh else { return }
+        guard let workspace = activeWorkspace, workspace.descriptor.kind.isSSHTerminal else { return }
         workspace.find.present()
     }
 
     func navigateTerminalFind(_ direction: TerminalFindDirection) {
-        guard let workspace = activeWorkspace, workspace.descriptor.kind == .ssh else { return }
+        guard let workspace = activeWorkspace, workspace.descriptor.kind.isSSHTerminal else { return }
         workspace.find.presentAndNavigate(direction)
     }
 

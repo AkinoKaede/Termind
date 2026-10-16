@@ -6,6 +6,7 @@ nonisolated struct MobileWorkspaceDescriptor: Codable, Hashable, Identifiable, S
     var hostID: UUID
     var title: String
     var kind: ConnectionHistoryEntry.Kind
+    var remoteSession: RemoteSessionReference?
 
     var destinationURL: URL { WorkspaceActivityAttributes.destinationURL(for: id) }
 }

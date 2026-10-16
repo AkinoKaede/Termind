@@ -2504,6 +2504,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host.iconOverrideID = preferences.iconOverrideID
                 host.sshCharset = preferences.charset
                 host.sftpChannelInitialPath = preferences.sftpInitialPath
+                host.terminalTransports = preferences.terminalTransports
                 host.sessionPersistence = preferences.sessionPersistence
                 host.shellIntegrationMode = preferences.shellIntegrationMode
                 host.startupSnippetID = preferences.startupSnippetID
@@ -2533,6 +2534,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         preferences.iconOverrideID = host.iconOverrideID
         preferences.charset = host.sshCharset
         preferences.sftpInitialPath = host.sftpChannelInitialPath
+        preferences.terminalTransports = host.terminalTransports
         preferences.sessionPersistence = host.sessionPersistence
         preferences.shellIntegrationMode = host.shellIntegrationMode
         preferences.startupSnippetID = host.startupSnippetID

@@ -48,6 +48,10 @@ struct TerminalPlaceholderView: View {
             .desktopTerminalChrome(state: sshSession.terminalState)
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
+            .overlay(alignment: .top) {
+                TerminalTransportStatusView(
+                    state: sshSession.transportState, retry: sshSession.retryReconnectNow, close: closePane)
+            }
             .animation(Motion.panel, value: uploads.notice)
             .onAppear {
                 // The mounted view is the final source of truth after any drag,
