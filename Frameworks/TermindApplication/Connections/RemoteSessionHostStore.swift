@@ -8,6 +8,10 @@ import struct TermindDomain.Host
 /// the complete Vault mutation surface from `HostLibraryModel`.
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
+    func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck?
+    func requireHostAccess(_ host: Host) throws
+    func resolveHostAccess(_ host: Host) async throws
+    func requireSavingHosts(_ proposed: [Host]) throws
     func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction?
     func host(_ id: Host.ID) -> Host?
     func networkConfigurationStamp(for host: Host) -> Data
@@ -70,6 +74,17 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck? { nil }
+    public func requireHostAccess(_ host: Host) throws {}
+    public func resolveHostAccess(_ host: Host) async throws { try requireHostAccess(host) }
+    public func resolveHostAccess(_ host: Host, route: SSHConnectionRoute?) async throws {
+        try await resolveHostAccess(host)
+        for node in route?.hosts ?? [] { try await resolveHostAccess(node) }
+        for id in route.map({ Array($0.sourceHostIDs.values) }) ?? [] {
+            if let saved = self.host(id) { try await resolveHostAccess(saved) }
+        }
+    }
+    public func requireSavingHosts(_ proposed: [Host]) throws {}
     public func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction? { nil }
     public func savedTailscaleUsername(for host: Host) -> String? { nil }
     public func tailscaleUsername(for host: Host) -> String { "root" }
@@ -118,6 +133,7 @@ extension RemoteSessionHostStore {
     }
 
     public func telnetConnectionConfiguration(for host: Host) throws -> TelnetConnectionConfiguration {
+        try requireHostAccess(host)
         guard host.telnetEnabled else { throw HostProtocolUnavailableError(useCase: .telnetTerminal) }
         let identity = identity(for: host, protocol: .telnet)
         let username = identity?.username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -155,6 +171,7 @@ extension RemoteSessionHostStore {
         _ submission: SSHAuthenticationSubmission, for host: Host,
         selectedIdentity: Identity?, suppliedPassword: String?
     ) throws -> Host {
+        try requireSavingHosts([host])
         if host.isTailscaleManaged {
             guard saveTailscaleUsername(submission.username, hostID: host.id) else {
                 throw TailscaleConfigurationError.unavailable
@@ -213,6 +230,7 @@ extension RemoteSessionHostStore {
         _ submission: SSHProxyAuthenticationSubmission, for host: Host,
         selectedIdentity: Identity?, suppliedPassword: String?
     ) throws -> Host {
+        try requireSavingHosts([host])
         guard var proxy = host.proxy else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
         }
@@ -291,6 +309,7 @@ extension RemoteSessionHostStore {
             )
         }
         var result = SSHAdditionalConnectionSnapshot(target: target, jumps: jumps)
+        result.accessHostIDs = configuration.accessHostIDs
         result.tailscaleNodeID = configuration.tailscaleNodeID
         result.requiresTailscale = configuration.network != nil
         return result
@@ -301,6 +320,12 @@ extension RemoteSessionHostStore {
     public func additionalConnectionRequest(
         from snapshot: SSHAdditionalConnectionSnapshot
     ) throws -> SSHConnectionRequest {
+        for id in snapshot.accessHostIDs {
+            if let saved = host(id) { try requireHostAccess(saved) }
+        }
+        for node in snapshot.jumps + [snapshot.target] {
+            if let saved = host(node.id) { try requireHostAccess(saved) }
+        }
         var completed = false
         var resolvedCredentials: [SSHCredentials] = []
         var resolvedProxies: [SSHSecret] = []
@@ -413,6 +438,9 @@ extension RemoteSessionHostStore {
             charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication
         )
+        configuration.accessHostIDs = snapshot.accessHostIDs
+        configuration.accessCheck = connectionAccessCheck(
+            for: snapshot.accessHostIDs + snapshot.jumps.map(\.id) + [snapshot.target.id])
         configuration.beforeConnect = connectionWakeAction(for: snapshot.jumps.map(\.id) + [snapshot.target.id])
         configuration.tailscaleNodeID = snapshot.tailscaleNodeID
         if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {

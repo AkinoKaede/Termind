@@ -15,7 +15,7 @@ struct MCPServerSettings: View {
             Toggle(
                 AppStrings.Settings.enable.swiftUIKey,
                 isOn: Binding(
-                    get: { server.isEnabled && app.proAccess.canUse(.mcpServer) },
+                    get: { server.isEnabled },
                     set: { server.setEnabled($0) }
                 ))
 
@@ -96,8 +96,8 @@ struct MCPServerSettings: View {
                     .foregroundStyle(.red)
             }
         }
-        .task(id: app.proAccess.canUse(.mcpServer)) {
-            if app.proAccess.canUse(.mcpServer) { _ = server.ensureToken() }
+        .task {
+            _ = server.ensureToken()
         }
 
         clientSetupSection

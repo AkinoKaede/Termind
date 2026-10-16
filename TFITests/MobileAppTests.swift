@@ -300,12 +300,12 @@ struct MobileWorkspaceTests {
         let metrics = MobileMetricsModel(
             preferences: MetricsPreferences(), hosts: library, services: .testing)
         metrics.pause()
-        #expect(metrics.add(hosts[0].id, pro: false))
-        #expect(metrics.add(hosts[0].id, pro: false))
-        #expect(metrics.add(hosts[1].id, pro: false))
-        #expect(metrics.add(hosts[2].id, pro: false))
-        #expect(!metrics.add(hosts[3].id, pro: false))
-        #expect(metrics.add(hosts[4].id, pro: true))
+        #expect(metrics.add(hosts[0].id))
+        #expect(metrics.add(hosts[0].id))
+        #expect(metrics.add(hosts[1].id))
+        #expect(metrics.add(hosts[2].id))
+        #expect(!metrics.add(hosts[3].id))
+        #expect(metrics.add(hosts[4].id))
         #expect(metrics.selections.count == 4)
     }
 }

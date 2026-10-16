@@ -31,6 +31,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private var maximumConnections: Int
     private let connectionHandler: SSHForwardingConnection.ConnectionHandler
     private let failureHandler: SSHForwardingConnection.FailureHandler
+    private var accessCheck: HostOperationAccessCheck?
     private let makeConnection: ConnectionFactory
     private let listeners: SSHForwardingLocalListeners
     private var slots: [UUID: Slot] = [:]
@@ -80,6 +81,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
 
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
         await disconnect()
+        accessCheck = request.configuration.accessCheck
         disconnecting = false
         let id = UUID()
         let slot = makeSlot(id: id)
@@ -130,6 +132,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     }
 
     func start(_ rule: PortForwardingRule, generation: UUID) async throws {
+        try accessCheck?()
         guard let primary = primarySlot else { throw TermindSSHError.disconnected }
         registrations[rule.id] = RuleRegistration(rule: rule, generation: generation)
         do {
@@ -393,6 +396,10 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     }
 
     private func assign(_ descriptor: Int32, ruleID: UUID, generation: UUID) async {
+        do { try accessCheck?() } catch {
+            Darwin.close(descriptor)
+            return
+        }
         guard let registration = registrations[ruleID], registration.generation == generation else {
             Darwin.close(descriptor)
             return

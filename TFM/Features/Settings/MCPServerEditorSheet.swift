@@ -132,7 +132,7 @@ struct MCPServerEditorPage: View {
                 isOn: Binding(
                     get: { app.aiConfiguration.mcpServer(serverID)?.isEnabled ?? false },
                     set: {
-                        guard app.proAccess.require(.remoteMCP) else { return }
+
                         app.aiConfiguration.setServerEnabled($0, for: serverID)
                     }))
 

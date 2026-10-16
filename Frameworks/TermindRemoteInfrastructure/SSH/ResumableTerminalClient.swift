@@ -71,6 +71,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         let bootstrap = SSHConnection()
         do {
             try checkOpen()
+            try request.configuration.accessCheck?()
             await request.configuration.beforeConnect?()
             try checkOpen()
             publish(.connecting)

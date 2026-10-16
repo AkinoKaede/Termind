@@ -300,8 +300,14 @@ final class MobileAppModel {
         )
         let tailscaleDevices = devices
         let tailscaleAccess = pro
+        library.hostAccess.entitlement = pro.status
+        library.requestHostUpgrade = { [pro] in pro.presentPaywall() }
+        library.resolveInitialHostEntitlement = { [pro, weak library] in
+            await pro.refresh()
+            library?.hostAccess.entitlement = pro.status
+        }
         library.wakeOnLAN = WakeOnLANController(
-            sender: LANWakeOnLANSender(), hasAccess: { tailscaleAccess.canUse(.wakeOnLAN) })
+            sender: LANWakeOnLANSender())
         let wakeLogger = dependencies.logging.makeLogger(label: "termind.wake-on-lan")
         library.wakeOnLAN?.reportAutomaticFailure = { _ in wakeLogger.warning("wake.automatic.failed") }
         tailscale = TailscaleModel(
@@ -343,7 +349,7 @@ final class MobileAppModel {
                 coordinator: connectionCoordinator,
                 sftpConcurrencyScheduler: sftpConcurrencyScheduler),
             metrics: metrics.core, skills: skills,
-            authorize: { [pro] in pro.require(.assistant) },
+            authorize: { true },
             speech: speech,
             attachmentLoader: .live,
             logger: logging.makeLogger(label: "termind.agent")
@@ -417,6 +423,7 @@ final class MobileAppModel {
         }
         tailscale.start()
         pro.accessDidChange = { [weak self] in
+            if let self { self.library.hostAccess.entitlement = self.pro.status }
             self?.tailscale.reconcile()
             self?.metrics.core.reconcile()
             self?.reconcileConnectionPreferences()

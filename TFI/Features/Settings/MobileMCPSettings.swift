@@ -7,7 +7,6 @@ import UniformTypeIdentifiers
 
 struct MobileMCPSettings: View {
     let ai: AIConfigurationModel
-    let pro: ProAccessController
     @State private var adding: MCPServer?
     @State private var importing = false
     @State private var importReport: MCPImportReport?
@@ -24,7 +23,7 @@ struct MobileMCPSettings: View {
                 }
                 if ai.mcpServers.isEmpty {
                     ContentUnavailableView(
-                        AppStrings.Settings.noMcpServers.swiftUIKey, systemImage: "network",
+                        AppStrings.Settings.noMcpServers.swiftUIKey, systemImage: "wrench",
                         description: Text(AppStrings.Settings.addAnMcpServerToConnectRemoteTools)
                     )
                     .listRowBackground(Color.clear)
@@ -52,13 +51,13 @@ struct MobileMCPSettings: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(AppStrings.MCP.addServer.swiftUIKey, systemImage: "plus") {
-                    if pro.require(.remoteMCP) { adding = MCPServer(name: "", namespaceID: "") }
+                    adding = MCPServer(name: "", namespaceID: "")
                 }
                 .labelStyle(.iconOnly)
             }
             MobileToolbarOverflow {
                 Button(AppStrings.Common.import.swiftUIKey, systemImage: "square.and.arrow.down") {
-                    if pro.require(.remoteMCP) { importing = true }
+                    importing = true
                 }
             }
         }
@@ -69,7 +68,7 @@ struct MobileMCPSettings: View {
             {
                 return
             }
-            guard pro.require(.remoteMCP) else { return }
+
             importReport = nil
             importProblem = nil
             do {
@@ -78,35 +77,17 @@ struct MobileMCPSettings: View {
                 importProblem = error as? MCPImportProblem ?? .unreadableFile
             }
         }
-        .navigationDestination(item: $adding) { MobileMCPEditor(ai: ai, pro: pro, server: $0) }
+        .navigationDestination(item: $adding) { MobileMCPEditor(ai: ai, server: $0) }
     }
 
     @ViewBuilder
     private func serverLink(_ server: MCPServer) -> some View {
-        if pro.canUse(.remoteMCP) {
-            NavigationLink {
-                MobileMCPEditor(ai: ai, pro: pro, server: server)
-            } label: {
-                MobileMCPServerRow(
-                    server: server,
-                    hasNamespaceConflict: ai.conflictingMCPServerIDs.contains(server.id))
-            }
-        } else {
-            Button {
-                pro.require(.remoteMCP)
-            } label: {
-                HStack {
-                    MobileMCPServerRow(
-                        server: server,
-                        hasNamespaceConflict: ai.conflictingMCPServerIDs.contains(server.id))
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
+        NavigationLink {
+            MobileMCPEditor(ai: ai, server: server)
+        } label: {
+            MobileMCPServerRow(
+                server: server,
+                hasNamespaceConflict: ai.conflictingMCPServerIDs.contains(server.id))
         }
     }
 }
@@ -117,7 +98,7 @@ private struct MobileMCPServerRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "network")
+            Image(systemName: "wrench")
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 28)
                 .background(.quaternary, in: .rect(cornerRadius: 7))
@@ -198,7 +179,6 @@ nonisolated enum MobileMCPServerStatus: Equatable {
 
 struct MobileMCPEditor: View {
     let ai: AIConfigurationModel
-    let pro: ProAccessController
     @State private var model: MobileMCPEditorModel
     @State private var browser = MCPWebAuthenticationPresenter()
     @State private var editingHeader: MCPHeader?
@@ -210,9 +190,8 @@ struct MobileMCPEditor: View {
         let message: String
     }
 
-    init(ai: AIConfigurationModel, pro: ProAccessController, server: MCPServer) {
+    init(ai: AIConfigurationModel, server: MCPServer) {
         self.ai = ai
-        self.pro = pro
         _model = State(initialValue: MobileMCPEditorModel(ai: ai, server: server))
     }
 
@@ -302,7 +281,7 @@ struct MobileMCPEditor: View {
         .toolbar {
             MobileToolbarOverflow {
                 Button(AppStrings.Common.connect.swiftUIKey, systemImage: "bolt") {
-                    if pro.require(.remoteMCP) { model.connect(interaction: browser.interaction) }
+                    model.connect(interaction: browser.interaction)
                 }
                 .disabled(!model.canSave || model.running)
                 if ai.mcpServer(model.original.id) != nil {
@@ -319,7 +298,7 @@ struct MobileMCPEditor: View {
                 }
                 .labelStyle(.iconOnly)
                 .accessibilityLabel(Text(AppStrings.Common.save))
-                .disabled(!model.canSave || !pro.canUse(.remoteMCP))
+                .disabled(!model.canSave)
             }
             .mobileProminentAction()
         }
@@ -332,7 +311,6 @@ struct MobileMCPEditor: View {
         .onChange(of: model.key.text) { _, _ in model.invalidateConnection() }
         .onChange(of: model.key.action) { _, _ in model.invalidateConnection() }
         .onChange(of: ai.mcpServer(model.original.id)) { _, _ in model.cancel() }
-        .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
         .background(MCPAuthorizationAnchor(presenter: browser).frame(width: 0, height: 0))
         .onChange(of: model.draft.oauth) { _, _ in
             model.invalidateConnection()
@@ -358,7 +336,7 @@ struct MobileMCPEditor: View {
                 (model.oauthSignedIn ? AppStrings.MCP.oauthSignedIn : AppStrings.MCP.oauthSignedOut).swiftUIKey,
                 systemImage: model.oauthSignedIn ? "checkmark.circle" : "person.crop.circle")
             Button((model.oauthSignedIn ? AppStrings.MCP.oauthReauthorize : AppStrings.MCP.oauthSignIn).swiftUIKey) {
-                guard pro.require(.remoteMCP) else { return }
+
                 model.reauthorize(interaction: browser.interaction)
             }
             .disabled(

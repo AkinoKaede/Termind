@@ -325,7 +325,13 @@ struct TermindApp: App {
                 app.serverMetrics.start()
                 metricsActivity.start(app.serverMetrics)
                 metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
-                metricsMenu.openDetails = { [weak app] hostID in app?.mainWindows.openMetrics(hostID: hostID) }
+                metricsMenu.openDetails = { [weak app] hostID in
+                    guard let app else { return }
+                    app.mainWindows.openMetrics(hostID: hostID)
+                    if app.serverMetrics.servers.first(where: { $0.id == hostID })?.isHostLocked == true {
+                        app.proAccess.presentPaywall()
+                    }
+                }
                 metricsMenu.start(app.serverMetrics)
             }
         }

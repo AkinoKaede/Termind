@@ -31,7 +31,7 @@ struct MCPSettings: View {
             }
 
             FormNavigationAction(title: AppStrings.MCP.addServer) {
-                guard app.proAccess.require(.remoteMCP) else { return }
+
                 let server = MCPServer(name: "", namespaceID: "")
                 app.aiConfiguration.upsert(server)
                 edit(server.id, true)
@@ -58,13 +58,13 @@ struct MCPSettings: View {
     }
 
     private func importMCP() {
-        guard app.proAccess.require(.remoteMCP) else { return }
+
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.json]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard app.proAccess.require(.remoteMCP) else { return }
+
         importReport = nil
         importProblem = nil
         do {
@@ -110,7 +110,7 @@ private struct MCPServerRow: View {
             if server.tools.isEmpty {
                 CardChip(text: String(localized: AppStrings.Settings.notConnected), symbol: "questionmark.circle")
             } else {
-                CardChip(text: "\(server.tools.count)", symbol: "wrench.and.screwdriver")
+                CardChip(text: "\(server.tools.count)", symbol: "wrench")
             }
 
             Toggle("", isOn: enabled)
@@ -120,7 +120,7 @@ private struct MCPServerRow: View {
                 .accessibilityLabel(Text(AppStrings.Settings.enableNamed(server.name)))
 
             Button {
-                guard app.proAccess.require(.remoteMCP) else { return }
+
                 edit()
             } label: {
                 Image(systemName: "chevron.right")
@@ -132,7 +132,7 @@ private struct MCPServerRow: View {
         }
         .contentShape(.rect)
         .onTapGesture {
-            guard app.proAccess.require(.remoteMCP) else { return }
+
             edit()
         }
         .help(Text(app.aiConfiguration.mcpStatus(of: server.id).label))
@@ -142,7 +142,7 @@ private struct MCPServerRow: View {
         Binding(
             get: { server.isEnabled },
             set: {
-                guard app.proAccess.require(.remoteMCP) else { return }
+
                 app.aiConfiguration.setServerEnabled($0, for: server.id)
             }
         )

@@ -31,8 +31,8 @@ public struct AgentHostServices {
         return AgentHostServices(
             resolver: resolver,
             connections: AgentConnectionPool(
-                configuration: { try await resolver.configuration(for: $0) },
-                routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
+                configuration: { try await resolver.resolvedConfiguration(for: $0) },
+                routeFingerprint: { try await resolver.resolvedRouteFingerprint(for: $0) },
                 forwardingEnabled: { await store.host($0)?.agentForwardingEnabled == true },
                 openConnection: { try await coordinator.connectConnection(using: $0) },
                 openSFTP: { try await coordinator.connectSFTP(using: $0) },

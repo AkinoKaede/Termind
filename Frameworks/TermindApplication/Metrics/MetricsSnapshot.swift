@@ -8,7 +8,7 @@ public protocol MetricsSnapshotReading: Sendable {
 }
 
 public nonisolated enum MetricsMonitorState: String, Sendable {
-    case connecting, collecting, live, failed, paused, sleeping, stopped
+    case connecting, collecting, live, failed, paused, sleeping, stopped, locked
     case awaitingAuthentication = "awaiting_authentication"
 }
 

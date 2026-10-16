@@ -19,7 +19,7 @@ struct MobileMetricsJourneyTests {
         app.library.upsert(host)
         let scene = MobileSceneModel(app: app, sessionID: "test")
         scene.selectedDestination = .metrics
-        #expect(app.metrics.add(host.id, pro: true))
+        #expect(app.metrics.add(host.id))
         let server = try #require(app.metrics.servers.first)
         let route = MetricsJourneyTestRoute()
         var features = MobileFeatureRegistry()

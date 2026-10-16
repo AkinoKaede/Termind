@@ -682,6 +682,7 @@ public final class SSHImportModel {
         defer { isWorking = false }
         do {
             var batch = try makeBatch()
+            try await library.resolveSavingHostsAccess(batch.hosts)
             batch.credentials = try await reader.credentials(for: Set(batch.keys.map(\.id)))
             // Revalidate after awaiting the reader, because another window or sync can write meanwhile.
             let beforeFinalRefresh = items
@@ -700,6 +701,9 @@ public final class SSHImportModel {
             importedCount = batch.keys.count + batch.identities.count + batch.hosts.count + batch.knownHosts.count
             completed = true
             await reader.discard()
+        } catch HostAccessError.hostLimit {
+            // The host quota presents the Paywall without replacing the import selection with an error.
+            self.error = nil
         } catch { self.error = error.localizedDescription }
     }
 

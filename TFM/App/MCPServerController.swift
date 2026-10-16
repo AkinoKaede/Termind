@@ -33,8 +33,7 @@ final class MCPServerController {
     private let externalAuthentication: ExternalAuthCoordinator
     private let http = LoopbackHTTPServer()
     private let protocolServer: MCPServerProtocol
-    private let canUsePro: @MainActor () -> Bool
-    private let requestPro: @MainActor () -> Bool
+
     let tools: MCPServerTools
 
     private(set) var status: Status = .stopped
@@ -51,8 +50,7 @@ final class MCPServerController {
         background: AgentBackgroundCommands,
         externalAuthentication: ExternalAuthCoordinator,
         history: ToolAuditModel,
-        canUsePro: @escaping @MainActor () -> Bool = { true },
-        requestPro: @escaping @MainActor () -> Bool = { true },
+
         defaults: UserDefaults = .standard
     ) {
         tokenStore = MCPServerTokenStore(secrets: secrets)
@@ -63,8 +61,7 @@ final class MCPServerController {
         self.background = background
         self.externalAuthentication = externalAuthentication
         self.defaults = defaults
-        self.canUsePro = canUsePro
-        self.requestPro = requestPro
+
         isEnabled =
             defaults.object(forKey: DesktopSettingsKey.mcpServerEnabled) as? Bool
             ?? DesktopSettingsKey.defaultMCPServerEnabled
@@ -80,11 +77,11 @@ final class MCPServerController {
         )
         protocolServer = MCPServerProtocol(tools: tools)
         reloadToken()
-        if isEnabled, canUsePro() { Task { [weak self] in await self?.start() } }
+        if isEnabled { Task { [weak self] in await self?.start() } }
     }
 
     func setEnabled(_ enabled: Bool) {
-        if enabled, !requestPro() { return }
+
         isEnabled = enabled
         defaults.set(enabled, forKey: DesktopSettingsKey.mcpServerEnabled)
         Task { [weak self] in
@@ -92,17 +89,8 @@ final class MCPServerController {
         }
     }
 
-    func suspendForProAccess() {
-        Task { [weak self] in await self?.stop() }
-    }
-
-    func resumeForProAccess() {
-        guard isEnabled, canUsePro() else { return }
-        Task { [weak self] in await self?.start() }
-    }
-
     func setPort(_ value: Int) {
-        guard requestPro() else { return }
+
         let clamped = min(max(value, 1_024), 65_535)
         guard clamped != port else { return }
         port = clamped
@@ -111,7 +99,7 @@ final class MCPServerController {
     }
 
     func setToolEnabled(_ enabled: Bool, name: String) {
-        guard requestPro() else { return }
+
         guard MCPServerTools.exportedNames.contains(name) else { return }
         if enabled { disabledTools.remove(name) } else { disabledTools.insert(name) }
         defaults.set(Array(disabledTools).sorted(), forKey: DesktopSettingsKey.mcpServerDisabledTools)
@@ -125,7 +113,7 @@ final class MCPServerController {
     }
 
     func rotateToken() {
-        guard requestPro() else { return }
+
         guard let generated = try? Self.makeToken() else {
             status = .failed(String(localized: AppStrings.MCP.unableToGenerateASecureToken))
             return
@@ -167,7 +155,7 @@ final class MCPServerController {
     }
 
     private func start() async {
-        guard isEnabled, canUsePro() else { return }
+        guard isEnabled else { return }
         guard let token = ensureToken(), let validPort = UInt16(exactly: port) else {
             isEnabled = false
             defaults.set(false, forKey: DesktopSettingsKey.mcpServerEnabled)

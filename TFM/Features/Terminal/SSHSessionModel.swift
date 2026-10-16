@@ -345,6 +345,11 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
     /// makes broadcast possible — see `Workspace.deliver`; `submit` appends the
     /// newline that the user's own Return key would otherwise supply.
     func insert(_ text: String, submit: Bool = false) {
+        if let statusStore, let host = statusStore.host(hostID),
+            (try? statusStore.requireHostAccess(host)) == nil
+        {
+            return
+        }
         invalidateCommandGeneration()
         writeInputDirectly(Data((text + (submit ? "\r" : "")).utf8))
     }
@@ -725,6 +730,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
         connectionTask = Task { [weak self, weak store] in
             guard let self, let store else { return }
             do {
+                try await store.resolveHostAccess(host, route: connectionRoute)
                 try await openSSH(
                     host: host, username: username, credentials: credentials,
                     expectedHostKeys: expectedHostKeys, proxy: proxy, jumps: jumps,
@@ -904,7 +910,10 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             authenticationReference: authenticationReference
         )
         guard let store = statusStore else { throw TailscaleConfigurationError.unavailable }
-        configuration.beforeConnect = store.connectionWakeAction(for: jumps.map(\.id) + [host.id])
+        configuration.accessHostIDs =
+            jumps.map(\.id) + [host.id] + (connectionRoute.map { Array($0.sourceHostIDs.values) } ?? [])
+        configuration.accessCheck = store.connectionAccessCheck(for: configuration.accessHostIDs)
+        configuration.beforeConnect = store.connectionWakeAction(for: configuration.accessHostIDs)
         configuration.network = try store.tailscaleNetwork(
             for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
         configuration.tailscaleNodeID = host.tailscale?.stableNodeID

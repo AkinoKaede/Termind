@@ -290,13 +290,6 @@ struct HostChooserView: View {
                     )
                     .padding(.horizontal, Metrics.Space.xl)
 
-                    if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
-                        Text(AppStrings.Pro.freeMetricsLimit)
-                            .font(.caption).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, Metrics.Space.xl)
-                    }
-
                     multiSelectionHostList
                 }
                 .padding(.top, Metrics.Space.xs)

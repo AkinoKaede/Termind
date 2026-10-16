@@ -2,11 +2,9 @@ import SwiftUI
 import TermindDomain
 
 public struct WakeOnLANSettingsAccess {
-    private let requestAccess: () -> Bool
     private let invalidAddress: () -> Void
 
-    public init(requestAccess: @escaping () -> Bool, invalidAddress: @escaping () -> Void) {
-        self.requestAccess = requestAccess
+    public init(invalidAddress: @escaping () -> Void) {
         self.invalidAddress = invalidAddress
     }
 
@@ -15,7 +13,6 @@ public struct WakeOnLANSettingsAccess {
             get: { saved.wrappedValue.automaticallyWake },
             set: { enabled in
                 if enabled {
-                    guard requestAccess() else { return }
                     guard saved.wrappedValue.address != nil else {
                         invalidAddress()
                         return

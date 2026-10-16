@@ -4,16 +4,14 @@ import TermindDomain
 
 public struct HostWakeOnLANSection: View {
     @Binding private var preferences: WakeOnLANPreferences
-    private let requestAccess: () -> Bool
     private let fetchMAC: (() -> Void)?
     @State private var invalidAddress = false
 
     public init(
         preferences: Binding<WakeOnLANPreferences>,
-        requestAccess: @escaping () -> Bool, fetchMAC: (() -> Void)?
+        fetchMAC: (() -> Void)?
     ) {
         _preferences = preferences
-        self.requestAccess = requestAccess
         self.fetchMAC = fetchMAC
     }
 
@@ -34,7 +32,7 @@ public struct HostWakeOnLANSection: View {
             Toggle(
                 AppStrings.LocalNetwork.autoWake.swiftUIKey,
                 isOn: WakeOnLANSettingsAccess(
-                    requestAccess: requestAccess, invalidAddress: { invalidAddress = true }
+                    invalidAddress: { invalidAddress = true }
                 ).automatic($preferences))
         } header: {
             Text(AppStrings.LocalNetwork.wakeOnLAN)

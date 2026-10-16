@@ -31,6 +31,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
 
     }
+    public var accessHostIDs: [UUID] = []
+    public var accessCheck: HostOperationAccessCheck?
     public var beforeConnect: ConnectionWakeAction?
     public var nodes: [Node]
     public var secrets: any SSHRuntimeSecretResolving
@@ -124,6 +126,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
+        configuration.accessHostIDs = accessHostIDs
+        configuration.accessCheck = accessCheck
         configuration.beforeConnect = beforeConnect
         configuration.network = nodes.first?.network
         configuration.tailscaleNodeID = target.host.tailscale?.stableNodeID

@@ -161,6 +161,7 @@ final class TelnetSessionModel: Identifiable {
         let viewport = latestViewport
         connectionTask = Task { [weak self] in
             do {
+                try await store.resolveHostAccess(host)
                 var configuration = try store.telnetConnectionConfiguration(for: host)
                 if let usernameHint = self?.usernameHint { configuration.username = usernameHint }
                 if let password = self?.advisoryPassword {

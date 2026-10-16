@@ -255,14 +255,18 @@ final class AppModel {
             suppliedMetrics
             ?? ServerMetricsModel(
                 hosts: hosts, preferences: dependencies.metricsPreferences ?? MetricsPreferences(),
-                makeSampler: { connectionCoordinator.makeMetricsSampler() },
-                cardLimit: { proAccess.canUse(.unlimitedMetrics) ? nil : ServerMetricsModel.freeCardLimit },
-                limitReached: { proAccess.require(.unlimitedMetrics) }
+                makeSampler: { connectionCoordinator.makeMetricsSampler() }
             )
         self.hosts = hosts
+        hosts.hostAccess.entitlement = proAccess.status
+        hosts.requestHostUpgrade = { proAccess.presentPaywall() }
+        hosts.resolveInitialHostEntitlement = { [weak hosts] in
+            await proAccess.refresh()
+            hosts?.hostAccess.entitlement = proAccess.status
+        }
         self.proAccess = proAccess
         hosts.wakeOnLAN = WakeOnLANController(
-            sender: LANWakeOnLANSender(), hasAccess: { proAccess.canUse(.wakeOnLAN) })
+            sender: LANWakeOnLANSender())
         let wakeLogger = dependencies.logging.makeLogger(label: "termind.wake-on-lan")
         hosts.wakeOnLAN?.reportAutomaticFailure = { _ in wakeLogger.warning("wake.automatic.failed") }
         self.onboarding = onboarding
@@ -343,9 +347,7 @@ final class AppModel {
             secrets: dependencies.mcpServerSecrets, hosts: agentHosts, metrics: serverMetrics,
             connections: agentConnections,
             authentication: agentAuthentication, background: agentBackgroundCommands,
-            externalAuthentication: externalAuthentication, history: externalToolCalls,
-            canUsePro: { proAccess.canUse(.mcpServer) },
-            requestPro: { proAccess.require(.mcpServer) }
+            externalAuthentication: externalAuthentication, history: externalToolCalls
         )
         agentHosts.configureTemporaryTargets(
             targets: { [weak self] in self?.temporaryAgentTargets() ?? [] },
@@ -440,6 +442,7 @@ final class AppModel {
         }
         tailscale.start()
         proAccess.accessDidChange = { [weak self] in
+            self?.reconcileProAccess()
             self?.tailscale.reconcile()
             self?.serverMetrics.reconcile()
             self?.reconcileConnectionPreferences()
@@ -509,22 +512,19 @@ final class AppModel {
     }
 
     func reconcileProAccess() {
+        hosts.hostAccess.entitlement = proAccess.status
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
             connectionHistorySync?.start()
             deviceSync?.start()
             metricsSync?.start()
             settingsSync?.start()
-            mcpServer.resumeForProAccess()
         } else {
             vaultSync?.pause()
             connectionHistorySync?.pause()
             deviceSync?.pause()
             metricsSync?.pause()
             settingsSync?.pause()
-        }
-        if !proAccess.canUse(.mcpServer), mcpServer.isEnabled {
-            mcpServer.suspendForProAccess()
         }
     }
 
@@ -573,7 +573,7 @@ final class AppModel {
         observeNotifications: { [weak self] in self?.assistantNotifications.observe($0) },
         authorize: { [weak self] in
             guard let self, !self.isTerminating else { return false }
-            return self.proAccess.require(.assistant)
+            return true
         },
         makeRegistry: { [weak self] conversation, model, provider, skills, channel, panes, source in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
@@ -1061,7 +1061,15 @@ final class AppModel {
         _ host: Host,
         as target: HostOpenTarget,
         in window: WindowModel
-    ) -> Workspace {
+    ) -> Workspace? {
+        guard
+            admitHostOpen(
+                host, in: window,
+                whenResolved: { [weak self, weak window] in
+                    guard let self, let window else { return }
+                    self.open(host, as: target, in: window)
+                })
+        else { return nil }
         configureConnectionHistory(in: window)
         beginOpening(host, as: target)
 
@@ -1083,12 +1091,34 @@ final class AppModel {
     }
 
     @discardableResult
-    func openQuickConnect(_ target: QuickConnectTarget, in window: WindowModel) -> Workspace {
+    func openQuickConnect(_ target: QuickConnectTarget, in window: WindowModel) -> Workspace? {
         if target.isSaved {
             return open(
                 target.host,
                 as: target.connectionProtocol == .ssh ? .sshSession : .telnetSession,
                 in: window)
+        }
+        for node in target.route.hosts {
+            guard
+                admitHostOpen(
+                    node, in: window,
+                    whenResolved: { [weak self, weak window] in
+                        guard let self, let window else { return }
+                        self.openQuickConnect(target, in: window)
+                    })
+            else { return nil }
+        }
+        for id in target.route.sourceHostIDs.values {
+            if let saved = hosts.host(id),
+                !admitHostOpen(
+                    saved, in: window,
+                    whenResolved: { [weak self, weak window] in
+                        guard let self, let window else { return }
+                        self.openQuickConnect(target, in: window)
+                    })
+            {
+                return nil
+            }
         }
         hosts.setStatus(.connecting, for: target.host.id)
         if target.connectionProtocol == .telnet {
@@ -1100,11 +1130,23 @@ final class AppModel {
     }
 
     @discardableResult
-    func saveQuickConnect(_ target: QuickConnectTarget) throws -> Host {
+    func saveQuickConnect(_ target: QuickConnectTarget) async throws -> Host {
+        do {
+            return try commitQuickConnect(target)
+        } catch HostAccessError.verifyingEntitlement {
+            await proAccess.refresh()
+            hosts.hostAccess.entitlement = proAccess.status
+            try Task.checkCancellation()
+            return try commitQuickConnect(target)
+        }
+    }
+
+    private func commitQuickConnect(_ target: QuickConnectTarget) throws -> Host {
         if target.connectionProtocol == .telnet {
             var host = target.host
             host.sshEnabled = false
             host.telnetEnabled = true
+            try hosts.requireSavingHosts([host])
             guard hosts.saveHost(host) else {
                 throw TermindSSHError.library(
                     hosts.storageError ?? String(localized: AppStrings.Vault.theHostCouldNotBeSaved))
@@ -1246,14 +1288,60 @@ final class AppModel {
         layout: BatchLayout = .separateWorkspaces,
         in window: WindowModel
     ) {
+        if let pending = hosts.first(where: {
+            do {
+                try self.hosts.requireHostAccess($0)
+                return false
+            } catch {
+                return (error as? HostAccessError) == .verifyingEntitlement
+            }
+        }) {
+            _ = admitHostOpen(pending, in: window) { [weak self, weak window] in
+                guard let self, let window else { return }
+                self.open(hosts, as: target, layout: layout, in: window)
+            }
+            return
+        }
+        let hosts = hosts.filter { admitHostOpen($0, in: window) }
+        guard !hosts.isEmpty else { return }
         configureConnectionHistory(in: window)
         switch layout {
         case .separateWorkspaces:
-            let opened = hosts.map { open($0, as: target, in: window) }
+            let opened = hosts.compactMap { open($0, as: target, in: window) }
             if let first = opened.first { window.select(first.id) }
         case .oneWorkspace:
             for host in hosts { beginOpening(host, as: target) }
             window.openWorkspace(hosts, as: target)
+        }
+    }
+
+    private func admitHostOpen(
+        _ host: Host, in window: WindowModel, whenResolved: (() -> Void)? = nil
+    ) -> Bool {
+        do {
+            try hosts.requireHostAccess(host)
+            return true
+        } catch {
+            if case HostAccessError.verifyingEntitlement = error {
+                Task { [weak self, weak window] in
+                    guard let self, let window else { return }
+                    do {
+                        try await hosts.resolveHostAccess(host)
+                        whenResolved?()
+                    } catch {
+                        if case HostAccessError.lockedHost = error {
+                            proAccess.presentPaywall()
+                        } else if !(error is CancellationError) {
+                            window.hostAccessError = HostAccessError.presentationDescription(of: error)
+                        }
+                    }
+                }
+            } else if case HostAccessError.lockedHost = error {
+                proAccess.presentPaywall()
+            } else {
+                window.hostAccessError = HostAccessError.presentationDescription(of: error)
+            }
+            return false
         }
     }
 

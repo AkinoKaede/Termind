@@ -524,6 +524,10 @@ struct HostCard: View {
     }
 
     private func quickConnect() {
+        if app.hostLibrary.isLocked(host) {
+            app.proAccess.presentPaywall()
+            return
+        }
         app.open(actionHosts, as: .preferredTerminal, in: window)
     }
 
@@ -535,9 +539,12 @@ struct HostCard: View {
             )
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(host.name)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack {
+                    Text(host.name)
+                    if app.hostLibrary.isLocked(host) { Image(systemName: "lock.fill") }
+                }
+                .font(.headline)
+                .lineLimit(1)
                 Text(app.hostLibrary.preferredTerminalLoginAddress(for: host))
                     .font(.caption)
                     .foregroundStyle(.secondary)

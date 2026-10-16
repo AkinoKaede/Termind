@@ -57,7 +57,7 @@ struct MobileCardPageLayoutReviewTests {
                     remotePath: "/srv/backups/production-database-backup.tar.gz", byteCount: 100_000,
                     transferredBytes: 42_000, state: state))
         }
-        _ = app.metrics.add(host.id, pro: true)
+        _ = app.metrics.add(host.id)
         let server = try #require(app.metrics.servers.first)
         app.metrics.core.setEnabled(false, for: server)
         server.isConnecting = false

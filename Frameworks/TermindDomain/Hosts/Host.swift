@@ -139,6 +139,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public static let portForwardingMaxConnectionsRange = 1...64
 
     public var id: UUID = UUID()
+    public var createdAt: Date?
     public var name: String
     /// Present only on the device-local projection of a discovered Tailscale peer.
     public var tailscale: TailscaleHostReference?
@@ -297,6 +298,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
     public init(
         id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
+        createdAt: Date? = nil,
         jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpChannelInitialPath: String = "",
         charset: RemoteCharset = .utf8,
         sshEnabled: Bool = true, telnetEnabled: Bool = false, telnetPort: Int = 23,
@@ -311,6 +313,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     ) {
         self.id = id
+        self.createdAt = createdAt
         self.name = name
         self.host = host
         self.sshEnabled = sshEnabled
@@ -341,7 +344,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, host, port, identityID, jumpHostID, proxy, tailscale
+        case id, name, host, port, identityID, jumpHostID, proxy, tailscale, createdAt
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
@@ -354,6 +357,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)
+        createdAt = try values.decodeIfPresent(Date.self, forKey: .createdAt)
         tailscale = try values.decodeIfPresent(TailscaleHostReference.self, forKey: .tailscale)
         name = try values.decode(String.self, forKey: .name)
         host = try values.decode(String.self, forKey: .host)
@@ -400,6 +404,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public func encode(to encoder: any Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(id, forKey: .id)
+        try values.encodeIfPresent(createdAt, forKey: .createdAt)
         try values.encodeIfPresent(tailscale, forKey: .tailscale)
         try values.encode(name, forKey: .name)
         try values.encode(host, forKey: .host)

@@ -2,127 +2,105 @@ import Foundation
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
-import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
 
 @testable import Termind
+@testable import TermindPresentation
 
 @Suite
 @MainActor
 struct MetricsLimitTests {
-    @Test
-    func freeLimitCountsPausedCardsAndRejectsTheFourthBeforeSaving() {
-        let hosts = fixtures(4)
-        let preferences = LimitMetricsPreferences()
-        var denied = 0
-        let model = model(hosts, preferences: preferences, denied: { denied += 1 })
-        defer { model.shutdown() }
-        #expect(model.add(Array(hosts.prefix(3))))
-        model.setEnabled(false, for: model.servers[0])
-        let saved = preferences.values
-        #expect(model.remainingCardSlots == 0)
-        #expect(!model.add(hosts[3]))
-        #expect(model.servers.count == 3)
-        #expect(preferences.values == saved)
-        #expect(denied == 1)
-        model.remove(hosts[1].id)
-        #expect(model.remainingCardSlots == 1)
-        #expect(model.add(hosts[3]))
-        #expect(model.servers.count == 3)
+    @Test func failedAccessUsesErrorIndicatorRatherThanAnIndefiniteSpinner() {
+        let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Host")
+        server.hostAccessError = .entitlementVerificationFailed
+        #expect(MetricsInstrumentBody(server: server, sleeping: false).connectionIndicator == .attention)
+        server.hostAccessError = .verifyingEntitlement
+        server.isConnecting = true
+        #expect(MetricsInstrumentBody(server: server, sleeping: false).connectionIndicator == .progress)
     }
 
-    @Test
-    func batchAdmissionIsAtomicAndDuplicateHostsDoNotConsumeSlots() {
-        let hosts = fixtures(5)
-        let preferences = LimitMetricsPreferences()
-        let model = model(hosts, preferences: preferences)
+    @Test func lockedCardActivationOpensPaywallInsteadOfDetails() {
+        let free = ProAccessController.testing(status: .free)
+        let host = fixtures(1)[0]
+        let model = model([host])
         defer { model.shutdown() }
-        #expect(model.add(hosts[0]))
-        #expect(!model.add(Array(hosts[1...3])))
-        #expect(model.servers.map(\.id) == [hosts[0].id])
-        #expect(model.add([hosts[0], hosts[1], hosts[1], hosts[2]]))
-        #expect(model.servers.count == 3)
-        #expect(model.add([hosts[0], hosts[0]]))
-        #expect(!model.add(hosts[4]))
-        #expect(preferences.values.count == 3)
+        let server = ServerMetric(selection: MetricsSelection(id: host.id), name: host.name)
+        server.point = MetricsPoint(date: .now, cpu: 50)
+        server.hostAccessError = .lockedHost(host.id)
+        var inspected = false
+        let card = ServerMetricsCard(
+            server: server, model: model, inspect: { inspected = true }, upgrade: { free.presentPaywall() })
+        card.activate()
+        #expect(free.isPaywallPresented)
+        #expect(!inspected)
+        #expect(server.point != nil)
+        free.isPaywallPresented = false
+        server.hostAccessError = .verifyingEntitlement
+        card.activate()
+        #expect(!free.isPaywallPresented)
+        #expect(inspected)
     }
 
-    @Test
-    func proAccessCanChangeWithoutRebuildingTheModel() {
-        let hosts = fixtures(6)
-        var unlimited = false
-        let model = model(hosts, limit: { unlimited ? nil : 3 })
-        defer { model.shutdown() }
-        #expect(model.add(Array(hosts.prefix(3))))
-        #expect(!model.add(hosts[3]))
-        unlimited = true
-        #expect(model.remainingCardSlots == nil)
-        #expect(model.add(Array(hosts.suffix(3))))
-        #expect(model.servers.count == 6)
-        unlimited = false
-        #expect(model.remainingCardSlots == 0)
-        #expect(model.servers.count == 6)
-        #expect(!model.requestAddition())
-    }
-
-    @Test
-    func restoredConfigurationIsNotDeletedButCountsAgainstNewAdditions() {
-        let hosts = fixtures(5)
-        let preferences = LimitMetricsPreferences()
-        preferences.values = hosts.prefix(4).map { MetricsSelection(id: $0.id, enabled: false) }
-        let saved = preferences.values
-        let model = model(hosts, preferences: preferences)
-        defer { model.shutdown() }
-        model.start()
-        #expect(model.servers.count == 4)
-        #expect(!model.add(hosts[4]))
-        #expect(preferences.values == saved)
-    }
-
-    @Test
-    func fullMetricsToolbarStillOpensTheSelectionChooser() {
-        let hosts = fixtures(4)
-        var denied = false
-        let model = model(hosts, denied: { denied = true })
-        defer { model.shutdown() }
-        model.add(Array(hosts.prefix(3)))
+    @Test func lockedHostAndJumpDoNotCreateNewWorkspacesOrHistory() {
+        var hosts = fixtures(4)
+        for index in hosts.indices { hosts[index].createdAt = Date(timeIntervalSince1970: Double(index)) }
+        hosts[0].jumpHostID = hosts[3].id
+        let pro = ProAccessController.testing(status: .free)
+        let app = AppModel(hosts: HostLibraryModel(hosts: hosts), proAccess: pro)
+        defer { app.shutdownForTermination() }
         let window = WindowModel()
-        window.metricsModel = model
-        window.selectedDestination = .metrics
-        window.creationActions.first?.perform()
-        #expect(!denied)
-        #expect(window.presentations.hostChooser == .metrics)
+        #expect(app.open(hosts[3], as: .sshSession, in: window) == nil)
+        #expect(app.open(hosts[0], as: .sftpChannel, in: window) == nil)
+        #expect(window.workspaces.isEmpty)
+        #expect(pro.isPaywallPresented)
+        app.open([hosts[0], hosts[1], hosts[3]], as: .sshSession, layout: .oneWorkspace, in: window)
+        #expect(window.workspaces.count == 1)
+        #expect(window.workspaces.first?.panes.count == 1)
+    }
+
+    @Test func hostAccessVerificationFailureUsesConnectionErrorRatherThanWakeNotice() {
+        var hosts = fixtures(4)
+        for index in hosts.indices { hosts[index].createdAt = Date(timeIntervalSince1970: Double(index)) }
+        let app = AppModel(
+            hosts: HostLibraryModel(hosts: hosts), proAccess: .testing(status: .verificationFailed))
+        defer { app.shutdownForTermination() }
+        let window = WindowModel()
+        #expect(app.open(hosts[3], as: .sshSession, in: window) == nil)
+        #expect(window.hostAccessError == String(localized: AppStrings.Pro.accessVerificationFailed))
+        #expect(window.externalConnectionError == nil)
+        #expect(window.wakeNotice == nil)
+        #expect(!app.proAccess.isPaywallPresented)
     }
 
     @Test
-    func selectionReplacementPreservesSettingsAndAllowsSwapAtTheFreeLimit() {
+    func freeMetricsHasNoIndependentCardLimitAndDeduplicates() {
+        let hosts = fixtures(6)
+        let preferences = LimitMetricsPreferences()
+        let model = model(hosts, preferences: preferences)
+        defer { model.shutdown() }
+        #expect(model.add(Array(hosts.prefix(3))))
+        model.setEnabled(false, for: model.servers[0])
+        #expect(model.add(hosts + hosts))
+        #expect(model.servers.count == 6)
+        #expect(preferences.values.count == 6)
+        #expect(!model.selections[0].enabled)
+    }
+
+    @Test
+    func selectionReplacementRetainsSettingsWithoutACommercialLimit() {
         let hosts = fixtures(5)
         let preferences = LimitMetricsPreferences()
         let model = model(hosts, preferences: preferences)
         defer { model.shutdown() }
         #expect(model.add(Array(hosts.prefix(3))))
         model.setEnabled(false, for: model.servers[0])
-        model.selectDevices(model.servers[0], disks: ["disk0"], interfaces: ["eth0"])
         let preserved = model.selections[0]
-        let editable = Set(hosts.map(\.id))
-
-        #expect(
-            model.replaceHosts(
-                selectedIDs: [hosts[0].id, hosts[2].id, hosts[3].id], editableHostIDs: editable))
-        #expect(model.selections.map(\.id) == [hosts[0].id, hosts[2].id, hosts[3].id])
+        #expect(model.replaceHosts(selectedIDs: hosts.map(\.id), editableHostIDs: Set(hosts.map(\.id))))
+        #expect(model.selections.count == 5)
         #expect(model.selections[0] == preserved)
-        #expect(model.selections[2] == MetricsSelection(id: hosts[3].id))
-        #expect(preferences.values == model.selections)
-
-        let saved = model.selections
-        #expect(
-            !model.replaceHosts(
-                selectedIDs: hosts.prefix(4).map(\.id), editableHostIDs: editable))
-        #expect(model.selections == saved)
-        #expect(preferences.values == saved)
     }
 
     @Test
@@ -159,23 +137,13 @@ struct MetricsLimitTests {
     }
 
     @Test
-    func productionWiringUsesTheExistingProPaywallAndIncludesSubscriptionAccess() {
+    func freeMetricsDoesNotPresentPaywall() {
         let free = ProAccessController.testing(status: .free)
-        let app = AppModel(hosts: HostLibraryModel(), proAccess: free)
+        let hosts = fixtures(5)
+        let app = AppModel(hosts: HostLibraryModel(hosts: hosts), proAccess: free)
         defer { app.shutdownForTermination() }
-        #expect(app.serverMetrics.remainingCardSlots == 3)
-        #expect(!app.serverMetrics.requestAddition(count: 4))
-        #expect(free.isPaywallPresented)
-        for status in [
-            EntitlementStatus.subscription(
-                ProSubscriptionStatus(
-                    phase: .introductoryTrial, expiresAt: .distantFuture, willAutoRenew: true,
-                    ownership: .purchased)),
-            .purchased(.purchased), .purchased(.familyShared),
-        ] {
-            let access = ProAccessController.testing(status: status)
-            #expect(access.canUse(.unlimitedMetrics))
-        }
+        #expect(app.serverMetrics.add(hosts))
+        #expect(!free.isPaywallPresented)
     }
 
     private func fixtures(_ count: Int) -> [TermindDomain.Host] {
@@ -183,13 +151,11 @@ struct MetricsLimitTests {
     }
 
     private func model(
-        _ hosts: [TermindDomain.Host], preferences: LimitMetricsPreferences = LimitMetricsPreferences(),
-        limit: @escaping () -> Int? = { 3 }, denied: @escaping () -> Void = {}
+        _ hosts: [TermindDomain.Host], preferences: LimitMetricsPreferences = LimitMetricsPreferences()
     ) -> ServerMetricsModel {
         ServerMetricsModel(
             hosts: HostLibraryModel(hosts: hosts), preferences: preferences,
-            makeSampler: { SSHMetricsSampler(connection: RemoteConnectionCoordinator().makeConnection()) },
-            cardLimit: limit, limitReached: denied
+            makeSampler: { SSHMetricsSampler(connection: RemoteConnectionCoordinator().makeConnection()) }
         )
     }
 }

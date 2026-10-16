@@ -14,8 +14,10 @@ extension AppStrings {
             "Termind Pro is not available from the App Store right now."
         }
 
-        public static var freeMetricsLimit: LocalizedStringResource {
-            "Free includes up to 3 monitoring cards. Upgrade to Pro for more."
+        public static var upgradeToUnlockHost: LocalizedStringResource { "Upgrade to Pro to unlock this host." }
+        public static var verifyingAccess: LocalizedStringResource { "Checking Pro access…" }
+        public static var accessVerificationFailed: LocalizedStringResource {
+            "Unable to verify Pro access. Please try again."
         }
 
         public static var privacyPolicy: LocalizedStringResource {

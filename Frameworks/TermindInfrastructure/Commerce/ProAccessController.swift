@@ -120,7 +120,7 @@ public final class ProAccessController {
     }
 
     private func apply(_ next: EntitlementStatus) {
-        let changed = status.hasProAccess != next.hasProAccess
+        let changed = status != next
         status = next
         if changed { accessDidChange?() }
         entitlementExpirationTask?.cancel()

@@ -9,7 +9,6 @@ import TermindDomain
 final class MobileMetricsModel {
     let core: ServerMetricsModel
     private let hosts: any RemoteSessionHostStore
-    private let limit = MobileMetricsLimit()
     var servers: [ServerMetric] { core.servers }
     var selections: [MetricsSelection] { core.selections }
 
@@ -19,19 +18,17 @@ final class MobileMetricsModel {
         services: MobileMetricsServices
     ) {
         self.hosts = hosts
-        let limit = limit
         core = ServerMetricsModel(
             hosts: hosts, preferences: preferences,
-            makeSampler: services.makeSampler,
-            cardLimit: { limit.maximum })
+            makeSampler: services.makeSampler)
     }
 
-    func add(_ id: UUID, pro: Bool) -> Bool {
-        add([id], pro: pro)
+    func add(_ id: UUID) -> Bool {
+        add([id])
     }
 
-    func add(_ ids: [UUID], pro: Bool) -> Bool {
-        limit.maximum = pro ? nil : ServerMetricsModel.freeCardLimit
+    func add(_ ids: [UUID]) -> Bool {
+
         let batch = ids.compactMap(hosts.host)
         guard !batch.isEmpty else { return false }
         return core.add(batch)
@@ -39,8 +36,8 @@ final class MobileMetricsModel {
 
     func remove(_ id: UUID) { core.remove(id) }
 
-    func replaceHosts(selectedIDs: [UUID], editableHostIDs: Set<UUID>, pro: Bool) -> Bool {
-        limit.maximum = pro ? nil : ServerMetricsModel.freeCardLimit
+    func replaceHosts(selectedIDs: [UUID], editableHostIDs: Set<UUID>) -> Bool {
+
         return core.replaceHosts(selectedIDs: selectedIDs, editableHostIDs: editableHostIDs)
     }
     func pause() { core.suspend() }
@@ -49,5 +46,3 @@ final class MobileMetricsModel {
         core.resume()
     }
 }
-
-@MainActor private final class MobileMetricsLimit { var maximum: Int? = 3 }

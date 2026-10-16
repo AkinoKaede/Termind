@@ -970,11 +970,14 @@ struct WelcomeView: View {
     }
 
     private func save(_ target: QuickConnectTarget) {
-        do {
-            let host = try app.saveQuickConnect(target)
-            query = host.name
-        } catch {
-            actionError = error.localizedDescription
+        Task {
+            do {
+                let host = try await app.saveQuickConnect(target)
+                query = host.name
+            } catch HostAccessError.hostLimit {
+            } catch {
+                actionError = error.localizedDescription
+            }
         }
     }
 

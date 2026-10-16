@@ -1,5 +1,6 @@
 import CSSH2
 import Foundation
+import TermindApplication
 import TermindDomain
 
 /// Owns every SFTP subsystem channel attached to one non-blocking SSH connection.
@@ -13,6 +14,7 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
         var buffer: SSHConnectionBuffer
         var channelBudget: SSHChannelBudget
         var charset: RemoteCharset
+        var accessCheck: HostOperationAccessCheck? = nil
     }
 
     private struct OwnedChannel {
@@ -63,7 +65,13 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
             guard let context = context() else { throw SFTPError.notConnected }
             return context.charset
         }
-        return try await SFTPChannel.open(using: driver, charset: charset)
+        let check = try await queue.perform { [self] in
+            guard let context = context() else { throw SFTPError.notConnected }
+            return context.accessCheck
+        }
+        try check?()
+        return AccessControlledSFTPChannel(
+            channel: try await SFTPChannel.open(using: driver, charset: charset), accessCheck: check)
     }
 
     /// Called by the enclosing SSH owner while already executing on `queue`.

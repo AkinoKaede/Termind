@@ -185,6 +185,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     deinit { cleanup() }
 
+    private var accessCheck: HostOperationAccessCheck?
+
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
         let operationID = UUID().uuidString.lowercased()
         let hostID = request.configuration.hostID
@@ -199,6 +201,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             let opened = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request, timeout: 20, progress: progress, logger: logger)
             await queue.perform {
+                self.accessCheck = request.configuration.accessCheck
                 self.retiredStatistics = SSHForwardingStatistics()
                 self.connection = opened
                 self.buffer = opened.installBuffer()
@@ -239,6 +242,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             try await withCheckedThrowingContinuation { continuation in
                 queue.async { [self] in
                     do {
+                        try accessCheck?()
                         guard connection != nil else { throw TermindSSHError.disconnected }
                         if rules[rule.id] != nil {
                             continuation.resume()
@@ -296,6 +300,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [self] in
                 do {
+                    try accessCheck?()
                     guard connection != nil else { throw TermindSSHError.disconnected }
                     guard rule.kind != .remote else {
                         throw TermindSSHError.route(String(localized: "Remote forwarding requires an SSH listener."))
@@ -319,6 +324,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
         await withCheckedContinuation { continuation in
             queue.async { [self] in
+                do { try accessCheck?() } catch {
+                    continuation.resume(returning: false)
+                    return
+                }
                 guard connection != nil, let context = rules[ruleID], context.generation == generation,
                     !context.stopped, context.rule.kind != .remote
                 else {
@@ -611,6 +620,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         for _ in 0..<32 {
             let descriptor = Darwin.accept(context.socket, nil, nil)
             guard descriptor >= 0 else { break }
+            do { try accessCheck?() } catch {
+                Darwin.close(descriptor)
+                continue
+            }
             makeNonblocking(descriptor)
             var yes: Int32 = 1
             setsockopt(descriptor, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
@@ -638,6 +651,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             }
             progressed = true
             let flow = Flow(socket: -1, context: context, channel: channel)
+            do { try accessCheck?() } catch {
+                register(flow)
+                close(flow)
+                continue
+            }
             register(flow)
             let connector = SSHForwardingConnector(queue: queue) { [weak self, weak flow] result in
                 guard let self, let flow, !flow.retired else {

@@ -23,7 +23,7 @@ struct MobileHostEditor: View {
     @State private var tailscaleUsername = ""
     @State private var originalTailscaleUsername = ""
     @State private var showsDiscovery = false
-    @State private var showsWakePaywall = false
+    @State private var showsHostPaywall = false
     @State private var macModel: HostMACAddressModel?
     @State private var draft: Host
     @State private var editorRoute: EditorRoute?
@@ -66,6 +66,12 @@ struct MobileHostEditor: View {
             discardQuestion: app.library.host(original.id) == nil
                 ? AppStrings.Common.discardNewHostQuestion : AppStrings.Common.discardChangesQuestion,
             save: {
+                do {
+                    try await library.resolveSavingHostsAccess([draft], requestsUpgrade: false)
+                } catch HostAccessError.hostLimit {
+                    showsHostPaywall = true
+                    throw CancellationError()
+                }
                 if draft.isTailscaleManaged {
                     guard library.saveTailscaleHost(draft, username: tailscaleUsername) else {
                         throw MobileEditorError.message(
@@ -256,7 +262,7 @@ struct MobileHostEditor: View {
                 }
             }
         }
-        .sheet(isPresented: $showsWakePaywall) { MobileProView(pro: app.pro) }
+        .sheet(isPresented: $showsHostPaywall) { MobileProView(pro: app.pro) }
         .sheet(
             isPresented: Binding(
                 get: { macModel != nil },
@@ -339,11 +345,6 @@ struct MobileHostEditor: View {
     private var wakeOnLANSection: some View {
         HostWakeOnLANSection(
             preferences: $draft.wakeOnLAN,
-            requestAccess: {
-                if app.pro.canUse(.autoWakeOnLAN) { return true }
-                showsWakePaywall = true
-                return false
-            },
             fetchMAC: draft.sshEnabled
                 ? {
                     macModel = app.macAddressModel(

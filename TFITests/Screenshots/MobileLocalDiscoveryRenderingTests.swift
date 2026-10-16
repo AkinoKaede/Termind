@@ -24,7 +24,7 @@ struct MobileLocalDiscoveryRenderingTests {
                 Form {
                     HostConnectionFields(host: .constant(host), protocol: connectionProtocol, discover: {})
                     HostWakeOnLANSection(
-                        preferences: .constant(.init()), requestAccess: { true }, fetchMAC: {})
+                        preferences: .constant(.init()), fetchMAC: {})
                 }
                 .navigationTitle(AppStrings.Vault.addHost.swiftUIKey)
             }

@@ -10,6 +10,58 @@ import struct TermindDomain.Host
 /// types for the views. Previews can still construct an in-memory store directly.
 @Observable
 public final class HostLibraryModel: RemoteSessionHostStore {
+    public var hostAccess = HostAccessPolicy(entitlement: .unrestrictedForTesting) {
+        didSet { operationAccess.update(policy: hostAccess, hosts: hosts) }
+    }
+    @ObservationIgnored private let operationAccess = HostOperationAccess()
+    public func connectionAccessCheck(for hostIDs: [UUID]) -> HostOperationAccessCheck? {
+        let access = operationAccess
+        return { try access.check(hostIDs) }
+    }
+    @ObservationIgnored public var requestHostUpgrade: (() -> Void)?
+    @ObservationIgnored public var resolveInitialHostEntitlement: (() async -> Void)?
+    public var lastHostAccessError: HostAccessError?
+
+    public func isLocked(_ host: Host) -> Bool { hostAccess.isLocked(host.id, in: hosts) }
+
+    public func requireHostAccess(_ host: Host) throws {
+        for node in route(for: host) {
+            try hostAccess.requireAccess(to: node.id, in: hosts)
+        }
+    }
+
+    public func resolveHostAccess(_ host: Host) async throws {
+        do { try requireHostAccess(host) } catch HostAccessError.verifyingEntitlement {
+            await resolveInitialHostEntitlement?()
+            try Task.checkCancellation()
+            try requireHostAccess(host)
+        }
+    }
+
+    public func resolveSavingHostsAccess(_ proposed: [Host], requestsUpgrade: Bool = true) async throws {
+        do { try hostAccess.requireSaving(proposed, in: hosts) } catch {
+            if case HostAccessError.verifyingEntitlement = error {
+                await resolveInitialHostEntitlement?()
+                try Task.checkCancellation()
+            }
+        }
+        if requestsUpgrade {
+            try requireSavingHosts(proposed)
+        } else {
+            try hostAccess.requireSaving(proposed, in: hosts)
+        }
+    }
+
+    public func requireSavingHosts(_ proposed: [Host]) throws {
+        do {
+            try hostAccess.requireSaving(proposed, in: hosts)
+            lastHostAccessError = nil
+        } catch let error as HostAccessError {
+            lastHostAccessError = error
+            if error == .hostLimit { requestHostUpgrade?() }
+            throw error
+        }
+    }
     @ObservationIgnored public weak var tailscaleConnections: (any TailscaleConnectionProviding)?
     @ObservationIgnored public var didChangeTailscaleGroups: (() -> Void)?
     /// Retires managed sessions when a binding is removed or replaced by another network.
@@ -17,6 +69,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private var tailscalePeers: [UUID: [TailscalePeer]] = [:]
     public private(set) var hosts: [Host] = [] {
         didSet {
+            operationAccess.update(policy: hostAccess, hosts: hosts)
             for old in oldValue where old.agentForwardingEnabled {
                 if !hosts.contains(where: { $0.id == old.id && $0.agentForwardingEnabled }) {
                     agentForwardingRevisions[old.id, default: 0] += 1
@@ -62,6 +115,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     private func wakeBeforeConnecting(_ ids: [UUID]) {
+        guard
+            ids.allSatisfy({ id in
+                guard let host = host(id) else { return true }
+                return (try? requireHostAccess(host)) != nil
+            })
+        else { return }
         for id in ids {
             guard !Task.isCancelled else { return }
             if let host = host(id) { wakeOnLAN?.automaticallyWake(host.wakeOnLAN) }
@@ -471,6 +530,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             password: password, charset: host.telnetCharset,
             proxy: try terminalTransportProxy(for: host.telnetProxy, ownerHostID: host.id)
         )
+        configuration.accessCheck = connectionAccessCheck(for: [host.id])
         configuration.beforeConnect = connectionWakeAction(for: [host.id])
         return configuration
     }
@@ -530,6 +590,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     ) throws -> SSHConnectionPreparation {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        for node in route.hosts { try requireHostAccess(node) }
+        for id in route.sourceHostIDs.values {
+            if let source = host(id) { try requireHostAccess(source) }
+        }
         let submissions = route.submissions(merging: submissions)
         var preparation = SSHConnectionPreparation(
             nodes: try route.hosts.map { node in
@@ -558,7 +622,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             },
             secrets: keychain
         )
-        preparation.beforeConnect = connectionWakeAction(for: route.hosts.map(\.id))
+        preparation.accessHostIDs = route.hosts.map(\.id) + Array(route.sourceHostIDs.values)
+        preparation.accessCheck = connectionAccessCheck(for: preparation.accessHostIDs)
+        preparation.beforeConnect = connectionWakeAction(for: preparation.accessHostIDs)
         return preparation
     }
 
@@ -569,6 +635,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> SSHConnectionConfiguration {
+        try requireHostAccess(host)
         if host.isTailscaleManaged {
             let username = (submissions[host.id]?.username ?? tailscaleUsername(for: host))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -578,6 +645,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 credentials: [], expectedHostKeys: [], charset: host.charset,
                 authenticationReference: SSHAuthenticationReference(username: username, permitsNone: true)
             )
+            configuration.accessCheck = connectionAccessCheck(for: [host.id])
             configuration.beforeConnect = connectionWakeAction(for: [host.id])
             configuration.network = try tailscaleNetwork(for: host)
             configuration.tailscaleNodeID = host.tailscale?.stableNodeID
@@ -625,6 +693,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host: host, submission: submissions[host.id]
             )
         )
+        configuration.accessCheck = connectionAccessCheck(for: route(for: host).map(\.id))
         configuration.beforeConnect = connectionWakeAction(for: route(for: host).map(\.id))
         configuration.network = try tailscaleNetwork(for: route(for: host).first ?? host)
         return configuration
@@ -654,6 +723,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        for node in route.hosts { try requireHostAccess(node) }
+        for id in route.sourceHostIDs.values {
+            if let source = host(id) { try requireHostAccess(source) }
+        }
         return try sshJumpConfigurations(
             route: route.hosts, submissions: route.submissions(merging: submissions),
             proxySubmissions: proxySubmissions,
@@ -941,11 +1014,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func isEligible(_ host: Host, for useCase: HostUseCase) -> Bool {
+        guard (try? requireHostAccess(host)) != nil else { return false }
         if host.isTailscaleManaged && [.jumpHost, .keyExport, .portForwarding].contains(useCase) { return false }
         return host.supports(useCase.protocolRequirement)
     }
 
     public func require(_ host: Host, for useCase: HostUseCase) throws {
+        try requireHostAccess(host)
         guard isEligible(host, for: useCase) else {
             throw HostProtocolUnavailableError(useCase: useCase)
         }
@@ -981,10 +1056,18 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func saveHost(_ host: Host) -> Bool {
+        do { try requireSavingHosts([host]) } catch HostAccessError.hostLimit {
+            storageError = nil
+            return false
+        } catch {
+            storageError = error.localizedDescription
+            return false
+        }
         if self.host(host.id)?.isTailscaleManaged == true || host.isTailscaleManaged {
             return saveTailscaleHost(host)
         }
         var host = host
+        host.createdAt = self.host(host.id)?.createdAt ?? (self.host(host.id) == nil ? .now : nil)
         host.name = SavedName.resolve(host.name, default: host.defaultName)
         host.portForwardingMaxConnections = Host.normalizedPortForwardingMaxConnections(
             host.portForwardingMaxConnections)
@@ -2211,6 +2294,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         authenticationHostID: Host.ID? = nil, suppliedPassword: String? = nil
     ) throws -> SSHConnectionRoute {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        for node in route.hosts { try requireHostAccess(node) }
+        for id in route.sourceHostIDs.values {
+            if let source = host(id) { try requireHostAccess(source) }
+        }
         if let managed = route.hosts.first(where: \.isTailscaleManaged) {
             guard route.hosts.count == 1, host(managed.id)?.tailscale == managed.tailscale else {
                 throw TailscaleConfigurationError.managedHost
@@ -2272,6 +2359,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             saved.append(node)
         }
         var written: [Identity] = []
+        try requireSavingHosts(batch.hosts)
         do {
             for (identity, password) in passwords {
                 try keychain.setString(password, for: identity.credentialRef, storage: identity.passwordStorage)
@@ -2301,6 +2389,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     /// New records only. Existing credentials and host configurations are never overwritten.
     public func commitSSHImport(_ batch: SSHImportBatch) throws {
+        try requireSavingHosts(batch.hosts)
         let oldHosts = hosts
         let oldIdentities = identities
         let oldKeys = keys
@@ -2328,6 +2417,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 identities.append(identity)
             }
             for var host in batch.hosts {
+                host.createdAt = .now
                 host.sortIndex = nextSortIndex(in: nil)
                 hosts.append(host)
             }

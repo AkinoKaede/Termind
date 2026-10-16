@@ -118,7 +118,7 @@ struct ConnectionHistoryTests {
             devices: devices)
         let window = WindowModel()
 
-        let workspace = app.open(host, as: .sshSession, in: window)
+        let workspace = try #require(app.open(host, as: .sshSession, in: window))
         let opened = try #require(history.entries().first)
         #expect(opened.sourceDeviceID == deviceID)
         #expect(devices.name(for: opened.sourceDeviceID) == "Test Mac")

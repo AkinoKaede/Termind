@@ -651,7 +651,7 @@ struct MobileAssistantComposer: View {
             },
             send: model.send,
             selectModel: { model.selectModel($0) },
-            authorizeRemoteMCP: { pro.require(.remoteMCP) },
+            authorizeRemoteMCP: { true },
             localized: { AppLocalization.string($0, locale: locale) }
         )
     }

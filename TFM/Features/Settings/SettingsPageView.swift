@@ -153,14 +153,10 @@ struct SettingsPageView: View {
         case .providerModels(let id):
             ModelListEditor(modelProviderID: id)
         case .mcpServer(let id, _):
-            if app.proAccess.canUse(.remoteMCP) {
-                MCPServerEditorPage(
-                    serverID: id,
-                    deleted: { navigate(to: .category(.ai)) }
-                )
-            } else {
-                ProLockedSettingsPage(title: AppStrings.Settings.mcp)
-            }
+            MCPServerEditorPage(
+                serverID: id,
+                deleted: { navigate(to: .category(.ai)) }
+            )
         case .localMCPServer:
             SettingsFormPage { MCPServerSettings() }
         case .skill(let id, _):

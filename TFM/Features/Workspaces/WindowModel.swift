@@ -65,6 +65,7 @@ final class WindowModel {
     private var settingsReturnDestination: WindowDestination = .vault
     weak var metricsModel: ServerMetricsModel?
     var wakeNotice: String?
+    var hostAccessError: String?
     var pendingMetricsHostIDs: [UUID]?
     var pendingMetricsEditableHostIDs: Set<UUID> = []
     var metricsHostID: UUID? {

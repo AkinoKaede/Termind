@@ -784,7 +784,7 @@ struct MobileVaultView: View {
 
     private func row(_ host: Host) -> some View {
         MobileActionCard(compact: compactCards) {
-            activateHost(host.id)
+            if app.library.isLocked(host) { app.pro.presentPaywall() } else { activateHost(host.id) }
         } content: {
             MobileHostCardContent(
                 host: host,
@@ -797,6 +797,10 @@ struct MobileVaultView: View {
                 lastConnectedAt: app.lastConnectedAt(for: host.id),
                 compact: compactCards
             )
+            .opacity(app.library.isLocked(host) ? 0.55 : 1)
+            .overlay(alignment: .topTrailing) {
+                if app.library.isLocked(host) { Image(systemName: "lock.fill").foregroundStyle(.secondary) }
+            }
         } actions: {
             let sections = MobileHostMenuPolicy.sections(
                 for: host, hasTailscalePeer: app.tailscale.peer(for: host) != nil)

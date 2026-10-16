@@ -76,7 +76,9 @@ extension VaultSnapshot {
             throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
         }
         switch payload {
-        case .host(let value): upsert(value, in: &hosts)
+        case .host(var value):
+            value.createdAt = value.createdAt ?? hosts.first(where: { $0.id == value.id })?.createdAt
+            upsert(value, in: &hosts)
         case .hostGroup(let value): upsert(value, in: &groups)
         case .identity(let value): upsert(value, in: &identities)
         case .sshKey(let value): upsert(value, in: &keys)
@@ -257,7 +259,7 @@ public final class VaultSyncJournal {
         var result = VaultRemoteMerge()
         let entries = try entriesByName()
         for rawEnvelope in remote where rawEnvelope.key.kind.isConfiguration {
-            let envelope = rawEnvelope.withoutDeviceLocalMetadata
+            var envelope = rawEnvelope.withoutDeviceLocalMetadata
             try SyncRecordFormats.vault.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
             guard envelope.isValid else {
                 throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
@@ -273,6 +275,14 @@ public final class VaultSyncJournal {
                 continue
             }
             if local.version < envelope.version {
+                if case .host(var incoming) = envelope.payload, incoming.createdAt == nil,
+                    case .host(let existing) = local.payload, let createdAt = existing.createdAt
+                {
+                    incoming.createdAt = createdAt
+                    envelope.payload = .host(incoming)
+                    envelope.formatVersion = 8
+                    result.needsUpload.insert(envelope.key)
+                }
                 result.accepted.append(envelope)
             } else if envelope.version < local.version {
                 result.needsUpload.insert(local.key)

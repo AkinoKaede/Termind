@@ -17,7 +17,7 @@ struct ServerMetricsView: View {
         ZStack {
             if let server = selectedServer {
                 Group {
-                    if server.showsConnectionJourney {
+                    if server.showsConnectionJourney && !server.isHostLocked {
                         MetricsJourneyView(server: server, model: app.serverMetrics)
                     } else {
                         detail(server)
@@ -61,9 +61,25 @@ struct ServerMetricsView: View {
 
 struct MetricsDetailView: View {
     let server: ServerMetric
+    @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
     var body: some View {
+        if server.isHostLocked {
+            Button {
+                app.proAccess.presentPaywall()
+            } label: {
+                MetricsHostLockNotice()
+                    .padding(24)
+                    .frame(maxHeight: .infinity)
+            }
+            .buttonStyle(.plain)
+        } else {
+            detail
+        }
+    }
+
+    private var detail: some View {
         GeometryReader { geometry in
             let split = MetricsDetailPage.showsBothColumns(width: geometry.size.width)
             let showsStatus = split || window.metricsDetailPage == .status
@@ -102,6 +118,7 @@ struct ServerMetricsCard: View {
     let model: ServerMetricsModel
     var compact = false
     var inspect: (() -> Void)?
+    var upgrade: (() -> Void)?
     var openTerminal: (() -> Void)?
     var isSelected = false
     var select: (() -> Void)?
@@ -113,7 +130,7 @@ struct ServerMetricsCard: View {
         CardTile(
             selectionID: server.id, isSelected: isSelected,
             select: select ?? {}, extendSelection: extendSelection,
-            activate: inspect, activatesOnReturn: !compact, activatesOnSingleClick: true
+            activate: activate, activatesOnReturn: !compact, activatesOnSingleClick: true
         ) {
             cardContent
         }
@@ -153,8 +170,8 @@ struct ServerMetricsCard: View {
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                if select == nil, let inspect {
-                    Button(action: inspect) { Text(server.name).font(.subheadline.bold()).lineLimit(1) }.buttonStyle(
+                if select == nil, inspect != nil {
+                    Button(action: activate) { Text(server.name).font(.subheadline.bold()).lineLimit(1) }.buttonStyle(
                         .plain)
                 } else {
                     Text(server.name).font(.subheadline.bold()).lineLimit(1)
@@ -174,7 +191,9 @@ struct ServerMetricsCard: View {
                     .menuStyle(.borderlessButton).fixedSize()
                 }
             }
-            if select == nil, let inspect {
+            if server.isHostLocked {
+                MetricsHostLockNotice()
+            } else if select == nil, let inspect {
                 Button(action: inspect) { cardBody }.buttonStyle(.plain)
             } else {
                 cardBody
@@ -183,10 +202,14 @@ struct ServerMetricsCard: View {
         }
     }
 
+    func activate() {
+        if server.isHostLocked { upgrade?() } else { inspect?() }
+    }
+
     @ViewBuilder
     private var singleServerMenu: some View {
-        if let inspect {
-            Button(AppStrings.Metrics.details.swiftUIKey, systemImage: MenuSymbol.details, action: inspect)
+        if inspect != nil {
+            Button(AppStrings.Metrics.details.swiftUIKey, systemImage: MenuSymbol.details, action: activate)
         }
         Button(
             server.selection.enabled ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
@@ -391,7 +414,11 @@ private struct MetricsMenuRow: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(server.name).font(.subheadline.bold()).lineLimit(1).help(server.name)
                 .frame(height: 18, alignment: .leading)
-            MetricsInstrumentBody(server: server, sleeping: sleeping)
+            if server.isHostLocked {
+                MetricsHostLockNotice()
+            } else {
+                MetricsInstrumentBody(server: server, sleeping: sleeping)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

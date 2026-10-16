@@ -955,6 +955,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var retainsControlConnection = false
     private var hostID: Host.ID?
     private var charset: RemoteCharset = .utf8
+    private var accessCheck: HostOperationAccessCheck?
     private var pumpTimer: (any DispatchSourceTimer)?
     private var buffer: SSHConnectionBuffer?
     private var channelBudget: SSHChannelBudget?
@@ -1037,7 +1038,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 else { return nil }
                 return .init(
                     connection: connection, buffer: buffer,
-                    channelBudget: channelBudget, charset: self.charset)
+                    channelBudget: channelBudget, charset: self.charset, accessCheck: self.accessCheck)
             },
             updateEvents: { [weak self] session, buffer in
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
@@ -1072,6 +1073,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         let request = request.enforcingInteractionPolicy()
         defer { request.configuration.clearSecrets() }
         try Task.checkCancellation()
+        try request.configuration.accessCheck?()
         await request.configuration.beforeConnect?()
         try Task.checkCancellation()
         var resolvedConfiguration = request.configuration
@@ -1293,6 +1295,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 connection = openedConnection
                 hostID = request.configuration.hostID
                 charset = request.configuration.charset
+                accessCheck = request.configuration.accessCheck
                 inputConverter = try RemoteCharsetStreamConverter(
                     charset: request.configuration.charset, direction: .encoding)
                 outputConverter = try RemoteCharsetStreamConverter(
@@ -1500,6 +1503,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             retainsControlConnection = true
             hostID = request.configuration.hostID
             charset = request.configuration.charset
+            accessCheck = request.configuration.accessCheck
             channelBudget = maxSessionsPolicy.makeBudget()
             buffer = opened.installBuffer()
             if let provider = request.agentForwarding {

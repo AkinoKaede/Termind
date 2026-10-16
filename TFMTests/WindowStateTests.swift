@@ -318,13 +318,13 @@ struct WindowStateTests {
     }
 
     @Test
-    func openingRecentHostKeepsTheGlobalHistoryMode() {
+    func openingRecentHostKeepsTheGlobalHistoryMode() throws {
         let host = Host(name: "Recent", host: "recent.example")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
         let window = WindowModel()
         window.sidebarMode = .history
 
-        let workspace = app.open(host, as: .sshSession, in: window)
+        let workspace = try #require(app.open(host, as: .sshSession, in: window))
 
         #expect(window.selectedDestination == .workspace(workspace.id))
         #expect(window.sidebarMode == .history)
@@ -1251,15 +1251,15 @@ struct WindowStateTests {
     }
 
     @Test
-    func appRoutesHostsToSSHAndSFTPChannelsForWorkspaces() {
+    func appRoutesHostsToSSHAndSFTPChannelsForWorkspaces() throws {
         let first = Host(name: "First", host: "first.example")
         let second = Host(name: "Second", host: "second.example")
         let store = HostLibraryModel(hosts: [first, second])
         let app = AppModel(hosts: store)
         let window = WindowModel()
 
-        let sshTab = app.open(first, as: .sshSession, in: window)
-        let sftpTab = app.open(second, as: .sftpChannel, in: window)
+        let sshTab = try #require(app.open(first, as: .sshSession, in: window))
+        let sftpTab = try #require(app.open(second, as: .sftpChannel, in: window))
         #expect(sshTab.focusedPane.kind == .sshSession)
         #expect(sftpTab.focusedPane.kind == .sftpChannel)
 

@@ -73,12 +73,28 @@ public final class HostPersistence {
         do {
             let journal = VaultSyncJournal(context: context)
             let deleted = try journal.deletionEnvelopes(deletions)
-            let decision = try journal.mergeDecision(for: envelopes.filter { !deletions.contains($0.key) } + deleted)
             var snapshot = try fetchSnapshot()
+            let knownDates = Dictionary(
+                uniqueKeysWithValues: snapshot.hosts.compactMap { host in host.createdAt.map { (host.id, $0) } })
+            var restoredDates = Set<VaultRecordKey>()
+            let incoming = envelopes.filter { !deletions.contains($0.key) }.map { original in
+                var envelope = original
+                if case .host(var host) = envelope.payload, host.createdAt == nil,
+                    let date = knownDates[host.id]
+                {
+                    host.createdAt = date
+                    envelope.payload = .host(host)
+                    envelope.formatVersion = 8
+                    restoredDates.insert(envelope.key)
+                }
+                return envelope
+            }
+            let decision = try journal.mergeDecision(for: incoming + deleted)
             for envelope in decision.accepted { try snapshot.apply(envelope) }
             try persist(snapshot)
             try journal.acceptRemote(decision.accepted)
-            let needsUpload = decision.needsUpload
+            let needsUpload = decision.needsUpload.union(
+                restoredDates.intersection(decision.accepted.map(\.key)))
             try journal.markNeedsUpload(needsUpload)
             try beforeSave()
             try context.save()

@@ -53,6 +53,7 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
         }
     }
 
+    public var accessHostIDs: [UUID] = []
     public var tailscaleNodeID: String?
     public var requiresTailscale = false
     public var target: Node
@@ -67,6 +68,7 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
     /// explicit Identity/Key provenance. Durable trust may be refreshed by the
     /// host store before this value is retained for additional connections.
     public init(configuration: SSHConnectionConfiguration) {
+        accessHostIDs = configuration.accessHostIDs
         tailscaleNodeID = configuration.tailscaleNodeID
         requiresTailscale = configuration.network != nil
         func proxy(_ value: SSHTransportProxy?) -> Proxy? {

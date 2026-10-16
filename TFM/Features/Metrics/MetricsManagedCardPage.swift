@@ -42,6 +42,7 @@ struct MetricsManagedCardPage: ManagedCardPage {
         ServerMetricsCard(
             server: item, model: app.serverMetrics,
             inspect: { window.metricsHostID = item.id },
+            upgrade: { app.proAccess.presentPaywall() },
             openTerminal: {
                 if let host = app.hostLibrary.host(item.id) { app.open(host, as: .sshSession, in: window) }
             },

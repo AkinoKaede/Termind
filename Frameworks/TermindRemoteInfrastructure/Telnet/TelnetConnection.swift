@@ -81,6 +81,7 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
 
         do {
             try Task.checkCancellation()
+            try configuration.accessCheck?()
             await configuration.beforeConnect?()
             try Task.checkCancellation()
         } catch {

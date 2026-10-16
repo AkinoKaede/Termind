@@ -80,14 +80,14 @@ struct MobileMultiHostPickerTests {
         defer { metrics.core.shutdown() }
         metrics.pause()
 
-        #expect(metrics.add([hosts[0].id], pro: false))
+        #expect(metrics.add([hosts[0].id]))
         let saved = preferences.values
-        #expect(!metrics.add(hosts[1...3].map(\.id), pro: false))
+        #expect(!metrics.add(hosts[1...3].map(\.id)))
         #expect(preferences.values == saved)
         #expect(metrics.selections.map(\.id) == [hosts[0].id])
-        #expect(metrics.add([hosts[0].id, hosts[1].id, hosts[1].id, hosts[2].id], pro: false))
+        #expect(metrics.add([hosts[0].id, hosts[1].id, hosts[1].id, hosts[2].id]))
         #expect(metrics.selections.count == 3)
-        #expect(metrics.add(hosts[3...4].map(\.id), pro: true))
+        #expect(metrics.add(hosts[3...4].map(\.id)))
         #expect(metrics.selections.map(\.id) == hosts.map(\.id))
     }
 
@@ -101,7 +101,7 @@ struct MobileMultiHostPickerTests {
         defer { metrics.core.shutdown() }
         metrics.pause()
 
-        #expect(!metrics.add(hosts.map(\.id), pro: true))
+        #expect(!metrics.add(hosts.map(\.id)))
         #expect(metrics.selections.isEmpty)
         #expect(preferences.values.isEmpty)
         #expect(metrics.core.storageError != nil)
@@ -115,14 +115,14 @@ struct MobileMultiHostPickerTests {
             preferences: preferences, hosts: HostLibraryModel(hosts: hosts), services: .testing)
         defer { metrics.core.shutdown() }
         metrics.pause()
-        #expect(metrics.add(Array(hosts.prefix(3)).map(\.id), pro: false))
+        #expect(metrics.add(Array(hosts.prefix(3)).map(\.id)))
         let editable = Set(hosts.map(\.id))
 
         #expect(
             metrics.replaceHosts(
-                selectedIDs: [hosts[0].id, hosts[2].id, hosts[3].id], editableHostIDs: editable, pro: false))
+                selectedIDs: [hosts[0].id, hosts[2].id, hosts[3].id], editableHostIDs: editable))
         #expect(metrics.selections.map(\.id) == [hosts[0].id, hosts[2].id, hosts[3].id])
-        #expect(metrics.replaceHosts(selectedIDs: [], editableHostIDs: editable, pro: false))
+        #expect(metrics.replaceHosts(selectedIDs: [], editableHostIDs: editable))
         #expect(metrics.selections.isEmpty)
         #expect(preferences.values.isEmpty)
     }

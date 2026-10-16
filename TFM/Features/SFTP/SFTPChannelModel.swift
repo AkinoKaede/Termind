@@ -402,6 +402,7 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
         connectionTask = Task { [weak self, weak store] in
             guard let self, let store else { return }
             do {
+                try await store.resolveHostAccess(host, route: connectionRoute)
                 let configuration: SSHConnectionConfiguration
                 if let suppliedAuthentication, !host.isTailscaleManaged {
                     let expectedHostKeys = try store.expectedHostKeys(
@@ -468,8 +469,12 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
                     )
                 }
                 var routedConfiguration = configuration
+                routedConfiguration.accessHostIDs =
+                    configuration.jumps.map(\.id) + [host.id]
+                    + (connectionRoute.map { Array($0.sourceHostIDs.values) } ?? [])
+                routedConfiguration.accessCheck = store.connectionAccessCheck(for: routedConfiguration.accessHostIDs)
                 routedConfiguration.beforeConnect = store.connectionWakeAction(
-                    for: configuration.jumps.map(\.id) + [host.id])
+                    for: routedConfiguration.accessHostIDs)
                 routedConfiguration.network = try store.tailscaleNetwork(
                     for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
                 routedConfiguration.tailscaleNodeID = host.tailscale?.stableNodeID

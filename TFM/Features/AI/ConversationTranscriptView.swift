@@ -325,7 +325,7 @@ private struct ConversationTranscriptSurface: View {
                     conversation.resolvePlan(id, as: outcome)
                 },
                 implementPlan: { card in
-                    guard app.proAccess.require(.assistant) else { return }
+
                     app.sendPlanImplementation(
                         card, in: conversation, context: sessionContext,
                         terminalSuggestionsAvailable: showsTerminalActions, window: window)

@@ -1000,6 +1000,15 @@ public enum TermindSchemaV57: VersionedSchema {
     }
 }
 
+/// Adds creation ordering without inventing dates for historical hosts.
+public enum TermindSchemaV58: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(58, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV57.models.filter { $0 != TermindSchemaV56HostModels.PersistentHost.self }
+            + [TermindSchemaV58HostModels.PersistentHost.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -1018,6 +1027,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV46.self, TermindSchemaV47.self, TermindSchemaV48.self, TermindSchemaV49.self,
             TermindSchemaV50.self, TermindSchemaV51.self, TermindSchemaV52.self, TermindSchemaV53.self,
             TermindSchemaV54.self, TermindSchemaV55.self, TermindSchemaV56.self, TermindSchemaV57.self,
+            TermindSchemaV58.self,
         ]
     }
 
@@ -1134,11 +1144,12 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV54.self, toVersion: TermindSchemaV55.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV55.self, toVersion: TermindSchemaV56.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV56.self, toVersion: TermindSchemaV57.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV57.self, toVersion: TermindSchemaV58.self),
         ]
     }
 }
 
-public typealias PersistentHost = TermindSchemaV56HostModels.PersistentHost
+public typealias PersistentHost = TermindSchemaV58HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV33IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV45KeyModels.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

@@ -5,6 +5,7 @@ import TermindDomain
 /// Shared horizontal instruments and stable-height connection state, without a card surface.
 public struct MetricsInstrumentBody: View {
     public enum Layout { case horizontal, adaptive }
+    enum ConnectionIndicator: Equatable { case progress, attention, paused }
     @Environment(\.dynamicTypeSize) private var typeSize
 
     public init(server: ServerMetric, sleeping: Bool, layout: Layout = .horizontal) {
@@ -22,6 +23,16 @@ public struct MetricsInstrumentBody: View {
             && (server.status.isEmpty || server.status == String(localized: AppStrings.Metrics.live))
     }
 
+    var connectionIndicator: ConnectionIndicator {
+        if server.hostAccessError == .entitlementVerificationFailed { return .attention }
+        if server.isConnecting
+            || (server.point == nil && !server.needsAttention && server.selection.enabled && !sleeping)
+        {
+            return .progress
+        }
+        return server.needsAttention ? .attention : .paused
+    }
+
     public var body: some View {
         ZStack {
             if showsMetrics {
@@ -32,13 +43,14 @@ public struct MetricsInstrumentBody: View {
                 }
             } else {
                 VStack(spacing: 7) {
-                    if server.isConnecting
-                        || (server.point == nil && !server.needsAttention
-                            && server.selection.enabled && !sleeping)
-                    {
+                    switch connectionIndicator {
+                    case .progress:
                         ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: server.needsAttention ? "exclamationmark.triangle" : "pause.circle")
+                    case .attention:
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                    case .paused:
+                        Image(systemName: "pause.circle")
                             .foregroundStyle(.secondary)
                     }
                     Text(connectionLabel)

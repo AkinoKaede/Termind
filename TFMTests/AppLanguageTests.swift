@@ -7,6 +7,31 @@ import Testing
 @testable import Termind
 
 struct AppLanguageTests {
+    @Test func hostQuotaUsesPaywallWithoutAnErrorMessage() {
+        let error: any Error = HostAccessError.hostLimit
+        #expect(HostAccessError.presentationDescription(of: error) == nil)
+    }
+
+    @Test
+    func hostAccessErrorsKeepTheirLocalizedMessageWhenErasedToError() {
+        let error: any Error = HostAccessError.entitlementVerificationFailed
+        #expect(error.localizedDescription == String(localized: AppStrings.Pro.accessVerificationFailed))
+        #expect(
+            HostAccessError.presentationDescription(of: error)
+                == String(localized: AppStrings.Pro.accessVerificationFailed))
+    }
+
+    @Test(arguments: [
+        ("en", "Upgrade to Pro to unlock this host."),
+        ("zh-Hans", "升级到Pro以解锁此主机。"),
+        ("zh-Hant", "升級至Pro以解鎖此主機。"),
+    ])
+    func lockedMetricsSuggestsTheNextActionWithoutASeparateButton(language: String, expected: String) {
+        #expect(
+            AppLocalization.resolve(AppStrings.Pro.upgradeToUnlockHost, locale: Locale(identifier: language))
+                == expected)
+    }
+
     @Test(arguments: [
         ("en", "Rescan"),
         ("zh-Hans", "重新扫描"),

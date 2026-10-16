@@ -12,8 +12,9 @@ extension AppModel {
     }
 
     func requestWake(_ host: Host, configure: () -> Void) -> String? {
-        switch hostLibrary.requestWake(host, requestAccess: { proAccess.require(.wakeOnLAN) }) {
+        switch hostLibrary.requestWake(host) {
         case .accessDenied:
+            if hostLibrary.isLocked(host) { proAccess.presentPaywall() }
             return nil
         case .configurationRequired:
             configure()

@@ -30,6 +30,7 @@ public nonisolated enum TerminalTransportRoute {
     public static func open(using request: SSHConnectionRequest, port: Int) async throws -> SSHRoutedSocket {
         defer { request.configuration.clearSecrets() }
         try Task.checkCancellation()
+        try request.configuration.accessCheck?()
         await request.configuration.beforeConnect?()
         try Task.checkCancellation()
         let config = request.configuration

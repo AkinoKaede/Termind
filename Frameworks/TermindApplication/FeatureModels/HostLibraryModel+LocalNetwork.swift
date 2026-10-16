@@ -10,9 +10,9 @@ public nonisolated enum HostWakeOutcome: Equatable, Sendable {
 }
 
 extension HostLibraryModel {
-    /// Request access before configuration, then read the latest saved preferences.
-    public func requestWake(_ proposed: Host, requestAccess: () -> Bool) -> HostWakeOutcome {
-        guard requestAccess() else { return .accessDenied }
+    /// Lock checks precede configuration and packet transmission.
+    public func requestWake(_ proposed: Host) -> HostWakeOutcome {
+        guard (try? hostAccess.requireAccess(to: proposed.id, in: hosts)) != nil else { return .accessDenied }
         let host = host(proposed.id) ?? proposed
         guard host.wakeOnLAN.address != nil else { return .configurationRequired }
         do {

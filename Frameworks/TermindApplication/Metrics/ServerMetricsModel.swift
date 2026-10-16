@@ -10,6 +10,11 @@ public final class ServerMetric: Identifiable {
     public var name: String
     public var status = String(localized: "Connecting…")
     public var collectionState = MetricsMonitorState.connecting
+    public var hostAccessError: HostAccessError?
+    public var isHostLocked: Bool {
+        if case .lockedHost = hostAccessError { return true }
+        return false
+    }
     public var isConnecting = true
     public var point: MetricsPoint?
     public var history: [MetricsPoint] = []
@@ -50,7 +55,6 @@ public final class ServerMetric: Identifiable {
 @MainActor
 @Observable
 public final class ServerMetricsModel: MetricsSnapshotReading {
-    public static let freeCardLimit = 3
     public private(set) var servers: [ServerMetric] = []
     public private(set) var sleeping = false
     public private(set) var storageError: String?
@@ -62,8 +66,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private let preferences: any MetricsConfigurationStoring
     private let makeSampler: @Sendable () -> any MetricsSampling
     private let clock: MetricsClock
-    private let cardLimit: () -> Int?
-    private let limitReached: () -> Void
     private var workers: [UUID: Task<Void, Never>] = [:]
     private var generations: [UUID: UUID] = [:]
     private var samplers: [UUID: any MetricsSampling] = [:]
@@ -91,22 +93,20 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public init(
         hosts: any RemoteSessionHostStore, preferences: any MetricsConfigurationStoring,
         makeSampler: @escaping @Sendable () -> any MetricsSampling,
-        clock: MetricsClock = MetricsClock(),
-        cardLimit: @escaping () -> Int? = { ServerMetricsModel.freeCardLimit },
-        limitReached: @escaping () -> Void = {}
+        clock: MetricsClock = MetricsClock()
     ) {
         self.hosts = hosts
         self.preferences = preferences
         self.makeSampler = makeSampler
         self.clock = clock
-        self.cardLimit = cardLimit
-        self.limitReached = limitReached
     }
 
     public func snapshot(for hostID: UUID) -> MetricsSnapshot? {
         guard hosts.host(hostID) != nil, let server = servers.first(where: { $0.id == hostID }) else { return nil }
         let state: MetricsMonitorState
-        if !server.selection.enabled {
+        if server.isHostLocked {
+            state = .locked
+        } else if !server.selection.enabled {
             state = .paused
         } else if sleeping {
             state = .sleeping
@@ -126,15 +126,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         )
     }
 
-    public var remainingCardSlots: Int? { cardLimit().map { max(0, $0 - configuredSelections.count) } }
-
     #if DEBUG
         /// Frozen product fixtures never load preferences or start an SSH worker.
         public convenience init(screenshotHosts: any RemoteSessionHostStore, rows: [ServerMetric]) {
             self.init(
                 hosts: screenshotHosts, preferences: ScreenshotMetricsPreferences(),
-                makeSampler: { preconditionFailure("Screenshot metrics cannot connect") },
-                cardLimit: { nil }
+                makeSampler: { preconditionFailure("Screenshot metrics cannot connect") }
             )
             servers = rows
             configuredSelections = rows.map(\.selection)
@@ -142,14 +139,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             stopped = true
         }
     #endif
-
-    @discardableResult
-    public func requestAddition(count: Int = 1) -> Bool {
-        guard count > 0 else { return true }
-        guard let remaining = remainingCardSlots, count > remaining else { return true }
-        limitReached()
-        return false
-    }
 
     public func observeDetails(hostID: UUID, observer: UUID) { detailObservers[observer] = hostID }
     public func stopObservingDetails(_ observer: UUID) { detailObservers[observer] = nil }
@@ -187,7 +176,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         }
         var seen = Set(configuredSelections.map(\.id))
         let additions = hosts.filter { seen.insert($0.id).inserted }
-        guard requestAddition(count: additions.count) else { return false }
+
         let next = configuredSelections + additions.map { selection(for: $0) }
         guard persist(next) else { return false }
         applyConfiguration(next)
@@ -212,7 +201,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         let next =
             retained + additions.map { id in hosts.host(id).map { selection(for: $0) } ?? MetricsSelection(id: id) }
         guard next != configuredSelections else { return true }
-        guard requestAddition(count: max(0, next.count - configuredSelections.count)) else { return false }
+
         guard persist(next) else { return false }
         applyConfiguration(next)
         return true
@@ -449,11 +438,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                 cancel(server.id)
                 continue
             }
-            do { _ = try hosts.tailscaleNetwork(for: host) } catch {
-                cancel(server.id)
-                server.isConnecting = false
-                server.status = error.localizedDescription
-                server.collectionState = .failed
+            do {
+                try hosts.requireHostAccess(host)
+                server.hostAccessError = nil
+                _ = try hosts.tailscaleNetwork(for: host)
+            } catch {
+                denyAccess(error, for: server)
                 continue
             }
             server.name = host.name
@@ -474,6 +464,23 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             }
             stamps[server.id] = stamp
         }
+    }
+
+    private func requireSamplingAccess(_ id: UUID) throws {
+        guard let host = hosts.host(id) else { throw CancellationError() }
+        try hosts.requireHostAccess(host)
+    }
+
+    private func denyAccess(_ error: any Error, for server: ServerMetric) {
+        cancel(server.id)
+        server.hostAccessError = error as? HostAccessError
+        server.isConnecting = server.hostAccessError == .verifyingEntitlement
+        server.status = error.localizedDescription
+        server.collectionState = server.isHostLocked ? .locked : (server.isConnecting ? .connecting : .failed)
+        server.authenticationHost = nil
+        server.authenticationPrompt = nil
+        server.needsAttention = false
+        server.journey.hide()
     }
 
     private func connectionStamp(_ host: Host) -> Data {
@@ -585,6 +592,15 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     private func launch(_ server: ServerMetric) {
+        if let host = hosts.host(server.id) {
+            do {
+                try hosts.requireHostAccess(host)
+                server.hostAccessError = nil
+            } catch {
+                denyAccess(error, for: server)
+                return
+            }
+        }
         guard !stopped, !sleeping, server.selection.enabled, !server.needsAttention else {
             if !server.selection.enabled { server.status = String(localized: "Paused") }
             return
@@ -693,6 +709,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                 var nextFilesystemRefresh = Date.distantPast
                 var probeGPU = true
                 sampleLoop: while await isCurrent(serverID, token: token) {
+                    try await requireSamplingAccess(serverID)
                     let began = clock.now()
                     let sample = try await sampler.sample()
                     guard
@@ -807,7 +824,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
 
     private func isCurrent(_ serverID: UUID, token: UUID) -> Bool {
         guard current(serverID, token), let host = hosts.host(serverID) else { return false }
-        do { _ = try hosts.tailscaleNetwork(for: host) } catch { return false }
+        do {
+            try hosts.requireHostAccess(host)
+            _ = try hosts.tailscaleNetwork(for: host)
+        } catch { return false }
         return true
     }
 
@@ -904,6 +924,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
 
     private func handleRunFailure(_ error: any Error, serverID: UUID, token: UUID) -> Bool {
         guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return false }
+        if error is HostAccessError {
+            denyAccess(error, for: server)
+            return false
+        }
         server.isConnecting = false
         server.status =
             error is CancellationError

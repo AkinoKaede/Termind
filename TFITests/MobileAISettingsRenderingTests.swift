@@ -21,11 +21,11 @@ struct MobileAISettingsRenderingTests {
         let locale = Locale(identifier: language)
         try await capture(
             "mcp-empty-without-footer", language: language,
-            view: NavigationStack { MobileMCPSettings(ai: ai, pro: app.pro) }.environment(\.locale, locale))
+            view: NavigationStack { MobileMCPSettings(ai: ai) }.environment(\.locale, locale))
         ai.upsert(MCPServer(name: "Documentation", url: "https://example.invalid/mcp"))
         try await capture(
             "mcp-list-without-footer", language: language,
-            view: NavigationStack { MobileMCPSettings(ai: ai, pro: app.pro) }.environment(\.locale, locale))
+            view: NavigationStack { MobileMCPSettings(ai: ai) }.environment(\.locale, locale))
         try await capture(
             "skills-without-footer", language: language,
             view: NavigationStack { MobileSkillSettings(skills: app.skills) }.environment(\.locale, locale))
@@ -126,7 +126,7 @@ struct MobileAISettingsRenderingTests {
             view: NavigationStack { MobileSkillSettings(skills: app.skills) }.environment(\.locale, locale))
         try await capture(
             "mcp-page", language: language,
-            view: NavigationStack { MobileMCPSettings(ai: app.ai, pro: app.pro) }.environment(\.locale, locale))
+            view: NavigationStack { MobileMCPSettings(ai: app.ai) }.environment(\.locale, locale))
         try await capture(
             "provider", language: language,
             view: MobileProviderEditor(ai: app.ai, provider: provider).environment(\.locale, locale))
@@ -138,7 +138,7 @@ struct MobileAISettingsRenderingTests {
             view: MobileSkillEditor(library: app.skills, skill: skill).environment(\.locale, locale))
         try await capture(
             "mcp", language: language,
-            view: NavigationStack { MobileMCPEditor(ai: app.ai, pro: app.pro, server: server) }
+            view: NavigationStack { MobileMCPEditor(ai: app.ai, server: server) }
                 .environment(\.locale, locale))
         let discovery = MobileModelDiscovery(fetch: { _, _ in
             var compact = AIModel(id: "compact-chat")
@@ -210,7 +210,6 @@ struct MobileAISettingsRenderingTests {
             view: NavigationStack {
                 MobileAISettingsView(app: try! MobileAppModel(inMemory: true))
             }.environment(\.locale, locale))
-        let empty = try MobileAppModel(inMemory: true)
         try await capture(
             "empty-models", language: language,
             view: NavigationStack { MobileModelsSettingsView(ai: AIConfigurationModel()) }.environment(\.locale, locale)
@@ -220,7 +219,7 @@ struct MobileAISettingsRenderingTests {
             view: NavigationStack { MobileSkillSettings(skills: SkillLibraryModel()) }.environment(\.locale, locale))
         try await capture(
             "empty-mcp", language: language,
-            view: NavigationStack { MobileMCPSettings(ai: AIConfigurationModel(), pro: empty.pro) }.environment(
+            view: NavigationStack { MobileMCPSettings(ai: AIConfigurationModel()) }.environment(
                 \.locale, locale)
         )
     }

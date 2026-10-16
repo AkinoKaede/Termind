@@ -154,6 +154,29 @@ final class MobileWorkspaceSessionModel {
         initialPath: String? = nil
     ) -> UUID? {
         guard !isDiscarded, let host = app.library.host(hostID) else { return nil }
+        do { try app.library.requireHostAccess(host) } catch {
+            if case HostAccessError.verifyingEntitlement = error {
+                Task { [weak self] in
+                    guard let self else { return }
+                    do {
+                        try await app.library.resolveHostAccess(host)
+                        guard !isDiscarded else { return }
+                        _ = open(hostID: hostID, kind: kind, initialPath: initialPath)
+                    } catch {
+                        if case HostAccessError.lockedHost = error {
+                            app.pro.presentPaywall()
+                        } else if !(error is CancellationError) {
+                            app.error = HostAccessError.presentationDescription(of: error)
+                        }
+                    }
+                }
+            } else if case HostAccessError.lockedHost = error {
+                app.pro.presentPaywall()
+            } else {
+                app.error = HostAccessError.presentationDescription(of: error)
+            }
+            return nil
+        }
         let startup: MobileWorkspaceStartup
         if let initialPath,
             !initialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

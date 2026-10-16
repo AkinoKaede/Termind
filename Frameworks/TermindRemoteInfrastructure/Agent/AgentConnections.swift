@@ -189,11 +189,22 @@ public final class AgentHostResolver: Sendable {
 
     public func configuration(for id: UUID) throws -> SSHConnectionConfiguration {
         if let host = store.host(id) {
+            try store.requireHostAccess(host)
             guard host.sshEnabled else { throw HostProtocolUnavailableError(useCase: .sshTerminal) }
             return try store.sshConnectionConfiguration(for: host)
         }
         if let configuration = try temporaryConfiguration(id) { return configuration }
         throw AgentToolError.invalidHost
+    }
+
+    public func resolvedConfiguration(for id: UUID) async throws -> SSHConnectionConfiguration {
+        if let host = store.host(id) { try await store.resolveHostAccess(host) }
+        return try configuration(for: id)
+    }
+
+    public func resolvedRouteFingerprint(for id: UUID) async throws -> String {
+        if let host = store.host(id) { try await store.resolveHostAccess(host) }
+        return try routeFingerprint(for: id)
     }
 
     public func canResolve(_ id: UUID) -> Bool {
@@ -236,6 +247,7 @@ public final class AgentHostResolver: Sendable {
             }
             throw AgentToolError.invalidHost
         }
+        try await store.resolveHostAccess(destination)
         guard destination.sshEnabled else {
             throw HostProtocolUnavailableError(useCase: .sshTerminal)
         }
@@ -527,6 +539,7 @@ public final class AgentHostResolver: Sendable {
             }
             return "temporary:\(id.uuidString)"
         }
+        try store.requireHostAccess(host)
         guard host.sshEnabled else { throw HostProtocolUnavailableError(useCase: .sshTerminal) }
         let route = store.route(for: host)
         return route.enumerated().map { index, node in
@@ -612,7 +625,10 @@ public actor AgentSSHAuthenticationContext {
 
     public func configurationAttempt() async throws -> Attempt {
         try Task.checkCancellation()
-        if let cached { return makeAttempt(configuration: cached, generation: generation) }
+        if let cached {
+            try cached.accessCheck?()
+            return makeAttempt(configuration: cached, generation: generation)
+        }
 
         let pendingID: UUID
         let pendingGeneration: UInt64

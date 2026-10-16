@@ -26,6 +26,7 @@ extension RemoteSessionHostStore {
         }
         guard let target = nodes.last else { throw SSHConnectionRoute.invalidRouteError }
         var snapshot = SSHAdditionalConnectionSnapshot(target: target, jumps: Array(nodes.dropLast()))
+        snapshot.accessHostIDs = preparation.accessHostIDs
         snapshot.tailscaleNodeID = host.tailscale?.stableNodeID
         snapshot.requiresTailscale = preparation.nodes.contains { $0.network != nil }
         return snapshot
@@ -41,6 +42,11 @@ extension RemoteSessionHostStore {
         hostKeyConstraints: [Host.ID: SSHHostKeyConstraint],
         authenticatingTarget: Bool = false
     ) async throws -> SSHConnectionRequest {
+        let accessIDs = snapshot.accessHostIDs + snapshot.jumps.map(\.id) + [snapshot.target.id]
+        for id in accessIDs {
+            if let saved = host(id) { try await resolveHostAccess(saved) }
+        }
+        try connectionAccessCheck(for: accessIDs)?()
         let connectionID = UUID()
         var resolvedCredentials: [SSHCredentials] = []
         var resolvedProxies: [SSHSecret] = []
@@ -157,7 +163,9 @@ extension RemoteSessionHostStore {
             credentials: target?.credentials ?? [], expectedHostKeys: target?.expectedHostKeys ?? [],
             proxy: targetProxy, jumps: jumps, charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication)
-        configuration.beforeConnect = connectionWakeAction(for: snapshot.jumps.map(\.id) + [snapshot.target.id])
+        configuration.accessHostIDs = accessIDs
+        configuration.accessCheck = connectionAccessCheck(for: accessIDs)
+        configuration.beforeConnect = connectionWakeAction(for: accessIDs)
         configuration.tailscaleNodeID = snapshot.tailscaleNodeID
         if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {
             configuration.network = try tailscaleNetwork(for: first)

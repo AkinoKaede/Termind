@@ -32,15 +32,11 @@ struct LocalNetworkTests {
         }
     }
 
-    @Test func sendingChecksLiveAccessAndOnlyAutoUsesCooldown() throws {
+    @Test func sendingIsFreeAndOnlyAutoUsesCooldown() throws {
         let sender = RecordingWakeSender()
         let state = WakeTestState()
-        let controller = WakeOnLANController(sender: sender, hasAccess: { state.allowed }, now: { state.clock })
+        let controller = WakeOnLANController(sender: sender, now: { state.clock })
         let preferences = WakeOnLANPreferences(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
-        #expect(throws: WakeOnLANError.self) { try controller.wake(preferences) }
-        controller.automaticallyWake(preferences)
-        #expect(sender.sent.isEmpty)
-        state.allowed = true
         controller.automaticallyWake(preferences)
         controller.automaticallyWake(preferences)
         #expect(sender.sent.count == 1)
@@ -50,24 +46,16 @@ struct LocalNetworkTests {
         state.clock += 3
         controller.automaticallyWake(preferences)
         #expect(sender.sent.count == 4)
-        state.allowed = false
-        state.clock += 4
-        controller.automaticallyWake(preferences)
-        #expect(sender.sent.count == 4)
-        state.allowed = true
-        controller.automaticallyWake(preferences)
-        #expect(sender.sent.count == 5)
-        #expect(preferences.automaticallyWake)
     }
 
     @Test func automaticFailuresAndCancellationNeverRequireInteraction() async {
         let sender = RecordingWakeSender(fails: true)
         let access = ProAccessController.testing(status: .free)
-        let free = WakeOnLANController(sender: sender, hasAccess: { access.canUse(.autoWakeOnLAN) })
+        let free = WakeOnLANController(sender: sender)
         let preferences = WakeOnLANPreferences(macAddress: "02:11:22:33:44:55", automaticallyWake: true)
         free.automaticallyWake(preferences)
         #expect(!access.isPaywallPresented)
-        let controller = WakeOnLANController(sender: sender, hasAccess: { true })
+        let controller = WakeOnLANController(sender: sender)
         var failures = 0
         controller.reportAutomaticFailure = { _ in failures += 1 }
         controller.automaticallyWake(preferences)
@@ -88,7 +76,7 @@ struct LocalNetworkTests {
         target.jumpHostID = jump.id
         let library = HostLibraryModel(hosts: [jump, target], identities: [identity])
         let sender = RecordingWakeSender()
-        library.wakeOnLAN = WakeOnLANController(sender: sender, hasAccess: { true })
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
         let preparation = try library.prepareSSHConnection(for: target, submissions: [:])
         let configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
         jump.wakeOnLAN = .init(macAddress: "02:11:22:33:44:55", automaticallyWake: true)

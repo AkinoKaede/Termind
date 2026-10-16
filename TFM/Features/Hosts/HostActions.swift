@@ -201,7 +201,9 @@ enum HostMenuEntries {
         let showsTailscale = host.isTailscaleManaged || app.tailscale.peer(for: host) != nil
         if showsWake {
             entries.append(
-                NativeMenuEntry(title: AppStrings.LocalNetwork.wake, symbol: "power") {
+                NativeMenuEntry(
+                    title: AppStrings.LocalNetwork.wake, symbol: "power"
+                ) {
                     window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
                 })
         }

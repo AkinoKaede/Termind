@@ -448,6 +448,7 @@ public final class PortForwardingController {
             do {
                 await cleanup?.value
                 try Task.checkCancellation()
+                try await hosts.resolveHostAccess(host)
                 let configuration: SSHConnectionConfiguration
                 if silently {
                     guard let snapshot = context.additionalSnapshot else { throw TermindSSHError.missingCredential }

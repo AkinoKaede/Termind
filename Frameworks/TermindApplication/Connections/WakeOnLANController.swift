@@ -7,7 +7,6 @@ public nonisolated protocol WakeOnLANSending: Sendable {
 }
 
 public nonisolated enum WakeOnLANError: Error, Sendable {
-    case requiresPro
     case invalidAddress
     case noLocalNetwork
     case sendFailed(Int32)
@@ -19,30 +18,26 @@ public typealias ConnectionWakeAction = @Sendable () async -> Void
 @MainActor
 public final class WakeOnLANController {
     private let sender: any WakeOnLANSending
-    private let hasAccess: @MainActor () -> Bool
     private let now: @MainActor () -> TimeInterval
     private var lastAutomaticSend: [MACAddress: TimeInterval] = [:]
     public var reportAutomaticFailure: ((any Error) -> Void)?
 
     public init(
         sender: any WakeOnLANSending,
-        hasAccess: @escaping @MainActor () -> Bool,
         now: @escaping @MainActor () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) {
         self.sender = sender
-        self.hasAccess = hasAccess
         self.now = now
     }
 
     public func wake(_ preferences: WakeOnLANPreferences) throws {
         try Task.checkCancellation()
-        guard hasAccess() else { throw WakeOnLANError.requiresPro }
         guard let address = preferences.address else { throw WakeOnLANError.invalidAddress }
         try sender.send(to: address)
     }
 
     public func automaticallyWake(_ preferences: WakeOnLANPreferences) {
-        guard !Task.isCancelled, hasAccess(), preferences.automaticallyWake,
+        guard !Task.isCancelled, preferences.automaticallyWake,
             let address = preferences.address
         else { return }
         let instant = now()

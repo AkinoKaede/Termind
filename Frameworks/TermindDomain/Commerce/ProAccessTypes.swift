@@ -1,14 +1,9 @@
 import Foundation
 
 public nonisolated enum ProFeature: String, CaseIterable, Hashable, Sendable {
-    case wakeOnLAN
-    case autoWakeOnLAN
-    case tailscale
-    case assistant
-    case remoteMCP
-    case mcpServer
     case vaultSync
-    case unlimitedMetrics
+    case unlimitedHosts
+    case tailscale
     case sftpMultiConnection
     case portForwardingMultiConnection
 }

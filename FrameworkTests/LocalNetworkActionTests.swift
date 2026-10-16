@@ -41,7 +41,7 @@ struct LocalNetworkActionTests {
         let originalHosts = library.hosts
         let originalIdentities = library.identities
         let sender = ManualWakeSender()
-        library.wakeOnLAN = WakeOnLANController(sender: sender, hasAccess: { true })
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
         var draft = HostCustomIdentityDraft(host: host, library: library)
         draft.sshUsername = "draft-user"
         draft.sshPassword = "draft-password"
@@ -98,69 +98,51 @@ struct LocalNetworkActionTests {
         #expect(library.groups == [group])
     }
 
-    @Test func manualWakeRequestsAccessBeforeConfigurationAndDoesNotReplay() {
-        let library = HostLibraryModel()
-        let sender = ManualWakeSender()
-        let access = ManualWakeAccess()
-        library.wakeOnLAN = WakeOnLANController(sender: sender, hasAccess: { access.allowed })
-        let missing = Host(name: "Missing", host: "missing.invalid")
-        var configured = missing
-        configured.wakeOnLAN.macAddress = "02:11:22:33:44:55"
-        var requests = 0
-        for host in [missing, configured] {
-            #expect(
-                library.requestWake(host) {
-                    requests += 1
-                    return access.allowed
-                } == .accessDenied)
+    @Test func lockedManualWakeNeverSendsOrRequestsConfiguration() {
+        var hosts = (0..<4).map {
+            Host(name: "Host \($0)", host: "host.invalid", createdAt: Date(timeIntervalSince1970: Double($0)))
         }
-        #expect(requests == 2)
-        access.allowed = true
+        hosts[3].wakeOnLAN.macAddress = "02:11:22:33:44:55"
+        let library = HostLibraryModel(hosts: hosts)
+        library.hostAccess.entitlement = .free
+        let sender = ManualWakeSender()
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
+        #expect(library.requestWake(hosts[3]) == .accessDenied)
         #expect(sender.sent.isEmpty)
-        #expect(library.requestWake(missing) { true } == .configurationRequired)
-        #expect(sender.sent.isEmpty)
-        #expect(library.requestWake(configured) { true } == .sent)
-        #expect(sender.sent.map(\.rawValue) == ["02:11:22:33:44:55"])
+        library.hostAccess.entitlement = .purchased(.purchased)
+        #expect(library.requestWake(hosts[3]) == .sent)
+        #expect(sender.sent.count == 1)
     }
 
-    @Test func manualWakeReadsSavedPreferencesAfterAccessInsteadOfTheStaleCaller() {
+    @Test func manualWakeReadsLatestSavedPreferences() {
         var host = Host(name: "Host", host: "host.invalid")
         host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
         let library = HostLibraryModel(hosts: [host])
         let sender = ManualWakeSender()
-        library.wakeOnLAN = WakeOnLANController(sender: sender, hasAccess: { true })
-        #expect(
-            library.requestWake(host) {
-                var updated = host
-                updated.wakeOnLAN.macAddress = "02:11:22:33:44:66"
-                library.upsert(updated)
-                return true
-            } == .sent)
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
+        var updated = host
+        updated.wakeOnLAN.macAddress = "02:11:22:33:44:66"
+        library.upsert(updated)
+        #expect(library.requestWake(host) == .sent)
         #expect(sender.sent.map(\.rawValue) == ["02:11:22:33:44:66"])
-        var missing = host
-        missing.wakeOnLAN = .init()
-        library.upsert(missing)
-        #expect(library.requestWake(host) { true } == .configurationRequired)
+        updated.wakeOnLAN = .init()
+        library.upsert(updated)
+        #expect(library.requestWake(host) == .configurationRequired)
         #expect(sender.sent.count == 1)
     }
 
-    @Test func manualWakeReportsMissingServiceRevokedAccessAndSendFailure() {
+    @Test func manualWakeReportsMissingServiceAndSendFailure() {
         var host = Host(name: "Host", host: "host.invalid")
         host.wakeOnLAN.macAddress = "02:11:22:33:44:55"
         let library = HostLibraryModel()
-        #expect(library.requestWake(host) { true } == .failed)
+        #expect(library.requestWake(host) == .failed)
         let sender = ManualWakeSender()
-        let access = ManualWakeAccess()
-        library.wakeOnLAN = WakeOnLANController(sender: sender, hasAccess: { access.allowed })
-        #expect(library.requestWake(host) { true } == .failed)
-        #expect(sender.sent.isEmpty)
-        access.allowed = true
+        library.wakeOnLAN = WakeOnLANController(sender: sender)
         sender.fails = true
-        #expect(library.requestWake(host) { true } == .failed)
+        #expect(library.requestWake(host) == .failed)
         #expect(sender.sent.isEmpty)
         sender.fails = false
-        #expect(library.requestWake(host) { true } == .sent)
-        #expect(sender.sent.count == 1)
+        #expect(library.requestWake(host) == .sent)
     }
 
     private func finish(_ model: HostMACAddressModel) async throws {

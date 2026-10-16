@@ -27,6 +27,44 @@ struct SSHImportTests {
         return "|1|\(salt.base64EncodedString())|\(Data(digest).base64EncodedString())"
     }
 
+    @Test func overQuotaImportRetainsSelectionAndWritesNothingUntilEntitlementResolves() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        try material.privateKey.write(to: url.appendingPathComponent("id_ed25519"), atomically: true, encoding: .utf8)
+        try """
+        Host prod stage
+         HostName %h.example
+         User deploy
+         IdentityFile ~/.ssh/id_ed25519
+        """.write(to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        try "prod.example \(material.publicKey)".write(
+            to: url.appendingPathComponent("known_hosts"), atomically: true, encoding: .utf8)
+        let hosts = (0..<3).map { Host(name: "Existing \($0)", host: "existing\($0).invalid") }
+        let library = HostLibraryModel(hosts: hosts)
+        library.hostAccess.entitlement = .loading
+        var upgrades = 0
+        library.requestHostUpgrade = { upgrades += 1 }
+        library.resolveInitialHostEntitlement = { library.hostAccess.entitlement = .free }
+        defer { library.resolveInitialHostEntitlement = nil }
+        let model = SSHImportModel(library: library, reader: SSHImportReader())
+        await model.scan(url, knownHostsOnly: false)
+        let selected = model.selectedItems().map(\.id)
+        #expect(model.canImport)
+        await model.commit()
+        #expect(!model.completed)
+        #expect(model.error == nil)
+        #expect(upgrades == 1)
+        #expect(model.selectedItems().map(\.id) == selected)
+        #expect(library.hosts == hosts)
+        #expect(library.identities.isEmpty && library.keys.isEmpty && library.knownHosts.isEmpty)
+        library.hostAccess.entitlement = .purchased(.purchased)
+        await model.commit()
+        #expect(model.completed)
+        #expect(library.hosts.count == 5)
+        #expect(library.keys.count == 1 && library.knownHosts.count == 1)
+    }
+
     @Test
     func appDefaultsNewCredentialsAndSSHImportToThisMacWhenICloudSyncIsOff() throws {
         let domain = "SSHImportDefaults.\(UUID())"

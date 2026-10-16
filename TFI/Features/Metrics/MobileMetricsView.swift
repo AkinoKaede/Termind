@@ -3,6 +3,12 @@ import TermindApplication
 import TermindDomain
 import TermindPresentation
 
+extension MobileAppModel {
+    func activateMetrics(_ server: ServerMetric, inspect: () -> Void) {
+        if server.isHostLocked { pro.presentPaywall() } else { inspect() }
+    }
+}
+
 struct MobileMetricsView: View {
     let app: MobileAppModel
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -22,13 +28,17 @@ struct MobileMetricsView: View {
             MobileCardGrid {
                 ForEach(app.metrics.servers) { server in
                     MobileActionCard {
-                        selectedID = server.id
+                        app.activateMetrics(server) { selectedID = server.id }
                     } content: {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(server.name).font(.subheadline.bold()).lineLimit(1)
-                            MetricsInstrumentBody(
-                                server: server, sleeping: app.metrics.core.sleeping,
-                                layout: typeSize.isAccessibilitySize ? .adaptive : .horizontal)
+                            if server.isHostLocked {
+                                MetricsHostLockNotice()
+                            } else {
+                                MetricsInstrumentBody(
+                                    server: server, sleeping: app.metrics.core.sleeping,
+                                    layout: typeSize.isAccessibilitySize ? .adaptive : .horizontal)
+                            }
                         }
                     } actions: {
                         Button(
@@ -84,11 +94,9 @@ struct MobileMetricsView: View {
         pendingEditableHostIDs = []
         initialHostIDs = []
         guard let ids else { return }
-        if !app.metrics.replaceHosts(selectedIDs: ids, editableHostIDs: editable, pro: app.pro.hasProAccess) {
+        if !app.metrics.replaceHosts(selectedIDs: ids, editableHostIDs: editable) {
             if let error = app.metrics.core.storageError {
                 app.error = error
-            } else {
-                app.pro.presentPaywall()
             }
         }
     }
@@ -105,7 +113,16 @@ struct MobileMetricsDetailView: View {
 
     var body: some View {
         Group {
-            if server.showsConnectionJourney {
+            if server.isHostLocked {
+                Button {
+                    app.pro.presentPaywall()
+                } label: {
+                    MetricsHostLockNotice()
+                }
+                .buttonStyle(.plain)
+                .padding(24)
+                .frame(maxHeight: .infinity)
+            } else if server.showsConnectionJourney {
                 MobileConnectionJourneyView(
                     journey: server.journey, library: app.library,
                     authenticationPrompt: server.authenticationPrompt, hostKey: server.hostKeyPrompt,
@@ -148,7 +165,7 @@ struct MobileMetricsDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(removing: toolbarLayout.usesIconSwitcher ? .title : nil)
         .toolbar {
-            if !server.showsConnectionJourney && !showsBothPanels {
+            if !server.isHostLocked && !server.showsConnectionJourney && !showsBothPanels {
                 if toolbarLayout.isVertical {
                     ToolbarItem(placement: .primaryAction) {
                         Menu {

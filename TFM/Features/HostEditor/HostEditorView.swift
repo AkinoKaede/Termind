@@ -64,6 +64,8 @@ struct HostEditorView: View {
     @State private var originalCustomIdentity = CustomIdentityState(HostCustomIdentityDraft())
     @State private var route: Route?
     @State private var saveError: String?
+    @State private var isResolvingAccess = false
+    @State private var saveTask: Task<Void, Never>?
     @State private var didLoad = false
     @State private var customIdentity = HostCustomIdentityDraft()
     @State private var selectedProtocol = HostTerminalProtocol.ssh
@@ -118,6 +120,7 @@ struct HostEditorView: View {
             ) { commitChanges() }
         }
         .onDisappear {
+            saveTask?.cancel()
             discoveryModel?.cancel()
             macModel?.cancel()
             guard let editingToken else { return }
@@ -397,7 +400,6 @@ struct HostEditorView: View {
     private var wakeOnLANSection: some View {
         HostWakeOnLANSection(
             preferences: $draft.wakeOnLAN,
-            requestAccess: { app.proAccess.require(.autoWakeOnLAN) },
             fetchMAC: draft.sshEnabled
                 ? {
                     macModel = app.macAddressModel(
@@ -695,12 +697,15 @@ struct HostEditorView: View {
                     .foregroundStyle(.orange)
                     .lineLimit(2)
             }
+            if isResolvingAccess {
+                ProgressView().controlSize(.small)
+            }
             Spacer()
             Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
             Button(AppStrings.Common.save.swiftUIKey) { saveAndClose() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(!isValid)
+                .disabled(!isValid || isResolvingAccess)
         }
         .padding(Metrics.Space.l)
         .termindGlassBar()
@@ -768,8 +773,13 @@ struct HostEditorView: View {
             } else {
                 try customIdentity.save(into: &draft, using: app.hostLibrary)
             }
+        } catch HostAccessError.verifyingEntitlement {
+            saveAndClose()
+            return false
+        } catch HostAccessError.hostLimit {
+            return false
         } catch {
-            saveError = error.localizedDescription
+            saveError = HostAccessError.presentationDescription(of: error)
             return false
         }
         original = draft
@@ -781,8 +791,23 @@ struct HostEditorView: View {
     }
 
     private func saveAndClose() {
-        guard commitChanges() else { return }
-        closeTab()
+        guard !isResolvingAccess else { return }
+        isResolvingAccess = true
+        saveError = nil
+        saveTask = Task {
+            defer { isResolvingAccess = false }
+            do {
+                try await app.hostLibrary.resolveSavingHostsAccess([draft])
+                try Task.checkCancellation()
+                guard commitChanges() else { return }
+                closeTab()
+            } catch HostAccessError.hostLimit {
+                // Keep the draft intact underneath the upgrade sheet.
+            } catch is CancellationError {
+            } catch {
+                saveError = HostAccessError.presentationDescription(of: error)
+            }
+        }
     }
 
     private func cancel() {

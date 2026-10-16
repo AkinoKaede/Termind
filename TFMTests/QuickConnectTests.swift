@@ -192,7 +192,7 @@ struct QuickConnectRouteTests {
         let window = WindowModel()
         let app = AppModel(hosts: library)
         defer { app.shutdownForTermination() }
-        let workspace = app.openQuickConnect(target, in: window)
+        let workspace = try #require(app.openQuickConnect(target, in: window))
         let session = try #require(workspace.focusedPane.sshSession)
         #expect(session.connectionRoute == target.route)
         #expect(session.connectionHost(session.hostID, using: library)?.port == 2222)

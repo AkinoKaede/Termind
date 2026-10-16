@@ -985,7 +985,7 @@ struct ComposerView: View {
         // conversation, or appending a visible user turn. The runtime keeps a
         // second guard, but by then the UI would already look as though Send
         // succeeded.
-        guard app.proAccess.require(.assistant) else { return }
+
         if !conversation.composer.pendingAttachments.isEmpty { return }
         if conversation.composer.attachments.contains(where: { $0.image != nil }),
             resolved?.model.isVision != true

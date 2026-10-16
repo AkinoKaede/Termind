@@ -8,6 +8,7 @@ actor MoshTerminalEngine: ResumableTerminalEngine {
     private let receive: EventHandler
     private var session: MoshClientSession?
     private var reader: Task<Void, Never>?
+    private var accessCheck: HostOperationAccessCheck?
     private var beforeConnect: ConnectionWakeAction?
     private var rollbackPID: Int32?
     private var closed = false
@@ -17,6 +18,7 @@ actor MoshTerminalEngine: ResumableTerminalEngine {
     }
 
     func prepare(_ context: ResumableTerminalEngineContext) async throws -> ResumableTerminalEnginePreparation {
+        accessCheck = context.request.configuration.accessCheck
         beforeConnect = context.request.configuration.beforeConnect
         if let payload = context.checkpoint {
             let restored = try await MoshClientSession.restore(from: Self.decodeCheckpoint(payload))
@@ -132,6 +134,7 @@ actor MoshTerminalEngine: ResumableTerminalEngine {
     }
 
     func beforeResume() async throws {
+        try accessCheck?()
         await beforeConnect?()
         try checkOpen()
     }

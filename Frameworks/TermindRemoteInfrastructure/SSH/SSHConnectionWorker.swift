@@ -23,6 +23,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     private var timer: (any DispatchSourceTimer)?
     private var hostID: UUID?
     private var charset: RemoteCharset = .utf8
+    private var accessCheck: HostOperationAccessCheck?
     private var scheduled = false
     private var generation = 0
     private var controlDirections: Int32 = 0
@@ -65,7 +66,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                 else { return nil }
                 return .init(
                     connection: connection, buffer: buffer,
-                    channelBudget: channelBudget, charset: self.charset)
+                    channelBudget: channelBudget, charset: self.charset, accessCheck: self.accessCheck)
             },
             updateEvents: { [weak self] session, buffer in
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
@@ -105,6 +106,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                 self.connection = opened
                 self.hostID = hostID
                 self.charset = request.configuration.charset
+                self.accessCheck = request.configuration.accessCheck
                 self.buffer = opened.installBuffer()
                 if let provider = request.agentForwarding {
                     self.buffer?.agentChannels = SSHAgentChannels(provider: provider, queue: self.queue) {
@@ -145,7 +147,8 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         _ command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
         outputLimit: Int, cancellation: TransferCancellationToken, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
-        try await execChannelOwner.execute(
+        try await queue.perform { [self] in try accessCheck?() }
+        return try await execChannelOwner.execute(
             command, workingDirectory: workingDirectory, stdin: stdin,
             timeout: timeout, outputLimit: outputLimit, cancellation: cancellation, onOutput: onOutput)
     }

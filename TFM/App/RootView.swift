@@ -241,6 +241,16 @@ struct RootView: View {
         } message: {
             Text(window.wakeNotice ?? "")
         }
+        .alert(
+            AppStrings.Connections.connectionFailed,
+            isPresented: Binding(
+                get: { window.hostAccessError != nil }, set: { if !$0 { window.hostAccessError = nil } }
+            )
+        ) {
+            Button(AppStrings.Common.ok.swiftUIKey) { window.hostAccessError = nil }
+        } message: {
+            Text(window.hostAccessError ?? "")
+        }
         .proPaywallPresenter(app: app, window: window)
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedDestination) {

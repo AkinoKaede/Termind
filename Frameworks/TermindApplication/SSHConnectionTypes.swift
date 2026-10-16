@@ -427,6 +427,8 @@ public nonisolated struct SSHAuthenticationReference: Hashable, Sendable {
 }
 
 public nonisolated struct SSHConnectionConfiguration: Sendable {
+    public var accessHostIDs: [UUID] = []
+    public var accessCheck: HostOperationAccessCheck?
     public var beforeConnect: ConnectionWakeAction?
     public var network: (any SSHNetworkDialing)?
     public var tailscaleNodeID: String?

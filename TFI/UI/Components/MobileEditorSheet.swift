@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindDomain
 import TermindPresentation
 
 struct MobileEditorToolbarAction: Identifiable {
@@ -110,7 +111,7 @@ struct MobileEditorSheet<Content: View>: View {
                 try Task.checkCancellation()
                 dismiss()
             } catch is CancellationError {
-            } catch { self.error = error.localizedDescription }
+            } catch { self.error = HostAccessError.presentationDescription(of: error) }
         }
     }
 

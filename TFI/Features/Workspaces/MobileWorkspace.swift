@@ -484,6 +484,12 @@ final class MobileWorkspace: Identifiable {
 
     func insertTerminalText(_ text: String) {
         guard connected else { return }
+        if let host = connectionHost(descriptor.hostID) {
+            do { try hosts.requireHostAccess(host) } catch {
+                operationError = error.localizedDescription
+                return
+            }
+        }
         _ = terminal.paste(text: text)
         terminal.requestFocus()
     }
@@ -1023,6 +1029,7 @@ final class MobileWorkspace: Identifiable {
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {
+                try await hosts.resolveHostAccess(host)
                 var resolvedConfiguration: SSHConnectionConfiguration
                 if resumeCheckpoint != nil, transport == .mosh {
                     resolvedConfiguration = SSHConnectionConfiguration(
@@ -1036,8 +1043,13 @@ final class MobileWorkspace: Identifiable {
                     resolvedConfiguration = try await preparation.resolve(
                         discoveryOnly: resumeCheckpoint != nil, trustPolicy: .allowChallenge)
                 }
+                if resolvedConfiguration.accessHostIDs.isEmpty {
+                    resolvedConfiguration.accessHostIDs = hosts.route(for: host).map(\.id)
+                    resolvedConfiguration.accessCheck = hosts.connectionAccessCheck(
+                        for: resolvedConfiguration.accessHostIDs)
+                }
                 resolvedConfiguration.beforeConnect = hosts.connectionWakeAction(
-                    for: resolvedConfiguration.jumps.map(\.id) + [host.id])
+                    for: resolvedConfiguration.accessHostIDs)
                 if let resumeUsername { resolvedConfiguration.username = resumeUsername }
                 let config = resolvedConfiguration
                 guard generation == token, !Task.isCancelled else { return }
@@ -1411,6 +1423,7 @@ final class MobileWorkspace: Identifiable {
         attempt = Task { [weak self, weak hosts] in
             guard let self, let hosts else { return }
             do {
+                try await hosts.resolveHostAccess(host)
                 var configuration = try hosts.telnetConnectionConfiguration(for: host)
                 if let usernameHint { configuration.username = usernameHint }
                 if let password = self.advisoryTelnetPassword {

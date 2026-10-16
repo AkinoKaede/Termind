@@ -32,7 +32,7 @@ struct MobileAISettingsView: View {
         case .skills:
             MobileSkillSettings(skills: app.skills)
         case .mcp:
-            MobileMCPSettings(ai: app.ai, pro: app.pro)
+            MobileMCPSettings(ai: app.ai)
         }
     }
 }
@@ -59,7 +59,7 @@ enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
         case .models: "cube"
         case .skills: "doc.text"
         case .memory: "brain"
-        case .mcp: "network"
+        case .mcp: "wrench"
         }
     }
 }

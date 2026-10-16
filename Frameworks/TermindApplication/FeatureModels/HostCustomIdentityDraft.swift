@@ -221,6 +221,7 @@ public struct HostCustomIdentityDraft {
     }
 
     public mutating func save(into host: inout Host, using library: HostLibraryModel) throws {
+        try library.requireSavingHosts([host])
         if usesCustomSSH(for: host) {
             let identity = try library.saveCustomIdentity(
                 ownerHostID: host.id, purpose: .ssh, displayName: host.name,
