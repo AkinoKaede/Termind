@@ -1,11 +1,9 @@
 ---
 type: implementation guide
-title: SSH Multiplexing, Channel Admission, and I/O Scheduling
+title: SSH Multiplexing and Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
 sources:
-  - id: openwiki-source-8e06414c0a0a26e45de192bd
-    resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
@@ -40,15 +38,15 @@ sources:
     resource: repo://TFMTests/SFTPConcurrencySchedulerTests.swift
   - id: openwiki-source-7364a5d16e49e89eb03bbee2
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
-  - id: openwiki-source-ec3ec372dd69a7df3113c6b1
-    resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "pi", at: "2026-10-04T14:45:13.763Z" }
+  - id: openwiki-source-fc9dd746ee8dc0791104d397
+    resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# SSH Multiplexing, Channel Admission, and I/O Scheduling
+# SSH Multiplexing and Scheduling
 
 ## What multiplexing means here
 
@@ -80,7 +78,7 @@ flowchart TD
     Buffer --> Route[Routed socket or jump bridge]
 ```
 
-This is a conceptual layering diagram, not a claim that every owner supports every channel type. The PTY worker owns terminal plus sibling SFTP channels; `SSHConnectionWorker` owns exec plus SFTP; forwarding has its own worker.
+This diagram shows connection-local admission before serial library access. It is conceptual layering, not a claim that every owner supports every channel type. The PTY worker owns terminal, non-PTY exec, and sibling SFTP channels; `SSHConnectionWorker` owns exec plus SFTP; forwarding has its own worker.
 
 ## Serial ownership is not serial completion
 
@@ -98,7 +96,15 @@ Idle retirement defaults to 180 seconds (swept every 30 seconds in the app). Act
 
 `SSHChannelBudget.acquire` immediately grants only when capacity is available **and** no waiter is ahead. Otherwise it queues a continuation. Lease release is idempotent, and deinit also releases. Increasing the ceiling drains FIFO waiters; decreasing it does not revoke active channels. Task/token cancellation removes a queued waiter, and closing a budget fails all remaining waiters with cancellation. A waiter does not busy-spin inside libssh2 while it lacks a lease.
 
+`SSHChannelBudget.tryAcquire` is the non-waiting alternative: it refuses when closed, saturated, **or when any FIFO waiter is queued**. Runtime observation cannot jump ahead of ordinary work. `permitsConcurrentControl` only reports an open budget with a configured maximum greater than one; it does not promise a free slot right now.
+
 PTY setup retains one lease for the shell; exec retains one in its command object; each SFTP subsystem retains one beside its native pointer. Direct/forwarded TCP channels and remote listeners are outside this session-channel accounting. Consequently a terminal with ceiling 10 already uses one slot, leaving at most nine additional session channels on that transport under this local policy. Creating a sibling SFTP channel at capacity waits for admission; it does not itself trigger an extra connection.
+
+## Runtime inspection: reuse or refuse, never authenticate invisibly
+
+The PTY's `runtimeCommandExecutor()` uses the already-authenticated worker, not a connection opener or an auxiliary-login fallback. Its commands use `/bin/sh -c` rather than a login shell, require immediate channel capacity, and have a two-second outer cancellation deadline. Ordinary session-control commands use a 15-second deadline and waiting admission. Both capture the terminal generation; runtime operations can also validate the input revision so stale work is cancelled before admission/enqueue and during progression.
+
+If immediate admission fails, exec throws `TerminalRuntimeError.capacityUnavailable` rather than waiting behind the shell or queued work. A server channel rejection marks runtime control unavailable for that terminal lifecycle. Runtime publication then hides multiplexer availability or removes draft read/replace capabilities; the same capability restriction applies when the configured ceiling is one. This distinguishes **configured concurrency**, **currently free capacity**, and **server acceptance**. Inspection errors publish unavailable state and back off; they do not initiate authentication. See [Shell Integration](shell-integration.md) for the context and draft semantics.
 
 ## Exec: opening → starting → running → closing → freeing
 
@@ -106,23 +112,39 @@ PTY setup retains one lease for the shell; exec retains one in its command objec
 
 Each command owns:
 
-- A stable, charset-encoded C command string. It executes `/bin/sh -lc '<command>'`, optionally preceded by a shell-quoted `cd -- '<cwd>' &&`; there is no shared interactive shell cwd between exec channels.
+- A stable, charset-encoded C command string. Ordinary exec executes `/bin/sh -lc '<command>'`; session-control/runtime exec selects `/bin/sh -c '<command>'`. Either can be preceded by a shell-quoted `cd -- '<cwd>' &&`; there is no shared interactive shell cwd between exec channels.
 - Its own stdin byte queue with consumed-byte zeroization, stdout/stderr decoders and buffers, truncation counters, deadline, cancellation token, and completion continuation.
 - A deadline clamped to 1–900 seconds and created **after** channel-budget admission. Time waiting for admission is therefore not included in that command deadline.
 
-Only one `opening` command is advanced through `libssh2_channel_open_ex` at a time; an EAGAIN leaves that pending open in place. Once opened, the command advances to exec startup and then running. A running turn writes queued stdin, sends EOF when appropriate, drains stdout/stderr within the quantum/deadline, and moves to closing when remote EOF arrives. Closing captures exit status/signal and freeing retries channel release before completing the continuation. Stream output limits count accepted **remote bytes per stream**, not a single combined decoded-character limit; excess is drained but marked truncated. The output callback runs on the serial owner and must return promptly.
+Only one `opening` command is advanced through `libssh2_channel_open_ex` at a time; an EAGAIN leaves that pending open in place. Ordinary session-control commands can retry server channel-open failure after 50 ms, within their deadline, but only **before** sending exec; runtime observation disables that retry. Once opened, a command optionally requests Agent forwarding, advances to exec startup, and then runs. A running turn writes queued stdin, sends EOF when appropriate, drains stdout/stderr within the quantum/deadline, and moves to closing when remote EOF arrives. Close is followed by `waitingForClose` and freeing; exit status/signal are captured after waiting for close, and freeing retries native channel release. Stream output limits count accepted **remote bytes per stream**, not a single combined decoded-character limit; excess is drained but marked truncated. The output callback runs on the serial owner and must return promptly.
 
-The main pump can be read as this reduced control flow (not replacement code):
+Cancellation or timeout can resume the caller **before native close completes**. The command and its lease remain owned until close/free finishes or connection teardown disposes all state. Returning from a cancelled call is therefore not evidence that a session slot is free.
 
-```text
-begin bounded encrypted-buffer pass; flush queued ciphertext
-if encrypted high-water reached: arm socket write, stop this pass
-advance one pending channel open
-while time remains and ready IDs exist: advance each command state
-advance pending open again; service keepalive; flush again
-detect socket loss; update read/write interest
-if anything progressed or receive budget yielded: wake another sweep
+The main pump and its admission boundary can be read as this reduced scheduling flow:
+
+```mermaid
+flowchart TD
+    Request["Exec request on authenticated owner"] --> Immediate{"Immediate capacity required?"}
+    Immediate -->|yes| Try["tryAcquire without bypassing waiters"]
+    Try --> Available{"Lease obtained?"}
+    Available -->|no| Refuse["Return capacityUnavailable"]
+    Immediate -->|no| FIFO["Acquire or wait FIFO"]
+    FIFO --> Validate["Validate context and budget identity on queue"]
+    Available -->|yes| Validate
+    Validate --> Open["Queue one pending open"]
+    Open --> Pass["Begin bounded pass and flush ciphertext"]
+    Pass --> Pressure{"Backpressured?"}
+    Pressure -->|yes| Write["Arm socket write and yield"]
+    Pressure -->|no| Turn["Advance open and ready command phases"]
+    Turn --> Flush["Keepalive and flush then update socket interest"]
+    Flush --> Wake["Progress or readiness or timer wakes next pass"]
+    Write --> Wake
+    Wake --> Pass
+    Turn --> Done["Close then wait for close then free"]
+    Done --> Release["Drop command and release lease"]
 ```
+
+Exec admission and bounded queue turns; cancellation may return to the caller while the close/free branch still owns its lease.
 
 `SSHReadyQueue` deduplicates IDs, pops FIFO, and places reinserted hot work behind peers. Socket readiness wakes commands; a 100 ms timer also checks command deadlines and keepalive. Thus exec scheduling is readiness-assisted **with periodic safety/deadline wakes**, not a promise of strict equal byte bandwidth or entirely timer-free progress.
 
@@ -135,7 +157,7 @@ if anything progressed or receive budget yielded: wake another sweep
 1. Serialize subsystem initialization with `reserveOpen`/`releaseOpen`; acquire the connection's session-channel lease.
 2. On the owning queue, start a bounded buffer pass and flush encrypted output. Return `.again` under backpressure or `libssh2_sftp_init` EAGAIN; on success retain pointer and lease in `channels[id]`.
 3. For each raw SFTP operation, enter the same queue, validate the channel/context, begin/flush a pass, perform the operation, flush again, and update socket interest.
-4. On `.again`, leave the queue and **asynchronously sleep for 2 ms** before retrying. Shutdown uses the same retry interval. Closing releases the lease and can notify a PTY owner when its last sibling is gone. The SFTP driver retains that worker through asynchronous close, without a worker-to-driver cycle. Closing the terminal retires the transport unless live SFTP channels remain; pending exec closes alone do not keep it alive. Worker destruction is queue-confined and avoids synchronous self-reentry.
+4. On `.again`, leave the queue and **asynchronously sleep for 2 ms** before retrying. Shutdown uses the same retry interval. Closing releases the lease and can notify a PTY owner when its last sibling is gone. The SFTP driver retains that worker through asynchronous close, without a worker-to-driver cycle. Closing the terminal explicitly retires the transport unless live SFTP channels remain; pending exec closes alone do not keep it alive. Prepared sessions can deliberately retain the authenticated connection for post-exit control, completing PTY close/free before a probe uses the released slot. Worker destruction is queue-confined and avoids synchronous self-reentry.
 
 This is important when reasoning about fairness: SFTP does **not** live in the exec worker's `ready` dictionary. Queue confinement and short retry turns allow PTY/exec and other channel calls to interleave; the SFTP path currently uses async retry sleeps rather than a single unified readiness queue for all operations. Do not describe every transport user as fully event-driven or as receiving a common weighted scheduling guarantee.
 
@@ -194,7 +216,8 @@ A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retri
 | Question | Source/tests to inspect |
 | --- | --- |
 | Why is the eleventh session channel waiting? | `SSHMaxSessionsPolicyTests`: default capacity, FIFO, live decrease/increase, cancellation, independent transport budgets. |
-| Is a worker safe to release from its own queue? | `SSHConnectionWorkerLifecycleTests`: last reference released on the connection queue and from outside it; guards against synchronous self-reentry during cleanup. |
+| Is a worker safe to release from its own queue? | `SSHConnectionWorkerLifecycleTests` and `SSHPTYChannelWorkerLifecycleTests`: last reference released on the owner queue and from outside it; guards against synchronous self-reentry during cleanup. |
+| Can cancelled exec close strand a PTY transport? | `SSHPTYChannelLifecycleWireTests`: explicit disconnect, dropping the PTY, and SFTP sibling survival until last close against a peer that never acknowledges exec CLOSE. Opt in with `TERMIND_PTY_LIFECYCLE_FIXTURE` and `Scripts/ssh-pty-lifecycle-fixture.py`. |
 | Are file permits fair or identical to channel leases? | `SFTPConcurrencySchedulerTests`: host/source rotation, five slots split across two workspaces, cross-host copy accounting and the 64,000,000-byte smart boundary. |
 | Does EAGAIN preserve bytes and pointers? | `SSHForwardingPumpTests`: blocked write stability, partial writes, encrypted packet buffering and shared flush allowance. |
 | Can a busy/slow flow starve or corrupt a peer? | `SSHForwardingPumpTests`: ready-queue rotation, watermarks, window updates, half-close; `SSHForwardingWireTests`: concurrent streams and slow consumer. |

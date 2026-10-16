@@ -1,22 +1,34 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:402ee9807551c18684f8fabd21deb9197aa67a88199193965fe323b99246fab3",
+  "pageVersion": "sha256:7efa2511301f7603ba8378993a623c74536c29befff17139473430a6c0539af0",
   "claims": [
     {
       "id": "claim_a66f64ff267243989e5b4bbc103576dd",
       "statement": "Forwarding controller shares runtime intent among rules for one Host and retires it on the last Stop or route invalidation; macOS applies a normalized Host-configured 1–64 target capped by an app-supplied Pro connection limit that can update live contexts, while mobile uses a single-connection policy.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift",
-          "version": "repo-file-v1:sha256:00dfaa89bb467aaec976ecb2dac1e61dbc71e5966242f6686efe905d92b9733c"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L149-L186",
+          "version": "repo-lines-v1:sha256:274d172c0c6b6883c1ed03a049c9846e9117d89d807d2c98a7f3eb5f72a5b27e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExYWFiMTk0NDI3ZmM4Yzc4YTRkNWY0Njc4NTdhZTY5Mzk4OTUxNGZlMWQzMmYxMTk2MzZlMDc3ZGI2ZmRmNTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3Y2NmNGQ5NjJiZWY2NDc0NjNiMjhiYjdjNzE2MzBlY2Y4MjExODA2NTVkZGVjZjQ5NzcxYjlmZDNmNDBiYTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2MTQ0NGVkM2ZlNGUzYzI1ZWFiOTkxOTYzZDk4ZjA3MTFhOTMzN2I2Y2E0NWQwMjFkNzZlYWRlMmIyYjFmNjQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift",
-          "version": "repo-file-v1:sha256:a8822e7fe16e18c4490688e8c3543c2266c0bd86094908326ff7aeb9b2e79757"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift#L39-L71",
+          "version": "repo-lines-v1:sha256:4c3b077349b08dfe843d086455b058c9f701e05eda85d79de67d0bbf603e81bb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5OTc3NjRmYjU3ZThkZmM5OTRiOWFlYjc1ZmZiOWZjNTc3MjM2NGZiMWE3MDU5YTdkOWU4ZjlkMTM1Y2Y3MTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ZGYwYjM4Nzg0NDA0YTE4MjNmNmNkYTAzZWVlNGRiZjYwNmVmY2IxZTg5MDNhMDIzY2Q0Nzk1MDdjNmQ0OTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5NmU2Yzg1OTAyMTFkZDZkNTcwOWYwNGY4OWJkYTczYjdjY2U5OTZlY2IxODczMjVjMTFmOWQxYWYxYTBjYzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwZmNhNGMxMzYxYjRlODRhM2IxMDhmYmU3NGY4ZTA2YjU5YWM2MDA1NDQwY2MxOThlMjljYTRiNTQ4ODA5OTYifQ"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:bd43f31a4ca2de3488045ee63d072fa8f2a03f8e6201b5f7acd712d20933c1e0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift#L45-L60",
+          "version": "repo-lines-v1:sha256:8700257d061ad645bfc5e086168d823a6e7f98eb3e8234a291ffd4299b00a2b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmN2ZkMDRmYjEwYWIxZTM2N2U1NTEwNGVjMjAzNTg3MzNkMGE0YzA1ZjdiZWMyMzZkYWE4OGY5YWNkZjgxN2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyOGFlYTg0YmNkYjU4NDU2Yzk2YzExMmZmMDQwYWU3MjdhZDU1NTIxYzcwMTRkZWY1MTdkMWEzYWJhMDM1MTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhNjdkMmY3YTVjYjJmNzI5YjY4NzgwOTAxNGYxOTFkODNhMjdlNmQ3ZmM1MTg4YmY2ZWM4MjUxNGZlMzUwODEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L4-L36",
+          "version": "repo-lines-v1:sha256:bc8b258d397b9a196fa2ece42c9aa4f2cabd8231d1a460a60fd281942c018502:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyYjFkN2FjN2EwY2UyMjRjZTFlMTRiYTc3MGM4MGY1NjVhNDc5NjQ2OTg2YjgwNGVkOWM4NmMzMjFiZWE5N2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L225-L232",
+          "version": "repo-lines-v1:sha256:3be9ce64d0ef563e4a49ac7ca7e882533c9cdf45baa1fb66364c3904fe760958:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTYxNjQ5MzcyYTBmZjFmYTMwOTYzMWE2M2RiOTQ4OGEzZDAzNjJiMzRiNDBjZmU5OGYyZjZhZTYxNGJjNWJkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTY4NTIwMTRlOTZlZjVlMzNiZjFjMDQ3ZWY1ZGRkNjFkM2EzYjY5ZjdmZTE5ODI2NjZjMDI4YzMzY2MzZGNkYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjMzNmI0ZmJkZTY1YmVmOWJjNTFjNWFjNTlkMzkxOWQwZmFkOGNmNmU0MGM5M2IwN2YwNWY4ZjQxYTFkNWRiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmFmODljNjY0ZWZlODRlZDIwMDYyODBkOTY1ZTJiMGZlZDQxNDg2ZGJkZDVhMWEyODhiZDUwYjgwYTFlNzRlOSJ9"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L417-L424",
+          "version": "repo-lines-v1:sha256:1868971d95d088d124e5377b5624dde102dd72783c6ddd323b4d46f371f70c9b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWY2ZGY4M2YyODY1MDlmNGE5MTkzMjBjZTIyNmJmMzcwNzdlMTA3MmRhYzE0NmVlMGFhM2NjODEzYmViYzFjOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOThlMjFiOGViOTE0ZWY1N2I3N2IzYjc1OTUwOTNjODcwOWQ0NDg4NThjNzBmNTU5ZjAyYWRjODA1ZjdiMTEzOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJhOGQ0ZDFhYTY4MzliNTJlNDFkNDA2YjE0YThhYTNlMzc0YzllOGQxMmE2YzY4ODFlZTMyZWJjODE0MGQyZSJ9"
         }
       ]
     },
@@ -175,6 +187,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-10T23:08:14.218Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

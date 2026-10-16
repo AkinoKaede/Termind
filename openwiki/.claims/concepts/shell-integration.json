@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:fd01d66c597a10e4b46d1d7e68a351c0071e6230ce2510ec4d797bfead62ebf1",
+  "pageVersion": "sha256:e231c8b3977ccf6859f45cc5e8e04895dd0aae4e32b4f44aa0eb6af29cea8918",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
-      "statement": "The PTY worker requests a PTY and environment before starting the shell, then conditionally queues shell integration bootstrap; environment-request denial is nonfatal while other errors fail setup.",
+      "statement": "Integration-enabled or prepared PTY connections authenticate and prepare private startup helpers over exec before PTY launch, never falling back to typing bootstrap on helper failure. PTY and environment requests precede shell or exec startup; environment request denial alone is nonfatal.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1039-L1148",
-          "version": "repo-lines-v1:sha256:badcddee68ad5f16f59d5a4042eb42eb19027af3537873f616c5d066d3b3af79:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3MWNhYzE4M2MyMDgzYzJiZTAyZWQ0ZDdiNDUyZTA4OTQzMjhjMTdjY2YzNzUyMDBhOTk4ZjYzYmQ1ZDdlYzlmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhOGUwMmJkMzI0ZWZiZDUyNzg3ZDI1OWFlNDAyYWJiYWQ1MDkwNTEyNDY3ZDI3ODk1YzZhYzA5MmE3Y2JlZWRmIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxShellStartup.swift",
+          "version": "repo-file-v1:sha256:04821cc772599bc5c134cd1f7a256344d0a2527d416cda632b370c3e8d6321a6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
@@ -21,154 +25,146 @@
           "version": "repo-lines-v1:sha256:8b433137dfb79d25b281cccb1b9b74a08e101fade6a195941d7efef9ed518886:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNmIwMDE5YjA2YWFlZmNiZTIxMjg4ZTBlMTNjZGU5ZDcwYjAyMzk3MmVmNzg3MWVkNTc4NmQyZTA0MTgzYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L390-L401",
+          "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift#L455-L466",
           "version": "repo-lines-v1:sha256:2d7c1067ff14563a949bc78654462b0d48bfbecd9e225171047a45b65099a66d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1MTZiODA1NzQxMzg1ZDNmN2U1M2MzZDViNGQzNzgwMjQxN2IwMmIxMWU0MmIwYzJkMjIzNTI0YTgwM2ZhZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2OTYxMDRkNmVhZjFmMmNjNmE3ZmQ4NzhmN2M4YmYxOTUyMmQ4NmE3OWRmMGU5ZjU5YmNkZWQ1M2U1ZWE4MjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMDQ0Y2I3YTNhNDZmYTMxNTcxYjczMTkxOGU0ZjRlNDJiNGFlNWM4YTkyZDhmYjhkZmY2M2VjNjU4NWE3YjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwNWRhNmVjM2Q5NDQwNjFjMGNiOTljZTcxZTE0YzhlMDQ4YjcxMTcxNjFlYzJhYjdmMDY0ZGM2NTFhYzU2NzkifQ"
         },
         {
-          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L12-L59",
+          "resource": "repo://TFMTests/HostShellIntegrationSessionTests.swift#L40-L87",
           "version": "repo-lines-v1:sha256:72530ac278a4cdd13f058e1bea3a852de8086c8e6a0893f1c2b15078056bf24e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMWY2OGIzN2Q5ZWI3MDg2NmFmNjRmZDA1YmQyNmRmNGRhNDQ4NTQzOTkzYWIyOTA4MDM1OGZiOGM1NDdmM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmZjZmOWQxY2Q2YjdmZTdiOWRiM2E5OWY1MTVjMDM1ZGNmMTQxZWQ3MDQwYWNlYTA5NDBiNTE1YzcwZGNlZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmN2RiZjFiYTRhOGU1NWIwMDA2NWRiYTBhMzBhZDk0NzBkYTQ0NGEyYzA2MmY1OWIxYmU0ODVmYjQ5ZTY4NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5N2VhNmQwNWIzZTVjNzU3NjUwN2ZkOTUzOGIzN2M1YzRjNjBjMTlmMGU1YjAyN2E1ZDQwZGZmMzNmNGVmZTcifQ"
         }
       ]
     },
     {
       "id": "claim_bd6cf9271fed49b2a19e1baa1ebd67a9",
-      "statement": "The bootstrap probes shell and optional system fields with per-instance token markers and reads os-release as text rather than sourcing it.",
+      "statement": "The bootstrap probes optional system fields and shell with instance token markers and reads os-release as inert text rather than sourcing it; prepared startup uses this probe over exec for optional system metadata.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L289-L303",
-          "version": "repo-lines-v1:sha256:04846b998b4958e876942dff73d5e7e9b146b9bdf756a11d59007684f7865aec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5N2MyNmFjMjg2NGRhOTgyMjQyYjY0N2IyOGJhZDRjNjBjNzQyMGEyOGRjMjhhMmEwM2VkMjUxMWVmMTRkNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTdjNjc4MDQ0MGNlOWE4YWMwNGE3MDg5ZTU0NzA2MzJkMTFkMTE5ODUwZTBiNWI2M2QxNTU3NjA5ZGI2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzODYwOTA5NDllZjRiMGNjMGJkYjZjODdjNzgyMWU4N2RiMDMyYzE1MTUyMTJmM2NhZDFkMzdmMWQ2OGI1MWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YjY5NDk1MDQzYTMzYzMzMTZkMWI2ZjAwYmFkZGFhNDU1N2Q5YjM3ODgyZTQxYTI4NTNhZDc3MDJlZjE1ZTIifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L79-L97",
-          "version": "repo-lines-v1:sha256:9b7295e6848a0563278d9ff82270493bf3402b2d497f5bcbdf7614be9b2daa38:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2NzZmZWIzOWMwMDdjMWE0NTk4MDBjODM2ODFjZWQ2YTM5MWUwN2VhNDdiYmZiYWIzMzc2MjYwODkxMDgyODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3ZmM3ZGM4MGFlOGI4ZThiYjFkYzE4NWIxZWY0ZGQ2NGNmYzFkNWI1ZTIyMzg3OGNkMjYwMTc3Yjk0ZWQ3NDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1ZjgxNDEyNjUyNmE1MDFjZGQzYmZmMmFkMTY1YjgyMjJjMzRlNWU0ZjA4N2Y2YmFhNjc0YjIxNjIxOTBiNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0NTk0ZDMxMWU4ZDU2MWM5YjFkM2ZkNTJhODUwYTBkNGE3MDBkMzk5NTg2ZTkxMmJhZTUyNjE4NjliOGZlOTIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_f81d12eff32548b1a806995b8e177a96",
-      "statement": "Bootstrap uses 3-second response deadlines and 500 ms quiet timeouts; initial timeout restores output but keeps an unbounded late scanner alive, quiet suffix flush does not complete scanning, and late supported detection skips installation after user input. Socket readiness and a 100 ms timer drive the worker, which reads and polls before draining queued writes; bootstrap commands bypass user-input marking.",
+      "statement": "The legacy interactive bootstrap uses three-second response deadlines and 500 ms quiet timeouts, retains an unbounded late scanner after initial timeout, and skips late supported installation after user input. The readiness-driven worker also has a 100 ms timer and reads/polls before pending writes; these interactive transitions do not govern prepared runtime startup.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1130-L1159",
-          "version": "repo-lines-v1:sha256:cc00584086d2cfedffe4018d5f5d6d197914a4db959c2b91f948dc52bf9eabc6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxOGI2ZGMwNGU3YmZjODQxMjkzNWM1MjAzNjA5MWY3ZTgzMTY2ZGJjY2E3MTBkOTZjOTYzZDVmYjIwYjY4M2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwNTg4MjVhMmMzZTY0NzNkZDFjMzc5ZGI5ZDhjOTE2MmQxNDU2OGEzOTJlYThiMmNiMTkyYTI2ZGI3YzI0OWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxMzA3MjgwYzU5NWIxZmQ3NmJjOWQxYjlmZTE0YjMzODdmZGQ2MmZlMjNlYzBhOTA0MDEwNTlmN2I1NDBmODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1427-L1519",
-          "version": "repo-lines-v1:sha256:1e572630f34269aa9cb57800022ee76ce1ec25397274047c891f810086b6fd2e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMjYyODg2NTk0NWYxNTE5ZDk5M2Y0Y2IyYTU1YzllNTJmNGE2ZTQ1ODdiZjhiOTI0ZjRmYTUyOWEwYzU2ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDJkZDJlOTg0YjkwNzU5MDYzOGEyZjQ2MmE0YzlmZTFiYzNkMDk0ZDBiMDEwZDZlYTMwZDc5NDMxYTAwN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZThkMTM3ZmE0NGFjNjY0OGIzYTRhNmY1NmY1MGJhYmE2NzczNDE0NWQwNDc0YTRlNTU1Njk3ZmQyNmJlYzgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_c3541976db5f4e84a583c4486ddd24e2",
-      "statement": "Bash, Zsh and Fish installers define session-local hooks and compose bindings, report cwd through OSC 7 and command lifecycle through token-scoped OSC 777, preserving shell-specific hook mechanisms rather than editing startup files; Bash fallback DEBUG handling excludes Termind helpers and brackets existing PROMPT_COMMAND work.",
+      "statement": "Bash, Zsh and Fish preserve shell hook mechanisms and compose bindings; runtime installers report journal events while legacy installers use OSC 7 and scoped OSC 777. Private startup wrappers do not edit user startup files; Bash excludes internal helpers and brackets existing prompt work.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L444-L493",
-          "version": "repo-lines-v1:sha256:0987987b1ef4084ce1257927b1144ac71dc146733df716c1a4fcb2108d4ac1e7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhNDI5MzllMTZkMTk0YTI5ZmFkOGE0NWMwZjBhNDQ1MGIyNDk5NDk3MzQwYzlhZWFjOWM3MmUzNDFhODI5MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MmVmOTQ2YmNlZmY2ZjBmOTlkMTI3YzVjYjUwNWI5YTE5MjZkMmJlMDNiNTExNDI2YWE5Njg2ZjhmMzA3OTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzNGQwODExMTYyODk0ZDlkMDBkOGVjODBiZWUxMjA1ODFmMjVhNzUxN2E3MTIwMTk1MzViMjdhNjFmNDAyYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMTljMWEyZWIwYmRlYjkwMmE4MTczZjkwYjA4MjEyYTk4YTMyMTNkOWFkYWI3ZTY0ZGE2YzY4NjY4YjI3YzMifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxShellStartup.swift",
+          "version": "repo-file-v1:sha256:04821cc772599bc5c134cd1f7a256344d0a2527d416cda632b370c3e8d6321a6"
         },
         {
-          "resource": "repo://TFMTests/ShellIntegrationBootstrapTests.swift",
-          "version": "repo-file-v1:sha256:7c5bec96bc498293f360cf7565d45e6182e021509c5cb56a93eddbe568a01435"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_906cac619d6746ef87edab1d28337dfc",
-      "statement": "The command event filter preserves partial prefixes across reads, accepts only matching-token BEL-terminated events, bounds payloads at 64 KiB, validates exit status and duration, and leaves wrong-token frames and ordinary OSC titles visible.",
+      "statement": "Legacy command filtering preserves partial matching-token BEL frames, validates status/duration and caps payload at 64 KiB while preserving wrong-token frames. Runtime journals separately atomically publish metadata/state and at most 32 contiguous events ending at the snapshot sequence, transported by ordinary-shell OSC or tmux inspection.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L500-L592",
-          "version": "repo-lines-v1:sha256:74cdd9b244ac68c465c400c9040848f8b2053b4492dec1aa9bd0e9ec9aedd348:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0NGQ3NmExODQ0NTFjNWJkMDRkZGMxNDBkMGUxOTU3MjAwYjkxNmJjMTNkNzFlYzExYjY3Y2FlNmU1YTZhYmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5MTEzOTczOTcwNzFmOWUzYzYwNGZhNDU5NjhlMDk3YTMxYWQ1ZWEyYTA0NzlhZGI1OGFkMjgyYzc1MzIzNjUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteShellContextJournal.swift",
+          "version": "repo-file-v1:sha256:c5f242dcaccb2b8ae467b889435426c24ee4636b9b1aab80ca5f43ec465d36ad"
         },
         {
-          "resource": "repo://TFMTests/CommandHistoryTests.swift#L219-L344",
-          "version": "repo-lines-v1:sha256:e8c2c07dbd22ef8efcf468c9b425adf26a32e3e1051c398a0357f7232ade3678:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNjY2NzRiZDE4MjM2ODFjZjM4MWRjMDk2NDMwNGQxYTljYjg5OTgyZjhhNGVkMjY5YjE4MTQ1YTM2NzBjOWZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmOGU4N2M0ZjVmMWU3NjkyMzI3NDY1YjNjYmRiOTdlYWY0NmE5YmU3YzFjNjhlNDE5NWMwNmU3MTRmYTdjZmVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_7f79a0b4a7fd4b9fb8e7cb637e7515d8",
-      "statement": "PTY output passes through bootstrap suppression, OSC command-event filtering, OSC 7 path charset rewriting, and streaming conversion to UTF-8 before native terminal output; home is separately parsed from bootstrap metadata.",
+      "statement": "PTY receive selects runtime context filtering when configured, otherwise legacy bootstrap and command filtering, before OSC 7 rewriting and streaming charset conversion. Runtime frames are split-safe, token/pane validated and bounded at 64 KiB, with malformed recognized records yielding unavailable context.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L183-L275",
-          "version": "repo-lines-v1:sha256:e7ea57fa715adb612cda6efc399b9228eae034c7e3ac707b780e2faf8a354e91:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalContextFilter.swift",
+          "version": "repo-file-v1:sha256:b25cb89d6473c7191cc2cb48b034408dc5aeaac9ba075e9b64885c20be545ac4"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1566-L1642",
-          "version": "repo-lines-v1:sha256:d33d8b111c7a01e5017ced6b22ff85a27835bec48ee05d125134f6a42cf912a4:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyMzY0OTE1Y2UzY2EzM2E4MjM0MWE5Njg4ODg4OWNkNGVhNzdiMjlkMDJiMDQ4NzM5Zjk4MjAxNzA3NWQxYjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3YzU1MmRmMjA3MGEwNGJiZDMzYzI3MWM5OWI1YzEyM2ZiMTE0ZDM4OTYyMjQxY2MwMmUyY2VlNzViMWQwYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMzVmNTk4M2ViZmJhMjcwYzJhYzFkNzNkYjg3YWIzOTIyNzZlZGI4YWQ3NTZhYmY2MzkyNjg1OGNmYTgzZDgifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L236-L286",
-          "version": "repo-lines-v1:sha256:1b09cb235dac77541cd942bfe4a62ea3a5fa65fee688b0e8a24fa946d99ebf10:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOTIyN2ZmMjZjMDE3MTM0NTA3MWE0OWE1YWI3YjlkZDI2YWFkYjEyYzczYjFmOWRhZGE1OWRhZTU5MThjNjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZjVlNzYxNjU4MWY0OTRhZGIzOGJkNmM5ZWE4Y2I4NTlmMWZmNmEzMGZkNzlkODVjYTE4ODIzYTljN2IzNDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyNGE2YjA5NmM5ODUyZDdiNDVlOGYwMWE1Y2ExNzgyNWZhYWY2NzliNjA2YTZkYmViY2NlMmZlYzA5M2E1NDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNDAyZDk0M2I0NjJiNDdkY2ZiNjA5ZjNjZWY2MjUzZWU0NThhMGRlODg3OTM1ODgzNjY1MWMxYzNiYjExOWYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_ee7e1649cd0847a583d24f85e9e2e504",
-      "statement": "Desktop SSH shell-integration availability leaves prompt readiness false and only promptReady sets it true; mobile additionally treats availability as ready and command completion as a readiness recovery boundary when integration is available. Both clients associate command-start and command-finish events with history completion.",
+      "statement": "Legacy desktop availability leaves readiness false while mobile accepts availability/completion recovery. Runtime ownership instead ignores legacy events and derives active state from the coordinator; revision changes cancel draft, upload and generation work. Tickets bind ready capabilities to context, generation and revision; input, switches, state changes and intervening commands invalidate them while draft-only events do not.",
       "evidence": [
         {
+          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift",
+          "version": "repo-file-v1:sha256:4d7bcee8f445a88d15d75914638c9a2f1cdf3c3ecd0a5ad1198931bdb114c05b"
+        },
+        {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:38211fbcc14ac724b1dcf4ce775cd5f3a8032776ff5b5970ab5c0d4d93e59d6e"
+          "version": "repo-file-v1:sha256:bc16a76823fe0c58be282e7434ebfdd9aec16698cc0254c8f40fa7736b2fe0cb"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:e30860453cad04e78730557669f75dbbb6e60a3e2b275fab369d332637d82ccb"
+          "version": "repo-file-v1:sha256:e3bffee92abe710400a29eb4fca55666de909cb67d1f03fa41acdfbe121b773c"
         }
       ]
     },
     {
       "id": "claim_6f2bf54104ae447c94f2dcea2fabe112",
-      "statement": "The command draft controller permits one in-flight draft read with a two-second timeout; replacement clears the remote line and bracket-pastes text without submitting it.",
+      "statement": "Legacy draft composition permits one timed read and clear-plus-bracketed-paste replacement. Runtime drafts instead use a single UUID request, capability/input/generation checks, exact tmux reinspection and sequence/readiness/deadline-bound widget requests, with optional original-buffer comparison and bounded NUL-free replacements. Tmux capabilities require client tty binding, matching pane process and foreground shell; unsafe modes withhold directory/drafts, prefix mode only withholds drafts, and unintegrated panes gain no capabilities.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift#L24-L99",
-          "version": "repo-lines-v1:sha256:729eb6fd54f742892512d8d27d3af194f0aa6f00170c283258620b3ecac94845:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmZTY4YTliODc1YzE2OTUyMjM3OGE5NWJmMGM5YzE1OTQ5YTQyZTNhYzNiMmUwNDE3ZmYzOGJjOWFmOTEyN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift",
+          "version": "repo-file-v1:sha256:fc44a26ef61e2458b840faddf0f857194b3399ff8f52eb9fe7b9f7d4d3cafd59"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTerminalDraft.swift",
+          "version": "repo-file-v1:sha256:139a8438cc737b4cbcc1ea30b02e846c814bbc7a7d08e84ad3cc1673147d7332"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteTmuxRuntimeAdapter.swift",
+          "version": "repo-file-v1:sha256:42081d1aa136ad3139cf2431157b5593e4c909565b4008746aba9a2a3ecaec05"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
     {
       "id": "claim_d098c2f42a614425aa566d8997cd3fc8",
-      "statement": "Desktop shell callbacks are attempt-guarded, mobile consumes exit and shell events in one generation-guarded AsyncStream, and PTY closure clears shell state while preserving the underlying transport if sibling SFTP channels remain.",
+      "statement": "Desktop callbacks are attempt-guarded and mobile consumes SSH events in a generation-guarded stream. PTY close clears shell/runtime state and may retain transport for sibling SFTP or explicit control ownership. Runtime exec uses that existing authenticated transport with immediate capacity admission, no channel-open retry, a two-second timeout and 1 MiB output bound; refusal conservatively withholds control capabilities without disabling terminal I/O.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:095d6a769e02ac36e4c65181e77c5221f428a12d12382f7a7dd9c05fc0bd4e5f"
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1338-L1373",
-          "version": "repo-lines-v1:sha256:bb75913b83f6e4abd38227bc4d58bc000fe80c50e4c5358d8fb2a8dc5d155aa2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMDIyZjljOWE3NTNkYmFkMWJjMmIxYWExMDNhZDcyMmYyODZjMzdjN2JkY2NlNjc3OTJhMjUxZjJlOTA4NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0N2UxYjRmODc2MDY4MmU2NjZjNDQzZTE2NmEzZjU5MDdkYTdhOGE3OGI5ZTU2ZGYyNmFlNzg2YmMwOWNjNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxNjI5MjA1YjhhMzE1N2MxYWNhOTRiOTExYjRlMWRkM2IwN2NiOWI3Y2Q1NDY3OThiNzc2ZGJjYjhkMmJiZDAifQ"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
+          "version": "repo-file-v1:sha256:bc16a76823fe0c58be282e7434ebfdd9aec16698cc0254c8f40fa7736b2fe0cb"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:e30860453cad04e78730557669f75dbbb6e60a3e2b275fab369d332637d82ccb"
+          "version": "repo-file-v1:sha256:e3bffee92abe710400a29eb4fca55666de909cb67d1f03fa41acdfbe121b773c"
         }
       ]
     },
     {
       "id": "claim_0117cea52f0d4ae69af02a6d7f2770a9",
-      "statement": "Shell command and draft OSC payloads are percent-unescaped and decoded with the configured remote charset into Swift strings, as is HOME metadata; raw SHELL and SYSTEM fields also use that charset. A failed conversion falls back to lossy UTF-8, and malformed UTF-8 bytes in a command can become replacement characters rather than round-tripping as raw bytes.",
+      "statement": "Shell command/draft and HOME metadata percent-decode using remote charset; SHELL/SYSTEM raw fields use that charset as well. Failed conversion falls back to lossy UTF-8 and malformed command bytes may become replacement characters.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L94-L111",
-          "version": "repo-lines-v1:sha256:682fc1771173cf86b22386ecb13cf4f6fdf0121be404c3b9da8a9321a33da29e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3YjczNGE1Y2ZhYTI2NmZlODgwODVmZjZkMTM0NWM1MTM5YzdlMGU2NjRiNGNiNjVmNGI3NTgxMzA0ZWQ3ZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3NGNjNmFlNzExODExMzg5ZTVlNzJhYzhhNzRkMmUzMWIyMzM5YTQwMzA4ODIxZDBhYjRjN2ZmM2UxM2M5YjgifQ"
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift",
+          "version": "repo-file-v1:sha256:5078e65bb98f232433bcd599cdc4d36335ccbc4e0d4633f28ce40c3611b14857"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L198-L202",
-          "version": "repo-lines-v1:sha256:b85e28331cc97e6841c53ebbdc4e6b8ffc34d2f836697898f9a95f8a8a60dc58:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjAwM2JlMWZkODllM2QyODY3ZDA0NDBkMWIyZTk2NDAwZGFlNDRkNTgzYmI4NWM5NGVkNDU5NDk5MzkwYTM0NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjI2NTBmOTJmNGU5NTg1YzkxMTA5YzZkYWYzYmVkMDNhMjk3NzNhNzgwM2ZjYTkzM2Y1OGY5YTA0NmE0YjQ0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjBlZDBhMzAzZWRhN2ViNjA2N2YwNWM4MGYyNTVkNTRmZDJhM2ZlMDBjNzU2NTQxNjNhMzNiMDg4ZTc2NzAyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWUxZTljZTgwZDJmOWI2NmMzMzk5NWNmYWU4YTA2MmJlNGQwZTlhNDVkYmE2YmI2ZDJjODAxMzAwODA0ZmFjYyJ9"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L271-L303",
-          "version": "repo-lines-v1:sha256:6fa9b9e5ec6d89be04013de8295273409b36440d41f7b763f87d7954be9d741f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMDU5N2M3YWRmYjk2YjIzNGVlZjdkNmU0ODIyYTIyZjE1NGY2YjllZWFhNjNjMWVhZWI5NDBjZDFjN2U1MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTdjNjc4MDQ0MGNlOWE4YWMwNGE3MDg5ZTU0NzA2MzJkMTFkMTE5ODUwZTBiNWI2M2QxNTU3NjA5ZGI2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyNDIyOTA4ZTdmZDE4YzdkY2M5MTA4NzYyZjQ0NGFhNmFjOTJlN2JhZDExYzE1NTc3NjkxYTJlNGE2NTg5N2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YjY5NDk1MDQzYTMzYzMzMTZkMWI2ZjAwYmFkZGFhNDU1N2Q5YjM3ODgyZTQxYTI4NTNhZDc3MDJlZjE1ZTIifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L560-L582",
-          "version": "repo-lines-v1:sha256:e0fb88f4862196c1af7373f2defde926f9b478da5cccd145bb6bf083d5461c34:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1MWFmOTgzNjEwZjY3NjhkNzBlZThmYWNkYTVjZWE1NmRmY2NjNTUzNmNhNjJiZTg4ZWE2OTU3YzEwNTVkYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMjZiODNmZjI0NzRkNDBjNGM0ODYxMzBiZTFmMDNlMDJhMzhmZjE5MTNlY2IyMDg5Yjg5ZTk3MTkwZmFlMDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlN2Q2NWE0NDYzYjM1MTNmZGZmZjUzOWQ2Y2JiZDBmY2VlNGE0MmVkYTdhNzYxZjU0Y2M2M2ZhYzNkOWZmZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5OGMyYmVjZGI1YzgxMDU4NTg3Y2RmZTViMmQyYmRiMGFkNWE5MGNmZjI5ZGI1OWI2YjNkMWM5MzUzODUzOGIifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L621-L641",
-          "version": "repo-lines-v1:sha256:6c1f29f16351a8ecbc83b9193867779c7377ade6ccdfff77889595e72ea574b7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2IyY2U5NmMzNzY4MzljOTc3MjUwOTgwMTQwNzlmNTA5YmViYzBlNzJhNzFlMjBmM2ZjYWYzYTkzZjdjN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjMjYxMGM5ZDRlZGY2ZjBjYTk4ZGRlOGE3NDg0NTIyYTU2N2QyOGE0NTlmZmIxNDgyOGZjYTFkMmVjMTgxYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwMTllNzI3MTVkNGVkYTkxNzVkMTRiYzU3N2YyOWRhZTZmNzhjY2M1Yzg5MmIzZjI3NjdlZTNjYTczZWYzMGYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
@@ -202,19 +198,11 @@
     },
     {
       "id": "claim_463f22cff8384e89af53a9f0640de4fe",
-      "statement": "SSH PTY uses separate input/output converters, encodes environment and user input with byte-preserving fallback, and rewrites OSC 7 even without hook integration; orderly terminal close flushes cwd and decoder tails, while fatal cleanup discards those states without flushing.",
+      "statement": "SSH PTY has separate input/output converters and byte-preserving environment/input encoding; OSC 7 rewriting exists even without hooks. Orderly close flushes cwd/decoder tails while fatal cleanup discards them.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1040-L1067",
-          "version": "repo-lines-v1:sha256:8d6d233737da0b0ba789b960ed7fc4e10ed149a3e74e586b5cd8bd515d12f785:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDI0YTNlZDg5OGNiZTliOTI3MDY1OTc4NjFmMjBjZmFkMTY4MTY2OTY5Y2FjNjQzNjI2OWE2MzRmOWU1ODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZDhkNjQ5MGY5ODM0ZTBhYjQyZDY4ZWUxNTIzZWJkMDYzMjJhNzUyYTZlNDQ0YTMyYzIxNDAyNDBiZDg5YjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwYzFhMDM5NmZhNTI4ODRjN2JkNTAyMGI0YjMyN2IxMzc3NjNkYmQ0NWE5NjFmZDI5ZTczZGEzYzU4MGY5OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxM2MzMTAzZTIyYWUzMGU5MmQ4OThiYTEwNTZiYzEyZmU5YzcyZmYzNjBlNTBiMWM3NWU0MTBkYjhiZTE3NDIifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1150-L1160",
-          "version": "repo-lines-v1:sha256:276bf0f4846c1e8fb389f06a7f4a4dd0e9d9e6c2e51eff34763af39190e1e609:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5OTU1ZTM0Yzc2ZjdkNWJmZWFjM2IxZTRmOGYyNDM2ZWIzNjZlMGI3Y2IyZWQ0YjAwMWNjZDhmZjRiNTIwZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2NzMxN2M3ZTkxMmViMzBjNzJiMDRjNWZmMzRhYjAwNzdiZDg0MWQzNjEzNjZjOGI1YTcyMzJkNjY1ZjExZjYifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1620-L1719",
-          "version": "repo-lines-v1:sha256:35d2aa22634d527e386b9f7fa95493e135941372f9b034ce472a42e04428b7d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2YWI5MzBkMDI5OGM3YmIxOWY3YjQwMzliYzkzYjc2NmFmYjU4MWNiYWVmY2I5NDA4NDZjNzliNDEyNzYyYThlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMWJiYzMwZGM3ZjgzZmU3YmYzYTI4NTA3NmY2YmJjZDA3YThjZmJiNjE5MjMwZjJjNjk1Yzc2OTQxZGQ3NjcxIn0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:6d215a14777e4e39073a65cd66c09c79e185b8c3d32ff94064f68109b09a294d"
         }
       ]
     },
@@ -240,33 +228,29 @@
     },
     {
       "id": "claim_8b3350278ac847b88f846448b77a9be6",
-      "statement": "A per-terminal TerminalCommandMonitor selects OSC 133 completions until a shell-integration available event switches that connection to private start/finish events; it ignores subsequent OSC 133 reports, requires a pending start for a private finish, and resets source and running command across connections.",
+      "statement": "The monitor initially permits OSC 133 fallback; legacy availability selects private events while any runtime batch disables unscoped OSC 133. Runtime command pairs are keyed by context, with coordinator high-water marks preventing replay and gaps clearing completion eligibility; only a contiguous finish following an authorized start completes. Background events never choose active context.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L48-L85",
-          "version": "repo-lines-v1:sha256:ccab43bf42c472050075b540582121f582b6f153ed041243b7679deb08b19e94:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2MTc3NDc5NmQwYjFmMzljYzAzZDkzMzEyZTVlYmNmNWJhYzU5NDNjOGU0MGMyMTI0ODdiNGMzNzFkMGEyOTQifQ"
+          "resource": "repo://Frameworks/TermindApplication/Terminal/TerminalContextCoordinator.swift",
+          "version": "repo-file-v1:sha256:4d7bcee8f445a88d15d75914638c9a2f1cdf3c3ecd0a5ad1198931bdb114c05b"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L26-L79",
-          "version": "repo-lines-v1:sha256:3aa4056b7f7f29769db0e1a1996200a7ef3cc6d5b25e65e33dae11f967f00782:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzNmYyZjQ4Mzk1ZTA0ODdjMmJlMDJmNzY4OWQzYjg4YjE4Y2EwMjA3ODZmMTRkY2ZhYjg0NTAxOTA4ZGIzZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4NDU3NzE3MGUwNmUxZTI0NTZkNTgxYjI5YTk3ZGY1ZDRhZWI0MzIyODhhZTYyZGFiYWE2ODliMjQzYzE1NmUifQ"
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
+          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
         }
       ]
     },
     {
       "id": "claim_55379eac80f44313bf2d9fc9777579b6",
-      "statement": "TerminalCommandObservation subscribes to Ghostty's duration publication, skips an already-present initial value, and pairs each subsequent completion with its synchronous exit code even when durations are equal; the observed OSC 133 completion has no command text and is independent of shell-hook availability.",
+      "statement": "Ghostty duration observation drops the initial publication and captures synchronous exit code for subsequent completions including equal durations; fallback completions have no text and cannot grant hook availability or runtime capability.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
-          "version": "repo-file-v1:sha256:e4eb3f84787308580cf8c6cad28501bd40cc13a6a0235fe1931db3f70a18d5f7"
+          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandObservation.swift",
           "version": "repo-file-v1:sha256:83bf16376d4cce45b3b6ce23bceabb8a970cd1846bcf9f3bb39f0606d198577d"
-        },
-        {
-          "resource": "repo://TFMTests/CommandNotificationTests.swift",
-          "version": "repo-file-v1:sha256:977ed9b1349e11357392f9319415374dde8ea7c236936d40f6bdceb528309a27"
         }
       ]
     },
@@ -279,30 +263,22 @@
           "version": "repo-lines-v1:sha256:73d362608852535adc1f5f8d0c39a08fe31c3c78883bb73febe175dcf1f5a580:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1ZjM0NjBkMzU4YzQyOGRiNTA4Yzc4OTJlNzJiYWRiNGM0YWEwZDVkZjczZGVlMGViNzBmZGFiMGZjYjZhN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNzU0OTg0YzEzYzZmNzgwMGEzZmMyNTM3NmJjNDZiNzIwYjZmYTk3NWRiNTVjZWMwYWMzMTNmMjU4YmM4NTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OThmMWIzODRjMzY4Yjg2YmQ3ZGNlNjBjZDBhY2QwYjllYTY2MzFkOTA4MDA3YmFiNWMwMzFmZWI2MjRhMTgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L62-L71",
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L67-L76",
           "version": "repo-lines-v1:sha256:02cdc77f1b2e982e33347d82adfd20b9689c3fca269ebed38612af4cf557e8da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDYyNmQ1OTMxYWU2ZTQ2NTU4ZTVjYzYyNjkyOWViMDc4ZjZhYTlmZTE5MWEwODEyZDUxMDNhN2FmMmFlYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllYTkyMTMxZGM5Y2ZjNGIxOWFhNjgwODlmNjA4YzlhNjJiYmQ0NzMyZDVhMDU1NDNlYjQ4ZWM1OGIyNWU3ODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkMjAzMDNjMGIxMDVjZWI2ZTc0YTVhNmQwZjAyN2Y5Yjg0NjJiNDU4NWJmZDhjZGY3MDVjODUwMGQxZmYwOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMDZjMThlOGM0ZGZhM2I0ZmIzZWU1Yjk2NGY1Zjg4ZGU3MjBlZGJjM2IxYWMzMWQyZGI5ZGYxZGE2OWM5YzQifQ"
         }
       ]
     },
     {
       "id": "claim_23688ad423ef40e383f60cf5243f7219",
-      "statement": "Unread completion accounting is independent of alert eligibility: background completions increment unread before settings filtering, focused completions clear it, and markRead explicitly resets it; alerts depend on enabled notification settings, terminal mode, focus and minimum duration.",
+      "statement": "Unread completion accounting occurs before alert filtering: background completions increment, focused completions clear, and markRead resets it. Alert eligibility depends on settings, mode, focus and minimum duration.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/TerminalCommandMonitorTests.swift#L10-L45",
-          "version": "repo-lines-v1:sha256:8fe0fa96dc1259a3e539a19445a2089115324b1b05fcd2836a4607cf7437d507:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MzBhZmY2OGE4OTY2ZGQ4NmRlMTdjY2FlM2Y4OTQ4NjQzYzkwYzUwYTYxNDBlMWI2NDljNmNjZGVhOTcwZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MzNjOTcyYzExZjI2NWM0M2JlMWY3ODI5NjIzMGZlMjcxZjk4YjRhOTZjOGYwZGU1Yjg3NTdlNjZiYzY1MTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4OGMwMmE3MjgzMjBhYjVmN2QyZWEzNmY4MzE4NjY0NTQ2NTE0YjU1NjE0MzUzOThjZGEyNDBhMTg2MzIwNmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1MzU5MDBjZmY5ZTJmYWUxN2VkMGEyZTExYjFiZWM0MTU4NDE5YzY1MzRlMjFiN2ZlNjFhMzgyNGM0MGMxNjMifQ"
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
+          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L55-L87",
-          "version": "repo-lines-v1:sha256:6c3e12a50b61f9a8f9273ffd5e2f35886ffa61ffaf1b9b993c4606f1acf89eae:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlODBkOTA5NDdlNTU4YmQ0OGFhNTJmMWRlOWMzYTdmYzhlZWI0MWEyYzkyM2ExZmU5MWJhYmM4ZmU3MjgzMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzZTUwMTZhMjc2ZWJkZDE1NTg1OTU3YTRhZDc1NjE5MTg3NGU0MzE3Y2JjNThjNDIyZGM5YWQ2ZDE1MmU4ZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L3-L21",
-          "version": "repo-lines-v1:sha256:8bd9be68c600110b8ddc270c62150d6686b3c97d2152b192ff359d9645c221d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0YjRiZGQ5ZDk2ZWRmMDlhNzIxZjVkNzZlNTNiMDViOGIyMjNhNGJmYjMzMmE5YmM2NjkzODUyNGYyOTcxYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNjUxZjk2NmI3OWNmYzA2ZjRiNTQzNTU0MzdjNjE4ZTgxYWE4MTRkZDk5MDUwYjQzOTFhNTdkNWViYjE0NGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzYjFkMGJjNTAzMzFjMmM0ODc5MWI3YjhlZjIxYmE4MGNmMzNmYTYzY2I1MTExNTIyNTgxNmIwMjI3N2JmYTUifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift#L39-L57",
-          "version": "repo-lines-v1:sha256:2fa070aefac5a70d0361d307f5ff59dd78f1db0b66fbb43d9aa6459210f331fa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5NWU3OTBkYjQxMTAxMzNlOTY0YmM4NTJjZDU5OWNmODdiMmFhNzc0NzliNDJhNjVhOTlmNjRlZGU1M2YxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1NDMwMjkwMDM0NGViODVlZmMxY2JlYzZlMjZiNTNlOThmNDliNGY5ZWZhNjk4YjZmZGZlMTg1MGMyNTAxNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift",
+          "version": "repo-file-v1:sha256:5c28819dfdeb1b32230067a640fb4739d93e90e02ee2571bd0bb47eb0bc9f094"
         }
       ]
     },
@@ -334,25 +310,21 @@
     },
     {
       "id": "claim_ec84881757294afcb24525ab93b83d33",
-      "statement": "Completion notification content formats exit status and duration with an optional command preview that removes controls, collapses whitespace, and limits display length; fallback OSC 133 completions cannot supply a command preview.",
+      "statement": "Notification content formats status/duration and optional command previews with controls removed, whitespace collapsed and length limited to 160 characters; OSC 133 has no preview.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L5-L24",
-          "version": "repo-lines-v1:sha256:95db6dddeb313b343e3dbc69ee77aaeac0496581d6ca3e2b8423504078c73d6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4Y2Q2YTIxNmQ5OWM5ZjU2NDEyZmJiZTRkNDZmM2VjYWM3OWI2M2YxMTk5Mjk2NWI0MmI2N2I4NTNjZjQzMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJiYjY5YmQzOWVkYTlhZDc5YzQyMTM3MDhjYmY1ZTY1OTE1NDY2MjExOTdkYTczZDBmOGQ0YTU0MGRkZTNhNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZjkyYzIxYzk2Njg1MmY3MTVlYjg2MDI0MmFjZmNhYTlkMzY1YzRiYjg3NWM5NTkxNDdlZWY2YmU1Y2ZiYzQifQ"
+          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift",
+          "version": "repo-file-v1:sha256:737f011feff34b2e28a509f227153a2e4ce659f2de6e7094c0152fe6e17900fa"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/TerminalCommandMonitor.swift#L76-L79",
-          "version": "repo-lines-v1:sha256:f79a0c2a4ed9a78c6ff4ffb4ffc76f4e6a01451d49e70c76fcf976f0c1adc68b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDk0ZmUwMTE0YTQwOTY3ZDQ4M2RhMWIzYzk3NjI1NDJmMjJjMzNhMjJlMjZiYTIyODU5NzQ3M2JkNmExOTY4NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzg0NTc3MTcwZTA2ZTFlMjQ1NmQ1ODFiMjlhOTdkZjVkNGFlYjQzMjI4OGFlNjJkYWJhYTY4OWIyNDNjMTU2ZSJ9"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandNotificationContent.swift#L4-L15",
-          "version": "repo-lines-v1:sha256:1ffd85610ef344955a7298d6f5270f7271510c176dc6bb2bda9ecd2b784fcd6a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3MWVlNmRhN2I4ZGI2MDZlZjhmOTQ0ZGM5NjIyNGY5NzE2YjRiNzlhODA2YzY5ZjVjODU2NzM3OGNmZmE1NTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalCommandNotificationContent.swift",
+          "version": "repo-file-v1:sha256:f7445af4053af1f4e3326569318d9728c47818e40dc3fc643341f1d602a2f4d1"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

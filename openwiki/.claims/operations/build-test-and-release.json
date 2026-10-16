@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:11346b526606f6d5ba131a503a0faabdd13cf1219243f318f4eb53f313c52437",
+  "pageVersion": "sha256:f3483ba28cd6571fbe44e8b19745ba326ac86256e3117614340818f3831bd2f6",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -86,11 +86,15 @@
     },
     {
       "id": "claim_5cb32e4cb4ad43229d505772452cf610",
-      "statement": "AppLanguageTests covers seven-language preferences and notices, Follow System, legacy Chinese migration, unchanged unknown preferences, Traditional Chinese resolution/naming, regional interpolation, metadata, plurals, forwarding arguments, contextual terminology, picker ordering and localized demo prose preserving technical references.",
+      "statement": "AppLanguageTests covers seven-language preferences and notices, Follow System, legacy Chinese migration, unchanged unknown preferences, Traditional Chinese resolution/naming, regional interpolation, metadata, plurals, forwarding arguments, contextual terminology, picker ordering and localized demo prose preserving technical references. It additionally verifies connection-cancellation wording, localized authentication-failure prefixes/separators, and translated title-cased session-persistence labels.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/AppLanguageTests.swift",
-          "version": "repo-file-v1:sha256:0c595357ae4b19157ccac8e9fe40e90b0afb88785e01975ed5dfb9a1795e929d"
+          "resource": "repo://TFMTests/AppLanguageTests.swift#L10-L43",
+          "version": "repo-lines-v1:sha256:be35d0989b7ac4657566db536af01b4c366e4ea221f2d13c5c70d1e2c30e6f11:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NjlmMTMyNDk2MmJkOWU1ZGYxNjRiZjdiZDA4Zjg4YmRhNzBkYTE1ZDFhODg2OGM2ODJjNDUyOTQyYjA0M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2NTBjM2JmODk1NDg0NzIzMzhlNWZhNjA3MjlkNjQwODY3OGY2NDE5NzhmZjllMzFiOTFlODQwOGVlOTUzOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhYjA3NThmZDgzN2M0OWU3MzA4YjE3ODk0NjBhZTZlNDYyZDY2MzliZWZjN2I0OTdhODIzNjk5N2M0MWUzYTgifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AppLanguageTests.swift#L68-L84",
+          "version": "repo-lines-v1:sha256:871c15a0a935d19593c6ac008f2110adbcd5f10f7be4592799e5b728e8f621ed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NjlmMTMyNDk2MmJkOWU1ZGYxNjRiZjdiZDA4Zjg4YmRhNzBkYTE1ZDFhODg2OGM2ODJjNDUyOTQyYjA0M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5M2Q4MzAwYWRhZDAzN2FlMGRmNjI4YTc4NjMyOTM0OTk4NzkwZjI4YzIxZjA5YTRlYTlmMTkxNDJjNjlhMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliZGUxMjQ4OTU5N2NmMTQ4ZWJiMzJhM2MzNTk0ZjZhZDZjZjRkMmJmM2VmNmI0NDYxOGZmYTUxNDcxMjMxOGEifQ"
         }
       ]
     },
@@ -585,6 +589,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

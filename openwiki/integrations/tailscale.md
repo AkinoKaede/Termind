@@ -1,6 +1,6 @@
 ---
 type: integration
-title: Embedded Tailscale Integration
+title: Tailscale Integration
 description: Group-bound embedded Tailscale enrollment, managed peer identity, ordinary and Tailscale SSH routing, sync boundaries, profile cleanup, and focused regression tests.
 tags: [tailscale, ssh, enrollment, sync, lifecycle]
 sources:
@@ -24,6 +24,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TailscalePersistence.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
+  - id: openwiki-source-e6dff91a0024d952d88a2b56
+    resource: repo://Frameworks/TermindPersistence/VaultWireV5.swift
+  - id: openwiki-source-6c30416f939593ee31f56380
+    resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
   - id: openwiki-source-5d66b25c98e6adc57c9cb1bb
     resource: repo://Frameworks/TermindPresentation/Tailscale/TailscaleExitNodeField.swift
   - id: openwiki-source-18c028915e161c02ce996ee2
@@ -32,6 +36,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-23be2440342b8fbbefe69214
     resource: repo://Frameworks/TermindRemoteInfrastructure/Tailscale/LibTailscaleNodeSession.swift
+  - id: openwiki-source-b41ffbd407a598b50512e10b
+    resource: repo://FrameworkTests/HostIconTests.swift
   - id: openwiki-source-9d47c6196c75835de1c25a14
     resource: repo://FrameworkTests/TailscaleGroupEditorTests.swift
   - id: openwiki-source-36ba4e5c88ea8d20ac2676ac
@@ -48,13 +54,13 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# Embedded Tailscale Integration
+# Tailscale Integration
 
 Termind runs an embedded userspace Tailscale node through `libtailscale-spm` and `TailscaleKit`; it does not require the system Tailscale VPN or daemon. Each enrolled Vault group has its own device-local profile and node. The app owns that lifetime through `TailscaleModel`, while SSH, SFTP, Metrics and Assistant acquire group-bound network capabilities. This guide is the starting point for Tailscale changes; use [SSH session lifecycle](../workflows/ssh-session-lifecycle.md) for general transport ownership and [Cloud Sync](../workflows/settings-and-cloud-sync.md) for replication mechanics.
 
@@ -155,7 +161,15 @@ The implementation hashes namespace bytes plus `nameBytes` with SHA-1, takes the
 
 `hostIdentityVersion: groupScopedV2` is explicitly encoded in group configuration. `hostPreferences` wire keys use lowercase UUID strings and decoding rejects invalid or noncanonical keys. Changing the UUID algorithm or its input set can orphan saved preferences, Metrics references and history associations, so it requires deliberate compatibility work rather than a cosmetic refactor. `TailscaleHostIdentityTests` checks independently generated vectors, UTF-8 length framing, excluded control URLs and rename/rebinding behavior. Its network-switch test preserves the old event but excludes it from current Recents until the original identity is projected again; it never attaches that event to the replacement network.
 
-Managed Hosts are rebuilt from discovery and group preferences, not persisted as ordinary Vault Host rows. Their address, name, port 22, authentication and trust remain managed. Saving allows username, tags, color, charset, initial SFTP path, shell integration, startup snippet and environment preferences through the group. It rejects ordinary Identity, proxy, jump, Telnet and agent-forwarding configuration. Managed Hosts cannot be duplicated or directly deleted and are unavailable for jump-host, key-export and port-forwarding use cases. Group removal/disablement owns their retirement.
+Managed Hosts are rebuilt from discovery and group preferences, not persisted as ordinary Vault Host rows. Their address, name, port 22, authentication and trust remain managed. Saving allows username, tags, color, artwork override, charset, initial SFTP path, session persistence, shell integration, startup snippet and environment preferences through the group. It rejects ordinary Identity, proxy, jump, Telnet and agent-forwarding configuration. Managed Hosts cannot be duplicated or directly deleted and are unavailable for jump-host, key-export and port-forwarding use cases. Group removal/disablement owns their retirement.
+
+### Detected artwork is a preference, not a transport capability
+
+`replaceTailscalePeers` replaces a group's discovery snapshot and rebuilds managed Hosts. Discovery supplies the current peer name, MagicDNS address and stable node reference; `TailscaleGroupConfiguration.hostPreferences[hostID]` supplies detected distribution, artwork override and the other editable preferences. A refresh therefore preserves these values instead of replacing them with the peer's diagnostic operating-system string.
+
+Live session system information reaches `HostLibraryModel.recordRemoteSystemInfo`. Only a changed, resolved distribution result is persisted. For a managed Host it updates the current group's preference entry and rebuilds the projection after persistence succeeds; failure restores the previous group state. This changes only detection, so it cannot overwrite artwork or other edits made while a connection was starting. Conversely, `saveTailscaleHost` copies editable fields into the current preference entry without copying a draft's detected distribution, preserving newer detection. Failed preference saves restore the previous groups and do not publish a rebuilt draft.
+
+Presentation's `HostIconCatalog` resolves a non-nil `iconOverrideID` first; nil means automatic artwork from the latest detected distribution. Manual artwork does not change detection, SSH identity, host-key trust or network routing. Detection and artwork choices travel with group preferences and survive rediscovery, including discovery on another device after sync; the embedded node and its transport remain owned by `TailscaleModel`. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for the broader storage boundary.
 
 ## Two connection paths
 
@@ -174,13 +188,13 @@ Terminal PTY, non-PTY exec/SFTP and Metrics use this shared opener. Assistant us
 
 | Data | Location and replication |
 | --- | --- |
-| Network binding, group/peer username, Exit Node and per-peer preferences | Public HostGroup configuration, synchronized through Vault HostGroup V3. |
+| Network binding, group/peer username, Exit Node and per-peer preferences, including detection and artwork override | Public HostGroup configuration, synchronized through the current Vault HostGroup V5 writer. |
 | Profile UUID, local hostname, discovered peer cache | Device-local SwiftData enrollment row; not a Vault envelope. |
 | Native node state | Application Support `Termind/Tailscale/<profile UUID>` with the native Keychain service namespace `com.akinokaede.termind.tailscale.<profile UUID>` passed consistently to node creation and erasure. |
 | Pending erasure | Device-local durable `PersistentTailscaleProfileCleanup`; never synchronized. |
 | Metrics selection | Separate Metrics V2 record, with V1/V2 readers and decoder-capability refetch. |
 
-V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup V3 records can represent independent groups for the same Tailnet, and reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
+V47 introduced Tailscale group/local-state models; V48 revised local state; V50 added profile cleanup. These local schema endpoints are independent of cloud format versions. Vault refuses encoding managed peers as ordinary Host envelopes. HostGroup readers accept V1–V5 and the current writer emits V5; historical V3 remains readable and supports independent groups for the same Tailnet. V5 layers artwork overrides onto the V4 group payload as an `iconOverrides` map keyed by canonical lowercase Host UUID strings, each referencing an existing peer preference. Encoding an artwork override into a pre-V5 envelope is rejected rather than silently losing it; non-default session persistence similarly requires V4 or later. Reader upgrades refetch previously quarantined records before clearing restrictions. Per-peer preferences can sync before the other device discovers its matching Host. Missing peers do not erase saved preferences or monitor intent; explicit group deletion also removes related Metrics selections and runtime references.
 
 Retirement saves removal of the active local row and cleanup intent atomically before releasing the last runtime reference. Erasure excludes active and in-use profiles, including candidates suspended inside Save. Cleanup closes retired nodes, erases native state, then removes the durable marker; erasure failure remains retryable across database reopening. Startup enumerates only canonical UUID directories that are real directories, not symlinks, and rechecks active enrollments after enumeration before scheduling orphan cleanup. Cleanup can proceed without Pro and does not need to start a node. Shutdown cancels login/monitors, closes active nodes and joins cleanup work; it does not erase saved enrollment merely because the app exits.
 
@@ -196,7 +210,8 @@ When debugging, first distinguish Pro denial, device enrollment, pending Exit No
 
 - `TailscaleGroupEditorTests`: login without Save, candidate cancellation, partial-save retry, deferred logout, replacement-enrollment guards and concurrent cloud edits.
 - `TailscaleHostIdentityTests`: independent same-Tailnet groups, rename-stable IDs and network rebinding; `TailscaleIntegrationTests`: nearest ancestor routing, managed credential isolation, local-store reopen, discovery/metadata, username, Exit Node and retained-dialer Pro revocation.
-- `TailscaleProfileCleanupTests`: durable erasure retry, orphan discovery, active-profile protection and cleanup without Pro. `TailscaleSyncSafetyTests`: HostGroup V3 and Metrics reader-upgrade refetch/unblock.
+- `HostIconTests.tailscaleChoicesSurviveRediscoveryAndWireRoundTrips`: manual/automatic artwork and detected macOS survive managed projection rebuilding and HostGroup sync. `TailscaleIntegrationTests.tagsAndColorSyncBeforeAnotherDeviceDiscoversTheHost` additionally verifies detected distribution arrives before discovery, survives incomplete Linux metadata, and clears on a resolved unsupported OS.
+- `TailscaleProfileCleanupTests`: durable erasure retry, orphan discovery, active-profile protection and cleanup without Pro. `TailscaleSyncSafetyTests`: reader-capability refetch/unblock for independent same-Tailnet groups and Metrics selections (the historically named `v3ReplayAcceptsIndependentConnectionsToTheSameTailnet` helper constructs envelopes using the current writer).
 - `TailscaleMultiConnectionTests` and `TailscaleMetricsAvailabilityTests`: additional-connection routing, access revocation and availability/recovery boundaries. `MetricsSyncTests` also checks historical V1 records and preservation of pending local edits during refetch.
 - `TailscaleSSHWireTests`: real SSH/SFTP fixture through an injected loopback Tailnet dialer, gated by `TERMIND_SSH_FIXTURE` or `TERMIND_SSH_FIXTURE_JSON`. This does not exercise live control-service enrollment, WireGuard/DERP, browser policy approval or a physical multi-device Tailnet.
 

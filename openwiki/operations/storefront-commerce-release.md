@@ -60,10 +60,10 @@ sources:
     resource: repo://TFM/Info.plist
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Storefront and Commerce Release
@@ -113,7 +113,7 @@ Use the Mac plist path for the first command when inspecting the Mac app. Record
 
 For Mac release verification, inspect the **composition root**, not the `AppModel` initializer default: `AppModel` defaults to `.unrestrictedForTesting()`, but `TermindApp` explicitly injects `.live()` for normal launches and `.unrestrictedForTesting()` when running tests. The DEBUG screenshot-demo branch also explicitly injects unrestricted access and returns early. Neither a screenshot nor a directly constructed default `AppModel` demonstrates production entitlement enforcement.
 
-On mobile, `TermindIOSApp` selects `MobileAppDependencies.live()` for normal launches and `.testing()` under XCTest. `MobileAppModel` honors an explicitly injected `proAccess`; otherwise it uses unrestricted access for in-memory or supplied-host fixtures and `.live()` for the production dependencies. Validate the normal launch path on iPhone and iPad, not just a fixture-created model. `MobileRootView` binds the paywall sheet directly to `app.pro.isPaywallPresented`; its URL routing is unrelated to purchase authorization.
+On mobile, `TermindIOSApp` selects `MobileAppDependencies.live()` for normal launches and `.testing()` when `XCTestConfigurationFilePath` is present. Neither dependency factory explicitly injects `proAccess`: `.live()` supplies `hosts: nil` and `inMemory: false`, while `.testing()` sets `inMemory: true`. `MobileAppModel` honors an explicitly injected `proAccess` first; only when it is absent does the model choose unrestricted access for in-memory or supplied-host fixtures and `.live()` otherwise. Thus the production entitlement controller is selected by the model's fallback, not by an explicit controller assignment in the live factory. Validate the normal launch path on iPhone and iPad, not just a fixture-created model. `MobileRootView` binds the paywall sheet directly to `app.pro.isPaywallPresented`; its URL routing is unrelated to purchase authorization.
 
 Mac entitlement changes also reconcile runtime services: `accessDidChange` updates Tailscale, Metrics and effective SFTP/port-forwarding connection preferences without requiring a visible settings surface. `RootView` observes status changes to reconcile sync and the built-in MCP server. SFTP integration tests verify that gaining access restores the saved concurrency strategy and losing access uses the free effective strategy without rewriting saved preferences or opening a paywall. Include access gain/loss in release checks, not just initial paywall presentation.
 

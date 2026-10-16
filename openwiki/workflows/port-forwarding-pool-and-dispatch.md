@@ -3,18 +3,17 @@ type: implementation workflow
 title: Port Forwarding Pool and Dispatch
 description: "Trace app-owned forwarding requests through Host-scoped intent, feature-owned authentication, pooled SSH flow dispatch, silent recovery, and lifecycle cleanup."
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
-verified:
-  - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
 sources:
-  - id: openwiki-source-eeeeca9ded05fd2db5c3240d
-    resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
+  - id: openwiki-source-739f64e0e0f22dee6b791bc4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteConnectionCoordinator.swift
   - id: openwiki-source-079b35134aa7d0dc22681651
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnection.swift
   - id: openwiki-source-20118197848107cfa8e87aa9
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift
+  - id: openwiki-source-d371db64770fd2fcc301086b
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -29,7 +28,10 @@ sources:
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-c70098228d301514a5a44981
     resource: repo://TFMTests/SSHForwardingWireTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
+verified:
+  - by: openwiki/0.7.0
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Port Forwarding Pool and Dispatch
@@ -57,6 +59,8 @@ The forwarding controller owns its authentication continuation and reconnect pol
 `PortForwardingController.start` validates a saved rule and SSH-enabled Host. It creates or joins a `PortForwardingConnection` context keyed by Host ID; the context contains the route snapshot, shared Journey/authentication surface, connection attempt, active rule presentations, and an effective maximum computed when the context starts. App-supplied limit changes can update that maximum on a live context without rewriting the saved Host setting. Later rules on the same connected context call `startRule` instead of authenticating again. Stop removes that rule's generation; the last active rule retires the context. Route changes, including jumps, invalidate affected contexts. Saved rules themselves are not live listeners.
 
 macOS `AppModel` selects `.hostConfigured`; Host values normalize to `1...64`, default `1`, and the controller caps that saved value by an app-supplied connection limit. Without Pro multi-connection access the effective limit is one; entitlement changes update the limit on existing contexts without changing the saved Host preference. The `.hostConfigured` factory uses `SSHForwardingConnectionPool` even when its current target is one. Mobile composition uses the controller's default `.singleConnection` policy, so a synchronized Host setting can remain stored on mobile without producing the desktop multi-connection topology.
+
+**Live SSH preferences are a separate path, not forwarding pool configuration.** `AppModel` applies initial `sshSettings.preferences` to `RemoteConnectionCoordinator` and forwards subsequent `sshSettings.didChange` values to it. That updates the shared `SSHMaxSessionsPolicy` and its existing per-connection session-channel budgets. Forwarding is constructed separately: its workers use `.channelsOnly`, and its physical-connection target is controlled by the Host setting and `updateConnectionLimit`, not by the coordinator's MaxSessions policy. Keep this boundary when adding settings: propagating a preference through the coordinator does not by itself configure forwarding or transfer ownership of forwarding authentication/reconnect to it.
 
 Lowering a live limit does not evict streams already using excess published auxiliaries. The pool marks excess auxiliaries draining, excludes them from new assignments, and disconnects them only after the worker reports no active flows and no assignment is in flight. Pending auxiliary opens/installations can be cancelled immediately. Increasing the limit can retain a draining slot again before it becomes idle.
 
@@ -202,7 +206,7 @@ The cleanup task waits for preparation cancellation and conversation drains, joi
 - `ArchitectureBoundaryTests.forwardingAndMobileAuthenticationRemainFeatureOwned` guards against controller dependencies on settings/global external authentication and checks forbidden-interaction reconnect wiring.
 - `AppTerminationTests` checks conversation drains before agent resource closure, background-command closure before connection closure, and reuse of termination cleanup. Forwarding retirement placement is established by `AppModel` and controller source, not by a forwarding-drain assertion in that suite.
 - `SSHForwardingPumpTests` is the deterministic low-level seam: short writes, stable retry bytes, ready-queue order, watermarks, half-close, zero-window wakeups, encrypted-buffer allowance and source cancellation.
-- `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering.
+- `PortForwardingReconnectTests` uses controlled connections/timers to check shared context recovery, silent authentication, remembered versus once-only trust, rule generations, late results, and cleanup-before-rebind ordering. Its numeric-limit test also checks live limit changes, preservation of the saved Host maximum, and reuse of the effective limit after recovery.
 - `SSHForwardingWireTests` is **opt-in** via `TERMIND_SSH_FIXTURE`, a path to the fixture JSON. It covers local/remote/dynamic streams with 1/16/64 concurrency, one/two jump bridges, slow consumers, listener restart, and local pool distribution. Source presence or a default suite pass does not mean these wire tests ran.
 
 When investigating low throughput, first inspect whether the pool is actually above one connected slot, whether the rule is local/dynamic, and whether silent extra opens can authenticate. Then inspect stream backpressure and pump progress; increasing the target cannot make one stream span workers. For benchmark fixture setup and interpretation, use [Port Forwarding Benchmarks](../operations/port-forwarding-benchmarks.md). The pool code and current test seams do not establish an exhaustive actor-interleaving proof or a WAN performance guarantee.

@@ -26,8 +26,10 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
-  - id: openwiki-source-0bf5c5e49b55e95efb864567
-    resource: repo://Frameworks/TermindPresentation/LinuxDistributionBrandColor.swift
+  - id: openwiki-source-46c1c5043fd4f996167d68c1
+    resource: repo://Frameworks/TermindPresentation/HostIconBrandColor.swift
+  - id: openwiki-source-6c30416f939593ee31f56380
+    resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-23be2440342b8fbbefe69214
@@ -42,8 +44,6 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-  - id: openwiki-source-dc9295278cc250ed20567540
-    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -60,6 +60,8 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceSearchModifier.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
+  - id: openwiki-source-5147eea728b12cb304c33011
+    resource: repo://TFITests/KeyWindowTestTrait.swift
   - id: openwiki-source-a7d4f0957a52ddd59cd45344
     resource: repo://TFITests/MobileShortcutTests.swift
   - id: openwiki-source-b360f8803ec98b554faad9bb
@@ -78,12 +80,14 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-6e24c51785378202d2983e92
+    resource: repo://TFMTests/HostIconPresentationTests.swift
   - id: openwiki-source-1c9687bbe3333120d80ab3e8
     resource: repo://TFMTests/MacDeviceNameTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Module Ownership and Composition Roots
@@ -110,6 +114,8 @@ Use [System Boundaries](system-boundaries.md) for contracts, [Engineering Invari
 | `Frameworks/Resources` | Shared bundle assets, localization, model catalogs, and privacy metadata. | A resource group, not a seventh framework. |
 | `AgentKit` | Reference checkout of the separately versioned, host-neutral agent package. | Xcode consumes the resolved remote package, not this checkout. |
 | Supporting products | MCP stdio bridge, Live Activity extension, and standalone forwarding benchmark. | Different executable/extension boundaries, not app feature folders. |
+
+Host artwork is a concrete example of shared Presentation ownership. `HostIconCatalog` loads `HostIcons.json` from the main bundle (falling back to an empty catalog on load/decode failure), resolves an explicit `iconOverrideID` before detected distribution matching, and otherwise matches the distribution ID before its `likeIDs`. An unknown explicit override returns no catalog entry rather than falling through to detection. `HostDistributionIcon` composes that choice with `HostSystemIcon`; tint precedence is the host's color tag, then `HostIconBrandColor`, then the accent color. `HostIconBrandColor` owns the conditional AppKit/UIKit semantic-color adaptation, adjusting brand foregrounds toward the label color for contrast on the tinted icon surface. `TFMTests/HostIconPresentationTests.swift` checks bundled assets, override priority, and light/dark contrast. These are shared rendering responsibilities, not connection or app-lifecycle ownership.
 
 ## Shared-framework build dependencies
 
@@ -222,4 +228,4 @@ Read the project metadata as four separate checks; none substitutes for the othe
 
 For external input changes, compare the remote requirement in `project.pbxproj` with the selected version and revision in `Package.resolved`, not with a maintenance checkout's HEAD.
 
-`TFMTests/ArchitectureBoundaryTests.swift` supplies **source-level** guards alongside the Xcode target graph, not a blanket ban on UI or platform APIs everywhere. Its import scan excludes `Termind` and `TermindIOS` plus AppKit, UIKit, IOKit, and ServiceManagement from Domain, Application, Infrastructure, Remote Infrastructure, and Persistence; the separate Presentation check excludes app imports, storage and implementation modules, StoreKit, AppKit, and UIKit. However, the import helper checks only exact `import Module` lines, and shared Presentation currently uses conditional AppKit/UIKit imports for rendering; treat those platform exclusions as test intentions, not proof that every shared view is platform-agnostic. Domain also excludes storage, transport, and UI libraries; Application excludes concrete implementation imports and selected construction tokens; Persistence excludes Infrastructure and Remote Infrastructure imports. Native UI and feature restrictions are scoped: mobile `Application` excludes UI and storage imports, mobile `UI` excludes storage and Remote Infrastructure imports, desktop `Features` excludes selected storage and transport imports, and feature directories are checked for specific direct construction/access tokens. This does **not** forbid all framework imports in every native feature. The test also rejects declarations of a named subset of AgentKit-owned runtime types in the desktop source tree, not every AgentKit-related type across the repository; Termind still owns host-specific tool registrations. Further checks protect SwiftData model/repository placement and the forwarding benchmark's independence from app/test targets. When moving a capability, inspect both target/package-product edges and the precise test scope. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).
+`TFMTests/ArchitectureBoundaryTests.swift` supplies **source-level** guards alongside the Xcode target graph, not a blanket ban on UI or platform APIs everywhere. Its import scan excludes `Termind` and `TermindIOS` plus AppKit, UIKit, IOKit, and ServiceManagement from Domain, Application, Infrastructure, Remote Infrastructure, and Persistence; the separate Presentation check excludes app imports, storage and implementation modules, StoreKit, AppKit, and UIKit. However, the import helper checks only exact, unindented `import Module` lines, and shared Presentation currently uses indented conditional AppKit/UIKit imports in `HostIconBrandColor.swift` for semantic rendering colors; treat those platform exclusions as test intentions, not proof that every shared view is platform-agnostic. Domain also excludes storage, transport, and UI libraries; Application excludes concrete implementation imports and selected construction tokens; Persistence excludes Infrastructure and Remote Infrastructure imports. Native UI and feature restrictions are scoped: mobile `Application` excludes UI and storage imports, mobile `UI` excludes storage and Remote Infrastructure imports, desktop `Features` excludes selected storage and transport imports, and feature directories are checked for specific direct construction/access tokens. This does **not** forbid all framework imports in every native feature. The test also rejects declarations of a named subset of AgentKit-owned runtime types in the desktop source tree, not every AgentKit-related type across the repository; Termind still owns host-specific tool registrations. Further checks protect SwiftData model/repository placement and the forwarding benchmark's independence from app/test targets. When moving a capability, inspect both target/package-product edges and the precise test scope. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).

@@ -92,12 +92,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-33f99816db979bf169f1eab5
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
-  - id: openwiki-source-353d364de99f80858a5abfd5
-    resource: repo://Frameworks/TermindPersistence/TermindSchemaV50SnippetModels.swift
-  - id: openwiki-source-3cfc52217a7a6835b4bffac1
-    resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
-  - id: openwiki-source-ba9bcaaf5c4be2ca83356c1a
-    resource: repo://Frameworks/TermindPersistence/VaultWireV1Validation.swift
+  - id: openwiki-source-4e96d6bf2e7ae21ae9f5a5d8
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV53HostModels.swift
+  - id: openwiki-source-d9d273a10bc4dfbf1117ed63
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV54HostModels.swift
   - id: openwiki-source-65af64561fcb561a30da16fa
     resource: repo://Frameworks/TermindPersistence/VaultWireV2.swift
   - id: openwiki-source-6f8db123d550d9a8718c172c
@@ -150,10 +148,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Persistence, Migration and Secrets
@@ -282,6 +280,31 @@ Examples show why this matters:
 
 `PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and a fixed historical V28 store. The V28 fixture was generated against the unmodified Persistence framework at `0dc173d4b1d190071d35bc66f80ebb767d8b950c`, not current models; `Scripts/generate-v28-fixture.swift` records its provenance and expected checksum and explicitly stores synthetic references, not a password or private key. The fixture uses a V28 host with SSH port and charset, ordered environment-variable name/value arrays, snippet and group IDs, an identity pointing to an SSH key and a Keychain reference, a known-host mismatch flag, a connection event without a device ID, and a preexisting Vault installation ID. The V28→V30 model preserves the old `port`, `identityID` and `charset` property names as SSH fields and supplies Telnet defaults; V30 replaces the known-host type to discard only the obsolete mismatch flag. V31→V34 backfills event origin from the installation ID and inserts a separate device row without synthesizing an end time. The fixture test copies the original store to a temporary path and calls the normal factory twice on that same path: each open asserts projected host settings, charset, identity/key references, ordered environment variables, snippets, Known Hosts, history and the installation ID/device row, plus workspace defaults after `prepare()`. This tests migration **and subsequent reopening**, not a newly created V28 store using today's model declarations; it does not test recovery from a deliberately failed open. `MobileAppTests` also constructs the app from the migrated disk container twice to cover startup and relaunch, checking host/identity projections and event origin. The suite retains V27, V30, V31 and current full-schema compatibility coverage, full-schema independent in-memory containers, and new-field defaults; `CloudSyncSafetyPersistenceTests` also migrates a V39 disk store through V40 to the current schema, checking that scoped fences and record presence remain while retired category quarantine tables are dropped. A V41 disk migration test checks that opening the current schema retains existing data and starts with empty collaboration sidecars. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
 
+### Host preferences, remote recovery, and retired mobile snapshots
+
+The selected local schema is currently `TermindSchemaV54`, but the migration contract is the factory and registered plan, not a permanently asserted latest version. V53 replaces the V44 Host shape with a frozen Host model that adds `sessionPersistenceEnabled`, `sessionPersistenceBackend`, and `sessionPersistenceOnConnect`. V54 replaces that shape again to add optional `iconOverrideID`; `PersistentHost` aliases the V54 type. Both V52→V53 and V53→V54 are lightweight stages. Existing hosts default to persistence disabled, backend `tmux`, and on-connect policy `ask`; icon override defaults to `nil` (automatic). These are non-secret durable configuration fields, alongside identity references, not saved SSH credentials or copies of a remote shell.
+
+Remote-session recovery is a separate capability boundary. `RemoteSessionReference` carries a version, backend, opaque backend identity, Host ID, endpoint, username and optional ownership token; only the backend interprets its identity, never as an arbitrary command. `RemoteSessionCoordinator` validates an existing attachment against the current route and the backend's session inventory before reattaching. A missing or mismatched session requires selection rather than silently applying the create policy. This recovery does not restore authentication material: a connection still uses the runtime secret-resolution boundary. Only explicit-close teardown is eligible to end a managed remote session; suspension, application termination and detach are not. A failed termination does not authorize workspace removal unless the user explicitly chooses disconnect-only. See [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) for connection handling.
+
+Mobile's old defaults snapshots are **retired**, not migrated into a replacement persistence layer. At app initialization `MobileWorkspaceStore.retire(in:)` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`. Do not use those snapshots as the durable owner of Host preferences, credentials, or recovery capabilities.
+
+```mermaid
+flowchart TD
+    HostRow["SwiftData Host preferences"] --> Policy["Enabled backend and on-connect policy"]
+    Policy --> Coordinator["RemoteSessionCoordinator"]
+    Reference["Local recovery reference and ownership token"] --> Coordinator
+    Coordinator --> Verify["Validate route and remote session identity"]
+    Verify --> Attach["Attach to existing remote session"]
+    Verify --> Select["Require selection if missing or mismatched"]
+    Secrets["SecretStoring and runtime credentials"] --> SSH["Authenticated SSH connection"]
+    SSH --> Coordinator
+    Retire["Mobile startup"] --> Remove["Remove retired defaults snapshots"]
+```
+
+Durable configuration selects behavior; recovery references identify remote sessions, while credentials remain on their own channel.
+
+These changes also have independent wire representations: Host/HostGroup V4 adds session-persistence preferences and V5 adds icon overrides, including Tailscale host preferences within a group. The codec rejects older writes that would lose non-default session preferences (before V4) or a non-nil icon override (before V5). It does not infer wire safety from an optional domain property. [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift) checks V52 disk upgrade/reopen with persistence disabled, preference round trips and rejection of lossy older writes. [HostIconTests](../../FrameworkTests/HostIconTests.swift) creates a V53 disk store, migrates it through the normal factory, saves an override and reopens the same path; it also covers legacy wire defaults, tombstones and failed-save projection safety. When extending this path, assert retained values and behavior through the production factory rather than hard-coding a latest schema number as testing advice.
+
 ### Snippet color: local migration and independent wire evolution
 
 V51 adds the latest `PersistentSnippet.colorTag` string with a no-color default and replaces the frozen `TermindSchemaV50SnippetModels.PersistentSnippet` starting in V51; V52 retains that colored model. The frozen type continues to represent V1–V50. The migration/reopen test creates a real V50 disk store, retains Host/package/body/targets/order after upgrading, then saves a color and reopens again to verify durability.
@@ -397,4 +420,4 @@ Memory history indexing follows committed agent data; suspension invalidates con
 4. **Adding a credential:** persist only a stable reference and non-secret provenance. Use `SecretStoring`/Keychain for material; exclude it from logs, CloudKit/sync records, `UserDefaults`, SwiftData/GRDB ordinary records, and reusable session snapshots.
 5. **Passing a secret to transport:** use the runtime secret owner, clear it at every success, error, cancellation, and teardown boundary, and retain only non-secret identifiers when a reconnectable configuration is needed.
 
-V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. Historical V46/V51 shapes remain immutable; `RetiredTerminalHighlightingTests` verifies upgrade/reopen cleanup and pending-upload retirement. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host and Snippet writes use V2; SSHKey and HostGroup (including Tailscale configuration) write V3; reader capability and local schema versions remain independent.
+V47 adds Tailscale groups and local node state; V48 revises local node state; V49 removes command/SFTP history models from the current schema; V50 adds profile cleanup; V51 adds persisted Snippet colors; V52 removes the retired keyword-highlighting preference model. Startup Settings preparation drops inactive highlighting journal entries, and its CloudKit receiver ignores legacy highlighting records—including malformed/conflicting/deleted ones—without replacing other preferences or creating quarantine. Historical V46/V51 shapes remain immutable; `RetiredTerminalHighlightingTests` verifies upgrade/reopen cleanup and pending-upload retirement. Tailscale group configuration is Vault data, while profile IDs, sign-in/cache state and cleanup markers stay device-local. Current Vault Host and HostGroup writes use V5; Snippet writes V2 and SSHKey writes V3. Host readers accept V1/V2/V4/V5 (not V3), HostGroup readers accept V1–V5, SSHKey readers accept V1–V3, and Snippet readers accept V1/V2. Native History and Device formats remain V1. Reader capability and local schema versions remain independent; consult [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md) for deployment checks.

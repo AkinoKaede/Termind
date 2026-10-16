@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e85ead2f2526c21e797d947b9e852e0a13a4993a33b369cf3235bad1c75cd391",
+  "pageVersion": "sha256:4363f3591887dcb2aeb82fd1577afa7327284f8b91e2f532ce21267256a6ab6f",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -224,19 +224,23 @@
     },
     {
       "id": "claim_d9bd498c7bb54f79af60a63cf83c303c",
-      "statement": "The shared V52 container disables SwiftData CloudKit mirroring and preserves historical endpoints while omitting V29/V32/V33 migration endpoints. V51 adds colored Snippets over a frozen historical entity and V52 retires highlighting; the V50 disk fixture retains data, saves a color and reopens rather than testing a fixed latest-version constant.",
+      "statement": "The shared V54 container disables SwiftData CloudKit mirroring and preserves historical endpoints while omitting V29/V32/V33. V51 adds Snippet color and V52 retires highlighting; the V50 fixture retains data, saves color and reopens. V53 replaces the Host model for session persistence and V54 for iconOverrideID through lightweight local migrations independent of wire versions.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L109-L143",
-          "version": "repo-lines-v1:sha256:a2f6b010a022c98ec7e629f86b6ebf6497cb6af0abea4256350ec6d32c2a77b7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBlM2M4NjQ2YmJmY2JhZTc3ZGIwMjNhZTUzNmUyN2U4ZTVkNTAxMGY2NzczYTJhMDRmMTA0MjYxZjY2MDJhNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L110-L141",
+          "version": "repo-lines-v1:sha256:514ad4d1fe9acdde5ba0c0ebaad05cad5896664431e058d789cf97049d522b5c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZWQ4YmI5OGY5MTI1MTE5NDI4MGVhNDU2NGNkZTY4NWE2MWU3MzY1NWVhY2M5Y2Y2MGY4MmEwMmI1ZDk3MTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNTEyZGRlNzVkMjM5OTY3NTg2OGViZGExMjgxMGQ5ZWQ5NjgyMzk5NzU0MzgwOWFmOWQ1Yzc0YjFjNTI3NWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L945-L975",
-          "version": "repo-lines-v1:sha256:0380702ab16e4680fb548d00917e6e39cbf6af3cd92aaeae4cff5f192e403685:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDM1YzIyNDY4ZmJkY2EzOTYyYjhlOGRkYTM5OTQ0M2ExOWY1NWJmMjU1NjUzNDQwNzI3NTcwZDhmODAzNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MWU0ZDEwYzg2MThiOTA5YTAyNmU1ZTZkMDk0OGU0YmQ0MGU3OWFkZDRiMzRhNDcxZWE2YjdlNjE3MThhNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5YzVkNTkyMWY2ZDQ0NDY4YTgyNDc4ZWQ2YjI5NjY4MWQzMTE5OWFjM2ZiMjZlNjhiYjU1ZGE2ZWY0OTMyYWEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L1105-L1112",
+          "version": "repo-lines-v1:sha256:a25b25e1f6ba31091508a0023cce13820f4fe7cf5b33f16d99dca9637f3cd4a0:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWMzZjkyMTQwODJjODdmMDI4NjBhZjc4Yjc4ODkzNTU2M2VlNjRjZDg0NDIyY2I2OWNhMTY2OTYxMDc5YmZmZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDE0ODU0ZjNiMTgxMjM3NmM0ZDIwNWQ1Y2IxNzUxZmJiMTM3MzcyNDNmMTc3N2M5ZDcyMmMyMDczNDk0NjI5MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODNjN2NlYWE3MzlkMWRkMzFhOGU4NmI0ZjYxY2IyZGZhYTg5NTFlOWJiMzRhODk1MWI5ZTQxYTQ5OGM2OTJlYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzQ4Mzk4ODAxYTM2NjI1NjFjZjVmM2Y1N2YzZTFkMjVlMGUzY2U4MmYxYzVhODhmMTgzZTkxZWNhYjE4NzY2ZiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L945-L995",
+          "version": "repo-lines-v1:sha256:e89a37e6ca450daef8ff26914358a22aea9783e76d4bb7301833046086a02225:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDM1YzIyNDY4ZmJkY2EzOTYyYjhlOGRkYTM5OTQ0M2ExOWY1NWJmMjU1NjUzNDQwNzI3NTcwZDhmODAzNGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NmVkYjczY2VkNGZjOGNjMjdmNjc4NjAxNTMxY2I2MWY1MjI4MGQ4M2QxOThhZDQ1OTViMzU3YWE2M2YyOTcifQ"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L45",
-          "version": "repo-lines-v1:sha256:b0c72f293388146741d095cd3a2d77fb3222f6efb6f93a75056258c5636c581c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZDE3ODg3ZDhiOWFjYjJlZjc4ZGRkZmJiNTJkMWEzM2UwZWI2MDRlMmU1NDczMjI5OGZhNmUyMjgyMjc3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZDdiZTg1ODEwYTgzY2E3NDczYThhZDg4Yzg2NDRkNTIzNWZhOTY4MWI2NTlhNTFlZTU3OTZjMWFiZmFiNTUifQ"
+          "version": "repo-lines-v1:sha256:7e3489b16c2a5902e39688d22b021acdfa453133d471037f5c4c836d334ae012:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjZDE3ODg3ZDhiOWFjYjJlZjc4ZGRkZmJiNTJkMWEzM2UwZWI2MDRlMmU1NDczMjI5OGZhNmUyMjgyMjc3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZDdiZTg1ODEwYTgzY2E3NDczYThhZDg4Yzg2NDRkNTIzNWZhOTY4MWI2NTlhNTFlZTU3OTZjMWFiZmFiNTUifQ"
         }
       ]
     },
@@ -268,7 +272,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:23f7f9a022484e77a755fc58561ee5efb0044da4edf32dce204a2472460d0443"
+          "version": "repo-file-v1:sha256:741922b76eeb0c279f8e872a4c683671dc290011c5dfe89ab75f9cc52c8c61da"
         },
         {
           "resource": "repo://Scripts/generate-v28-fixture.swift",
@@ -282,7 +286,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40",
-          "version": "repo-lines-v1:sha256:5b9a670d9df66db492e517c00d3200465ff6a60b67732d97d849d1c9821528a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
+          "version": "repo-lines-v1:sha256:2322f76f2e8e8444bf65d43dda6b5e09c81e76fd5e6332dd849a7c027585a7f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZTI4ZjUxMDg4Y2NkZGNmN2ZjNWRiYTZmZWQyNzZhZTRkZjYwYTcxYzMyYTgzODZlMGM2MmNhNmRmN2VkYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0MDRjNTkxNThhZGQxYjkyMzNiZDRkY2YwMmI1ZDBiMDhmYzRlOTcwNWNkMzQ5NDJmNWMwZjM0YmIxZjkyNjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODExMjM2OTY4MzhmYTU4YTIzMTMzNDgyZmQyMjc2MzFhOWFhN2U4ZWY1MjA0YjgwYjg5MDdlMWIyMTcxMmUifQ"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift#L55-L84",
@@ -555,7 +559,7 @@
           "version": "repo-lines-v1:sha256:8138eb45e49bbfd7b7d1b76167da63b7388bbdb0655ad16733be89720f3999d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZjMxMWQ5OTc1YjMyMTU5Y2Y2ZTA5NGFlYzY0YmQyZGE3NGQ1OTEzMzc1NGMyY2M0M2M2NTJlMzg1OTdhYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2YmUxZDc5ZDRiMmI0YTZkYTFkN2IwMWU2N2IyZDQxZmZhMDk4NWZiNTk1NDkxZTIwMmU3N2Q2ODg4MWM2NjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0NzY5MzI4YjhlZWVjNjY0NzYzODQzYTE3YThmMDc0ZWNlNDUyZmE4ZTlmYjY4ZTA2N2M3MDM3ZWE2YWIwYWEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L193-L204",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L191-L202",
           "version": "repo-lines-v1:sha256:2b284c68616d7f895a9a6a8b17b0d1fc8103531a2a2aab601e7801e358fc92ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwMDc4NTkwOGZlY2YyODUxNWNhMDMxOGZkYjI4ODhhNjU4ZTQyMjVkZWZjMTAxNWExYWFmNzUxZGQ3OTUwNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmZTc3ZTdjMGNmZWIyYjQ5ZDBjYTIzOGExMThkOTk0YTFkYWYyNjAwNWEyZDYxMGI3YmRkZWRkYzc3YjM1YTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlmN2M4NjBjOTAzOGM2ODEzOWVjMTYzOGNiZThkNDYzNzYxMDYyOGY0NGU4MTk1OThjYmY2YjA0Y2MzOWIzNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3YzFiNmI0YjE0NDZiZDA4NTAwNzg4ZTk4YmJhOWQ1NjVlYmJlNjJmMTE3ZTRlZTc0MjlkYzUxNmY4MjQ4NjYifQ"
         },
         {
@@ -635,7 +639,7 @@
       "statement": "Live macOS sync coordinators start only when Pro permits vault sync, and mobile starts them only when both a scene is active and Pro permits vault sync; otherwise they are paused without deleting local data.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L610-L625",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L593-L608",
           "version": "repo-lines-v1:sha256:56c479ee1ba583ccecd03c7f5e7fd6e3c3009d4326b744a8f2637290bf0233b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3Y2E3MWJkZmM2MGVhMzNkYWQ0YWI2NmNkYjBjNmM5MjUzOGY1NDA0NjRkYzY1OGExMTkwYjUyZTc3MGUyMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1MGZiNmUwZThhYmY3YmNiNjdkODIzMzJjMmVlOGZlNzY0NzYzZDFlZjA5ODc4NWM3ZmM4Y2Q1Zjk2ZmRkOGUifQ"
         },
         {
@@ -646,19 +650,39 @@
     },
     {
       "id": "claim_3634d9689ed64de2a0b38d4b3c3419e1",
-      "statement": "Cloud compatibility is per kind: Host/Snippet write V2, HostGroup/SSHKey write V3 and Metrics writes V2 with historical readers; managed Hosts cannot encode as Vault Host records. Snippet V1 rejects colored writes, while a newer received V1 record clears color and both tombstone versions round-trip.",
+      "statement": "Wire compatibility is per kind: Host writes V5 and reads V1/V2/V4/V5, HostGroup writes V5 and reads V1–V5, SSHKey writes V3 and reads V1–V3, and Snippet/Metrics write V2 and read V1/V2. Managed Hosts cannot encode standalone. Snippet V1 rejects color and newer V1 clears it; both tombstones round-trip. V5 wraps V4 with Host artwork and group overrides restricted to lowercase UUIDs of existing preferences; older writers reject lossy artwork/session fields. The final Vault provider rechecks scoped upload permission and uses journal outgoing entries. HostIconTests covers wire artwork updates, clearing, Tailscale rediscovery, old-format rejection, tombstones and V53 migration/save/reopen. Session tests reopen disabled V52 data, not newly enabled settings. Capability identity depends on reading versions; TailscaleSyncSafetyTests replays current-writer group records under a simulated old capability, clears quarantine and advances the checkpoint, not a frozen V3 or Host-V5-specific fixture; Metrics has analogous replay coverage.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L59-L107",
-          "version": "repo-lines-v1:sha256:24b0c9e0b758f86f425ef2ffa35c20a030bc1f4a652cbec7133b61b551a8d039:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5ZGYzNDY3YTk1OWY0ZWQ2YWVlNGJjNzUyMzg2YzA5ZThhMzcyMzg2OTY2NWEzYjdiMTAxYzVhZDMxNWYwNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViMjg0MWUxZmMyMTQ1MzExYjVlNDYxY2JmZDVkMGZlOWE3ODVmYTFhODA2MDZiZmE1OTdhZjUxZTQ3YmY4OTUifQ"
+          "resource": "repo://FrameworkTests/HostIconTests.swift#L95-L212",
+          "version": "repo-lines-v1:sha256:151c902379b8a7a4380b7adb23c56a57d60212990d2eadace47627f18b1f9043:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3Y2E5YWNiMDE2OGJjZTNhYjFhOTVlODlmNGFlNmU2YTE4YWRhYjM1MzQ1ODUwNTgxNWZkYzIwYTdjMjlkYjYyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L45-L58",
-          "version": "repo-lines-v1:sha256:644e9cecfcec36d696beb951811d0e4c6cc06cf3f47ad21285ee1f5a5e2f8bb1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMGEyNDQ2NjhmNmU4NTA4N2VmMDFkMmM5ZDdkYmMyYWQyNDQ5ODJlNWMzMmYyMTIzNDY5ZDQxZDFlNjhiYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGNhNGY4YmVmYjQzZmIxNzUyOTdkZDA1Y2I3MjA0NTBlYjliN2JiNmM0ZDlmYmFmMTg1ZmIxZWMzNWY3OWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3MTVmZDdmNjRlMTMwZDMzNzkxNjFhMDQzMzA0YzYxMGE4YTVjZDIwZTI2MDE2YzdiMDg3NDgwOWNjM2JjMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://FrameworkTests/SessionPersistenceTests.swift#L50-L116",
+          "version": "repo-lines-v1:sha256:81ad1d5dd35dbbff2abfa7f7c5c4c20cd6fdc16db157bfb527d43e2df080e644:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4ZWRiYjZjM2EyNmE5NjAzZWEzNjk5OTIzYmE5MDMzMTU0N2ZiZWM0ZTc5MjYzYzdiMzY3Mzk2MWEyNGExZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViMTBmN2ExZGQ2ZTM3NjUyNzkxYThkY2I2MTA0YjhhYzBkZjkzYjA0NTFjODhjYzlmMjY5MTdmMWRjMThlYTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiNTlkMmM3YzhmYzMyNzQ0NGFhNjkyOTYxOTYyOTgzMmZiZThkNTExMzUzYTA1MTFiYTczYTFjNzJjMzA5MzQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift#L60-L93",
-          "version": "repo-lines-v1:sha256:5aa90020671ffa9249705d32f93b926a6a2626dffb803a2e4fa77e904affbdab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNTQ0YjkxY2NiZDZkYTgzYThkYmJmZGJiZDUzMGM0MTE2YWI5YWNlNTU5Nzg2MjAyZjBhNzIwYWQ5NGNmNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzYTQ3OGQxNTk5ODQ4ZTY0NWM4MzUwOGYyNmM2ODIyNjM5MWFjMGIwNGU3ZWJhNmM2ZmE5YTM5YjY1MzZiMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyYjAzMDYzZjk2NDIxOTdiMmQwNjFjM2MwYTlhMzZjY2VmOTRiZjIzOTY4MDg4MzIxMjU2ZmUxODQ4ZDRmNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjOGZlOTM5MmZmZmFiMjIwNDQ4MmQ1ZjBkYTM0ZGU2YTkzYzc0NWVlNTA0MzBjN2JlNzNlYzZhZmViNGYxOGMifQ"
+          "resource": "repo://FrameworkTests/SnippetColorTests.swift#L61-L107",
+          "version": "repo-lines-v1:sha256:d161e36f0216f2c272f1b751505cd07cc611250872bfdff7211fd81563e8c193:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4YWMwNWM0YmJlYzJkYWE3ZWFmYmY2NDRkNjY3ZDZkNzRmODJiMzg2ZDllMTQwYThjNjIxNGNhODA1YmNhNjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViMjg0MWUxZmMyMTQ1MzExYjVlNDYxY2JmZDVkMGZlOWE3ODVmYTFhODA2MDZiZmE1OTdhZjUxZTQ3YmY4OTUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/TailscaleSyncSafetyTests.swift",
+          "version": "repo-file-v1:sha256:590ea0d8698ba7e8bcffca9c80d3ee2ff630ef7b4016fc773cb7b2a6ebdaf128"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift",
+          "version": "repo-file-v1:sha256:c0f0cdfdac2f8c0510c49d835c4feb8aaace12ee0e97f453a28b7fd9b52cff44"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L159-L169",
+          "version": "repo-lines-v1:sha256:c474e9ecc660e4d4c9a46eb7d3d31bc12b10cf2fb7a7db9f56c9aad42da14119:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhNjBkOWQ5YWFlYzRhMTg1ZWZiYjgxMTc5ZjJjMGZlOTk5YTFiNmViNTVlNzQ5YjhjNzIxZWFkNDU2YjliNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmOTUwNTA0YzlkYjM5ODUzOWYwYjcyODQ1YWQ4MTkwOGI1NjJiNThlOGY2ZTU4MDFmYWZmZDQwNjFmMmY5NzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwNTk3N2NlZWQwY2NkNjBiYWE1NGY0Y2UwZjI3MGI3OTYzZjlkODVhMWZkMmIwYzdhYWM3NjA0Mjk3ZmQ0ODcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
+          "version": "repo-file-v1:sha256:ca963d587a752d5da7d58c558a964e62cd61fdb36460a3639a775f27829bfd8b"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultWireV5.swift",
+          "version": "repo-file-v1:sha256:6f18c3609bc11e299a3bb416135089696739b19e184e44481fd93af37392e1ec"
         }
       ]
     },
@@ -683,6 +707,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

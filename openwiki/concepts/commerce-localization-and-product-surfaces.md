@@ -1,7 +1,7 @@
 ---
 type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
-description: Explains RevenueCat-derived Pro access and remote paywalls, native language and copy ownership, and the separate app, widget, screenshot, and public-site product surfaces.
+description: Explains RevenueCat-derived Pro access, device-local review invitations, shared app localization, and the distinct native, Live Activity, screenshot, and public-site product surfaces.
 tags: [commerce, revenuecat, localization, product-surfaces, marketing, widgets]
 sources:
   - id: openwiki-source-8c4bdfb086f2eff661e05807
@@ -66,8 +66,8 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
     resource: repo://TFI/App/MobileRootView.swift
-  - id: openwiki-source-e43a0da5ab77c2fc3554244d
-    resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-c1f5a86747a33d4e8472672c
+    resource: repo://TFI/App/MobileWorkspaceSessionModel.swift
   - id: openwiki-source-13f2deff6904678799b19444
     resource: repo://TFI/Application/Metrics/MobileMetricsModel.swift
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
@@ -78,6 +78,8 @@ sources:
     resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
     resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
+  - id: openwiki-source-03d75be930175f0fdc3c2cec
+    resource: repo://TFI/Features/Vault/MobileHostCardContent.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
@@ -88,6 +90,10 @@ sources:
     resource: repo://TFITests/MobileAppReviewTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-8d34d9ba6456e86e57933569
+    resource: repo://TFITests/MobileLiveActivityRestorationTests.swift
+  - id: openwiki-source-9b78a7e39bfa08bea5192722
+    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-205304536d13b39bf2e7e666
     resource: repo://TFITests/Screenshots/MobileCardRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
@@ -114,10 +120,10 @@ sources:
     resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 ## Commerce ownership and configuration
@@ -210,6 +216,8 @@ flowchart TD
 ```
 The real invitation path snapshots entry eligibility and consumes the invitation only on decline or accepted URL opening, never on a completed-rating signal.
 
+The presentation boundary is the shared [`AppReviewLink` and `AppReviewInvitationView`](../../Frameworks/TermindPresentation/AppReviewInvitationView.swift), not a platform review presenter or a StoreKit automatic prompt. The button delegates to SwiftUI's environment `openURL`, so acceptance is an OS URL-opening result rather than store feedback. Keep invitation eligibility in the controller/visit pair and URL handling in this presentation adapter when extending either app.
+
 Developer preview is a separate transient path: `setPreviewEnabled` resets `previewResponse`, bypasses age, host, enabled and real-response gates, but still hides while filtering. Preview accept does **not** open an external URL; both actions change only `previewResponse`, never defaults or the real response. Toggling preview resets it, and relaunch does not restore it. [Controller tests](../../FrameworkTests/AppReviewControllerTests.swift) cover seven-day boundaries, clock rollback, persistence, rejected opens, visit snapshots, filtering, cross-window response and preview isolation. [Mobile review tests](../../TFITests/MobileAppReviewTests.swift) check shared injection and render English and both Chinese variants at phone/tablet widths with light/standard and dark/accessibility-size layouts; these renders do not establish all-language visual approval.
 
 ## App localization
@@ -253,11 +261,35 @@ The desktop picker persists the next launch's choice while rendering only the no
 
 Resolve resources at display time, rather than caching translated strings across language changes; use the resource directly with SwiftUI APIs that accept it, especially `confirmationDialog`, and `swiftUIKey` only where `LocalizedStringKey` is required. Mobile `operationConfirmation` resolves resources against the view locale before passing verbatim strings to either an anchored SwiftUI confirmation or an injected centered UIKit renderer; an explicit Cancel action remains visible. `PresentationCopyTests` checks menu, count, accessibility and bridge resolution; current `AppLanguageTests` tests preference migration, regional catalog lookup, selected-language relaunch notices in all seven languages, regional German/French/Korean/Japanese lookup and reordered interpolation, contextual terminology, forwarding placeholder order, bundle metadata and compiled plural behavior. **It no longer tests explicit-language Pro offer copy.** Full catalog completion is the Python check, not these tests.
 
+### Library cards and compact mobile surfaces
+
 Ordinary product labels illustrate the split: iOS Vault search opens Snippets and Known Hosts, whose pages distinguish an empty collection from empty search results. Known Hosts offers add/edit/copy-fingerprint/delete and an editor title that changes with the entry; the macOS empty state additionally offers import or manual add and deletion warns that trust will need verifying on the next connection, with count-sensitive confirmation. Snippets has new snippet/package/subpackage actions and a keep-or-remove-snippets package deletion choice. Shared `SnippetCardContent` supplies colored icons, valid SSH-target counts, risk chips and relative timestamps to both apps, while each owns the surrounding surface and actions. `SnippetTimestamp` supplies a stable local fallback for legacy baseline dates. Card timestamps use the view locale; hostnames, fingerprints, paths and scripts remain user content. `MobileCardTests` checks add/edit titles; opt-in `MobileCardRenderingTests` mounts real views in three app languages with light/dark and selected large-type captures. Inspect actual views as well as catalogs after UI changes.
+
+On mobile, the persisted `mobile.compactCards` preference selects reduced card content for Hosts, Known Hosts and Snippets; it does not change the underlying records or per-card actions. Standard host cards show the supplied login address, at most two tags and a locale-formatted last-connection timestamp (or “Never”); compact host cards use the title, icon and status instead. Standard Known Hosts cards show the algorithm and localized added-at time, while compact cards retain the title/icon. Tests cover the two-tag bound, recording SSH/SFTP opens for host timestamps, and add/edit Known Host titles. Review both density modes rather than assuming shared Snippet content is rendered in compact mode. See [Mobile UI](../architecture/mobile-ui.md).
 
 ## Other product surfaces and public disclosures
 
-`TermindWidgets` contains a workspace Live Activity, not another workspace engine. The app serializes activity updates, restores at most one active activity, starts only after explicit workspace intent and ends it when workspaces are gone. Its payload excludes credentials and terminal output, bounds focused-first summaries to six, and routes only strict workspace-list and UUID workspace deep links. DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` or `fr` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
+`TermindWidgets` contains only a workspace Live Activity, not another workspace engine. The app serializes starts, updates and ends, restores at most one active/stale activity and ends duplicates before updating. Ordinary updates cannot resurrect a dismissed activity; a new explicit workspace-open intent can start one when the app can request it. Restored version-1 recoverable sessions remain as **disconnected summaries**, so an empty in-memory workspace array does not by itself mean the activity must end. Explicit removal prevents stale system content from recovering a closed workspace.
+
+The payload excludes credentials and terminal output, but can carry a versioned host/kind recovery descriptor and an opaque encoded `RemoteSessionReference`. Snapshots order the focused session first (falling back to the last session), cap summaries at six, truncate titles and drop whole trailing entries until the encoded state fits 3,500 bytes. Do not truncate identity/reference data to meet the budget. Links address `termind://workspaces` or a UUID workspace; recoverable workspace links may carry exactly `v=1`, a host UUID and `kind` (`ssh`, `sftp` or `telnet`). The remote-session reference stays out of URLs, and extra query parameters are rejected. The app can rebuild a missing workspace from retained recovery or the validated link fallback only when its saved host and protocol remain usable; recovered sessions require session selection. [Restoration tests](../../TFITests/MobileLiveActivityRestorationTests.swift) cover cold launch without connecting, duplicate cleanup, dismissal, explicit close and close/open races; [payload tests](../../TFITests/MobileWorkspaceStoreTests.swift) cover whole-entry budgeting and link rejection.
+
+```mermaid
+flowchart TD
+    Restore["Restore active or stale activity"] --> Retain["Retain version-1 recovery as disconnected summaries"]
+    Retain --> Queue["Serialize next snapshot update"]
+    Explicit["Explicit workspace open"] --> Pending["Record start intent"]
+    Pending --> Queue
+    Queue --> Empty{"No live or retained summaries"}
+    Empty -->|yes| Finish["End activity"]
+    Empty -->|no| Existing{"Active or stale activity exists"}
+    Existing -->|yes| Update["Update bounded snapshot"]
+    Existing -->|no| Allowed{"Pending intent and start allowed"}
+    Allowed -->|yes| Request["Request activity"]
+    Allowed -->|no| Wait["Do not create activity"]
+```
+The Live Activity queue distinguishes restoring recoverable summaries from starting a new activity after explicit user intent.
+
+DEBUG macOS `ScreenshotDemoConfiguration` binds one validated scene to `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de` or `fr` and isolated fixtures; mobile captures mount real views. Recapture affected scenes in all locales using actual platform UI rather than changing production logic for screenshots. See [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 
 ### Website evidence boundary
 
@@ -272,5 +304,7 @@ Once source is available, follow the documented website workflow (`cd com.akinok
 - Native entitlement policy and gates: update resolver, feature gates and app reconciliation together; run `RevenueCatCommerceTests`, `ProPaywallStateTests`, `ProAccessTests`, Metrics tests and platform-specific gate tests. Check live entitlement configuration and account migration separately from the local StoreKit metadata fixture. [RevenueCat configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatConfiguration.swift) and [service configuration](../../Frameworks/TermindInfrastructure/Commerce/RevenueCatProPurchaseService.swift) explain the native SDK boundary, not public-site promises.
 - RevenueCat dashboard-owned paywalls and legal copy: inspect the remote layouts, visibility rules, translations, offer terms and legal destinations independently. Compare them with the native [paywall variable contract](../../Frameworks/TermindPresentation/ProPaywallState.swift), [mobile wrapper](../../TFI/Features/Commerce/MobileProView.swift), [desktop wrapper](../../TFM/Features/Commerce/ProPaywallView.swift) and [state tests](../../FrameworkTests/ProPaywallStateTests.swift). These tests verify status mapping, not remote wording or live purchases.
 - Apple storefront metadata: verify live product availability, localized descriptions, prices, introductory-offer eligibility, Family Sharing and purchase/restore behavior in App Store Connect and Sandbox. Neither website prices nor the local fixture establish the offer a particular user receives. See [Storefront Commerce Release Checks](../operations/storefront-commerce-release.md).
+- Review invitations: run `AppReviewControllerTests` and `MobileAppReviewTests`; preserve elapsed-time and entry-snapshot semantics, shared-window response invalidation, rejected-open behavior and preview isolation. Use `TERMIND_REVIEW_PREVIEW=1` to attach the mobile invitation renders; inspect layouts rather than treating successful rendering as translation approval.
+- Mobile cards and Live Activity: check both card densities and run `MobileCardTests`, opt-in `MobileCardRenderingTests`, `MobileLiveActivityRestorationTests` and `MobileWorkspaceStoreTests`. Keep recovery references out of URLs and preserve whole-entry payload budgeting.
 - App catalogs: run `python3 Scripts/normalize-string-catalogs.py --write` after app catalog edits, `Scripts/check-appstrings.sh`, `python3 Scripts/check-localization.py`, `python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'`, `PresentationCopyTests` and `AppLanguageTests`; review actual screens separately. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) and [Build, Test, and Release](../operations/build-test-and-release.md). Language preferences and sync ownership are discussed in [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md); visual copy checks complement [UI Design Principles](ui-design-principles.md).
 - Independently authored website claims: obtain the website source and inspect the deployed site before comparing its FAQ, offers, prices, privacy/security disclosures and localized routes with native entitlement and sync behavior. Build and visually check the routes actually present in that checkout. Keep unavailable content explicitly unverified; native string tests and RevenueCat state tests do not validate it.

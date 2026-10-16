@@ -16,22 +16,36 @@ sources:
     resource: repo://fastlane/lib/screenshot_frames.rb
   - id: openwiki-source-cf46ee9dde9e2af41c84b62f
     resource: repo://fastlane/lib/screenshots.rb
-  - id: openwiki-source-d87a42cf655efbaeefd54d4d
-    resource: repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
-  - id: openwiki-source-68ca54483f1d0e8fb48ee5cc
-    resource: repo://Frameworks/Resources/Assets.xcassets/LinuxDistributions/LinuxDistro-ubuntu.imageset/Contents.json
+  - id: openwiki-source-26bdff114608543f8cc38ddd
+    resource: repo://Frameworks/Resources/HostIcons.json
+  - id: openwiki-source-239f864516a76b0f7c0543bc
+    resource: repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md
+  - id: openwiki-source-ac4b9ccbbbd2382cffc03d61
+    resource: repo://Frameworks/Resources/HostIcons/Tabler.LICENSE
+  - id: openwiki-source-18713c72c4812e786f8b4a30
+    resource: repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift
   - id: openwiki-source-a6809548e658973d3caeb87b
     resource: repo://Frameworks/TermindPresentation/HostDistributionIcon.swift
+  - id: openwiki-source-46c1c5043fd4f996167d68c1
+    resource: repo://Frameworks/TermindPresentation/HostIconBrandColor.swift
+  - id: openwiki-source-6c30416f939593ee31f56380
+    resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
+  - id: openwiki-source-c64a723125ae79e3e2e47109
+    resource: repo://Frameworks/TermindPresentation/HostIconPicker.swift
   - id: openwiki-source-9991b648b0458ed9d4eb11d5
     resource: repo://Frameworks/TermindPresentation/HostSystemIcon.swift
-  - id: openwiki-source-9f84e62524d638f4155e0c76
-    resource: repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift
+  - id: openwiki-source-b41ffbd407a598b50512e10b
+    resource: repo://FrameworkTests/HostIconTests.swift
   - id: openwiki-source-88fc7ecb318dc280f6715036
     resource: repo://Scripts/render-pro-paywall-icon.swift
   - id: openwiki-source-60d4159ef162d09de4f4b469
     resource: repo://Scripts/run-screenshot-demo.sh
   - id: openwiki-source-4a3da903a25eadf04e18c0fe
     resource: repo://Scripts/Tests/test_screenshots.rb
+  - id: openwiki-source-8cf5084412ee85381e0ef517
+    resource: repo://Scripts/update-host-icons.py
+  - id: openwiki-source-66092b0aa632065907bc7606
+    resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-0ffab0ae6452f870ce4a0efe
@@ -52,14 +66,16 @@ sources:
     resource: repo://TFM/Features/Commerce/ProPaywallView.swift
   - id: openwiki-source-6477f7482bee83060dc1667d
     resource: repo://TFM/Resources/AppIcon.icon/icon.json
+  - id: openwiki-source-6e24c51785378202d2983e92
+    resource: repo://TFMTests/HostIconPresentationTests.swift
   - id: openwiki-source-db017475c6e5a30e0527fd60
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-7185b2e5254dcfff2e6ac796
     resource: repo://TFMTests/Screenshots/ScreenshotDemoTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Marketing Assets and App Icons
@@ -130,7 +146,7 @@ Mac capture opens and focuses the real Termind window and moves the pointer. Run
 
 ## Capture matrix and commands
 
-Both platform lanes build for testing once, then invoke scan serially with modified `.xctestrun` files for each locale/scene or locale/device. The runner preserves other test targets and host settings, sets Apple language/region/locale, disables parallel testing and keeps package resolution pinned with `-onlyUsePackageVersionsFromResolvedFile`. There are no automatic test retries hiding capture failures.
+Both platform lanes build for testing once, then invoke scan serially with modified `.xctestrun` files for each locale/scene or locale/device. Locale settings pair `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `de`, `fr` with regions `US`, `CN`, `TW`, `JP`, `KR`, `DE`, `FR` and Apple locales `en_US`, `zh_CN`, `zh_TW`, `ja_JP`, `ko_KR`, `de_DE`, `fr_FR`. `LC_NUMERIC=C` keeps Ghostty numeric parsing invariant independently of localized UI. The runner preserves other test targets and host settings, sets Apple language/region/locale, disables parallel testing and keeps package resolution pinned with `-onlyUsePackageVersionsFromResolvedFile`. There are no automatic test retries hiding capture failures.
 
 ```sh
 bundle exec fastlane mac screenshots scenes:hosts,workspace,agent,command,metrics
@@ -193,7 +209,7 @@ The runner rejects an inactive display before starting its capture tests. It pas
 
 `MobileScreenshotTests` is serialized and opt-in under `TERMIND_SCREENSHOTS=1`. Scan enables `TERMIND_SCREENSHOT_SYSTEM_CAPTURE=1`, sets one locale, device, selected scene set and unique capture ID, and mounts feature views with in-memory data. SSH and SFTP use the **real `MobileRootView` workspace shell** with injected connection services, not an isolated terminal/browser mock. The workspace scene phase is explicitly active. The selected fixture tab installs `mobileToolbarEnvironment()` so toolbar layout is derived from the native shell instead of falling back to a detached view's defaults. iPad Vault and Assistant show their sidebar; Metrics, SSH and SFTP hide it for the capture.
 
-For SSH, disconnect the simulator hardware keyboard, dismiss first-use keyboard tips, and return to the Home Screen before starting a batch. The fixture requires a focused terminal, the native software keyboard and attached keyboard accessory; an accessory-only hardware keyboard strip is rejected. It scopes an English/ASCII QWERTY input-mode override to the opt-in capture, restores it afterward, and localizes app chrome separately from terminal commands/output.
+For SSH, disconnect the simulator hardware keyboard, dismiss first-use keyboard tips, and return to the Home Screen before starting a batch. The fixture requires a focused terminal, the native software keyboard and attached keyboard accessory; an accessory-only hardware keyboard strip is rejected. It scopes an ASCII-capable input-mode override to the opt-in capture, preferring English when installed and otherwise a native non-emoji text keyboard, restores it afterward, and localizes app chrome separately from terminal commands/output.
 
 System captures use 9:41, **100%** battery in the discharging state, three Wi-Fi bars and four cellular bars. Status override is cleared after the batch, including failure. Capture launch arguments are isolated in the test configuration, not persistent user settings.
 
@@ -319,7 +335,7 @@ A separate website rendition can be exported from the Mac source to an initializ
   --platform macOS --rendition Default --width 1024 --height 1024 --scale 1
 ```
 
-Shared `Frameworks/Resources/Assets.xcassets` instead owns runtime AccentColor and vector/template Linux-distribution icons. The distribution catalog resolves IDs/like-IDs; host icons use host/brand/accent tint or `server.rack` fallback. These are not marketing device frames or the compiled app icon.
+Shared `Frameworks/Resources/Assets.xcassets` owns runtime AccentColor and vector/template host artwork, separately from marketing frames and compiled app icons. See the host-artwork workflow below.
 
 ```sh
 swift Scripts/render-pro-paywall-icon.swift
@@ -328,6 +344,52 @@ swift Scripts/render-pro-paywall-icon.swift
 The renderer checks the initialized asset checkout and writes `design/paywall/pro_hero_light.png` and `pro_hero_dark.png`, at 4× an 80×72-point SwiftUI canvas. These are remote RevenueCat image-component handoffs. Native `ProPaywallView` / `MobileProView` embed `RevenueCatUI.PaywallView`; rendering files neither updates native app icons nor publishes a remote paywall. Review/re-upload intentionally after symbol/color changes.
 
 `MobileIconRenderingTests` is a separate opt-in in-app icon/UI-label rendering suite under `TERMIND_ICON_SCREENSHOTS=<locale>`. Its temporary PNGs are not release captures, App Store boards or Icon Composer output.
+
+## Runtime host artwork
+
+Host artwork describes a host, not the Termind application brand or connection status. [HostIconCatalog](../../Frameworks/TermindPresentation/HostIconCatalog.swift) loads `HostIcons.json` from `Bundle.main`; missing or undecodable data produces an empty catalog. The current catalog replaces the missing `LinuxDistributionIconCatalog` reference in this guide. The generated asset directory is still named `Assets.xcassets/LinuxDistributions`, but now also contains `HostOS-macos` and `HostOS-windows`.
+
+### Automatic detection versus saved choice
+
+`HostIconPicker` in host organization fields offers **Automatic** (`nil`), **Server** (`"server"`), then macOS, Windows and the remaining entries sorted by localized title. An unknown saved ID remains visible as an unknown choice rather than being silently discarded.
+
+- Automatic resolves the detected distribution's exact ID, then its ordered `likeIDs`. Darwin detection maps to `macos` without pretending that Linux `/etc/os-release` metadata was returned. Other non-Linux kernels, including `Windows_NT`, resolve to no detected artwork; the Windows catalog entry is an explicit artwork choice, not proof of Windows auto-detection. Unavailable probe data leaves the prior detection unchanged.
+- A non-nil `iconOverrideID` wins outright. `"server"` and unknown IDs resolve to no catalog entry and therefore the generic `server.rack`, **not** the detected Linux icon. Clearing the override uses the latest recorded detection.
+- The override changes presentation only: probes continue updating `detectedDistribution`, and saving artwork does not reconnect sessions. It is saved/synced, including Tailscale host preferences; failed saves must not publish draft artwork. Legacy host data defaults to Automatic, and unknown IDs survive round trips.
+
+```mermaid
+flowchart TD
+    Host[Host artwork request] --> Override{Saved override present?}
+    Override -->|Yes| Lookup[Look up override ID]
+    Lookup --> Entry{Catalog entry found?}
+    Override -->|No| Detect[Match detected ID then ordered like IDs]
+    Detect --> Entry
+    Entry -->|Yes| Asset[Render template asset]
+    Entry -->|No| Generic[Render server.rack]
+    Asset --> Tint[Host color then adapted brand color then accent]
+    Generic --> Tint
+```
+The override is authoritative even when unknown; detection is only consulted in Automatic mode.
+
+`HostDistributionIcon` applies the host color tag first, then `HostIconBrandColor` from the entry's six-digit brand hex, then AccentColor. Brand adaptation blends toward the current semantic label color in 5% steps until it reaches 3:1 against the semantic surface with the icon's 16%-opacity tint background, or exhausts the steps. Explicit host colors bypass this adaptation. macOS starts from Simple Icons Apple black; Windows uses `0078D4`, explicitly recorded as a Termind presentation choice rather than upstream color metadata.
+
+### Reproducible resource generation and licenses
+
+Run from the application repository, independently of the website submodule:
+
+```sh
+python3 Scripts/update-host-icons.py --simple-icons-version 16.29.0 --tabler-version 3.49.0
+# Retained compatibility entry point (Simple Icons version only):
+Scripts/update-linux-distribution-icons.sh 16.29.0
+```
+
+The shell compatibility wrapper **still exists** and delegates to the host updater; do not describe it as removed. The Python updater requires explicit release-shaped versions rather than moving tags, checks npm metadata version and SHA-512 tarball integrity, and uses `Scripts/linux-distribution-icons.json` as the Linux selection/alias input. It adds Apple/macOS from Simple Icons and Windows from Tabler's filled `brand-windows.svg`.
+
+Generation parses SVGs, rejects scripts, foreign objects, embedded images and links, and substitutes black for `currentColor` so Xcode can rasterize them. It emits universal vector-preserving template imagesets, `Frameworks/Resources/HostIcons.json` with source/version/integrity and per-entry provenance/color metadata, and `Frameworks/Resources/HostIcons/` license files. All inputs are staged and validated before generated outputs are replaced; replacement deletes/copies directories and is **not** a crash-atomic transaction. Review all three outputs together and keep stable IDs when extending the selection input.
+
+Retain `SimpleIcons.LICENSE.md`, `SimpleIcons.DISCLAIMER.md` and `Tabler.LICENSE` with generated artwork. Simple Icons' package CC0 dedication does not establish that every brand icon is CC0: check individual licenses, source URLs, trademarks and current brand guidelines; null license metadata is not permission. Tabler's MIT notice requires its copyright and permission notice in copies or substantial portions. These host-artwork obligations are separate from the local Apple device-template licenses and external brand-master review.
+
+Focused regression coverage lives in `FrameworkTests/HostIconTests.swift`: override precedence, Darwin and Linux fallback detection, returning to Automatic without reconnects, persistence/sync and Tailscale round trips, migration and failed-save isolation. `TFMTests/HostIconPresentationTests.swift` checks every bundled asset loads and black/Windows brand colors meet 3:1 in light/dark appearance; its separate visible-window rendering suite is opt-in. Inspect these tests when changing catalog IDs, generation, tint or persistence. No generator network run or visual approval was performed for this update.
 
 ## Validation and release checklist
 
@@ -355,13 +417,4 @@ For website work after initialization:
 
 Confirm prerequisites, actual routes, redirects, responsive layouts and deployment settings from the external checkout before publication. For store delivery, derive an inventory from the inspected files and intended upload requirements rather than asserting a fixed board count. Check embedded profiles, not merely colorspace labels. Preserve per-run failure output and back up originals; do not alter unrelated assertions or production behavior to satisfy marketing fixtures.
 
-<!-- openwiki: broken internal link [../architecture/supporting-system-directories.md] file "../architecture/supporting-system-directories.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-See [Supporting Systems](../architecture/supporting-system-directories.md) for repository boundaries, [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
-nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
-se Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
-nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
-tures.
-
-<!-- openwiki: broken internal link [../architecture/supporting-system-directories.md] file "../architecture/supporting-system-directories.md" does not exist. Fix the href or restore the target, then delete this comment. -->
-See [Supporting Systems](../architecture/supporting-system-directories.md) for repository boundaries, [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
-nd Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [Storefront Commerce Release Checks](storefront-commerce-release.md) for store validation, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.
+See [Commerce and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for runtime/copy ownership, [UI Design Principles](../concepts/ui-design-principles.md) for presentation guidance, and [Build, Test, and Release](build-test-and-release.md) for ordinary application gates.

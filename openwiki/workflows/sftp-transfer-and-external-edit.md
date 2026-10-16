@@ -1,9 +1,11 @@
 ---
 type: workflow
-title: SFTP Transfer, Scheduling, and External Edit Workflow
+title: SFTP Transfers and External Editing
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 sources:
+  - id: openwiki-source-d593fb9c62c3736497a39486
+    resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
   - id: openwiki-source-eeeeca9ded05fd2db5c3240d
     resource: repo://Frameworks/TermindDomain/Transfers/MultiConnectionPolicy.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
@@ -18,8 +20,6 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
-  - id: openwiki-source-f45e107ba4ae15ff23a99333
-    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift
   - id: openwiki-source-b9bae3a52f35a3a412f81e10
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift
   - id: openwiki-source-79d8ded739aa8dd4fa3f5cdf
@@ -46,22 +46,24 @@ sources:
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-396f97a332870d48c065d7e9
     resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
-  - id: openwiki-source-61a7b49f0fef771653753f14
-    resource: repo://TFM/Features/SFTP/SFTPBrowserView.swift
+  - id: openwiki-source-a93c339a06b550013d027e29
+    resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-0260a25fb41739d94e23d2ea
     resource: repo://TFMTests/AgentConnectionPoolTests.swift
+  - id: openwiki-source-f03189e6e6c7053e3bf09597
+    resource: repo://TFMTests/SFTPChannelTests.swift
   - id: openwiki-source-83498f1ebb2addd4dded3bc1
     resource: repo://TFMTests/SFTPConcurrencySchedulerTests.swift
   - id: openwiki-source-bdee3a21bf24d48b877a78fe
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "pi", at: "2026-10-08T13:28:49.393Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
-  - by: openwiki/0.7.1
-    at: 2026-10-08T13:28:49.393Z
+  - by: openwiki/0.7.0
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 ## Scope and operating model
@@ -89,7 +91,23 @@ Conflict inspection precedes mutation. Preflight identifies conflicting director
 
 For a same-host remote copy, planning rejects copying a file onto itself and rejects a directory target within the source subtree before conflict handling. Cross-host work is still a direct SFTP-to-SFTP stream: it does not materialize a local intermediary. When endpoint channels share the same SSH transport, the implementation alternates bounded reads and writes; otherwise it relays bytes through an in-process socket pair while download and upload run together. Both paths validate source size/identity and write a temporary destination before rename. [^self-copy-guard] [^copy-streaming]
 
-Desktop SFTP context menus can open an SSH companion in the current or a new workspace at the browser’s current directory. This creates a normal host session; it does not turn a transfer transport into a terminal. The action resolves the source SFTP pane by session ID, requires its connected state and nonempty path plus a saved host, and selects that pane before current-workspace placement. The reciprocal terminal action opens SFTP at the live terminal’s known working directory.
+Desktop SFTP context menus can open an SSH companion in the current or a new workspace at the browser’s current directory. This creates a normal host session; it does not turn a transfer transport into a terminal. The action resolves the source SFTP pane by session ID, requires its connected state and nonempty path plus a saved host, and selects that pane before current-workspace placement. The reciprocal terminal action opens SFTP at the live terminal’s known working directory. [^companion-source]
+
+When a terminal supplies a `directoryContextTicket`, companion dispatch first awaits `confirmDirectoryContext`, then resolves the source again and checks that its workspace, path, and ticket are still current. A failure or changed context aborts the open. `openSFTPChannel` creates a new pane/model rather than finding an existing same-host browser; current-workspace placement splits to the right only when the focused pane is SSH, otherwise it opens a new workspace. Moving an existing pane is different: it preserves the browser model and connection. [^companion-placement]
+
+### Browser session integration and path context
+
+`SFTPChannelModel` owns the browser's live channel, navigation, and pending batches. It connects through `RemoteConnectionCoordinator.connectSFTP` and the shared `RemoteSessionConnectionController` for authentication, host-key prompts, connection journey, and recovery. Before installing a channel it checks cancellation and the connection-attempt ID, resolves the home directory, and checks the attempt again. A successful attempt creates a fresh control-role `SFTPTransferContext` with an additional-connection snapshot and host store; the model exposes only `.context` for queued transfer work, not its raw control channel. Reconnection retires and clears the old context before retrying, so browser recovery does not silently resume paused queue jobs. [^browser-integration]
+
+An empty configured initial path means **resolve the server's home**, not browse `/`: `/` is only the model's provisional value. Home resolution uses SFTP `REALPATH` on `.` and requires an absolute result. With an explicit initial path, home-resolution failure leaves that path usable but home display unavailable; without one, it fails connection setup. External-resource paths `/~` and `/~/…` are resolved against that authenticated home, never the local user's home; the resource is inspected before deciding to browse it or open a file from its parent. [^browser-path-context]
+
+Listing refresh captures the path, connection attempt, and history object and applies its result only if all still match a connected browser. Upload and copy planners use the browser path as their destination; queued downloads, uploads, copies, promised files, and edit operations also receive `homeResolution.resolvedDirectory` as path context. Actual targets remain the planned remote paths. For basic metadata mutations, the shared `RemoteFileSystem` helpers validate a new leaf name, join it to the remote parent, refuse overwrite on rename, and mask permissions to `0o7777`. [^browser-listing-context]
+
+[^companion-source]: `TFM/Features/Workspaces/WindowModel.swift#L861-L919`.
+[^companion-placement]: `TFM/Features/Workspaces/WindowModel.swift#L868-L894`; `TFM/Features/Workspaces/WindowModel.swift#L1037-L1062`; `TFMTests/SFTPChannelTests.swift#L74-L122`.
+[^browser-integration]: `TFM/Features/SFTP/SFTPChannelModel.swift#L316-L318`; `TFM/Features/SFTP/SFTPChannelModel.swift#L474-L537`; `TFM/Features/SFTP/SFTPChannelModel.swift#L1212-L1243`.
+[^browser-path-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L202-L233`; `TFM/Features/SFTP/SFTPChannelModel.swift#L670-L729`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L167-L185`.
+[^browser-listing-context]: `TFM/Features/SFTP/SFTPChannelModel.swift#L807-L825`; `TFM/Features/SFTP/SFTPChannelModel.swift#L940-L1146`; `Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift#L16-L47`.
 
 ## Admission, fairness, and SSH topology
 
@@ -272,9 +290,17 @@ Cancellation and terminal failure try to delete the local download temporary or 
 
 Closing a pane is not transfer cancellation. `releaseOwner()` merely drops the pane’s ownership; queued and active jobs retain the context connection until their transfer references and active slots are gone. When a pause has released its transfer reference and the owner is gone, the unused primary is disconnected; a later explicit resume reopens silently from the snapshot. Conversely, `retire()` disconnects a failed primary and prevents it from being installed into a replacement browser generation. [^context-ownership] [^context-close] [^pause-ownership]
 
+Cancellation controls have different scopes. `cancelPendingBatch()` only forgets prepared browser batches; `cancelOperation()` signals the browser's recursive-delete token. Neither is queue cancellation. Once enqueued, cancellation belongs to the coordinator: it cancels admission or signals the runtime token, performs partial cleanup, releases retained ownership, and finishes the queue row. `pauseAll()` pauses resumable work and cancels work that cannot pause. Browser disconnect clears pending batches and releases the context owner instead of cancelling those queue rows. [^cancellation-scopes]
+
+[^cancellation-scopes]: `TFM/Features/SFTP/SFTPChannelModel.swift#L619-L641`; `TFM/Features/SFTP/SFTPChannelModel.swift#L909-L938`; `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L350-L427`.
+
 ## External edit lifecycle
 
 `SFTPEditService` is application-scoped and tracks one managed local copy per `(hostID, remote path)`. Opening validates that the target is a regular file, downloads it through the same coordinator into `TemporaryDirectory/TermindEdits/<UUID>/`, records a remote baseline/version and local SHA-256 digest, and returns the existing copy for a compatible repeated open. It stores route identity—not credentials—alongside the copy, and invalidates tracking if the host route or connection destination no longer matches. [^edit-open] [^edit-destination]
+
+The edit service, not the pane, owns an in-flight open: concurrent opens for the same key join one task, and the queued download supplies a version receipt from its own handle. Production completion can therefore register the editable copy after the browser has closed without restatting through a disconnected browser channel. If no receipt exists, the service falls back to a stat through the supplied client. A plain open without an edit service instead downloads to `TemporaryDirectory/Termind/Open/<UUID>/` and invokes the opener only on completion; it does not establish a managed edit round trip. [^edit-pane-lifetime]
+
+[^edit-pane-lifetime]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift#L78-L139`; `TFM/Features/SFTP/SFTPChannelModel.swift#L988-L1023`.
 
 The service observes local copies and rechecks their digests. It uses file observation plus a one-second pass, with a forced full hash every 30 ticks, so editor atomic-save replacement and preserved timestamps are detected. Clean records remain reusable; cards represent dirty state rather than ownership of the copy. [^edit-monitoring]
 

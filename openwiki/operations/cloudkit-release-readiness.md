@@ -54,6 +54,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV45KeyModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
+  - id: openwiki-source-e6dff91a0024d952d88a2b56
+    resource: repo://Frameworks/TermindPersistence/VaultWireV5.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-d785833dd230253fdc4946d7
@@ -68,18 +70,24 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-b7edf1d892ee300ba46cecd4
     resource: repo://FrameworkTests/HistorySyncTests.swift
+  - id: openwiki-source-b41ffbd407a598b50512e10b
+    resource: repo://FrameworkTests/HostIconTests.swift
   - id: openwiki-source-e722f35e92f0823055985cb7
     resource: repo://FrameworkTests/NotificationPreferencesTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-01fd62d857f198c9f92cb8a5
     resource: repo://FrameworkTests/RetiredTerminalHighlightingTests.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-fce837c614f18611765f3804
     resource: repo://FrameworkTests/SFTPSettingsSyncTests.swift
   - id: openwiki-source-a6f48b126bfcd6573fe06736
     resource: repo://FrameworkTests/SFTPSettingsTests.swift
   - id: openwiki-source-3b1e8e4540cb99cbbd7863f5
     resource: repo://FrameworkTests/SnippetColorTests.swift
+  - id: openwiki-source-4424a66db00f5bfe64f184c0
+    resource: repo://FrameworkTests/TailscaleSyncSafetyTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-cd0be716a2446029f345525a
@@ -100,10 +108,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
     resource: repo://TFMTests/DatabaseStartupGuardTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # CloudKit Release Readiness
@@ -205,14 +213,14 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V52** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. Both apps obtain their local container from `TermindPersistence.makeContainer`: mobile passes its Application Support `Termind.store` URL; macOS uses the factory's default file configuration outside tests and screenshot demos. On macOS, before opening that file-backed container, startup also checks for another running app with the same bundle identifier. This prevents a concurrently running older installation, which might not respect the newer store lock, from opening the shared sandbox; a conflict presents a database-in-use alert and exits instead of migrating. Tests and screenshot demos use an in-memory container and skip this process check. The factory creates file or in-memory `ModelConfiguration` values with the shared **V54** versioned schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`. **The SwiftData container does not mirror to CloudKit**: private-database transport and its journals are owned by the category coordinators. On macOS, the factory additionally takes a per-store cross-process lock *before* opening or migrating the file and retains it for the container lifetime; an in-use store can reject a second process rather than race a migration.
 
-Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35→V36→V37→V38→V39→V40→V41→V42→V43→V44→V45→V46→V47→V48→V49→V50→V51→V52→V53→V54, skipping V29, V32 and V33 as migration endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["V28 to V30 to V31 to V34 to V52"]
+    Factory --> Local["V28 to V30 to V31 to V34 and onward to V54"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -283,4 +291,35 @@ Release sign-off should record, separately:
 
 See [Settings, Vault, Metrics, and Cloud Sync Workflow](../workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](../concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](build-test-and-release.md) for ordinary build gates.
 
-Current compatibility gates are per kind: Host and Snippet write V2 (also read V1); HostGroup and SSHKey write V3 and read V1/V2/V3; Metrics selection writes V2 and reads V1/V2. Tailscale group configuration is part of HostGroup, while managed peer Hosts, sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup and V51 adds Snippet color over the frozen historical Snippet model. SnippetColorTests creates a V50 disk store, upgrades retaining data, writes color and reopens again; V1 writes reject color and a newer received V1 record clears color to none. Validate mixed-version group/key/metrics/Snippet edits, tombstones, quarantine and refetch independently of the V51 local migration; these fixtures do not prove signed-device delivery.
+## Current local and wire compatibility gates
+
+Do not equate **local SwiftData V54**, per-kind `formatVersion`, and stable `v1/...` record identities. The [container factory](../../Frameworks/TermindPersistence/TermindPersistence.swift#L22-L40) selects V54 without enabling SwiftData CloudKit mirroring; [SyncRecordFormats](../../Frameworks/TermindDomain/Vault/SyncRecordFormats.swift#L3-L58) independently selects each wire reader/writer.
+
+| Kind | Current writer | Accepted readers |
+| --- | --- | --- |
+| Host | V5 | V1, V2, V4, V5 — **not V3** |
+| HostGroup | V5 | V1, V2, V3, V4, V5 |
+| SSHKey | V3 | V1, V2, V3 |
+| Snippet | V2 | V1, V2 |
+| Metrics selection | V2 | V1, V2 |
+
+Tailscale group configuration is part of HostGroup; managed peer Hosts cannot encode as standalone Vault Host records. Sign-in/profile/cache data and profile cleanup remain local. V49 removes durable command/SFTP history, V50 adds profile cleanup, V51 adds Snippet color over the frozen historical Snippet model, and V52 removes highlighting. V53 replaces the local Host model for session-persistence preferences; V54 replaces it again for `iconOverrideID`. Both V52→V53 and V53→V54 are lightweight migration stages, not CloudKit format upgrades.
+
+### Host V5 upload and decode checks
+
+A default `VaultEnvelope` takes its writer version from the kind registry. Vault's final record provider rechecks upload permission and configuration-kind eligibility, reads the scoped journal's outgoing entry and passes it to record coding. [VaultSyncCodec](../../Frameworks/TermindPersistence/VaultSyncPersistence.swift#L56-L139) dispatches V5 encoding and registers V4/V5 decoders specifically for Host and HostGroup. [VaultWireV5](../../Frameworks/TermindPersistence/VaultWireV5.swift) wraps V4 data: Host adds its optional artwork override; HostGroup adds overrides indexed by lowercase UUID for existing Tailscale host preferences. Invalid or orphaned group override keys fail decoding. User-selected artwork stays separate from detected-distribution metadata.
+
+Older-format writes must not silently lose these fields: formats below V5 reject nonnil Host or group-peer icon overrides; formats below V4 reject nondefault session-persistence preferences. Host V3 is unsupported even though HostGroup V3 exists. Include protocol tombstones as well as live payloads in mixed-version tests.
+
+### Focused repository checks
+
+These are inspected test contracts, **not a report that the tests were executed or that a release is ready**:
+
+| Check | Repository assertion and boundary |
+| --- | --- |
+| [HostIconTests](../../FrameworkTests/HostIconTests.swift#L95-L212) | Saved ordinary Host choices pass through the journal and wire codec to another store, including unknown IDs and clearing to Automatic. Tailscale choices survive rediscovery and HostGroup wire round trips. Older Host formats reject lossy artwork writes; Host tombstones round-trip in V1/V2/V4/V5. A V53 disk store migrates, retains existing fields, saves artwork and reopens through the current factory. |
+| [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift#L50-L116) | Legacy Host/group formats reject nondefault session preferences; a V52 disk Host store opens twice through the current factory with persistence disabled. This is not a save-and-reopen test of a newly enabled session setting. |
+| [SnippetColorTests](../../FrameworkTests/SnippetColorTests.swift#L61-L141) | A V50 disk store retains content and relationships, saves color and reopens. V1 rejects colored writes; a newer received V1 clears color to none; both Snippet tombstone versions round-trip. |
+| [TailscaleSyncSafetyTests](../../FrameworkTests/TailscaleSyncSafetyTests.swift#L13-L86) | A simulated older HostGroup capability plus quarantine causes restart to discard the cursor, reread, merge, unblock and advance to the current capability. Metrics similarly replays an unsupported selection. Despite the `v3ReplayAcceptsIndependentConnectionsToTheSameTailnet` name, its record uses the current default writer; this is **not** a frozen V3 payload or a Host-V5-specific replay fixture. |
+
+Capability identity is derived from sorted per-kind **reading** versions. Adding a decoder therefore requires full rereading even if CloudKit has no new changes; only successful fetch/reconciliation persistence advances the checkpoint. Retain failed-fetch fencing and failed-merge rollback checks alongside the successful replay test. Validate mixed-version Host/HostGroup/key/Metrics/Snippet edits, tombstones, quarantine and refetch independently of local migrations. Add signed new→old→edit→new coverage for session preferences and artwork, including Tailscale peer overrides; the repository checks above do not establish live CloudKit delivery.

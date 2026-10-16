@@ -42,6 +42,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift
   - id: openwiki-source-600c0f7b9ebcdcb58b4a0d05
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMetricsSampler.swift
+  - id: openwiki-source-485aed7d2b2c06cef38fcfdd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-b3ff2edaa14925d2360e5532
@@ -80,10 +82,14 @@ sources:
     resource: repo://TFMTests/SSHAgentForwardingWireTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "pi", at: "2026-10-04T16:22:58.117Z" }
+  - id: openwiki-source-fc9dd746ee8dc0791104d397
+    resource: repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift
+  - id: openwiki-source-8acd4116a2931da5a6eb11ef
+    resource: repo://TFMTests/TerminalContextWireTests.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-06T18:02:45.153Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 
@@ -112,7 +118,7 @@ These controls compose rather than replace each other. For example, an SFTP file
 
 | Service | Primary owner and connection shape | Interactive behavior | What it does not inherit |
 | --- | --- | --- | --- |
-| Interactive terminal | `SSHPTYChannel` opens a PTY and shell on its own authenticated connection. | Its connection journey may obtain trust, credentials, and keyboard-interactive answers. | It does not make those answers durable for later physical connections. |
+| Interactive terminal | `SSHPTYChannel` owns an authenticated connection shared by its PTY, preparation/control exec requests, and borrowed SFTP channels. | Its connection journey may obtain trust, credentials, and keyboard-interactive answers. | It does not make those answers durable for later physical connections. |
 | Metrics | Application-owned `ServerMetricsModel` runs one serial worker per enabled, available SSH Host selection on a dedicated sampler connection; `SSHMetricsSampler` performs bounded SSH exec requests. | Each `ServerMetric` owns its own `ConnectionJourney`, host-key authorization, and authentication queue; the mobile wrapper delegates to this same core model. | It does not start a terminal shell or use terminal environment variables/startup snippets. |
 | Port forwarding | `PortForwardingController` shares a host-scoped forwarding transport among explicitly started rules; it optionally creates an `SSHForwardingConnectionPool`. | The first open can present the forwarding Journey. Recovery and auxiliary opens forbid interaction. | It does not persist a connected transport, listener, temporary password, passphrase, or once-only trust decision. |
 | Agent SSH/SFTP | `AgentHostServices` supplies a Host resolver, authentication registry, background command owner and Host-keyed `AgentConnectionPool`; ordinarily exec and primary SFTP share its multiplexed connection. Agent-forwarded exec instead uses isolated per-call connections. | Tool invocations use the Agent's SSH interaction service, not a terminal or forwarding Journey. | It is not a TCP forwarding pool or an interactive PTY session. |
@@ -121,15 +127,21 @@ A `PortForwardingRule` is a portable saved description, not a listener. It ident
 
 ## Interactive terminal channels
 
-`SSHPTYChannel` authenticates a connection, acquires a session-channel lease, opens a libssh2 `session` channel, requests an `xterm-256color` PTY, and then starts the remote shell. It owns terminal dimensions, byte conversion, output, and teardown. Closing the PTY retires its transport unless live SFTP channels still hold it; pending native exec closes alone no longer justify keeping it alive. Each external SFTP driver retains the PTY worker through asynchronous close without the owner retaining drivers. Worker deinitialization performs cleanup on its serial queue, synchronizing only when not already there. An SSH channel budget is therefore per physical SSH connection, rather than a process-wide limit.
+`SSHPTYChannel` owns terminal dimensions, byte conversion, output, and teardown. Its PTY acquires a session-channel lease, opens a libssh2 `session` channel, and requests an `xterm-256color` PTY. The simple path starts a remote shell; the prepared path first runs preparation/control exec on the same authenticated transport and can start an exec-based launch command on the PTY instead. Preparation temporarily retains the control connection even before a PTY exists; after startup, a supplied launch keeps that control ownership. This is transport reuse within the terminal owner, not borrowing a Metrics, Agent, or forwarding connection.
+
+Ordinary terminal close retires its transport unless live SFTP channels retain it; pending native exec closes alone do not justify retention. A retained control connection is a separate exception: on PTY EOF it completes CLOSE/FREE and releases the PTY lease before reporting exit, so a post-exit control probe can use even a one-slot server. Each external SFTP driver retains the PTY worker through asynchronous close without the owner retaining drivers. Worker deinitialization performs cleanup on its serial queue, synchronizing only when not already there. See [Shell Integration](shell-integration.md) for terminal-context and startup details.
 
 `SSHMaxSessionsPolicy` supplies that per-connection `SSHChannelBudget` from the configured ceiling (default 10, valid range 1–100). PTY, exec, and multiplexed SFTP subsystem channels acquire FIFO leases from the same budget on a connection. A policy update changes live budgets and admits queued work when capacity permits; reducing the limit does not revoke active leases. Cancelling a queued request or closing the budget resumes it with cancellation. Direct/forwarded TCP channels, remote listeners, and jump bridges are forwarding mechanics, so they do **not** consume this OpenSSH-style session budget.
+
+Runtime control exec is deliberately non-waiting: `tryAcquire()` succeeds only with spare capacity and no queued waiters, otherwise it reports `TerminalRuntimeError.capacityUnavailable` instead of waiting behind the long-lived PTY. With a ceiling of one, terminal runtime publication marks multiplexer context unavailable and strips ordinary-context draft read/replace capabilities. This avoids presenting control features that cannot acquire a concurrent session slot.
 
 ```mermaid
 flowchart TD
     Policy["SSHMaxSessionsPolicy"] --> Budget["Per connection FIFO channel budget"]
     Pty["PTY shell"] --> Budget
     Exec["Exec command"] --> Budget
+    Runtime["Runtime control exec"] --> Immediate["Try spare capacity without queueing"]
+    Immediate --> Budget
     Sftp["Multiplexed SFTP subsystem"] --> Budget
     Budget --> Lease["Channel lease"]
     Lease --> Open["Open session channel"]
@@ -140,9 +152,11 @@ This diagram shows admission of SSH session channels; forwarding traffic bypasse
 
 ### Shell-only setup
 
-Host environment variables are encoded using the connection charset and sent as SSH environment requests **after** the PTY request and **before** the shell starts. A server denial of an individual variable is non-fatal and reports only its name through the rejection handler; another environment-request error fails the connection. This behavior is intentionally PTY-only: exec, SFTP, Metrics, Agent, and forwarding channels do not inherit these values.
+Host environment variables are encoded using the connection charset and sent as SSH environment requests **after** the PTY request and **before** shell or exec-based PTY startup. A server denial of an individual variable is non-fatal and reports only its name through the rejection handler; another environment-request error fails the connection. These SSH environment requests belong to the PTY channel, not its preparation exec channels or other services such as Metrics, Agent, SFTP, and forwarding.
 
-Shell integration is likewise a terminal concern. When enabled, the PTY channel queues `RemoteShellIntegrationBootstrap.startCommand` after shell startup. Its state machine suppresses its probe/install exchanges from terminal output where possible, preserves ordinary banner/prompt output, and becomes non-blocking if the remote probe is late or the user types. It is not a generic SSH bootstrap mechanism and must not be added to metrics, forwarding, Agent, or SFTP routes.
+Shell integration is likewise a terminal concern. With integration enabled, the prepared startup path probes and installs helpers through exec on the terminal's transport **before** PTY startup; an ordinary shell then launches through the helper. Optional helper-install failure disables that runtime integration rather than falling back to typing a bootstrap into the terminal. A supplied prepared launch can choose its own command. The simple shell-start path still contains the older queued-bootstrap machinery, but integration-enabled `connect` selects prepared startup. Do not treat integration as a generic SSH bootstrap for metrics, forwarding, Agent, or SFTP routes; follow [Shell Integration](shell-integration.md) for context frames and terminal state.
+
+Focused regression coverage: `TFMTests/SSHMaxSessionsPolicyTests.swift` checks default admission, FIFO order, cancellation, independent transport budgets, and live limit changes without revocation. `TFMTests/TerminalContextWireTests.swift` checks non-queueing runtime admission at a one-slot ceiling. The fixture-gated `TFMTests/SSHPTYChannelLifecycleWireTests.swift` checks that stalled native exec close cannot keep an unowned transport alive and that SFTP siblings survive PTY release until their final close.
 
 ## Metrics: bounded exec sampling, not a login shell
 

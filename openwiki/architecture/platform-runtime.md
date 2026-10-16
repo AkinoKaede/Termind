@@ -1,11 +1,9 @@
 ---
 type: architecture
-title: Native Runtime and State Lifetimes
+title: Platform Runtime and State Lifetimes
 description: How macOS and iOS compose shared storage and runtime services, gate scene creation on local consent, and manage window, session, background and shutdown lifetimes.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
-  - id: openwiki-source-5f99e8af445e073ffe9bc257
-    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-1ebc16ba1a0b0955956023b5
     resource: repo://Frameworks/TermindApplication/Connections/TailscaleConnections.swift
   - id: openwiki-source-875da2c4f1040409e53757af
@@ -70,8 +68,6 @@ sources:
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
   - id: openwiki-source-8d3004f1cede60c9ccecb4d3
     resource: repo://TFI/Platform/MobileNotificationRouter.swift
-  - id: openwiki-source-de285e30d853611503042782
-    resource: repo://TFI/Platform/MobileWorkspaceSceneRouting.swift
   - id: openwiki-source-c128ba4d61fc5b0e803b6ec1
     resource: repo://TFI/UI/Components/MobileToolbarSearch.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
@@ -108,8 +104,6 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-dad03c68d6b805a4170ffc02
     resource: repo://TFM/Platform/WorkspaceCloseConfirmation.swift
-  - id: openwiki-source-73c75477db0674192248aa00
-    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-39248df19c48bb72235c6e8d
     resource: repo://TFMTests/AppTestHostTests.swift
   - id: openwiki-source-e6490dc6a3e86e39aa4323fc
@@ -124,13 +118,13 @@ sources:
     resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# Native Runtime and State Lifetimes
+# Platform Runtime and State Lifetimes
 
 Both production entrypoints assemble a local diagnosis controller with installation-local consent and a reporter initially enabled **only** if consent was already granted. An unset choice gates the normal root UI, not container construction: the desktop `WindowGroup` shows `DiagnosisConsentView` instead of constructing `RootView`/`WindowModel`, and `MobileStartupView` shows that view instead of binding a scene session. Screenshots and default test assemblies use an inert controller without defaults or reporter, so they do not require a consent choice. On iOS, a failed model construction still takes the unavailable-store branch rather than showing consent. See [Persistence and Secrets](../concepts/persistence-and-secrets.md) for storage details.
 
@@ -191,7 +185,8 @@ The boundary is enforced by `ArchitectureBoundaryTests`: mobile Application excl
 | Process / app model | One `AppModel`, retained in `TermindApp` state | One `MobileAppModel`, created before the `WindowGroup` | SwiftData container, host library, settings and sync coordinators, shared remote coordinator, connection history, transfer and forwarding services, entitlement/review state |
 | Native window / scene | `WindowModel` per main window | `MobileSceneModel` per SwiftUI scene, bound to an app-managed `MobileWorkspaceSessionModel` by UIKit session ID | destination, selection, sheets, navigation routes, focused-value command routing, scene-local assistant navigation |
 | Workspace and session | Desktop `Workspace` and panes are owned by one `WindowModel` | Each `MobileWorkspaceSessionModel` owns its own ordered descriptors and live `MobileWorkspace`s; `MobileAppModel` coordinates all sessions | terminal or SFTP UI, connection journey, transport, terminal state, workspace-specific operations |
-| Durable state | SwiftData, Keychain, supported UserDefaults and sync stores | Same categories, plus an app-written `MobileWorkspaceStore` snapshot keyed by persistent UIKit session ID | Hosts and settings, secret references, connection history, mobile per-window workspace descriptors |
+| Durable state | SwiftData, Keychain, supported UserDefaults and sync stores | Same categories; legacy workspace defaults are retired, not restored | Hosts and settings, secret references, connection history |
+| In-process recovery state | Recently closed windows/workspaces and remote-session references | Ordered workspace descriptors and app-wide recently closed records, keyed to native owners | Reopen intent, not a disk-backed workspace cache |
 | Ephemeral runtime state | Never restored as a live connection | Never restored as a live connection | SSH/SFTP transports, authentication journeys, one-shot URL credentials, in-flight runs/transfers |
 
 A useful consequence is that sharing a desktop `AppModel` does **not** make its `WindowModel`s share selection, sidebar/search state, or workspaces. On mobile, two native windows opening the same Host create independent workspaces and transports. A workspace link received in another window activates the descriptor's existing native owner rather than copying or opening it there. Repeated selection *within the owner* reuses the published workspace and its initial connection attempt.
@@ -267,9 +262,9 @@ The current desktop registration sites are [`RootView`](../../TFM/App/RootView.s
 
 The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. For quiet login launches it hides the normally constructed window rather than running window-less; a one-shot key-window observer and three-second disarm prevent a later user-opened window from being hidden. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On Quit, the delegate schedules confirmation in a main-actor task before any cleanup begins.
 
-`applicationShouldTerminate` returns `.terminateNow` if no app model is attached. Otherwise it latches `awaitingTermination` and returns `.terminateLater`; duplicate requests while confirmation or cleanup is pending return `.terminateLater` without scheduling another task. The task first asks `WorkspaceCloseConfirmation.application` if any nonclosed registered window has workspaces (regardless of connection status). Only explicit destructive confirmation permits quitting: Cancel is the Return-key default. Next it awaits `sftpEdits.recheck()` and, if unuploaded changes remain, asks a separate SFTP quit-anyway question. Either veto replies `false`, resets the latch and leaves shutdown unstarted, so Quit can be retried. The three-second cleanup fallback does **not** bound these confirmation or recheck stages. See [SFTP Transfer and External Edit](../workflows/sftp-transfer-and-external-edit.md).
+`applicationShouldTerminate` returns `.terminateNow` if no app model is attached. Otherwise it latches `awaitingTermination` and returns `.terminateLater`; duplicate requests while confirmation or cleanup is pending return `.terminateLater` without scheduling another task. The task first asks `WorkspaceCloseConfirmation.application` if any nonclosed registered window has workspaces (regardless of connection status). Only the close action permits quitting; it is the Return-key default, while Cancel uses Escape. Next it awaits `sftpEdits.recheck()` and, if unuploaded changes remain, asks a separate SFTP quit-anyway question. Either veto replies `false`, resets the latch and leaves shutdown unstarted, so Quit can be retried. The three-second cleanup fallback does **not** bound these confirmation or recheck stages. See [SFTP Transfer and External Edit](../workflows/sftp-transfer-and-external-edit.md).
 
-An accepted quit saves normal window sizing before invoking `shutdownForTermination()`. Shutdown immediately fences assistant admission, stops notification observers/routing and clears the Dock badge. It cancels pending preparations and stops every conversation in the app-wide store before awaiting any of them, including conversations no longer displayed in a registered window. The preparation drain also joins captured failure persistence for conversations not yet stored. Memory and edit monitoring are suspended, metrics and speech are stopped, registered window models are closed, and SFTP transfers, external authentication, forwarding and the outbox are canceled/stopped.
+An accepted quit saves normal window sizing before invoking `shutdownForTermination()`. Shutdown immediately fences assistant admission, stops notification observers/routing and clears the Dock badge. It cancels pending preparations and stops every conversation in the app-wide store before awaiting any of them, including conversations no longer displayed in a registered window. The preparation drain also joins captured failure persistence for conversations not yet stored. Memory and edit monitoring are suspended, metrics and speech are stopped, registered windows' workspaces are disconnected through `closeAll(intent: .applicationTermination)`, and SFTP transfers, external authentication, forwarding and the outbox are canceled/stopped. This is not `closeForWindow()`: termination empties workspace collections without marking each window model closed. Application termination does not end managed remote sessions.
 
 The retained cleanup task concurrently starts MCP stop and SFTP cancellation waits, joins preparation cancellation and conversation terminal persistence, and awaits both service drains. Only then does it close agent background commands, then agent connection pools, then shut down Tailscale. Repeated shutdown calls reuse that task rather than repeat the asynchronous resource teardown. `AppTerminationReplyCoordinator` races task completion against a three-second fallback and replies `true` exactly once. This bounds the native quit reply after accepted confirmation, **not** completion of every drain; `applicationWillTerminate` safely invokes shutdown again and stops native metrics/appearance observers.
 
@@ -296,7 +291,7 @@ sequenceDiagram
             Delegate->>Model: Save window size and start shutdown
             Model->>Assistant: Fence admission and cancel preparations
             Model->>Assistant: Stop all stored conversations
-            Model->>Services: Stop monitoring and close window models
+            Model->>Services: Stop monitoring and disconnect window workspaces
             Model->>Services: Begin MCP and SFTP drains
             Model->>Assistant: Await preparation and terminal-save drains
             Model->>Services: Await MCP and SFTP drains
@@ -315,7 +310,7 @@ Quit confirmation precedes the SFTP recheck and bounded reply race; assistant pe
 
 ### Native window-close bridge
 
-Closing one main window is a different scope from Quit. `MainWindowRegistrationView` attaches `WorkspaceWindowCloseDelegate` to the native window, preserves the previous delegate and forwards its other selectors. `windowShouldClose` honors the forwarded delegate's veto first, lets empty or already-closed models close without prompting, and asks the window-specific confirmation for populated models. Its reentrancy guard vetoes recursive close requests while the alert is showing. A veto preserves the workspaces and permits a later retry; detaching restores the original delegate. This native veto intentionally stays outside SwiftUI's dismissal dialog, which also participates in Quit.
+Closing one main window is a different scope from Quit. `MainWindowRegistrationView` attaches `WorkspaceWindowCloseDelegate` to the native window, preserves the previous delegate and forwards its other selectors. `windowShouldClose` honors the forwarded delegate's veto first, lets empty or already-closed models close without prompting, and asks the window-specific confirmation for populated models. Its reentrancy guard vetoes recursive close requests while the alert is showing. A veto preserves the workspaces and permits a later retry; detaching restores the original delegate. Accepted native close invokes `closeForWindow()`: it cancels pending persistent-close prompts, remembers the window, marks its model closed and disconnects clients while preserving managed remote-session recovery references. Explicit workspace/pane close can instead require managed-session authorization and end the managed session. This native veto stays outside SwiftUI's dismissal dialog, which also participates in Quit.
 
 The same bridge observes `NSWindow.isDocumentEdited` with initial and new values and resets `true` to `false`: workspaces are not documents, so the edited titlebar decoration is suppressed **without removing the native close confirmation**. These are separate responsibilities, not a document-unsaved-state mechanism.
 
@@ -351,7 +346,7 @@ This diagram shows app-managed mobile workspace sessions with distinct native-wi
 
 ### Dependency assembly and test seams
 
-`MobileAppDependencies` is the mobile assembly seam. Live dependencies create a launch file logger and a single `RemoteConnectionCoordinator`, which is passed to both mobile workspace connections and metrics; the same logger is passed to forwarding. Test dependencies use in-memory mode and permit replacement of the host repository, defaults, background-task manager, workspace connection services, metrics services, review controller, container, workspace store, live-activity controller, and forwarding factory.
+`MobileAppDependencies` is the mobile assembly seam. Live dependencies create a launch file logger and a single `RemoteConnectionCoordinator`, which is passed to both mobile workspace connections and metrics; the same logger is passed to forwarding. Test dependencies use in-memory mode and permit replacement of the host repository, defaults, background-task manager, workspace connection services, metrics services, review controller, container, live-activity controller, native scene routing callbacks, and forwarding factory.
 
 `MobileAppModel` creates or receives its `ModelContainer`, then builds the host repository, outbox, Keychain or in-memory secret store, settings/metrics persistence and sync coordinators, host and credential libraries, AI/skills/memory, assistant, metrics, transfers and SFTP edits, forwarding, histories, the generic device directory, and live activities. The device directory and connection history use separate repositories on the same Vault context and share the stable installation ID; each repository journals its own payload kind transactionally. Session-owned workspace publication notifies the app to start an event and explicit close ends it. Production uses `Termind.store` under Application Support; tests or supplied repositories use an in-memory container and do not enable production live activities or sync coordinators.
 
@@ -363,27 +358,30 @@ The app model wires cross-service invalidation at construction. Local `deleteHos
 
 The UIKit `MobileSceneDelegate` holds a pending Home Screen quick action per scene; `MobileBoundSceneRoot` passes its action and one-shot consumer into `MobileRootView`. The root consumes it on change and asks its own `MobileSceneModel` to open the connection picker or open a recent Host using the Host's **current** preferred connection kind. Unknown shortcuts are rejected; a missing or unusable Host presents the workspace-unavailable alert instead of restoring a stale session. The shortcut list is refreshed from local connection history and host changes, limited to three openable recent Hosts.
 
-`MobileAppModel` manages a registry of `MobileWorkspaceSessionModel`s, one for each persistent native scene ID. Each session owns its **own** live workspaces, ordered descriptors and open/close behavior; `app.workspaces` is an aggregate for global lifecycle and Host cleanup, not a shared pool from which scenes select. Creating a new workspace for the same Host in another window creates a distinct connection. A workspace URL resolves the owning session and asks UIKit to activate that window; if the owner is unavailable, the receiving scene shows an unavailable alert without opening a replacement. In its own session, `openWorkspace(_:)` reuses a live instance or validates a descriptor's Host, publishes the new workspace, then connects it. Repeated selection does not create another attempt, even after an initial connection failure; retry is explicit.
+`MobileAppModel` manages a registry of `MobileWorkspaceSessionModel`s, one for each persistent native scene ID. Each session owns its **own** live workspaces, ordered descriptors and open/close behavior; `app.workspaces` is an aggregate for global lifecycle and Host cleanup, not a shared pool from which scenes select. Creating a new workspace for the same Host in another window creates a distinct connection. A workspace URL resolves the owning session and asks UIKit to activate that window; A UUID-only link without an owner or recoverable activity reports unavailable; a valid versioned activity link can rebuild as described below. In its own session, `openWorkspace(_:)` reuses a live instance or validates a descriptor's Host, publishes the new workspace, then connects it. Repeated selection does not create another attempt, even after an initial connection failure; retry is explicit.
 
 **Presentation is a shorter lifetime than the workspace runtime.** The pushed mobile detail is keyed by `.id(workspace.id)`, so switching workspaces tears down its native search bridge before mounting the next detail. `MobileToolbarSearch` owns a UIKit `UISearchController` and removes it on dismantling; terminal Find and SFTP search bind to `workspace.find` and `workspace.sftpChannel.query`. This presentation teardown does not replace the session-owned workspace, its connection journey or retained native terminal view, and it is not a descriptor save or a new connection startup. Keep scene navigation, persistent window ownership, runtime journey and native search presentation separate when changing the UI.
 
-The app-owned `MobileWorkspaceStore` writes a complete snapshot of descriptor lists keyed by persistent UIKit session ID, preventing one window's save from overwriting another's. On cold launch `loadRecentWorkspaces()` reads and prunes descriptors whose Hosts are absent, publishes no live connection and clears leftover Live Activities. The first bound window consolidates unassigned and saved session descriptors into its session, preserving IDs and order even if old UIKit sessions were discarded at launch; later windows start independently. A descriptor contains only workspace ID, Host ID, title and connection kind, excluding commands, paths, credentials and transport state. Opening a saved descriptor connects on demand. Closing removes the live workspace and saved descriptor; external-link workspaces are not persisted. If a snapshot is malformed or unsupported, the store reports an error and fences subsequent saves instead of overwriting it with an empty snapshot.
+The ordered descriptors on `MobileWorkspaceSessionModel` are **in-process intent, not a durable workspace cache**, despite the `savedWorkspaceDescriptors` name. At construction `MobileWorkspaceStore.retire(in:)` removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2` from the selected defaults. Old arrays, versioned snapshots and malformed bytes are retired rather than migrated or protected by a write fence. A cold launch and its first bound session start empty, without consolidating previous native-window descriptors or reconnecting transports. Recently closed records are shared across windows only within the process. External-link workspaces remain transient, and reopening does not replay one-shot commands. Live Activity recovery is a separate explicit-link path described below.
 
-**Disconnect is not discard.** UIKit may reclaim a scene while its session remains restorable: `sceneDidDisconnect` removes phase tracking but keeps its workspace owner. Reconciliation against `UIApplication.openSessions` transfers workspaces from truly missing sessions into an active session only after saving the new ownership snapshot; an unavailable save leaves them with their old owner and reports an error. A later explicit `didDiscardSceneSessions` closes that session's workspaces and descriptors, including transferred workspaces originally owned by the discarded session. The app delegate queues early discards until startup has assigned the model.
+**Disconnect is not discard.** `sceneDidDisconnect` reports background and removes phase tracking but preserves the in-process owner while the native session remains open. Reconciliation against `UIApplication.openSessions` hands a truly missing owner's live workspaces, descriptor order and unread state to an available target session. This in-memory transfer performs no save, reconnect or new connection-history event; it cancels pending close authorization on the source and rewires close callbacks to the target. Without a target it waits. Later explicit `didDiscardSceneSessions` closes the source session and precisely its tracked transferred workspaces. The app delegate queues early discards until the model is assigned.
+
+Mobile window-close commands request UIKit scene destruction; cleanup waits for discard, not request submission. Rejection logs a warning and retains state without an app error alert. Managed persistent attachments can defer close/discard for authorization, with ownership and workspace-order checks preventing stale approval after a handoff or concurrent change.
 
 ```mermaid
 flowchart TD
-    Store["App owned descriptor snapshot"] --> Bind["First UIKit session binds on cold launch"]
-    Bind --> Owner["Window owned workspace session"]
-    Owner --> Open["Publish workspace then connect on demand"]
-    Owner --> Reclaim["Scene disconnects but session stays open"]
+    Cold["Cold launch retires legacy defaults"] --> Bind["Native session binds with empty workspace state"]
+    Bind --> Owner["In-process window workspace owner"]
+    Owner --> Open["Publish workspace then connect"]
+    Owner --> Reclaim["Scene disconnects but native session stays open"]
     Reclaim --> Owner
     Owner --> Missing["Native session no longer open"]
-    Missing --> Save["Save transfer to active session"]
-    Save --> Target["Active window session accepts live workspaces"]
-    Target --> Discard["Explicit native session discard"]
+    Missing --> Check{"Available target session"}
+    Check -->|"No"| Wait["Wait with source ownership intact"]
+    Check -->|"Yes"| Target["Transfer live objects and order without saving or reconnecting"]
+    Target --> Discard["Explicit source session discard"]
     Owner --> Discard
-    Discard --> Close["Close owner workspaces and descriptors"]
+    Discard --> Close["Authorize when needed then close source and tracked transferred workspaces"]
 ```
 
 This mobile ownership flow distinguishes reconnect-free handoff of a truly missing native session from transient scene disconnection and explicit discard.
@@ -405,16 +403,26 @@ sequenceDiagram
         Receiver->>Native: Activate owner with workspace user activity
         Native->>Owner: Stage workspace UUID in scene delegate
         Owner->>Owner: Consume when active and route workspace URL
-    else No owner or activation fails
+    else No owner but valid activity recovery
+        Receiver->>App: Validate recovery and publish new workspace once
+        App-->>Receiver: New UUID in receiving session
+        Receiver->>Receiver: Select rebuilt workspace
+    else No owner or valid recovery or activation fails
         Receiver->>Receiver: Show workspace unavailable
     end
 ```
 
 Workspace links select the native owner instead of cloning its connection in the receiving scene.
 
-`MobileNotificationRouter` is an app-owned delivery adapter: it retains pending terminal, Assistant and transfer targets until an appropriate scene is active. Terminal targets must still have a live workspace and route to its owner; Assistant delivery waits for library loading. Cross-window activation requests carry identities so a late failure cannot clear a newer request. Notification delivery does not make navigation app-global.
+Terminal focus requires an `.active` scene displaying the workspace and marks its completion notifications read. Assistant focus instead checks visible conversation presentation in any registered scene, without a phase check: selection behind Vault or the conversation library does not count. Assistant delivery prefers scenes showing the conversation, then hidden matching selections, then any scene; within each tier active scenes win, with scene UUID order breaking ties. A matching background scene can therefore outrank an unrelated active scene and must activate before delivery. Transfer suppression treats any non-background tracked scene as focused.
 
-Live Activities are summaries, not workspace owners or execution leases. Shared `WorkspaceActivityAttributes` exposes counts and at most six focused-first session summaries, with bounded titles and workspace URLs, never credentials or terminal output. `MobileLiveActivityController` serializes starts, updates and ends, adopts an active/stale system activity and ends duplicates. An explicit open can retain a pending start until foreground permits it, but ordinary updates/focus changes cannot resurrect a dismissed activity. Empty snapshots end the activity and cancel pending starts; cold app startup sends an empty snapshot while restoring descriptors, so an old card does not restore live transports. Closing the last workspace and immediately opening another waits for the previous activity's end before creating its replacement.
+`MobileNotificationRouter` is an app-owned delivery adapter: it retains pending terminal, Assistant and transfer targets until an appropriate scene is active. Terminal targets must still have a live workspace and route to its owner; Assistant delivery waits for library loading and rechecks the latest click afterwards. Cross-window activation waits until some scene is active; request identities prevent late failures from clearing newer requests. Notification delivery does not make navigation app-global.
+
+Live Activities are summaries and explicit recovery affordances, not workspace owners or execution leases. Shared `WorkspaceActivityAttributes` exposes counts and at most six focused-first summaries; titles are bounded to 32 characters and 96 UTF-8 bytes, and whole entries are removed until encoded content fits 3500 bytes. There are no credentials or terminal output. Recovery metadata contains version, source workspace UUID, saved Host UUID, protocol kind and optionally an opaque remote-session reference; that opaque reference is never included in deep links.
+
+`MobileLiveActivityController` adopts an active/stale system activity, retains its version-1 recoverable sessions as **disconnected**, preserves focus and serially ends duplicates before updates. Cold launch does not clear a usable card or connect anything; a foreground update ends an old card only if no recoverable or live summaries remain. Starts, updates and ends share a serial queue. Explicit opens can retain pending start intent until eligible; ordinary updates/focus changes cannot resurrect a dismissed card. Closing removes recovery immediately, so stale ActivityKit content cannot recover that workspace. Empty combined snapshots end the card and cancel pending starts; close-last/open-new waits for the old end.
+
+On an explicit workspace link, the app first uses an existing owner. Otherwise it uses retained active/stale activity recovery or the strict `v=1`, `host`, `kind` URL fallback, requiring matching source UUID and agreement of Host/kind if both forms exist. Rebuild validates that the saved Host still exists and supports the requested kind, creates a **new** workspace UUID in the receiving session, and marks persistent-session selection required. A valid SSH remote-session reference matching the Host can be carried forward, but no credentials, terminal output or one-shot command is restored. Main-actor publication and a source-to-rebuilt mapping merge repeated/concurrent deliveries into one initial connection; the source card is retired from recovery after rebuilding.
 
 ### Mobile foreground and background boundaries
 
@@ -460,17 +468,17 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 
 Tests exercise the lifetime contracts rather than merely constructing views. For startup changes, check both the production consent gate and the test-only in-memory path: these are separate from error handling and from native scene launch suppression.
 
-- `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, links route to a descriptor's existing owner for a single initial connection, failed first opens require explicit retry, and Host deletion removes opened and unopened descriptors.
-- `MobileWorkspaceSessionTests` verifies separate windows create independent workspaces, cold-launch descriptor consolidation, native session reclaim versus explicit discard, and ownership transfer without reconnecting or losing saved order.
+- `MobileAppTests` verifies publish-before-connect reuse, explicit retry after a failed first open, Host cleanup and scene-phase aggregation.
+- `MobileWorkspaceSessionTests` verifies separate windows, retirement of legacy defaults without restoration, process-local recently closed records, native session reclaim versus explicit discard, and live ownership handoff without reconnecting or saving. Window-close tests verify that cleanup waits for native discard and rejected requests preserve state.
 - `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection.
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
 - `MobileBackgroundControllerTests` covers stale callbacks, exactly-once task retirement, synchronous expiration during lease acquisition and invalid UIKit identifiers; `MobileAppTests` covers scene removal and quick versus expired foreground returns.
-- `MobileLiveActivityRestorationTests` verifies duplicate retirement, retained focus, cold-start descriptor-only restoration and orphan-card cleanup, dismissed-card non-resurrection, deferred foreground starts and close-last/open-new serialization.
+- `MobileLiveActivityRestorationTests` verifies duplicate retirement, retained focus, retained disconnected cold-start recovery cards versus unusable-card cleanup, dismissed-card non-resurrection, deferred foreground starts and close-last/open-new serialization.
 - `MobileWorkspaceSessionTests` also covers activity/notification owner routing; opt-in `MobileWorkspaceWindowIntegrationTests` exercises actual UIKit windows with `TERMIND_MOBILE_UI_TESTS=1`. Keep native-window integration separate from ordinary model tests.
 - `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
 - `DatabaseStartupGuardTests` checks that the macOS preflight permits the current process but refuses a second PID, including older versions without the lock. `PersistentStoreLockTests` checks refusal before open/migration, retention until all same-process containers close, release after forced exit without losing Vault data, and isolation of in-memory and separate stores.
 - `AppTestHostTests` checks default test-host window suppression, Dock-reopen refusal and survival after the last fixture window closes; `.requiresVisibleWindow` gates tests that actually show windows or take focus.
-- `WorkspaceCloseConfirmationTests` verifies application-wide workspace detection, distinct Quit/window alert scopes, Cancel as the Return-key default, explicit destructive acceptance, empty-window bypass, forwarded native veto, retry without workspace loss and delegate restoration. These tests cover alert and native-window contracts; `AppTerminationTests` covers cleanup/reply ordering rather than driving the delegate's modal Quit alerts.
+- `WorkspaceCloseConfirmationTests` verifies application-wide workspace detection, distinct Quit/window alert scopes, Close as the Return-key default and Cancel on Escape, explicit destructive acceptance, empty-window bypass, forwarded native veto, retry without workspace loss and delegate restoration. These tests cover alert and native-window contracts; `AppTerminationTests` covers cleanup/reply ordering rather than driving the delegate's modal Quit alerts.
 - `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, joins even an unstored captured failure before closing agent resources, fences new work, and replies once whether cleanup or the three-second fallback wins. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for fixture policy.
 - `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.

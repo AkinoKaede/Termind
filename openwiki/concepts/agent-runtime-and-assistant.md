@@ -1,6 +1,6 @@
 ---
 type: assistant runtime concept
-title: Agent Runtime and Assistant Data Flow
+title: Agent Runtime and Assistant
 description: How AgentKit owns the neutral runtime while Termind assembles assistant execution, host tools, persistence, and UI across macOS and iOS.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
@@ -80,18 +80,20 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-  - id: openwiki-source-a62bfbbc7de13a894444718b
-    resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-3dfad0e95bb7d66f292c20c9
+    resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
+  - id: openwiki-source-0c46eadbd7a2db45099d59aa
+    resource: repo://TFM/Features/AI/TranscriptNativeRows.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-49c5ca81284394384f3c3913
@@ -116,13 +118,13 @@ sources:
     resource: repo://TFMTests/MCPServerToolsTests.swift
   - id: openwiki-source-5a540932657f4174b82cb1eb
     resource: repo://TFMTests/TerminalSuggestToolTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# Agent Runtime and Assistant Data Flow
+# Agent Runtime and Assistant
 
 Termind's Assistant is a durable conversation product built around a host-neutral agent loop. **AgentKit**, a separate Swift package, owns the model-provider adapters, run loop, context pipeline, approval gate, MCP client, generic built-in tools, secret broker, and generic scratch/skill/memory tool interfaces. **Termind** owns the app/device integration: SSH and SFTP tools and transport pools, live pane-inspection tools, Vault-backed host resolution, application policy and prompts, SwiftData conversation persistence, Hermes memory lifecycle, and the UI that renders events and collects approvals or SSH challenges. Neither the macOS nor the iOS app target implements the AgentKit provider loop: both assemble its shared runtime through `AssistantExecutionController` and `AssistantToolRegistry`.
 
@@ -296,6 +298,10 @@ flowchart TD
 ```
 
 Cancellation has separate preparation and runtime owners: `stop` requests cancellation and settles presentation, while `stopAndWait` also joins their tracked work.
+
+### Provider retry presentation
+
+Provider retry policy remains AgentKit-owned, but Termind explicitly projects retry events. On `modelRetryScheduled`, `ConversationModel` clears the affected assistant bubble's partial text, reasoning and suggested commands, associates it with the reported run, keeps it streaming, and resets the streaming context estimate. `modelRetryRecovered` clears only matching retry progress; `messageFinished` clears it when the final message replaces the bubble. Desktop native rows and mobile conversation rows use `AgentWorkPresentation.reconnectingTitle` instead of cycling ordinary working labels while retry progress is present. This is an automatic-retry display, not a manual history Retry/Resume entry point, and does not establish the package's retry limits or persistence ordering.
 
 ### Context estimates and reported usage
 
@@ -532,6 +538,34 @@ A memory session receives a revocable context and generation-bound access; memor
 
 New submissions capture whether they have a memory-session identity before preparation awaits. Enabling memory afterward does not add a session to that captured turn. Disabling it remains a revocation boundary: `MemoryModel` invalidates existing contexts and rejects a late snapshot load from the old generation, so capture does not override a later disable.
 
+## App-owned notifications and scene focus
+
+Notifications are a separate app integration, not part of the AgentKit loop, title generation or Hermes callbacks. `ConversationModel.notificationEvent` reports completed/failed runs (including recorded preparation failures) and changes to the highest-priority pending interaction. Cancelled/interrupted runs do not emit completion notifications. Interaction classification covers questions, secrets, SSH authentication/passphrase and host-key challenges, MCP authorization, and then pending approval; informational SSH keyboard-interactive messages do not produce an attention request.
+
+`AssistantNotificationCoordinator` observes conversations independently of mounted transcript views. It deduplicates by run or interaction ID, consumes suppressed events without replaying them when settings/focus changes, and rechecks preferences, observation ownership and the current interaction before asynchronous delivery. Replacing or resolving an interaction cancels/removes its old notification and unread marker. Unseen events increment the conversation's in-memory unread set independently of whether system delivery is enabled; reading clears it, and a fresh model does not restore those counts.
+
+Both app adapters attach this coordinator to conversations. On mobile, `MobileAppModel` uses its weak scene registry to determine whether a conversation is showing, route notification opens to a suitable scene, and aggregate non-archived conversation unread counts with terminal completion counts for the badge. That scene integration is distinct from its run-scoped `AgentPaneAccess`: the latter enumerates live SSH/Telnet viewports, not notification content or a local MCP server.
+
+```mermaid
+sequenceDiagram
+    participant Conv as ConversationModel
+    participant Coord as Notification coordinator
+    participant Scenes as App scene focus
+    participant Service as Notification service
+    Conv->>Coord: finished or interactionChanged event
+    Coord->>Coord: deduplicate event identity
+    Coord->>Scenes: query visibility and notification focus
+    Coord->>Conv: mark unseen event unread
+    opt preferences allow system delivery
+        Coord->>Service: send with currentness callback
+        Service->>Coord: recheck ownership and preferences
+        Coord->>Conv: verify interaction still current
+        Service-->>Scenes: notification opens assistant target
+    end
+```
+
+Notification flow: app-owned focus and delivery policy consume conversation events without changing execution, approval or replay data.
+
 ## Focused verification
 
 The focused tests establish behavior that is important when changing this area:
@@ -548,6 +582,7 @@ The focused tests establish behavior that is important when changing this area:
 - `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets **without injected pane access**, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions. `TFMTests/AgentPaneToolsTests.swift` checks conditional pane registration by mode, required-ID validation and explicit-ID reads, disconnected/absent-surface refusal, source-byte truncation, and cards that omit viewport text; `TFITests/MobileWorkspaceSessionTests.swift` exercises pane access across mobile scenes.
 - `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
 - `FrameworkTests/AgentUserInputTests.swift` checks timeout schema and defaults, question validation, navigation, head-only deadlines, skip/null semantics, cancellation and dedicated secret drafts. `FrameworkTests/AssistantTranscriptPresentationTests.swift` checks direct-approval/event races, denial display, structured presenter output and bounded previews; `FrameworkTests/HermesMemoryTests.swift` checks suspension/revocation, stale writes/reviews, index catch-up, destroy retry and lazy disabled storage.
+- `FrameworkTests/AssistantNotificationTests.swift` checks completion/failure deduplication, cancellation of pending delivery on removal/stop, preparation failures without restore replay, focus/settings suppression, interaction classification, and unread/badge state independent of system delivery.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
 ## Change guidance

@@ -1,64 +1,64 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:acd2995f25fe213e81724194db7eb078c77c81eb82dee9d2041be27aaf170bff",
+  "pageVersion": "sha256:8af3c3dc8b6e570d4ad832fad0ffda1ca8cd807d40f7d8cfa97fde364e707773",
   "claims": [
     {
       "id": "claim_c56b98e3167443d9a8aa8d3405b35eca",
-      "statement": "SSH workers serialize libssh2 on their queues and share multiplexed SFTP/exec owners. A PTY closes its transport unless live SFTP channels remain; drivers retain the worker through asynchronous close without a reverse cycle, pending exec closes alone cannot keep it alive, and deinit avoids synchronous queue self-reentry.",
+      "statement": "SSH workers serialize libssh2 and share multiplexed exec/SFTP owners. Explicit PTY disconnect preserves only live SFTP channels, not pending exec closes; prepared sessions may deliberately retain post-exit control. SFTP drivers retain the worker without a reverse cycle, and worker destruction avoids synchronous queue self-reentry.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L28-L51",
-          "version": "repo-lines-v1:sha256:9947de67f4488dc0d0a7f82e656abbed6084e27b988a4c2dbc8ee78449568c63:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5Yzg1YWRiYTcwYThhYTJlNTUxZGEyMmRlYzk3MTJjNjUxNmZkOWI0YTU0N2I2ZTUwYmIxNzU2ODU1NGEwOTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3ZDgwZDI0NDg4NGZiNDA3NGZiOGFlZmQ4ZDJhNjVkNzNmMTBmM2VhYmUwYWUzZjAzYzlmMGQ0NmE0NGQxMDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2NGU0YjdhZjJlMjdlYjQ3ZDYxZTUzOTM5NDU0YjM5YTc4NDM4NzFjOWY2MGViMjA2NmZkMmI0OTVlOWYyZTQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L24-L49",
+          "version": "repo-lines-v1:sha256:0aa7fd8c05f8307efae02d58a5b32a144f538b088448b8e4772a3c31733d9289:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMmVkZThjM2M0Y2M5YWNkNDA5OWQzOGI2NWI5ZWEzZGM0MGI1YzNlMmYzOGJjZTI5NDUzYzQ2NDg1OTBiMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4ZjNhZDJhYmQyNzJhYTk0NGZkMmNiNzIzYWYyYzgyZGQxZjA4YzJjYjlmMDRiZTQwM2QzYmU0NmZkZWYwYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwNGJiMzcxZjcxZGMwZDVlZjJiMGY4NjM3MTUyZTBlMmVmOTVmZDBjMTY3ZGI4MGEzYTBlYzI2MmIxZTZjNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2YjM0MzY1Yzk2OTBlODQ4MmE4NDY2NWU1MWRkM2QwY2RjOTBjZmQ2MTU4ZDllNDdkMDgxNTFiNzM3ZTA5MzQifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1677-L1694",
-          "version": "repo-lines-v1:sha256:0bba820a4ecf03e22a540f3e7feec7a4451d7852eaf42cd58973bc4d9b2395fe:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyZmM4NGFjODc0MGE3MTc4NWNlNDQ3NTc2YTM1ZDg4YzEyMjg5NGQ3YTA0MmZmMjFiNTgzOWNjOTU5MTNkYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYzUxZGQ5NGQwZDAzYWY1NzUwZjA5M2FiM2FiYTU5YTRmN2JmODgzZmJiYjE5NGUzYTYyNTY4MWZmZmM3ODgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlZDE3MmQ5MzU1MjcxMjg2MzhhMTIwNTg1MDZhZDM3MDI4MDk1YmQ5YTVlY2Y1OWI1MTA1YzE3NmNmZDNjMzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0YjljZDE5ZTQwODNiYjc4MmE2YzMyMmVlZGIxZTkwZjI4M2JjODI4N2Q2YWI4Zjc0NjAwZmUzMTMyNzgzNjIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1928-L1957",
+          "version": "repo-lines-v1:sha256:135b06450754355cb9d32590844a88bef03728d3721ddf836e4446424419088a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNGYzOWQ5NWIwMDNmZTBlN2JmNWFhYzUzMTFhNDkzZGM5YWMwOWNiNzhmNmYzZjIxZmYwMjczZWUyZjliYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmZmMzZTllYmFiMzc1MTMxNDkyZWI2NzEzMTJiMjYyNGQ1ZDg4YWMyNTk2ODBiZTMyOGZmNGEwZDE3ZDk2ZTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3ODQ3YmFkMWRhM2M2OGViNjAzZTY5Mjc3ODU3MjExYTM1ZjY1Nzg3NGVlNTIyZDZmZjk1NjRhMGNlYzE0NGEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1896-L1900",
-          "version": "repo-lines-v1:sha256:ffe2ff6d99e03efe2de69bc997fb6b2c686a6a51d557e4e228dc7b6230123b88:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWI0ZjNiYzc4ZWVjN2RlN2I5ZTQyODg1YmM5NTRjOTI0Y2MyNGNjZDE1NDlkNzljNGIyY2E5ZGU5ZmJkZDk4NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTY5MmI2YzM1ZDAxNGYxZTZlNTQ4NTU3MjViMTBjNTQzM2Y5NDIyZWYyZGU3ZmQ3ZWMwOThiMmMzNTQzM2UyZCJ9"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2252-L2326",
+          "version": "repo-lines-v1:sha256:d36b5094cd16db51ace785efbd7e01a4fe9c10d33665bf7f7df7038e0ce6601b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2NjNmEzMDAwMmRhNWFmNDk0Y2Q2MDNlMGNkYTY4Mzk4NTNkYWE2ZmE3Y2M2Mzk4Nzg3NDI4NDlmOWUyOWUifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L778-L848",
-          "version": "repo-lines-v1:sha256:13ec89a52d70ad865402b660b85320a70efd3b61370c35f728bffb455b9be1bb:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNjJjMzZkMjA4ZjFiZDFkZDhkMDQ1N2U3NjAyYzE3YWVmMWQxODEzZDgxOTRhN2VmNTQyODYwYWJlZGQyYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwYzY5ODdiNDBhM2JmYzczMzQ0NjEwNzJhMzRjOWUxZjBiN2JhNjY0M2Q5MWU5MTVkNjZhMzk0OGYzOTRhOTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzNTc0MmJmNWNhYjZmMDUyNDIzYzA3OTU2N2I4ZjhiMTVmY2U3MjU2MWM4NTlmNjM1NGQwOWE4NzUwZmZmMTgifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L902-L951",
+          "version": "repo-lines-v1:sha256:db50bd7b10c1964df36062a4fdfed4efab20aba8a67b027c562430ef84c6743b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMWI5YjJlYzFmZWIwMGZkYWE5MzRiZTgxMTE4ZDg4Y2I2OTBiNTUwYzg3OGU3NGMwY2JmMTY2MjY5YjRhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMzJiNDYyMjMxZDk4ZGU0NTZlZWVmN2ViM2NkNWZhOThmYmJjOWE4YmFkZTNkMDBlMThlYTQyMTAzMjA1NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ2NDcxYThiNDA0OWYxMTlkMmU0Yjc5N2E0M2MzOGYzM2VmZGZmMGMzZTIwZTA4YjY3ODc5YzM5ODk2ZDg4NzcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SSHPTYChannelLifecycleWireTests.swift#L18-L57",
+          "version": "repo-lines-v1:sha256:b14b8c3adb3c9e78416d6f63fc621b2979d98e3ddf8f51f6a58abb0532f2088c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3NjNhZTJmMjJkN2E0MTk3ODAzZTI4ZDEyMjAwNjgzMzM3YzU1ODYyNDM1Y2QzMGMwZmI1ZWZlMTJjZjVmMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0ZTRkYThlZTU5ZTc2ODk4OTYzNTI2MjhhMGNlN2JkZTgyZmVjNmQxMzc2NzAyZThiOGRlZWU5NzA5ZmQzNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2NWRmNzI1NjI1N2ZiZDY0ZmRjZWY0YjhjYWQwY2I4NzdlYzZjMDVkYWYxYTNlMmU5NjdlNTg1NjM0OTg1MTUifQ"
         }
       ]
     },
     {
       "id": "claim_a3c1fca8143241f2ab151c4b45559643",
-      "statement": "The client-side SSH session ceiling defaults to ten and normalizes to 1–100; each physical connection has independent FIFO admission, live decreases do not revoke active channels, and cancellation/close release queued waiters.",
+      "statement": "The client-side SSH ceiling defaults to ten and normalizes to 1–100, with independent per-connection FIFO budgets, non-revoking decreases and cancellation-safe queued admission. tryAcquire refuses closed or saturated budgets and budgets with queued waiters; permitsConcurrentControl describes configured concurrency rather than current free capacity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift#L3-L20",
-          "version": "repo-lines-v1:sha256:ec7b5d0da945502b33cba69ca2f618ff127db15be6f264b2ede8cb9cd8d31b1a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZDcwNjcwYjgxOTEwMGIzNjY2ZWFlMWY0ZmM2Y2ZiYThjZmUxN2U5NTkyZjU4ZjgzMjg1OTcwYjc2NDM5ZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L4-L200",
-          "version": "repo-lines-v1:sha256:9bde4307dfcab74ede6fef3ec2144323e41540749c800efdcca35e183861894f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTk3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjMmIxZDdhYzdhMGNlMjI0Y2UxZTE0YmE3NzBjODBmNTY1YTQ3OTY0Njk4NmI4MDRlZDljODZjMzIxYmVhOTdmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhNThkNGE5MTA3NDA1OWYwYzhkMjEzNmY5YmY4MDgzNDYxNDhmYzhjZmIzNTQzZGRjYmM3NTBlNzU3NmU3MjYzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
-        },
-        {
-          "resource": "repo://TFMTests/SSHMaxSessionsPolicyTests.swift#L9-L113",
-          "version": "repo-lines-v1:sha256:e71c6dd327ab111e02dfc19e5cd6314560c448912c0547a2824604478a3cbdec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0Y2YwOWViMGM1NzQ0ZmI5NzMzMWI5OGZmM2ZiZjA1YTYwMmJhM2Y3ZjY3ZTVkYTViZTkwOTUwMzNmNjI1ODI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2M2NlNzkwNmRkZGFkMDhhOGIxOTUwZjE3NzhiYmQzYTI2ZjRmMDYxN2NjMDgyMzU1MGVkMjJkNjY2NTIxNTUyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMjgxMTBmYjg2OTA3ZTQxYTM2OGI0YjE0OWY3Zjg1NjBjZmNkODc0MzZlODFiNzAyY2YxZmM3MDJlMzU0OGM4In0"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L98-L107",
+          "version": "repo-lines-v1:sha256:7d8ea284f3673c3ef0d5f02bea44607291e423712c1b610a0a8708424e1559af:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0ZjNjODRjMTMxYmNkNjBjNzM4OTg3YTc2ZWE0MDA0MWUwZGY5NDhiNWYyNjI3YThhZjdlODE4OWQ0OTlkYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0ZDkzOGMzMWViYTRjMDJiZjg1MGM4ZTk4MDg5MDVlYjlmOTY0ZGFjMTU5NzBiYTUxN2FlOGE2ZDY1OWM3NzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExNjkwMDBkOTc2YmNmYzNjNDAwZWIxMDIzZTAxNWI5ODQ3ZmU4OGM2ZjAxNzYwYzU1MjA0OWE1ODE5ODMxYTEifQ"
         }
       ]
     },
     {
       "id": "claim_41393c68e500479bb8a34abce9cb38a1",
-      "statement": "Exec acquires and revalidates its connection budget before creating command state; each command has isolated cwd/stdin/output state and a 1–900 second deadline created after channel admission.",
+      "statement": "Exec acquires and revalidates its connection budget before creating command state; each command has isolated cwd/stdin/output and a 1–900 second deadline created after admission. Ordinary exec uses a login shell, while session-control/runtime commands select a non-login shell.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
-          "version": "repo-file-v1:sha256:91af81cfef2d6966a86ca1579b3c05d494c2351372cf95f6ba3e2d662db905e8"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L142-L244",
+          "version": "repo-lines-v1:sha256:0525b71d637964e2a1f770133d0ad35aa661162613b5794f1a06aa603dc36456:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NWJhM2VjYWQwMDczODBlOGRiNjY3MDQ4ZDZhYzkwOWI0YjE3MTYyMjcwZmE1NWY0NTAxMzU1YjJjMDA4YmUxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwYzY0NzljYzIzMDQ0MGZkNDFlODIyNDIxODY3OTY5ODU1OWQyODkzYmQ2N2I0MzgwYWZhYjgxMWIzOGE1NWFhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NzQ0YThkNGRmZjE3NWViNGNhY2M1YjJkODgwYzY3ZjgyOGRhYzJhYmU3MzQ4ZWQ5NGE5MTI3MjQxNDUzZGJjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YzdlY2ZmYTk5YmMxN2I0YWQ5OTM4MGE1YmM0NTk2OGM2MDRkMWNiZDcyNmY0NzE3YjcwNDRjYWJlZjc2OTJhIn0"
         }
       ]
     },
     {
       "id": "claim_d04e37fdde2f4f209036467448f0a0e0",
-      "statement": "Exec serializes pending channel opens and advances opening, startup, running, close and free phases in bounded ready-queue turns; socket events and a 100 ms timer wake work, and output limits count remote bytes independently per stream.",
+      "statement": "Exec serializes pending opens and advances optional Agent forwarding, startup, running, closing, waitingForClose and freeing in bounded ready-queue turns. Exit status is captured after waiting for close; socket events and a 100 ms worker timer wake work, and output limits count remote bytes separately per stream.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
-          "version": "repo-file-v1:sha256:91af81cfef2d6966a86ca1579b3c05d494c2351372cf95f6ba3e2d662db905e8"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L173-L260",
+          "version": "repo-lines-v1:sha256:5e3fcc95ab120ab4f45108978c8fd8e95a352a744fcde40446629874f5fdd307:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZjIyZmNiMjA4MjEzNDM3ODYyZTNmNDlhMzM4YTgzY2I2NzY1NTkyNWY4NjRlYWY3ZTAzZGJmODBmODcxMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyYTIxOWI3MDk0ODZmOTNmMjE3NTdjZmQ5YzU3MTk3M2Y4ZTZlYjk0NGQ4Y2M5MWI4MzRiYzg4YzlhNTliYzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMjkzNmRhYmY3OWY0YzZiMmUyNjY0ZDg4NGY4OGM4NDcxZDc2NjQyMjBiYWRmYTYyNWNjNzMxZDkwY2MzM2EifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L258-L421",
+          "version": "repo-lines-v1:sha256:c901516b50802ace85a4274b0803c21a6697314d3c3d767ed6b3b3f72eb25d80:eyJzZWxlY3RlZExpbmVDb3VudCI6MTY0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIyODJkMGI1OTQxMmI2MWM2ODQ2NTMwOGI0NmYzZGNiNGQwNDYwZmZjYjQyZDZiMTQ3MThmMzI3NmE3N2EzMjkxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3OTNmZmQyMTY3NzhlMmY5MWU4NjRmNDJmYmE1MjZkYThhODhlMTBiOGRmNTIyMDQwZDlhMWMwOTZiYzg2ZGQxIn0"
         }
       ]
     },
@@ -116,15 +116,19 @@
     },
     {
       "id": "claim_91f6aa7362ae47b3947fa5edd6e40b8e",
-      "statement": "Socket event cancellation waits for both source cancel handlers before descriptor closure, and exec cleanup changes its generation, fails outstanding commands, closes SFTP and budget, and prevents stale scheduled work from reviving the transport.",
+      "statement": "Socket cancellation waits for both source handlers before descriptor closure, and worker cleanup changes generation, fails commands and closes SFTP/budget to reject stale work. Exec cancellation/timeout can return before native close finishes: the command retains its lease through close/free or teardown, so caller completion does not imply free capacity.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
-          "version": "repo-file-v1:sha256:91af81cfef2d6966a86ca1579b3c05d494c2351372cf95f6ba3e2d662db905e8"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L40-L54",
+          "version": "repo-lines-v1:sha256:6e08ce321bd40133d4e891f2be5fed8917f5c524a198e7eda41272478f148144:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZjc0MjM0NWYyYzRlYTJhZTBiYjk2Mjg1MjZkYjc2N2NjYzNkMTljMGNlZTlhYmMwNDJjMzM4OWZiYTNlOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5M2ZlOTBjN2RhNDY2YmRjNDI4NjljY2YxZWJmYWM0NzdiMjlmOTBkZWE1NzEyNjk4NGM2MGU2OGUyMzcwMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1ZjI5ZTE1MTMyMzM0MDA1ZDE4MTBlM2VkZDY5MDZiZmRlZTY0N2EzZTZkYzEyMmI4MjI3ZWFlMWMyMGFjNTgifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift",
-          "version": "repo-file-v1:sha256:1a04587c1d2581194a943fb303eb0bd6345c02f97a5fd75c84bc31554099f00f"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L306-L420",
+          "version": "repo-lines-v1:sha256:cfec29ce777a0609c4df70570e9c790b73331a103237e416946006920c52fe9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxZmJlM2Q3MDc1ZWQ1M2YzOGVhMzU0YWRiZGM0N2I5ZjlmYmRlNjYyODE1MWJjNzM1NTE3ZWM5NDA2ZTVjYzQ3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlZmZhMDc3NTllODIwMjM5OGM0NTNkZGE4ZmUzMmQ3ZWQ1NmI4N2E0MjUzOTQyOGNiMDlkNGEyM2Q5ZjIzYzQyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjODA1NTUyMjdiMTRjNWZhMGE0NDUwNTY4ZjNlNDdkZjcwMTA4NTYxZWQ1ODYzN2U2Yjg5ZGQ3OWZlYThhNzc4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2252-L2326",
+          "version": "repo-lines-v1:sha256:d36b5094cd16db51ace785efbd7e01a4fe9c10d33665bf7f7df7038e0ce6601b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhMTAwMzlmOWIwYzQwMDFmMjBlYmQ3NzYyMzIzZjZlNmVhMmJlZjFjMWZmOWRkNDE1NTI3YTc0NjZkY2UxYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4MTNkNzgxOGI3ODg5MGY4YzYyNDFkZjU0NDI4YWMwODdmZWQzODFlMDIyNjQ3MzU0NDMxOTY2MGUzZTQyMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwM2NjNmEzMDAwMmRhNWFmNDk0Y2Q2MDNlMGNkYTY4Mzk4NTNkYWE2ZmE3Y2M2Mzk4Nzg3NDI4NDlmOWUyOWUifQ"
         }
       ]
     },
@@ -276,25 +280,29 @@
     },
     {
       "id": "claim_27d73f87c4c640b1accbb41b63c6b43f",
-      "statement": "SSHConnectionWorker and the PTY worker delegate non-PTY exec state machines to SSHMultiplexedExecChannelOwner on their existing serial queues and channel budgets.",
+      "statement": "SSHConnectionWorker and PTY delegate non-PTY exec to the shared owner on existing queues/budgets. PTY runtime commands reuse authenticated transport without hidden authentication, require immediate capacity and a two-second outer deadline, while ordinary control waits with a 15-second deadline. Generation/input validation cancels stale work. Server channel rejection disables runtime control capabilities; configured ceiling one also restricts capabilities, and observation errors publish unavailable state and back off. Ordinary control alone retries pre-exec channel-open failure at 50 ms intervals within its deadline.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L45-L63",
-          "version": "repo-lines-v1:sha256:495400620c058bce99f125fa6fc585c236d0a154755592056ac28d32cfd8b083:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5YzA2ZTkxYjk1N2ZiNDMzNzUwM2Q3ZjFmYjAwMDU0ZjgyMTI2Njg5ZDVkNmQwODgxZGQ4MTk2MjFjMzIyN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzMGEwNzNiODE3MmEyNTgwOTQ4NTFkMTZhYTg1ZjZmN2FjZDc1YjBmYjMzMjRjZjcwZmJjNzkyMWUyOGY5ZmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5NTg0NjBiNDk1YjE3MGM0ZTU0NGZjMGIyNDAyODlhOGY5MzBiZTEyY2IzZTllZGU2MTRlOGFmMjQ2ZjBjODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyOGI5MTY4NjA5ZDBiMDUyZWY4Y2NmNjhmMzVkNmZiYWQ3ZWQ2ZTZhYzI5MjJmOTljZjMyZGYyNzI5NGJmMzQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L44-L72",
+          "version": "repo-lines-v1:sha256:952dea88a4f2c5d824ce097b47e1a97b00896d285a029ee42899ddc114958419:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMWI5YjJlYzFmZWIwMGZkYWE5MzRiZTgxMTE4ZDg4Y2I2OTBiNTUwYzg3OGU3NGMwY2JmMTY2MjY5YjRhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4NzRhODBmYTllYWQ2MGRjOWI0YmE3OGQ3ODYwMDNhYzRjYzZjZjg0Njk5ZDkyZDg4YzY4ZjBjYWM1NmFjZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMmM0NDA0ZWY5YjA0MWRiOTc1MDVhNDVlYjFkODFiNTVhZTJmMzBiYjNjZTcyMDY2OTZlNzkwZGU2YjZiM2MifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift",
-          "version": "repo-file-v1:sha256:52b26c3b76cd372245853eb6ca5e89387dae96fe9bd238993dfce58e342b0fee"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedExecChannelOwner.swift#L179-L288",
+          "version": "repo-lines-v1:sha256:ba4a6ba7f4f592a51e1877b948321be2f3355be77348ab1a613209d1d056511c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2ODRmNzgwMjFjOGZiNWJlYzIxNzA5OWFlNWM5OTE0YmFhM2ExOGE3NzdlZTdiNWFhYmY0ODUyNDMzNmJiMjkyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5Y2Q4ZmJiZDQ4OThjYzM0MzllNmJjOGUyYzk0ZmRmODU4NjZjNjUzZWViMGQ4N2M4OGFjNTQyYjEyZTg5MTg0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3ZTJlZjA3ZGJkMTRiMjBmYTAyODg0NzE5YTU5MjJiMWU3MmE3NTc2NDZmNmJkN2EwNmZlNDY2YWFiZWU3NDZjIn0"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L779-L815",
-          "version": "repo-lines-v1:sha256:03ea5a83180d6458e169c6f343c3fd57a2876a3d3baeb3e3e4c4128019fb5eb9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmOTU4YmNjNDQ5ZDIzYjY2NjdmZWY2MGQzODZhZGNiZTJlNzI0Nzg1ZTA2MmZmMDU5N2YwZTZhOTZmZmZjMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhNGE2OWFkODE3Y2E2NGZhODA0ODlhMzI1NmQ0Mzc4ZWVhZjQxYWE1YzE2NzAzNzUzMzVjN2VmZjMxMmEyZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNDkxZWFjNDY2ZmEwZjQ5MWQxZjhiZDk3ZGY3OGExZmE5ZjJhYmZiNjM3YWRlMjljYjBhODM5ZmIzNDg2MTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNDdiNThjYzNjNDE0ZWUyYzk1YWU1NDZhYjRkOTYyZmRiMWYzOTJhMTUwZDM0YzFiOWU1Y2JkZTFmZTlmMWYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1301-L1352",
+          "version": "repo-lines-v1:sha256:e80eef01696f28fede1d246ca2deb862f5634efa5bb821b20918bd6a739e8e86:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNzZlNTA2Yjc2MWNjYjBjNWEyNzIyYmI3Y2FhMzljZGJhNmYwZWVmNjE0MWVmODU2NTI0NmQzZDRmZWM3ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5MjQwODMxZDkxMjNlYjc2ZGQ3M2UwMjQ4M2Y4OWM1MDc2N2JmOTZmNjJmOTE4NWZkNDg2OWYzNzc0Yzk5OGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjM2IwMjU5MmNhMjhiMDkxMjc2ZTcwNzg5YzhiNmE2NTBiZDlmMzVhZDEzNzc2NzJiZmU4ZDFhOTkzZjU0ZmUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L2054-L2114",
+          "version": "repo-lines-v1:sha256:880a504658693e4042597514946fa280880bf45931b7d0b17cd5d54499a7d9aa:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzZTk2NmEyNDZiOTM1N2ExODk3YThhMWUwNDEwZjkzYTFkMTgxODkxY2Y2OTMzMGQwZWUxMzQyNTg3NWQyZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkMTYyZDQ3ZDE0OTdmMDlkNTNkMDkyZDQ3ZjE0MzgwYWQ3MWNjYWQ2MzZkZjhiZmEwY2VkYzBkZGIwNjkyZmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxYzM4ZDRlZmFiZjJhYjg5MWI1MDZiNDBiZTkxZGJiMDQ3YjA3NWFmMDNlMDhhMzI3ZWY3NzNkMmQ2YTI3M2EifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-06T18:02:45.153Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

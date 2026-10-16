@@ -1,6 +1,6 @@
 ---
 type: engineering-contract
-title: Engineering Invariants and Change Safety
+title: Engineering Invariants
 description: Cross-cutting safety rules for dependency boundaries, state lifetimes, localization, secrets, commerce, persistence, and testing, with the scope of their regression checks.
 tags: [architecture, invariants, lifecycle, security, persistence, sync, commerce, localization, testing]
 sources:
@@ -38,6 +38,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-c375092b23c70ace642fdbd7
+    resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
   - id: openwiki-source-9b6177e37e7dd97d0cb1adee
     resource: repo://Frameworks/TermindApplication/Terminal/TerminalFindController.swift
   - id: openwiki-source-a6d04eaf0b5dc762d077f17e
@@ -48,6 +50,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/HistorySyncTypes.swift
   - id: openwiki-source-c3006decff414f8b4ca021c4
     resource: repo://Frameworks/TermindDomain/Hosts/HostDeletion.swift
+  - id: openwiki-source-44f3b562f3c7b739d591cf92
+    resource: repo://Frameworks/TermindDomain/Sessions/SessionPersistence.swift
   - id: openwiki-source-1ca741e9f21312b87c75fa28
     resource: repo://Frameworks/TermindDomain/Settings/NotificationPreferences.swift
   - id: openwiki-source-e08ad235d9d92a20cf09290b
@@ -90,6 +94,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-4e96d6bf2e7ae21ae9f5a5d8
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV53HostModels.swift
+  - id: openwiki-source-d9d273a10bc4dfbf1117ed63
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV54HostModels.swift
   - id: openwiki-source-ba9bcaaf5c4be2ca83356c1a
     resource: repo://Frameworks/TermindPersistence/VaultWireV1Validation.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
@@ -136,6 +144,8 @@ sources:
     resource: repo://FrameworkTests/PersistentStoreLockTests.swift
   - id: openwiki-source-35e54ff3f3ad9f3931b11be7
     resource: repo://FrameworkTests/RevenueCatCommerceTests.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-3ff855d6e002a67eb54f3199
     resource: repo://FrameworkTests/SFTPNotificationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -196,6 +206,8 @@ sources:
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-b6fae59344747785dee252f3
     resource: repo://TFITests/MobileTerminalSearchTests.swift
+  - id: openwiki-source-b360f8803ec98b554faad9bb
+    resource: repo://TFITests/MobileWorkspaceSessionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-d5cca6ff91d9aaa5da323b40
@@ -238,15 +250,22 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-  - id: openwiki-source-d798805795e92534f3b13250
-    resource: repo://TFMTests/WorkspaceCloseConfirmationTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# Engineering invariants and change safety
+# Engineering Invariants
+
+## Change checklist
+
+- Preserve layer direction and feature-owned state; pair scoped source guards with behavioral tests.
+- Keep the startup store and frozen historical models intact. Local SwiftData is V54; wire formats version independently.
+- Do not restore retired mobile snapshots or persist recently closed runtime state. Distinguish in-process scene recovery from cold-launch reconstruction.
+- Distinguish explicit pane/Workspace close from native window dismissal, suspension and Quit; managed remote-session termination must follow teardown intent.
+- Preserve cancellation generations, secret ownership and commit-before-publication boundaries. A timeout or expiration return is not proof of durable cleanup.
+- Run the focused tests named below and update the detailed [SSH lifecycle](../workflows/ssh-session-lifecycle.md), [persistence](../concepts/persistence-and-secrets.md) or [behavioral-boundary](../testing/behavioral-boundaries-and-fixtures.md) contract with intentional changes.
 
 This is a cross-cutting change-safety guide for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
 
@@ -281,7 +300,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, RevenueCat-backed commerce, Vault/History/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. Its own import ban is stricter than the non-presentation shared-framework rule. |
-| TermindPersistence | All SwiftData models, historical schemas, V52 live schema, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V54 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -293,7 +312,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for
   display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
-  migration. `makeContainer` fixes the complete V52 schema/plan; each app composition root retains its startup container
+  migration. `makeContainer` fixes the complete V54 schema/plan; each app composition root retains its startup container
   for all scenes. Never recreate a failed store silently: macOS reports a database-in-use alert and exits if another
   app owns the store, and fails startup for other store errors; iOS retains a failed startup result and displays a
   store-open failure view. On macOS, the factory acquires a nonblocking exclusive `.lock` file lease **before** SwiftData
@@ -313,12 +332,12 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
   do not change the independently versioned CloudKit envelopes. V35 adds History journal/state, an **historical** scoped
-  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V52 schema passes through
+  importer checkpoint and decode-capability checkpoints without rewriting V34 models. The live V54 schema passes through
   V36 (drops the retired importer checkpoint), V37 (cloud presence/physical deletion state), V38 (delete-handoff and
   asset-cleanup state), V39 (device-local Assistant model selections), V40 (removes retired per-category quarantine tables,
   retaining scoped quarantine), V41 (shared notification preferences), V42 (agent-message provenance, chat creation
   relations and durable collaboration delivery receipts), V43 (public MCP OAuth settings), V44 (Host model fields), and
-  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup; V51 adds Snippet colors through a lightweight migration, freezing the pre-color V1–V50 Snippet entity; V52 removes the retired terminal keyword-highlighting preference model through another lightweight migration. Snippet Vault records now read V1/V2 and write V2; V1 encoding rejects colored values rather than silently dropping color. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
+  V45 (Security Key reference metadata on SSH keys), and V46 (persisted terminal keyword-highlight preferences). V47 adds Tailscale groups and local node state; V48 revises that local state; V49 removes durable command and SFTP history models; V50 adds durable Tailscale profile cleanup; V51 adds Snippet colors through a lightweight migration, freezing the pre-color V1–V50 Snippet entity; V52 removes the retired terminal keyword-highlighting preference model through another lightweight migration. V53 replaces the Host backing with session-persistence and agent-forwarding fields; V54 replaces it again with icon-override support. Both transitions are lightweight and preserve their historical Host types. Snippet Vault records now read V1/V2 and write V2; V1 encoding rejects colored values rather than silently dropping color. Historical model shapes remain unchanged. `HistorySyncPersistence.prepare()` now bootstraps from native local History and Device rows, not
   the old Vault-to-History importer: V31/V34 reopen tests verify retired Vault history journal entries are not imported,
   and V35 reopen tests verify existing native device/history journal data survive without an importer table.
 
@@ -359,7 +378,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
 
 ### Windows and sessions
 
-- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns process services, the complete Workspace descriptor snapshot and a registry of `MobileWorkspaceSessionModel`s. Each native scene session owns its ordered live Workspaces and saved descriptors through that model; `MobileSceneModel` owns the destination, selected Workspace and Assistant navigation. Its optional Workspace destination is one enum (Workspace or Transfers), and its optional sheet is another (Connection Picker or Batch Startup); compatibility accessors derive from those values rather than maintaining competing flags. Workspace links activate the existing native owner rather than opening a duplicate in another scene. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
+- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns process services, process-local recently closed records and a registry of `MobileWorkspaceSessionModel`s. Each native scene session owns its ordered live Workspaces and in-memory connection-intent descriptors through that model; `MobileSceneModel` owns the destination, selected Workspace and Assistant navigation. Its optional Workspace destination is one enum (Workspace or Transfers), and its optional sheet is another (Connection Picker or Batch Startup); compatibility accessors derive from those values rather than maintaining competing flags. Workspace links activate the existing native owner rather than opening a duplicate in another scene. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
 - New desktop windows start at Welcome; Dock reopen preserves destination and Metrics entry selects Metrics. Dock
   New Window uses the registered factory and activates hidden/windowless apps. Restoration never reconnects live
   Workspaces. New windows snapshot ordinary content size once, after full-size content styling; fullscreen/auxiliary
@@ -370,6 +389,7 @@ The shared coordinators decide eligibility and the native routers navigate witho
 - Command-W closes the focused pane, removing empty Workspaces but retaining the window; otherwise dismisses natively.
   All window-close paths confirm if that window owns any Workspaces, even hidden/disconnected. Shift-Command-W requests
   window dismissal. Clearing document-edited decoration must not change confirmation/delegate behavior.
+- **Client dismissal is not remote-session termination.** Desktop `closeForWindow()` cancels pending explicit-close authorization, records the closed window and disconnects clients while preserving remote sessions/recovery references. Quit uses `.applicationTermination`, not explicit Close All. Only `.explicitClose` ends managed attachments; suspension, remote exit and detach also preserve them. `RemoteSessionCloseCoordinator` ignores unmanaged attachments and deduplicates managed identity, terminates without an initial confirmation, and on failure offers retry, Cancel or Disconnect Only. Failure alone never authorizes removal; cancellation/generation changes fence late results and retry retains partial progress. Pair [SessionPersistenceTests](../../FrameworkTests/SessionPersistenceTests.swift) with native [WorkspaceCloseConfirmationTests](../../TFMTests/WorkspaceCloseConfirmationTests.swift); the native window warning and the remote-termination failure prompt are different gates.
 - Moving a Workspace between registered windows preserves live panes/transports/splits/state, without close history.
   Pane title drags, and native Workspace List drags on macOS 26+, can create a new window after an unaccepted release
   outside the source window. Escape and accepted drops do not create a window. Ownership transfers only when the
@@ -396,7 +416,7 @@ Authentication belongs to the feature performing the connection, not to an app-w
 
 - Known Hosts is independent of Host records: editing/deleting a Host never changes trust. Plain and OpenSSH `|1|`
   hashed endpoints share matching; hashed records retain wire hostname and ignore the separate port.
-- Saved-Host deletion is a durable request, not an immediate cascade. `SwiftDataHostRepository.requestHostDeletion` commits the pending-deletion marker, ordered outbox jobs, revision and Vault mutation together; snapshots hide the marked Host before physical removal. The outbox runs Workspace close, transfer cancellation, forwarding stop, reference/history cleanup and final Host/owned-Identity removal. Repository cleanup retries after interruption; do not replace it with only an in-memory UI removal. Desktop `AppModel.requestHostDeletion` projects the Host and clears local histories after the request succeeds; its registered runtime/outbox callbacks revoke live work. Mobile `deleteHost` also proactively disconnects Assistant and closes current and unopened Workspace entries, invalidates edits/transfers/forwardings and removes Metrics before requesting deletion, then starts its outbox. This mobile preflight is not the durable commit: an unsuccessful request returns an error, not a guarantee of restored live sessions. Remote Vault removal has its own runtime invalidation path on both platforms. Focused checks: `TFMTests/RepositoryOutboxTests.swift` for marker/jobs/reference and trust behavior; `TFITests/MobileAppTests.swift` for both current and Recent entries.
+- Saved-Host deletion is a durable request, not an immediate cascade. `SwiftDataHostRepository.requestHostDeletion` commits the pending-deletion marker, ordered outbox jobs, revision and Vault mutation together; snapshots hide the marked Host before physical removal. The outbox runs Workspace close, transfer cancellation, forwarding stop, reference/history cleanup and final Host/owned-Identity removal. Repository cleanup retries after interruption; do not replace it with only an in-memory UI removal. Desktop `AppModel.requestHostDeletion` projects the Host and clears local histories after the request succeeds; its registered runtime/outbox callbacks revoke live work. On mobile `deleteHost` proactively disconnects Assistant, requests closure of live/dormant entries and forgets recently closed recovery records, invalidates edits/transfers/forwardings and removes Metrics before requesting deletion, then starts its outbox. Managed remote-session closure can defer removal through its authorization path; do not equate requesting closure with immediate successful termination. This mobile preflight is not the durable commit: an unsuccessful request returns an error, not a guarantee of restored live sessions. Remote Vault removal has its own runtime invalidation path on both platforms. Focused checks: `TFMTests/RepositoryOutboxTests.swift` for marker/jobs/reference and trust behavior; `TFITests/MobileAppTests.swift` for both current and Recent entries.
 - SSH import previews are window-owned indexed public metadata. Host selection never selects credentials; imported
   identities require selected keys. The actor retains scoped descriptors/digests, not private-key text/passphrases;
   reread selected keys at unlock/commit and fail closed if changed. Picking/drop share validation; config parsing
@@ -1001,7 +1021,7 @@ Shared lifecycle upload gates surround category-specific decoding and atomic per
 ### Workspaces and activity
 
 - One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
-  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. When every tracked scene enters background, the app pauses sync, Metrics, edit monitoring, memory, outbox and speech recording, then begins a finite background task; **only on its expiration** it suspends active Workspace flows, stops forwarding, pauses transfers and expires Assistant work. Foreground resumes only existing live Workspaces with foreground-resume intent; it does not cold-open other saved descriptors. This resume can initiate a fresh connection attempt, so it is not an implicit trust approval or command replay.
+  Recent/reopened process-local entries open on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. When every tracked scene enters background, the app pauses sync, Metrics, edit monitoring, memory, outbox and speech recording, then begins a finite background task; **only on its expiration** it suspends active Workspace flows, stops forwarding, pauses transfers and expires Assistant work. Foreground resumes only existing live Workspaces with foreground-resume intent; it does not cold-open other saved descriptors. This resume can initiate a fresh connection attempt, so it is not an implicit trust approval or command replay.
 - `MobileBackgroundController` delivers expiration on the MainActor **synchronously** before retiring its finite UIKit
   lease; the expiration closure immediately requests Workspace/forwarding/transfer/Assistant cancellation, but async
   Assistant persistence and transport drains remain best effort under OS suspension. Replacement/finished leases ignore
@@ -1027,7 +1047,9 @@ sequenceDiagram
     Assistant->>Assistant: drain saves then close agent transports best effort
 ```
 The finite UIKit lease ends after synchronous cancellation requests, not after asynchronous Assistant cleanup.
-- `mobile.workspaces.v1` persists a version-2 snapshot of ordered, scene-session-owned local descriptors (ID/Host/kind/title), with unassigned legacy entries but no commands/secrets/paths/content/transfers. Cold launch after Hosts loads Recent only, no sessions/history/network. The first bound native scene consolidates prior scene descriptors and unassigned records into one owner in a single save; later scenes cannot claim those recovery records again. A disconnected scene is not presumed discarded: on reconciliation, orphaned live Workspaces transfer to an active scene only after the ownership snapshot saves; an explicit native session discard closes its entries. MainActor open-by-ID reuses or publishes then connects one instance in its owning scene; repeated selection does not retry a failed first attempt. Save retains unopened entries/order. Read legacy arrays/v1 and migrate on first binding rather than on read; only successful loads permit save. Corrupt/unknown bytes remain write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries; Close All preserves connection history. Local Host deletion closes both live and unopened descriptors immediately, with outbox cleanup for surviving durable work; remote removal closes them through Vault-apply handling.
+- **Retired snapshots stay retired.** Startup removes `mobile.workspaces.v1` and `mobile.recentlyClosed.v2`, without decoding, migration or replacement storage; unrelated defaults survive. Relaunch starts with no Workspaces or recently closed records, even though saved Hosts survive. In-memory descriptors still support dormant/reopened entries, but they are not a persisted restoration cache. `MobileWorkspaceRestorationTests.relaunchIsEmptyAndRetiresOnlyWorkspaceKeys` checks actual bytes and relaunch, not a historical migration implied by a test name.
+- **Recovery is process-local.** A disconnected scene is not a discarded native session. Reconciliation with native open-session IDs transfers orphaned live instances/order/unread state to an active owner without reconnecting or creating history; no disk save gates that transfer. With no active recipient it waits. A late native discard removes precisely the original window's entries, even after handoff. Explicit discard groups recently closed entries; reopening creates fresh runtime/history state and never replays a one-shot command. Recently closed records are shared within the process, not across launches. See [MobileWorkspaceSessionTests](../../TFITests/MobileWorkspaceSessionTests.swift), especially cold launch, missing-session handoff, system reclaim, late discard and reopen cases.
+- **Activity recovery is a separate explicit entrypoint.** A validated Live Activity recovery payload can rebuild a saved-Host Workspace with a new ID and remote-session selection required. Publication and a source-to-new-ID map deduplicate repeated links across scenes. An ID-only stale link, deleted Host, unsupported version/kind or command-bearing link cannot guess a connection. `MobileWorkspaceRestorationTests` verifies these cases. Keep the full connection policy in [SSH session lifecycle](../workflows/ssh-session-lifecycle.md).
 - Connection history is a separate native-field History event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
   event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
   installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. `DeviceDirectoryModel`
@@ -1036,10 +1058,7 @@ The finite UIKit lease ends after synchronous cancellation requests, not after a
   moving preserves it. Stores retain the newest 250 deterministically. Welcome/mobile Recents use local events and
   aggregate by Host, while desktop History presents at most 100 all-device events and mobile History at most 50. Aggregated Delete clears that Host's events across
   devices; Clear History clears the complete timeline.
-- One serialized Live Activity for current Workspaces only. Secret/command-free validated links select ID/list without restoring unrelated sessions;
-  cold launch ends leftover activities but links may open saved entries. Explicit start intent waits for foreground; last current close clears it
-  even with Recent. Foreground alone never recreates dismissed activity. Snapshot/queue is separate from observed stores and cannot keep SSH/Agent
-  alive. Stale links explain unavailable; restoration cannot distinguish termination from force-quit.
+- One serialized Live Activity represents current Workspaces. Validated links select an existing owner or use the explicit recovery path above; they never restore an unrelated snapshot. Explicit start intent waits for foreground; foreground alone never recreates a dismissed activity. Its snapshot/queue cannot keep SSH or Agent work alive. Stale links without valid recovery explain unavailability.
 
 ### Scene interactions
 

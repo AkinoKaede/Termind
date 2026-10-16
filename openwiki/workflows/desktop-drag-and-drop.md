@@ -1,6 +1,6 @@
 ---
 type: interaction workflow
-title: Desktop Drag and Drop
+title: Desktop Workspace and Pane Drag-and-Drop
 description: Native desktop workspace and pane layout dragging, including drop routing, cancellation, and deferred ownership transfer to a new window. Distinguishes these moves from pane file drops and Assistant conversation reordering.
 tags: [macos, tfm, drag-and-drop, workspaces, panes, assistant, appkit, lifecycle, testing]
 sources:
@@ -8,8 +8,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-160f180df5d3cb1457febfee
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
+  - id: openwiki-source-c375092b23c70ace642fdbd7
+    resource: repo://Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift
   - id: openwiki-source-247755d873c5d94b0a364217
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
+  - id: openwiki-source-ffc9054d578eba7be684b885
+    resource: repo://FrameworkTests/SessionPersistenceTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -20,6 +24,8 @@ sources:
     resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-6551e1821f08f37b10dfe7fa
+    resource: repo://TFM/Features/Workspaces/Workspace.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
@@ -52,13 +58,13 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-a48980e81bab99fcd643df54
     resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-10T23:08:14.218Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-10T23:08:14.218Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
-# Desktop Drag and Drop
+# Desktop Workspace and Pane Drag-and-Drop
 
 TFM drag behavior spans SwiftUI row interaction, AppKit's native tracking loop, temporary layout previews and live session ownership. Changing one of these layers can break another without changing the final model operation. In particular, **Workspace rows retain the native SwiftUI List drag source**; the separate Pane source is not a replacement for it.
 
@@ -196,11 +202,14 @@ sequenceDiagram
     Bridge->>Native: Establish full-size content coordinates
     Bridge->>Coordinator: register native window and request UUID
     Coordinator->>Source: takeWorkspaceForMove or takePaneForMove
+    Source->>Source: Cancel pending persistent-close attempt
     Source-->>Coordinator: Existing workspace or pane wrapped in workspace
-    Coordinator->>Target: open and reconcile sidebar
+    Coordinator->>Target: open and install lifecycle router
     Coordinator->>Coordinator: Size and fit destination frame
     Coordinator->>Target: Bump sidebar layout generation for move
 ```
+
+The handoff waits for native destination registration before extracting live ownership and installing the destination lifecycle router.
 
 Scene creation and native registration are distinct phases; the diagram's transfer happens at registration, after native close-delegate attachment and content-coordinate setup, not at the drop or initial SwiftUI layout.
 
@@ -218,13 +227,19 @@ The request stores a weak source, the move identity, a layout snapshot (ordinary
 
 Registration consumes the request once. A whole Workspace moves as the same object, including its complete split layout. A pane from a split workspace is extracted into a newly named workspace around the **same Pane object**; the remaining source tree repairs focus, group naming and broadcast eligibility through `Workspace.closePane`. A lone pane moves its original workspace, retaining its name and template identity.
 
+The extraction paths deliberately bypass `WindowModel.close` and `closePane` teardown. `takeWorkspaceForMove` uses `removeWorkspaceForMove` and clears the transferred workspace's `lifecycleRouter`; destination `open` assigns the target window as router. For a split-pane extraction, `Workspace.closePane` only rewrites the source layout: the source workspace keeps its router, and the new wrapper receives the destination router on `open`. The wrapper uses `automaticallyNamedWorkspace`, so its workspace name is allocated from the saved host name or SSH/Telnet session title when available, subject to workspace naming preferences and occupied source-window names. It does not inherit the split group's name or template identity; the moved pane's own custom title survives.
+
+Both extraction entrypoints call `persistentClose.cancel()` after validating the live source and before removing ownership. This invalidates an outstanding persistent-session close attempt and dismisses any pending failure prompt as cancellation, rather than allowing a stale close authorization to remove the moved layout. `authorizePersistentClose` also checks workspace/pane ID snapshots and verifies session ownership before remote termination. Cancellation is not rollback of an already completed remote termination; the close coordinator checks its generation between operations and before granting authorization. See [SSH Session Lifecycle](ssh-session-lifecycle.md) for transport and persistent-session teardown semantics.
+
+Evidence: [live extraction and close authorization](../../TFM/Features/Workspaces/WindowModel.swift#L1375-L1455), [move-only removal](../../TFM/Features/Workspaces/WindowModel.swift#L1262-L1282), [close cancellation](../../Frameworks/TermindApplication/Terminal/RemoteSessionCloseCoordinator.swift#L22-L82).
+
 These are move operations, not close/reopen: they do not disconnect transports, end connection-history events or populate app-owned recently-closed history. Destination `open` installs its lifecycle router and shared services; history configuration skips a pane that already has an active event. The source refreshes its focused-session context and sidebar state. If its last workspace moved away, it returns to Welcome. On an actual window close, by contrast, `closeForWindow` disconnects the panes still owned there, not those already transferred.
 
 Closing the source window removes its pending requests. A pane closed before registration cannot be resurrected by a late destination; an already-created scene may remain empty. A restored scene with no pending request retains its restored geometry and does not replay the move.
 
 New windows use the source's last valid ordinary AppKit **content** size, not its fullscreen frame; if no source size was recorded, the shared default applies. During scene construction `configure` applies sidebar presentation and preferred width; registration reapplies them (and invalidates initial sidebar layout if they differ), sizes the native window, then bumps `sidebar.initialLayoutGeneration` for a move to rebuild the split view at the transferred width. For a release point, `applySize` selects the screen containing that point, centers the frame horizontally on it and places its top at the point's Y coordinate, then `fittingFrame` clamps its size and origin inside that screen's visible frame. The minimum content dimensions are enforced before fitting, so a release near a screen edge may shift the resulting window rather than leave it exactly centered on the cursor. Destination registration disables native opening animation for requests with a release point; the tests' `nativeWindow` fixture already has `.none` set and checks placement and layout rather than verifying that assignment separately. If the source was fullscreen, the destination also defers fullscreen activation until it becomes key. A restored scene without a pending request is left at its system-restored frame.
 
-Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L257-L299), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L329-L390), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L392-L470), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L565-L628), [scene factory](../../TFM/App/TermindCommands.swift#L31-L34), [scene construction and consent gate](../../TFM/App/TermindApp.swift#L224-L252), [RootView bridge](../../TFM/App/RootView.swift#L75-L85), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1385-L1430), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L254).
+Evidence: [request and layout snapshot](../../TFM/Platform/MainWindowCoordinator.swift#L257-L299), [request consumption and registration](../../TFM/Platform/MainWindowCoordinator.swift#L329-L390), [placement, fullscreen and close](../../TFM/Platform/MainWindowCoordinator.swift#L392-L470), [frame fit and registration bridge](../../TFM/Platform/MainWindowCoordinator.swift#L565-L628), [scene factory](../../TFM/App/TermindCommands.swift#L31-L34), [scene construction and consent gate](../../TFM/App/TermindApp.swift#L224-L252), [RootView bridge](../../TFM/App/RootView.swift#L75-L85), [model extraction and close](../../TFM/Features/Workspaces/WindowModel.swift#L1402-L1482), [move regressions](../../TFMTests/WorkspaceWindowMoveTests.swift#L11-L254).
 
 ## Assistant conversation reordering
 
@@ -249,6 +264,7 @@ Evidence: [active list routing](../../TFM/Features/Assistant/AssistantView.swift
 | Return animation or data-source forwarding/replacement | `WorkspaceNavigatorDragAnimationTests`; native split-workspace tear-off also asserts the animation flag at session start. |
 | Whole split Workspace fails to tear off | `WorkspaceNavigatorDropTests.draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout()`: release over another window, one request, original Workspace and pane IDs. |
 | Ownership loss, reconnect, changed history or late request | `WorkspaceWindowMoveTests`: destination delay, duplicate requests, lone-pane identity, closed sources, reversed arrival order and window placement. |
+| Persistent close races with transfer | Inspect both extraction entrypoints' `persistentClose.cancel()` and ownership/snapshot checks; `SessionPersistenceTests.cancellationDuringBatchCloseDoesNotEndAdditionalSessions()` covers coordinator cancellation, not an end-to-end drag during remote termination. |
 | Native close veto or lost delegate callbacks after registration | `WorkspaceCloseConfirmationTests`: veto preserves the same workspace, retry, forwarded veto/callbacks, delegate restoration and empty-window dismissal. These tests exercise the proxy directly; the move tests register through the coordinator, not the registration view's edited-state observation. |
 | Assistant hidden receiver or active-row eligibility | `AssistantConversationListDropTests`; `AssistantConversationOperationsTests` covers persistence failure and preserved activity; `WindowStateTests` covers stable manual order. |
 

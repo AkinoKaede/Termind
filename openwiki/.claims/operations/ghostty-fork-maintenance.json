@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c7bd6da93aa74739720c334a405fef77677673f8257669c559bbc3d2162e7060",
+  "pageVersion": "sha256:d8196e67d72905d03d644794446e481047c797a3d75ddb241f5f432bf4684097",
   "claims": [
     {
       "id": "claim_178354d1d71f460e9b920a02dd44754f",
@@ -26,19 +26,27 @@
     },
     {
       "id": "claim_45912db4e0a443b78ae565fdf3c71686",
-      "statement": "MobileTerminalView overrides separate unselected/selected touch hooks to localize recognized editing actions, group them first, add upload choices and retain unrelated inherited items. macOS independently overrides selectionContextMenu; grouping/localization/upload policy remain app-owned around the upstream APIs.",
+      "statement": "Termind owns menu customization around upstream Ghostty hooks: MobileTerminalView calls separate superclass touch/selection hooks, localizes recognized editing actions, groups them first, adds upload choices and preserves unrelated inherited items. On macOS, TermindTerminalView offers a default context menu without a selection, suppresses menus during captured mouse input, retains the superclass selection menu only when a selection is reported, localizes Copy and adds clipboard-validated Paste and Select All. Bound Upload File and Open with SFTP additions remain app-owned; SFTP offers current/new workspace placement and rechecks availability on invocation, while paste-on-right-click and Option bypass remain desktop preferences.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L35-L40",
-          "version": "repo-lines-v1:sha256:d1394d7d3d97d354c89b039e5c34ab96e941089d33cd355e0387b23a6c133f2c:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGRjOGMxOWJjNDY4NDk2Yzk3ZGEyNTgwNTY2ZjM1MzUwMDMyMjY5MGI3ZWQyYTE5ODI3YjQ0NzQwOGRiNzExOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjA1ZjMyYWRiMjBlNTJjNWE2MGRhZTgwMWJkYzg3ZGZhNzM3NjhiZGQzNWZlOGQ5ZGM3ZDgyM2I5NGRhY2Q1OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzRmMWQ0Y2ExYTY1YmM4MzYyMjJkM2Q3MzA2YTdjZTMxOGRmODZmMGVlMzVmMmM2YTViOWNkYTk5YjY3NWY1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTY1OTI5NTJmZWY1YTZjYzgyOTg5MjJjZGQ3MmMzM2NkZGUyNjA5ZGIyZTEzOGM1MzllN2Y4ZmUwMGU5NTVmMSJ9"
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L25-L85",
+          "version": "repo-lines-v1:sha256:2791d80b7e32a1dac0189fa2e1cfffbc9cf81d141c79b46b456e39cf710be987:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkOWRiNDhlZjZhNjNhNjA4ZWZjNzlhYWVhOGYxNTQ0YzE4ZjM5NmU3OWU1ZWFjNTE1ODI2M2M0N2I5YTc1NzkifQ"
         },
         {
-          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L25-L89",
-          "version": "repo-lines-v1:sha256:163c551505566e762d82a43bc87d3295b59ca96bc44de6c092ddedd08c73e24f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3YTVlODk5YjVhZWZmNmFmYzYwNmZmNzdhMDM1NGE1MGYxZmQxYTRlODVlZTc4MmUyNTZkZjFhYjkxZmQ5NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjNzdkNjk0OGIyNjEyOWMyNDVmNDU3ODczYWRjZTliYzdkZjU3N2ExYTY3ZTYxYjZiMjY1YTk3ZWRiZDdlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNjQ4YjNmZDFlNTg5YmFhZjc2Y2Q3OGE2ZTk5MDlmYjZkYjUwOTQ1ZWU3ZTY5ZDYwYjNiZDg1YmQwODFiNTAifQ"
+          "resource": "repo://TFITests/MobileTerminalUploadMenuTests.swift#L9-L74",
+          "version": "repo-lines-v1:sha256:daadfb94ccba7351d3038388bbd2409f1c1c4114ac22975af55cdaec5fc4dd90:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTkwODJlZWMzODIxOWNkNWI3N2MwOTI2MjU1NjhhMWE3MzMzNDA2YzY0YTA2MWM3ZTlhYWI0MzYzMDhlMTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlMDIxMzE3MTkxOTFlMjQzYzY5YjBhMzdhYjVlNWY0NTVlYWQxOTczMTFiMDc2MmQ3OTU5N2QwODljYTFiNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
         },
         {
-          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L219-L299",
-          "version": "repo-lines-v1:sha256:10ddca89fd87975c455cceca79de337e76155f7ec435e9031177381714778d4f:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZmQ1NTZkZmQzNjk0YjgwMWNlNWZkYzM3ZjFjODZkMTU2ZmZkNGUwY2E4MjVmYTgyOTU1N2I2ZDQ0OWU1NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwZWZlNmVmYWYzOWNjOWUwNDI0ODAyODcyZDU1YTZlM2U4M2RjYjJlMzliZDZiZTJjMjUyNTU1YzM3MDJmMzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmODZmYWNjZDlkODY5YmVkM2E0M2FkOTM4YzVkZWEwZTU3MjgyNTMzM2MzZjY1ZTQxYzljNjcyZWI3Y2U1M2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5NzdkMWU2NTg2NjA2ZWQzYzIzODc1ODNlY2VmNTY0OTc0NTNkMzY2NDBkNjM0ZDVlZTVkMWEwYzk4OGRmZGQifQ"
+          "resource": "repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift#L209-L312",
+          "version": "repo-lines-v1:sha256:eef3d4ccc3340bf865ea19cdb717d3f3ab62f18c6668a0015eb1bda622b61de5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5MzRlMmE3OTQ1NGQ3NDIxZWQ0MjIyNmQ3YTU4ZDViN2FjMGJkMTE1MmJiMTE1MzFmMGRhMTQwNWM5Njc4MmEwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkYTlmODZkMjhlNzg0ZjlmZDMxZmI3MmQxNWY2MGNiY2VhYWZkZDY2OWNiZDViNmRhNzg4OGEwMjMzMjFlYmI5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5MDc4ZjBmY2VmOTEwZTI0M2I1YWVhYzMzOGM0NTdlZjY5ZDBiOGU5MGRmZjRlNzBjNmJmYTU4YWFjMzM4NjM5In0"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalContextMenuTests.swift#L51-L88",
+          "version": "repo-lines-v1:sha256:356419d5a0f594ea1d6497a55a66e9b344856e0bfee3663804fc114e030e4b3e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMGVjMGZlYjQ5NGIzOTg1OTVjMzg1ZDRiMmRhNWU4ZDgxMDQ5NDdjNDY3MmJhZDkwNjNmNDI0MGE0NTNkNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhZmViMTk3YTM1NjgzZmY4NTk3ZmEwNWFmOWU2Y2JhNWMxN2IwMjAyYmFjMzViY2Y2NzE0OGIyZGQzYWI4ZjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxNWVmNTIwMzllMjQ1NDY1ZjE4ZmM3NmJlNTI4NTM5Nzk4MjgwZGE5ZGM2N2UxMWVjY2NjM2ZhMWJmNTI5YzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalContextMenuTests.swift#L9-L26",
+          "version": "repo-lines-v1:sha256:ee15519655e5c7ff96d78e8120d60d81762a7d682c1e7759971b9826058c950d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ODNlYTI2YzUwYWRkYjI0NDI0NWQ1ZGUyOWNlZjU1YjNiZDg4MmRiYzdlMTQwODUzZDIxZjdlZGUyMmQ4OWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyYTRjNGM2YjIyOWU4ODE4YTczN2I0MjJiOTA2NmQxMGYzMGNhZjk5NjViMzg3Y2Q5ZGRkNDBhNTRiMTdiZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkNTk3MDczNDljZTQwZWRhMTNjOWE5MDA1NjgzMWVhYWIxY2IyYmRmODE4MmVhNWY3YjM3ZTExMjIwMzEzYTcifQ"
         }
       ]
     },
@@ -85,6 +93,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

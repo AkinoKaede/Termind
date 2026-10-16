@@ -24,6 +24,8 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-a88ccceb978a169c1cce67ac
+    resource: repo://TFI/Features/Terminal/MobileTerminalInitialFocus.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-f7aa24af0100c1767226879a
@@ -44,26 +46,16 @@ sources:
     resource: repo://TFM/Features/Terminal/DesktopTerminalSurface.swift
   - id: openwiki-source-fe5539ed6f675410b82b41c4
     resource: repo://TFM/Features/Terminal/PersistentTerminalSurfaceView.swift
-  - id: openwiki-source-49f0fac89c69b4a04f428496
-    resource: repo://TFM/Features/Terminal/SerialSessionModel.swift
-  - id: openwiki-source-7e796927b780e67cc73f6a5b
-    resource: repo://TFM/Features/Terminal/SSHSessionModel.swift
-  - id: openwiki-source-4c497048b0a8a3a2ca099d4b
-    resource: repo://TFM/Features/Terminal/TelnetSessionModel.swift
   - id: openwiki-source-c5cf0bfb7f2ff215114f00d5
     resource: repo://TFM/Features/Terminal/TerminalPlaceholderView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
-  - id: openwiki-source-931aff66b28d38cd69ce2324
-    resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
-  - id: openwiki-source-5e2670d68f19777e2dd312ea
-    resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-835d474e3dc193359dcfbb0b
     resource: repo://TFMTests/TerminalContextMenuTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Ghostty Terminal Integration
@@ -146,13 +138,35 @@ Ghostty defines the platform menu entry points and baseline terminal actions. Te
 
 Desktop's **Paste on Right Click** preference changes the gesture: an ordinary secondary click pastes and does not open the menu, while Option-secondary-click still opens it. Remote mouse capture remains Ghostty-owned. The session's `PersistentTerminalViewOwner` binds upload actions with an ID; updates or teardown from an old pane cannot disable or remove the menu installed by a replacement pane. On disappearance the current pane unbinds its ID. The menu therefore follows the presenting pane even when SwiftUI reparents the same native terminal.
 
-The desktop menu also offers **Open with SFTP** in the current or a new workspace when the SSH pane binds a companion action. Menu construction and dispatch both check current availability. Its binding uses a separate identity token, so stale pane teardown cannot remove a replacement binding. WindowModel resolves the source by session ID and requires a live session, known working directory and saved host, rather than relying on current focus.
+The desktop menu also offers **Open with SFTP** in the current or a new workspace when the SSH pane binds a companion action. Menu construction and dispatch both check current availability. Its binding uses a separate identity token, so stale pane teardown cannot remove a replacement binding. WindowModel resolves the source by session ID and requires a live session, known working directory and saved host, rather than relying on current focus. When the SSH session supplies a directory-context ticket, dispatch first confirms it asynchronously, then re-resolves the source and checks that the path, workspace and ticket remain current before opening SFTP. A failed confirmation or changed context does not open a companion.
 
 ## Surface and appearance flow
 
 Desktop `PersistentTerminalViewOwner` creates the in-memory backend, `TerminalViewState` and `TermindTerminalView` once, then mounts the same view in a changing `NSViewRepresentable` container. Mobile `MobileWorkspace` likewise creates a backend and state once and returns its retained `MobileTerminalSurface` view through `makePlatformView`. Both pass remote output into the backend and route keyboard/paste output to their transport. Do not reset surface options on an ordinary view update: replacing the controller or backend can tear down the live surface.
 
 Mobile keeps `TerminalSurfaceView` mounted beneath the connection-journey overlay for terminal workspaces, hiding it and disabling interaction rather than replacing it. The search modifier stays on workspace chrome outside that content branch, so a connection journey does not replace the search owner. These are lifecycle responsibilities, distinct from menu composition or upload authorization.
+
+### Reparenting and keyboard focus
+
+On desktop, mount ordinals prevent a late update from an older SwiftUI container from stealing the native view back from its newer destination. Dismantling uses the coordinator's original owner, and unmounting checks both the current container and native superview; an old teardown cannot detach a surface already moved elsewhere. Visibility changes update both state and native surface visibility without reconstructing the backend.
+
+Focus is not synonymous with visibility: several split panes can render, but only the requested visible terminal should receive keyboard focus. Ordinary desktop mount updates leave the responder chain alone unless the request changes or the view is reparented. Unforced focus acquisition protects an active text field or field editor, including the deferred post-mount path. Explicit `requestFocus()` is the intentional hand-back and may take focus from a field. Desktop Find bindings also restore an active field editor and its selection synchronously if Ghostty takes first responder while handling the action.
+
+Mobile's `MobileTerminalInitialFocus` requests focus on appearance or readiness changes, not every SwiftUI update. Readiness requires a visible workspace, active scene, connected transport and no connection journey. This initial-focus policy is separate from explicit Find dismissal focus restoration.
+
+```mermaid
+flowchart LR
+    Transport["Termind transport"] -->|Received bytes| Backend["Retained InMemoryTerminalSession"]
+    Backend --> Engine["Ghostty parsing and rendering"]
+    Native["Retained native TerminalView"] -->|Keyboard and paste| Engine
+    Engine -->|Outgoing bytes via backend write callback| Host["Termind session input routing"]
+    Host --> Transport
+    Native -->|Viewport via backend resize callback| Resize["Termind transport resize"]
+    Resize --> Transport
+```
+The retained surface bridges terminal bytes and geometry to host-owned transport callbacks, not to remote session lifetime management.
+
+Keeping a local surface alive does not itself keep an SSH connection or managed remote shell alive. Connection coordination, shell context and remote-session selection remain separate host responsibilities; see [SSH Session Lifecycle](../workflows/ssh-session-lifecycle.md) and [Shell Integration](shell-integration.md).
 
 Shared Presentation maps Termind palettes and the Ghostty theme catalog into light/dark terminal configurations. It applies the chosen base, optional custom commands and then device-local font overrides; app command notifications force Ghostty's `notify-on-command-finish` to `never` so the Termind notification coordinator owns delivery. The former app-owned keyword-highlighting feature and its shared modifier/rule model were retired. V52 removes the historical preference model, startup preparation retires its pending uploads and incoming legacy highlighting records are ignored without replacing other settings. This is an app migration/compatibility contract, not a claim about all upstream Ghostty configuration capabilities.
 

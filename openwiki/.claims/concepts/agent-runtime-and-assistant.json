@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cbef13adde75df5f4eb61055cde4c95146b6b694acc5c3fbe93ac17497883194",
+  "pageVersion": "sha256:5818540224bd91cb5b5de3d32ca2d09cea38accd9411feacc323ba948aeb8a5f",
   "claims": [
     {
       "id": "claim_981f16f030e9469588af705aa377161e",
@@ -345,20 +345,20 @@
       "statement": "Desktop MCP server selects acting definitions then applies exported-name and disabled-tool filtering, exposing the allowed host tools, request_user_secret and four HTTP transfer tools rather than terminal, scratch, web, skill, plan or task tools; the stdio bridge forwards to that server. MobileAppModel contains no local MCP-server setup.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f83323dded23ec74be6130fa9c8ad66d188b5d0cce9cf7f82b226f4f9d58769c"
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L3041-L3064",
+          "version": "repo-lines-v1:sha256:7f620cd00e83a655d1e654cb7d79dcb2143d1f0ed0701cc526f6803e8322f668:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjYWVlZTRlYjc4ZGZjNmFlN2MxMDI5Njg2NzU3OGM4ZjhiNTFhODUyZjExNjAyMTVlNmY4ZTEwOGJjYTMyOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2NWY4YmU1ZTQ5MTdhYTA3NDYyMjI0ZTJjNTAwZWNkMTMzMTRjNzE4ZWU0YzkxMmQ3NjI4NTVmMTNkYzk0NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5YmQxZTE4OGQ2ZDJiNGU0NmUwZDY5NGZkMzBhYjJmYTkwNGEwNTkyZWI5N2E1ZjQxY2E1ODIxNzNmYzcxMjAifQ"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L184-L213",
-          "version": "repo-lines-v1:sha256:e15da1f721ee834368e0b9e4d45189b455a4d71ce9cafc5638adf2a1bb00e8ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5OGU0MzcyYjgwNTM0ZmI5NjNmYzVlNGFmZDlhY2JlZGQ0NTNhZWEzYjU0ODAzMThmMWE2MWZmZTQzNGMyMTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlYTYxNGM5ZTJkZjc0NWU4Y2ZkZTdiNGIwZThiMmE5OWYxYTNjMTM3YmEzMmE5YjE4YzQ4MzBkMDg1NTY0M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzZGZiMWU0NTkxZTcxZTBmM2UxNmQwZTU2M2VjZjNlYWE5ZmJhNjZhNTg3MmZkOWNmYWZmOTA2ZTliZWM2YmIifQ"
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L3108-L3114",
+          "version": "repo-lines-v1:sha256:eaec0bb520a2a663b7b74bb1b1add7fe8512d5487f85c6bca20cdb50cc2959bf:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZiM2NjNjljMGU0ZTYzZjk1YzVjZTAzZjE3N2Q3OTgxYzlhMTk1ZTUzZTFiNjAyOWQ1ZGNhMjZlYmZiZDhkNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQyM2M4MTMwOTJmNDE4OTFhNTAyZGI1NDViM2IzOGJiNjE5ODdkMTkzNGRjYWNmNzg5ZDZkOGVjZjZlY2MzNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTA5YzZiNDZkZWVlZDRmNTM5YTlmYzc5ODYxYjUxYmJkYTU2OTY5ZDE3NWNjYWM4NzdlZDE1YzBhODMzNmNhMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjhhYjZiN2E3NTcxY2U5YzA5MTc2ZjEyYmJkMTY0ZDE2N2M1NTE1ZWY2ZThhMWNhYWFhY2M4YWViMTBmY2Q1YiJ9"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L7-L14",
-          "version": "repo-lines-v1:sha256:c73a6e44b764efc355cb0faea2cc7c31a15da8c51eeb58678069f2d4dd49da57:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQ3NTE0MGUyNmU5YzVhMTcxMWQ2NDQ1YTE4YjdmNGFlMjAyMmY5OTNlZjYyODQwNzU1NDMwMWI5NmUwZGMyMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWRkMjQ0NTgyYjZmYjAzZDIzYjg0MTVhYmVjZDM0NmIwYzlmNDY2YjZmNzUyYjA2ODE4OWNlN2U5YTJkYzM1MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2M2ZmU3NTg5N2U3NWI3OTQyM2UyMzI2YjY0OTMxNzllMDZlOWZiZDA1N2U2NWRhZGE3MmZhYjEzYTcwYmFlOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGY0ZWNlYzhkOWUyZDdhM2I4MjVjMTVlOTc2MjQwMmExZDZlZDIxMGI1YzVhNTQ5NWEwMjBjYmJiZDU1MzA1ZiJ9"
+          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L766-L772",
+          "version": "repo-lines-v1:sha256:739e5b14cdabde2bbb902eb2e552deee998cb9e341befb1876723ece77da8053:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjA1YThjODAwOWFmYzFkMjI4YTFhYmZkMDRmMmU5M2FkZDFiMzExMmY5ODQ5ZTM4YjE4ZGFmMzY0N2YyMWFhZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEwMzQ4MWM1N2QwZjBkYzBmNzZjZDJjYzhiMzYwNGM0ZTgyOTZkYTQxMjJhZGQxOWU4MTc0NWRjN2UzMzFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzFkNjczNmQxYzMwMzRjYWRmNDY2MGEwZmZkNDRkYmJjNWY5YThkNjFiMDMxYTdlMzk0NDUyZTUyYmJmM2E1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDBlMmE3NTZkMzA5NTI5OWJjOGRkNmM2MzFjNzdmMzhmMmMwZDA5MTdjYzZjNGJhM2NmNmIxZThjOTYwYjFlYiJ9"
         },
         {
-          "resource": "repo://TermindMCPBridge/main.swift#L4-L104",
-          "version": "repo-lines-v1:sha256:97c40a95e5997d0b63cabf26d28a5d715c661f038af1872d93461ca7a933f2e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1Y2ZiZGJiNTAxNmFjN2RlZWE1NmU4OTBhZTkzYWQ3NzM2NWNiNGQ4YTBkODY4YjJlNmM5YmUzY2MxMWM0NjRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhNzNmNWE2OTBhMGYwMDg2NGNkZjQ1NzI2NzkwMWYzZDc4OWZkY2M4MDc0OTc5ZjVlMzA0Njg1ZTIxYjMzZTU1IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxNDg3MWFmOTQ4NWM4N2U4YzBjNGRjYTdiMmEyNzE4YjlmOWEyZjdkMTNkZWFjNWNjMmE2OWM4MjVlYWNlYmZkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
+          "resource": "repo://TFM/Features/AI/TranscriptNativeRows.swift#L435-L452",
+          "version": "repo-lines-v1:sha256:eda0d0d2c9a34337f629fd96304a7716fecf60864bed7098482038e2fbcfc8ee:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiY2VhYjIyZjU1ODdhMjFhZjUyZDkyMmY3MjZiNjgyYzlkMzAzZDM4ZDMyNzVlOWJhODUxYjk3ZGVjMTMzMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYTE1MTgyNDExNjdjYzg4ZDVlOTcxMzY3ODAyNjIzM2M0YTNjYjk3ZDg3ZTNiNTYzYWQ1ODFkMDIwZWUwYTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFlZDY5NjkyOTg4MTk4ZTRjZWIzYzgyZjkzODNmOWMwZjAxY2VjMmJjZjJhMWExYmQwMDFiNDNjNzVlOGQ4NGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0ZGE0ZjljMzQxYTdkMGRhY2ZkNDViY2I2YTM2OTA0NzU0ZGQ3YjExNTNkZmJlN2I0NWJhOGQzOTJhZmFlMzgifQ"
         }
       ]
     },
@@ -823,7 +823,7 @@
       "statement": "Mobile app backgrounding suspends Hermes memory, and background expiration separately cancels pending Assistant preparations and active runs before draining run work and closing host connections; desktop termination also suspends Hermes memory.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L681-L699",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L664-L682",
           "version": "repo-lines-v1:sha256:936c0b70026855d64f1b1ede06b0b589d7822c412db5ab458c98c9fbc60cae93:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZDY0ZTIzNWJjNzZlYTM1MDI3NmE4MGZlMGM1NjM0ZTYwZDFkZmUwN2FjYWQ4NTJlMTFhMWQ2MjkzM2ViMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjYWNjN2E0NzlkMjI5N2FiYTI4NWJlYWFlMThhZmI4ZWE3YmQzODEwMTkxNTA3MTIwYmRhNzVjNjBhYTBhZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyMWFjNTE4NDc5MWIzNWNkZTM4MDkzNDU1MTVjMGFjMDEwZjA3MGVhZTAyMTRjZGY0MzIwZDE4NzI5N2M3MDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5ZjIwMmJmNzJkZjZiODUwNjM5ZmNjZmRiZjY4ZDJhMDdmZWY0ZjMzYThlZjQ3MWM0OWUwMDEwY2Y0YmRhYWQifQ"
         },
         {
@@ -1245,7 +1245,7 @@
           "version": "repo-lines-v1:sha256:f55c4a8d3e2308963034fdbcc4655d1107aa2b921f8ce6a7710ea95906f95410:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmMWZiMDM0N2JlYTczMGU3MTc0YTI3MGNkNDM2ZTk5NDFjZjAyYTAwNGJmZTY4OTRmODAwMjYzZjJmZmY3YzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2NjJlOGY5MDUzY2U1ZWMzZGY4NWE4MDM1Yjc1NzQyZmFlOTY0MGI0NThlMTYzYWIzZWNjMmNmMjE1NzhhZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L313-L334",
+          "resource": "repo://TFI/App/MobileAppModel.swift#L311-L332",
           "version": "repo-lines-v1:sha256:2e9b85366860ae4cd5e22e53f0185758472c3becf8c0ed513a40782b7a78da17:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDM3YjFkMzFmMDY2ZmMyZTQxMDhhNDNmNWVmODE0MDliYmMyMTA3YmJkNzQ4ZmRhYjFkYWZkZmEzYjA4NGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3MzcwNmVlNTc2MDMxYjVjMjM4YTBlYjJhYTdmOGYyOWYzMmY4NGRhYWRlZTY4M2Q2MmI3NTMzMWFhOWQwZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNTY1MzJmZTczM2Y4YWIzMjFkN2NiMDJlZDhlYWFjOTc0N2RhODJiMjVlYTMzZTY2MDMzMzhiOTM0NTJiMWYifQ"
         },
         {
@@ -1271,6 +1271,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

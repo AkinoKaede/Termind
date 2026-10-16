@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d16153a0dfd4f16525b2dd1dc144e810c1297e79701f592c39758b48a321c76d",
+  "pageVersion": "sha256:98337bd8b96c21470453a12914499d2516e3ccac242bddd67620b5b464a8687a",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -206,35 +206,59 @@
     },
     {
       "id": "claim_bc91018db0144f5999c76a1306399b68",
-      "statement": "Shared `Frameworks/Resources/Assets.xcassets` supplies runtime AccentColor and vector, template-rendered Linux-distribution artwork distinct from the platform `AppIcon.icon` sources; the distribution catalog resolves detected IDs or like-IDs and host icon rendering uses the selected asset with host/brand/accent tint fallback or a server.rack symbol when no asset is selected.",
+      "statement": "Runtime host artwork is independent of app icons and marketing frames. HostIconCatalog loads bundled JSON with empty-catalog failure fallback; an explicit override wins even if unknown or server (generic server.rack), otherwise detected ID then likeIDs selects artwork. The picker offers Automatic, Server, macOS, Windows then sorted entries and preserves unknown choices. Darwin auto-detects macOS; Windows is a manual artwork choice, not Windows auto-detection. Overrides persist/sync including Tailscale without changing probe detection or reconnecting; tests cover round trips, migration and failed-save isolation. Host color overrides adapted brand hex then accent; adaptation steps toward semantic label color for 3:1 on the 16% tinted surface, with macOS black and presentation-chosen Windows 0078D4. The retained shell wrapper delegates to update-host-icons.py, which pins explicit Simple Icons/Tabler releases, verifies npm SHA-512 integrity, validates safe SVGs, stages vector/template assets, provenance JSON and licenses before non-atomic replacement. Simple Icons CC0 does not imply all brand artwork is CC0 or grant trademark rights; retain its license/disclaimer and Tabler MIT notices. Presentation tests verify bundled images and light/dark brand contrast.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/Resources/Assets.xcassets/AccentColor.colorset/Contents.json",
-          "version": "repo-file-v1:sha256:7501ecef837bb9589a86bab20482e346fe8721989e91bf4a8ac5d225c0edf19f"
+          "resource": "repo://FrameworkTests/HostIconTests.swift",
+          "version": "repo-file-v1:sha256:583ec7ff5d0b8ea3b7ca56b66e42878196fd0bff0c06d936f894222bd47e9315"
         },
         {
-          "resource": "repo://Frameworks/Resources/Assets.xcassets/LinuxDistributions/LinuxDistro-ubuntu.imageset/Contents.json",
-          "version": "repo-file-v1:sha256:75d055e76efc42aebc81d1043e69d58aa268b755c8003773a7e82f79e80b7d6e"
+          "resource": "repo://Frameworks/Resources/HostIcons.json",
+          "version": "repo-file-v1:sha256:7f5b5352e3149ddb412f8effb0abc64fa23e5982fb175b3535b62572250e9ca5"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift#L18-L26",
-          "version": "repo-lines-v1:sha256:49156442880f70a6011648efbb37d15e3f10417d1c7d99aa81d4b338ec38cd60:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzljOTY1MmQ4NzhiZWRjMGRmZDE3NTU0NGQ0NzVmYWY1N2Q1Njk3YzQwZTY3MGE4ZmMxYjNmNDg2NmZhZjVmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWYyMGUyNGQ0NTY1NGQ5OWQxNWY2MWI3NzBkNjUyMDM4OTIwNzA2NGE0NDE5M2RkOTY1NDViMGE1NTM4MzUxYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+          "resource": "repo://Frameworks/Resources/HostIcons/SimpleIcons.DISCLAIMER.md",
+          "version": "repo-file-v1:sha256:f921095158b73e61e675ff99b327930fa95ad6f4cf667d414ffe8ae585205724"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift#L22-L31",
-          "version": "repo-lines-v1:sha256:50f9c072d7aae1ef16a57f5c050f67dd3ef936a4d71aaacc4c34c55f7fdd5770:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5Yzk2NTJkODc4YmVkYzBkZmQxNzU1NDRkNDc1ZmFmNTdkNTY5N2M0MGU2NzBhOGZjMWIzZjQ4NjZmYWY1ZjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5NTYxMDdiOGIxNGIzYTkzYzg5OTg2NGRhMjBjN2Q2NTdjYzc2MGI1NzE1ODQ4NDE5NTRmNDk2YTI3MGM1OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRjNGMwNDA2ZDc2NDY1OTBmMTE0Y2Q4MDI4ZDE4MzEwMGRiYTFlZTA3NGQ1NzE5YWRhYjNmMzRmMzRlZjI1NjQifQ"
+          "resource": "repo://Frameworks/Resources/HostIcons/Tabler.LICENSE",
+          "version": "repo-file-v1:sha256:b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift#L11-L35",
-          "version": "repo-lines-v1:sha256:ac25a50716070642dd63d4d60e39cc2f9e20c6f65f4b56c2109fc96aea6d3d85:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2MGNlZjlmMmI2YTlhNTY4OTMzNWQzNmM4YmUyMDAzM2QzMWY3ZWZiYzNkYjZkZDZlOGE5Yzg1Njc0MmVjY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzNDlmYjQ2ZDM2OWY3YTIwZTU5YzdkOTZjOWU5Yzg2NzE2MzNmOWU2NTgyOGUxMWE1NGMwYjQ2YTQwZmE3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindDomain/Sessions/RemoteSystemInfo.swift#L133-L149",
+          "version": "repo-lines-v1:sha256:2eaa18636d899e42da2523bb98752d9d50b6bd7776667c0fc1c0beddb022803a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiM2E0NTllOTczYWFkNTA2YjA0MGJlMWZlNTE1NjA3YTEwN2IyNzJmOGRmODU1MWE2MTBlYTIxMzNkMzExYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         },
         {
-          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json",
-          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+          "resource": "repo://Frameworks/TermindPresentation/HostDistributionIcon.swift",
+          "version": "repo-file-v1:sha256:a721750031b08d11d5e14bf1eb906f35db0775651424db0c0a6ff7770861cc8a"
         },
         {
-          "resource": "repo://TFM/Resources/AppIcon.icon/icon.json",
-          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+          "resource": "repo://Frameworks/TermindPresentation/HostIconBrandColor.swift",
+          "version": "repo-file-v1:sha256:a1ef8fb115e6568c5ef2317ea96e955409916dec62387e613490e46e9e44e661"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconCatalog.swift",
+          "version": "repo-file-v1:sha256:9428f47e869c5433b84ec990655aaea26145283f9a0cd42e73fe98ef94b819aa"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostIconPicker.swift",
+          "version": "repo-file-v1:sha256:2ac33671eed343034a4074150c34aefd6a3c7e86d4688ebfd0ea8965681550d7"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/HostSystemIcon.swift",
+          "version": "repo-file-v1:sha256:1913b9ea29312de9de94a86e1cec5ff6be913c7197f05fdaa0a57e62629600a0"
+        },
+        {
+          "resource": "repo://Scripts/update-host-icons.py",
+          "version": "repo-file-v1:sha256:95a385fdd9683599e960610c96860f1ce7421000149eca8e9262f3ac0a6b04ef"
+        },
+        {
+          "resource": "repo://Scripts/update-linux-distribution-icons.sh",
+          "version": "repo-file-v1:sha256:0ea9cbbd86a1e4f22dc71c40d525fbacbaa94af9d6501e5ba47a25a7ec88309b"
+        },
+        {
+          "resource": "repo://TFMTests/HostIconPresentationTests.swift",
+          "version": "repo-file-v1:sha256:8bff79a1dc6a1e596cfa28a5bddf9527a56f859de443073f4616dd28ec53a3a1"
         }
       ]
     },
@@ -555,6 +579,6 @@
   ],
   "verification": {
     "by": "openwiki/0.7.0",
-    "at": "2026-10-14T22:55:30.720Z"
+    "at": "2026-10-15T22:50:00.588Z"
   }
 }

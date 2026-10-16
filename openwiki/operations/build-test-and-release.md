@@ -1,6 +1,6 @@
 ---
 type: release operations
-title: Build, Verification and Release Procedures
+title: Build, Test, and Release
 description: Reproducible Xcode builds and pinned dependency updates, opt-in UI and commerce test gates, and localization checks for Termind releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 sources:
@@ -74,10 +74,10 @@ sources:
     resource: repo://TFMTests/Screenshots/MacScreenshotTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Build, Test, and Release
@@ -233,6 +233,10 @@ bundle exec ruby Scripts/Tests/test_screenshots.rb
 
 Planning and Ruby checks do not open windows. Actual Mac capture takes desktop focus; do not run it routinely. For a deliberate single-scene desktop preview, `Scripts/run-screenshot-demo.sh workspace en` builds Debug TFM with resolved packages in `.build/screenshot-demo` and opens a new app instance with the demo scene and Apple language/locale arguments. It accepts `en`, `ja`, `ko`, `de`, `fr`, `zh-Hans`, and `zh-Hant`; it is a visual preview, not a general regression test. `Scripts/run-mac-screenshots.sh` / `run-mobile-screenshots.sh` delegate to the capture lanes. Initialize the public asset submodule only for asset work; explicit external review paths remain supported. The canonical [Marketing Assets and App Icons](marketing-assets-and-app-icons.md) owns setup, Ruby requirements, selectors, runtime/posture, handshake, template imports/licenses, Figma and 96-board export details.
 
+### Network fixtures are a separate opt-in
+
+Keep wire-level fixture gates unset during routine verification; a default green run is not evidence of live SSH/SFTP behavior. For example, shared `TailscaleSSHWireTests` is serialized and enabled only when the test host receives `TERMIND_SSH_FIXTURE` (a JSON file path) or `TERMIND_SSH_FIXTURE_JSON` (inline JSON, preferred when sandbox file access is a concern). The inline value takes precedence and supplies `port` and `hostFingerprint`. This suite connects to a real local SSH/SFTP endpoint through a loopback `SSHNetworkDialing` adapter, checks none-authentication and repeated connections, and disconnects on failure. It does not contact a real tailnet. Prepare the matching fixture deliberately and follow [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for the other wire suites; do not enable network fixtures by setting a visible-window or screenshot gate.
+
 ### Commerce validation
 
 `StoreKit/Termind.storekit` is a manual development fixture. The former StoreKit trial/catalog test files are removed; `RevenueCatCommerceTests` and `ProPaywallStateTests` verify local access and account-state behavior using fixtures/fakes. Live products, introductory eligibility, purchase and restore require RevenueCat and App Store Sandbox validation.
@@ -265,7 +269,7 @@ python3 -m unittest discover -s Scripts/Tests -p 'test_localization.py'
 python3 Scripts/check-localization.py
 ```
 
-This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, and its path filters do not make it an every-commit check. Keep the local copy and catalog gates in the commit pipeline even for code-only changes. When modifying the validation tools, run the two Python test commands above as well as checking the real catalogs.
+This CI job does not run `Scripts/check-appstrings.sh` or native Swift tests, and its path filters do not make it an every-commit check. Keep the local copy and catalog gates in the commit pipeline even for code-only changes. When modifying the validation tools, run the two Python test commands above as well as checking the real catalogs. `Scripts/Tests/test_localization.py` is the current consolidated regression entrypoint: it contains Japanese, Chinese, Korean and European test classes covering spacing exceptions, missing/unfinished coverage, positional argument types, metadata source values and language-specific plural branches. The former `Scripts/Tests/test_cjk_localization.py` is not present; do not use its old discovery pattern, which could discover no tests.
 
 ### Focused language and presentation regression tests
 
@@ -277,7 +281,7 @@ For resource/formatting behavior also target `PresentationCopyTests`, which exer
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/PresentationCopyTests
 ```
 
-The Python gates prove catalog structure and translation invariants; these native tests additionally exercise bundle resolution and presentation-resource use. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the ownership context.
+The Python gates prove catalog structure and translation invariants; these native tests additionally exercise bundle resolution and presentation-resource use. Recent `AppLanguageTests` regressions also distinguish connection cancellation from authentication cancellation in all seven languages, require one localized authentication-failure prefix and separator, and check title-cased session-persistence labels with translations. For wording changes in these flows, run this quiet suite rather than substituting a screenshot preview. See [Commerce, Localization, and Product Surfaces](../concepts/commerce-localization-and-product-surfaces.md) for the ownership context.
 
 AgentKit owns its separate runtime catalog at `../AgentKit/Localizations/Localizable.xcstrings`. After changing that catalog, run the package’s catalog build step because a plain Swift build copies its resources rather than compiling string catalogs:
 

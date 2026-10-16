@@ -1,7 +1,7 @@
 ---
 type: design guide
-title: Cross-Platform UI Design Principles
-description: Source-backed rules for native adaptive navigation, shared semantic copy, feature-local presentation, accessible review invitations, and workspace continuity across layout changes.
+title: UI Design Contracts
+description: Shared presentation contracts and platform-specific layout, action, artwork, editor, settings, and terminal rules for consistent UI changes, with focused rendering and continuity tests.
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
@@ -20,8 +20,18 @@ sources:
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
     resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
+  - id: openwiki-source-118439c3fd21dea3ac2ad393
+    resource: repo://Frameworks/TermindPresentation/HostConnectionIcon.swift
+  - id: openwiki-source-a6809548e658973d3caeb87b
+    resource: repo://Frameworks/TermindPresentation/HostDistributionIcon.swift
   - id: openwiki-source-7ce0caf95a799e357a1bcaeb
     resource: repo://Frameworks/TermindPresentation/HostEditorBindings.swift
+  - id: openwiki-source-6c30416f939593ee31f56380
+    resource: repo://Frameworks/TermindPresentation/HostIconCatalog.swift
+  - id: openwiki-source-c64a723125ae79e3e2e47109
+    resource: repo://Frameworks/TermindPresentation/HostIconPicker.swift
+  - id: openwiki-source-9991b648b0458ed9d4eb11d5
+    resource: repo://Frameworks/TermindPresentation/HostSystemIcon.swift
   - id: openwiki-source-b94703f13853dd091b9c8088
     resource: repo://Frameworks/TermindPresentation/NotificationSettingsFields.swift
   - id: openwiki-source-4706711c42fe2431044b1e84
@@ -90,10 +100,16 @@ sources:
     resource: repo://TFI/UI/Components/MobileOperationConfirmationPresenter.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
+  - id: openwiki-source-264c62e0c85939673d0cc644
+    resource: repo://TFI/UI/Managed/MobileCompactCardContent.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-192476341e5997fa80bb12fa
+    resource: repo://TFITests/MobileCardLayoutTests.swift
   - id: openwiki-source-c32ed562101f11a0c3c89663
     resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-3c3024b6fd97b1c4edfd5131
+    resource: repo://TFITests/MobileCompactCardTests.swift
   - id: openwiki-source-7341d7b266d976d7aac5d161
     resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-8194e1eb3652c7ad61d75cfa
@@ -146,8 +162,6 @@ sources:
     resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-f941c4bd7cfa47476dcdb53f
     resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
-  - id: openwiki-source-f6a967b4f14bf50d1af51b8b
-    resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-f73abfc9c1839decd235710e
@@ -170,10 +184,10 @@ sources:
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
-generated: { by: "openwiki/0.7.0", at: "2026-10-14T22:55:30.720Z" }
+generated: { by: "openwiki/0.7.0", at: "2026-10-15T22:50:00.588Z" }
 verified:
   - by: openwiki/0.7.0
-    at: 2026-10-14T22:55:30.720Z
+    at: 2026-10-15T22:50:00.588Z
 ---
 
 # Cross-Platform UI Design Principles
@@ -293,7 +307,7 @@ The sheet owns dismissal and error feedback; the app-owned library owns persiste
 
 The app-owned keyword-highlighting editor, rule model and shared runtime modifier were retired. Terminal Settings now exposes theme, local typography and shell-integration choices, not synchronized highlighting rules. V52 removes historical highlighting storage, and Settings preparation/receipt excludes inactive legacy records without replacing other preferences. Preserve historical schema shapes rather than recreating the deleted UI; see [Ghostty Terminal Integration](ghostty-terminal-integration.md) and [Persistent Data and Secrets](persistence-and-secrets.md).
 
-Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
+Native terminal menus belong to the platform adapters. On iOS `MobileTerminalView` overrides Ghostty's **separate** touch hooks for unselected and selected text, localizes inherited action identifiers through `AppStrings`, and groups SSH upload choices as Photos and Files. On macOS `TermindTerminalView` combines Ghostty's selected-text Copy with localized Paste, Select All and a conditional Upload File action; its optional Open with SFTP submenu offers current/new workspace destinations and rechecks availability on invocation. Both platforms recheck upload availability when an action is invoked. See [Ghostty Terminal Integration](ghostty-terminal-integration.md) for the exact menu paths, pointer distinction and ownership rules.
 
 ```mermaid
 flowchart TD
@@ -321,28 +335,22 @@ Hidden content must stop receiving input and accessibility focus: parked desktop
 
 The registry is the extension point for destination identity, order, title, symbol and builder, and rejects duplicate IDs; do not maintain separate compact-tab and regular-sidebar destination lists. Vault's stack additionally binds its path and identity to scene state for History routing, and its Host editor binding comes from the scene. Settings category links stay inside their feature stack, while the root presents the paywall from `app.pro.isPaywallPresented`. Keep feature-local editors and confirmations near their initiating content rather than moving every presentation into the shell. These ownership rules do not require identical geometry or colors across platforms.
 
-Mobile workspace descriptors and live sessions have different lifetimes, scoped to persistent scene sessions. On cold launch `MobileAppModel` loads/prunes saved descriptors and consolidates previous scene records into the first bound session without reconnecting every row; if consolidation cannot be persisted it reports restoration failure rather than claiming the records twice. `MobileWorkspaceSessionModel.openWorkspace` reuses a live workspace, or publishes a selected saved descriptor as live before connecting so repeated selection shares the first attempt; missing-Host entries are removed. Explicit close disconnects and removes saved rows. Scene disconnection alone does not discard a restorable session: native open-session reconciliation recovers orphan live workspaces and descriptors into an active session only after saving the merged snapshot. Background expiration suspends work; an active scene resumes it. A fold or tab switch is not a close.
-
-```mermaid
-flowchart TD
-    Saved["Saved descriptor in scene session"] --> Selected["Scene selects row"]
-    Selected --> Published["Publish live workspace in session"]
-    Published --> Connected["Connect"]
-    Connected --> Expired["Background expiration suspends work"]
-    Expired --> Active["Active scene resumes work"]
-    Connected --> Closed["Explicit close disconnects and removes row"]
-    Active --> Closed
-```
-
-Descriptor persistence and live-session lifetime must not be conflated; scene-session recovery is separate from tab and size-class changes.
+Workspace presentation must distinguish layout changes from explicit close. `MobileWorkspaceSessionModel` owns in-process connection intent and live workspaces for a native scene; its ordered items supply the workspace or descriptor, Host and login address to render. Scene disconnection alone is not an explicit discard. Persistence, recovery, close confirmation and background execution policy belong to [Mobile UI](../architecture/mobile-ui.md), not to reusable card or layout code. Desktop mounted-pane and transcript retention budgets belong to [Desktop UI](../architecture/desktop-ui.md).
 
 Desktop drag similarly protects native identity: a dragged pane stays mounted but leaves temporary split geometry. Native receivers check current displayed workspace and matching pasteboard identity at drop time, preview edge insertion on occupied panes and replacement in empty slots, and reject stale/hidden destinations. The Navigator overlays its native List with a receiver using measured row frames; preview boundaries include the dragged row while move indices exclude it. See [Desktop Drag and Drop](../workflows/desktop-drag-and-drop.md) before changing source mounting or preview placement. Continuity does not mean every hidden view keeps measuring or accepting events.
 
 ## Verification and extension
 
-`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` measures card height and columns at accessibility sizes. Opt-in serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels; set `TERMIND_MOBILE_UI_TESTS=1` and disable parallel testing for that suite. `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity.
+`ArchitectureBoundaryTests` protects imports and copy ownership including direct-resource dialog titles; `PresentationCopyTests` resolves one resource into four languages, checks localized nested native menus, plural/interpolated deletion copy and compares `ImageRenderer` pixels for direct resources versus `.swiftUIKey` under each locale. `WindowSidebarTests` checks mode persistence and serial-pane fallback; `ListViewMigrationTests` checks stable row IDs, editing height and independent shelf expansion. `WindowToolbarFindTests` pins foreground Find, separate light/dark theme-browser queries and New mapping; `SettingsNavigationTests` pins the additional terminal-browser Back step. `TerminalThemeTests` and `TerminalThemePageRenderingTests` check nonmutating fallback and browser rendering. `AgentToolPresentationTests` covers review arguments and tool details. `MobileVaultFeatureTests` asserts the menu section order and all protocol-availability combinations and independent Host duplication; `MobileCardTests` checks the two-tag limit and distribution-brand contrast. `MobileCardLayoutTests` measures balanced minimum-height padding, stable Host headers/timestamps across 0–2 tags in English and both Chinese scripts at 320/600 points, light/dark appearance and large text, plus snippet header stability with/without a folder. `MobileCompactCardTests` pins standard/compact column counts, scaled widths, accessibility one-column layout, square-or-taller sizing, mounted preference updates and persistence, warning badges and snippet risk. Serialized `MobileEditorToolbarTests` checks Cancel, in-flight and failed Save with localized labels and requires a key window; `MobileAdaptiveLayoutTests` checks object identity, marked text and focus; snapshots alone cannot prove continuity. The opt-in `MobileCardPageLayoutReviewTests` (`TERMIND_CARD_LAYOUT_REVIEW=1`) attaches non-Host consumer renders at 352/800 points in English/Simplified Chinese and light/dark appearance; it is visual review coverage, not an assertion that every control fits.
 
 For review changes, `MobileAppReviewTests.invitationFitsPhoneAndTabletWidths` renders English and both Chinese scripts at 320, 430 and 768 points, comparing light/standard text with dark/accessibility3 and requiring the accessible layout to grow vertically without recording a response. `TERMIND_REVIEW_PREVIEW=1` records PNG attachments; it does not enable the controller's developer preview. `FrameworkTests/AppReviewControllerTests` separately verifies elapsed-time gates, visit capture, cross-window hiding, rejected URL opens, relaunch persistence and isolated preview responses. Rendering checks do not establish these state semantics. The adaptive tab regression covers 320/375 compact and 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
+
+For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
+
+Tailscale peer details are an eligible Host menu section; managed Hosts disable duplication and deletion with matching application guards. The iOS terminal menu puts editing actions in a medium inline group and upload actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
+erminal menu puts editing actions in a medium inline group and upload actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
+ad actions in their own group. History belongs to each terminal/browser in memory and clears on explicit close.
+nd 600/1024 regular widths at `.large` and `.accessibility3`, including round trips; preserve native controller identity, not merely a matching screenshot. These are inspected test contracts, not a report that the suites were executed for this documentation update. See [Behavioral Boundaries and Fixtures](../testing/behavioral-boundaries-and-fixtures.md) for test ownership.
 
 For changes, identify the window/scene owner, use its existing route and native adapter, share only matching field/value contracts and verify the operation owner beyond UI enablement. Check widths, language variants, large text, contrast/transparency, keyboard focus and Reduce Motion. See [Platform Runtime](../architecture/platform-runtime.md) and [Build and Test](../operations/build-test-and-release.md) when changing ownership or verification boundaries.
 
