@@ -7,6 +7,11 @@ import Testing
 
 @Suite @MainActor
 struct HostIconPresentationTests {
+    @Test(arguments: HostGeneralIcon.allCases)
+    func generalArtworkIsAvailableOnMac(icon: HostGeneralIcon) {
+        #expect(NSImage(systemSymbolName: icon.systemImageName, accessibilityDescription: nil) != nil)
+    }
+
     @Test(arguments: [
         ("artix", "Artix Linux"), ("asahi", "Asahi Linux"), ("cachyos", "CachyOS"),
         ("devuan", "Devuan"), ("garuda", "Garuda Linux"), ("mx", "MX Linux"),
@@ -61,12 +66,14 @@ struct HostIconPresentationTests {
 
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct HostIconRenderingTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func rendersOrganizationFormInBothAppearances(language: String) async throws {
-        let host = TermindDomain.Host(name: "Mac", host: "example.invalid", iconOverrideID: "windows")
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [String?.none, "cloud", "windows", "future-icon"])
+    func rendersOrganizationFormInBothAppearances(language: String, selection: String?) async throws {
+        let host = TermindDomain.Host(
+            name: "Mac", host: "example.invalid", detectedDistribution: DetectedDistribution(id: "macos"),
+            iconOverrideID: selection)
         let controller = NSHostingController(
             rootView: Form {
-                HostOrganizationSection(host: .constant(host)) {
+                HostOrganizationSection(host: .constant(host), detectedDistribution: host.detectedDistribution) {
                     LabeledContent(AppStrings.Vault.group.swiftUIKey) { Text(verbatim: "Production") }
                 } tagsField: {
                     Text(AppStrings.Vault.tags)
@@ -92,12 +99,59 @@ struct HostIconRenderingTests {
             window.appearance = NSAppearance(named: appearance)
             try await Task.sleep(for: .milliseconds(300))
             controller.view.layoutSubtreeIfNeeded()
+            let picker = try #require(
+                descendants(controller.view).compactMap { $0 as? NSButton }.first { $0.image != nil })
+            if selection == nil || selection == "windows" {
+                #expect(picker.image?.size == NSSize(width: 16, height: 16))
+            }
+            if language == "en", selection == nil, appearance == .aqua {
+                let capture = HostIconMenuCapture()
+                NotificationCenter.default.addObserver(
+                    capture, selector: #selector(HostIconMenuCapture.menuDidBeginTracking(_:)),
+                    name: NSMenu.didBeginTrackingNotification, object: nil)
+                picker.performClick(nil)
+                NotificationCenter.default.removeObserver(capture)
+                let menu = try #require(capture.menu)
+                let groups = menu.items.split(whereSeparator: \.isSeparatorItem)
+                #expect(
+                    groups.map { $0.map(\.title) } == [
+                        ["Automatic"],
+                        HostGeneralIcon.allCases.map {
+                            AppLocalization.string(
+                                String.LocalizationValue($0.title.key), locale: Locale(identifier: "en"))
+                        },
+                        HostIconCatalog.bundled.selectableEntries.map(\.title),
+                    ])
+                let automatic = try #require(groups.first?.first)
+                #expect(automatic.state == .on)
+                #expect(automatic.image?.size == NSSize(width: 16, height: 16))
+                let systemItems = try #require(groups.last)
+                #expect(systemItems.allSatisfy { $0.image?.size == NSSize(width: 16, height: 16) })
+            }
             let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
             controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
             let data = try #require(bitmap.representation(using: .png, properties: [:]))
-            let name = "host-icons-desktop-\(language)-\(appearance.rawValue).png"
+            let name = "host-icons-desktop-\(language)-\(selection ?? "automatic")-\(appearance.rawValue).png"
             Attachment.record(data, named: name)
             try data.write(to: FileManager.default.temporaryDirectory.appending(path: name))
         }
+    }
+
+    private func descendants(_ view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap(descendants)
+    }
+}
+
+@MainActor
+private final class HostIconMenuCapture: NSObject {
+    var menu: NSMenu?
+
+    @objc func menuDidBeginTracking(_ notification: Notification) {
+        guard let menu = notification.object as? NSMenu else { return }
+        self.menu = menu
+        let timer = Timer(timeInterval: 0.1, repeats: false) { [self] _ in
+            MainActor.assumeIsolated { self.menu?.cancelTracking() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
     }
 }

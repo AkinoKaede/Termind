@@ -76,7 +76,9 @@ struct MobileHostEditor: View {
                 }
             },
             content: {
-                HostOrganizationSection(host: $draft) {
+                HostOrganizationSection(
+                    host: $draft, detectedDistribution: (library.host(draft.id) ?? draft).detectedDistribution
+                ) {
                     Picker(AppStrings.Vault.group.swiftUIKey, selection: fields.groupChoice) {
                         Text(AppStrings.Common.none).tag(HostEditorChoice<HostGroup.ID>.unset)
                         ForEach(library.groups) { group in

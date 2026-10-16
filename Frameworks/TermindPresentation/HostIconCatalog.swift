@@ -36,6 +36,20 @@ public nonisolated struct HostIconCatalog: Codable, Sendable {
         return distribution.flatMap { entry(matching: $0) }
     }
 
+    public static func resolvedArtwork(for host: TermindDomain.Host?) -> HostIconArtwork {
+        bundled.resolvedArtwork(overrideID: host?.iconOverrideID, distribution: host?.detectedDistribution)
+    }
+
+    public func resolvedArtwork(overrideID: String?, distribution: DetectedDistribution?) -> HostIconArtwork {
+        if let overrideID, let icon = HostGeneralIcon(rawValue: overrideID) {
+            return .systemImage(icon.systemImageName)
+        }
+        if let entry = resolvedEntry(overrideID: overrideID, distribution: distribution) {
+            return .asset(entry.asset)
+        }
+        return .systemImage(HostGeneralIcon.server.systemImageName)
+    }
+
     public var selectableEntries: [HostIconEntry] {
         entries.sorted {
             let comparison = $0.title.compare(

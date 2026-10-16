@@ -18,7 +18,9 @@ struct ModelProviderRenderingTests {
         defer { app.shutdownForTermination() }
         try await capture(
             Form {
-                HostOrganizationSection(host: .constant(.init(name: "", host: "example.invalid"))) {
+                HostOrganizationSection(
+                    host: .constant(.init(name: "", host: "example.invalid")), detectedDistribution: nil
+                ) {
                     EmptyView()
                 } tagsField: {
                     EmptyView()

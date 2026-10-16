@@ -59,7 +59,9 @@ struct MobileSavedNameRenderingTests {
         try await capture(
             NavigationStack {
                 Form {
-                    HostOrganizationSection(host: .constant(.init(name: "", host: "example.invalid"))) {
+                    HostOrganizationSection(
+                        host: .constant(.init(name: "", host: "example.invalid")), detectedDistribution: nil
+                    ) {
                         EmptyView()
                     } tagsField: {
                         EmptyView()

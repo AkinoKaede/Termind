@@ -64,7 +64,7 @@ private struct MobileSingleLineHostTestForm: View {
 
     var body: some View {
         Form {
-            HostOrganizationSection(host: $draft.host) {
+            HostOrganizationSection(host: $draft.host, detectedDistribution: draft.host.detectedDistribution) {
                 EmptyView()
             } tagsField: {
                 EmptyView()

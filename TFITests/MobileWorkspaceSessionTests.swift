@@ -37,6 +37,16 @@ struct MobileWorkspaceSessionTests {
             .systemInfo(
                 RemoteSystemInfo(distributionID: "ubuntu", kernelName: "Linux")))
         #expect(workspace.activitySession.iconAsset == "HostOS-windows")
+        for (choice, symbol) in [("cloud", "cloud"), ("database", "cylinder")] {
+            draft = try #require(app.library.host(host.id))
+            draft.iconOverrideID = choice
+            #expect(app.library.saveHost(draft))
+            for _ in 0..<50 where workspace.activitySession.iconSystemName != symbol {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            #expect(workspace.activitySession.iconAsset == nil)
+            #expect(workspace.activitySession.iconSystemName == symbol)
+        }
         draft = try #require(app.library.host(host.id))
         draft.iconOverrideID = nil
         app.applyRemoteVault(.init(hosts: [draft]), keys: [.init(kind: .host, id: host.id)])
@@ -44,6 +54,7 @@ struct MobileWorkspaceSessionTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(workspace.activitySession.iconAsset == "LinuxDistro-ubuntu")
+        #expect(workspace.activitySession.iconSystemName == nil)
         workspace.receiveShellEvent(.systemInfo(RemoteSystemInfo(kernelName: "DragonFly")))
         #expect(workspace.activitySession.iconAsset == "HostOS-bsd")
         #expect(app.library.host(host.id)?.detectedDistribution?.id == "dragonfly")

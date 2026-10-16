@@ -18,6 +18,7 @@ nonisolated struct WorkspaceActivityAttributes: ActivityAttributes {
         var kind: String
         var connected: Bool
         var iconAsset: String? = nil
+        var iconSystemName: String? = nil
         var recovery: Recovery? = nil
 
         var destinationURL: URL {

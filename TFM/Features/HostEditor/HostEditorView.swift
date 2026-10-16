@@ -140,7 +140,9 @@ struct HostEditorView: View {
 
     private var form: some View {
         Form {
-            HostOrganizationSection(host: $draft) {
+            HostOrganizationSection(
+                host: $draft, detectedDistribution: (app.hostLibrary.host(draft.id) ?? draft).detectedDistribution
+            ) {
                 Picker(AppStrings.Vault.group.swiftUIKey, selection: fields.groupChoice) {
                     Text(AppStrings.Common.none).tag(HostEditorChoice<HostGroup.ID>.unset)
                     ForEach(app.hostLibrary.groups) { group in

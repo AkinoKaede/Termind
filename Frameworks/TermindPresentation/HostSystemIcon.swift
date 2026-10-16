@@ -7,13 +7,25 @@ public struct HostSystemIcon: View {
         case desktopCard
     }
 
-    private let asset: String?
+    private let artwork: HostIconArtwork
     private let size: CGFloat
     private let showsBackground: Bool
     private let style: Style
 
-    public init(asset: String?, size: CGFloat = 32, showsBackground: Bool = true, style: Style = .standard) {
-        self.asset = asset
+    public init(
+        asset: String?, systemImageName: String? = nil, size: CGFloat = 32,
+        showsBackground: Bool = true, style: Style = .standard
+    ) {
+        self.init(
+            artwork: asset.map(HostIconArtwork.asset)
+                ?? .systemImage(systemImageName ?? HostGeneralIcon.server.systemImageName),
+            size: size, showsBackground: showsBackground, style: style)
+    }
+
+    public init(
+        artwork: HostIconArtwork, size: CGFloat = 32, showsBackground: Bool = true, style: Style = .standard
+    ) {
+        self.artwork = artwork
         self.size = size
         self.showsBackground = showsBackground
         self.style = style
@@ -21,12 +33,10 @@ public struct HostSystemIcon: View {
 
     public var body: some View {
         Group {
-            if let asset {
-                Image(asset, bundle: .main).resizable().scaledToFit()
-            } else if style == .desktopCard {
-                Image(systemName: "server.rack").font(.system(size: 14, weight: .medium))
+            if artwork.systemImageName != nil, style == .desktopCard {
+                artwork.image.font(.system(size: 14, weight: .medium))
             } else {
-                Image(systemName: "server.rack").resizable().scaledToFit()
+                artwork.image.resizable().scaledToFit()
             }
         }
         .foregroundStyle(.tint)

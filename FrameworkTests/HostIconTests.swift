@@ -10,6 +10,43 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct HostIconTests {
+    @Test(arguments: HostGeneralIcon.allCases)
+    func generalIconsOverrideDetectionWithoutBecomingDistributionMatches(icon: HostGeneralIcon) throws {
+        let catalog = try fixtureCatalog()
+        let ubuntu = try #require(DetectedDistribution(id: "ubuntu"))
+        #expect(
+            catalog.resolvedArtwork(overrideID: icon.id, distribution: ubuntu) == .systemImage(icon.systemImageName))
+        #expect(catalog.resolvedArtwork(overrideID: icon.id, distribution: nil) == .systemImage(icon.systemImageName))
+        #expect(catalog.resolvedEntry(overrideID: icon.id, distribution: ubuntu) == nil)
+        #expect(catalog.resolvedArtwork(overrideID: nil, distribution: ubuntu) == .asset("LinuxDistro-ubuntu"))
+        #expect(catalog.resolvedArtwork(overrideID: nil, distribution: nil) == .systemImage("server.rack"))
+    }
+
+    @Test func artworkPreservesMatchingAndUnknownOverrideFallbacks() throws {
+        let catalog = try fixtureCatalog()
+        let ubuntu = try #require(DetectedDistribution(id: "ubuntu"))
+        #expect(catalog.resolvedArtwork(overrideID: "future-icon", distribution: ubuntu) == .systemImage("server.rack"))
+        #expect(catalog.resolvedArtwork(overrideID: "windows", distribution: ubuntu) == .asset("HostOS-windows"))
+        #expect(
+            catalog.resolvedArtwork(
+                overrideID: nil, distribution: DetectedDistribution(id: "custom", likeIDs: ["debian"]))
+                == .asset("LinuxDistro-debian"))
+        #expect(
+            catalog.resolvedArtwork(overrideID: nil, distribution: DetectedDistribution(id: "new-linux"))
+                == .asset("HostOS-linux"))
+    }
+
+    @Test func generalIconsKeepReferenceOrderAndDoNotDuplicateOperatingSystems() throws {
+        #expect(
+            HostGeneralIcon.allCases.map(\.id) == [
+                "server", "cloud", "terminal", "code", "database", "storage", "container", "network",
+                "shield", "home_lab", "web", "api", "compute", "cluster", "router", "automation",
+                "monitoring", "backup", "media", "git", "ai", "virtual_machine",
+            ])
+        let catalog = try fixtureCatalog()
+        #expect(Set(HostGeneralIcon.allCases.map(\.id)).isDisjoint(with: catalog.entries.map(\.id)))
+    }
+
     @Test func darwinResolvesWithoutLinuxMetadata() throws {
         for kernel in ["Darwin", "darwin", "DARWIN"] {
             let info = RemoteSystemInfo(kernelName: kernel, kernelRelease: "25.0", architecture: "arm64")
@@ -118,7 +155,7 @@ struct HostIconTests {
         let host = Host(name: "Host", host: "example.invalid")
         let data = try JSONEncoder().encode(host)
         #expect(try JSONDecoder().decode(Host.self, from: data).iconOverrideID == nil)
-        for id in ["server", "windows", "macos", "future-icon"] {
+        for id in HostGeneralIcon.allCases.map(\.id) + ["windows", "macos", "future-icon"] {
             var manual = host
             manual.iconOverrideID = id
             #expect(try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(manual)) == manual)
@@ -137,7 +174,11 @@ struct HostIconTests {
         #expect(library.saveHost(host))
         host = try #require(library.host(host.id))
         let journal = VaultSyncJournal(context: source.mainContext)
-        for choice: String? in ["windows", "macos", "freebsd", "bsd", "linux", "future-icon", nil] {
+        let choices: [String?] =
+            HostGeneralIcon.allCases.map { $0.id } + [
+                "windows", "macos", "freebsd", "bsd", "linux", "future-icon", nil,
+            ]
+        for choice in choices {
             host.iconOverrideID = choice
             #expect(library.saveHost(host))
             let envelope = try #require(try journal.envelope(for: .init(kind: .host, id: host.id)))
@@ -157,7 +198,7 @@ struct HostIconTests {
         let library = HostLibraryModel(groups: [group])
         library.replaceTailscalePeers([peer], groupID: group.id)
         var host = try #require(library.hosts.first)
-        for choice: String? in ["windows", nil] {
+        for choice: String? in ["windows", "cloud", "virtual_machine", nil] {
             host.iconOverrideID = choice
             #expect(library.saveTailscaleHost(host))
             library.recordRemoteSystemInfo(RemoteSystemInfo(kernelName: "Darwin"), for: host.id)

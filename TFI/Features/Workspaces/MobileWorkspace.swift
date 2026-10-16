@@ -320,11 +320,11 @@ final class MobileWorkspace: Identifiable {
         self.advisoryTelnetPassword = advisoryTelnetPassword
         self.externalSFTPResourcePath = externalSFTPResourcePath
         self.externalSFTPMustBeDirectory = externalSFTPMustBeDirectory
+        let artwork = HostIconCatalog.resolvedArtwork(for: hosts.host(descriptor.hostID) ?? transientHost)
         activitySession = WorkspaceActivityAttributes.Session(
             id: descriptor.id, title: descriptor.title, kind: descriptor.kind.rawValue,
             connected: false,
-            iconAsset: HostIconCatalog.resolvedEntry(
-                for: hosts.host(descriptor.hostID) ?? transientHost)?.asset)
+            iconAsset: artwork.assetName, iconSystemName: artwork.systemImageName)
         if connectionOrigin.allowsPersistence, hosts.host(descriptor.hostID) != nil {
             activitySession.recovery = .init(
                 sourceWorkspaceID: descriptor.id, hostID: descriptor.hostID, kind: descriptor.kind.rawValue)
@@ -1900,10 +1900,13 @@ final class MobileWorkspace: Identifiable {
         } else {
             distribution = host?.detectedDistribution
         }
-        let iconAsset = HostIconCatalog.bundled.resolvedEntry(
-            overrideID: host?.iconOverrideID, distribution: distribution)?.asset
-        guard activitySession.iconAsset != iconAsset else { return }
-        activitySession.iconAsset = iconAsset
+        let artwork = HostIconCatalog.bundled.resolvedArtwork(
+            overrideID: host?.iconOverrideID, distribution: distribution)
+        guard
+            activitySession.iconAsset != artwork.assetName || activitySession.iconSystemName != artwork.systemImageName
+        else { return }
+        activitySession.iconAsset = artwork.assetName
+        activitySession.iconSystemName = artwork.systemImageName
         didChangeState?(activitySession)
     }
 

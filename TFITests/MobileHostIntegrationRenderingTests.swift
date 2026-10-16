@@ -17,17 +17,11 @@ struct MobileHostIntegrationRenderingTests {
     func iconPickerFollowsGroupAndOnlyChangesTheDraft(language: String) async throws {
         let draft = HostArtworkDraft()
         let controller = UIHostingController(
-            rootView: Form {
-                HostOrganizationSection(host: Binding(get: { draft.host }, set: { draft.host = $0 })) {
-                    LabeledContent(AppStrings.Vault.group.swiftUIKey) { Text(verbatim: "Production") }
-                } tagsField: {
-                    Text(AppStrings.Vault.tags)
-                }
-            }.environment(\.locale, Locale(identifier: language)))
+            rootView: HostArtworkForm(draft: draft).environment(\.locale, Locale(identifier: language)))
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.keyWindow
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 390, height: 600)
+        window.frame = CGRect(x: 0, y: 0, width: min(scene.screen.bounds.width, 834), height: 600)
         window.rootViewController = controller
         window.windowLevel = .alert + 1
         window.makeKeyAndVisible()
@@ -39,32 +33,84 @@ struct MobileHostIntegrationRenderingTests {
         try await Task.sleep(for: .milliseconds(500))
         let picker = try #require(
             descendants(controller.view).compactMap { $0 as? UIButton }.first { $0.showsMenuAsPrimaryAction })
-        let actions = try await menuActions(in: picker, expectedCount: HostIconCatalog.bundled.entries.count + 2)
+        let generalTitles = HostGeneralIcon.allCases.map {
+            AppLocalization.string(String.LocalizationValue($0.title.key), locale: Locale(identifier: language))
+        }
+        let expectedGroups = [
+            [AppLocalization.string("Automatic", locale: Locale(identifier: language))],
+            generalTitles,
+            HostIconCatalog.bundled.selectableEntries.map(\.title),
+        ]
+        let actions = try await menuActions(
+            in: picker, expectedCount: HostIconCatalog.bundled.entries.count + generalTitles.count + 1,
+            expectedGroups: expectedGroups)
         #expect(
             actions.prefix(2).map(\.title) == [
                 AppLocalization.string("Automatic", locale: Locale(identifier: language)),
                 AppLocalization.string("Server", locale: Locale(identifier: language)),
             ])
-        #expect(actions.dropFirst(2).map(\.title) == HostIconCatalog.bundled.selectableEntries.map(\.title))
+        #expect(Array(actions.dropFirst().prefix(generalTitles.count).map(\.title)) == generalTitles)
+        #expect(
+            actions.dropFirst(generalTitles.count + 1).map(\.title)
+                == HostIconCatalog.bundled.selectableEntries.map(\.title))
+        #expect(actions.allSatisfy { $0.image != nil })
         #expect(actions.first?.state == .on)
+        #expect(actions.filter { $0.state == .on }.count == 1)
+        let automaticImage = try imagePixels(actions.first?.image)
+        try await captureIconPicker(window, language: language, name: "automatic")
+        picker.sendAction(actions[2])
+        #expect(draft.host.iconOverrideID == "cloud")
+        #expect(draft.host.detectedDistribution?.id == "macos")
+        let generalSelected = try await menuActions(in: picker, expectedCount: actions.count)
+        #expect(generalSelected[2].state == .on)
+        #expect(generalSelected.filter { $0.state == .on }.count == 1)
+        #expect(try imagePixels(generalSelected[0].image) == automaticImage)
+        try await captureIconPicker(window, language: language, name: "cloud")
         picker.sendAction(try #require(actions.first { $0.title == "Windows" }))
         #expect(draft.host.iconOverrideID == "windows")
         #expect(draft.host.detectedDistribution?.id == "macos")
+        try await captureIconPicker(window, language: language, name: "windows")
+        let updated = try await menuActions(in: picker, expectedCount: actions.count)
+        picker.sendAction(updated[0])
+        #expect(draft.host.iconOverrideID == nil)
+        draft.host.detectedDistribution = nil
+        let undetected = try await menuActions(in: picker, expectedCount: actions.count)
+        #expect(try imagePixels(undetected[0].image) == imagePixels(undetected[1].image))
+        #expect(try imagePixels(undetected[0].image) != automaticImage)
+        try await captureIconPicker(window, language: language, name: "fallback")
+        draft.host.iconOverrideID = "future-icon"
+        let unknown = try await menuActions(in: picker, expectedCount: actions.count + 1)
+        #expect(unknown.last?.title == AppLocalization.string("Unknown Icon", locale: Locale(identifier: language)))
+        #expect(unknown.last?.state == .on)
+        #expect(unknown.filter { $0.state == .on }.count == 1)
+        #expect(try imagePixels(unknown.last?.image) == imagePixels(unknown[1].image))
+        #expect(draft.host.iconOverrideID == "future-icon")
+    }
+
+    private func imagePixels(_ image: UIImage?) throws -> Data {
+        let image = try #require(image)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24), format: format)
+        return renderer.pngData { _ in
+            image.withTintColor(.black, renderingMode: .alwaysOriginal)
+                .draw(in: CGRect(x: 0, y: 0, width: 24, height: 24))
+        }
+    }
+
+    private func captureIconPicker(_ window: UIWindow, language: String, name: String) async throws {
         for style in [UIUserInterfaceStyle.light, .dark] {
             window.overrideUserInterfaceStyle = style
-            try await Task.sleep(for: .milliseconds(500))
-            controller.view.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+            window.layoutIfNeeded()
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 #expect(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
             }
             let data = try #require(image.pngData())
-            let name = "host-icons-mobile-\(language)-\(style.rawValue).png"
-            Attachment.record(data, named: name)
-            try data.write(to: FileManager.default.temporaryDirectory.appending(path: name))
+            let filename = "host-icons-mobile-\(language)-\(name)-\(Int(window.bounds.width))-\(style.rawValue).png"
+            Attachment.record(data, named: filename)
+            try data.write(to: FileManager.default.temporaryDirectory.appending(path: filename))
         }
-        let updated = try await menuActions(in: picker, expectedCount: actions.count)
-        picker.sendAction(updated[0])
-        #expect(draft.host.iconOverrideID == nil)
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
@@ -167,13 +213,18 @@ struct MobileHostIntegrationRenderingTests {
         [view] + view.subviews.flatMap(descendants)
     }
 
-    private func menuActions(in button: UIButton, expectedCount: Int = 3) async throws -> [UIAction] {
+    private func menuActions(
+        in button: UIButton, expectedCount: Int = 3, expectedGroups: [[String]]? = nil
+    ) async throws -> [UIAction] {
         button.performPrimaryAction()
         try await Task.sleep(for: .milliseconds(500))
         let interaction = try #require(button.contextMenuInteraction)
         var actions: [UIAction] = []
         interaction.updateVisibleMenu { menu in
             actions = self.menuActions(menu)
+            if let expectedGroups {
+                #expect(self.actionGroups(menu) == expectedGroups)
+            }
             return menu
         }
         interaction.dismissMenu()
@@ -189,11 +240,31 @@ struct MobileHostIntegrationRenderingTests {
             return []
         }
     }
+
+    private func actionGroups(_ menu: UIMenu) -> [[String]] {
+        let actions = menu.children.compactMap { $0 as? UIAction }
+        if !actions.isEmpty { return [actions.map(\.title)] }
+        return menu.children.compactMap { $0 as? UIMenu }.flatMap(actionGroups)
+    }
 }
 
 @Observable @MainActor private final class HostArtworkDraft {
     var host = TermindDomain.Host(
         name: "Mac", host: "example.invalid", detectedDistribution: DetectedDistribution(id: "macos"))
+}
+
+private struct HostArtworkForm: View {
+    @Bindable var draft: HostArtworkDraft
+
+    var body: some View {
+        Form {
+            HostOrganizationSection(host: $draft.host, detectedDistribution: draft.host.detectedDistribution) {
+                LabeledContent(AppStrings.Vault.group.swiftUIKey) { Text(verbatim: "Production") }
+            } tagsField: {
+                Text(AppStrings.Vault.tags)
+            }
+        }
+    }
 }
 
 @Observable @MainActor private final class HostIntegrationDraft {

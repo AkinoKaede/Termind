@@ -1477,6 +1477,27 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
 }
 
 @Suite struct WorkspaceHostIconTests {
+    @Test(arguments: HostGeneralIcon.allCases)
+    @MainActor func generalArtworkIsAvailableOnMobile(icon: HostGeneralIcon) {
+        #expect(UIImage(systemName: icon.systemImageName) != nil)
+    }
+
+    @Test func activityPreservesGeneralArtworkAndReadsLegacyPayloads() throws {
+        let session = WorkspaceActivityAttributes.Session(
+            id: UUID(), title: "Cloud", kind: "ssh", connected: true, iconSystemName: "cloud")
+        let data = try JSONEncoder().encode(session)
+        let restored = try JSONDecoder().decode(WorkspaceActivityAttributes.Session.self, from: data)
+        #expect(restored.iconSystemName == "cloud")
+        #expect(restored.iconAsset == nil)
+        var legacy = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "iconSystemName")
+        legacy["iconAsset"] = "HostOS-macos"
+        let oldSession = try JSONDecoder().decode(
+            WorkspaceActivityAttributes.Session.self, from: JSONSerialization.data(withJSONObject: legacy))
+        #expect(oldSession.iconSystemName == nil)
+        #expect(oldSession.iconAsset == "HostOS-macos")
+    }
+
     @Test @MainActor func operatingSystemArtworkIsBundledOnMobile() {
         #expect(HostIconCatalog.bundled.selectableEntries.first?.title == "AlmaLinux")
         #expect(HostIconCatalog.bundled.selectableEntries.last?.title == "Zorin")

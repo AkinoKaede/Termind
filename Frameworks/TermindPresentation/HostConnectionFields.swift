@@ -6,15 +6,18 @@ import struct TermindDomain.Host
 /// The same host metadata form inside a desktop work column or a mobile sheet.
 public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
     @Binding private var host: Host
+    private let detectedDistribution: DetectedDistribution?
     private let groupField: GroupField
     private let tagsField: TagsField
 
     public init(
         host: Binding<Host>,
+        detectedDistribution: DetectedDistribution?,
         @ViewBuilder groupField: () -> GroupField,
         @ViewBuilder tagsField: () -> TagsField
     ) {
         _host = host
+        self.detectedDistribution = detectedDistribution
         self.groupField = groupField()
         self.tagsField = tagsField()
     }
@@ -24,7 +27,7 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
             VaultNameField(text: $host.name, prompt: Text(verbatim: host.defaultName))
                 .disabled(host.isTailscaleManaged)
             groupField.disabled(host.isTailscaleManaged)
-            HostIconPicker(selection: $host.iconOverrideID)
+            HostIconPicker(selection: $host.iconOverrideID, detectedDistribution: detectedDistribution)
             tagsField
             VaultColorField(selection: $host.colorTag)
         }

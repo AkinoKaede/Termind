@@ -21,7 +21,7 @@ public struct HostDistributionIcon: View {
             host?.colorTag.color
             ?? entry.flatMap { HostIconBrandColor.color(hex: $0.hex, colorScheme: colorScheme) }
             ?? .accentColor
-        HostSystemIcon(asset: entry?.asset, size: size, style: artworkStyle)
+        HostSystemIcon(artwork: HostIconCatalog.resolvedArtwork(for: host), size: size, style: artworkStyle)
             .tint(tint)
     }
 }

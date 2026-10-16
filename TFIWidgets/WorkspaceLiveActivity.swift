@@ -41,11 +41,15 @@ struct WorkspaceLiveActivity: Widget {
                 .contentMargins(.horizontal, 20)
                 .contentMargins(.bottom, 12)
             } compactLeading: {
-                HostSystemIcon(asset: context.state.sessions.first?.iconAsset, size: 18, showsBackground: false)
+                HostSystemIcon(
+                    asset: context.state.sessions.first?.iconAsset,
+                    systemImageName: context.state.sessions.first?.iconSystemName, size: 18, showsBackground: false)
             } compactTrailing: {
                 Text(context.state.workspaceCount, format: .number).monospacedDigit()
             } minimal: {
-                HostSystemIcon(asset: context.state.sessions.first?.iconAsset, size: 18, showsBackground: false)
+                HostSystemIcon(
+                    asset: context.state.sessions.first?.iconAsset,
+                    systemImageName: context.state.sessions.first?.iconSystemName, size: 18, showsBackground: false)
             }
             .widgetURL(context.state.destinationURL)
         }
@@ -71,7 +75,7 @@ struct WorkspaceLiveActivity: Widget {
         return HStack(spacing: 8) {
             ForEach(visibleSessions) { session in
                 Link(destination: session.destinationURL) {
-                    HostSystemIcon(asset: session.iconAsset)
+                    HostSystemIcon(asset: session.iconAsset, systemImageName: session.iconSystemName)
                         .frame(minWidth: 44, minHeight: 44)
                 }
                 .accessibilityLabel(session.title)
