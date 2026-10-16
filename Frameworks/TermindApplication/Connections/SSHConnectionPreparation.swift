@@ -31,6 +31,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
 
     }
+    public var beforeConnect: ConnectionWakeAction?
     public var nodes: [Node]
     public var secrets: any SSHRuntimeSecretResolving
 
@@ -123,6 +124,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
+        configuration.beforeConnect = beforeConnect
         configuration.network = nodes.first?.network
         configuration.tailscaleNodeID = target.host.tailscale?.stableNodeID
         return configuration

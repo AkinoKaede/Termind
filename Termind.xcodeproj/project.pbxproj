@@ -2054,7 +2054,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Termind uses the camera to attach photos to your chat.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Authenticate to use your SSH keys.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind connects to servers and model providers on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind discovers and wakes local servers, and connects to servers and model providers on your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Termind uses the microphone to transcribe speech into your chat draft.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -2366,7 +2366,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Termind uses the camera to attach photos to your chat.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Authenticate to use your SSH keys.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind connects to servers and model providers on your local network.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind discovers and wakes local servers, and connects to servers and model providers on your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Termind uses the microphone to transcribe speech into your chat draft.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;

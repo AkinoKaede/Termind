@@ -43,15 +43,20 @@ struct HostEditorView: View {
         case telnetProxyIdentity
         case group
         case environmentVariable(Int?)
+        case localDiscovery
+        case macAddress
     }
 
     let hostID: Host.ID?
     let initialGroupID: HostGroup.ID?
+    let discover: Bool
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(VaultWorkEditingSession.self) private var editingSession
 
+    @State private var discoveryModel: LocalDiscoveryModel?
+    @State private var macModel: HostMACAddressModel?
     @State private var draft: Host
     @State private var tailscaleUsername = ""
     @State private var originalTailscaleUsername = ""
@@ -65,8 +70,9 @@ struct HostEditorView: View {
     @State private var confirmsDeletion = false
     @State private var editingToken: UUID?
 
-    init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil) {
+    init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil, discover: Bool = false) {
         self.hostID = hostID
+        self.discover = discover
         self.initialGroupID = initialGroupID
         let initial = Host(name: "", host: "", groupID: hostID == nil ? initialGroupID : nil)
         _draft = State(initialValue: initial)
@@ -108,10 +114,12 @@ struct HostEditorView: View {
             original = draft
             originalCustomIdentity = CustomIdentityState(customIdentity)
             editingToken = editingSession.register(
-                route: .hostEditor(hostID, groupID: initialGroupID), isDirty: { isDirty }
+                route: .hostEditor(hostID, groupID: initialGroupID, discover: discover), isDirty: { isDirty }
             ) { commitChanges() }
         }
         .onDisappear {
+            discoveryModel?.cancel()
+            macModel?.cancel()
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
@@ -152,6 +160,14 @@ struct HostEditorView: View {
             }
 
             HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
+
+            if !draft.isTailscaleManaged, LocalDiscoveryProtocol(terminalProtocol: selectedProtocol) != nil {
+                Section {
+                    Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                        openDiscovery()
+                    }
+                }
+            }
 
             if selectedProtocol == .ssh && draft.sshEnabled {
                 if draft.isTailscaleManaged {
@@ -330,6 +346,7 @@ struct HostEditorView: View {
 
                 }
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
+                wakeOnLANSection
 
                 if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Section(AppStrings.Vault.sshCommand.swiftUIKey) {
@@ -373,10 +390,25 @@ struct HostEditorView: View {
                     .pickerStyle(.menu)
                     .menuOrder(.fixed)
                 }
+                wakeOnLANSection
                 telnetCommandSection
+            } else {
+                wakeOnLANSection
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var wakeOnLANSection: some View {
+        HostWakeOnLANSection(
+            preferences: $draft.wakeOnLAN,
+            requestAccess: { app.proAccess.require(.autoWakeOnLAN) },
+            fetchMAC: draft.sshEnabled
+                ? {
+                    macModel = app.macAddressModel(
+                        host: draft, custom: customIdentity, tailscaleUsername: tailscaleUsername)
+                    route = .macAddress
+                } : nil)
     }
 
     private var telnetAuthenticationSection: some View {
@@ -476,6 +508,21 @@ struct HostEditorView: View {
     @ViewBuilder
     private func destination(_ route: Route) -> some View {
         switch route {
+        case .localDiscovery:
+            if let discoveryModel {
+                HostLocalDiscoveryView(model: discoveryModel, back: closeNestedEditor) {
+                    $0.prefill(&draft)
+                    selectedProtocol = $0.connectionProtocol.terminalProtocol
+                    closeNestedEditor()
+                }
+            }
+        case .macAddress:
+            if let macModel {
+                HostMACAddressView(model: macModel, back: closeNestedEditor) {
+                    draft.wakeOnLAN.macAddress = $0
+                    closeNestedEditor()
+                }
+            }
         case .identity:
             NewIdentitySheet(
                 defaultPasswordStorage: app.newVaultPasswordStorage,
@@ -536,7 +583,19 @@ struct HostEditorView: View {
     }
 
     private func closeNestedEditor() {
+        discoveryModel?.cancel()
+        discoveryModel = nil
+        macModel?.cancel()
+        macModel = nil
         route = nil
+    }
+
+    private func openDiscovery() {
+        guard !draft.isTailscaleManaged,
+            let connectionProtocol = LocalDiscoveryProtocol(terminalProtocol: selectedProtocol)
+        else { return }
+        discoveryModel = app.localDiscoveryModel(protocol: connectionProtocol)
+        route = .localDiscovery
     }
 
     // MARK: - Picking, and making
@@ -687,6 +746,7 @@ struct HostEditorView: View {
         } else {
             customIdentity = HostCustomIdentityDraft(host: draft, library: app.hostLibrary)
         }
+        if discover { openDiscovery() }
     }
 
     /// No tag bookkeeping here: `TagField` writes chips straight into
@@ -732,7 +792,7 @@ struct HostEditorView: View {
 
     private func cancel() {
         editingSession.requestCancellation(
-            route: .hostEditor(hostID, groupID: initialGroupID), action: closeTab)
+            route: .hostEditor(hostID, groupID: initialGroupID, discover: discover), action: closeTab)
     }
 
     /// Return to Hosts so the saved or retained record is immediately visible.

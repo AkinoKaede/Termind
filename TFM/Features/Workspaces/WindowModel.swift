@@ -48,6 +48,7 @@ final class WindowModel {
     /// window-scoped so two windows can configure shared preferences independently.
     private var settingsReturnDestination: WindowDestination = .vault
     weak var metricsModel: ServerMetricsModel?
+    var wakeNotice: String?
     var pendingMetricsHostIDs: [UUID]?
     var pendingMetricsEditableHostIDs: Set<UUID> = []
     var metricsHostID: UUID? {
@@ -1605,7 +1606,7 @@ final class WindowModel {
         let paneIDs = workspaces.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
         for paneID in paneIDs { closePane(paneID) }
         switch vaultWorkRoute {
-        case .hostEditor(let editingID, _) where editingID == hostID:
+        case .hostEditor(let editingID, _, _) where editingID == hostID:
             closeVaultWork()
         case .tailscaleDetails(let detailID) where detailID == hostID:
             closeVaultWork()

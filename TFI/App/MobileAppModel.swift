@@ -23,6 +23,7 @@ final class MobileAppModel {
     let library: HostLibraryModel
     let tailscale: TailscaleModel
     let credentials: CredentialLibraryModel
+    let hostMACResolver: any HostMACAddressResolving
     let keyExportServices: KeyExportServices
     let snippets: SnippetLibraryModel
     let knownHosts: KnownHostsLibraryModel
@@ -179,6 +180,7 @@ final class MobileAppModel {
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
         let connectionCoordinator = dependencies.connectionCoordinator
+        hostMACResolver = SSHHostMACAddressResolver(coordinator: connectionCoordinator)
         keyExportServices = connectionCoordinator.keyExportServices()
         createWorkspaceWindow = dependencies.createWorkspaceWindow
         activateWorkspaceSession = dependencies.activateWorkspaceSession
@@ -290,6 +292,10 @@ final class MobileAppModel {
         )
         let tailscaleDevices = devices
         let tailscaleAccess = pro
+        library.wakeOnLAN = WakeOnLANController(
+            sender: LANWakeOnLANSender(), hasAccess: { tailscaleAccess.canUse(.wakeOnLAN) })
+        let wakeLogger = dependencies.logging.makeLogger(label: "termind.wake-on-lan")
+        library.wakeOnLAN?.reportAutomaticFailure = { _ in wakeLogger.warning("wake.automatic.failed") }
         tailscale = TailscaleModel(
             library: library, store: SwiftDataTailscaleLocalStore(context: ModelContext(container)),
             factory: { profileID, hostname, controlURL, authKey in

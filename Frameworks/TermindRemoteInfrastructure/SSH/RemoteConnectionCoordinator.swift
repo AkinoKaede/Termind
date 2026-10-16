@@ -72,11 +72,13 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     }
 
     public func connectConnection(
-        using request: SSHConnectionRequest
+        using request: SSHConnectionRequest, progress: SSHRouteProgressHandler? = nil
     ) async throws -> any SSHConnectionProtocol {
-        let connection = makeConnection()
+        let connection = SSHConnection(
+            keyboardInteractive: keyboardInteractive, agentForwardingFactory: agentFactory, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
         do {
-            try await connection.connect(using: request)
+            try await connection.connect(using: request, progress: progress, connectionFailure: nil)
             return connection
         } catch {
             await connection.disconnect()

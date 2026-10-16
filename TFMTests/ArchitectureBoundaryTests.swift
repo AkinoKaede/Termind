@@ -432,6 +432,7 @@ struct ArchitectureBoundaryTests {
         let forbidden = [
             "ModelContext", "FetchDescriptor", "KeychainSecretStore",
             "SFTPClient()", "SSHConnection()", "URLSession(",
+            "LANHostDiscovery", "LANWakeOnLANSender", "SSHHostMACAddressResolver",
         ]
         for file in try swiftFiles(in: directory) {
             let text = try String(contentsOf: file, encoding: .utf8)

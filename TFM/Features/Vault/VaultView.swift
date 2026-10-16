@@ -39,8 +39,8 @@ struct VaultWorkDetailView: View {
         switch route {
         case .tailscaleDetails(let hostID):
             TailscaleDetailView(hostID: hostID)
-        case .hostEditor(let id, let groupID):
-            HostEditorView(hostID: id, initialGroupID: groupID)
+        case .hostEditor(let id, let groupID, let discover):
+            HostEditorView(hostID: id, initialGroupID: groupID, discover: discover)
         case .hostGroupEditor(let groupID, let parentID):
             NewGroupSheet(
                 group: groupID.flatMap(app.hostLibrary.group), parentID: parentID,

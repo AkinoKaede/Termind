@@ -157,6 +157,7 @@ extension RemoteSessionHostStore {
             credentials: target?.credentials ?? [], expectedHostKeys: target?.expectedHostKeys ?? [],
             proxy: targetProxy, jumps: jumps, charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication)
+        configuration.beforeConnect = connectionWakeAction(for: snapshot.jumps.map(\.id) + [snapshot.target.id])
         configuration.tailscaleNodeID = snapshot.tailscaleNodeID
         if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {
             configuration.network = try tailscaleNetwork(for: first)

@@ -198,43 +198,43 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind verbindet sich mit Servern und Modellanbietern in Ihrem lokalen Netzwerk."
+            "value" : "Termind findet und weckt lokale Server und verbindet sich mit Servern und Modellanbietern in Ihrem lokalen Netzwerk."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind connects to servers and model providers on your local network."
+            "value" : "Termind discovers and wakes local servers, and connects to servers and model providers on your local network."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind se connecte aux serveurs et aux fournisseurs de modèles sur votre réseau local."
+            "value" : "Termind découvre et réveille les serveurs locaux et se connecte aux serveurs et fournisseurs de modèles sur votre réseau local."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termindがローカルネットワーク上のサーバやモデルプロバイダに接続します。"
+            "value" : "Termindはローカルサーバの探索と起動を行い、ローカルネットワーク上のサーバやモデルプロバイダに接続します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind는 로컬 네트워크의 서버와 모델 제공업체에 연결합니다."
+            "value" : "Termind는 로컬 서버를 검색하고 깨우며 로컬 네트워크의 서버 및 모델 제공업체에 연결합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind会连接你局域网中的服务器和模型提供商。"
+            "value" : "Termind会发现和唤醒本地服务器，并连接局域网中的服务器和模型提供商。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termind會連線至你區域網路中的伺服器和模型供應商。"
+            "value" : "Termind會探索和喚醒本機伺服器，並連線至區域網路中的伺服器和模型供應商。"
           }
         }
       }

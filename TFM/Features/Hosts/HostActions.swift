@@ -35,6 +35,9 @@ struct HostContextMenu: View {
         HostConnectMenu(hosts: hosts)
 
         if hosts.count == 1, let host = hosts.first {
+            Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
+                window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+            }
             copySSHCommandButton(host)
         }
 
@@ -176,6 +179,10 @@ enum HostMenuEntries {
                     }
                 ))
         }
+        entries.append(
+            NativeMenuEntry(title: AppStrings.LocalNetwork.wake, symbol: "power") {
+                window.wakeNotice = app.requestWake(host) { window.openHostEditor(host: host) }
+            })
         if includesCopySSHCommand {
             entries.append(
                 NativeMenuEntry(

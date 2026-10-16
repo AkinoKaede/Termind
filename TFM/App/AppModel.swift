@@ -242,6 +242,10 @@ final class AppModel {
             )
         self.hosts = hosts
         self.proAccess = proAccess
+        hosts.wakeOnLAN = WakeOnLANController(
+            sender: LANWakeOnLANSender(), hasAccess: { proAccess.canUse(.wakeOnLAN) })
+        let wakeLogger = dependencies.logging.makeLogger(label: "termind.wake-on-lan")
+        hosts.wakeOnLAN?.reportAutomaticFailure = { _ in wakeLogger.warning("wake.automatic.failed") }
         self.onboarding = onboarding
         self.appReview = appReview
         self.diagnosis = diagnosis

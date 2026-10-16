@@ -1066,6 +1066,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         logger[metadataKey: "host_id"] = RemoteLogging.hostID(request.configuration.hostID)
         let authenticationLogger = logger
         let request = request.enforcingInteractionPolicy()
+        defer { request.configuration.clearSecrets() }
+        try Task.checkCancellation()
+        await request.configuration.beforeConnect?()
+        try Task.checkCancellation()
         var resolvedConfiguration = request.configuration
         if let nodeID = resolvedConfiguration.tailscaleNodeID {
             guard let network = resolvedConfiguration.network, resolvedConfiguration.jumps.isEmpty else {
@@ -1075,7 +1079,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             guard !resolvedConfiguration.expectedHostKeys.isEmpty else { throw TailscaleConfigurationError.unavailable }
         }
         let configuration = resolvedConfiguration
-        defer { configuration.clearSecrets() }
         logger.info(
             "ssh.authentication.started",
             metadata: [

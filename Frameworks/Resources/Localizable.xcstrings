@@ -10223,6 +10223,53 @@
         }
       }
     },
+    "Authentication and host-key approval are used only for this lookup. The host draft is not saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentifizierung und Hostschlüsselbestätigung gelten nur für diese Abfrage. Der Hostentwurf wird nicht gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication and host-key approval are used only for this lookup. The host draft is not saved."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’authentification et l’approbation de la clé d’hôte ne servent qu’à cette recherche. Le brouillon de l’hôte n’est pas enregistré."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証とホスト鍵の承認は、この検索にのみ使用されます。ホストの下書きは保存されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증 및 호스트 키 승인은 이번 조회에만 사용됩니다. 호스트 초안은 저장되지 않습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "身份验证和主机密钥确认仅用于此次查询，不会保存主机草稿。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驗證和主機金鑰確認僅用於此次查詢，不會儲存主機草稿。"
+          }
+        }
+      }
+    },
     "Authentication required" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10483,6 +10530,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "授權並繼續"
+          }
+        }
+      }
+    },
+    "Auto Wake-on-LAN" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisches Wake-on-LAN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Wake-on-LAN"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN automatique"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動Wake-on-LAN"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동 Wake-on-LAN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动网络唤醒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動網路喚醒"
           }
         }
       }
@@ -11444,6 +11538,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "藍色"
+          }
+        }
+      }
+    },
+    "Bonjour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bonjour"
           }
         }
       }
@@ -13557,6 +13698,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請選擇或拖入一個known_hosts檔案。"
+          }
+        }
+      }
+    },
+    "Choose the network adapter to wake." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen Sie den Netzwerkadapter zum Aufwecken aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the network adapter to wake."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez la carte réseau à réveiller."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動するネットワークアダプタを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "깨울 네트워크 어댑터를 선택하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择要唤醒的网络适配器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇要喚醒的網路介面卡。"
           }
         }
       }
@@ -16800,6 +16988,53 @@
         }
       }
     },
+    "Connect to a Wi-Fi or Ethernet network to discover local servers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinden Sie sich mit einem WLAN- oder Ethernet-Netzwerk, um lokale Server zu finden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to a Wi-Fi or Ethernet network to discover local servers."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous à un réseau Wi-Fi ou Ethernet pour découvrir les serveurs locaux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルサーバを探すには、Wi-FiまたはEthernetネットワークに接続してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 서버를 검색하려면 Wi-Fi 또는 이더넷 네트워크에 연결하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请连接Wi-Fi或以太网以发现本地服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請連接Wi-Fi或乙太網路以探索本機伺服器。"
+          }
+        }
+      }
+    },
     "Connect to remote MCP servers over HTTP." : {
       "comment" : "A description of MCP servers.",
       "extractionState" : "manual",
@@ -19411,6 +19646,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "核心數"
+          }
+        }
+      }
+    },
+    "Could not send the wake request. Check Local Network access and your Wi-Fi or Ethernet connection." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufweckanfrage konnte nicht gesendet werden. Prüfen Sie den Zugriff auf das lokale Netzwerk und Ihre WLAN- oder Ethernet-Verbindung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not send the wake request. Check Local Network access and your Wi-Fi or Ethernet connection."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’envoyer la demande de réveil. Vérifiez l’accès au réseau local et votre connexion Wi-Fi ou Ethernet."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動要求を送信できませんでした。ローカルネットワークへのアクセス許可とWi-FiまたはEthernet接続を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "깨우기 요청을 보내지 못했습니다. 로컬 네트워크 접근 권한과 Wi-Fi 또는 이더넷 연결을 확인하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法发送唤醒请求。请检查本地网络权限及Wi-Fi或以太网连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法送出喚醒要求。請檢查區域網路權限及Wi-Fi或乙太網路連線。"
           }
         }
       }
@@ -27438,6 +27720,53 @@
         }
       }
     },
+    "Enter a valid unicast MAC address before enabling Auto Wake-on-LAN." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie eine gültige Unicast-MAC-Adresse ein, bevor Sie automatisches Wake-on-LAN aktivieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a valid unicast MAC address before enabling Auto Wake-on-LAN."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez une adresse MAC unicast valide avant d’activer Wake-on-LAN automatique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動Wake-on-LANを有効にする前に、有効なユニキャストMACアドレスを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동 Wake-on-LAN을 켜기 전에 유효한 유니캐스트 MAC 주소를 입력하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的单播MAC地址，再启用自动网络唤醒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入有效的單播MAC位址，再啟用自動網路喚醒。"
+          }
+        }
+      }
+    },
     "Enter a value for %@." : {
       "comment" : "A description of an error that might occur when parsing an SSH argument. The argument is a flag that needs a value.",
       "extractionState" : "manual",
@@ -31524,6 +31853,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在產生指令"
+          }
+        }
+      }
+    },
+    "Get MAC Address via SSH" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC-Adresse über SSH abrufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get MAC Address via SSH"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtenir l’adresse MAC via SSH"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSHでMACアドレスを取得"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH로 MAC 주소 가져오기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过SSH获取MAC地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過SSH取得MAC位址"
           }
         }
       }
@@ -37760,6 +38136,53 @@
         }
       }
     },
+    "Local Discovery" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Suche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Discovery"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Découverte locale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカル探索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 검색"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地发现"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機探索"
+          }
+        }
+      }
+    },
     "Local Echo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37842,6 +38265,53 @@
         }
       }
     },
+    "Local Network access is denied. Allow Termind to access your local network in System Settings." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff auf das lokale Netzwerk wurde verweigert. Erlauben Sie Termind den Zugriff in den Systemeinstellungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Network access is denied. Allow Termind to access your local network in System Settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès au réseau local est refusé. Autorisez Termind à accéder à votre réseau local dans les réglages système."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルネットワークへのアクセスが拒否されています。システム設定でTermindによるローカルネットワークへのアクセスを許可してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 네트워크 접근이 거부되었습니다. 시스템 설정에서 Termind의 로컬 네트워크 접근을 허용하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地网络访问被拒绝。请在系统设置中允许Termind访问本地网络。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "區域網路存取遭拒。請在系統設定中允許Termind存取區域網路。"
+          }
+        }
+      }
+    },
     "Local Port" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37920,6 +38390,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本機和動態轉送共享此連線池。變更將在重新啟動後生效。"
+          }
+        }
+      }
+    },
+    "Local discovery failed. Check your network and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die lokale Suche ist fehlgeschlagen. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local discovery failed. Check your network and try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La découverte locale a échoué. Vérifiez votre réseau et réessayez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカル探索に失敗しました。ネットワークを確認して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 검색에 실패했습니다. 네트워크를 확인하고 다시 시도하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地发现失败。请检查网络后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機探索失敗。請檢查網路後再試。"
           }
         }
       }
@@ -38371,6 +38888,147 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "超過%@。"
+          }
+        }
+      }
+    },
+    "Looking for local SSH servers…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale SSH-Server werden gesucht…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for local SSH servers…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche de serveurs SSH locaux…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルSSHサーバを探しています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 SSH 서버를 찾는 중…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在查找本地SSH服务器…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在尋找本機SSH伺服器…"
+          }
+        }
+      }
+    },
+    "Looking for local Telnet servers on port 23…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Telnet-Server auf Port 23 werden gesucht…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for local Telnet servers on port 23…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche de serveurs Telnet locaux sur le port 23…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポート23でローカルTelnetサーバを探しています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포트 23에서 로컬 Telnet 서버를 찾는 중…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在查找端口23上的本地Telnet服务器…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在尋找連接埠23上的本機Telnet伺服器…"
+          }
+        }
+      }
+    },
+    "MAC Address" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC-Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC Address"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse MAC"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MACアドレス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC 주소"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAC位址"
           }
         }
       }
@@ -42517,6 +43175,53 @@
         }
       }
     },
+    "No SSH servers found. Enable Remote Login or an SSH server on the other device, then scan again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine SSH-Server gefunden. Aktivieren Sie die entfernte Anmeldung oder einen SSH-Server auf dem anderen Gerät und suchen Sie erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SSH servers found. Enable Remote Login or an SSH server on the other device, then scan again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun serveur SSH trouvé. Activez la connexion à distance ou un serveur SSH sur l’autre appareil, puis relancez la recherche."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSHサーバが見つかりませんでした。もう一方のデバイスでリモートログインまたはSSHサーバを有効にして、再スキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH 서버를 찾지 못했습니다. 다른 기기에서 원격 로그인 또는 SSH 서버를 활성화한 후 다시 검색하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到SSH服务器。请在另一台设备上启用远程登录或SSH服务器，然后重新扫描。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到SSH伺服器。請在另一台裝置上啟用遠端登入或SSH伺服器，然後重新掃描。"
+          }
+        }
+      }
+    },
     "No Saved Logs" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -42636,6 +43341,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有偵測到語音"
+          }
+        }
+      }
+    },
+    "No Telnet servers found on port 23. Enable a Telnet server on the other device, then scan again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Telnet-Server auf Port 23 gefunden. Aktiviere einen Telnet-Server auf dem anderen Gerät und suche erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Telnet servers found on port 23. Enable a Telnet server on the other device, then scan again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun serveur Telnet trouvé sur le port 23. Activez un serveur Telnet sur l’autre appareil, puis relancez la recherche."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポート23でTelnetサーバが見つかりませんでした。相手のデバイスでTelnetサーバを有効にして、もう一度スキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포트 23에서 Telnet 서버를 찾지 못했습니다. 다른 기기에서 Telnet 서버를 활성화한 후 다시 검색하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未在端口23上找到Telnet服务器。请在另一台设备上启用Telnet服务器，然后重新扫描。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未在連接埠23上找到Telnet伺服器。請在另一部裝置上啟用Telnet伺服器，然後重新掃描。"
           }
         }
       }
@@ -43665,6 +44417,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無輸出"
+          }
+        }
+      }
+    },
+    "No physical network adapter was found. Enter the MAC address manually." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein physischer Netzwerkadapter gefunden. Geben Sie die MAC-Adresse manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No physical network adapter was found. Enter the MAC address manually."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune carte réseau physique trouvée. Saisissez l’adresse MAC manuellement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "物理ネットワークアダプタが見つかりませんでした。MACアドレスを手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "물리적 네트워크 어댑터를 찾지 못했습니다. MAC 주소를 직접 입력하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到物理网络适配器。请手动输入MAC地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到實體網路介面卡。請手動輸入MAC位址。"
           }
         }
       }
@@ -50343,6 +51142,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連接埠"
+          }
+        }
+      }
+    },
+    "Port 23 Open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port 23 offen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port 23 Open"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port 23 ouvert"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポート23が開いています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포트 23 열림"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端口23已开放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接埠23已開啟"
           }
         }
       }
@@ -58480,6 +59326,53 @@
         }
       }
     },
+    "SSH Advertised" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH angekündigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Advertised"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH annoncé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSHサービス公開中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH 서비스 광고됨"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已广播SSH服务"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已廣播SSH服務"
+          }
+        }
+      }
+    },
     "SSH Certificate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -58681,6 +59574,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SSH主機→這台Mac→目的地"
+          }
+        }
+      }
+    },
+    "SSH Verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH bestätigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH Verified"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH vérifié"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH確認済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH 확인됨"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已验证SSH"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已驗證SSH"
           }
         }
       }
@@ -59718,6 +60658,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法回復已儲存的工作區。已保留原有儲存資料。"
+          }
+        }
+      }
+    },
+    "Scan Again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Again"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher à nouveau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再スキャン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 검색"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新扫描"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新掃描"
           }
         }
       }
@@ -82939,6 +83926,147 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在等待…"
+          }
+        }
+      }
+    },
+    "Wake" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufwecken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réveiller"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "깨우기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "唤醒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "喚醒"
+          }
+        }
+      }
+    },
+    "Wake request sent. The remote machine may take a moment to become available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufweckanfrage gesendet. Es kann einen Moment dauern, bis der entfernte Rechner verfügbar ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake request sent. The remote machine may take a moment to become available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demande de réveil envoyée. La machine distante peut mettre un moment à devenir disponible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動要求を送信しました。リモートマシンが利用可能になるまで少し時間がかかる場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "깨우기 요청을 보냈습니다. 원격 컴퓨터를 사용할 수 있을 때까지 잠시 걸릴 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "唤醒请求已发送。远程设备可能需要一些时间才能连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "喚醒要求已送出。遠端裝置可能需要一些時間才能連線。"
+          }
+        }
+      }
+    },
+    "Wake-on-LAN" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wake-on-LAN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络唤醒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "網路喚醒"
           }
         }
       }

@@ -177,7 +177,7 @@ struct VaultWorkspaceContent: View {
 extension VaultWorkRoute {
     var discardQuestion: LocalizedStringResource {
         switch self {
-        case .hostEditor(nil, _): AppStrings.Common.discardNewHostQuestion
+        case .hostEditor(nil, _, _): AppStrings.Common.discardNewHostQuestion
         case .hostGroupEditor(nil, _): AppStrings.Common.discardNewGroupQuestion
         case .forwardingEditor(nil): AppStrings.Common.discardNewForwardingQuestion
         case .identityEditor(nil): AppStrings.Common.discardNewIdentityQuestion

@@ -165,6 +165,7 @@ struct ConnectionJourneyView: View {
     var cancelKeyboardAuthentication: (() -> Void)? = nil
     var remoteSession: RemoteSessionCoordinator? = nil
     var isEmbedded = false
+    var allowsPersistingHostKey = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -240,7 +241,7 @@ struct ConnectionJourneyView: View {
             DesktopSSHHostKeyConfirmationForm(
                 prompt: hostKey,
                 proceed: { continueHostKey(hostKey.observation) },
-                trust: { trustHostKey(hostKey.observation) },
+                trust: allowsPersistingHostKey ? { trustHostKey(hostKey.observation) } : nil,
                 deny: denyHostKey
             )
         } else if let remoteSession, remoteSession.prompt != nil {

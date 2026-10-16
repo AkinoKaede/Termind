@@ -148,6 +148,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// field accepts either.
     public var host: String
     public var sshEnabled = true
+    public var wakeOnLAN = WakeOnLANPreferences()
     public var terminalTransports = HostTerminalTransports()
     public var sshPort: Int = 22
     /// Which saved login to use. Optional because a host can be filed before it
@@ -345,7 +346,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case charset
         case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
         case groupID, tags, colorTag, iconOverrideID, detectedDistribution, sortIndex, shellIntegrationMode
-        case terminalTransports, sessionPersistence, agentForwardingEnabled, startupSnippetID, environmentVariables,
+        case wakeOnLAN, terminalTransports, sessionPersistence, agentForwardingEnabled, startupSnippetID,
+            environmentVariables,
             portForwardingMaxConnections
     }
 
@@ -355,6 +357,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         tailscale = try values.decodeIfPresent(TailscaleHostReference.self, forKey: .tailscale)
         name = try values.decode(String.self, forKey: .name)
         host = try values.decode(String.self, forKey: .host)
+        wakeOnLAN = try values.decodeIfPresent(WakeOnLANPreferences.self, forKey: .wakeOnLAN) ?? .init()
         terminalTransports =
             try values.decodeIfPresent(HostTerminalTransports.self, forKey: .terminalTransports) ?? .init()
         sshEnabled = try values.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? true
@@ -406,6 +409,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         try values.encodeIfPresent(proxy, forKey: .proxy)
         try values.encode(sftpChannelInitialPath, forKey: .sftpChannelInitialPath)
         try values.encode(sshCharset.rawValue, forKey: .charset)
+        try values.encode(wakeOnLAN, forKey: .wakeOnLAN)
         try values.encode(terminalTransports, forKey: .terminalTransports)
         try values.encode(sshEnabled, forKey: .sshEnabled)
         try values.encode(telnetEnabled, forKey: .telnetEnabled)

@@ -4,6 +4,7 @@ import TermindDomain
 import struct TermindDomain.Host
 
 public nonisolated struct TelnetConnectionConfiguration: Sendable {
+    public var beforeConnect: ConnectionWakeAction?
     public var hostID: Host.ID
     public var host: String
     public var port: Int

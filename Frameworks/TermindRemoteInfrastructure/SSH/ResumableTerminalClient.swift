@@ -22,6 +22,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
     private var observer: Task<Void, Never>?
     private var maintenance: Task<Void, Never>?
     private var pathMonitor: NWPathMonitor?
+    private var beforeConnect: ConnectionWakeAction?
     private var closed = false
     private var frozen = false
     private var state: ResumableTerminalState = .connecting
@@ -82,6 +83,10 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         {
             throw TerminalTransportError.invalidCheckpoint
         }
+        beforeConnect = request.configuration.beforeConnect
+        try Task.checkCancellation()
+        await request.configuration.beforeConnect?()
+        try Task.checkCancellation()
         publish(.connecting)
         sendsInFlight += 1
         defer { finishSend() }
@@ -282,6 +287,10 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
 
     public func resume() async throws {
         try checkOpen()
+        if mosh != nil {
+            await beforeConnect?()
+            try checkOpen()
+        }
         frozen = false
         publish(.recovering)
         if let mosh { try await mosh.resumeFromApplicationBackground() }
@@ -306,6 +315,8 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         }
         if let eternal { await eternal.notifyNetworkPathChanged() }
         if let mosh {
+            await beforeConnect?()
+            try checkOpen()
             _ = try await mosh.prepareForApplicationBackground()
             try await mosh.resumeFromApplicationBackground()
         }
@@ -319,6 +330,7 @@ public actor ResumableTerminalClient: ResumableTerminalSession {
         maintenance?.cancel()
         pathMonitor?.cancel()
         pathMonitor = nil
+        beforeConnect = nil
         if let mosh { await mosh.stop() }
         if let eternal { await eternal.close() }
         await bridge?.close()

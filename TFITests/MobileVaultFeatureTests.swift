@@ -3,6 +3,7 @@ import Foundation
 import SwiftData
 import TermindApplication
 import TermindDomain
+import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
@@ -12,6 +13,18 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test(arguments: [LocalDiscoveryProtocol.ssh, .telnet])
+    func discoveryUsesTheSelectedProtocolWithoutRequestingPro(_ connectionProtocol: LocalDiscoveryProtocol) throws {
+        var dependencies = MobileAppDependencies.testing()
+        dependencies.proAccess = .testing(status: .free)
+        let app = try MobileAppModel(dependencies: dependencies)
+        defer { app.outbox.stop() }
+        let model = app.localDiscoveryModel(protocol: connectionProtocol)
+        #expect(model.connectionProtocol == connectionProtocol)
+        #expect(model.phase == .idle)
+        #expect(!app.pro.isPaywallPresented)
+    }
+
     @Test func webAuthnGenerationUsesOriginalEditorAndPreferredVerification() async throws {
         let app = try MobileAppModel(inMemory: true)
         defer { app.outbox.stop() }
@@ -94,7 +107,7 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections == [
                 [.ssh, .mosh, .eternalTerminal, .telnet, .sftp],
-                [.tailscale],
+                [.wake, .tailscale],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -103,6 +116,7 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
                 [.ssh, .sftp],
+                [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -112,6 +126,7 @@ struct MobileVaultFeatureTests {
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
                 [.telnet],
+                [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])
@@ -125,6 +140,7 @@ struct MobileVaultFeatureTests {
         host.telnetEnabled = false
         #expect(
             MobileHostMenuPolicy.sections(for: host) == [
+                [.wake],
                 [.edit, .duplicate],
                 [.delete],
             ])

@@ -872,6 +872,7 @@ final class SSHSessionModel: RemotePathDisplaying, Identifiable {
             authenticationReference: authenticationReference
         )
         guard let store = statusStore else { throw TailscaleConfigurationError.unavailable }
+        configuration.beforeConnect = store.connectionWakeAction(for: jumps.map(\.id) + [host.id])
         configuration.network = try store.tailscaleNetwork(
             for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
         configuration.tailscaleNodeID = host.tailscale?.stableNodeID

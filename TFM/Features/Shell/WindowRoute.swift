@@ -87,7 +87,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
 /// actions create a work route.
 nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case tailscaleDetails(Host.ID)
-    case hostEditor(Host.ID?, groupID: HostGroup.ID? = nil)
+    case hostEditor(Host.ID?, groupID: HostGroup.ID? = nil, discover: Bool = false)
     case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
     case forwardingEditor(PortForwardingRule.ID?)
     case identityEditor(Identity.ID?)

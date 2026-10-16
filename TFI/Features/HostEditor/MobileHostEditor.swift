@@ -22,14 +22,18 @@ struct MobileHostEditor: View {
     let original: Host
     @State private var tailscaleUsername = ""
     @State private var originalTailscaleUsername = ""
+    @State private var showsDiscovery = false
+    @State private var showsWakePaywall = false
+    @State private var macModel: HostMACAddressModel?
     @State private var draft: Host
     @State private var editorRoute: EditorRoute?
     @State private var customIdentity = HostCustomIdentityDraft()
     @State private var didLoadCustom = false
     @State private var selectedProtocol: HostTerminalProtocol
 
-    init(app: MobileAppModel, host: Host) {
+    init(app: MobileAppModel, host: Host, discover: Bool = false) {
         self.app = app
+        _showsDiscovery = State(initialValue: discover)
         original = host
         _draft = State(initialValue: host)
         _selectedProtocol = State(initialValue: host.sshEnabled ? .ssh : .telnet)
@@ -89,6 +93,13 @@ struct MobileHostEditor: View {
                     }
                 }
                 HostConnectionFields(host: $draft, protocol: selectedProtocol).disabled(draft.isTailscaleManaged)
+                if !draft.isTailscaleManaged, LocalDiscoveryProtocol(terminalProtocol: selectedProtocol) != nil {
+                    Section {
+                        Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                            showsDiscovery = true
+                        }
+                    }
+                }
                 if selectedProtocol == .ssh && draft.sshEnabled {
                     if draft.isTailscaleManaged {
                         Section(AppStrings.Vault.authentication.swiftUIKey) {
@@ -224,6 +235,7 @@ struct MobileHostEditor: View {
                         editEnvironmentVariable: { editorRoute = .environmentVariable($0) }
                     )
                     HostIntegrationSection(mode: $draft.shellIntegrationMode)
+                    wakeOnLANSection
                 } else if selectedProtocol == .telnet && draft.telnetEnabled {
                     telnetAuthenticationSection
                     telnetRoutingSection
@@ -234,10 +246,37 @@ struct MobileHostEditor: View {
                             }
                         }
                     }
+                    wakeOnLANSection
                     telnetCommandSection
+                } else {
+                    wakeOnLANSection
                 }
             }
         )
+        .sheet(isPresented: $showsDiscovery) {
+            if let connectionProtocol = LocalDiscoveryProtocol(terminalProtocol: selectedProtocol) {
+                MobileLocalDiscoveryView(model: app.localDiscoveryModel(protocol: connectionProtocol)) {
+                    $0.prefill(&draft)
+                    selectedProtocol = $0.connectionProtocol.terminalProtocol
+                }
+            }
+        }
+        .sheet(isPresented: $showsWakePaywall) { MobileProView(pro: app.pro) }
+        .sheet(
+            isPresented: Binding(
+                get: { macModel != nil },
+                set: {
+                    if !$0 {
+                        macModel?.cancel()
+                        macModel = nil
+                    }
+                })
+        ) {
+            if let macModel {
+                MobileHostMACAddressView(model: macModel, library: library) { draft.wakeOnLAN.macAddress = $0 }
+            }
+        }
+
         .sheet(item: $editorRoute) { route in
             switch route {
             case .hostIdentity:
@@ -300,6 +339,21 @@ struct MobileHostEditor: View {
             }
         }
         .onAppear(perform: loadCustomOnce)
+    }
+
+    private var wakeOnLANSection: some View {
+        HostWakeOnLANSection(
+            preferences: $draft.wakeOnLAN,
+            requestAccess: {
+                if app.pro.canUse(.autoWakeOnLAN) { return true }
+                showsWakePaywall = true
+                return false
+            },
+            fetchMAC: draft.sshEnabled
+                ? {
+                    macModel = app.macAddressModel(
+                        host: draft, custom: customIdentity, tailscaleUsername: tailscaleUsername)
+                } : nil)
     }
 
     private var telnetAuthenticationSection: some View {

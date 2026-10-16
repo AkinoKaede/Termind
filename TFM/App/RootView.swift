@@ -231,6 +231,16 @@ struct RootView: View {
         // layout drops without competing for the same text payload.
         .environment(window)
         .modifier(InitialNotificationAuthorization(model: app.notificationSettings, service: app.notifications))
+        .alert(
+            AppStrings.LocalNetwork.wake,
+            isPresented: Binding(
+                get: { window.wakeNotice != nil }, set: { if !$0 { window.wakeNotice = nil } }
+            )
+        ) {
+            Button(AppStrings.Common.ok.swiftUIKey) { window.wakeNotice = nil }
+        } message: {
+            Text(window.wakeNotice ?? "")
+        }
         .proPaywallPresenter(app: app, window: window)
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedDestination) {

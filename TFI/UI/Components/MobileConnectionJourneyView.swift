@@ -19,6 +19,7 @@ struct MobileConnectionJourneyView: View {
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
     var remoteSession: RemoteSessionCoordinator? = nil
+    var allowsPersistingHostKey = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -75,7 +76,7 @@ struct MobileConnectionJourneyView: View {
         } else if let hostKey {
             SSHHostKeyConfirmationForm(
                 prompt: hostKey, displayAddress: hostKey.observation.hostname,
-                proceed: { accept(false) }, trust: { accept(true) }, deny: cancel)
+                proceed: { accept(false) }, trust: allowsPersistingHostKey ? { accept(true) } : nil, deny: cancel)
         } else if let remoteSession, remoteSession.prompt != nil {
             RemoteSessionPromptView(coordinator: remoteSession, cancel: cancel)
                 .connectionFormChrome(isEnabled: true)

@@ -66,6 +66,17 @@ public nonisolated enum VaultSyncCodec {
         guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
+        if envelope.formatVersion == 7 {
+            return try encoder.encode(VaultWireV7.Envelope(envelope))
+        }
+        if case .host(let host) = envelope.payload, host.wakeOnLAN != .init() {
+            throw CocoaError(.coderInvalidValue)
+        }
+        if case .hostGroup(let group) = envelope.payload,
+            group.tailscale?.hostPreferences.values.contains(where: { $0.wakeOnLAN != .init() }) == true
+        {
+            throw CocoaError(.coderInvalidValue)
+        }
         if envelope.formatVersion == 6 {
             return try encoder.encode(VaultWireV6.Envelope(envelope))
         }
@@ -144,6 +155,7 @@ public nonisolated enum VaultSyncCodec {
             try JSONDecoder().decode(VaultWireV3.Envelope.self, from: $0).domainValue
         }
         for kind in [VaultRecordKind.host, .hostGroup] {
+            decoders[kind.rawValue]?[7] = { try JSONDecoder().decode(VaultWireV7.Envelope.self, from: $0).domainValue }
             decoders[kind.rawValue]?[6] = { try JSONDecoder().decode(VaultWireV6.Envelope.self, from: $0).domainValue }
             decoders[kind.rawValue]?[5] = { try JSONDecoder().decode(VaultWireV5.Envelope.self, from: $0).domainValue }
             decoders[kind.rawValue]?[4] = { try JSONDecoder().decode(VaultWireV4.Envelope.self, from: $0).domainValue }

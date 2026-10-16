@@ -84,6 +84,10 @@ struct TermindCommands: Commands {
                 window?.openHostEditor(host: nil)
             }
             .termindShortcut("n", modifiers: [.command, .shift])
+            Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                window?.openVaultWork(.hostEditor(nil, discover: true), on: .hosts)
+            }
+            .disabled(window == nil)
 
             Divider()
 

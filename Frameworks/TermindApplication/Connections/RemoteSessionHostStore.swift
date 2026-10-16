@@ -8,6 +8,7 @@ import struct TermindDomain.Host
 /// the complete Vault mutation surface from `HostLibraryModel`.
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
+    func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction?
     func host(_ id: Host.ID) -> Host?
     func networkConfigurationStamp(for host: Host) -> Data
     func tailscaleNetwork(for host: Host) throws -> (any SSHNetworkDialing)?
@@ -69,6 +70,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction? { nil }
     public func savedTailscaleUsername(for host: Host) -> String? { nil }
     public func tailscaleUsername(for host: Host) -> String { "root" }
     public func saveTailscaleUsername(_ username: String, hostID: Host.ID) -> Bool { false }
@@ -411,6 +413,7 @@ extension RemoteSessionHostStore {
             charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication
         )
+        configuration.beforeConnect = connectionWakeAction(for: snapshot.jumps.map(\.id) + [snapshot.target.id])
         configuration.tailscaleNodeID = snapshot.tailscaleNodeID
         if let first = host(snapshot.jumps.first?.id ?? snapshot.target.id) {
             configuration.network = try tailscaleNetwork(for: first)

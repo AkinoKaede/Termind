@@ -52,6 +52,22 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private let keychain: any SecretStoring
     private let defaults: UserDefaults
     private var expansionState = LibraryExpansionState()
+    @ObservationIgnored public var wakeOnLAN: WakeOnLANController?
+
+    public func connectionWakeAction(for hostIDs: [UUID]) -> ConnectionWakeAction? {
+        guard wakeOnLAN != nil else { return nil }
+        return { [weak self] in
+            await self?.wakeBeforeConnecting(hostIDs)
+        }
+    }
+
+    private func wakeBeforeConnecting(_ ids: [UUID]) {
+        for id in ids {
+            guard !Task.isCancelled else { return }
+            if let host = host(id) { wakeOnLAN?.automaticallyWake(host.wakeOnLAN) }
+        }
+    }
+
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
@@ -449,12 +465,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         } else {
             password = nil
         }
-        return TelnetConnectionConfiguration(
+        var configuration = TelnetConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.telnetPort,
             username: username?.isEmpty == false ? username : nil,
             password: password, charset: host.telnetCharset,
             proxy: try terminalTransportProxy(for: host.telnetProxy, ownerHostID: host.id)
         )
+        configuration.beforeConnect = connectionWakeAction(for: [host.id])
+        return configuration
     }
 
     private func terminalTransportProxy(
@@ -513,7 +531,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     ) throws -> SSHConnectionPreparation {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
         let submissions = route.submissions(merging: submissions)
-        return SSHConnectionPreparation(
+        var preparation = SSHConnectionPreparation(
             nodes: try route.hosts.map { node in
                 if node.isTailscaleManaged {
                     var prepared = SSHConnectionPreparation.Node(
@@ -540,6 +558,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             },
             secrets: keychain
         )
+        preparation.beforeConnect = connectionWakeAction(for: route.hosts.map(\.id))
+        return preparation
     }
 
     public func sshConnectionConfiguration(
@@ -558,6 +578,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 credentials: [], expectedHostKeys: [], charset: host.charset,
                 authenticationReference: SSHAuthenticationReference(username: username, permitsNone: true)
             )
+            configuration.beforeConnect = connectionWakeAction(for: [host.id])
             configuration.network = try tailscaleNetwork(for: host)
             configuration.tailscaleNodeID = host.tailscale?.stableNodeID
             return configuration
@@ -604,6 +625,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host: host, submission: submissions[host.id]
             )
         )
+        configuration.beforeConnect = connectionWakeAction(for: route(for: host).map(\.id))
         configuration.network = try tailscaleNetwork(for: route(for: host).first ?? host)
         return configuration
     }
@@ -2504,6 +2526,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 host.iconOverrideID = preferences.iconOverrideID
                 host.sshCharset = preferences.charset
                 host.sftpChannelInitialPath = preferences.sftpInitialPath
+                host.wakeOnLAN = preferences.wakeOnLAN
                 host.terminalTransports = preferences.terminalTransports
                 host.sessionPersistence = preferences.sessionPersistence
                 host.shellIntegrationMode = preferences.shellIntegrationMode
@@ -2534,6 +2557,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         preferences.iconOverrideID = host.iconOverrideID
         preferences.charset = host.sshCharset
         preferences.sftpInitialPath = host.sftpChannelInitialPath
+        preferences.wakeOnLAN = host.wakeOnLAN
         preferences.terminalTransports = host.terminalTransports
         preferences.sessionPersistence = host.sessionPersistence
         preferences.shellIntegrationMode = host.shellIntegrationMode

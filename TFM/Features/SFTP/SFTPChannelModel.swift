@@ -468,6 +468,8 @@ final class SFTPChannelModel: RemotePathDisplaying, Identifiable {
                     )
                 }
                 var routedConfiguration = configuration
+                routedConfiguration.beforeConnect = store.connectionWakeAction(
+                    for: configuration.jumps.map(\.id) + [host.id])
                 routedConfiguration.network = try store.tailscaleNetwork(
                     for: (connectionRoute?.hosts ?? store.route(for: host)).first ?? host)
                 routedConfiguration.tailscaleNodeID = host.tailscale?.stableNodeID

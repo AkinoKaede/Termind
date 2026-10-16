@@ -162,6 +162,9 @@ struct HostsPageView: ManagedCardPage {
                 Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil, groupID: group.id)
                 }
+                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                    openWork(.hostEditor(nil, groupID: group.id, discover: true))
+                }
                 Button(AppStrings.Vault.newSubgroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
                     openWork(.hostGroupEditor(groupID: nil, parentID: group.id))
                 }
@@ -182,6 +185,9 @@ struct HostsPageView: ManagedCardPage {
             .contextMenu {
                 Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil)
+                }
+                Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                    openWork(.hostEditor(nil, discover: true))
                 }
                 Button(AppStrings.Vault.newGroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
                     openWork(.hostGroupEditor(groupID: nil, parentID: nil))
@@ -223,6 +229,9 @@ struct HostsPageView: ManagedCardPage {
         return [
             NativeMenuEntry(title: AppStrings.Vault.newHost, symbol: MenuSymbol.newHost) {
                 openHostEditor(nil, groupID: groupID)
+            },
+            NativeMenuEntry(title: AppStrings.LocalNetwork.discovery, symbol: "network") {
+                openWork(.hostEditor(nil, groupID: groupID, discover: true))
             },
             NativeMenuEntry(title: AppStrings.Vault.newGroup, symbol: MenuSymbol.newGroup) {
                 openWork(.hostGroupEditor(groupID: nil, parentID: groupID))
@@ -340,6 +349,7 @@ struct HostsPageView: ManagedCardPage {
             Text(AppStrings.Vault.emptyHostsExplanation)
         } actions: {
             Button(AppStrings.Vault.newHost.swiftUIKey) { openHostEditor(nil) }
+            Button(AppStrings.LocalNetwork.discovery.swiftUIKey) { openWork(.hostEditor(nil, discover: true)) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -379,7 +389,7 @@ struct HostsPageView: ManagedCardPage {
     }
 
     private func select(_ host: Host, action: @escaping () -> Void) {
-        guard let route = window.vaultWorkRoute, case .hostEditor(let editingID, _) = route else {
+        guard let route = window.vaultWorkRoute, case .hostEditor(let editingID, _, _) = route else {
             action()
             return
         }

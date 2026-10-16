@@ -79,6 +79,15 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
             throw TelnetConnectionError.invalidConfiguration
         }
 
+        do {
+            try Task.checkCancellation()
+            await configuration.beforeConnect?()
+            try Task.checkCancellation()
+        } catch {
+            configuration.clearSecret()
+            throw error
+        }
+
         if configuration.proxy != nil {
             try await connectThroughProxy(
                 using: configuration, columns: columns, rows: rows)

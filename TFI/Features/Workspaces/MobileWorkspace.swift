@@ -1006,6 +1006,8 @@ final class MobileWorkspace: Identifiable {
                     resolvedConfiguration = try await preparation.resolve(
                         discoveryOnly: resumeCheckpoint != nil, trustPolicy: .allowChallenge)
                 }
+                resolvedConfiguration.beforeConnect = hosts.connectionWakeAction(
+                    for: resolvedConfiguration.jumps.map(\.id) + [host.id])
                 if let resumeUsername { resolvedConfiguration.username = resumeUsername }
                 let config = resolvedConfiguration
                 guard generation == token, !Task.isCancelled else { return }

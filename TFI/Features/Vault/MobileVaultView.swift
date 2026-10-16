@@ -19,6 +19,7 @@ enum MobileHostMenuAction: Hashable, Sendable {
     case eternalTerminal
     case telnet
     case sftp
+    case wake
     case edit
     case tailscale
     case duplicate
@@ -28,7 +29,7 @@ enum MobileHostMenuAction: Hashable, Sendable {
 nonisolated enum MobileHostMenuPolicy {
     static let sections: [[MobileHostMenuAction]] = [
         [.ssh, .mosh, .eternalTerminal, .telnet, .sftp],
-        [.tailscale],
+        [.wake, .tailscale],
         [.edit, .duplicate],
         [.delete],
     ]
@@ -42,7 +43,7 @@ nonisolated enum MobileHostMenuPolicy {
                 case .mosh: host.isEnabled(.mosh)
                 case .eternalTerminal: host.isEnabled(.eternalTerminal)
                 case .tailscale: host.isTailscaleManaged || hasTailscalePeer
-                case .edit, .duplicate, .delete: true
+                case .wake, .edit, .duplicate, .delete: true
                 }
             }
             return available.isEmpty ? nil : available
@@ -298,6 +299,8 @@ struct MobileVaultView: View {
     let executeSnippet: (Snippet, [Host.ID]) -> Void
     private let openMetrics: (() -> Void)?
     @Binding var editingHost: Host?
+    @State private var discoverNewHost = false
+    @State private var wakeNotice: String?
     @State private var query = ""
     @State private var tailscaleHost: Host?
     @State private var deletingHost: Host?
@@ -501,6 +504,10 @@ struct MobileVaultView: View {
                     Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
                         editingHost = Host(name: "", host: "")
                     }
+                    Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                        discoverNewHost = true
+                        editingHost = Host(name: "", host: "")
+                    }
                     Button(AppStrings.Vault.newGroup.swiftUIKey, systemImage: "folder.badge.plus") {
                         groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: nil)
                     }
@@ -512,7 +519,19 @@ struct MobileVaultView: View {
         .sheet(item: $tailscaleHost) { host in
             TailscalePeerView(model: app.tailscale, host: host) { UIPasteboard.general.string = $0 }
         }
-        .sheet(item: $editingHost) { MobileHostEditor(app: app, host: $0) }
+        .sheet(item: $editingHost, onDismiss: { discoverNewHost = false }) {
+            MobileHostEditor(app: app, host: $0, discover: discoverNewHost)
+        }
+        .alert(
+            AppStrings.LocalNetwork.wake,
+            isPresented: Binding(
+                get: { wakeNotice != nil }, set: { if !$0 { wakeNotice = nil } }
+            )
+        ) {
+            Button(AppStrings.Common.ok.swiftUIKey) { wakeNotice = nil }
+        } message: {
+            Text(wakeNotice ?? "")
+        }
         .sheet(item: $groupEditorRequest) { request in
             MobileHostGroupEditor(
                 app: app,
@@ -680,6 +699,10 @@ struct MobileVaultView: View {
                     Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
                         editingHost = Host(name: "", host: "", groupID: group.id)
                     }
+                    Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                        discoverNewHost = true
+                        editingHost = Host(name: "", host: "", groupID: group.id)
+                    }
                     Button(AppStrings.Vault.newSubgroup.swiftUIKey, systemImage: "folder.badge.plus") {
                         groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: group.id)
                     }
@@ -710,6 +733,10 @@ struct MobileVaultView: View {
             } else if case .ungrouped = section.id {
                 Menu {
                     Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
+                        editingHost = Host(name: "", host: "")
+                    }
+                    Button(AppStrings.LocalNetwork.discovery.swiftUIKey, systemImage: "network") {
+                        discoverNewHost = true
                         editingHost = Host(name: "", host: "")
                     }
                     Button(AppStrings.Vault.newGroup.swiftUIKey, systemImage: "folder.badge.plus") {
@@ -833,6 +860,10 @@ struct MobileVaultView: View {
         case .sftp:
             Button(AppStrings.SFTP.sftp.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.sftp.symbol) {
                 open(host.id, .sftp)
+            }
+        case .wake:
+            Button(AppStrings.LocalNetwork.wake.swiftUIKey, systemImage: "power") {
+                wakeNotice = app.requestWake(host) { editingHost = host }
             }
         case .edit:
             Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editingHost = host }
