@@ -8,7 +8,7 @@ import Testing
 
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct TerminalSettingsRenderingTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo", "Helvetica"])
     func terminalSettingsRenderInSupportedLanguages(_ language: String, family: String) async throws {
         let domain = "TerminalFontRendering.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))
@@ -38,7 +38,7 @@ struct TerminalSettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func fontNamesPreviewTheirOwnFamilies(_ language: String) async throws {
         let view = TerminalFontOptions(
-            family: .constant("Menlo"), families: ["Courier", "Menlo", "Monaco"], didSelect: {}
+            family: .constant("Helvetica"), families: ["Courier", "Helvetica", "Menlo", "Monaco"], didSelect: {}
         )
         .environment(\.locale, Locale(identifier: language))
         .frame(width: 280, height: 320)

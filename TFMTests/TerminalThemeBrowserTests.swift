@@ -165,13 +165,20 @@ struct TerminalThemeBrowserTests {
         #expect(model.issue == nil)
         #expect(model.terminal.theme == lastValid)
         #expect(model.palette == lastPalette)
-        #expect(
-            model.update(
-                themeName: name, text: "font-size = 30\nbackground = ABCDEF", isDark: isDark,
-                font: .init(family: "Menlo", size: 18, sizeFollowsTheme: false)))
+        let fontText = "font-family = Courier\nfont-family = Helvetica\nfont-size = 30\nbackground = ABCDEF"
+        let font = TerminalFontPreferences(family: "Menlo", size: 18, sizeFollowsTheme: false)
+        #expect(model.update(themeName: name, text: fontText, isDark: isDark, font: font))
         #expect(model.issue == nil)
         #expect(model.terminal.controller === controller)
-        #expect(model.terminal.theme.dark.rendered.hasSuffix("font-family = \nfont-family = Menlo\nfont-size = 18"))
+        #expect(model.terminal.theme.dark.rendered.hasSuffix("font-family = Menlo\n" + fontText + "\nfont-size = 18"))
+        let state = TerminalViewState()
+        state.applyPreferences(
+            .init(
+                darkTheme: name, lightTheme: name,
+                darkCustomEnabled: true, lightCustomEnabled: true,
+                darkCustomConfiguration: fontText, lightCustomConfiguration: fontText),
+            font: font)
+        #expect(model.terminal.theme.dark == (isDark ? state.theme.dark : state.theme.light))
         #expect(!model.terminal.isFocused)
     }
 }

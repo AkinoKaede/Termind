@@ -12,7 +12,7 @@ final class TerminalFontCatalog {
         families = NSFontManager.shared.availableFontFamilies.filter { family in
             NSFontManager.shared.availableMembers(ofFontFamily: family)?.contains { member in
                 guard let fontName = member.first as? String else { return false }
-                return NSFont(name: fontName, size: 12)?.isFixedPitch == true
+                return NSFont(name: fontName, size: 12) != nil
             } == true
         }.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }

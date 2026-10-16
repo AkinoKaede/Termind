@@ -8,7 +8,7 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileTerminalFontTests {
-    @Test func fontCatalogIncludesOnlyAvailableMonospacedFamilies() {
+    @Test func fontCatalogIncludesEveryLoadableFamilyInLocalizedOrder() {
         TerminalFontCatalog.shared.refresh()
         let catalogFamilies = TerminalFontCatalog.shared.families
         #expect(!catalogFamilies.isEmpty)
@@ -18,9 +18,13 @@ struct MobileTerminalFontTests {
         for family in catalogFamilies {
             #expect(
                 UIFont.fontNames(forFamilyName: family).contains {
-                    UIFont(name: $0, size: 14)?.fontDescriptor.symbolicTraits.contains(.traitMonoSpace) == true
+                    UIFont(name: $0, size: 14) != nil
                 })
         }
+        let loadableFamilies = UIFont.familyNames.filter { family in
+            UIFont.fontNames(forFamilyName: family).contains { UIFont(name: $0, size: 14) != nil }
+        }
+        #expect(Set(catalogFamilies) == Set(loadableFamilies))
 
         let proportionalFamily = UIFont.familyNames.first { family in
             let fonts = UIFont.fontNames(forFamilyName: family).compactMap { UIFont(name: $0, size: 14) }
@@ -29,7 +33,7 @@ struct MobileTerminalFontTests {
         }
         #expect(proportionalFamily != nil)
         if let proportionalFamily {
-            #expect(!catalogFamilies.contains(proportionalFamily))
+            #expect(catalogFamilies.contains(proportionalFamily))
         }
     }
 
@@ -38,7 +42,7 @@ struct MobileTerminalFontTests {
         arguments: ["en", "zh-Hans", "zh-Hant"])
     func fontNamesPreviewTheirOwnFamilies(_ language: String) async throws {
         let view = TerminalFontOptions(
-            family: .constant("Menlo"), families: ["Courier", "Menlo", "Courier New"], didSelect: {}
+            family: .constant("Helvetica"), families: ["Courier", "Courier New", "Helvetica", "Menlo"], didSelect: {}
         )
         .environment(\.locale, Locale(identifier: language))
         .frame(width: 280, height: 320)
@@ -50,7 +54,7 @@ struct MobileTerminalFontTests {
 
     @Test(
         .requiresKeyWindow,
-        arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
+        arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo", "Helvetica"])
     func terminalFontSettingsRenderInSupportedLanguages(_ language: String, family: String) async throws {
         let domain = "MobileTerminalFontRendering.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))

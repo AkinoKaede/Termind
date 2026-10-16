@@ -11,7 +11,7 @@ final class TerminalFontCatalog {
     func refresh() {
         families = UIFont.familyNames.filter { family in
             UIFont.fontNames(forFamilyName: family).contains { name in
-                UIFont(name: name, size: 12)?.fontDescriptor.symbolicTraits.contains(.traitMonoSpace) == true
+                UIFont(name: name, size: 12) != nil
             }
         }.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }

@@ -26,13 +26,20 @@ nonisolated extension TermindTerminalPalette {
 }
 
 nonisolated extension TerminalCustomConfiguration {
-    func applying(to base: GhosttyTerminal.TerminalConfiguration)
+    func applying(to base: GhosttyTerminal.TerminalConfiguration, preferredFontFamily: String)
         -> GhosttyTerminal.TerminalConfiguration
     {
         GhosttyTerminal.TerminalConfiguration(startingFrom: base) { builder in
+            if !preferredFontFamily.isEmpty { builder.withFontFamily(preferredFontFamily) }
             // Command alerts are owned by the app's shared settings and dispatcher.
             for entry in entries where entry.key != "notify-on-command-finish" {
                 builder.withCustom(entry.key, entry.value)
+                if !preferredFontFamily.isEmpty && entry.key == "font-family"
+                    && (entry.value.isEmpty || entry.value == "\"\"")
+                {
+                    // Keep the theme's reset semantics without dropping the device's first choice.
+                    builder.withFontFamily(preferredFontFamily)
+                }
             }
         }
     }
@@ -76,14 +83,10 @@ public nonisolated enum TermindTerminalThemeCatalog {
     ) -> GhosttyTerminal.TerminalConfiguration {
         let selected = resolvedTheme(named: themeName, isDark: isDark)
         let base = selected.toTerminalConfiguration()
-        let themed = customEnabled ? TerminalCustomConfiguration(customText).applying(to: base) : base
-        // Ghostty renders theme commands after session overrides. Typography must
-        // come last here, and font-family is a list that needs an explicit reset.
+        let themed = TerminalCustomConfiguration(customEnabled ? customText : "")
+            .applying(to: base, preferredFontFamily: font.family)
+        // Ghostty renders theme commands after session overrides, so manual size must come last here.
         return GhosttyTerminal.TerminalConfiguration(startingFrom: themed) { builder in
-            if !font.family.isEmpty {
-                builder.withFontFamily("")
-                builder.withFontFamily(font.family)
-            }
             if !font.sizeFollowsTheme { builder.withFontSize(Float(font.size)) }
         }
     }
