@@ -632,7 +632,8 @@ struct SFTPFeatureTests {
         #expect(await gate.maximumActive(for: "host-0") == limits.1)
         for _ in 0..<500 {
             await gate.releaseAll()
-            if coordinator.activeCount == 0 { break }
+            // Admission can still be pending between the last active task and its successor.
+            if coordinator.sftpTransfers.allSatisfy({ $0.state.isFinished }) { break }
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
